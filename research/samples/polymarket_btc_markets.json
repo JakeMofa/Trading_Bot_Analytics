@@ -1,0 +1,200 @@
+{
+  "markets": [
+    {
+      "id": "1122904",
+      "question": "BTC Up or Down: 60 min",
+      "slug": "cpc-btc-updown-1h-2026-09-30-0100z",
+      "endDate": "2026-09-30T02:30:00Z",
+      "category": "crypto",
+      "startDate": "2026-09-29T01:00:13Z",
+      "description": "This market will settle to Up if the Bitcoin price at 10:00PM ET on Sep 29, 2026 is greater than or equal to the price at 9:00PM ET on Sep 29, 2026. Otherwise, this market will settle to Down. Outcome sourced from CF Benchmarks' Bitcoin Real-Time Index (BRTI), available at https://www.cfbenchmarks.com/data/indices/BRTI. The price at the beginning and at the end of the time range is determined the same way: in the last minute before each of those two times, 60 BRTI prices are collected. The official value for that time is the simple average of these prices, rounded to the nearest 2 decimal places. Please note that this market is about the price according to CF Benchmarks' BRTI, not according to other sources or spot markets.",
+      "active": true,
+      "marketType": "",
+      "closed": false,
+      "createdAt": "2026-09-29T01:06:01Z",
+      "updatedAt": "2026-09-30T01:38:39Z",
+      "archived": false,
+      "orderPriceMinTickSize": 0.01,
+      "gameStartTime": "2026-09-30T01:00:00Z",
+      "manualActivation": false,
+      "sportsMarketType": "",
+      "marketSides": [
+        {
+          "id": "2245290",
+          "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+          "identifier": "cpc-btc-updown-1h-2026-09-30-0100z",
+          "createdAt": "2026-09-29T01:06:01Z",
+          "updatedAt": "2026-09-29T01:06:01Z",
+          "description": "Yes",
+          "price": "0.4200",
+          "marketId": 1122904,
+          "long": true,
+          "quote": {
+            "value": "0.4200",
+            "currency": "USD"
+          },
+          "tradable": true
+        },
+        {
+          "id": "2245291",
+          "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+          "identifier": "cpc-btc-updown-1h-2026-09-30-0100z",
+          "createdAt": "2026-09-29T01:06:01Z",
+          "updatedAt": "2026-09-29T01:06:01Z",
+          "description": "No",
+          "price": "0.59",
+          "marketId": 1122904,
+          "long": false,
+          "quote": {
+            "value": "0.59",
+            "currency": "USD"
+          },
+          "tradable": true
+        }
+      ],
+      "outcomes": "[\"Yes\",\"No\"]",
+      "outcomePrices": "[\"0.4200\",\"0.59\"]",
+      "ep3Status": "OPEN",
+      "status": "MARKET_STATUS_OPEN",
+      "assetPriceTerms": {
+        "marketType": "ASSET_PRICE_MARKET_TYPE_UP_DOWN",
+        "asset": {
+          "assetClass": "ASSET_CLASS_CRYPTO",
+          "symbol": "btc"
+        },
+        "indexSymbol": "BRTI",
+        "horizon": "1h",
+        "windowStart": "2026-09-30T01:00:00Z",
+        "windowEnd": "2026-09-30T02:00:00Z",
+        "priceToBeat": {
+          "value": "83408.05",
+          "currency": "USD"
+        },
+        "strike": null,
+        "rangeLower": null,
+        "rangeUpper": null,
+        "rangeKind": "ASSET_PRICE_RANGE_KIND_UNSPECIFIED",
+        "direction": "ASSET_PRICE_DIRECTION_UNSPECIFIED",
+        "settlementPrice": null
+      },
+      "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_UNSPECIFIED",
+      "hidden": false,
+      "tags": [],
+      "title": "BTC Up or Down: 60 min",
+      "subtitle": "Sep 29, 9:00PM - 10:00PM",
+      "color": "#F7931A",
+      "darkColor": "#F7931A",
+      "feeCoefficient": 0.0695,
+      "bestBidQuote": {
+        "value": "0.4100",
+        "currency": "USD"
+      },
+      "bestAskQuote": {
+        "value": "0.4200",
+        "currency": "USD"
+      },
+      "titleShort": "BTC Up or Down: 60 min",
+      "ep3SyncedAt": "2026-09-30T01:00:00Z",
+      "minimumTradeQty": 0.01,
+      "comboEnabled": false
+    },
+    {
+      "id": "1127883",
+      "question": "BTC Up or Down: 15 min",
+      "slug": "cpc-btc-updown-15m-2026-09-30-0145z",
+      "endDate": "2026-09-30T02:30:00Z",
+      "category": "crypto",
+      "startDate": "2026-09-29T13:45:10Z",
+      "description": "This market will settle to Up if the Bitcoin price at 10:00PM ET on Sep 29, 2026 is greater than or equal to the price at 9:45PM ET on Sep 29, 2026. Otherwise, this market will settle to Down. Outcome sourced from CF Benchmarks' Bitcoin Real-Time Index (BRTI), available at https://www.cfbenchmarks.com/data/indices/BRTI. The price at the beginning and at the end of the time range is determined the same way: in the last minute before each of those two times, 60 BRTI prices are collected. The official value for that time is the simple average of these prices, rounded to the nearest 2 decimal places. Please note that this market is about the price according to CF Benchmarks' BRTI, not according to other sources or spot markets.",
+      "active": true,
+      "marketType": "",
+      "closed": false,
+      "createdAt": "2026-09-29T13:48:00Z",
+      "updatedAt": "2026-09-30T01:45:00Z",
+      "archived": false,
+      "orderPriceMinTickSize": 0.01,
+      "gameStartTime": "2026-09-30T01:45:00Z",
+      "manualActivation": false,
+      "sportsMarketType": "",
+      "marketSides": [
+        {
+          "id": "2255248",
+          "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+          "identifier": "cpc-btc-updown-15m-2026-09-30-0145z",
+          "createdAt": "2026-09-29T13:48:00Z",
+          "updatedAt": "2026-09-29T13:48:00Z",
+          "description": "Yes",
+          "price": "0.4700",
+          "marketId": 1127883,
+          "long": true,
+          "quote": {
+            "value": "0.4700",
+            "currency": "USD"
+          },
+          "tradable": true
+        },
+        {
+          "id": "2255249",
+          "marketSideType": "MARKET_SIDE_TYPE_INSTRUMENT",
+          "identifier": "cpc-btc-updown-15m-2026-09-30-0145z",
+          "createdAt": "2026-09-29T13:48:00Z",
+          "updatedAt": "2026-09-29T13:48:00Z",
+          "description": "No",
+          "price": "0.54",
+          "marketId": 1127883,
+          "long": false,
+          "quote": {
+            "value": "0.54",
+            "currency": "USD"
+          },
+          "tradable": true
+        }
+      ],
+      "outcomes": "[\"Yes\",\"No\"]",
+      "outcomePrices": "[\"0.4700\",\"0.54\"]",
+      "ep3Status": "OPEN",
+      "status": "MARKET_STATUS_OPEN",
+      "assetPriceTerms": {
+        "marketType": "ASSET_PRICE_MARKET_TYPE_UP_DOWN",
+        "asset": {
+          "assetClass": "ASSET_CLASS_CRYPTO",
+          "symbol": "btc"
+        },
+        "indexSymbol": "BRTI",
+        "horizon": "15m",
+        "windowStart": "2026-09-30T01:45:00Z",
+        "windowEnd": "2026-09-30T02:00:00Z",
+        "priceToBeat": {
+          "value": "83399.79",
+          "currency": "USD"
+        },
+        "strike": null,
+        "rangeLower": null,
+        "rangeUpper": null,
+        "rangeKind": "ASSET_PRICE_RANGE_KIND_UNSPECIFIED",
+        "direction": "ASSET_PRICE_DIRECTION_UNSPECIFIED",
+        "settlementPrice": null
+      },
+      "sportsMarketTypeV2": "SPORTS_MARKET_TYPE_UNSPECIFIED",
+      "hidden": false,
+      "tags": [],
+      "title": "BTC Up or Down: 15 min",
+      "subtitle": "Sep 29, 9:45PM - 10:00PM",
+      "color": "#F7931A",
+      "darkColor": "#F7931A",
+      "feeCoefficient": 0.0695,
+      "bestBidQuote": {
+        "value": "0.4600",
+        "currency": "USD"
+      },
+      "bestAskQuote": {
+        "value": "0.4700",
+        "currency": "USD"
+      },
+      "titleShort": "BTC Up or Down: 15 min",
+      "ep3SyncedAt": "2026-09-30T01:45:00Z",
+      "minimumTradeQty": 0.01,
+      "comboEnabled": false
+    }
+  ]
+}

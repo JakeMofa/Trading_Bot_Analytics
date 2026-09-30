@@ -39,8 +39,19 @@ def amount(value):
 def get_json(base, path, params=None):
     url = base + path + ('?' + urlencode(params) if params else '')
     req = Request(url, headers={'User-Agent': 'BTC-Intelligence-ReadOnly/0.1', 'Accept': 'application/json'})
-    with urlopen(req, timeout=20) as response:
-        return json.loads(response.read())
+    for attempt in range(4):
+        try:
+            with urlopen(req, timeout=20) as response:
+                return json.loads(response.read())
+        except HTTPError as exc:
+            if exc.code not in (429, 500, 502, 503, 504) or attempt == 3:
+                raise
+            retry_after = exc.headers.get('Retry-After') if exc.headers else None
+            try:
+                delay = max(1, min(60, float(retry_after))) if retry_after else 2 ** attempt
+            except ValueError:
+                delay = 2 ** attempt
+            time.sleep(delay)
 
 
 def normalize(raw):

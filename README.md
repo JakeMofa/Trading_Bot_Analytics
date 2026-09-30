@@ -1,6 +1,6 @@
 # BTC Intelligence
 
-Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, account credentials or OpenAI calls. Python standard library only.
+Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, account credentials or OpenAI calls. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
 
 Run from this project folder:
 
@@ -14,7 +14,7 @@ The default duration is 15 minutes. Hourly collection is deferred; saved hourly 
 
 The default database is `data/btc_intelligence.db`. Each invocation is bounded and exits; nothing starts automatically. Errors are recorded in `runs` and printed. Historical candles come from Coinbase and are predictive reference data, not BRTI settlement prices. Coverage reports expose missing candles.
 
-This first milestone polls market metadata/BBO every 30 seconds by default. Live exchange streaming, model forecasts, UI, FTS5/traversal and OpenAI analysis are subsequent milestones. No claim that a rollover has been observed until recorded across a real boundary.
+The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates. Models, UI, FTS5/traversal and OpenAI analysis are later milestones. Restart discovery after a boundary has been observed; uninterrupted rollover still needs verification.
 
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 

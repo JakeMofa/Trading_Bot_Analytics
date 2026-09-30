@@ -13,7 +13,7 @@ The user’s current direction takes precedence over older handoff documents. Th
 
 Screenshots show completed and active 15-minute markets, Price to Beat, timer, UP/DOWN quotes, and account UI. Go Live can jump several intervals from an old URL to the currently active market. Login in a screenshot does not establish API authentication requirements.
 
-Official Polymarket US documentation describes read-only reference data, quotes, order books, and REST/gRPC interfaces. Specific BTC contract fields, retail versus institutional access, onboarding, costs, target availability, settlement source, and 1-hour discovery are not yet verified through actual API responses. Do not substitute international Polymarket endpoints for Polymarket US.
+Public Polymarket US REST responses have verified BTC 15-minute and 1-hour market discovery, exact targets, quote/book access, and a resolved 15-minute outcome. The market WebSocket requires API-key authentication and remains unverified live. Keep using Polymarket US endpoints; do not substitute international Polymarket endpoints. See DATA_ACCESS_FINDINGS.md and MILESTONES.md for current evidence and gaps.
 
 Coinbase documents historical candles and live streaming. Historical candles may contain gaps, require bounded batches, and cannot reconstruct past order books or exact Polymarket settlements.
 
@@ -189,7 +189,7 @@ Create folders only as work needs them. This plan does not require generating an
 
 ## 15. Where we start and what we do not start
 
-Next task: Phase A — read-only verification of Polymarket US and one BTC exchange. Deliver an evidence matrix of working fields/endpoints, missing fields, costs/authentication, and sample responses. That determines the first collector and database schema.
+The data-access research and first collector are complete. The next implementation is deterministic feature snapshots for 15-minute markets, as described in MILESTONES.md.
 
 Do not begin with a vector database, a full dashboard, eight specialist models, automatic retraining, account login automation or order execution. No accuracy promise or implementation deadline is justified before access checks and collection measurements.
 
@@ -201,4 +201,4 @@ The user subsequently authorized implementation. Current progress and live verif
 - Coinbase Exchange candles: https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles — bounded historical buckets, possible gaps, and recommendation to use live feeds rather than repeatedly poll history.
 - SQLite FTS5: https://www.sqlite.org/fts5.html — local full-text indexing/search.
 
-These documentation checks are not completed live endpoint tests.
+The subsequent live endpoint findings are recorded in DATA_ACCESS_FINDINGS.md.

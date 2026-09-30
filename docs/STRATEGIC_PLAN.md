@@ -1,6 +1,6 @@
 # BTC Intelligence — Strategic Plan
 
-Prepared September 29, 2026. Status: planning; implementation and order execution have not started.
+Prepared September 29, 2026. Status: implementation underway; order execution remains deferred.
 Project folder: `/Users/jake/Documents/Trading_bot_Analytics/`.
 
 ## 1. Objective and scope
@@ -193,7 +193,7 @@ Next task: Phase A — read-only verification of Polymarket US and one BTC excha
 
 Do not begin with a vector database, a full dashboard, eight specialist models, automatic retraining, account login automation or order execution. No accuracy promise or implementation deadline is justified before access checks and collection measurements.
 
-The user’s earlier instruction not to build remains in effect. This document is a reviewable strategic plan; research probes and later implementation are separate tasks.
+The user subsequently authorized implementation. Current progress and live verification limits are recorded in docs/MILESTONES.md. Order execution remains deferred.
 
 ## Sources checked for planning
 

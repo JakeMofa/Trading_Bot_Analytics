@@ -28,3 +28,9 @@ A subsequent two-cycle run discovered both 02:00 UTC markets after the initial s
 The previous 15-minute market returned MARKET_STATUS_RESOLVING and the previous 1-hour market returned MARKET_STATUS_CLOSED, both without settlementPrice. Their outcomes remain null rather than inferred from exchange prices. Further reconciliation is required once settlement is published.
 
 A quote/book request returned 404 in both follow-up cycles despite the market metadata being available. The collector recorded errors and continued saving BTC reference prices and other market data. Availability of quote/book endpoints is therefore intermittent; metadata quotes can still be preserved but should not be represented as a fresh book. Continuous streaming and automatic reconnect remain future work.
+
+## Streaming verification
+
+Public Coinbase WebSocket received and persisted 102 ticker events during a bounded 25-second live test, with no reconnects. SQLite integrity check passed. Unit tests simulate disconnect/reconnect, resubscription, trade deduplication, credential signing and HTTP 429 backoff.
+
+Official Polymarket documentation distinguishes unauthenticated public REST from API-key-authenticated market WebSocket: https://docs.polymarket.us/api-reference/websocket/markets and https://docs.polymarket.us/api-reference/authentication . The optional adapter is implemented, but its live handshake/subscription and rollover remain unverified without locally configured credentials. Public REST fallback is active.

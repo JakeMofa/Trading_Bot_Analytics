@@ -1,0 +1,1330 @@
+BTC INTELLIGENCE SYSTEM - COMPLETE ARCHITECTURE
+===============================================
+
+PURPOSE
+-------
+
+Build a local-first real-time Bitcoin intelligence and prediction system focused first on
+Polymarket US "BTC Up or Down - 15 Minute" markets.
+
+The system's primary question is:
+
+    What is the probability that the final Polymarket settlement value will be
+    greater than or equal to the current "Price to Beat" at the end of the
+    active 15-minute interval?
+
+Primary output:
+
+    P(UP)
+    P(DOWN)
+    Confidence
+    Main reasons
+    Contradictions / risks
+    Comparison against Polymarket's own implied probability
+
+The system should not claim certainty or 100% accuracy. It should behave as a continuously
+running probability engine that measures and improves its own performance over time.
+
+
+CORE DESIGN PRINCIPLE
+---------------------
+
+The system has four major responsibilities:
+
+1. PYTHON / DETERMINISTIC CALCULATIONS
+   - collect data
+   - maintain current state
+   - calculate features
+   - manage sessions
+   - store history
+   - perform exact math
+
+2. MACHINE LEARNING
+   - learn statistical patterns
+   - estimate probabilities
+   - compare current states to historical states
+   - combine multiple signals
+
+3. OPENAI
+   - interpret news and unusual events
+   - reason over contradictions
+   - inspect compact structured state
+   - act as a higher-level analyst
+   - NOT process every raw tick
+   - NOT be the primary mathematical prediction engine
+
+4. SQLITE MEMORY
+   - store markets
+   - store snapshots
+   - store features
+   - store predictions
+   - store outcomes
+   - store events/news
+   - store relationship edges
+   - support FTS5 text search
+   - later support semantic/vector retrieval if needed
+
+
+HIGH-LEVEL ARCHITECTURE
+-----------------------
+
+                           LIVE DATA SOURCES
+                                  |
+          +-----------------------+-----------------------+
+          |                       |                       |
+      POLYMARKET              BTC EXCHANGES          NEWS / EVENTS
+          |                       |                       |
+   Price to Beat            Binance                   RSS / APIs
+   Market start/end         Coinbase                  Macro events
+   Up/Down odds             Kraken                    Crypto news
+   Market status            Deribit                   Major world events
+          |                       |                       |
+          +-----------------------+-----------------------+
+                                  |
+                                  v
+                         INGESTION LAYER
+                               Python
+                                  |
+                                  v
+                         SESSION MANAGER
+                                  |
+                 +----------------+----------------+
+                 |                                 |
+                 v                                 v
+        CURRENT MARKET STATE              RECENT BACKFILL
+                 |                                 |
+                 +----------------+----------------+
+                                  |
+                                  v
+                        CALCULATION LAYER
+                                  |
+        +-------------------------+-------------------------+
+        |                         |                         |
+        v                         v                         v
+   PRICE / TIME               ORDER FLOW                DERIVATIVES
+   CALCULATIONS               CALCULATIONS              CALCULATIONS
+        |                         |                         |
+        +-------------------------+-------------------------+
+                                  |
+                                  v
+                          FEATURE LAYER
+                                  |
+          +-----------------------+----------------------+
+          |                       |                      |
+          v                       v                      v
+     LIVE MODEL           HISTORICAL MODEL        AI EVENT ANALYST
+          |                       |                      |
+          +-----------------------+----------------------+
+                                  |
+                                  v
+                             META MODEL
+                                  |
+                                  v
+                        FINAL PROBABILITY
+                     UP XX% / DOWN XX%
+                                  |
+                                  v
+                          STORE PREDICTION
+                                  |
+                                  v
+                            FINAL OUTCOME
+                                  |
+                                  v
+                     EVALUATE / RETRAIN / LEARN
+
+
+POLYMARKET SESSION BEHAVIOR
+---------------------------
+
+The system must never rely on one hard-coded Polymarket URL.
+
+A URL such as:
+
+    btc-updown-15m-2026-09-29-2315z
+
+represents one specific 15-minute market.
+
+Every 15 minutes:
+
+    - the current market expires
+    - a new market becomes live
+    - the Price to Beat changes
+    - the timer resets
+    - the Polymarket odds reset to the new market
+    - the system must automatically follow the newest active interval
+
+This must simulate the user pressing "Go to live" automatically.
+
+SESSION START LOGIC
+-------------------
+
+When the application starts:
+
+    1. determine the current UTC time
+    2. discover the currently active Polymarket BTC 15-minute market
+    3. retrieve:
+       - market ID
+       - market slug / URL if useful
+       - start time
+       - end time
+       - Price to Beat
+       - current Up price
+       - current Down price
+       - market status
+    4. calculate:
+       - elapsed seconds
+       - remaining seconds
+    5. backfill recent BTC data
+    6. connect live WebSockets
+    7. begin prediction immediately
+    8. mark whether we joined the interval late
+
+The application must work even if it starts with:
+
+    10 minutes remaining
+    5 minutes remaining
+    2 minutes remaining
+    30 seconds remaining
+
+If the app starts late in a session, it should still backfill recent prices/trades where possible.
+
+Example:
+
+    Market:
+        6:15 PM -> 6:30 PM
+
+    App starts:
+        6:21 PM
+
+    System should:
+        - discover the live market
+        - obtain Price to Beat
+        - know 6 minutes already elapsed
+        - know 9 minutes remain
+        - backfill market history from exchange APIs
+        - begin live monitoring immediately
+
+At the next boundary, the system will have full capture from second zero.
+
+
+GO-TO-LIVE ROLLOVER LOGIC
+-------------------------
+
+At market expiration:
+
+    1. save final prediction state
+    2. retrieve final market outcome
+    3. save:
+       - final price
+       - final result: UP or DOWN
+       - whether predictions were correct
+    4. discover the next live BTC 15-minute market
+    5. capture its new Price to Beat
+    6. reset live interval state
+    7. continue without restarting the application
+
+The system should run indefinitely.
+
+
+DATA INGESTION STRATEGY
+-----------------------
+
+Prefer structured data and event streams.
+
+Use:
+
+    WebSockets:
+        - Binance
+        - Coinbase
+        - Kraken
+        - Deribit
+        - Polymarket streaming data if available
+
+    REST/API calls:
+        - market discovery
+        - recent history backfill
+        - metadata
+        - session synchronization
+        - safety verification
+
+    Scraping:
+        - fallback only
+        - only if a required public value such as Price to Beat is not available
+          in a structured API
+        - should respect terms and rate limits
+
+Do not repeatedly scrape full webpages if an API or WebSocket exists.
+
+
+DATA SOURCES
+------------
+
+POLYMARKET
+    - current live BTC 15-minute market
+    - Price to Beat
+    - market start time
+    - market end time
+    - Up contract price / implied probability
+    - Down contract price / implied probability
+    - final outcome
+    - current market state
+
+BINANCE
+    - BTC price
+    - individual trades
+    - volume
+    - order book
+    - futures/perpetual information where available
+    - funding
+    - open interest
+    - liquidations
+
+COINBASE
+    - BTC/USD price
+    - trades
+    - order book
+    - institutional-heavy spot flow proxy
+
+KRAKEN
+    - BTC spot price
+    - trades
+    - order book
+    - cross-exchange confirmation
+
+DERIBIT
+    - perpetuals/futures
+    - open interest
+    - funding/basis
+    - options information later
+    - volatility information later
+
+NEWS / EVENTS
+    - crypto news
+    - exchange outages/hacks
+    - ETF-related news
+    - major corporate BTC events
+    - major macro releases
+    - Federal Reserve statements
+    - regulatory announcements
+    - major world events relevant to BTC
+
+The V1 should use free/public sources wherever possible.
+
+
+CURRENT STATE ENGINE
+--------------------
+
+The system maintains a continuously updated "current state" for the live market.
+
+Example internal state:
+
+    market_id
+    market_start
+    market_end
+    price_to_beat
+    current_btc_price
+    distance_to_target
+    distance_to_target_percent
+    seconds_remaining
+
+    polymarket_up_probability
+    polymarket_down_probability
+
+    momentum_10s
+    momentum_30s
+    momentum_1m
+    momentum_5m
+    momentum_15m
+    momentum_1h
+
+    volatility_30s
+    volatility_1m
+    volatility_5m
+    volatility_15m
+
+    market_buy_volume_10s
+    market_sell_volume_10s
+    market_buy_volume_1m
+    market_sell_volume_1m
+    buy_sell_ratio
+    order_flow_delta
+
+    bid_depth
+    ask_depth
+    order_book_imbalance
+    spread
+    microprice
+
+    funding
+    open_interest
+    open_interest_change
+    long_liquidations
+    short_liquidations
+
+    cross_exchange_spread
+    btc_eth_relationship
+    other optional cross-market features
+
+This state can update many times per second.
+
+The prediction model itself can be recalculated less frequently, for example every 1-5 seconds.
+
+
+CALCULATION LAYER
+-----------------
+
+This layer is pure Python / numerical code.
+
+It should calculate exact values and features without using OpenAI.
+
+Core calculations:
+
+1. TARGET/TIME
+    distance_to_target =
+        current_btc_price - price_to_beat
+
+    distance_to_target_percent =
+        distance_to_target / price_to_beat
+
+    seconds_remaining =
+        market_end - current_time
+
+2. MOMENTUM
+    returns / price changes over:
+        5 sec
+        10 sec
+        30 sec
+        1 min
+        5 min
+        15 min
+        1 hour
+        4 hours
+        24 hours
+
+3. VOLATILITY
+    rolling realized volatility over:
+        30 sec
+        1 min
+        5 min
+        15 min
+        1 hour
+
+4. ORDER FLOW
+    market buy volume
+    market sell volume
+    aggressive buy/sell imbalance
+    volume delta
+    trade velocity
+    volume acceleration
+
+5. ORDER BOOK
+    bid/ask depth
+    bid/ask imbalance
+    spread
+    microprice
+    liquidity near current price
+    liquidity near Price to Beat
+    depth changes
+    large liquidity walls
+
+6. DERIVATIVES
+    funding rate
+    funding z-score later
+    open interest
+    open interest change
+    liquidation pressure
+    long/short liquidation imbalance
+    perpetual basis later
+
+7. POLYMARKET
+    current Up price
+    current Down price
+    implied market probability
+    probability change over time
+    odds velocity
+    difference between our prediction and market pricing
+
+
+HISTORICAL WINDOWS
+------------------
+
+The system should continuously inspect multiple rolling windows.
+
+SHORT-TERM:
+    5 seconds
+    10 seconds
+    30 seconds
+    1 minute
+    5 minutes
+    15 minutes
+
+SHORT REGIME:
+    1 hour
+    4 hours
+    24 hours
+
+RECENT HISTORY:
+    3 days
+    7 days
+    14 days
+    30 days
+
+LONGER HISTORY:
+    3 months
+    6 months
+    1 year+
+    optional, useful for broader regimes and stress testing
+
+The system should not depend on 5-10 years of data to begin.
+
+Recent history is especially important for this 15-minute problem.
+
+Longer basic candle history is cheap and can be added as a bonus.
+
+
+HISTORICAL MODEL
+----------------
+
+The historical model is the system's quantitative memory.
+
+It asks:
+
+    "Have we seen similar conditions before, and what happened?"
+
+Example current state:
+
+    BTC = $38 below Price to Beat
+    5 minutes 10 seconds remaining
+    order flow strongly bearish
+    volatility high
+    open interest falling
+
+The historical model can search past states with similar:
+
+    distance to target
+    time remaining
+    momentum
+    volatility
+    order flow
+    order-book imbalance
+    open-interest behavior
+    liquidation environment
+    Polymarket odds
+    market regime
+
+It can produce something like:
+
+    similar cases found: 214
+    ended DOWN: 148
+    ended UP: 66
+
+    historical tendency:
+        DOWN 69%
+        UP 31%
+
+This becomes one input into the meta-model.
+
+Initially, similarity can be simple:
+    - nearest neighbors
+    - standardized feature distance
+    - regime filters
+    - XGBoost / LightGBM history model
+
+No advanced vector database is required at first.
+
+
+MODEL LAYERS
+------------
+
+V1 should start simple.
+
+PRIMARY BASE MODEL
+    XGBoost or LightGBM
+
+Input:
+    structured features
+
+Output:
+    P(UP)
+    P(DOWN)
+
+The exact target is:
+
+    P(final settlement >= Price to Beat)
+
+SPECIALIST MODELS LATER
+-----------------------
+
+As the dataset grows, split the problem into specialist models:
+
+1. TARGET/TIME MODEL
+    understands:
+        distance to target
+        time remaining
+        expected volatility
+
+2. PRICE / MOMENTUM MODEL
+    understands:
+        candle/price structure
+        slope
+        acceleration
+        recent trend
+
+3. ORDER FLOW MODEL
+    understands:
+        market buys
+        market sells
+        trade imbalance
+        trade velocity
+
+4. ORDER BOOK MODEL
+    understands:
+        liquidity
+        depth
+        imbalance
+        spread
+        microprice
+
+5. DERIVATIVES MODEL
+    understands:
+        funding
+        open interest
+        liquidations
+        perpetual structure
+
+6. HISTORICAL MODEL
+    understands:
+        similar prior states
+        regime-specific outcomes
+        rolling recent patterns
+
+7. CROSS-MARKET MODEL
+    later:
+        ETH
+        Nasdaq
+        DXY
+        VIX
+        gold
+        other market relationships
+
+8. NEWS / EVENT MODEL
+    OpenAI or local LLM
+    understands:
+        unstructured information
+        breaking news
+        unusual events
+        narrative risk
+
+
+META-MODEL / FINAL BRAIN
+------------------------
+
+The meta-model combines all specialist model outputs and important raw features.
+
+Example:
+
+    Target/time model      DOWN 66%
+    Order flow model       DOWN 72%
+    Order book model       DOWN 64%
+    Derivatives model      DOWN 59%
+    Historical model       DOWN 69%
+    AI/news model          NEUTRAL
+    Polymarket crowd       DOWN 63%
+
+The meta-model should NOT just average these percentages.
+
+It should learn context-dependent weights.
+
+Examples:
+
+    High volatility:
+        trust order flow and derivatives more
+
+    Quiet market:
+        trust order book and target/time more
+
+    Major macro event:
+        increase AI/news and macro weight
+
+    Final 60 seconds:
+        target/time mathematics becomes much more important
+
+Final result example:
+
+    UP    30%
+    DOWN  70%
+    Confidence 76%
+
+
+OPENAI ROLE
+-----------
+
+OpenAI should NOT:
+
+    - receive every raw BTC tick
+    - receive every order-book update
+    - calculate simple math
+    - calculate volatility
+    - replace the numerical prediction model
+    - be called every second
+
+OpenAI SHOULD:
+
+    - understand news
+    - interpret macro events
+    - interpret regulatory events
+    - summarize unusual market conditions
+    - inspect contradictions between models
+    - provide a compact reasoning layer
+    - classify event relevance to BTC
+    - identify risks the numerical model may be missing
+
+Python compresses the live market into a small structured payload.
+
+Example:
+
+    {
+      "distance_to_target": -37.22,
+      "seconds_remaining": 310,
+      "momentum_1m": -0.12,
+      "momentum_5m": -0.31,
+      "order_flow": -0.63,
+      "book_imbalance": -0.28,
+      "volatility": 0.19,
+      "oi_change": -0.42,
+      "polymarket_up": 0.34
+    }
+
+OpenAI may also receive:
+    - 3-10 relevant historical cases
+    - one or two important recent events
+    - specialist model outputs
+
+OpenAI returns a short structured response.
+
+Example:
+
+    {
+      "direction_bias": "down",
+      "confidence": 0.71,
+      "important_risk": "short liquidation reversal",
+      "contradictions": [
+        "one-hour trend remains positive"
+      ]
+    }
+
+OpenAI should be called selectively.
+
+Possible call triggers:
+
+    - new Polymarket interval begins
+    - significant news arrives
+    - specialist models strongly disagree
+    - unusual/anomalous market state
+    - optional high-level review every few minutes
+
+This keeps token usage low.
+
+
+LOCAL LLAMA
+-----------
+
+Local Llama/Ollama can later be used as:
+
+    - a free first-pass news classifier
+    - a fallback
+    - a local event summarizer
+
+But for initial testing, OpenAI can be used with pay-as-you-go API credits to evaluate how much intelligence it actually adds.
+
+The numerical prediction system must continue working even if OpenAI is unavailable.
+
+
+MEMORY / STORAGE ARCHITECTURE
+-----------------------------
+
+V1 should use SQLite.
+
+Database:
+
+    btc_intelligence.db
+
+Core tables:
+
+1. markets
+    id
+    polymarket_market_id
+    slug
+    start_time
+    end_time
+    price_to_beat
+    final_price
+    final_result
+    created_at
+
+2. snapshots
+    id
+    market_id
+    timestamp
+    btc_price
+    distance_to_target
+    seconds_remaining
+    polymarket_up
+    polymarket_down
+    momentum values
+    volatility values
+    order-flow values
+    order-book values
+    derivatives values
+
+3. features
+    id
+    market_id
+    timestamp
+    feature_name
+    feature_value
+
+    or preferably a wide feature table for speed
+
+4. predictions
+    id
+    market_id
+    timestamp
+    up_probability
+    down_probability
+    confidence
+    model_version
+    data_status
+    joined_late
+    actual_result when available
+
+5. model_outputs
+    id
+    prediction_id
+    model_name
+    up_probability
+    down_probability
+    confidence
+    metadata_json
+
+6. events
+    id
+    timestamp
+    title
+    source
+    raw_text
+    summary
+    btc_relevance
+    direction
+    impact
+    confidence
+
+7. news
+    id
+    timestamp
+    title
+    source
+    text
+    url if needed
+
+8. relationships
+    id
+    from_type
+    from_id
+    relation
+    to_type
+    to_id
+
+Example relationship graph:
+
+    prediction:8921
+        BELONGS_TO -> market:518
+        USED_EVENT -> event:92
+        SIMILAR_TO -> prediction:724
+        USED_PATTERN -> pattern:44
+        RESULTED_IN -> outcome:DOWN
+
+
+FTS5 TEXT MEMORY
+----------------
+
+SQLite FTS5 should index:
+
+    news
+    event summaries
+    AI explanations
+    model notes
+    prediction explanations
+    failure analysis
+
+FTS5 is enough for V1.
+
+No dedicated vector database is needed initially.
+
+
+TRAVERSAL MEMORY
+----------------
+
+Use the relationships table as a lightweight knowledge graph.
+
+This supports questions such as:
+
+    Which predictions were wrong during high volatility?
+
+    Which news events were associated with incorrect predictions?
+
+    Which model was strongest during the final two minutes?
+
+    Which historical patterns repeatedly occurred before UP outcomes?
+
+Recursive SQL can traverse relationships.
+
+Later, if useful:
+    migrate traversal data to PostgreSQL or Neo4j
+
+But do not add those systems until needed.
+
+
+VECTOR SEARCH
+-------------
+
+Do not add a vector DB in V1.
+
+If FTS5 becomes insufficient and semantic similarity proves useful:
+
+    Option A:
+        store OpenAI embeddings locally
+
+    Option B:
+        migrate to PostgreSQL + pgvector
+
+Potential uses:
+
+    find semantically similar news events
+    find similar AI explanations
+    retrieve related market narratives
+
+Numeric market-state similarity should still use numerical feature vectors, not text embeddings.
+
+
+SHORT-TERM MEMORY VS LONG-TERM MEMORY
+-------------------------------------
+
+SHORT-TERM:
+    in-process state / lightweight cache
+    current market
+    latest price
+    latest order book
+    latest features
+    current prediction
+
+LONG-TERM:
+    SQLite
+    historical markets
+    snapshots
+    predictions
+    outcomes
+    events
+    text memory
+    relationships
+
+Do not add Redis unless needed later.
+
+
+DATA RETENTION
+--------------
+
+Avoid storing every raw order-book update forever.
+
+Suggested approach:
+
+    raw order-book:
+        short retention only if stored at all
+
+    raw trades:
+        limited retention
+
+    derived features:
+        keep long-term
+
+    15-minute market records:
+        keep indefinitely
+
+    predictions:
+        keep indefinitely
+
+    outcomes:
+        keep indefinitely
+
+    important events/news:
+        keep indefinitely
+
+This is important because local disk space is limited.
+
+The user's Mac had roughly 100 GB free when reviewed.
+
+V1 should have a storage budget and automatic cleanup.
+
+
+PREDICTION UPDATE LOOP
+----------------------
+
+The system continuously receives events.
+
+Example:
+
+    Binance trade arrives
+        -> update trade state
+        -> recalculate order flow
+
+    Coinbase trade arrives
+        -> update cross-exchange state
+
+    Order-book update arrives
+        -> recalculate depth/imbalance
+
+    Derivatives update arrives
+        -> update funding/OI/liquidations
+
+    Polymarket price update arrives
+        -> update market-implied probability
+
+The feature engine updates continuously.
+
+Prediction recalculation can run every:
+
+    1 second
+    or
+    2-5 seconds
+
+depending on performance.
+
+
+MID-SESSION DATA STATUS
+-----------------------
+
+If the application joins late, store that fact.
+
+Example:
+
+    joined_late = true
+    seconds_elapsed_before_join = 320
+
+Dashboard should show something like:
+
+    Data status:
+        Price history loaded
+        Live order book active
+        Trades active
+        Derivatives active
+        Joined interval at 5:20 elapsed
+
+After the next interval starts:
+
+    Data status:
+        Full interval capture
+        Started at 15:00
+        No missing live data
+
+
+DASHBOARD
+---------
+
+The UI should show:
+
+    BTC UP/DOWN LIVE
+
+    Current interval:
+        start -> end
+
+    Price to Beat
+    Current BTC price
+    Distance to target
+    Time remaining
+
+    OUR MODEL:
+        UP %
+        DOWN %
+        Confidence
+
+    POLYMARKET:
+        UP %
+        DOWN %
+
+    EDGE / DIFFERENCE:
+        our probability - market probability
+
+    SIGNAL PANEL:
+        Target/time
+        Momentum
+        Order flow
+        Order book
+        Derivatives
+        Historical
+        AI/news
+
+    STATUS:
+        full interval / late join
+        feeds connected
+        model version
+
+    "Why?" panel:
+        strongest reasons
+        contradictions
+        risk flags
+
+At settlement:
+
+    Final result
+    Prediction history through the interval
+    Whether the model was correct
+    Confidence calibration
+
+
+EVALUATION
+----------
+
+Never judge the model by a few successful predictions.
+
+Track:
+
+    directional accuracy
+    Brier score
+    log loss
+    calibration
+    confidence buckets
+    accuracy by time remaining
+    accuracy by market regime
+    accuracy by volatility regime
+    accuracy by model version
+
+Compare against:
+
+    50/50 baseline
+    always-UP baseline
+    always-DOWN baseline
+    Polymarket implied probability
+    simple target/time baseline
+
+Example calibration analysis:
+
+    predictions around 60%
+        should be correct about 60% over time
+
+    predictions around 80%
+        should be correct about 80% over time
+
+If the model says 80% but is only correct 55%, it is overconfident.
+
+
+OPENAI EVALUATION
+-----------------
+
+We should measure whether OpenAI actually improves the model.
+
+For every market, store:
+
+    Quantitative model prediction
+    OpenAI analyst opinion
+    Combined prediction
+    Polymarket probability
+    Actual outcome
+
+Then evaluate:
+
+    Quant-only performance
+    OpenAI-only performance
+    Combined performance
+    Polymarket performance
+
+Possible result:
+
+    OpenAI may help during news events
+    OpenAI may hurt during quiet markets
+
+The system should learn from evidence, not assume AI is always useful.
+
+
+V1 TECHNOLOGY STACK
+-------------------
+
+BACKEND:
+    Python
+
+API:
+    FastAPI
+
+DATABASE:
+    SQLite
+
+TEXT SEARCH:
+    SQLite FTS5
+
+ML:
+    XGBoost
+    LightGBM optional
+
+AI:
+    OpenAI API
+
+FRONTEND:
+    Next.js
+    React
+    TypeScript
+
+LIVE CHART:
+    TradingView Lightweight Charts
+
+DATA:
+    exchange WebSockets
+    Polymarket market data/API
+    REST backfill where needed
+
+NO V1 NEED FOR:
+    Kafka
+    Redpanda
+    Kubernetes
+    Neo4j
+    ClickHouse
+    Redis
+    dedicated vector DB
+    large cloud infrastructure
+
+These can be added later only if real scaling needs justify them.
+
+
+V1 BUILD ORDER
+--------------
+
+PHASE 0
+    Repo structure
+    Python environment
+    FastAPI
+    SQLite
+    Next.js
+    configuration
+    secrets handling
+
+PHASE 1
+    Polymarket current-market discovery
+
+PHASE 2
+    Price to Beat retrieval
+
+PHASE 3
+    Session manager
+    mid-session startup
+    automatic Go-to-live rollover
+
+PHASE 4
+    Binance live BTC feed
+
+PHASE 5
+    Coinbase / Kraken confirmation
+
+PHASE 6
+    recent-history backfill
+
+PHASE 7
+    calculation / feature engine
+
+PHASE 8
+    order-flow features
+
+PHASE 9
+    order-book features
+
+PHASE 10
+    derivatives features
+
+PHASE 11
+    SQLite market/snapshot/prediction storage
+
+PHASE 12
+    baseline model
+
+PHASE 13
+    historical similarity model
+
+PHASE 14
+    OpenAI intelligence layer
+
+PHASE 15
+    meta-model
+
+PHASE 16
+    live dashboard
+
+PHASE 17
+    evaluation / calibration
+
+PHASE 18
+    traversal memory / FTS5 improvements
+
+PHASE 19
+    optional embeddings / pgvector only if useful
+
+
+V1 SUCCESS CRITERIA
+-------------------
+
+The application can be considered successful when it can:
+
+1. start at any time
+2. discover the currently live BTC 15-minute Polymarket market
+3. capture its Price to Beat
+4. determine time remaining
+5. backfill recent BTC history
+6. subscribe to live exchange data
+7. calculate rolling features
+8. output live UP/DOWN probabilities
+9. compare our probabilities to Polymarket
+10. update predictions every few seconds
+11. automatically roll into the next market
+12. store all predictions
+13. store final outcomes
+14. evaluate accuracy and calibration
+15. explain the major reasons behind each forecast
+16. operate without requiring OpenAI for basic prediction
+17. use OpenAI only as a higher-level reasoning/event layer
+
+
+FINAL ARCHITECTURAL PHILOSOPHY
+------------------------------
+
+This is NOT:
+
+    "Give GPT a BTC screenshot and ask Up or Down."
+
+This IS:
+
+    LIVE MARKET DATA
+        +
+    DETERMINISTIC CALCULATIONS
+        +
+    SHORT-TERM ROLLING HISTORY
+        +
+    STORED HISTORICAL MEMORY
+        +
+    MACHINE LEARNING
+        +
+    OPTIONAL OPENAI REASONING
+        +
+    META-MODEL
+        +
+    CONTINUOUS EVALUATION
+
+The system should always be able to answer:
+
+    What is the probability?
+    Why?
+    What information was used?
+    Which model contributed?
+    What did Polymarket think?
+    What happened afterward?
+    Was the prediction correct?
+    Was the confidence calibrated?
+    Did OpenAI help or hurt?
+    What should be improved?
+
+That is the intended architecture.

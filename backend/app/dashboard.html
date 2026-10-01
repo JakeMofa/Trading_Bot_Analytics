@@ -76,15 +76,16 @@
       <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms come from Polymarket's public API; saved quotes may come from public REST or its authenticated read-only market stream. This page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
-      <h2 id="forecast-heading">Saved baseline forecast · updates about every 30 seconds</h2>
+      <h2 id="forecast-heading">Live baseline estimate · follows BTC ticks</h2>
       <div id="forecast-up" class="hero up">—</div>
       <div class="row">
         <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
         <div class="metric"><span class="label">DOWN probability</span><strong id="down-small">—</strong></div>
       </div>
       <div class="line"></div>
-      <div id="forecast-state" class="small muted">Waiting for a saved forecast.</div>
-      <p class="small muted">Untrained, uncalibrated price-and-volatility proxy. Coinbase is a reference input; Polymarket's BRTI rule determines settlement. Saved Polymarket quotes do not feed this forecast yet.</p>
+      <div id="forecast-state" class="small muted">Waiting for a live BTC tick and recent volatility.</div>
+      <div id="saved-forecast-state" class="small muted" style="margin-top:6px">Saved forecast: waiting for data.</div>
+      <p class="small muted">Experimental, untrained price-and-volatility estimate using the same BTC tick as the orange graph. Its volatility input comes from the latest saved feature snapshot. It is separate from live Polymarket market prices and is not saved on every tick; saved forecasts remain the evaluation record.</p>
     </section>
     <section class="card chart" aria-labelledby="chart-heading">
       <div class="chart-meta"><h2 id="chart-heading">BTC price · current 15-minute market</h2><div id="chart-summary" class="small muted">Waiting for saved stream ticks.</div></div>
@@ -123,7 +124,7 @@
     const byId = id => document.getElementById(id);
     const set = (id, value) => { byId(id).textContent = value ?? '—'; };
     const money = value => value == null ? '—' : '$' + Number(value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
-    const pct = value => value == null ? '—' : (Number(value) * 100).toFixed(1) + '%';
+    const pct = value => value == null ? '—' : Number(value) > 0 && Number(value) < .001 ? '<0.1%' : Number(value) < 1 && Number(value) > .999 ? '>99.9%' : (Number(value) * 100).toFixed(1) + '%';
     const cents = value => value == null ? '—' : (Number(value) * 100).toFixed(0) + '¢';
     const age = value => value == null ? 'no data' : value < 60 ? Math.floor(value) + 's ago' : Math.floor(value / 60) + 'm ' + Math.floor(value % 60) + 's ago';
     const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
@@ -226,6 +227,7 @@
       finally { chartInFlight=false; }
     }
     let latest = null, serverEpochMs = null, syncAt = null, requestInFlight = false, lastError = null;
+    let pendingLiveTick = null, pendingLiveQuote = null;
     let chartDrawPending = false;
     function scheduleChartDraw() {
       if (chartDrawPending) return;
@@ -233,16 +235,20 @@
       requestAnimationFrame(() => { chartDrawPending = false; drawChart(); });
     }
     function acceptLiveTick(t) {
-      if (!latest || !t?.source_time || !t?.received_at) return;
+      if (!latest) { pendingLiveTick = t; return; }
+      if (!t?.source_time || !t?.received_at) return;
       const current = latest.latest_coinbase_tick;
-      if (current && Date.parse(t.received_at) <= Date.parse(current.received_at)) return;
+      if (current && (Date.parse(t.received_at) < Date.parse(current.received_at) ||
+          Date.parse(t.received_at) === Date.parse(current.received_at) && latest.live_estimate)) return;
       latest.latest_coinbase_tick = t;
+      latest.live_estimate = t.estimate?.market_id === latest.market?.id ? t.estimate : null;
       mergeLatestTick(latest);
       updateChartSummary();
       scheduleChartDraw();
       tick();
     }
     function acceptLiveQuote(q) {
+      if (!latest) { pendingLiveQuote = q; return; }
       if (!latest?.market || q?.market_id !== latest.market.id) return;
       const current = latest.market_quote;
       if (current && Date.parse(q.received_at) <= Date.parse(current.received_at)) return;
@@ -255,7 +261,7 @@
       if (!latest || serverNowMs() == null) return;
       const now = serverNowMs();
       set('server-clock', 'UTC ' + new Date(now).toLocaleTimeString('en-GB', {timeZone:'UTC',hour12:false}));
-      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote, t = latest.latest_coinbase_tick;
+      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote, t = latest.latest_coinbase_tick, e = latest.live_estimate;
       const remaining = m ? Math.max(0, Math.ceil((Date.parse(m.end) - now) / 1000)) : null;
       if (m && remaining === 0) set('market-state', 'Market ended · awaiting next saved market');
       set('market-timer', remaining == null ? '—' : remaining === 0 ? '0:00 · awaiting next market' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
@@ -285,7 +291,18 @@
       }
       set('market-quote', quoteText);
       byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
-      if (f?.probability_up != null) set('forecast-state', (ageOf(f.created_at) <= 90 && remaining > 0 ? 'Recent' : 'STALE') + ' saved forecast · ' + age(ageOf(f.created_at)) + ' · ' + localTime(f.created_at));
+      const estimateFresh = e?.market_id === m?.id && ageOf(e.as_of) <= 10 && remaining > 0;
+      const liveProbability = estimateFresh ? e.probability_up : null;
+      set('forecast-up', liveProbability == null ? '—' : pct(liveProbability) + ' UP');
+      set('up-small', pct(liveProbability));
+      set('down-small', liveProbability == null ? '—' : pct(1 - Number(liveProbability)));
+      set('forecast-state', estimateFresh
+        ? liveProbability == null ? 'Live estimate unavailable · ' + e.abstain_reason
+          : 'Live estimate from BTC tick ' + age(ageOf(e.as_of)) + ' · volatility snapshot ' + age(ageOf(e.snapshot_as_of))
+        : 'Waiting for a fresh BTC tick and recent volatility.');
+      set('saved-forecast-state', f?.probability_up != null
+        ? 'Saved 30-second forecast: ' + pct(f.probability_up) + ' UP · ' + age(ageOf(f.created_at))
+        : f?.abstain_reason ? 'Saved forecast abstained: ' + f.abstain_reason : 'Saved forecast: waiting for data.');
       const checkedAge = ageOf(latest.generated_at);
       set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge) : 'SQLite checked ' + age(checkedAge));
       updateChartSummary();
@@ -297,14 +314,6 @@
       set('reference', money(s?.reference_price_usd));
       set('distance', money(s?.distance_usd));
       set('market-slug', m ? m.slug : 'No active market captured.');
-      if (f?.probability_up != null) {
-        set('forecast-up', pct(f.probability_up) + ' UP');
-        set('up-small', pct(f.probability_up));
-        set('down-small', pct(1 - Number(f.probability_up)));
-      } else {
-        set('forecast-up', '—'); set('up-small', '—'); set('down-small', '—');
-        set('forecast-state', f?.abstain_reason ? 'Abstained: ' + f.abstain_reason : 'Waiting for a saved forecast.');
-      }
       const feeds = byId('feeds-list'); feeds.replaceChildren();
       for (const feed of data.feeds) {
         const div = document.createElement('div'); div.className = 'feed';
@@ -391,10 +400,13 @@
         if (latest?.market?.id === data.market?.id && latest.market_quote &&
             (!data.market_quote || Date.parse(latest.market_quote.received_at) > Date.parse(data.market_quote.received_at)))
           data.market_quote = latest.market_quote;
+        if (latest?.market?.id === data.market?.id) data.live_estimate = latest.live_estimate;
         const marketChanged = chartData?.market?.id !== data.market?.id;
         latest = data;
         lastError = null;
         render(data);
+        if (pendingLiveTick) { const incoming = pendingLiveTick; pendingLiveTick = null; acceptLiveTick(incoming); }
+        if (pendingLiveQuote) { const incoming = pendingLiveQuote; pendingLiveQuote = null; acceptLiveQuote(incoming); }
         mergeLatestTick(data);
         if (chartData?.market?.id === data.market?.id) drawChart();
         if (marketChanged) refreshChart();

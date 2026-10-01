@@ -8,6 +8,7 @@ import sqlite3
 
 from collector import timestamp
 from forecasts import CHECKPOINTS, CHECKPOINT_TOLERANCE, MODEL
+from knowledge import trace_prediction
 
 HTML = Path(__file__).with_name('dashboard.html')
 FRESH_SECONDS = 90
@@ -84,9 +85,43 @@ def status(db, now=None):
             AND julianday(p.created_at)<julianday(m.end)''',
             (MODEL, seconds, CHECKPOINT_TOLERANCE)).fetchone()[0]
         checkpoint_counts[label] = n
+    outcome_rows = db.execute('''SELECT id,slug,end,target,final,result,last_seen
+      FROM markets WHERE duration=900 AND status='MARKET_STATUS_RESOLVED'
+        AND final IS NOT NULL AND result IN ('UP','DOWN')
+      ORDER BY julianday(end) DESC LIMIT 5''').fetchall()
+    outcomes = []
+    for market_id, slug, end, target, final, result, confirmed_at in outcome_rows:
+        saved_forecast = db.execute('''SELECT probability_up FROM predictions
+          WHERE market_id=? AND model_version=? AND probability_up IS NOT NULL
+            AND ABS(seconds_remaining-300)<=?
+            AND julianday(as_of)<julianday(?)
+            AND julianday(created_at)<julianday(?)
+          ORDER BY ABS(seconds_remaining-300),julianday(as_of) LIMIT 1''',
+          (market_id, MODEL, CHECKPOINT_TOLERANCE, end, end)).fetchone()
+        outcomes.append({'slug': slug, 'end': end, 'target_usd': target,
+                         'final_usd': final, 'result': result,
+                         'confirmed_at': confirmed_at,
+                         't5_forecast_probability_up': saved_forecast[0] if saved_forecast else None})
+    evidence = None
+    has_links = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='prediction_context_links'").fetchone()
+    if has_links:
+        linked = db.execute('''SELECT prediction_id,MAX(linked_at) FROM prediction_context_links
+          GROUP BY prediction_id ORDER BY MAX(linked_at) DESC LIMIT 1''').fetchone()
+        if linked:
+            traced = trace_prediction(db, linked[0])
+            slug = db.execute('SELECT slug FROM markets WHERE id=?', (traced['market_id'],)).fetchone()[0]
+            evidence = {'prediction_id': linked[0], 'market_slug': slug,
+                        'forecast_as_of': traced['as_of'], 'linked_at': linked[1],
+                        'news_count': len(traced['news']),
+                        'prior_case_count': len(traced['prior_cases']),
+                        'news': [{'title': item['title'], 'url': item['url']}
+                                 for item in traced['news'][:3]],
+                        'prior_cases': [{'slug': item['slug'], 'outcome': item['observed_outcome']}
+                                        for item in traced['prior_cases'][:3]],
+                        'semantics': traced['link_semantics']}
     return {'generated_at': cutoff, 'read_only': True,
             'market': market, 'snapshot': snapshot, 'forecast': forecast,
-            'feeds': feeds, 'news': news,
+            'feeds': feeds, 'news': news, 'outcomes': outcomes, 'evidence': evidence,
             'news_last_seen': news_latest,
             'evaluation': {'distinct_confirmed_markets_by_checkpoint': checkpoint_counts,
                            'minimum_for_chronological_splits': 30,

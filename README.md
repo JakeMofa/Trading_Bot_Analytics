@@ -22,7 +22,7 @@ See [MILESTONES.md](docs/MILESTONES.md) for current status, [PLAN_CROSSWALK.md](
 
 ## Local status dashboard
 
-Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. The server binds only to localhost, reads the existing SQLite database in query-only mode, and refreshes the page every 15 seconds. Panels show the active 15-minute market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, and saved BTC headlines. It does not place orders or call external APIs. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately.
+Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. The server binds only to localhost, reads the existing SQLite database in query-only mode, and refreshes the page every 15 seconds. Panels show the active 15-minute market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, recent confirmed outcomes, saved BTC headlines, and the latest retrospectively linked evidence. Context links do not mean the baseline used that evidence. The dashboard does not place orders or call external APIs. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately.
 
 ## Streaming milestone
 

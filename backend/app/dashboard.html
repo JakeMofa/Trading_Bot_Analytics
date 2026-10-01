@@ -20,6 +20,7 @@
     .card { background:#151e2b; border:1px solid #29384a; border-radius:18px; padding:22px; min-width:0; box-shadow:0 12px 35px #0002; }
     .market, .forecast { grid-column:span 6; }
     .feeds, .evaluation, .news { grid-column:span 4; }
+    .outcomes, .evidence { grid-column:span 6; }
     .hero { font-size:clamp(2rem,4vw,3.4rem); font-variant-numeric:tabular-nums; font-weight:750; letter-spacing:-.055em; line-height:1.08; margin:8px 0; }
     .row { display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
     .metric { flex:1; min-width:130px; }
@@ -39,7 +40,7 @@
     a { color:#95c9ff; text-decoration:none; }
     a:hover { text-decoration:underline; }
     .footer { margin-top:20px; color:#95a7bb; font-size:.78rem; }
-    @media (max-width:900px) { .market,.forecast,.feeds,.evaluation,.news { grid-column:span 12; } }
+    @media (max-width:900px) { .market,.forecast,.feeds,.evaluation,.news,.outcomes,.evidence { grid-column:span 12; } }
     @media (max-width:560px) { body { padding:16px; } header { flex-direction:column; } .card { padding:18px; } }
   </style>
 </head>
@@ -87,6 +88,16 @@
       <div id="news-age" class="small muted" style="margin-bottom:12px"></div>
       <ul id="news-list"></ul>
       <p class="small muted">Headlines are stored context; they do not affect this forecast.</p>
+    </section>
+    <section class="card outcomes" aria-labelledby="outcomes-heading">
+      <h2 id="outcomes-heading">Recent confirmed outcomes</h2>
+      <div id="outcomes-list" class="small muted">Waiting for data.</div>
+      <p class="small muted">T-5m forecast appears only when a saved live prediction exists for that market.</p>
+    </section>
+    <section class="card evidence" aria-labelledby="evidence-heading">
+      <h2 id="evidence-heading">Evidence trail</h2>
+      <div id="evidence-list" class="small muted">Waiting for data.</div>
+      <p class="small muted">Links show context that was eligible at forecast time. They were attached retrospectively; the baseline forecast did not use this context.</p>
     </section>
   </main>
   <div class="footer">This page only reads the local SQLite database. It cannot place orders.</div>
@@ -150,6 +161,41 @@
         li.append(detail); news.append(li);
       }
       if (!data.news.length) { const li=document.createElement('li'); li.textContent='No BTC headlines stored yet.'; news.append(li); }
+      const outcomes = byId('outcomes-list'); outcomes.replaceChildren();
+      for (const item of data.outcomes) {
+        const div = document.createElement('div'); div.className = 'feed';
+        const line = document.createElement('div'); line.className = 'pair';
+        const name = document.createElement('strong'); name.textContent = item.slug;
+        const result = document.createElement('strong'); result.textContent = item.result; result.className = item.result === 'UP' ? 'up' : 'bad';
+        line.append(name,result); div.append(line);
+        const detail = document.createElement('div'); detail.className = 'small muted';
+        detail.textContent = 'Target ' + money(item.target_usd) + ' · final ' + money(item.final_usd) + ' · ended ' + localTime(item.end);
+        div.append(detail);
+        const forecast = document.createElement('div'); forecast.className = 'small muted';
+        forecast.textContent = 'Saved T-5m UP forecast: ' + pct(item.t5_forecast_probability_up);
+        div.append(forecast); outcomes.append(div);
+      }
+      if (!data.outcomes.length) outcomes.textContent = 'No confirmed outcomes stored yet.';
+      const evidence = byId('evidence-list'); evidence.replaceChildren();
+      if (data.evidence) {
+        const intro = document.createElement('div'); intro.className = 'small';
+        intro.textContent = 'Latest linked forecast: ' + data.evidence.market_slug + ' · ' + localTime(data.evidence.forecast_as_of);
+        evidence.append(intro);
+        const details = document.createElement('div'); details.className = 'small muted';
+        details.textContent = data.evidence.prior_case_count + ' prior cases · ' + data.evidence.news_count + ' headline links';
+        evidence.append(details);
+        for (const item of data.evidence.prior_cases) {
+          const line = document.createElement('div'); line.className = 'feed small';
+          line.textContent = 'Prior case · ' + item.slug + ' · outcome ' + item.outcome;
+          evidence.append(line);
+        }
+        for (const item of data.evidence.news) {
+          const line = document.createElement('div'); line.className = 'feed small';
+          const link = document.createElement('a'); link.textContent = 'Headline · ' + item.title;
+          if (item.url.startsWith('https://')) { link.href = item.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+          line.append(link); evidence.append(line);
+        }
+      } else evidence.textContent = 'No prediction has linked context yet.';
     }
     async function refresh() {
       try {

@@ -9,6 +9,7 @@ from collector import connect
 from dashboard import status
 from features import initialize as initialize_features
 from forecasts import MODEL, initialize as initialize_forecasts
+from knowledge import initialize as initialize_knowledge
 from news import initialize as initialize_news
 from streaming import initialize as initialize_stream
 
@@ -20,6 +21,7 @@ class DashboardTests(unittest.TestCase):
         initialize_forecasts(self.db)
         initialize_news(self.db)
         initialize_stream(self.db)
+        initialize_knowledge(self.db)
         self.now = datetime(2026, 10, 1, 2, 10, tzinfo=timezone.utc)
 
     def tearDown(self):
@@ -29,6 +31,7 @@ class DashboardTests(unittest.TestCase):
         report = status(self.db, self.now)
         self.assertIsNone(report['market'])
         self.assertIsNone(report['forecast'])
+        self.assertIsNone(report['evidence'])
         self.assertEqual(report['evaluation']['distinct_confirmed_markets_by_checkpoint']['T-5m'], 0)
 
     def test_current_market_forecast_and_stale_feed_are_read_only(self):
@@ -56,6 +59,17 @@ class DashboardTests(unittest.TestCase):
           ('test','one','https://example.com','Bitcoin headline',
            '2026-10-01T02:05:00Z','2026-10-01T02:06:00Z',
            '2026-10-01T02:06:00Z','[]','BTC'))
+        event_id = self.db.execute('SELECT last_insert_rowid()').fetchone()[0]
+        prediction_id = self.db.execute('SELECT id FROM predictions').fetchone()[0]
+        self.db.execute('''INSERT INTO prediction_context_links
+          (prediction_id,kind,news_event_id,method,linked_at)
+          VALUES(?,'news',?,'test',?)''',
+          (prediction_id,event_id,'2026-10-01T02:09:30Z'))
+        self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,final,
+          result,status,first_seen,last_seen,raw_json) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)''',
+          ('old','old-market',900,'2026-10-01T01:45:00Z','2026-10-01T02:00:00Z',
+           '99','100','UP','MARKET_STATUS_RESOLVED',
+           '2026-10-01T01:45:00Z','2026-10-01T02:03:00Z','{}'))
         self.db.commit()
         self.db.execute('PRAGMA query_only=ON')
         before = self.db.total_changes
@@ -67,6 +81,10 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(report['forecast']['probability_up'], '.7')
         self.assertEqual(report['feeds'][0]['effective_status'], 'stale')
         self.assertEqual(report['news'][0]['title'], 'Bitcoin headline')
+        self.assertEqual(report['outcomes'][0]['result'], 'UP')
+        self.assertIsNone(report['outcomes'][0]['t5_forecast_probability_up'])
+        self.assertEqual(report['evidence']['news'][0]['title'], 'Bitcoin headline')
+        self.assertIn('not used by forecast model', report['evidence']['semantics'])
 
     def test_old_snapshot_is_marked_stale(self):
         self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,

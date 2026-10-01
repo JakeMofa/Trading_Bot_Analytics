@@ -29,7 +29,29 @@ def initialize(db):
       UNIQUE(source, source_guid));
     CREATE INDEX IF NOT EXISTS news_events_available
       ON news_events(first_seen, published_at);
+    CREATE VIRTUAL TABLE IF NOT EXISTS news_events_fts USING fts5(
+      title, categories_json, content='news_events', content_rowid='id');
+    CREATE TRIGGER IF NOT EXISTS news_events_fts_insert AFTER INSERT ON news_events BEGIN
+      INSERT INTO news_events_fts(rowid,title,categories_json)
+      VALUES(new.id,new.title,new.categories_json);
+    END;
+    CREATE TRIGGER IF NOT EXISTS news_events_fts_update
+      AFTER UPDATE OF title,categories_json ON news_events BEGIN
+      INSERT INTO news_events_fts(news_events_fts,rowid,title,categories_json)
+      VALUES('delete',old.id,old.title,old.categories_json);
+      INSERT INTO news_events_fts(rowid,title,categories_json)
+      VALUES(new.id,new.title,new.categories_json);
+    END;
+    CREATE TRIGGER IF NOT EXISTS news_events_fts_delete AFTER DELETE ON news_events BEGIN
+      INSERT INTO news_events_fts(news_events_fts,rowid,title,categories_json)
+      VALUES('delete',old.id,old.title,old.categories_json);
+    END;
+    CREATE TABLE IF NOT EXISTS schema_migrations (name TEXT PRIMARY KEY);
     ''')
+    if not db.execute("SELECT 1 FROM schema_migrations WHERE name='news_events_fts_v1'").fetchone():
+        with db:
+            db.execute("INSERT INTO news_events_fts(news_events_fts) VALUES('rebuild')")
+            db.execute("INSERT INTO schema_migrations(name) VALUES('news_events_fts_v1')")
 
 
 def fetch_feed():
@@ -123,6 +145,31 @@ def available_events(db, as_of, limit=20):
       (cutoff,cutoff,limit)).fetchall()
     return [dict(zip(('id','source','url','title','published_at','first_seen','asset_tag'),row))
             for row in rows]
+
+
+def search_events(db, query, as_of, limit=20, asset_tag=None):
+    """Search headline/category text that was published and locally seen by as_of."""
+    if not 1 <= limit <= 100:
+        raise ValueError('limit must be 1..100')
+    if asset_tag not in (None, 'BTC', 'general'):
+        raise ValueError('asset_tag must be BTC or general')
+    tokens = re.findall(r'[a-z0-9]{2,}', query.lower())[:8]
+    if not tokens:
+        raise ValueError('query must contain a word of at least two characters')
+    # Quote plain tokens so callers cannot pass FTS operators or malformed syntax.
+    expression = ' '.join('"' + token + '"' for token in tokens)
+    cutoff = timestamp(as_of).isoformat()
+    rows = db.execute('''SELECT e.id,e.source,e.url,e.title,e.published_at,
+        e.first_seen,e.asset_tag,bm25(news_events_fts)
+      FROM news_events_fts JOIN news_events e ON e.id=news_events_fts.rowid
+      WHERE news_events_fts MATCH ? AND e.published_at IS NOT NULL
+        AND julianday(e.published_at)<=julianday(?)
+        AND julianday(e.first_seen)<=julianday(?)
+        AND (? IS NULL OR e.asset_tag=?)
+      ORDER BY bm25(news_events_fts),julianday(e.published_at) DESC,e.id DESC
+      LIMIT ?''', (expression,cutoff,cutoff,asset_tag,asset_tag,limit)).fetchall()
+    fields = ('id','source','url','title','published_at','first_seen','asset_tag','search_rank')
+    return [dict(zip(fields,row)) for row in rows]
 
 
 def main():

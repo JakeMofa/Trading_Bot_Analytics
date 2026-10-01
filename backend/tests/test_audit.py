@@ -64,6 +64,8 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(report['features']['gaps_over_90_seconds'],1)
         self.assertEqual(report['forecasts']['abstentions'],1)
         self.assertEqual(report['recorded_failures']['coinbase_candle_refresh'],1)
+        self.assertEqual(report['failure_breakdown']['live_request_errors_by_source'],
+                         {'coinbase_candle_refresh':1})
         self.db.execute("UPDATE markets SET last_seen='2026-10-01T03:00:00Z' WHERE id='a'")
         historical=audit(self.db,self.since,self.until)
         self.assertEqual(historical['markets']['confirmed'],0)
@@ -73,6 +75,27 @@ class AuditTests(unittest.TestCase):
         self.assertEqual(report['markets']['seen'],0)
         self.assertIsNone(report['features']['largest_snapshot_gap_seconds'])
         with self.assertRaises(ValueError): audit(self.db,self.until,self.since)
+
+    def test_failure_breakdown_keeps_missing_history_separate_from_live_errors(self):
+        entries = [
+            ('polymarket_history',json.dumps({'missing_intervals':['old-window'],
+                                              'price_history_failures':[]})),
+            ('polymarket_history',json.dumps({'missing_intervals':['another'],
+                                              'price_history_failures':['timeout']})),
+            ('polymarket_quotes','market endpoint=book: HTTP Error 404: Not Found'),
+            ('polymarket_discovery','timed out')]
+        for source,detail in entries:
+            self.db.execute('''INSERT INTO runs(received_at,source,success,detail)
+              VALUES(?,?,0,?)''',(self.since,source,detail))
+        report=audit(self.db,self.since,self.until)
+        self.assertEqual(report['recorded_failures'],
+                         {'polymarket_history':2,'polymarket_quotes':1,'polymarket_discovery':1})
+        breakdown=report['failure_breakdown']
+        self.assertEqual(breakdown['history_missing_interval_window_reports'],2)
+        self.assertEqual(breakdown['history_price_request_failure_reports'],1)
+        self.assertEqual(breakdown['quote_book_404_requests'],1)
+        self.assertEqual(breakdown['live_request_errors_by_source'],
+                         {'polymarket_discovery':1})
 
 
 if __name__=='__main__': unittest.main()

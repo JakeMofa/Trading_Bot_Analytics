@@ -1,6 +1,6 @@
 # BTC Intelligence: live plan and status
 
-Updated October 1, 2026. This is the short progress tracker. [STRATEGIC_PLAN.md](STRATEGIC_PLAN.md) holds the architecture and longer roadmap; the original handoff files are historical references.
+Updated October 1, 2026. This is the short progress tracker. [STRATEGIC_PLAN.md](STRATEGIC_PLAN.md) holds the architecture and longer roadmap. [PLAN_CROSSWALK.md](PLAN_CROSSWALK.md) maps every phase of the original handoff to current implementation; the original documents remain unchanged.
 
 ## Goal
 

@@ -81,6 +81,8 @@ Use the read-only audit command during or after a run:
 
 Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, consecutive rollovers, missing internal market starts, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. Both reports open SQLite in read-only mode and do not alter the collector.
 
+Run `.venv/bin/python backend/app/data_quality.py` for a read-only historical-gap and BTC-news freshness report. `--as-of <UTC ISO timestamp>` freezes its cutoff. It groups unavailable 15-minute intervals, separates pre-coverage dates from gaps within the saved range, and measures headline publication-to-first-seen delay. It does not fetch new data or measure whether news improves forecasts.
+
 ## Retrospective history (separate from live evidence)
 
 Completed Coinbase BTC/USD minute candles can be filled quickly in bounded public requests:

@@ -46,8 +46,8 @@
 </head>
 <body>
   <header>
-    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div class="muted small">Saved local evidence · read-only · refreshes every 15 seconds</div></div>
-    <div id="refresh" class="badge" role="status" aria-live="polite">Loading…</div>
+    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div class="muted small">Saved local evidence · read-only · checks SQLite every 2 seconds</div></div>
+    <div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div>
   </header>
   <main class="grid">
     <section class="card market" aria-labelledby="market-heading">
@@ -110,26 +110,40 @@
     const money = value => value == null ? '—' : '$' + Number(value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     const pct = value => value == null ? '—' : (Number(value) * 100).toFixed(1) + '%';
     const cents = value => value == null ? '—' : (Number(value) * 100).toFixed(0) + '¢';
-    const age = value => value == null ? 'no data' : value < 60 ? Math.round(value) + 's ago' : Math.round(value / 60) + 'm ago';
+    const age = value => value == null ? 'no data' : value < 60 ? Math.floor(value) + 's ago' : Math.floor(value / 60) + 'm ' + Math.floor(value % 60) + 's ago';
     const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
+    let latest = null, serverEpochMs = null, syncAt = null, requestInFlight = false, lastError = null;
+    const serverNowMs = () => serverEpochMs == null ? null : serverEpochMs + performance.now() - syncAt;
+    const ageOf = value => value ? Math.max(0, (serverNowMs() - Date.parse(value)) / 1000) : null;
+    function tick() {
+      if (!latest || serverNowMs() == null) return;
+      const now = serverNowMs();
+      set('server-clock', 'UTC ' + new Date(now).toLocaleTimeString('en-GB', {timeZone:'UTC',hour12:false}));
+      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote;
+      const remaining = m ? Math.max(0, Math.ceil((Date.parse(m.end) - now) / 1000)) : null;
+      if (m && remaining === 0) set('market-state', 'Market ended · awaiting next saved market');
+      set('market-timer', remaining == null ? '—' : remaining === 0 ? '0:00 · awaiting next market' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
+      const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
+      set('snapshot-age', s ? 'Snapshot ' + age(ageOf(s.as_of)) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (ageOf(s.as_of) <= 90 && remaining > 0 ? '' : ' · STALE') : 'No snapshot for this market yet.');
+      const quoteAge = q ? ageOf(q.received_at) : null;
+      const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
+      set('market-quote', q ? (quoteDelayed ? 'DELAYED saved quote · ' : 'Recent saved quote · ') + age(quoteAge) + ' · UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote) + ' · not used in this forecast' : 'No public Polymarket quote saved for this market yet.');
+      byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
+      if (f?.probability_up != null) set('forecast-state', (ageOf(f.created_at) <= 90 && remaining > 0 ? 'Recent' : 'STALE') + ' saved forecast · ' + age(ageOf(f.created_at)) + ' · ' + localTime(f.created_at));
+      const checkedAge = ageOf(latest.generated_at);
+      set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge) : 'SQLite checked ' + age(checkedAge));
+    }
     function render(data) {
-      set('refresh', 'Updated ' + new Date(data.generated_at).toLocaleTimeString());
       const m = data.market, s = data.snapshot, f = data.forecast;
       set('market-state', m ? m.status.replaceAll('_', ' ') : 'No active market observed');
-      const remaining = m ? Math.max(0, Math.floor(m.seconds_remaining)) : null;
-      set('market-timer', remaining == null ? '—' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
       set('target', money(m?.target_usd));
       set('reference', money(s?.reference_price_usd));
       set('distance', money(s?.distance_usd));
       set('market-slug', m ? m.slug : 'No active market captured.');
-      const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
-      set('snapshot-age', s ? 'Snapshot ' + age(s.age_seconds) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (s.current ? '' : ' · STALE') : 'No snapshot for this market yet.');
-      set('market-quote', data.market_quote ? 'Public Polymarket quote saved ' + age(data.market_quote.age_seconds) + ' · UP ' + cents(data.market_quote.up_quote) + ' / DOWN ' + cents(data.market_quote.down_quote) + ' · not used in this forecast' : 'No public Polymarket quote saved for this market yet.');
       if (f?.probability_up != null) {
         set('forecast-up', pct(f.probability_up) + ' UP');
         set('up-small', pct(f.probability_up));
         set('down-small', pct(1 - Number(f.probability_up)));
-        set('forecast-state', (f.current ? 'Current' : 'Stale') + ' saved forecast · ' + localTime(f.created_at));
       } else {
         set('forecast-up', '—'); set('up-small', '—'); set('down-small', '—');
         set('forecast-state', f?.abstain_reason ? 'Abstained: ' + f.abstain_reason : 'Waiting for a saved forecast.');
@@ -204,13 +218,24 @@
       } else evidence.textContent = 'No prediction has linked context yet.';
     }
     async function refresh() {
+      if (requestInFlight) return;
+      requestInFlight = true;
+      const started = performance.now();
       try {
         const response = await fetch('/api/status', {cache:'no-store'});
         if (!response.ok) throw new Error('Status ' + response.status);
-        render(await response.json());
-      } catch (error) { set('refresh', 'Data unavailable · ' + error.message); }
+        const data = await response.json();
+        const finished = performance.now();
+        serverEpochMs = Date.parse(data.generated_at) + (finished - started) / 2;
+        syncAt = finished;
+        latest = data;
+        lastError = null;
+        render(data);
+        tick();
+      } catch (error) { lastError = error; if (!latest) set('refresh', 'Data unavailable · ' + error.message); }
+      finally { requestInFlight = false; }
     }
-    refresh(); setInterval(refresh, 15000);
+    refresh(); setInterval(refresh, 2000); setInterval(tick, 250);
   </script>
 </body>
 </html>

@@ -63,6 +63,7 @@
       <div id="market-slug" class="small muted">No active market captured.</div>
       <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
       <div id="market-quote" class="small muted" style="margin-top:8px"></div>
+      <div class="small muted" style="margin-top:5px">UP/DOWN quotes are market prices, not calibrated probabilities.</div>
       <p class="small muted">Market terms and quotes come from Polymarket's public API. This page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
@@ -108,6 +109,7 @@
     const set = (id, value) => { byId(id).textContent = value ?? '—'; };
     const money = value => value == null ? '—' : '$' + Number(value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
     const pct = value => value == null ? '—' : (Number(value) * 100).toFixed(1) + '%';
+    const cents = value => value == null ? '—' : (Number(value) * 100).toFixed(0) + '¢';
     const age = value => value == null ? 'no data' : value < 60 ? Math.round(value) + 's ago' : Math.round(value / 60) + 'm ago';
     const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
     function render(data) {
@@ -122,7 +124,7 @@
       set('market-slug', m ? m.slug : 'No active market captured.');
       const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
       set('snapshot-age', s ? 'Snapshot ' + age(s.age_seconds) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (s.current ? '' : ' · STALE') : 'No snapshot for this market yet.');
-      set('market-quote', data.market_quote ? 'Public Polymarket quote saved ' + age(data.market_quote.age_seconds) + ' · monitored, not used in this forecast' : 'No public Polymarket quote saved for this market yet.');
+      set('market-quote', data.market_quote ? 'Public Polymarket quote saved ' + age(data.market_quote.age_seconds) + ' · UP ' + cents(data.market_quote.up_quote) + ' / DOWN ' + cents(data.market_quote.down_quote) + ' · not used in this forecast' : 'No public Polymarket quote saved for this market yet.');
       if (f?.probability_up != null) {
         set('forecast-up', pct(f.probability_up) + ' UP');
         set('up-small', pct(f.probability_up));

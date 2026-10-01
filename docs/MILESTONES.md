@@ -13,7 +13,7 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 - [x] **Milestone 3 — Deterministic features.** Versioned 15-minute snapshots store exact target distance, remaining seconds, 1/5/15-minute returns, 15-minute realized volatility, 5/15-minute volume, source evidence, freshness and missing flags. Recent completed Coinbase candles refresh in one bounded request about once per minute; a one-minute lag is labeled. Live runs stored consecutive complete snapshots and verified the candle first-seen migration; 24 tests passed.
 - [x] **Milestone 4 — Baseline forecasts and evaluation.** An untrained, versioned probability proxy saves live forecasts or abstentions against feature snapshots. The report evaluates one forecast per confirmed 15-minute market at T-10m, T-5m and T-1m, with Brier score, log loss, calibration counts, a 50/50 reference, and chronological splits after 30 distinct markets. A live rollover paired T-5m and T-1m forecasts with one confirmed DOWN outcome; 30 tests passed. This verifies the pipeline, not predictive skill.
 - [ ] **Milestone 5 — More history and signals.** **In progress.** Coinbase's 30-day candle backfill stored 43,200/43,200 completed minutes. The 30-day Polymarket US scan completed 90/90 eight-hour chunks: 795/2,880 expected 15-minute intervals had resolved markets, with 12,694 stored book-derived display-price points. The earliest returned market starts September 22 at 15:15 UTC; 2,065 expected intervals precede it, and 20 gaps occur after it. Three transient price-history failures were retried successfully; the checkpoint now reports zero request failures. Timestamp-safe matching selects one live snapshot per prior resolved market and links the observation that established its known outcome. Next: inspect the 20 within-range gaps and measure whether matches improve later-market results. Full historical order books and trades are not represented by display-price history.
-- [ ] **Milestone 6 — News and OpenAI.** Ingest and deduplicate sourced events; send small, timestamp-safe context to OpenAI selectively; store its output separately and measure its contribution. Paid calls require configured API access and a spending limit.
+- [ ] **Milestone 6 — News and OpenAI.** **News ingestion started.** A read-only CoinDesk RSS collector stores headlines, links, categories, publisher publication times, and local first-seen times. The first pass saved 25 items, 8 tagged BTC; a second pass deduplicated all 25. A six-hour bounded poll checks every ten minutes in a separate local process. Next: inspect feed freshness and coverage, add timestamp-safe event retrieval to analysis, then compare its contribution. OpenAI calls remain deferred pending configured API access and a spending limit.
 - [ ] **Milestone 7 — Text and traversal memory.** Use SQLite FTS5 for news/explanations and relationship rows linking predictions to snapshots, events and outcomes. Numeric similarity remains feature-based.
 - [ ] **Milestone 8 — Dashboard and 1-hour expansion.** Display market state, source health, forecasts, explanations and evaluation; apply the verified pipeline to 1-hour markets and measure them separately.
 
@@ -21,7 +21,7 @@ Each milestone is committed and pushed only after its relevant checks pass. Keep
 
 ## What the database contains today
 
-The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, retrospective market display-price history, feed health, and confirmed results. The 30-day Coinbase backfill reports 43,200 complete minute candles. Live collection is a local process started by a command; it is not deployed to a separate server or installed as a background service.
+The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, retrospective market display-price history, feed health, confirmed results, and now sourced news headline references. The 30-day Coinbase backfill reports 43,200 complete minute candles. Live collection and news polling are local processes started by commands; neither is deployed to a separate server or installed as a background service.
 
 ## Active multi-market test
 
@@ -29,17 +29,19 @@ An eight-hour bounded, read-only `streaming.py --seconds 28800` run started Octo
 
 A separate resumable `history_batch.py --days 30 --end 2026-10-01T03:00:00Z` run scanned the 30 days before 03:00 UTC on October 1 and has finished. Its ignored log is `data/polymarket_30d_backfill.log`; chunk results are checkpointed in SQLite. The price-history retry completed and SQLite `quick_check` is `ok`. The eight-hour live test still needs the Mac awake.
 
+A separate `news.py --seconds 21600 --interval 600` run began around 03:31 UTC on October 1. Its ignored local log is `data/news_20261001.log`. It needs the Mac awake and is independent of the live market collector.
+
 ## Open verification
 
 - One continuous run crossed a real 15-minute boundary: the expired market was reconciled after a brief discovery gap, and collection followed the next active contract. Repeated rollover and prolonged-outage recovery still need measurement.
 - The optional Polymarket market WebSocket requires locally configured API keys and has not been live-tested. Public REST access works without login.
 - Long-running storage retention and recovery after prolonged outages have not been measured.
 - The latest report had eight confirmed markets with forward predictions, with only five to seven eligible at each checkpoint. Accuracy and calibration are not established; chronological splits require at least 30 distinct confirmed markets per checkpoint.
-- Historical case matching is available as read-only exploratory retrieval, but is not yet connected to forecasts or evaluated. News, FTS5, persisted traversal links, and dashboard layers do not exist yet. Feature and forecast coverage depends on fresh public data; snapshots retain missing and lag flags when feeds fall behind. The forecast baseline is untrained and uncalibrated.
+- Historical case matching is available as read-only exploratory retrieval, but is not yet connected to forecasts or evaluated. News ingestion has begun but is not yet linked to forecasts. FTS5, persisted traversal links, OpenAI analysis, and dashboard layers do not exist yet. Feature and forecast coverage depends on fresh public data; snapshots retain missing and lag flags when feeds fall behind. The forecast baseline is untrained and uncalibrated.
 
 ## Next implementation: news and evidence memory
 
-The news feed has not started. First verify a public source's coverage, timestamp fields, terms and reliable retrieval. Then store deduplicated events with source URL, publication time, retrieval time and relevant assets; link only events available before a forecast. Add FTS5 search and persisted evidence relationships after the event schema is stable. OpenAI analysis remains a later optional layer; no paid calls have been made. Continue evaluating the numerical baseline and case matching independently while news ingestion is built.
+The first publisher RSS source was verified and ingested. Next measure its freshness and BTC relevance over repeated polls, then link only events observed before a forecast. Add FTS5 search and persisted evidence relationships after the event schema is stable. OpenAI analysis remains a later optional layer; no paid calls have been made. Continue evaluating the numerical baseline and case matching independently while news ingestion runs.
 
 ## Decisions and evidence
 

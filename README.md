@@ -69,7 +69,7 @@ Inspect market-grouped evaluation after confirmed outcomes arrive:
 .venv/bin/python backend/app/forecasts.py --report
 ```
 
-The report selects at most one forecast per market near each of T-10m, T-5m and T-1m (within 30 seconds). It compares Brier score, log loss and directional accuracy with a 50/50 baseline, shows calibration counts, and reports abstentions. Chronological 60/20/20 blocks appear only once a checkpoint has at least 30 distinct confirmed markets. Until then, scores are preliminary and the report says when there are no paired results. More live sessions are needed before drawing any accuracy conclusion.
+The read-only report selects at most one forecast per market near each of T-10m, T-5m and T-1m (within 30 seconds). It compares Brier score, log loss and directional accuracy with a 50/50 baseline, shows calibration counts, and reports abstentions. Chronological 60/20/20 blocks appear only once a checkpoint has at least 30 distinct confirmed markets. These early scores are preliminary; the latest block has only a few markets and is not a final holdout.
 
 ## Audit a bounded collection run
 
@@ -79,7 +79,7 @@ Use the read-only audit command during or after a run:
 .venv/bin/python backend/app/audit.py --since 2026-10-01T01:53:00Z
 ```
 
-Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, rollovers, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. The audit opens SQLite in read-only mode and does not alter the live collector.
+Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, consecutive rollovers, missing internal market starts, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. Both reports open SQLite in read-only mode and do not alter the collector.
 
 ## Retrospective history (separate from live evidence)
 

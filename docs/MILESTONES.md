@@ -23,6 +23,10 @@ Each milestone is committed and pushed only after its relevant checks pass. Keep
 
 The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, feed health, and confirmed results. The latest inspection found 8 market records, 24 feature snapshots, 17 forecasts, 5 confirmed 15-minute outcomes, and 1 confirmed market paired with forecasts. The collector runs only when invoked; it is not a background service.
 
+## Active multi-market test
+
+An eight-hour bounded, read-only `streaming.py --seconds 28800` run started October 1, 2026 at about 01:53 UTC and is expected to end near 09:53 UTC if the Mac remains awake and the process remains active. Its ignored local log is `data/soak_20261001.log`. The first cycle saved a complete feature snapshot and forecast. After it ends, inspect market rollover, missing/stale coverage, confirmed-result pairing, database integrity and the checkpoint evaluation report. The run's outcome is not yet known.
+
 ## Open verification
 
 - One continuous run crossed a real 15-minute boundary: the expired market was reconciled after a brief discovery gap, and collection followed the next active contract. Repeated rollover and prolonged-outage recovery still need measurement.

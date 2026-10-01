@@ -12,7 +12,7 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 - [x] **Milestone 2 — Live BTC streaming.** Save Coinbase ticker events with source times and deduplication; reconnect with backoff; keep public Polymarket REST discovery and settlement checks. A 25-second live test saved 102 ticker events; 16 tests passed; pushed as `e9fdd73`.
 - [x] **Milestone 3 — Deterministic features.** Versioned 15-minute snapshots store exact target distance, remaining seconds, 1/5/15-minute returns, 15-minute realized volatility, 5/15-minute volume, source evidence, freshness and missing flags. Recent completed Coinbase candles refresh in one bounded request about once per minute; a one-minute lag is labeled. Live runs stored consecutive complete snapshots and verified the candle first-seen migration; 24 tests passed.
 - [x] **Milestone 4 — Baseline forecasts and evaluation.** An untrained, versioned probability proxy saves live forecasts or abstentions against feature snapshots. The report evaluates one forecast per confirmed 15-minute market at T-10m, T-5m and T-1m, with Brier score, log loss, calibration counts, a 50/50 reference, and chronological splits after 30 distinct markets. A live rollover paired T-5m and T-1m forecasts with one confirmed DOWN outcome; 30 tests passed. This verifies the pipeline, not predictive skill.
-- [ ] **Milestone 5 — More history and signals.** **Next.** Extend bounded candle backfill toward 30 days; add historical case matching and verified order-flow/book data. Measure whether each signal improves results.
+- [ ] **Milestone 5 — More history and signals.** **In progress.** An eight-hour Coinbase candle backfill stored 480/480 minutes. A bounded Polymarket US retrospective chunk found 32/32 resolved 15-minute markets and saved 512 book-derived display-price points, with retrieval times preserved. Next: extend history toward 30 days, add timestamp-safe case matching, and test whether extra signals improve later-market results. Full historical order books and trades are not represented by display-price history.
 - [ ] **Milestone 6 — News and OpenAI.** Ingest and deduplicate sourced events; send small, timestamp-safe context to OpenAI selectively; store its output separately and measure its contribution. Paid calls require configured API access and a spending limit.
 - [ ] **Milestone 7 — Text and traversal memory.** Use SQLite FTS5 for news/explanations and relationship rows linking predictions to snapshots, events and outcomes. Numeric similarity remains feature-based.
 - [ ] **Milestone 8 — Dashboard and 1-hour expansion.** Display market state, source health, forecasts, explanations and evaluation; apply the verified pipeline to 1-hour markets and measure them separately.
@@ -21,7 +21,7 @@ Each milestone is committed and pushed only after its relevant checks pass. Keep
 
 ## What the database contains today
 
-The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, feed health, and confirmed results. The latest inspection found 8 market records, 24 feature snapshots, 17 forecasts, 5 confirmed 15-minute outcomes, and 1 confirmed market paired with forecasts. The collector runs only when invoked; it is not a background service.
+The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, retrospective market display-price history, feed health, and confirmed results. The latest inspection found 8 market records, 24 feature snapshots, 17 forecasts, 5 confirmed 15-minute outcomes, and 1 confirmed market paired with forecasts. The collector runs only when invoked; it is not a background service.
 
 ## Active multi-market test
 
@@ -33,7 +33,7 @@ An eight-hour bounded, read-only `streaming.py --seconds 28800` run started Octo
 - The optional Polymarket market WebSocket requires locally configured API keys and has not been live-tested. Public REST access works without login.
 - Long-running storage retention and recovery after prolonged outages have not been measured.
 - Only one confirmed market has paired forecasts so far. Accuracy and calibration are not established; chronological splits require at least 30 distinct confirmed markets per checkpoint.
-- News, FTS5, traversal, and dashboard layers do not exist yet. Feature and forecast coverage depends on fresh public data; snapshots retain missing and lag flags when feeds fall behind. The forecast baseline is untrained and uncalibrated.
+- Historical case matching, news, FTS5, traversal, and dashboard layers do not exist yet. Feature and forecast coverage depends on fresh public data; snapshots retain missing and lag flags when feeds fall behind. The forecast baseline is untrained and uncalibrated.
 
 ## Decisions and evidence
 

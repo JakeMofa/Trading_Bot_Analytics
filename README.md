@@ -74,3 +74,20 @@ Use the read-only audit command during or after a run:
 ```
 
 Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, rollovers, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. The audit opens SQLite in read-only mode and does not alter the live collector.
+
+## Retrospective history (separate from live evidence)
+
+Completed Coinbase BTC/USD minute candles can be filled quickly in bounded public requests:
+
+```sh
+.venv/bin/python backend/app/collector.py --backfill-hours 8 --cycles 1
+```
+
+Past Polymarket US 15-minute targets, confirmed results, and book-derived Yes/No **display-price history** are fetched separately:
+
+```sh
+.venv/bin/python backend/app/historical.py --hours 8
+.venv/bin/python backend/app/historical.py --hours 8 --end 2026-10-01T02:00:00Z
+```
+
+The second form selects an older UTC chunk; each run is capped at eight hours and reports missing intervals and endpoint failures. The first verified chunk found 32/32 resolved markets and saved 512 display-price points. Price history is not a record of every trade or full order-book depth. Retrospective rows retain their retrieval time; they cannot be used to claim that a forecast was made before the outcome. Continue the live collector to measure real rollover, feed health and genuinely forward forecasts.

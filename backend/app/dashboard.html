@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC Intelligence · Live Status</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0b1018; color:#f0f4fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:28px; max-width:1440px; margin-inline:auto; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:24px; }
+    h1 { margin:4px 0 6px; font-size:clamp(1.7rem,3vw,2.5rem); letter-spacing:-.04em; }
+    h2 { font-size:1rem; margin:0 0 20px; color:#c6d2e1; }
+    p { line-height:1.5; }
+    .eyebrow, .label { text-transform:uppercase; letter-spacing:.12em; font-size:.69rem; font-weight:700; color:#95a7bb; }
+    .muted { color:#95a7bb; }
+    .small { font-size:.82rem; }
+    .badge { border:1px solid #2f4155; border-radius:999px; padding:8px 13px; color:#bad5f1; background:#122033; white-space:nowrap; font-size:.8rem; }
+    .grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; }
+    .card { background:#151e2b; border:1px solid #29384a; border-radius:18px; padding:22px; min-width:0; box-shadow:0 12px 35px #0002; }
+    .market, .forecast { grid-column:span 6; }
+    .feeds, .evaluation, .news { grid-column:span 4; }
+    .hero { font-size:clamp(2rem,4vw,3.4rem); font-variant-numeric:tabular-nums; font-weight:750; letter-spacing:-.055em; line-height:1.08; margin:8px 0; }
+    .row { display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
+    .metric { flex:1; min-width:130px; }
+    .metric strong { display:block; font-size:1.3rem; margin-top:6px; font-variant-numeric:tabular-nums; }
+    .line { height:1px; background:#2b3a4a; margin:21px 0; }
+    .up { color:#33d59c; } .warn { color:#f5bb6b; } .bad { color:#ff858d; }
+    .pair { display:flex; justify-content:space-between; gap:12px; margin:10px 0; font-size:.87rem; }
+    .pair span:last-child { text-align:right; }
+    .track { height:8px; border-radius:999px; background:#2c3c4c; overflow:hidden; margin:7px 0 17px; }
+    .fill { height:100%; background:#4fa7f8; border-radius:999px; }
+    .feed { border-top:1px solid #2b3a4a; padding:12px 0; }
+    .feed:first-child { border-top:0; padding-top:0; }
+    .feed .pair { margin:0; }
+    ul { list-style:none; padding:0; margin:0; }
+    li { border-top:1px solid #2b3a4a; padding:12px 0; }
+    li:first-child { border-top:0; padding-top:0; }
+    a { color:#95c9ff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .footer { margin-top:20px; color:#95a7bb; font-size:.78rem; }
+    @media (max-width:900px) { .market,.forecast,.feeds,.evaluation,.news { grid-column:span 12; } }
+    @media (max-width:560px) { body { padding:16px; } header { flex-direction:column; } .card { padding:18px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div class="muted small">Saved local evidence · read-only · refreshes every 15 seconds</div></div>
+    <div id="refresh" class="badge" role="status" aria-live="polite">Loading…</div>
+  </header>
+  <main class="grid">
+    <section class="card market" aria-labelledby="market-heading">
+      <h2 id="market-heading">Current market</h2>
+      <div id="market-state" class="eyebrow">Waiting for data</div>
+      <div id="market-timer" class="hero">—</div>
+      <div class="row">
+        <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
+        <div class="metric"><span class="label">Coinbase reference</span><strong id="reference">—</strong></div>
+        <div class="metric"><span class="label">Distance</span><strong id="distance">—</strong></div>
+      </div>
+      <div class="line"></div>
+      <div id="market-slug" class="small muted">No active market captured.</div>
+      <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
+    </section>
+    <section class="card forecast" aria-labelledby="forecast-heading">
+      <h2 id="forecast-heading">Saved baseline forecast</h2>
+      <div id="forecast-up" class="hero up">—</div>
+      <div class="row">
+        <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
+        <div class="metric"><span class="label">DOWN probability</span><strong id="down-small">—</strong></div>
+      </div>
+      <div class="line"></div>
+      <div id="forecast-state" class="small muted">Waiting for a saved forecast.</div>
+      <p class="small muted">Untrained, uncalibrated price-and-volatility proxy. Coinbase is a reference input; Polymarket determines settlement.</p>
+    </section>
+    <section class="card feeds" aria-labelledby="feeds-heading">
+      <h2 id="feeds-heading">Feed health</h2>
+      <div id="feeds-list" class="small muted">Waiting for data.</div>
+    </section>
+    <section class="card evaluation" aria-labelledby="evaluation-heading">
+      <h2 id="evaluation-heading">Confirmed-market evaluation</h2>
+      <div id="checkpoint-list"></div>
+      <p class="small muted">Distinct resolved markets at each forecast time. Comparisons remain preliminary until 30 per checkpoint.</p>
+    </section>
+    <section class="card news" aria-labelledby="news-heading">
+      <h2 id="news-heading">Saved BTC headlines</h2>
+      <div id="news-age" class="small muted" style="margin-bottom:12px"></div>
+      <ul id="news-list"></ul>
+      <p class="small muted">Headlines are stored context; they do not affect this forecast.</p>
+    </section>
+  </main>
+  <div class="footer">This page only reads the local SQLite database. It cannot place orders.</div>
+  <script>
+    const byId = id => document.getElementById(id);
+    const set = (id, value) => { byId(id).textContent = value ?? '—'; };
+    const money = value => value == null ? '—' : '$' + Number(value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const pct = value => value == null ? '—' : (Number(value) * 100).toFixed(1) + '%';
+    const age = value => value == null ? 'no data' : value < 60 ? Math.round(value) + 's ago' : Math.round(value / 60) + 'm ago';
+    const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
+    function render(data) {
+      set('refresh', 'Updated ' + new Date(data.generated_at).toLocaleTimeString());
+      const m = data.market, s = data.snapshot, f = data.forecast;
+      set('market-state', m ? m.status.replaceAll('_', ' ') : 'No active market observed');
+      const remaining = m ? Math.max(0, Math.floor(m.seconds_remaining)) : null;
+      set('market-timer', remaining == null ? '—' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
+      set('target', money(m?.target_usd));
+      set('reference', money(s?.reference_price_usd));
+      set('distance', money(s?.distance_usd));
+      set('market-slug', m ? m.slug : 'No active market captured.');
+      set('snapshot-age', s ? 'Snapshot ' + age(s.age_seconds) + ' · price ' + s.price_status + ' · candles ' + s.candle_status + (s.current ? '' : ' · STALE') : 'No snapshot for this market yet.');
+      if (f?.probability_up != null) {
+        set('forecast-up', pct(f.probability_up) + ' UP');
+        set('up-small', pct(f.probability_up));
+        set('down-small', pct(1 - Number(f.probability_up)));
+        set('forecast-state', (f.current ? 'Current' : 'Stale') + ' saved forecast · ' + localTime(f.created_at));
+      } else {
+        set('forecast-up', '—'); set('up-small', '—'); set('down-small', '—');
+        set('forecast-state', f?.abstain_reason ? 'Abstained: ' + f.abstain_reason : 'Waiting for a saved forecast.');
+      }
+      const feeds = byId('feeds-list'); feeds.replaceChildren();
+      for (const feed of data.feeds) {
+        const div = document.createElement('div'); div.className = 'feed';
+        const line = document.createElement('div'); line.className = 'pair';
+        const name = document.createElement('strong'); name.textContent = feed.source.replaceAll('_',' ');
+        const state = document.createElement('span'); state.textContent = feed.effective_status; state.className = feed.effective_status === 'live' || feed.effective_status === 'running' ? 'up' : 'warn';
+        line.append(name,state); div.append(line);
+        const sub = document.createElement('div'); sub.className = 'small muted'; sub.textContent = 'Last update ' + age(feed.age_seconds) + ' · reconnects ' + feed.reconnects;
+        div.append(sub); feeds.append(div);
+      }
+      if (!data.feeds.length) feeds.textContent = 'No feed health stored yet.';
+      const evalList = byId('checkpoint-list'); evalList.replaceChildren();
+      for (const [name,count] of Object.entries(data.evaluation.distinct_confirmed_markets_by_checkpoint)) {
+        const line = document.createElement('div'); line.className = 'pair';
+        const left = document.createElement('span'); left.textContent = name;
+        const right = document.createElement('strong'); right.textContent = count + ' / 30 markets';
+        line.append(left,right); evalList.append(line);
+        const track = document.createElement('div'); track.className = 'track';
+        const fill = document.createElement('div'); fill.className = 'fill'; fill.style.width = Math.min(100, count / 30 * 100) + '%';
+        track.append(fill); evalList.append(track);
+      }
+      set('news-age', 'Latest feed item seen ' + (data.news_last_seen ? age((Date.now() - new Date(data.news_last_seen).getTime()) / 1000) : 'never'));
+      const news = byId('news-list'); news.replaceChildren();
+      for (const item of data.news) {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.textContent = item.title;
+        if (item.url.startsWith('https://')) { link.href = item.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+        li.append(link);
+        const detail = document.createElement('div'); detail.className = 'small muted'; detail.textContent = 'Seen ' + localTime(item.first_seen);
+        li.append(detail); news.append(li);
+      }
+      if (!data.news.length) { const li=document.createElement('li'); li.textContent='No BTC headlines stored yet.'; news.append(li); }
+    }
+    async function refresh() {
+      try {
+        const response = await fetch('/api/status', {cache:'no-store'});
+        if (!response.ok) throw new Error('Status ' + response.status);
+        render(await response.json());
+      } catch (error) { set('refresh', 'Data unavailable · ' + error.message); }
+    }
+    refresh(); setInterval(refresh, 15000);
+  </script>
+</body>
+</html>

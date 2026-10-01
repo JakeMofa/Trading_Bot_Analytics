@@ -30,6 +30,13 @@ def status(db, now=None):
     snapshot = None
     forecast = None
     market_quote = None
+    latest_tick = None
+    tick_row = db.execute('''SELECT price,source_time,received_at FROM stream_events
+      WHERE source='coinbase' ORDER BY rowid DESC LIMIT 1''').fetchone()
+    if tick_row:
+        latest_tick = {'price_usd': tick_row[0], 'source_time': tick_row[1],
+                       'received_at': tick_row[2],
+                       'age_seconds': _age(now, tick_row[2])}
     if row:
         market_id, slug, start, end, target, market_status = row
         market = {'id': market_id, 'slug': slug, 'start': start, 'end': end,
@@ -137,6 +144,7 @@ def status(db, now=None):
                         'semantics': traced['link_semantics']}
     return {'generated_at': cutoff, 'read_only': True,
             'market': market, 'market_quote': market_quote,
+            'latest_coinbase_tick': latest_tick,
             'snapshot': snapshot, 'forecast': forecast,
             'feeds': feeds, 'news': news, 'outcomes': outcomes, 'evidence': evidence,
             'news_last_seen': news_latest,

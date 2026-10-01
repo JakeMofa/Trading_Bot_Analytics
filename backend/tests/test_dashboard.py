@@ -31,6 +31,7 @@ class DashboardTests(unittest.TestCase):
         report = status(self.db, self.now)
         self.assertIsNone(report['market'])
         self.assertIsNone(report['forecast'])
+        self.assertIsNone(report['latest_coinbase_tick'])
         self.assertIsNone(report['evidence'])
         self.assertEqual(report['evaluation']['distinct_confirmed_markets_by_checkpoint']['T-5m'], 0)
 
@@ -59,6 +60,10 @@ class DashboardTests(unittest.TestCase):
           VALUES(?,?,?,?)''',('m','2026-10-01T02:09:30Z','bbo',
                              json.dumps({'marketData':{'longQuote':{'value':'0.57'},
                                                        'shortQuote':{'value':'0.45'}}})))
+        self.db.execute('''INSERT INTO stream_events(source,event_id,received_at,
+          source_time,price,payload) VALUES(?,?,?,?,?,?)''',
+          ('coinbase','trade-1','2026-10-01T02:09:59Z',
+           '2026-10-01T02:09:58Z','103','{}'))
         self.db.execute('''INSERT INTO news_events(source,source_guid,url,title,
           published_at,first_seen,last_seen,categories_json,asset_tag)
           VALUES(?,?,?,?,?,?,?,?,?)''',
@@ -83,6 +88,8 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(self.db.total_changes, before)
         self.assertEqual(report['market']['seconds_remaining'], 300)
         self.assertEqual(report['snapshot']['reference_price_usd'], '101')
+        self.assertEqual(report['latest_coinbase_tick']['price_usd'], '103')
+        self.assertEqual(report['latest_coinbase_tick']['age_seconds'], 1)
         self.assertEqual(report['snapshot']['candle_age_seconds'], 65)
         self.assertEqual(report['snapshot']['reference_source'], 'coinbase_stream')
         self.assertEqual(report['market_quote']['age_seconds'], 30)

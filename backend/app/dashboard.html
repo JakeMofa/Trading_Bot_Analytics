@@ -56,15 +56,16 @@
       <div id="market-timer" class="hero">—</div>
       <div class="row">
         <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
-        <div class="metric"><span class="label">Coinbase reference</span><strong id="reference">—</strong></div>
-        <div class="metric"><span class="label">Distance</span><strong id="distance">—</strong></div>
+        <div class="metric"><span class="label">Latest Coinbase tick</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
+        <div class="metric"><span class="label">Saved forecast input</span><strong id="reference">—</strong></div>
+        <div class="metric"><span class="label">Forecast input distance</span><strong id="distance">—</strong></div>
       </div>
       <div class="line"></div>
       <div id="market-slug" class="small muted">No active market captured.</div>
       <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
       <div id="market-quote" class="small muted" style="margin-top:8px"></div>
       <div class="small muted" style="margin-top:5px">UP/DOWN quotes are market prices, not calibrated probabilities.</div>
-      <p class="small muted">Market terms and quotes come from Polymarket's public API. This page does not scrape your browser or account.</p>
+      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms and quotes come from Polymarket's public API; this page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
       <h2 id="forecast-heading">Saved baseline forecast</h2>
@@ -119,12 +120,17 @@
       if (!latest || serverNowMs() == null) return;
       const now = serverNowMs();
       set('server-clock', 'UTC ' + new Date(now).toLocaleTimeString('en-GB', {timeZone:'UTC',hour12:false}));
-      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote;
+      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote, t = latest.latest_coinbase_tick;
       const remaining = m ? Math.max(0, Math.ceil((Date.parse(m.end) - now) / 1000)) : null;
       if (m && remaining === 0) set('market-state', 'Market ended · awaiting next saved market');
       set('market-timer', remaining == null ? '—' : remaining === 0 ? '0:00 · awaiting next market' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
       const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
       set('snapshot-age', s ? 'Snapshot ' + age(ageOf(s.as_of)) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (ageOf(s.as_of) <= 90 && remaining > 0 ? '' : ' · STALE') : 'No snapshot for this market yet.');
+      const tickAge = t ? ageOf(t.received_at) : null;
+      const tickFresh = tickAge != null && tickAge <= 10 && ageOf(t.source_time) <= 10;
+      set('live-reference', t ? money(t.price_usd) : '—');
+      set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
+      byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
       const quoteAge = q ? ageOf(q.received_at) : null;
       const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
       set('market-quote', q ? (quoteDelayed ? 'DELAYED saved quote · ' : 'Recent saved quote · ') + age(quoteAge) + ' · UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote) + ' · not used in this forecast' : 'No public Polymarket quote saved for this market yet.');

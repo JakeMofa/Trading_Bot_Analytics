@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
 from collector import connect
-from dashboard import chart_data, status
+from dashboard import chart_data, latest_tick_event, status
 from features import initialize as initialize_features
 from forecasts import MODEL, initialize as initialize_forecasts
 from knowledge import initialize as initialize_knowledge
@@ -59,6 +59,8 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(report['market']['target_usd'], '100')
         self.assertEqual([p['price_usd'] for p in report['points']], ['101','102'])
         self.assertFalse(report['sample_limited'])
+        self.assertEqual(latest_tick_event(self.db)['price_usd'], '150')
+        self.assertEqual(latest_tick_event(self.db)['source_time'], '2026-10-01T02:11:00Z')
 
     def test_current_market_forecast_and_stale_feed_are_read_only(self):
         start, end = '2026-10-01T02:00:00Z', '2026-10-01T02:15:00Z'

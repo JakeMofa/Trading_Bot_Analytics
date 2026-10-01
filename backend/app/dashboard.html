@@ -49,7 +49,7 @@
 </head>
 <body>
   <header>
-    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div class="muted small">Saved local evidence · read-only · live Coinbase chart updates</div></div>
+    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div id="collection-state" class="muted small">Checking saved collection status…</div></div>
     <div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div>
   </header>
   <div id="offline-hint" class="card" style="display:none;margin-bottom:16px">This file preview cannot load live data. Open the <a href="http://127.0.0.1:8765/">live dashboard at 127.0.0.1:8765</a>.</div>
@@ -269,6 +269,16 @@
       set('snapshot-age', s ? 'Snapshot ' + age(ageOf(s.as_of)) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (ageOf(s.as_of) <= 90 && remaining > 0 ? '' : ' · STALE') : 'No snapshot for this market yet.');
       const tickAge = t ? ageOf(t.received_at) : null;
       const tickFresh = tickAge != null && tickAge <= 10 && ageOf(t.source_time) <= 10;
+      const btcFeed = latest.feeds?.find(feed => feed.source === 'coinbase_stream');
+      const collectionState = btcFeed?.effective_status;
+      const collectionText = collectionState === 'stopped' ? 'Collection finished · saved data only'
+        : collectionState === 'stale' ? 'Collection delayed · BTC feed is stale'
+        : tickFresh ? 'Collecting live Coinbase reference ticks'
+        : 'Waiting for fresh Coinbase reference data';
+      set('collection-state', collectionText);
+      byId('collection-state').className = 'small ' + (tickFresh ? 'muted' : 'warn');
+      if (collectionState === 'stopped' || collectionState === 'stale')
+        set('chart-stream-state', collectionText + (t ? ' · last tick ' + age(tickAge) : ''));
       set('live-reference', t ? money(t.price_usd) : '—');
       set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
@@ -291,7 +301,7 @@
       }
       set('market-quote', quoteText);
       byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
-      const estimateFresh = e?.market_id === m?.id && ageOf(e.as_of) <= 10 && remaining > 0;
+      const estimateFresh = !!(e && m && e.market_id === m.id && ageOf(e.as_of) <= 10 && remaining > 0);
       const liveProbability = estimateFresh ? e.probability_up : null;
       set('forecast-up', liveProbability == null ? '—' : pct(liveProbability) + ' UP');
       set('up-small', pct(liveProbability));
@@ -304,7 +314,10 @@
         ? 'Saved 30-second forecast: ' + pct(f.probability_up) + ' UP · ' + age(ageOf(f.created_at))
         : f?.abstain_reason ? 'Saved forecast abstained: ' + f.abstain_reason : 'Saved forecast: waiting for data.');
       const checkedAge = ageOf(latest.generated_at);
-      set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge) : 'SQLite checked ' + age(checkedAge));
+      set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge)
+        : collectionState === 'stopped' ? 'Collector stopped · SQLite checked ' + age(checkedAge)
+        : collectionState === 'stale' ? 'BTC feed stale · SQLite checked ' + age(checkedAge)
+        : 'SQLite checked ' + age(checkedAge));
       updateChartSummary();
     }
     function render(data) {
@@ -397,10 +410,10 @@
         if (latest?.latest_coinbase_tick && (!data.latest_coinbase_tick ||
             Date.parse(latest.latest_coinbase_tick.received_at) > Date.parse(data.latest_coinbase_tick.received_at)))
           data.latest_coinbase_tick = latest.latest_coinbase_tick;
-        if (latest?.market?.id === data.market?.id && latest.market_quote &&
+        if (latest && latest.market?.id === data.market?.id && latest.market_quote &&
             (!data.market_quote || Date.parse(latest.market_quote.received_at) > Date.parse(data.market_quote.received_at)))
           data.market_quote = latest.market_quote;
-        if (latest?.market?.id === data.market?.id) data.live_estimate = latest.live_estimate;
+        if (latest && latest.market?.id === data.market?.id) data.live_estimate = latest.live_estimate;
         const marketChanged = chartData?.market?.id !== data.market?.id;
         latest = data;
         lastError = null;

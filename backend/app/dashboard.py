@@ -12,10 +12,46 @@ from knowledge import trace_prediction
 
 HTML = Path(__file__).with_name('dashboard.html')
 FRESH_SECONDS = 90
+CHART_SAMPLE_LIMIT = 12000
+CHART_BUCKET_SECONDS = 5
 
 
 def _age(now, value):
     return max(0, (now - timestamp(value)).total_seconds()) if value else None
+
+
+def chart_data(db, now=None):
+    """Bounded Coinbase ticks for the active market; never imply BRTI coverage."""
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    row = db.execute('''SELECT id,slug,start,end,target FROM markets
+      WHERE duration=900 AND julianday(start)<=julianday(?)
+        AND julianday(end)>julianday(?)
+      ORDER BY julianday(start) DESC LIMIT 1''', (now.isoformat(), now.isoformat())).fetchone()
+    if not row:
+        return {'generated_at': now.isoformat(), 'source': 'coinbase_stream',
+                'market': None, 'points': []}
+    market_id, slug, start_text, end_text, target = row
+    start, end = timestamp(start_text), timestamp(end_text)
+    rows = db.execute('''SELECT received_at,source_time,price FROM stream_events
+      WHERE source='coinbase' ORDER BY rowid DESC LIMIT ?''',
+      (CHART_SAMPLE_LIMIT,)).fetchall()
+    buckets = {}
+    for received_text, source_text, price in rows:
+        received, source_time = timestamp(received_text), timestamp(source_text)
+        if not (start <= received <= now and start <= source_time <= now and source_time < end):
+            continue
+        bucket = int((source_time - start).total_seconds() // CHART_BUCKET_SECONDS)
+        prior = buckets.get(bucket)
+        if prior is None or source_time > prior[0]:
+            buckets[bucket] = (source_time, price)
+    points = [{'at': source_time.isoformat(), 'price_usd': price}
+              for source_time, price in (buckets[key] for key in sorted(buckets))]
+    sample_limited = len(rows) == CHART_SAMPLE_LIMIT and timestamp(rows[-1][0]) > start
+    return {'generated_at': now.isoformat(), 'source': 'coinbase_stream',
+            'market': {'id': market_id, 'slug': slug, 'start': start_text,
+                       'end': end_text, 'target_usd': target},
+            'bucket_seconds': CHART_BUCKET_SECONDS, 'sample_limited': sample_limited,
+            'points': points}
 
 
 def status(db, now=None):
@@ -171,6 +207,14 @@ def handler_for(path):
                     content_type = 'application/json; charset=utf-8'
                 except (OSError, sqlite3.Error, ValueError) as exc:
                     self.send_error(503, f'Dashboard data unavailable: {type(exc).__name__}')
+                    return
+            elif self.path == '/api/chart':
+                try:
+                    with open_readonly(path) as db:
+                        data = json.dumps(chart_data(db)).encode()
+                    content_type = 'application/json; charset=utf-8'
+                except (OSError, sqlite3.Error, ValueError) as exc:
+                    self.send_error(503, f'Chart data unavailable: {type(exc).__name__}')
                     return
             else:
                 self.send_error(404)

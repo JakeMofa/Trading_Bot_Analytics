@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
 from collector import connect
-from dashboard import LiveQuoteRelay, chart_data, compact_live_quote, latest_tick_event, status
+from dashboard import LiveQuoteRelay, chart_data, compact_live_quote, latest_tick_event, live_estimate, status
 from features import initialize as initialize_features
 from forecasts import MODEL, initialize as initialize_forecasts
 from knowledge import initialize as initialize_knowledge
@@ -59,6 +59,32 @@ class DashboardTests(unittest.TestCase):
         self.assertNotIn('bids', latest)
         self.assertIsNone(compact_live_quote({'marketData': {'marketSlug': 'other'}},
                                               'm', 'btc-market', '2026-10-01T02:09:02Z'))
+
+    def test_live_estimate_uses_tick_price_and_recent_saved_volatility_without_writing(self):
+        self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,
+          first_seen,last_seen,raw_json) VALUES(?,?,?,?,?,?,?,?,?,?)''',
+          ('m','btc-market',900,'2026-10-01T02:00:00Z','2026-10-01T02:15:00Z',
+           '100','MARKET_STATUS_OPEN','2026-10-01T02:00:00Z',
+           '2026-10-01T02:00:00Z','{}'))
+        self.db.execute('''INSERT INTO feature_snapshots(market_id,as_of,version,
+          values_json,quality_json,evidence_json) VALUES(?,?,?,?,?,?)''',
+          ('m','2026-10-01T02:09:45Z',1,
+           json.dumps({'target_usd':'100','reference_price_usd':'99',
+                       'realized_volatility_15m':'0.002','seconds_remaining':315}),
+           json.dumps({'price':{'status':'fresh'},'candle_status':'fresh'}),'{}'))
+        self.db.commit()
+        self.db.execute('PRAGMA query_only=ON')
+        tick = {'source_time':'2026-10-01T02:10:00Z',
+                'received_at':'2026-10-01T02:10:00.200000Z','price_usd':'101'}
+        before = self.db.total_changes
+        estimate = live_estimate(self.db, tick,
+                                 datetime(2026,10,1,2,10,1,tzinfo=timezone.utc))
+        self.assertEqual(self.db.total_changes, before)
+        self.assertEqual(estimate['market_id'], 'm')
+        self.assertEqual(estimate['as_of'], tick['source_time'])
+        self.assertGreater(estimate['probability_up'], 0.5)
+        self.assertIsNone(live_estimate(self.db, tick,
+                                       datetime(2026,10,1,2,11,tzinfo=timezone.utc)))
 
     def test_chart_uses_only_saved_ticks_from_current_market(self):
         self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,

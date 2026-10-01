@@ -10,7 +10,7 @@ import threading
 import time
 
 from collector import timestamp
-from forecasts import CHECKPOINTS, CHECKPOINT_TOLERANCE, MODEL
+from forecasts import CHECKPOINTS, CHECKPOINT_TOLERANCE, MODEL, baseline
 from knowledge import trace_prediction
 
 HTML = Path(__file__).with_name('dashboard.html')
@@ -118,6 +118,40 @@ def latest_tick_event(db):
         return None
     return {'sequence': row[0], 'price_usd': row[1],
             'source_time': row[2], 'received_at': row[3]}
+
+
+def live_estimate(db, tick, now=None):
+    """An unsaved display estimate at the same Coinbase tick shown on the chart."""
+    now = (now or datetime.now(timezone.utc)).astimezone(timezone.utc)
+    source_time = timestamp(tick['source_time'])
+    received_at = timestamp(tick['received_at'])
+    if not (-5 <= (received_at-source_time).total_seconds() <= 10
+            and -5 <= (now-received_at).total_seconds() <= 10
+            and -5 <= (now-source_time).total_seconds() <= 10):
+        return None
+    row = db.execute('''SELECT id,target,end FROM markets WHERE duration=900
+      AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?)
+      ORDER BY julianday(start) DESC LIMIT 1''',
+      (source_time.isoformat(), source_time.isoformat())).fetchone()
+    if not row:
+        return None
+    market_id, target, end = row
+    result = {'market_id': market_id, 'as_of': tick['source_time'],
+              'received_at': tick['received_at'], 'model_version': MODEL,
+              'probability_up': None, 'abstain_reason': 'no_recent_feature_snapshot'}
+    snapshot = db.execute('''SELECT as_of,values_json,quality_json FROM feature_snapshots
+      WHERE market_id=? ORDER BY julianday(as_of) DESC,id DESC LIMIT 1''',
+      (market_id,)).fetchone()
+    if not snapshot or not 0 <= (source_time-timestamp(snapshot[0])).total_seconds() <= 90:
+        return result
+    values, quality = json.loads(snapshot[1]), json.loads(snapshot[2])
+    values.update({'target_usd': target, 'reference_price_usd': tick['price_usd'],
+                   'seconds_remaining': (timestamp(end)-source_time).total_seconds()})
+    quality['price']['status'] = 'fresh'
+    probability, reason = baseline(values, quality)
+    result.update({'probability_up': probability, 'abstain_reason': reason,
+                   'snapshot_as_of': snapshot[0]})
+    return result
 
 
 def _age(now, value):
@@ -329,6 +363,8 @@ def handler_for(path, quote_relay=None):
                         while True:
                             event = quote_relay.latest() if is_quote else latest_tick_event(db)
                             if event and event['sequence'] != last_sequence:
+                                if not is_quote:
+                                    event['estimate'] = live_estimate(db, event)
                                 name = 'quote' if is_quote else 'tick'
                                 self.wfile.write(('event: ' + name + '\ndata: ' +
                                   json.dumps(event, separators=(',', ':')) + '\n\n').encode())

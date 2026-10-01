@@ -11,6 +11,7 @@ from pathlib import Path
 from websockets.asyncio.client import connect as ws_connect
 from collector import connect, collect_once, amount, utcnow, timestamp, save_observation, refresh_recent_candles, record
 from features import initialize as initialize_features, capture as capture_features
+from forecasts import initialize as initialize_forecasts, forecast_snapshot
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
 POLYMARKET_WS = 'wss://api.polymarket.us/v1/ws/markets'
@@ -201,6 +202,10 @@ async def rest_loop(path, db, stop, interval):
             if snapshot:
                 market_id, values, quality = snapshot
                 print(f"15m features: market={market_id} remaining={values['seconds_remaining']:.0f}s price={quality['price']['status']} missing={len(quality['missing_features'])}", flush=True)
+                snapshot_id = db.execute('SELECT id FROM feature_snapshots WHERE market_id=? ORDER BY id DESC LIMIT 1', (market_id,)).fetchone()[0]
+                forecast = forecast_snapshot(db, snapshot_id)
+                if forecast:
+                    print(f"15m baseline: UP={forecast['probability_up']} abstain={forecast['abstain_reason']}", flush=True)
             # collect_once logs per-source failures; don't declare the feeds healthy here.
             health(db,'rest_supervisor','running','See runs for individual source errors')
         except Exception as exc:
@@ -210,7 +215,7 @@ async def rest_loop(path, db, stop, interval):
 
 
 async def run(path, seconds, interval):
-    db=connect(path); initialize(db); initialize_features(db)
+    db=connect(path); initialize(db); initialize_features(db); initialize_forecasts(db)
     stop=asyncio.Event()
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGINT,signal.SIGTERM):

@@ -52,3 +52,15 @@ The user requested a tested commit and push for each completed milestone. See `d
 Every streaming REST cycle saves a `feature_snapshots` row for the active 15-minute market when its metadata was already observed. The row contains exact decimal target distance, time remaining, completed-candle returns, realized volatility, volume, input IDs/times, and explicit missing/freshness flags. Calculations use only records received by the snapshot time; the snapshot also records the candle inputs it used. Existing candle rows from before this schema change have unknown first-seen times and become eligible for new snapshots only after they are refreshed. The Coinbase reference price is a predictive input, never the Polymarket settlement price.
 
 The supervisor refreshes the last 20 completed Coinbase one-minute candles at startup and approximately once per minute in one bounded public request. A one-minute candle delay is labeled `lagging`; older/missing windows leave dependent fields null. Quote and candle refresh failures are recorded in `runs`. A late start does not claim earlier Polymarket book coverage. Inspect recent rows with `sqlite3 data/btc_intelligence.db 'SELECT market_id,as_of,values_json,quality_json FROM feature_snapshots ORDER BY id DESC LIMIT 3;'`.
+
+## Baseline forecasts and evaluation
+
+The streaming supervisor now saves one `predictions` row per feature snapshot, including abstentions when a required input is stale or missing. `gaussian_distance_v1` is an **untrained, uncalibrated proxy**: it combines the Coinbase reference price, Polymarket target, time remaining and recent one-minute return volatility under a zero-drift normal log-return assumption. Polymarket settles with BRTI, so this probability is not a verified trading edge or a buy/sell instruction. The model stores its assumptions and source snapshot; forecasts are only issued while their market is live.
+
+Inspect market-grouped evaluation after confirmed outcomes arrive:
+
+```sh
+.venv/bin/python backend/app/forecasts.py --report
+```
+
+The report selects at most one forecast per market near each of T-10m, T-5m and T-1m (within 30 seconds). It compares Brier score, log loss and directional accuracy with a 50/50 baseline, shows calibration counts, and reports abstentions. Chronological 60/20/20 blocks appear only once a checkpoint has at least 30 distinct confirmed markets. Until then, scores are preliminary and the report says when there are no paired results. More live sessions are needed before drawing any accuracy conclusion.

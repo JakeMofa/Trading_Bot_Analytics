@@ -125,7 +125,7 @@ def connect(path):
     CREATE TABLE IF NOT EXISTS candles (
       source TEXT NOT NULL, symbol TEXT NOT NULL, granularity INTEGER NOT NULL,
       time INTEGER NOT NULL, low TEXT, high TEXT, open TEXT, close TEXT, volume TEXT,
-      PRIMARY KEY(source,symbol,granularity,time));
+      first_seen TEXT, PRIMARY KEY(source,symbol,granularity,time));
     CREATE TABLE IF NOT EXISTS reference_prices (
       id INTEGER PRIMARY KEY, received_at TEXT NOT NULL, source_time TEXT,
       source TEXT NOT NULL, price TEXT NOT NULL, payload TEXT NOT NULL);
@@ -133,6 +133,8 @@ def connect(path):
       id INTEGER PRIMARY KEY, received_at TEXT NOT NULL, source TEXT NOT NULL,
       success INTEGER NOT NULL, detail TEXT NOT NULL);
     ''')
+    if 'first_seen' not in {row[1] for row in db.execute('PRAGMA table_info(candles)')}:
+        db.execute('ALTER TABLE candles ADD COLUMN first_seen TEXT')
     return db
 
 
@@ -162,8 +164,11 @@ def save_candles(db, rows, start, end):
         prices = [amount(x) for x in (low, high, op, cl, vol)]
         if Decimal(prices[0]) > Decimal(prices[1]) or Decimal(prices[4]) < 0:
             raise ValueError('Invalid candle range or volume')
-        db.execute('INSERT OR REPLACE INTO candles VALUES(?,?,?,?,?,?,?,?,?)',
-                   ('coinbase', 'BTC-USD', 60, int(t), *prices))
+        db.execute('''INSERT INTO candles(source,symbol,granularity,time,low,high,open,close,volume,first_seen)
+          VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source,symbol,granularity,time) DO UPDATE SET
+          low=excluded.low,high=excluded.high,open=excluded.open,close=excluded.close,
+          volume=excluded.volume,first_seen=COALESCE(candles.first_seen,excluded.first_seen)''',
+          ('coinbase', 'BTC-USD', 60, int(t), *prices, utcnow().isoformat()))
 
 
 def backfill(db, hours):
@@ -179,6 +184,25 @@ def backfill(db, hours):
         time.sleep(.4)
     count = db.execute('SELECT COUNT(*) FROM candles WHERE time>=? AND time<?', (start,end)).fetchone()[0]
     return dict(requested_minutes=hours*60, stored_minutes=count, missing_minutes=hours*60-count)
+
+
+def refresh_recent_candles(db, minutes=20):
+    """Refresh completed one-minute Coinbase candles in one bounded request."""
+    if not 16 <= minutes <= 300:
+        raise ValueError('minutes must be 16..300')
+    end = int(utcnow().timestamp()) // 60 * 60
+    start = end - minutes * 60
+    rows = get_json(CB, '/products/BTC-USD/candles', dict(
+        granularity=60,
+        start=datetime.fromtimestamp(start, timezone.utc).isoformat(),
+        end=datetime.fromtimestamp(end, timezone.utc).isoformat()))
+    with db:
+        save_candles(db, rows, start, end)
+    count = db.execute("""SELECT COUNT(*) FROM candles WHERE source='coinbase'
+        AND symbol='BTC-USD' AND granularity=60 AND time>=? AND time<?""",
+        (start, end)).fetchone()[0]
+    return dict(requested_minutes=minutes, stored_minutes=count,
+                missing_minutes=minutes-count)
 
 
 def record(db, source, success, detail):

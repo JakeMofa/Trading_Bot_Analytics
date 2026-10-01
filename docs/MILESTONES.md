@@ -10,8 +10,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 - [x] **Milestone 1 — Data access and SQLite collector.** Discover the active 15-minute market and exact target, store Polymarket observations and Coinbase candles, join mid-session, reconcile delayed outcomes. Tests passed; pushed as `05ce7f4`.
 - [x] **Milestone 2 — Live BTC streaming.** Save Coinbase ticker events with source times and deduplication; reconnect with backoff; keep public Polymarket REST discovery and settlement checks. A 25-second live test saved 102 ticker events; 16 tests passed; pushed as `e9fdd73`.
-- [ ] **Milestone 3 — Deterministic features.** Save feature snapshots linked to a market: distance from Price to Beat, seconds remaining, recent returns, volatility, and volume. Include source time, freshness, and missing-data flags. Reproduce values from saved inputs and test late joins and stale feeds. **Next.**
-- [ ] **Milestone 4 — Baseline forecasts and evaluation.** Save versioned probabilities and compare them with confirmed outcomes using chronological splits, Brier score and calibration. Keep 15-minute market outcomes as the unit of evaluation.
+- [x] **Milestone 3 — Deterministic features.** Versioned 15-minute snapshots store exact target distance, remaining seconds, 1/5/15-minute returns, 15-minute realized volatility, 5/15-minute volume, source evidence, freshness and missing flags. Recent completed Coinbase candles refresh in one bounded request about once per minute; a one-minute lag is labeled. Live runs stored consecutive complete snapshots and verified the candle first-seen migration; 24 tests passed.
+- [ ] **Milestone 4 — Baseline forecasts and evaluation.** **Next.** Save versioned probabilities and compare them with confirmed outcomes using chronological splits, Brier score and calibration. Keep 15-minute market outcomes as the unit of evaluation.
 - [ ] **Milestone 5 — More history and signals.** Extend bounded candle backfill toward 30 days; add historical case matching and verified order-flow/book data. Measure whether each signal improves results.
 - [ ] **Milestone 6 — News and OpenAI.** Ingest and deduplicate sourced events; send small, timestamp-safe context to OpenAI selectively; store its output separately and measure its contribution. Paid calls require configured API access and a spending limit.
 - [ ] **Milestone 7 — Text and traversal memory.** Use SQLite FTS5 for news/explanations and relationship rows linking predictions to snapshots, events and outcomes. Numeric similarity remains feature-based.
@@ -21,14 +21,14 @@ Each milestone is committed and pushed only after its relevant checks pass. Keep
 
 ## What the database contains today
 
-The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, feed health, and confirmed results. During the last verified run, the database contained 1,440 one-minute candles and two confirmed 15-minute outcomes. The collector runs only when invoked; it is not a background service.
+The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots, feed health, and confirmed results. A bounded live check refreshed 20/20 recent candles and stored two consecutive snapshots with no missing feature fields. The collector runs only when invoked; it is not a background service.
 
 ## Open verification
 
 - A continuous run spanning a real 15-minute boundary is still needed; restart-based discovery across a boundary has been observed.
 - The optional Polymarket market WebSocket requires locally configured API keys and has not been live-tested. Public REST access works without login.
 - Long-running storage retention and recovery after prolonged outages have not been measured.
-- The feature, forecast, news, FTS5, traversal, and dashboard layers do not exist yet.
+- Forecast, news, FTS5, traversal, and dashboard layers do not exist yet. Feature coverage depends on fresh public data; snapshots retain missing and lag flags when feeds fall behind.
 
 ## Decisions and evidence
 
@@ -40,4 +40,4 @@ The local `data/btc_intelligence.db` stores market records, Polymarket observati
 
 ## Run and validate
 
-From the project root, run `.venv/bin/python -m unittest discover -s backend/tests -v`, then `.venv/bin/python backend/app/streaming.py --seconds 60` for a bounded live check. See [README.md](../README.md) for setup. Inspect SQLite `feed_health` and `runs` before declaring a live feed healthy.
+From the project root, run `.venv/bin/python -m unittest discover -s backend/tests -v`, then `.venv/bin/python backend/app/streaming.py --seconds 60` for a bounded live check. See [README.md](../README.md) for setup. Inspect SQLite `feed_health`, `runs`, and `feature_snapshots` before declaring a live feed healthy.

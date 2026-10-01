@@ -189,7 +189,7 @@ Create folders only as work needs them. This plan does not require generating an
 
 ## 15. Where we start and what we do not start
 
-The data-access research and first collector are complete. The next implementation is deterministic feature snapshots for 15-minute markets, as described in MILESTONES.md.
+The data-access research and first collector are complete. Deterministic 15-minute feature snapshots are implemented. The next implementation is baseline forecasts and evaluation, as described in MILESTONES.md.
 
 Do not begin with a vector database, a full dashboard, eight specialist models, automatic retraining, account login automation or order execution. No accuracy promise or implementation deadline is justified before access checks and collection measurements.
 

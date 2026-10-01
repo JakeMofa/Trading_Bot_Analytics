@@ -35,12 +35,19 @@ def status(db, now=None):
         market = {'id': market_id, 'slug': slug, 'start': start, 'end': end,
                   'target_usd': target, 'status': market_status,
                   'seconds_remaining': max(0, (timestamp(end)-now).total_seconds())}
-        quote_row = db.execute('''SELECT kind,received_at FROM observations
+        quote_row = db.execute('''SELECT kind,received_at,payload FROM observations
           WHERE market_id=? AND kind IN ('bbo','book','stream_book')
           ORDER BY julianday(received_at) DESC,id DESC LIMIT 1''', (market_id,)).fetchone()
         if quote_row:
+            payload = json.loads(quote_row[2])
+            quote_data = payload.get('marketData') or payload.get('market_data') or {}
+            def quote_value(name):
+                value = quote_data.get(name)
+                return value.get('value') if isinstance(value, dict) else None
             market_quote = {'kind': quote_row[0], 'received_at': quote_row[1],
-                            'age_seconds': _age(now, quote_row[1])}
+                            'age_seconds': _age(now, quote_row[1]),
+                            'up_quote': quote_value('longQuote'),
+                            'down_quote': quote_value('shortQuote')}
         saved = db.execute('''SELECT id,as_of,values_json,quality_json
           FROM feature_snapshots WHERE market_id=?
           ORDER BY julianday(as_of) DESC,id DESC LIMIT 1''', (market_id,)).fetchone()

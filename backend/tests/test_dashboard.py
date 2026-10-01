@@ -56,7 +56,9 @@ class DashboardTests(unittest.TestCase):
           ('coinbase_stream','live','2026-10-01T02:07:00Z',
            '2026-10-01T02:07:00Z',1,'test'))
         self.db.execute('''INSERT INTO observations(market_id,received_at,kind,payload)
-          VALUES(?,?,?,?)''',('m','2026-10-01T02:09:30Z','bbo','{}'))
+          VALUES(?,?,?,?)''',('m','2026-10-01T02:09:30Z','bbo',
+                             json.dumps({'marketData':{'longQuote':{'value':'0.57'},
+                                                       'shortQuote':{'value':'0.45'}}})))
         self.db.execute('''INSERT INTO news_events(source,source_guid,url,title,
           published_at,first_seen,last_seen,categories_json,asset_tag)
           VALUES(?,?,?,?,?,?,?,?,?)''',
@@ -84,6 +86,8 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(report['snapshot']['candle_age_seconds'], 65)
         self.assertEqual(report['snapshot']['reference_source'], 'coinbase_stream')
         self.assertEqual(report['market_quote']['age_seconds'], 30)
+        self.assertEqual(report['market_quote']['up_quote'], '0.57')
+        self.assertEqual(report['market_quote']['down_quote'], '0.45')
         self.assertTrue(report['forecast']['current'])
         self.assertEqual(report['forecast']['probability_up'], '.7')
         self.assertEqual(report['feeds'][0]['effective_status'], 'stale')

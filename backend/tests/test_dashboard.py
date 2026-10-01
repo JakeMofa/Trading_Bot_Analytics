@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
 from collector import connect
-from dashboard import status
+from dashboard import chart_data, status
 from features import initialize as initialize_features
 from forecasts import MODEL, initialize as initialize_forecasts
 from knowledge import initialize as initialize_knowledge
@@ -34,6 +34,31 @@ class DashboardTests(unittest.TestCase):
         self.assertIsNone(report['latest_coinbase_tick'])
         self.assertIsNone(report['evidence'])
         self.assertEqual(report['evaluation']['distinct_confirmed_markets_by_checkpoint']['T-5m'], 0)
+        self.assertEqual(chart_data(self.db, self.now)['points'], [])
+
+    def test_chart_uses_only_saved_ticks_from_current_market(self):
+        self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,
+          first_seen,last_seen,raw_json) VALUES(?,?,?,?,?,?,?,?,?,?)''',
+          ('m','btc-market',900,'2026-10-01T02:00:00Z','2026-10-01T02:15:00Z',
+           '100','MARKET_STATUS_OPEN','2026-10-01T02:00:00Z',
+           '2026-10-01T02:00:00Z','{}'))
+        for event_id, source_time, received_at, price in (
+            ('old','2026-10-01T01:59:59Z','2026-10-01T01:59:59Z','50'),
+            ('a','2026-10-01T02:00:01Z','2026-10-01T02:00:01Z','100'),
+            ('b','2026-10-01T02:00:03Z','2026-10-01T02:00:03Z','101'),
+            ('c','2026-10-01T02:00:06Z','2026-10-01T02:00:06Z','102'),
+            ('future','2026-10-01T02:11:00Z','2026-10-01T02:11:00Z','150')):
+            self.db.execute('''INSERT INTO stream_events(source,event_id,received_at,
+              source_time,price,payload) VALUES(?,?,?,?,?,?)''',
+              ('coinbase',event_id,received_at,source_time,price,'{}'))
+        self.db.commit()
+        self.db.execute('PRAGMA query_only=ON')
+        before = self.db.total_changes
+        report = chart_data(self.db, self.now)
+        self.assertEqual(self.db.total_changes, before)
+        self.assertEqual(report['market']['target_usd'], '100')
+        self.assertEqual([p['price_usd'] for p in report['points']], ['101','102'])
+        self.assertFalse(report['sample_limited'])
 
     def test_current_market_forecast_and_stale_feed_are_read_only(self):
         start, end = '2026-10-01T02:00:00Z', '2026-10-01T02:15:00Z'

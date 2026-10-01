@@ -85,7 +85,7 @@
     <section class="card chart" aria-labelledby="chart-heading">
       <div class="chart-meta"><h2 id="chart-heading">BTC price · current 15-minute market</h2><div id="chart-summary" class="small muted">Waiting for saved stream ticks.</div></div>
       <canvas id="price-chart" role="img" aria-label="Coinbase BTC price during the active 15-minute market and Polymarket price to beat"></canvas>
-      <div class="small muted">Orange: saved Coinbase BTC/USD stream ticks, grouped into 5-second intervals. Dashed line: Polymarket price to beat. The website's orange chart uses BRTI, so the lines can differ. Gaps over 15 seconds are left blank.</div>
+      <div class="small muted">Orange: saved Coinbase BTC/USD stream ticks, grouped into 5-second intervals. Blue dotted line: Polymarket price to beat. The website's orange chart uses BRTI, so the lines can differ. Gaps over 15 seconds are left blank.</div>
     </section>
     <section class="card feeds" aria-labelledby="feeds-heading">
       <h2 id="feeds-heading">Feed health</h2>
@@ -123,6 +123,25 @@
     const age = value => value == null ? 'no data' : value < 60 ? Math.floor(value) + 's ago' : Math.floor(value / 60) + 'm ' + Math.floor(value % 60) + 's ago';
     const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
     let chartData = null, chartInFlight = false;
+    function mergeLatestTick(data) {
+      if (!chartData?.market || chartData.market.id !== data?.market?.id || !data.latest_coinbase_tick) return;
+      const t = data.latest_coinbase_tick, m = chartData.market;
+      const sourceMs = Date.parse(t.source_time), startMs = Date.parse(m.start);
+      if (!Number.isFinite(sourceMs) || sourceMs < startMs || sourceMs >= Date.parse(m.end)) return;
+      if (Date.parse(t.received_at) > Date.parse(data.generated_at) + 1000) return;
+      const points = chartData.points, last = points.at(-1);
+      if (last && sourceMs < Date.parse(last.at)) return;
+      const point = {at:t.source_time, price_usd:t.price_usd};
+      if (last && Math.floor((sourceMs-startMs)/5000) === Math.floor((Date.parse(last.at)-startMs)/5000)) points[points.length-1] = point;
+      else points.push(point);
+    }
+    function updateChartSummary() {
+      const points = chartData?.points || [];
+      if (!points.length) { set('chart-summary','No stream ticks saved for this market yet.'); return; }
+      const first = points[0], last = points.at(-1);
+      const tickAge = serverNowMs() == null ? null : ageOf(last.at);
+      set('chart-summary','Coinbase last '+money(last.price_usd)+(tickAge == null ? '' : ' · tick '+age(tickAge))+' · first saved tick '+localTime(first.at)+(chartData.sample_limited?' · earlier ticks outside query limit':''));
+    }
     function drawChart() {
       const canvas = byId('price-chart');
       const width = Math.max(320, canvas.clientWidth), height = 290;
@@ -130,9 +149,9 @@
       canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio);
       const ctx = canvas.getContext('2d'); ctx.setTransform(ratio,0,0,ratio,0,0);
       ctx.clearRect(0,0,width,height);
-      if (!chartData?.market || !chartData.points.length) {
+      if (!chartData?.market) {
         ctx.fillStyle = '#95a7bb'; ctx.font = '14px sans-serif';
-        ctx.fillText('No Coinbase ticks captured for this market yet.', 16, height/2);
+        ctx.fillText('Waiting for the active market.', 16, height/2);
         return;
       }
       const m = chartData.market, points = chartData.points;
@@ -152,9 +171,14 @@
         ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(left+plotW,py);ctx.stroke();
         ctx.fillStyle='#95a7bb';ctx.fillText(money(max-i*(max-min)/4),left+plotW+8,py+4);
       }
-      ctx.strokeStyle='#c9d4e2';ctx.lineWidth=1.4;ctx.setLineDash([6,5]);
+      ctx.strokeStyle='#65b3ff';ctx.lineWidth=1.8;ctx.setLineDash([2,5]);
       ctx.beginPath();ctx.moveTo(left,y(target));ctx.lineTo(left+plotW,y(target));ctx.stroke();
       ctx.setLineDash([]);
+      const targetLabel='Price to beat '+money(target);
+      ctx.font='bold 12px sans-serif';ctx.textAlign='left';
+      const labelY=Math.max(top+3,Math.min(top+plotH-23,y(target)-26));
+      ctx.fillStyle='#102b45';ctx.fillRect(left+6,labelY,ctx.measureText(targetLabel).width+16,22);
+      ctx.fillStyle='#8ac8ff';ctx.fillText(targetLabel,left+14,labelY+15);
       const coords = points.map(p => [x(Date.parse(p.at)),y(Number(p.price_usd)),Date.parse(p.at)]);
       const segments = [];
       for (const point of coords) {
@@ -171,8 +195,12 @@
         for (const [px,py] of segment.slice(1)) ctx.lineTo(px,py);
         ctx.strokeStyle='#f6a43a';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
       }
-      const [lastX,lastY]=coords.at(-1);
-      ctx.beginPath();ctx.arc(lastX,lastY,5,0,2*Math.PI);ctx.fillStyle='#f6a43a';ctx.fill();
+      if (coords.length) {
+        const [lastX,lastY]=coords.at(-1);
+        ctx.beginPath();ctx.arc(lastX,lastY,5,0,2*Math.PI);ctx.fillStyle='#f6a43a';ctx.fill();
+      } else {
+        ctx.fillStyle='#95a7bb';ctx.font='13px sans-serif';ctx.fillText('No Coinbase ticks captured yet.',left+8,top+plotH/2);
+      }
       ctx.fillStyle='#95a7bb';ctx.font='11px sans-serif';
       for (const time of [start,(start+end)/2,end]) {
         const label=new Date(time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
@@ -187,8 +215,8 @@
         const response=await fetch('/api/chart',{cache:'no-store'});
         if (!response.ok) throw new Error('Status '+response.status);
         chartData=await response.json();
-        const points=chartData.points;
-        set('chart-summary',points.length ? 'Coinbase last '+money(points.at(-1).price_usd)+' · first saved tick '+localTime(points[0].at)+(chartData.sample_limited?' · earlier ticks outside query limit':'') : 'No stream ticks saved for this market yet.');
+        mergeLatestTick(latest);
+        updateChartSummary();
         drawChart();
       } catch (error) { set('chart-summary','Chart unavailable · '+error.message); }
       finally { chartInFlight=false; }
@@ -218,6 +246,7 @@
       if (f?.probability_up != null) set('forecast-state', (ageOf(f.created_at) <= 90 && remaining > 0 ? 'Recent' : 'STALE') + ' saved forecast · ' + age(ageOf(f.created_at)) + ' · ' + localTime(f.created_at));
       const checkedAge = ageOf(latest.generated_at);
       set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge) : 'SQLite checked ' + age(checkedAge));
+      updateChartSummary();
     }
     function render(data) {
       const m = data.market, s = data.snapshot, f = data.forecast;
@@ -317,6 +346,8 @@
         latest = data;
         lastError = null;
         render(data);
+        mergeLatestTick(data);
+        if (chartData?.market?.id === data.market?.id) drawChart();
         tick();
       } catch (error) { lastError = error; if (!latest) set('refresh', 'Data unavailable · ' + error.message); }
       finally { requestInFlight = false; }

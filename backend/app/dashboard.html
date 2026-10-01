@@ -62,6 +62,8 @@
       <div class="line"></div>
       <div id="market-slug" class="small muted">No active market captured.</div>
       <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
+      <div id="market-quote" class="small muted" style="margin-top:8px"></div>
+      <p class="small muted">Market terms and quotes come from Polymarket's public API. This page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
       <h2 id="forecast-heading">Saved baseline forecast</h2>
@@ -72,7 +74,7 @@
       </div>
       <div class="line"></div>
       <div id="forecast-state" class="small muted">Waiting for a saved forecast.</div>
-      <p class="small muted">Untrained, uncalibrated price-and-volatility proxy. Coinbase is a reference input; Polymarket determines settlement.</p>
+      <p class="small muted">Untrained, uncalibrated price-and-volatility proxy. Coinbase is a reference input; Polymarket's BRTI rule determines settlement. Saved Polymarket quotes do not feed this forecast yet.</p>
     </section>
     <section class="card feeds" aria-labelledby="feeds-heading">
       <h2 id="feeds-heading">Feed health</h2>
@@ -118,7 +120,9 @@
       set('reference', money(s?.reference_price_usd));
       set('distance', money(s?.distance_usd));
       set('market-slug', m ? m.slug : 'No active market captured.');
-      set('snapshot-age', s ? 'Snapshot ' + age(s.age_seconds) + ' · price ' + s.price_status + ' · candles ' + s.candle_status + (s.current ? '' : ' · STALE') : 'No snapshot for this market yet.');
+      const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
+      set('snapshot-age', s ? 'Snapshot ' + age(s.age_seconds) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (s.current ? '' : ' · STALE') : 'No snapshot for this market yet.');
+      set('market-quote', data.market_quote ? 'Public Polymarket quote saved ' + age(data.market_quote.age_seconds) + ' · monitored, not used in this forecast' : 'No public Polymarket quote saved for this market yet.');
       if (f?.probability_up != null) {
         set('forecast-up', pct(f.probability_up) + ' UP');
         set('up-small', pct(f.probability_up));

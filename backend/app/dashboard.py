@@ -29,11 +29,18 @@ def status(db, now=None):
     market = None
     snapshot = None
     forecast = None
+    market_quote = None
     if row:
         market_id, slug, start, end, target, market_status = row
         market = {'id': market_id, 'slug': slug, 'start': start, 'end': end,
                   'target_usd': target, 'status': market_status,
                   'seconds_remaining': max(0, (timestamp(end)-now).total_seconds())}
+        quote_row = db.execute('''SELECT kind,received_at FROM observations
+          WHERE market_id=? AND kind IN ('bbo','book','stream_book')
+          ORDER BY julianday(received_at) DESC,id DESC LIMIT 1''', (market_id,)).fetchone()
+        if quote_row:
+            market_quote = {'kind': quote_row[0], 'received_at': quote_row[1],
+                            'age_seconds': _age(now, quote_row[1])}
         saved = db.execute('''SELECT id,as_of,values_json,quality_json
           FROM feature_snapshots WHERE market_id=?
           ORDER BY julianday(as_of) DESC,id DESC LIMIT 1''', (market_id,)).fetchone()
@@ -48,7 +55,9 @@ def status(db, now=None):
                         'distance_usd': values.get('distance_usd'),
                         'distance_pct': values.get('distance_pct'),
                         'price_status': quality.get('price', {}).get('status'),
+                        'reference_source': quality.get('price', {}).get('source'),
                         'candle_status': quality.get('candle_status'),
+                        'candle_age_seconds': quality.get('candle_age_seconds'),
                         'missing_features': quality.get('missing_features', [])}
             prediction = db.execute('''SELECT probability_up,abstain_reason,created_at
               FROM predictions WHERE snapshot_id=? AND model_version=?
@@ -120,7 +129,8 @@ def status(db, now=None):
                                         for item in traced['prior_cases'][:3]],
                         'semantics': traced['link_semantics']}
     return {'generated_at': cutoff, 'read_only': True,
-            'market': market, 'snapshot': snapshot, 'forecast': forecast,
+            'market': market, 'market_quote': market_quote,
+            'snapshot': snapshot, 'forecast': forecast,
             'feeds': feeds, 'news': news, 'outcomes': outcomes, 'evidence': evidence,
             'news_last_seen': news_latest,
             'evaluation': {'distinct_confirmed_markets_by_checkpoint': checkpoint_counts,

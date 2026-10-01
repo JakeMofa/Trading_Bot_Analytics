@@ -43,7 +43,9 @@ class DashboardTests(unittest.TestCase):
           values_json,quality_json,evidence_json) VALUES(?,?,?,?,?,?)''',
           ('m','2026-10-01T02:09:00Z',1,
            json.dumps({'reference_price_usd':'101','distance_usd':'1','distance_pct':'1'}),
-           json.dumps({'price':{'status':'fresh'},'candle_status':'fresh','missing_features':[]}), '{}'))
+           json.dumps({'price':{'status':'fresh','source':'coinbase_stream'},
+                       'candle_status':'lagging','candle_age_seconds':65,
+                       'missing_features':[]}), '{}'))
         sid = self.db.execute('SELECT last_insert_rowid()').fetchone()[0]
         self.db.execute('''INSERT INTO predictions(snapshot_id,market_id,model_version,as_of,
           created_at,seconds_remaining,probability_up,probability_down,assumptions_json)
@@ -53,6 +55,8 @@ class DashboardTests(unittest.TestCase):
           reconnects,detail) VALUES(?,?,?,?,?,?)''',
           ('coinbase_stream','live','2026-10-01T02:07:00Z',
            '2026-10-01T02:07:00Z',1,'test'))
+        self.db.execute('''INSERT INTO observations(market_id,received_at,kind,payload)
+          VALUES(?,?,?,?)''',('m','2026-10-01T02:09:30Z','bbo','{}'))
         self.db.execute('''INSERT INTO news_events(source,source_guid,url,title,
           published_at,first_seen,last_seen,categories_json,asset_tag)
           VALUES(?,?,?,?,?,?,?,?,?)''',
@@ -77,6 +81,9 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(self.db.total_changes, before)
         self.assertEqual(report['market']['seconds_remaining'], 300)
         self.assertEqual(report['snapshot']['reference_price_usd'], '101')
+        self.assertEqual(report['snapshot']['candle_age_seconds'], 65)
+        self.assertEqual(report['snapshot']['reference_source'], 'coinbase_stream')
+        self.assertEqual(report['market_quote']['age_seconds'], 30)
         self.assertTrue(report['forecast']['current'])
         self.assertEqual(report['forecast']['probability_up'], '.7')
         self.assertEqual(report['feeds'][0]['effective_status'], 'stale')

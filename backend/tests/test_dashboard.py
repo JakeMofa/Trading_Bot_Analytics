@@ -133,6 +133,10 @@ class DashboardTests(unittest.TestCase):
           reconnects,detail) VALUES(?,?,?,?,?,?)''',
           ('coinbase_stream','live','2026-10-01T02:07:00Z',
            '2026-10-01T02:07:00Z',1,'test'))
+        self.db.execute('''INSERT INTO feed_health(source,status,updated_at,last_data_at,
+          reconnects,detail) VALUES(?,?,?,?,?,?)''',
+          ('storage_guard','limit_reached','2026-10-01T02:00:00Z',
+           None,0,'Storage cap reached'))
         self.db.execute('''INSERT INTO observations(market_id,received_at,kind,payload)
           VALUES(?,?,?,?)''',('m','2026-10-01T02:09:30Z','bbo',
                              json.dumps({'marketData':{'longQuote':{'value':'0.57'},
@@ -175,6 +179,8 @@ class DashboardTests(unittest.TestCase):
         self.assertTrue(report['forecast']['current'])
         self.assertEqual(report['forecast']['probability_up'], '.7')
         self.assertEqual(report['feeds'][0]['effective_status'], 'stale')
+        self.assertEqual(report['feeds'][1]['effective_status'], 'limit_reached')
+        self.assertEqual(report['feeds'][1]['detail'], 'Storage cap reached')
         self.assertEqual(report['news'][0]['title'], 'Bitcoin headline')
         self.assertEqual(report['outcomes'][0]['result'], 'UP')
         self.assertIsNone(report['outcomes'][0]['t5_forecast_probability_up'])

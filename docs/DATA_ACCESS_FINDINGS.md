@@ -34,3 +34,11 @@ A quote/book request returned 404 in both follow-up cycles despite the market me
 Public Coinbase WebSocket received and persisted 102 ticker events during a bounded 25-second live test, with no reconnects. SQLite integrity check passed. Unit tests simulate disconnect/reconnect, resubscription, trade deduplication, credential signing and HTTP 429 backoff.
 
 Official Polymarket documentation distinguishes unauthenticated public REST from API-key-authenticated market WebSocket: https://docs.polymarket.us/api-reference/websocket/markets and https://docs.polymarket.us/api-reference/authentication . The optional adapter is implemented, but its live handshake/subscription and rollover remain unverified without locally configured credentials. Public REST fallback is active.
+
+## Retrospective 15-minute history verification (October 1, 2026 UTC)
+
+The public Coinbase candles endpoint returned all 480 completed one-minute buckets requested for the previous eight hours. The Polymarket US `GET /v1/markets` endpoint with bounded `endDateMin`/`endDateMax` discovery, followed by validation of typed `assetPriceTerms.windowStart/windowEnd`, found 32 of 32 completed BTC 15-minute markets in a separate eight-hour window. All 32 had confirmed outcomes. `GET /v1/price-history` with one market slug and its exact window returned book-derived Yes/No display prices; 512 points were stored. One sampled market returned 16 points over its 15-minute window.
+
+The market-list date filters use administrative dates, so the backfill validates actual typed window times and reports gaps. These responses are retrieved after settlement; they do not establish what the live feed received at a particular moment. Price history is derived from displayed bid/ask, not trades or full depth. No retrospective forecast is entered into `predictions`.
+
+Official references: [Polymarket US Get Markets](https://docs.polymarket.us/api-reference/markets/get-markets), [Polymarket US Get Price History](https://docs.polymarket.us/api-reference/price-history/get-price-history), and [Coinbase Get Product Candles](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles).

@@ -69,7 +69,7 @@
       <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
       <div id="market-quote" class="small muted" style="margin-top:8px"></div>
       <div class="small muted" style="margin-top:5px">UP/DOWN quotes are market prices, not calibrated probabilities.</div>
-      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms and quotes come from Polymarket's public API; this page does not scrape your browser or account.</p>
+      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms come from Polymarket's public API; saved quotes may come from public REST or its authenticated read-only market stream. This page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
       <h2 id="forecast-heading">Saved baseline forecast</h2>
@@ -241,7 +241,20 @@
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
       const quoteAge = q ? ageOf(q.received_at) : null;
       const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
-      set('market-quote', q ? (quoteDelayed ? 'DELAYED saved quote · ' : 'Recent saved quote · ') + age(quoteAge) + ' · UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote) + ' · not used in this forecast' : 'No public Polymarket quote saved for this market yet.');
+      let quoteText = 'No Polymarket quote saved for this market yet.';
+      if (q?.kind === 'stream_book') {
+        const sampleAge = ageOf(q.sample_time);
+        quoteText = (quoteDelayed ? 'DELAYED' : 'Live') + ' Polymarket book · received ' + age(quoteAge)
+          + ' · UP bid ' + cents(q.best_bid) + ' / ask ' + cents(q.best_ask);
+        if (q.up_quote != null || q.down_quote != null)
+          quoteText += ' · last price sample UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote)
+            + ' (' + age(sampleAge) + ')';
+        quoteText += ' · not used in forecast';
+      } else if (q) {
+        quoteText = (quoteDelayed ? 'DELAYED' : 'Recent') + ' public REST quote · ' + age(quoteAge)
+          + ' · UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote) + ' · not used in forecast';
+      }
+      set('market-quote', quoteText);
       byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
       if (f?.probability_up != null) set('forecast-state', (ageOf(f.created_at) <= 90 && remaining > 0 ? 'Recent' : 'STALE') + ' saved forecast · ' + age(ageOf(f.created_at)) + ' · ' + localTime(f.created_at));
       const checkedAge = ageOf(latest.generated_at);

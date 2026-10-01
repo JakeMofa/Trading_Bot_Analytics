@@ -3,12 +3,13 @@ import base64
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from collector import connect, get_json
-from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream
+from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream, polymarket_credentials, subscription
 
 class StreamTests(unittest.TestCase):
     def setUp(self):
@@ -33,6 +34,15 @@ class StreamTests(unittest.TestCase):
         Ed25519PrivateKey.from_private_bytes(seed).public_key().verify(
             base64.b64decode(headers['X-PM-Signature']),b'12345GET/v1/ws/markets')
         self.assertEqual(headers['X-PM-Access-Key'],'id')
+    def test_local_market_credentials_do_not_override_environment(self):
+        with tempfile.TemporaryDirectory() as folder:
+            env = Path(folder) / '.env'
+            env.write_text('POLYMARKET_KEY_ID="saved-id"\nPOLYMARKET_SECRET_KEY=saved-secret\nIGNORED=value\n')
+            with patch.dict('os.environ', {'POLYMARKET_KEY_ID':'', 'POLYMARKET_SECRET_KEY':''}):
+                self.assertEqual(polymarket_credentials(env), ('saved-id','saved-secret'))
+            with patch.dict('os.environ', {'POLYMARKET_KEY_ID':'shell-id', 'POLYMARKET_SECRET_KEY':'shell-secret'}):
+                self.assertEqual(polymarket_credentials(env), ('shell-id','shell-secret'))
+        self.assertNotIn('responsesDebounced', subscription('btc-market')['subscribe'])
     def test_unknown_market_not_attached(self):
         self.assertFalse(save_polymarket(self.db,{'marketData':{'marketSlug':'unknown'}}))
     def test_backoff_cap(self):

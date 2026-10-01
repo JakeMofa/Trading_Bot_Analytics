@@ -22,8 +22,31 @@ def audit(db, since, until):
       FROM feature_snapshots WHERE as_of>=? AND as_of<? ORDER BY as_of''', (begin,end)).fetchall()
     prediction_rows = db.execute('''SELECT market_id,probability_up,abstain_reason
       FROM predictions WHERE created_at>=? AND created_at<?''', (begin,end)).fetchall()
-    failures = db.execute('''SELECT source,COUNT(*) FROM runs WHERE success=0
-      AND received_at>=? AND received_at<? GROUP BY source ORDER BY source''', (begin,end)).fetchall()
+    failures = db.execute('''SELECT source,detail FROM runs WHERE success=0
+      AND received_at>=? AND received_at<? ORDER BY source,id''', (begin,end)).fetchall()
+    raw_failures = Counter(source for source, _ in failures)
+    live_errors = Counter()
+    history_missing_windows = history_price_errors = history_other_errors = book_404s = 0
+    for source, detail in failures:
+        if source == 'polymarket_history':
+            try:
+                report = json.loads(detail)
+            except (TypeError, ValueError):
+                history_other_errors += 1
+                continue
+            if not isinstance(report, dict):
+                history_other_errors += 1
+                continue
+            if report.get('missing_intervals'):
+                history_missing_windows += 1
+            if report.get('price_history_failures'):
+                history_price_errors += 1
+            if not report.get('missing_intervals') and not report.get('price_history_failures'):
+                history_other_errors += 1
+        elif source == 'polymarket_quotes' and 'endpoint=book: HTTP Error 404' in detail:
+            book_404s += 1
+        else:
+            live_errors[source] += 1
     quality = [json.loads(row[2]) for row in snapshot_rows]
     missing = Counter(name for row in quality for name in row.get('missing_features',[]))
     price_status = Counter(row.get('price',{}).get('status','unknown') for row in quality)
@@ -59,7 +82,14 @@ def audit(db, since, until):
                       'probabilities':sum(row[1] is not None for row in prediction_rows),
                       'abstentions':sum(row[2] is not None for row in prediction_rows),
                       'abstain_reasons':dict(Counter(row[2] for row in prediction_rows if row[2]))},
-        'recorded_failures':dict(failures),
+        'recorded_failures':dict(raw_failures),
+        'failure_breakdown': {
+            'live_request_errors_by_source': dict(live_errors),
+            'quote_book_404_requests': book_404s,
+            'history_missing_interval_window_reports': history_missing_windows,
+            'history_price_request_failure_reports': history_price_errors,
+            'history_other_error_reports': history_other_errors,
+            'note': 'History missing-window reports describe unavailable coverage; counts may overlap with price request failures.'},
     }
 
 

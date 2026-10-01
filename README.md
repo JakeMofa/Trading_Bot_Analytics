@@ -14,11 +14,11 @@ The default duration is 15 minutes. Hourly collection is deferred; saved hourly 
 
 The default database is `data/btc_intelligence.db`. Each invocation is bounded and exits; nothing starts automatically. Errors are recorded in `runs` and printed. Historical candles come from Coinbase and are predictive reference data, not BRTI settlement prices. Coverage reports expose missing candles.
 
-The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates. Versioned feature snapshots are saved during streaming; forecasts, UI, FTS5/traversal and OpenAI analysis are later milestones. Restart discovery after a boundary has been observed; uninterrupted rollover still needs verification.
+The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates and saves versioned feature snapshots and baseline forecasts. The long-running rollover test is still in progress. UI, FTS5/traversal and OpenAI analysis are later milestones.
 
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 
-See `docs/DATA_ACCESS_FINDINGS.md` and `docs/STRATEGIC_PLAN.md`.
+See [MILESTONES.md](docs/MILESTONES.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
 
 ## Streaming milestone
 

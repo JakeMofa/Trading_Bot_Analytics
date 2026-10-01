@@ -14,11 +14,15 @@ The default duration is 15 minutes. Hourly collection is deferred; saved hourly 
 
 The default database is `data/btc_intelligence.db`. Each invocation is bounded and exits; nothing starts automatically. Errors are recorded in `runs` and printed. Historical candles come from Coinbase and are predictive reference data, not BRTI settlement prices. Coverage reports expose missing candles.
 
-The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates and saves versioned feature snapshots and baseline forecasts. The long-running rollover test is still in progress. UI, FTS5/traversal and OpenAI analysis are later milestones.
+The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates and saves versioned feature snapshots and baseline forecasts. The long-running rollover test is still in progress. FTS5 news search and read-only context links exist; OpenAI analysis is deferred.
 
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 
 See [MILESTONES.md](docs/MILESTONES.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
+
+## Local status dashboard
+
+Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. The server binds only to localhost, reads the existing SQLite database in query-only mode, and refreshes the page every 15 seconds. Panels show the active 15-minute market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, and saved BTC headlines. It does not place orders or call external APIs. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately.
 
 ## Streaming milestone
 

@@ -15,6 +15,14 @@ from forecasts import initialize as initialize_forecasts, forecast_snapshot
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
 POLYMARKET_WS = 'wss://api.polymarket.us/v1/ws/markets'
+DEFAULT_MAX_STORAGE_MB = 2048
+
+
+def storage_bytes(path):
+    """Count the SQLite database and its write-ahead log without modifying either."""
+    root = Path(path)
+    return sum(item.stat().st_size for item in (root, Path(str(root) + '-wal'))
+               if item.exists())
 
 
 def initialize(db):
@@ -213,6 +221,22 @@ def rest_cycle(path, refresh_candles=False):
         db.close()
 
 
+async def storage_guard_loop(path, db, stop, max_storage_mb):
+    while not stop.is_set():
+        used = storage_bytes(path)
+        if used >= max_storage_mb * 1024 * 1024:
+            detail = (f'Storage cap {max_storage_mb} MiB reached '
+                      f'({used / (1024 * 1024):.1f} MiB used); '
+                      'collection stopped without deleting data')
+            health(db, 'storage_guard', 'limit_reached', detail)
+            print(detail, flush=True)
+            stop.set()
+            return
+        health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
+        await pause(stop, 30)
+    health(db, 'storage_guard', 'stopped')
+
+
 async def rest_loop(path, db, stop, interval):
     last_candle_refresh = None
     while not stop.is_set():
@@ -238,19 +262,21 @@ async def rest_loop(path, db, stop, interval):
     health(db,'rest_supervisor','stopped')
 
 
-async def run(path, seconds, interval, markets_only=False):
+async def run(path, seconds, interval, markets_only=False,
+              max_storage_mb=DEFAULT_MAX_STORAGE_MB):
     key_id, secret = polymarket_credentials()
     if markets_only and not (key_id and secret):
         raise ValueError('Polymarket market-stream credentials are missing')
     db=connect(path); initialize(db)
     if not markets_only:
         initialize_features(db); initialize_forecasts(db)
+    health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
     stop=asyncio.Event()
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGINT,signal.SIGTERM):
         loop.add_signal_handler(sig,stop.set)
     timer=loop.call_later(seconds,stop.set) if seconds else None
-    tasks=[]
+    tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb))]
     if not markets_only:
         tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval)),
                       asyncio.create_task(coinbase_stream(db,stop))))
@@ -274,10 +300,12 @@ def main():
     p.add_argument('--seconds',type=int,default=60,help='Bounded runtime; 0 runs until Ctrl+C')
     p.add_argument('--rest-interval',type=int,default=30)
     p.add_argument('--markets-only',action='store_true',help='Collect only read-only Polymarket market WebSocket data')
+    p.add_argument('--max-storage-mb',type=int,default=DEFAULT_MAX_STORAGE_MB,
+                   help='Stop collection if SQLite database plus WAL reaches this many MiB; default 2048')
     a=p.parse_args()
-    if a.seconds<0 or a.rest_interval<15:
-        p.error('seconds >=0; rest interval >=15 required')
-    asyncio.run(run(a.db,a.seconds,a.rest_interval,a.markets_only))
+    if a.seconds<0 or a.rest_interval<15 or a.max_storage_mb<1:
+        p.error('seconds >=0; rest interval >=15; max storage >=1 MiB required')
+    asyncio.run(run(a.db,a.seconds,a.rest_interval,a.markets_only,a.max_storage_mb))
 
 
 if __name__=='__main__': main()

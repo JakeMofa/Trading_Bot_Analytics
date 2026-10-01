@@ -47,7 +47,7 @@ Public Coinbase BTC ticker events stream continuously and are deduplicated by tr
 
 Polymarket's read-only markets WebSocket uses `POLYMARKET_KEY_ID` and `POLYMARKET_SECRET_KEY`. The streaming command reads these from the process environment or the ignored project `.env` file, without executing that file; never paste keys into chat or commit them. Without keys, that stream is disabled while public REST continues. The adapter signs each handshake, follows the current 15-minute market on rollover, and saves at most one full book per second. A live authenticated handshake and market-data subscription were verified. The standard streaming command runs REST, Coinbase and (when keys are present) Polymarket collection together. For an isolated bounded check, run `.venv/bin/python backend/app/streaming.py --markets-only --seconds 60`; this mode does not duplicate Coinbase or REST collection. It cannot place orders.
 
-Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may wait for an in-flight REST request. Raw streaming retention is not yet automatic: monitor database size before unattended multi-day runs. Nothing starts on boot or keeps running after a bounded command exits.
+Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may wait for an in-flight REST request. The collector now stops without deleting data if the SQLite database plus write-ahead log reaches 2,048 MiB; set another cap with `--max-storage-mb`. This is a storage ceiling, not automatic retention. Nothing starts on boot or keeps running after a bounded command exits.
 
 ## Milestone commits
 

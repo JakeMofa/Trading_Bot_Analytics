@@ -266,15 +266,16 @@ def status(db, now=None):
                             'abstain_reason': reason, 'created_at': created,
                             'current': snapshot['current'] and
                                        timestamp(created) < timestamp(end)}
-    feed_rows = db.execute('''SELECT source,status,updated_at,last_data_at,reconnects
+    feed_rows = db.execute('''SELECT source,status,updated_at,last_data_at,reconnects,detail
       FROM feed_health ORDER BY source''').fetchall()
     feeds = []
-    for source, state, updated, last_data, reconnects in feed_rows:
+    for source, state, updated, last_data, reconnects, detail in feed_rows:
         age = _age(now, last_data or updated)
         feeds.append({'source': source, 'reported_status': state,
                       'effective_status': 'stale' if age is not None and age > FRESH_SECONDS
-                                          and state not in ('disabled', 'stopped') else state,
-                      'age_seconds': age, 'reconnects': reconnects})
+                                          and state not in ('disabled', 'stopped', 'limit_reached') else state,
+                      'age_seconds': age, 'reconnects': reconnects,
+                      'detail': detail})
     news_rows = db.execute('''SELECT title,url,published_at,first_seen FROM news_events
       WHERE asset_tag='BTC' ORDER BY julianday(first_seen) DESC,id DESC LIMIT 5''').fetchall()
     news = [{'title': title, 'url': url, 'published_at': published,

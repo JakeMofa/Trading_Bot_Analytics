@@ -270,14 +270,17 @@
       const tickAge = t ? ageOf(t.received_at) : null;
       const tickFresh = tickAge != null && tickAge <= 10 && ageOf(t.source_time) <= 10;
       const btcFeed = latest.feeds?.find(feed => feed.source === 'coinbase_stream');
+      const storageFeed = latest.feeds?.find(feed => feed.source === 'storage_guard');
+      const storageLimited = storageFeed?.effective_status === 'limit_reached';
       const collectionState = btcFeed?.effective_status;
-      const collectionText = collectionState === 'stopped' ? 'Collection finished · saved data only'
+      const collectionText = storageLimited ? 'Collection paused · storage cap reached'
+        : collectionState === 'stopped' ? 'Collection finished · saved data only'
         : collectionState === 'stale' ? 'Collection delayed · BTC feed is stale'
         : tickFresh ? 'Collecting live Coinbase reference ticks'
         : 'Waiting for fresh Coinbase reference data';
       set('collection-state', collectionText);
       byId('collection-state').className = 'small ' + (tickFresh ? 'muted' : 'warn');
-      set('chart-stream-state', collectionState === 'stopped' || collectionState === 'stale'
+      set('chart-stream-state', storageLimited || collectionState === 'stopped' || collectionState === 'stale'
         ? collectionText + (t ? ' · last tick ' + age(tickAge) : '')
         : tickFresh ? 'Coinbase stream live · latest tick ' + age(tickAge)
         : 'Waiting for a fresh Coinbase stream tick');
@@ -317,6 +320,7 @@
         : f?.abstain_reason ? 'Saved forecast abstained: ' + f.abstain_reason : 'Saved forecast: waiting for data.');
       const checkedAge = ageOf(latest.generated_at);
       set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge)
+        : storageLimited ? 'Storage cap reached · SQLite checked ' + age(checkedAge)
         : collectionState === 'stopped' ? 'Collector stopped · SQLite checked ' + age(checkedAge)
         : collectionState === 'stale' ? 'BTC feed stale · SQLite checked ' + age(checkedAge)
         : 'SQLite checked ' + age(checkedAge));
@@ -336,7 +340,7 @@
         const name = document.createElement('strong'); name.textContent = feed.source.replaceAll('_',' ');
         const state = document.createElement('span'); state.textContent = feed.effective_status; state.className = feed.effective_status === 'live' || feed.effective_status === 'running' ? 'up' : 'warn';
         line.append(name,state); div.append(line);
-        const sub = document.createElement('div'); sub.className = 'small muted'; sub.textContent = 'Last update ' + age(feed.age_seconds) + ' · reconnects ' + feed.reconnects;
+        const sub = document.createElement('div'); sub.className = 'small muted'; sub.textContent = 'Last update ' + age(feed.age_seconds) + ' · reconnects ' + feed.reconnects + (feed.detail ? ' · ' + feed.detail : '');
         div.append(sub); feeds.append(div);
       }
       if (!data.feeds.length) feeds.textContent = 'No feed health stored yet.';

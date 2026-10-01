@@ -20,9 +20,9 @@ The handoff zip in Downloads also contains `README.md`, `RAW_CONVERSATION.md`, a
 | 11. Historical similarity | **Initial retrieval built** — one timestamp-safe live case per prior market. | Evaluate later markets and store a separate historical-model output if it helps. |
 | 12. OpenAI intelligence | **News collection begun; OpenAI not called.** | Verify news freshness, link pre-forecast events, then configure API key/budget and test separately. |
 | 13. Meta-model / ensemble | **Deferred.** | Need independently measured component outputs and chronological training data. |
-| 14. Dashboard | **Not built.** | Start with a read-only status view; add the proposed live panels when inputs are reliable. |
+| 14. Dashboard | **Partial** — a local read-only status view displays the current 15m market, saved quotes and forecast, feed ages, evaluation counts, news headlines and evidence links. | Add verified continuous Polymarket quotes, richer analysis panels and separate 1h support. |
 | 15. Evaluation | **Partial and moved earlier** — checkpoint reports, Brier/log loss, calibration, 50/50 comparison and an ongoing forward test. | Need more distinct resolved markets and later holdout data before skill claims. |
-| 16. FTS5/traversal memory | **Not built.** | Index stored headlines/explanations; add typed relationships between predictions, evidence, cases and outcomes. |
+| 16. FTS5/traversal memory | **Partial** — FTS5 indexes stored headlines and typed links trace predictions to snapshots and retrospectively eligible cases/news. | Connect timestamp-safe context to separately evaluated analysis outputs; do not imply those links influenced saved baseline forecasts. |
 | 17. Optional embeddings | **Deferred.** | Only test if structured retrieval and FTS5 are insufficient. |
 | 18. Optional advanced models | **Deferred.** | Benchmark against validated simpler models first. |
 | 19. Optional infrastructure | **Deferred.** | Remain local SQLite until measured scale requires more; no separate server is deployed. |

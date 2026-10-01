@@ -25,7 +25,7 @@ The local `data/btc_intelligence.db` stores market records, Polymarket observati
 
 ## Active multi-market test
 
-An eight-hour bounded, read-only `streaming.py --seconds 28800` run started October 1, 2026 at about 01:53 UTC and is expected to end near 09:53 UTC if the Mac remains awake and the process remains active. Its ignored local log is `data/soak_20261001.log`. The first cycle saved a complete feature snapshot and forecast. After it ends, inspect market rollover, missing/stale coverage, confirmed-result pairing, database integrity and the checkpoint evaluation report. The run's outcome is not yet known.
+An eight-hour bounded, read-only `streaming.py --seconds 28800` run started October 1, 2026 at about 01:53 UTC and is expected to end near 09:53 UTC if the Mac remains awake and the process remains active. Its ignored local log is `data/soak_20261001.log`. The first cycle saved a complete feature snapshot and forecast. A read-only `backend/app/audit.py --since 2026-10-01T01:53:00Z` report is available for coverage, rollover, failures and integrity; its filter excludes older markets visited only for delayed resolution. The report and tests passed while collection continued (32 total tests). After the run ends, inspect the complete audit and checkpoint evaluation report. The run's outcome is not yet known.
 
 ## Open verification
 

@@ -1,6 +1,6 @@
 # BTC Intelligence: live plan and status
 
-Updated September 30, 2026. This is the short progress tracker. [STRATEGIC_PLAN.md](STRATEGIC_PLAN.md) holds the architecture and longer roadmap; the original handoff files are historical references.
+Updated October 1, 2026. This is the short progress tracker. [STRATEGIC_PLAN.md](STRATEGIC_PLAN.md) holds the architecture and longer roadmap; the original handoff files are historical references.
 
 ## Goal
 
@@ -21,11 +21,11 @@ Each milestone is committed and pushed only after its relevant checks pass. Keep
 
 ## What the database contains today
 
-The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, feed health, and confirmed results. A bounded live check refreshed 20/20 recent candles and stored two consecutive snapshots with no missing feature fields. The collector runs only when invoked; it is not a background service.
+The local `data/btc_intelligence.db` stores market records, Polymarket observations, one-minute Coinbase candles, streamed Coinbase ticker events, versioned feature snapshots and forecasts, feed health, and confirmed results. The latest inspection found 8 market records, 24 feature snapshots, 17 forecasts, 5 confirmed 15-minute outcomes, and 1 confirmed market paired with forecasts. The collector runs only when invoked; it is not a background service.
 
 ## Open verification
 
-- A continuous run spanning a real 15-minute boundary is still needed; restart-based discovery across a boundary has been observed.
+- One continuous run crossed a real 15-minute boundary: the expired market was reconciled after a brief discovery gap, and collection followed the next active contract. Repeated rollover and prolonged-outage recovery still need measurement.
 - The optional Polymarket market WebSocket requires locally configured API keys and has not been live-tested. Public REST access works without login.
 - Long-running storage retention and recovery after prolonged outages have not been measured.
 - Only one confirmed market has paired forecasts so far. Accuracy and calibration are not established; chronological splits require at least 30 distinct confirmed markets per checkpoint.

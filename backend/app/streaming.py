@@ -9,7 +9,8 @@ import time
 import uuid
 from pathlib import Path
 from websockets.asyncio.client import connect as ws_connect
-from collector import connect, collect_once, amount, utcnow, timestamp, save_observation
+from collector import connect, collect_once, amount, utcnow, timestamp, save_observation, refresh_recent_candles, record
+from features import initialize as initialize_features, capture as capture_features
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
 POLYMARKET_WS = 'wss://api.polymarket.us/v1/ws/markets'
@@ -170,19 +171,36 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect):
     health(db,'polymarket_stream','stopped')
 
 
-def rest_cycle(path):
+def rest_cycle(path, refresh_candles=False):
     db=connect(path)
     try:
-        return collect_once(db)
+        messages = collect_once(db)
+        if refresh_candles:
+            try:
+                coverage = refresh_recent_candles(db)
+                record(db, 'coinbase_candle_refresh', True, coverage)
+                messages.append(f'Candle refresh: {coverage}')
+            except Exception as exc:
+                record(db, 'coinbase_candle_refresh', False, exc)
+                messages.append(f'Candle refresh failed: {exc}')
+        return messages
     finally:
         db.close()
 
 
 async def rest_loop(path, db, stop, interval):
+    last_candle_refresh = None
     while not stop.is_set():
         try:
-            messages=await asyncio.to_thread(rest_cycle,path)
+            refresh = last_candle_refresh is None or time.monotonic()-last_candle_refresh >= 60
+            messages=await asyncio.to_thread(rest_cycle,path,refresh)
+            if refresh:
+                last_candle_refresh = time.monotonic()
             print('\n'.join(messages),flush=True)
+            snapshot = capture_features(db)
+            if snapshot:
+                market_id, values, quality = snapshot
+                print(f"15m features: market={market_id} remaining={values['seconds_remaining']:.0f}s price={quality['price']['status']} missing={len(quality['missing_features'])}", flush=True)
             # collect_once logs per-source failures; don't declare the feeds healthy here.
             health(db,'rest_supervisor','running','See runs for individual source errors')
         except Exception as exc:
@@ -192,7 +210,7 @@ async def rest_loop(path, db, stop, interval):
 
 
 async def run(path, seconds, interval):
-    db=connect(path); initialize(db)
+    db=connect(path); initialize(db); initialize_features(db)
     stop=asyncio.Event()
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGINT,signal.SIGTERM):

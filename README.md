@@ -14,7 +14,7 @@ The default duration is 15 minutes. Hourly collection is deferred; saved hourly 
 
 The default database is `data/btc_intelligence.db`. Each invocation is bounded and exits; nothing starts automatically. Errors are recorded in `runs` and printed. Historical candles come from Coinbase and are predictive reference data, not BRTI settlement prices. Coverage reports expose missing candles.
 
-The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates. Models, UI, FTS5/traversal and OpenAI analysis are later milestones. Restart discovery after a boundary has been observed; uninterrupted rollover still needs verification.
+The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates. Versioned feature snapshots are saved during streaming; forecasts, UI, FTS5/traversal and OpenAI analysis are later milestones. Restart discovery after a boundary has been observed; uninterrupted rollover still needs verification.
 
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 
@@ -46,3 +46,9 @@ Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may w
 ## Milestone commits
 
 The user requested a tested commit and push for each completed milestone. See `docs/MILESTONES.md` for progress and outstanding verification.
+
+## Feature snapshots
+
+Every streaming REST cycle saves a `feature_snapshots` row for the active 15-minute market when its metadata was already observed. The row contains exact decimal target distance, time remaining, completed-candle returns, realized volatility, volume, input IDs/times, and explicit missing/freshness flags. Calculations use only records received by the snapshot time; the snapshot also records the candle inputs it used. Existing candle rows from before this schema change have unknown first-seen times and become eligible for new snapshots only after they are refreshed. The Coinbase reference price is a predictive input, never the Polymarket settlement price.
+
+The supervisor refreshes the last 20 completed Coinbase one-minute candles at startup and approximately once per minute in one bounded public request. A one-minute candle delay is labeled `lagging`; older/missing windows leave dependent fields null. Quote and candle refresh failures are recorded in `runs`. A late start does not claim earlier Polymarket book coverage. Inspect recent rows with `sqlite3 data/btc_intelligence.db 'SELECT market_id,as_of,values_json,quality_json FROM feature_snapshots ORDER BY id DESC LIMIT 3;'`.

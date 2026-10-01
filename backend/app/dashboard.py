@@ -5,6 +5,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import sqlite3
+import time
 
 from collector import timestamp
 from forecasts import CHECKPOINTS, CHECKPOINT_TOLERANCE, MODEL
@@ -14,6 +15,17 @@ HTML = Path(__file__).with_name('dashboard.html')
 FRESH_SECONDS = 90
 CHART_SAMPLE_LIMIT = 12000
 CHART_BUCKET_SECONDS = 5
+TICK_STREAM_POLL_SECONDS = 0.1
+
+
+def latest_tick_event(db):
+    """One indexed lookup for the local live chart stream."""
+    row = db.execute('''SELECT rowid,price,source_time,received_at
+      FROM stream_events WHERE source='coinbase' ORDER BY rowid DESC LIMIT 1''').fetchone()
+    if not row:
+        return None
+    return {'sequence': row[0], 'price_usd': row[1],
+            'source_time': row[2], 'received_at': row[3]}
 
 
 def _age(now, value):
@@ -208,6 +220,32 @@ def open_readonly(path):
 def handler_for(path):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
+            if self.path == '/api/ticks':
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache, no-transform')
+                self.send_header('Connection', 'keep-alive')
+                self.end_headers()
+                try:
+                    with open_readonly(path) as db:
+                        last_sequence = None
+                        next_heartbeat = time.monotonic() + 15
+                        while True:
+                            tick = latest_tick_event(db)
+                            if tick and tick['sequence'] != last_sequence:
+                                self.wfile.write(('event: tick\ndata: ' +
+                                  json.dumps(tick, separators=(',', ':')) + '\n\n').encode())
+                                self.wfile.flush()
+                                last_sequence = tick['sequence']
+                            if time.monotonic() >= next_heartbeat:
+                                self.wfile.write(b': keepalive\n\n')
+                                self.wfile.flush()
+                                next_heartbeat = time.monotonic() + 15
+                            time.sleep(TICK_STREAM_POLL_SECONDS)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+                self.close_connection = True
+                return
             if self.path == '/':
                 data, content_type = HTML.read_bytes(), 'text/html; charset=utf-8'
             elif self.path == '/api/status':

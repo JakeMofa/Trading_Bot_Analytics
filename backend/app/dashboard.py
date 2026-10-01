@@ -1,10 +1,12 @@
 """Local, read-only status dashboard for the 15-minute BTC pipeline."""
 import argparse
+import asyncio
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 from pathlib import Path
 import sqlite3
+import threading
 import time
 
 from collector import timestamp
@@ -16,6 +18,96 @@ FRESH_SECONDS = 90
 CHART_SAMPLE_LIMIT = 12000
 CHART_BUCKET_SECONDS = 5
 TICK_STREAM_POLL_SECONDS = 0.1
+QUOTE_STREAM_POLL_SECONDS = 0.05
+
+
+def compact_live_quote(message, market_id, slug, received_at):
+    """Keep only display prices; never send the API key or full book to the browser."""
+    data = message.get('marketData') or message.get('market_data') or {}
+    if (data.get('marketSlug') or data.get('market_slug')) != slug:
+        return None
+    bids, offers = data.get('bids') or [], data.get('offers') or []
+    sample = (data.get('stats') or {}).get('lastPriceSample') or {}
+
+    def value(entry):
+        return entry.get('value') if isinstance(entry, dict) else None
+
+    return {'kind': 'live_ws', 'market_id': market_id, 'slug': slug,
+            'received_at': received_at, 'book_time': data.get('transactTime'),
+            'best_bid': value(bids[0].get('px')) if bids else None,
+            'best_ask': value(offers[0].get('px')) if offers else None,
+            'up_quote': value(sample.get('longPx')),
+            'down_quote': value(sample.get('shortPx')),
+            'sample_time': sample.get('ts')}
+
+
+class LiveQuoteRelay:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.sequence = 0
+        self.quote = None
+
+    def publish(self, quote):
+        with self.lock:
+            if self.quote and self.quote['market_id'] == quote['market_id']:
+                for name in ('up_quote', 'down_quote', 'sample_time'):
+                    if quote[name] is None:
+                        quote[name] = self.quote[name]
+            self.sequence += 1
+            self.quote = {'sequence': self.sequence, **quote}
+
+    def latest(self):
+        with self.lock:
+            return self.quote.copy() if self.quote else None
+
+
+async def live_quote_loop(path, relay, stop):
+    """Read-only API relay for display; the collector keeps its own saved evidence."""
+    from websockets.asyncio.client import connect as ws_connect
+    from streaming import POLYMARKET_WS, auth_headers, polymarket_credentials, subscription
+
+    key_id, secret = polymarket_credentials()
+    if not key_id or not secret:
+        return
+    attempt = 0
+    with open_readonly(path) as db:
+        while not stop.is_set():
+            now = datetime.now(timezone.utc).isoformat()
+            market = db.execute('''SELECT id,slug FROM markets WHERE duration=900
+              AND start<=? AND end>? AND status='MARKET_STATUS_OPEN'
+              ORDER BY start DESC LIMIT 1''', (now, now)).fetchone()
+            if not market:
+                await asyncio.sleep(1)
+                continue
+            try:
+                async with ws_connect(POLYMARKET_WS,
+                        additional_headers=auth_headers(key_id, secret),
+                        ping_interval=20, ping_timeout=20, open_timeout=15,
+                        max_queue=128) as ws:
+                    await ws.send(json.dumps(subscription(market[1])))
+                    attempt = 0
+                    while not stop.is_set():
+                        now = datetime.now(timezone.utc).isoformat()
+                        current = db.execute('''SELECT id FROM markets WHERE id=?
+                          AND start<=? AND end>? AND status='MARKET_STATUS_OPEN' ''',
+                          (market[0], now, now)).fetchone()
+                        if not current:
+                            break
+                        try:
+                            raw = await asyncio.wait_for(ws.recv(), 2)
+                        except asyncio.TimeoutError:
+                            continue
+                        message = json.loads(raw)
+                        if 'error' in message:
+                            raise ValueError('Polymarket quote subscription error')
+                        quote = compact_live_quote(message, market[0], market[1],
+                                                   datetime.now(timezone.utc).isoformat())
+                        if quote:
+                            relay.publish(quote)
+            except Exception:
+                # Authentication errors can contain sensitive headers; never log them.
+                await asyncio.sleep(min(30, 2 ** min(attempt, 5)))
+                attempt += 1
 
 
 def latest_tick_event(db):
@@ -217,10 +309,14 @@ def open_readonly(path):
     return db
 
 
-def handler_for(path):
+def handler_for(path, quote_relay=None):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == '/api/ticks':
+            if self.path in ('/api/ticks', '/api/market-live'):
+                if self.path == '/api/market-live' and quote_relay is None:
+                    self.send_error(503, 'Live market quote relay unavailable')
+                    return
+                is_quote = self.path == '/api/market-live'
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/event-stream; charset=utf-8')
                 self.send_header('Cache-Control', 'no-cache, no-transform')
@@ -231,17 +327,18 @@ def handler_for(path):
                         last_sequence = None
                         next_heartbeat = time.monotonic() + 15
                         while True:
-                            tick = latest_tick_event(db)
-                            if tick and tick['sequence'] != last_sequence:
-                                self.wfile.write(('event: tick\ndata: ' +
-                                  json.dumps(tick, separators=(',', ':')) + '\n\n').encode())
+                            event = quote_relay.latest() if is_quote else latest_tick_event(db)
+                            if event and event['sequence'] != last_sequence:
+                                name = 'quote' if is_quote else 'tick'
+                                self.wfile.write(('event: ' + name + '\ndata: ' +
+                                  json.dumps(event, separators=(',', ':')) + '\n\n').encode())
                                 self.wfile.flush()
-                                last_sequence = tick['sequence']
+                                last_sequence = event['sequence']
                             if time.monotonic() >= next_heartbeat:
                                 self.wfile.write(b': keepalive\n\n')
                                 self.wfile.flush()
                                 next_heartbeat = time.monotonic() + 15
-                            time.sleep(TICK_STREAM_POLL_SECONDS)
+                            time.sleep(QUOTE_STREAM_POLL_SECONDS if is_quote else TICK_STREAM_POLL_SECONDS)
                 except (BrokenPipeError, ConnectionResetError):
                     pass
                 self.close_connection = True
@@ -289,13 +386,19 @@ def main():
         with open_readonly(args.db) as db:
             print(json.dumps(status(db), indent=2))
         return
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(args.db))
+    relay = LiveQuoteRelay()
+    stop = threading.Event()
+    server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(args.db, relay))
+    quote_thread = threading.Thread(target=lambda: asyncio.run(live_quote_loop(args.db, relay, stop)),
+                                    daemon=True, name='read-only-market-quotes')
+    quote_thread.start()
     print(f'Read-only dashboard: http://127.0.0.1:{args.port}', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
+        stop.set()
         server.server_close()
 
 

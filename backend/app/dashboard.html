@@ -67,12 +67,16 @@
       <div class="line"></div>
       <div id="market-slug" class="small muted">No active market captured.</div>
       <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:14px">
+        <div class="metric"><span class="label">Polymarket UP last price</span><strong id="market-up">—</strong></div>
+        <div class="metric"><span class="label">Polymarket DOWN last price</span><strong id="market-down">—</strong></div>
+      </div>
       <div id="market-quote" class="small muted" style="margin-top:8px"></div>
-      <div class="small muted" style="margin-top:5px">UP/DOWN quotes are market prices, not calibrated probabilities.</div>
+      <div class="small muted" style="margin-top:5px">UP/DOWN last prices are market samples, not our forecast or guaranteed execution prices.</div>
       <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms come from Polymarket's public API; saved quotes may come from public REST or its authenticated read-only market stream. This page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
-      <h2 id="forecast-heading">Saved baseline forecast</h2>
+      <h2 id="forecast-heading">Saved baseline forecast · updates about every 30 seconds</h2>
       <div id="forecast-up" class="hero up">—</div>
       <div class="row">
         <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
@@ -238,6 +242,13 @@
       scheduleChartDraw();
       tick();
     }
+    function acceptLiveQuote(q) {
+      if (!latest?.market || q?.market_id !== latest.market.id) return;
+      const current = latest.market_quote;
+      if (current && Date.parse(q.received_at) <= Date.parse(current.received_at)) return;
+      latest.market_quote = q;
+      tick();
+    }
     const serverNowMs = () => serverEpochMs == null ? null : serverEpochMs + performance.now() - syncAt;
     const ageOf = value => value ? Math.max(0, (serverNowMs() - Date.parse(value)) / 1000) : null;
     function tick() {
@@ -257,10 +268,12 @@
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
       const quoteAge = q ? ageOf(q.received_at) : null;
       const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
+      set('market-up', cents(q?.up_quote));
+      set('market-down', cents(q?.down_quote));
       let quoteText = 'No Polymarket quote saved for this market yet.';
-      if (q?.kind === 'stream_book') {
+      if (q?.kind === 'stream_book' || q?.kind === 'live_ws') {
         const sampleAge = ageOf(q.sample_time);
-        quoteText = (quoteDelayed ? 'DELAYED' : 'Live') + ' Polymarket book · received ' + age(quoteAge)
+        quoteText = (quoteDelayed ? 'DELAYED' : 'Live') + (q.kind === 'live_ws' ? ' direct Polymarket API' : ' saved Polymarket book') + ' · received ' + age(quoteAge)
           + ' · UP bid ' + cents(q.best_bid) + ' / ask ' + cents(q.best_ask);
         if (q.up_quote != null || q.down_quote != null)
           quoteText += ' · last price sample UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote)
@@ -375,6 +388,9 @@
         if (latest?.latest_coinbase_tick && (!data.latest_coinbase_tick ||
             Date.parse(latest.latest_coinbase_tick.received_at) > Date.parse(data.latest_coinbase_tick.received_at)))
           data.latest_coinbase_tick = latest.latest_coinbase_tick;
+        if (latest?.market?.id === data.market?.id && latest.market_quote &&
+            (!data.market_quote || Date.parse(latest.market_quote.received_at) > Date.parse(data.market_quote.received_at)))
+          data.market_quote = latest.market_quote;
         const marketChanged = chartData?.market?.id !== data.market?.id;
         latest = data;
         lastError = null;
@@ -399,6 +415,10 @@
         });
         liveTicks.onopen = () => set('chart-stream-state', 'Live tick stream connected · local SQLite');
         liveTicks.onerror = () => set('chart-stream-state', 'Live tick stream reconnecting · periodic refresh still active');
+        const marketPrices = new EventSource('/api/market-live');
+        marketPrices.addEventListener('quote', event => {
+          try { acceptLiveQuote(JSON.parse(event.data)); } catch (_) { /* saved quotes remain available */ }
+        });
       } else set('chart-stream-state', 'Periodic refresh · this browser lacks live event support');
       window.addEventListener('resize', drawChart);
     }

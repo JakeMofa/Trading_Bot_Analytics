@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
 from collector import connect
-from dashboard import chart_data, latest_tick_event, status
+from dashboard import LiveQuoteRelay, chart_data, compact_live_quote, latest_tick_event, status
 from features import initialize as initialize_features
 from forecasts import MODEL, initialize as initialize_forecasts
 from knowledge import initialize as initialize_knowledge
@@ -35,6 +35,30 @@ class DashboardTests(unittest.TestCase):
         self.assertIsNone(report['evidence'])
         self.assertEqual(report['evaluation']['distinct_confirmed_markets_by_checkpoint']['T-5m'], 0)
         self.assertEqual(chart_data(self.db, self.now)['points'], [])
+
+    def test_direct_quote_relay_keeps_last_sample_without_exposing_book(self):
+        relay = LiveQuoteRelay()
+        first = compact_live_quote({'marketData': {
+            'marketSlug': 'btc-market', 'bids': [{'px': {'value': '0.51'}, 'qty': '8'}],
+            'offers': [{'px': {'value': '0.53'}, 'qty': '10'}],
+            'stats': {'lastPriceSample': {'longPx': {'value': '0.52'},
+                                         'shortPx': {'value': '0.48'},
+                                         'ts': '2026-10-01T02:09:00Z'}}}},
+            'm', 'btc-market', '2026-10-01T02:09:01Z')
+        relay.publish(first)
+        second = compact_live_quote({'marketData': {
+            'marketSlug': 'btc-market', 'bids': [{'px': {'value': '0.54'}}],
+            'offers': [{'px': {'value': '0.55'}}]}},
+            'm', 'btc-market', '2026-10-01T02:09:02Z')
+        relay.publish(second)
+        latest = relay.latest()
+        self.assertEqual(latest['sequence'], 2)
+        self.assertEqual(latest['best_bid'], '0.54')
+        self.assertEqual(latest['up_quote'], '0.52')
+        self.assertEqual(latest['sample_time'], '2026-10-01T02:09:00Z')
+        self.assertNotIn('bids', latest)
+        self.assertIsNone(compact_live_quote({'marketData': {'marketSlug': 'other'}},
+                                              'm', 'btc-market', '2026-10-01T02:09:02Z'))
 
     def test_chart_uses_only_saved_ticks_from_current_market(self):
         self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,

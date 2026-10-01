@@ -78,11 +78,11 @@ def status(db, now=None):
         market = {'id': market_id, 'slug': slug, 'start': start, 'end': end,
                   'target_usd': target, 'status': market_status,
                   'seconds_remaining': max(0, (timestamp(end)-now).total_seconds())}
-        quote_row = db.execute('''SELECT kind,received_at,payload FROM observations
+        quote_row = db.execute('''SELECT kind,received_at,source_time,payload FROM observations
           WHERE market_id=? AND kind IN ('bbo','book','stream_book')
           ORDER BY julianday(received_at) DESC,id DESC LIMIT 1''', (market_id,)).fetchone()
         if quote_row:
-            payload = json.loads(quote_row[2])
+            payload = json.loads(quote_row[3])
             quote_data = payload.get('marketData') or payload.get('market_data') or {}
             def quote_value(name):
                 value = quote_data.get(name)
@@ -91,6 +91,16 @@ def status(db, now=None):
                             'age_seconds': _age(now, quote_row[1]),
                             'up_quote': quote_value('longQuote'),
                             'down_quote': quote_value('shortQuote')}
+            if quote_row[0] == 'stream_book':
+                sample = (quote_data.get('stats') or {}).get('lastPriceSample') or {}
+                bids, offers = quote_data.get('bids') or [], quote_data.get('offers') or []
+                market_quote.update({
+                    'up_quote': (sample.get('longPx') or {}).get('value'),
+                    'down_quote': (sample.get('shortPx') or {}).get('value'),
+                    'sample_time': sample.get('ts'),
+                    'book_time': quote_data.get('transactTime') or quote_row[2],
+                    'best_bid': ((bids[0].get('px') or {}).get('value') if bids else None),
+                    'best_ask': ((offers[0].get('px') or {}).get('value') if offers else None)})
         saved = db.execute('''SELECT id,as_of,values_json,quality_json
           FROM feature_snapshots WHERE market_id=?
           ORDER BY julianday(as_of) DESC,id DESC LIMIT 1''', (market_id,)).fetchone()

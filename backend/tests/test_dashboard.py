@@ -139,6 +139,28 @@ class DashboardTests(unittest.TestCase):
           ('m','2026-10-01T02:05:00Z',1,'{}','{}','{}'))
         self.assertFalse(status(self.db, self.now)['snapshot']['current'])
 
+    def test_live_book_exposes_bid_ask_and_timed_price_sample(self):
+        start, end = '2026-10-01T02:00:00Z', '2026-10-01T02:15:00Z'
+        self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,
+          first_seen,last_seen,raw_json) VALUES(?,?,?,?,?,?,?,?,?,?)''',
+          ('m','btc-market',900,start,end,'100','MARKET_STATUS_OPEN',start,start,'{}'))
+        payload = {'marketData': {'marketSlug':'btc-market',
+            'bids':[{'px':{'value':'0.74'}}], 'offers':[{'px':{'value':'0.75'}}],
+            'stats':{'lastPriceSample':{'longPx':{'value':'0.75'},
+                                        'shortPx':{'value':'0.25'},
+                                        'ts':'2026-10-01T02:09:58Z'}},
+            'transactTime':'2026-10-01T02:09:59Z'}}
+        self.db.execute('''INSERT INTO observations(market_id,received_at,source_time,kind,payload)
+          VALUES(?,?,?,?,?)''', ('m','2026-10-01T02:09:59Z',
+            '2026-10-01T02:09:59Z','stream_book',json.dumps(payload)))
+        self.db.commit()
+        self.db.execute('PRAGMA query_only=ON')
+        quote = status(self.db,self.now)['market_quote']
+        self.assertEqual(quote['kind'],'stream_book')
+        self.assertEqual((quote['best_bid'],quote['best_ask']),('0.74','0.75'))
+        self.assertEqual((quote['up_quote'],quote['down_quote']),('0.75','0.25'))
+        self.assertEqual(quote['sample_time'],'2026-10-01T02:09:58Z')
+
 
 if __name__ == '__main__':
     unittest.main()

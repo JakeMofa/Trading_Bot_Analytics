@@ -1,6 +1,6 @@
 # BTC Intelligence
 
-Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, account credentials or OpenAI calls. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
+Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, trading-account access or OpenAI calls. Optional developer keys authenticate read-only market data. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
 
 Run from this project folder:
 
@@ -48,6 +48,25 @@ Public Coinbase BTC ticker events stream continuously and are deduplicated by tr
 Polymarket's read-only markets WebSocket uses `POLYMARKET_KEY_ID` and `POLYMARKET_SECRET_KEY`. The streaming command reads these from the process environment or the ignored project `.env` file, without executing that file; never paste keys into chat or commit them. Without keys, that stream is disabled while public REST continues. The adapter signs each handshake, follows the current 15-minute market on rollover, and saves at most one full book per second. A live authenticated handshake and market-data subscription were verified. The standard streaming command runs REST, Coinbase and (when keys are present) Polymarket collection together. For an isolated bounded check, run `.venv/bin/python backend/app/streaming.py --markets-only --seconds 60`; this mode does not duplicate Coinbase or REST collection. It cannot place orders.
 
 Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may wait for an in-flight REST request. The collector now stops without deleting data if the SQLite database plus write-ahead log reaches 2,048 MiB; set another cap with `--max-storage-mb`. This is a storage ceiling, not automatic retention. Nothing starts on boot or keeps running after a bounded command exits.
+
+## Collector controls and evidence recovery
+
+Run all commands from this repository with its virtual environment:
+
+```sh
+.venv/bin/python backend/app/operations.py status
+.venv/bin/python backend/app/operations.py start
+.venv/bin/python backend/app/operations.py stop
+.venv/bin/python backend/app/operations.py restart
+.venv/bin/python backend/app/operations.py backup --destination data/backups/manual_backup.db
+.venv/bin/python backend/app/operations.py recover --db data/backups/manual_backup.db --destination data/recovered.db
+```
+
+`start` launches a local detached process and appends output to `<database>.collector.log`; it retains the 2,048 MiB database-plus-WAL ceiling. Process start does not establish feed readiness: check dashboard freshness and saved forecasts. This is not a boot service; sleep, reboot, process failure and disk exhaustion can interrupt collection. `stop` requests graceful shutdown through a private local Unix socket and waits up to 45 seconds; it does not force-kill a process or remove evidence. `restart` stops before starting. Direct streaming commands use the same per-database lock, including markets-only mode, so two collectors cannot own the same resolved database path. Use distinct databases for isolated probes. Avoid filesystem aliases/hard links to the same database.
+
+The kernel releases the lock after a crash; stale socket/PID metadata cannot make an inactive collector look running. Commands never signal stored PIDs. A fresh unmanaged legacy REST heartbeat blocks start/restart and reports that controlled stop is unavailable; a crashed legacy heartbeat can require up to 90 seconds to expire. Backups preserve historical feed-health rows, so a just-recovered database can also require that cooldown before starting. `status` distinguishes lock ownership from a fresh unmanaged heartbeat.
+
+Backup and recovery use SQLite's online backup API, including committed WAL evidence while collection continues. Integrity and foreign-key checks must pass before a new file is published. Existing destinations and their WAL/SHM sidecars are refused; recovery always creates a separate database. Keep the original database and backup while inspecting the recovered file. Point the collector and dashboard at it using `--db` only after verification. A default 60-second backup deadline fails without publishing a partial destination. Backups consume additional disk space outside the collector's database-plus-WAL ceiling; no automatic schedule, retention or off-machine redundancy is provided. October 2 verification files in ignored `data/backups/` each occupy about 307 MiB.
 
 ## Milestone commits
 

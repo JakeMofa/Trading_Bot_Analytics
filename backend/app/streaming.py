@@ -10,6 +10,7 @@ import uuid
 from pathlib import Path
 from websockets.asyncio.client import connect as ws_connect
 from collector import connect, collect_once, amount, utcnow, timestamp, save_observation, refresh_recent_candles, record
+from operations import collector_lock, control_server
 from features import initialize as initialize_features, capture as capture_features
 from forecasts import initialize as initialize_forecasts, forecast_snapshot
 
@@ -264,6 +265,11 @@ async def rest_loop(path, db, stop, interval):
 
 async def run(path, seconds, interval, markets_only=False,
               max_storage_mb=DEFAULT_MAX_STORAGE_MB):
+    with collector_lock(path) as socket_path:
+        await run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path)
+
+
+async def run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path):
     key_id, secret = polymarket_credentials()
     if markets_only and not (key_id and secret):
         raise ValueError('Polymarket market-stream credentials are missing')
@@ -275,6 +281,7 @@ async def run(path, seconds, interval, markets_only=False,
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGINT,signal.SIGTERM):
         loop.add_signal_handler(sig,stop.set)
+    server = await control_server(socket_path, stop)
     timer=loop.call_later(seconds,stop.set) if seconds else None
     tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb))]
     if not markets_only:
@@ -291,6 +298,8 @@ async def run(path, seconds, interval, markets_only=False,
         for task in tasks:
             if not task.done(): task.cancel()
         await asyncio.gather(*tasks,return_exceptions=True)
+        server.close()
+        await server.wait_closed()
         db.close()
 
 

@@ -3,12 +3,13 @@ import base64
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from collector import connect, get_json
-from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream
+from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream, polymarket_credentials, subscription, storage_bytes, storage_guard_loop
 
 class StreamTests(unittest.TestCase):
     def setUp(self):
@@ -26,6 +27,21 @@ class StreamTests(unittest.TestCase):
         before=self.db.execute('SELECT last_data_at FROM feed_health').fetchone()[0]
         health(self.db,'feed','disconnected','timeout',reconnect=True)
         self.assertEqual(self.db.execute('SELECT last_data_at,reconnects FROM feed_health').fetchone(),(before,1))
+    def test_storage_cap_stops_without_deleting_database(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'evidence.db'
+            path.write_bytes(b'x' * 900000)
+            wal = Path(str(path) + '-wal')
+            wal.write_bytes(b'y' * 200000)
+            self.assertEqual(storage_bytes(path), 1100000)
+            stop = asyncio.Event()
+            with patch('builtins.print'):
+                asyncio.run(storage_guard_loop(path, self.db, stop, 1))
+            self.assertTrue(stop.is_set())
+            self.assertEqual(self.db.execute("SELECT status FROM feed_health WHERE source='storage_guard'").fetchone()[0],
+                             'limit_reached')
+            self.assertEqual(path.stat().st_size, 900000)
+            self.assertEqual(wal.stat().st_size, 200000)
     def test_signed_headers(self):
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
         seed=bytes(range(32))
@@ -33,6 +49,15 @@ class StreamTests(unittest.TestCase):
         Ed25519PrivateKey.from_private_bytes(seed).public_key().verify(
             base64.b64decode(headers['X-PM-Signature']),b'12345GET/v1/ws/markets')
         self.assertEqual(headers['X-PM-Access-Key'],'id')
+    def test_local_market_credentials_do_not_override_environment(self):
+        with tempfile.TemporaryDirectory() as folder:
+            env = Path(folder) / '.env'
+            env.write_text('POLYMARKET_KEY_ID="saved-id"\nPOLYMARKET_SECRET_KEY=saved-secret\nIGNORED=value\n')
+            with patch.dict('os.environ', {'POLYMARKET_KEY_ID':'', 'POLYMARKET_SECRET_KEY':''}):
+                self.assertEqual(polymarket_credentials(env), ('saved-id','saved-secret'))
+            with patch.dict('os.environ', {'POLYMARKET_KEY_ID':'shell-id', 'POLYMARKET_SECRET_KEY':'shell-secret'}):
+                self.assertEqual(polymarket_credentials(env), ('shell-id','shell-secret'))
+        self.assertNotIn('responsesDebounced', subscription('btc-market')['subscribe'])
     def test_unknown_market_not_attached(self):
         self.assertFalse(save_polymarket(self.db,{'marketData':{'marketSlug':'unknown'}}))
     def test_backoff_cap(self):

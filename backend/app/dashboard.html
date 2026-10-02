@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BTC Intelligence · Live Status</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:#0b1018; color:#f0f4fa; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:28px; max-width:1440px; margin-inline:auto; }
+    header { display:flex; justify-content:space-between; align-items:flex-start; gap:24px; margin-bottom:24px; }
+    h1 { margin:4px 0 6px; font-size:clamp(1.7rem,3vw,2.5rem); letter-spacing:-.04em; }
+    h2 { font-size:1rem; margin:0 0 20px; color:#c6d2e1; }
+    p { line-height:1.5; }
+    .eyebrow, .label { text-transform:uppercase; letter-spacing:.12em; font-size:.69rem; font-weight:700; color:#95a7bb; }
+    .muted { color:#95a7bb; }
+    .small { font-size:.82rem; }
+    .badge { border:1px solid #2f4155; border-radius:999px; padding:8px 13px; color:#bad5f1; background:#122033; white-space:nowrap; font-size:.8rem; }
+    .grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; }
+    .card { background:#151e2b; border:1px solid #29384a; border-radius:18px; padding:22px; min-width:0; box-shadow:0 12px 35px #0002; }
+    .market, .forecast { grid-column:span 6; }
+    .chart { grid-column:span 12; }
+    #price-chart { display:block; width:100%; height:290px; }
+    .chart-meta { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .feeds, .evaluation, .news { grid-column:span 4; }
+    .outcomes, .evidence { grid-column:span 6; }
+    .hero { font-size:clamp(2rem,4vw,3.4rem); font-variant-numeric:tabular-nums; font-weight:750; letter-spacing:-.055em; line-height:1.08; margin:8px 0; }
+    .row { display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
+    .metric { flex:1; min-width:130px; }
+    .metric strong { display:block; font-size:1.3rem; margin-top:6px; font-variant-numeric:tabular-nums; }
+    .line { height:1px; background:#2b3a4a; margin:21px 0; }
+    .up { color:#33d59c; } .warn { color:#f5bb6b; } .bad { color:#ff858d; }
+    .pair { display:flex; justify-content:space-between; gap:12px; margin:10px 0; font-size:.87rem; }
+    .pair span:last-child { text-align:right; }
+    .track { height:8px; border-radius:999px; background:#2c3c4c; overflow:hidden; margin:7px 0 17px; }
+    .fill { height:100%; background:#4fa7f8; border-radius:999px; }
+    .feed { border-top:1px solid #2b3a4a; padding:12px 0; }
+    .feed:first-child { border-top:0; padding-top:0; }
+    .feed .pair { margin:0; }
+    ul { list-style:none; padding:0; margin:0; }
+    li { border-top:1px solid #2b3a4a; padding:12px 0; }
+    li:first-child { border-top:0; padding-top:0; }
+    a { color:#95c9ff; text-decoration:none; }
+    a:hover { text-decoration:underline; }
+    .footer { margin-top:20px; color:#95a7bb; font-size:.78rem; }
+    @media (max-width:900px) { .market,.forecast,.feeds,.evaluation,.news,.outcomes,.evidence { grid-column:span 12; } }
+    @media (max-width:560px) { body { padding:16px; } header { flex-direction:column; } .card { padding:18px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div id="collection-state" class="muted small">Checking saved collection status…</div></div>
+    <div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div>
+  </header>
+  <div id="offline-hint" class="card" style="display:none;margin-bottom:16px">This file preview cannot load live data. Open the <a href="http://127.0.0.1:8765/">live dashboard at 127.0.0.1:8765</a>.</div>
+  <main class="grid">
+    <section class="card market" aria-labelledby="market-heading">
+      <h2 id="market-heading">Current market</h2>
+      <div id="market-state" class="eyebrow">Waiting for data</div>
+      <div id="market-timer" class="hero">—</div>
+      <div class="row">
+        <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
+        <div class="metric"><span class="label">Latest Coinbase tick</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
+        <div class="metric"><span class="label">Saved forecast input</span><strong id="reference">—</strong></div>
+        <div class="metric"><span class="label">Forecast input distance</span><strong id="distance">—</strong></div>
+      </div>
+      <div class="line"></div>
+      <div id="market-slug" class="small muted">No active market captured.</div>
+      <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
+      <div class="row" style="margin-top:14px">
+        <div class="metric"><span class="label">Polymarket UP last price</span><strong id="market-up">—</strong></div>
+        <div class="metric"><span class="label">Polymarket DOWN last price</span><strong id="market-down">—</strong></div>
+      </div>
+      <div id="market-quote" class="small muted" style="margin-top:8px"></div>
+      <div class="small muted" style="margin-top:5px">UP/DOWN last prices are market samples, not our forecast or guaranteed execution prices.</div>
+      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms come from Polymarket's public API; saved quotes may come from public REST or its authenticated read-only market stream. This page does not scrape your browser or account.</p>
+    </section>
+    <section class="card forecast" aria-labelledby="forecast-heading">
+      <h2 id="forecast-heading">Live baseline estimate · follows BTC ticks</h2>
+      <div id="forecast-up" class="hero up">—</div>
+      <div class="row">
+        <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
+        <div class="metric"><span class="label">DOWN probability</span><strong id="down-small">—</strong></div>
+      </div>
+      <div class="line"></div>
+      <div id="forecast-state" class="small muted">Waiting for a live BTC tick and recent volatility.</div>
+      <div id="saved-forecast-state" class="small muted" style="margin-top:6px">Saved forecast: waiting for data.</div>
+      <p class="small muted">Experimental, untrained price-and-volatility estimate using the same BTC tick as the orange graph. Its volatility input comes from the latest saved feature snapshot. It is separate from live Polymarket market prices and is not saved on every tick; saved forecasts remain the evaluation record.</p>
+    </section>
+    <section class="card chart" aria-labelledby="chart-heading">
+      <div class="chart-meta"><h2 id="chart-heading">BTC price · current 15-minute market</h2><div id="chart-summary" class="small muted">Waiting for saved stream ticks.</div></div>
+      <div id="chart-stream-state" class="small muted">Connecting to saved live ticks.</div>
+      <canvas id="price-chart" role="img" aria-label="Coinbase BTC price during the active 15-minute market and Polymarket price to beat"></canvas>
+      <div class="small muted">Orange: saved Coinbase BTC/USD stream ticks, updated as new ticks arrive; earlier points are grouped into 5-second intervals. Blue dotted line: Polymarket price to beat. The website's orange chart uses BRTI, so the lines can differ. Gaps over 15 seconds are left blank.</div>
+    </section>
+    <section class="card feeds" aria-labelledby="feeds-heading">
+      <h2 id="feeds-heading">Feed health</h2>
+      <div id="feeds-list" class="small muted">Waiting for data.</div>
+    </section>
+    <section class="card evaluation" aria-labelledby="evaluation-heading">
+      <h2 id="evaluation-heading">Confirmed-market evaluation</h2>
+      <div id="checkpoint-list"></div>
+      <p class="small muted">Distinct resolved markets at each forecast time. Comparisons remain preliminary until 30 per checkpoint.</p>
+    </section>
+    <section class="card news" aria-labelledby="news-heading">
+      <h2 id="news-heading">Saved BTC headlines</h2>
+      <div id="news-age" class="small muted" style="margin-bottom:12px"></div>
+      <ul id="news-list"></ul>
+      <p class="small muted">Headlines are stored context; they do not affect this forecast.</p>
+    </section>
+    <section class="card outcomes" aria-labelledby="outcomes-heading">
+      <h2 id="outcomes-heading">Recent confirmed outcomes</h2>
+      <div id="outcomes-list" class="small muted">Waiting for data.</div>
+      <p class="small muted">T-5m forecast appears only when a saved live prediction exists for that market.</p>
+    </section>
+    <section class="card evidence" aria-labelledby="evidence-heading">
+      <h2 id="evidence-heading">Evidence trail</h2>
+      <div id="evidence-list" class="small muted">Waiting for data.</div>
+      <p class="small muted">Links show context that was eligible at forecast time. They were attached retrospectively; the baseline forecast did not use this context.</p>
+    </section>
+  </main>
+  <div class="footer">This page only reads the local SQLite database. It cannot place orders.</div>
+  <script>
+    const byId = id => document.getElementById(id);
+    const set = (id, value) => { byId(id).textContent = value ?? '—'; };
+    const money = value => value == null ? '—' : '$' + Number(value).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+    const pct = value => value == null ? '—' : Number(value) > 0 && Number(value) < .001 ? '<0.1%' : Number(value) < 1 && Number(value) > .999 ? '>99.9%' : (Number(value) * 100).toFixed(1) + '%';
+    const cents = value => value == null ? '—' : (Number(value) * 100).toFixed(0) + '¢';
+    const age = value => value == null ? 'no data' : value < 60 ? Math.floor(value) + 's ago' : Math.floor(value / 60) + 'm ' + Math.floor(value % 60) + 's ago';
+    const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
+    let chartData = null, chartInFlight = false;
+    function mergeLatestTick(data) {
+      if (!chartData?.market || chartData.market.id !== data?.market?.id || !data.latest_coinbase_tick) return;
+      const t = data.latest_coinbase_tick, m = chartData.market;
+      const sourceMs = Date.parse(t.source_time), startMs = Date.parse(m.start);
+      if (!Number.isFinite(sourceMs) || sourceMs < startMs || sourceMs >= Date.parse(m.end)) return;
+      const points = chartData.points, last = points.at(-1);
+      if (last && sourceMs < Date.parse(last.at)) return;
+      const point = {at:t.source_time, price_usd:t.price_usd};
+      if (last && Math.floor((sourceMs-startMs)/5000) === Math.floor((Date.parse(last.at)-startMs)/5000)) points[points.length-1] = point;
+      else points.push(point);
+    }
+    function updateChartSummary() {
+      const points = chartData?.points || [];
+      if (!points.length) { set('chart-summary','No stream ticks saved for this market yet.'); return; }
+      const first = points[0], last = points.at(-1);
+      const tickAge = serverNowMs() == null ? null : ageOf(last.at);
+      set('chart-summary','Coinbase last '+money(last.price_usd)+(tickAge == null ? '' : ' · tick '+age(tickAge))+' · first saved tick '+localTime(first.at)+(chartData.sample_limited?' · earlier ticks outside query limit':''));
+    }
+    function drawChart() {
+      const canvas = byId('price-chart');
+      const width = Math.max(320, canvas.clientWidth), height = 290;
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = Math.round(width * ratio); canvas.height = Math.round(height * ratio);
+      const ctx = canvas.getContext('2d'); ctx.setTransform(ratio,0,0,ratio,0,0);
+      ctx.clearRect(0,0,width,height);
+      if (!chartData?.market) {
+        ctx.fillStyle = '#95a7bb'; ctx.font = '14px sans-serif';
+        ctx.fillText('Waiting for the active market.', 16, height/2);
+        return;
+      }
+      const m = chartData.market, points = chartData.points;
+      const start = Date.parse(m.start), end = Date.parse(m.end), target = Number(m.target_usd);
+      const left = 20, right = 82, top = 20, bottom = 34;
+      const plotW = width-left-right, plotH = height-top-bottom;
+      const prices = points.map(p => Number(p.price_usd)).filter(Number.isFinite);
+      const low = Math.min(target, ...prices), high = Math.max(target, ...prices);
+      const padding = Math.max(3, (high-low)*.16);
+      const min = low-padding, max = high+padding;
+      const x = time => left + (time-start)/(end-start)*plotW;
+      const y = price => top + (max-price)/(max-min)*plotH;
+      ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+      for (let i=0;i<=4;i++) {
+        const py = top+i*plotH/4;
+        ctx.strokeStyle='#304051'; ctx.lineWidth=1; ctx.setLineDash([2,5]);
+        ctx.beginPath();ctx.moveTo(left,py);ctx.lineTo(left+plotW,py);ctx.stroke();
+        ctx.fillStyle='#95a7bb';ctx.fillText(money(max-i*(max-min)/4),left+plotW+8,py+4);
+      }
+      ctx.strokeStyle='#65b3ff';ctx.lineWidth=1.8;ctx.setLineDash([2,5]);
+      ctx.beginPath();ctx.moveTo(left,y(target));ctx.lineTo(left+plotW,y(target));ctx.stroke();
+      ctx.setLineDash([]);
+      const targetLabel='Price to beat '+money(target);
+      ctx.font='bold 12px sans-serif';ctx.textAlign='left';
+      const labelY=Math.max(top+3,Math.min(top+plotH-23,y(target)-26));
+      ctx.fillStyle='#102b45';ctx.fillRect(left+6,labelY,ctx.measureText(targetLabel).width+16,22);
+      ctx.fillStyle='#8ac8ff';ctx.fillText(targetLabel,left+14,labelY+15);
+      const coords = points.map(p => [x(Date.parse(p.at)),y(Number(p.price_usd)),Date.parse(p.at)]);
+      const segments = [];
+      for (const point of coords) {
+        if (!segments.length || point[2]-segments.at(-1).at(-1)[2] > 15000) segments.push([]);
+        segments.at(-1).push(point);
+      }
+      const fill=ctx.createLinearGradient(0,top,0,top+plotH);
+      fill.addColorStop(0,'#f6a43a44');fill.addColorStop(1,'#f6a43a05');
+      for (const segment of segments) {
+        ctx.beginPath();ctx.moveTo(segment[0][0],top+plotH);
+        for (const [px,py] of segment) ctx.lineTo(px,py);
+        ctx.lineTo(segment.at(-1)[0],top+plotH);ctx.closePath();ctx.fillStyle=fill;ctx.fill();
+        ctx.beginPath();ctx.moveTo(segment[0][0],segment[0][1]);
+        for (const [px,py] of segment.slice(1)) ctx.lineTo(px,py);
+        ctx.strokeStyle='#f6a43a';ctx.lineWidth=2.5;ctx.lineJoin='round';ctx.stroke();
+      }
+      if (coords.length) {
+        const [lastX,lastY]=coords.at(-1);
+        ctx.beginPath();ctx.arc(lastX,lastY,5,0,2*Math.PI);ctx.fillStyle='#f6a43a';ctx.fill();
+      } else {
+        ctx.fillStyle='#95a7bb';ctx.font='13px sans-serif';ctx.fillText('No Coinbase ticks captured yet.',left+8,top+plotH/2);
+      }
+      ctx.fillStyle='#95a7bb';ctx.font='11px sans-serif';
+      for (const time of [start,(start+end)/2,end]) {
+        const label=new Date(time).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+        ctx.textAlign=time===start?'left':time===end?'right':'center';
+        ctx.fillText(label,x(time),height-9);
+      }
+    }
+    async function refreshChart() {
+      if (chartInFlight) return;
+      chartInFlight=true;
+      try {
+        const response=await fetch('/api/chart',{cache:'no-store'});
+        if (!response.ok) throw new Error('Status '+response.status);
+        chartData=await response.json();
+        mergeLatestTick(latest);
+        updateChartSummary();
+        drawChart();
+      } catch (error) { set('chart-summary','Chart unavailable · '+error.message); }
+      finally { chartInFlight=false; }
+    }
+    let latest = null, serverEpochMs = null, syncAt = null, requestInFlight = false, lastError = null;
+    let pendingLiveTick = null, pendingLiveQuote = null;
+    let chartDrawPending = false;
+    function scheduleChartDraw() {
+      if (chartDrawPending) return;
+      chartDrawPending = true;
+      requestAnimationFrame(() => { chartDrawPending = false; drawChart(); });
+    }
+    function acceptLiveTick(t) {
+      if (!latest) { pendingLiveTick = t; return; }
+      if (!t?.source_time || !t?.received_at) return;
+      const current = latest.latest_coinbase_tick;
+      if (current && (Date.parse(t.received_at) < Date.parse(current.received_at) ||
+          Date.parse(t.received_at) === Date.parse(current.received_at) && latest.live_estimate)) return;
+      latest.latest_coinbase_tick = t;
+      latest.live_estimate = t.estimate?.market_id === latest.market?.id ? t.estimate : null;
+      mergeLatestTick(latest);
+      updateChartSummary();
+      scheduleChartDraw();
+      tick();
+    }
+    function acceptLiveQuote(q) {
+      if (!latest) { pendingLiveQuote = q; return; }
+      if (!latest?.market || q?.market_id !== latest.market.id) return;
+      const current = latest.market_quote;
+      if (current && Date.parse(q.received_at) <= Date.parse(current.received_at)) return;
+      latest.market_quote = q;
+      tick();
+    }
+    const serverNowMs = () => serverEpochMs == null ? null : serverEpochMs + performance.now() - syncAt;
+    const ageOf = value => value ? Math.max(0, (serverNowMs() - Date.parse(value)) / 1000) : null;
+    function tick() {
+      if (!latest || serverNowMs() == null) return;
+      const now = serverNowMs();
+      set('server-clock', 'UTC ' + new Date(now).toLocaleTimeString('en-GB', {timeZone:'UTC',hour12:false}));
+      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote, t = latest.latest_coinbase_tick, e = latest.live_estimate;
+      const remaining = m ? Math.max(0, Math.ceil((Date.parse(m.end) - now) / 1000)) : null;
+      if (m && remaining === 0) set('market-state', 'Market ended · awaiting next saved market');
+      set('market-timer', remaining == null ? '—' : remaining === 0 ? '0:00 · awaiting next market' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
+      const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
+      set('snapshot-age', s ? 'Snapshot ' + age(ageOf(s.as_of)) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (ageOf(s.as_of) <= 90 && remaining > 0 ? '' : ' · STALE') : 'No snapshot for this market yet.');
+      const tickAge = t ? ageOf(t.received_at) : null;
+      const tickFresh = tickAge != null && tickAge <= 10 && ageOf(t.source_time) <= 10;
+      const btcFeed = latest.feeds?.find(feed => feed.source === 'coinbase_stream');
+      const storageFeed = latest.feeds?.find(feed => feed.source === 'storage_guard');
+      const storageLimited = storageFeed?.effective_status === 'limit_reached';
+      const collectionState = btcFeed?.effective_status;
+      const collectionText = storageLimited ? 'Collection paused · storage cap reached'
+        : collectionState === 'stopped' ? 'Collection finished · saved data only'
+        : collectionState === 'stale' ? 'Collection delayed · BTC feed is stale'
+        : tickFresh ? 'Collecting live Coinbase reference ticks'
+        : 'Waiting for fresh Coinbase reference data';
+      set('collection-state', collectionText);
+      byId('collection-state').className = 'small ' + (tickFresh ? 'muted' : 'warn');
+      set('chart-stream-state', storageLimited || collectionState === 'stopped' || collectionState === 'stale'
+        ? collectionText + (t ? ' · last tick ' + age(tickAge) : '')
+        : tickFresh ? 'Coinbase stream live · latest tick ' + age(tickAge)
+        : 'Waiting for a fresh Coinbase stream tick');
+      set('live-reference', t ? money(t.price_usd) : '—');
+      set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
+      byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
+      const quoteAge = q ? ageOf(q.received_at) : null;
+      const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
+      set('market-up', cents(q?.up_quote));
+      set('market-down', cents(q?.down_quote));
+      let quoteText = 'No Polymarket quote saved for this market yet.';
+      if (q?.kind === 'stream_book' || q?.kind === 'live_ws') {
+        const sampleAge = ageOf(q.sample_time);
+        quoteText = (quoteDelayed ? 'DELAYED' : 'Live') + (q.kind === 'live_ws' ? ' direct Polymarket API' : ' saved Polymarket book') + ' · received ' + age(quoteAge)
+          + ' · UP bid ' + cents(q.best_bid) + ' / ask ' + cents(q.best_ask);
+        if (q.up_quote != null || q.down_quote != null)
+          quoteText += ' · last price sample UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote)
+            + ' (' + age(sampleAge) + ')';
+        quoteText += ' · not used in forecast';
+      } else if (q) {
+        quoteText = (quoteDelayed ? 'DELAYED' : 'Recent') + ' public REST quote · ' + age(quoteAge)
+          + ' · UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote) + ' · not used in forecast';
+      }
+      set('market-quote', quoteText);
+      byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
+      const estimateFresh = !!(e && m && e.market_id === m.id && ageOf(e.as_of) <= 10 && remaining > 0);
+      const liveProbability = estimateFresh ? e.probability_up : null;
+      set('forecast-up', liveProbability == null ? '—' : pct(liveProbability) + ' UP');
+      set('up-small', pct(liveProbability));
+      set('down-small', liveProbability == null ? '—' : pct(1 - Number(liveProbability)));
+      set('forecast-state', estimateFresh
+        ? liveProbability == null ? 'Live estimate unavailable · ' + e.abstain_reason
+          : 'Live estimate from BTC tick ' + age(ageOf(e.as_of)) + ' · volatility snapshot ' + age(ageOf(e.snapshot_as_of))
+        : 'Waiting for a fresh BTC tick and recent volatility.');
+      set('saved-forecast-state', f?.probability_up != null
+        ? 'Saved 30-second forecast: ' + pct(f.probability_up) + ' UP · ' + age(ageOf(f.created_at))
+        : f?.abstain_reason ? 'Saved forecast abstained: ' + f.abstain_reason : 'Saved forecast: waiting for data.');
+      const checkedAge = ageOf(latest.generated_at);
+      set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge)
+        : storageLimited ? 'Storage cap reached · SQLite checked ' + age(checkedAge)
+        : collectionState === 'stopped' ? 'Collector stopped · SQLite checked ' + age(checkedAge)
+        : collectionState === 'stale' ? 'BTC feed stale · SQLite checked ' + age(checkedAge)
+        : 'SQLite checked ' + age(checkedAge));
+      updateChartSummary();
+    }
+    function render(data) {
+      const m = data.market, s = data.snapshot, f = data.forecast;
+      set('market-state', m ? m.status.replaceAll('_', ' ') : 'No active market observed');
+      set('target', money(m?.target_usd));
+      set('reference', money(s?.reference_price_usd));
+      set('distance', money(s?.distance_usd));
+      set('market-slug', m ? m.slug : 'No active market captured.');
+      const feeds = byId('feeds-list'); feeds.replaceChildren();
+      for (const feed of data.feeds) {
+        const div = document.createElement('div'); div.className = 'feed';
+        const line = document.createElement('div'); line.className = 'pair';
+        const name = document.createElement('strong'); name.textContent = feed.source.replaceAll('_',' ');
+        const state = document.createElement('span'); state.textContent = feed.effective_status; state.className = feed.effective_status === 'live' || feed.effective_status === 'running' ? 'up' : 'warn';
+        line.append(name,state); div.append(line);
+        const sub = document.createElement('div'); sub.className = 'small muted'; sub.textContent = 'Last update ' + age(feed.age_seconds) + ' · reconnects ' + feed.reconnects + (feed.detail ? ' · ' + feed.detail : '');
+        div.append(sub); feeds.append(div);
+      }
+      if (!data.feeds.length) feeds.textContent = 'No feed health stored yet.';
+      const evalList = byId('checkpoint-list'); evalList.replaceChildren();
+      for (const [name,count] of Object.entries(data.evaluation.distinct_confirmed_markets_by_checkpoint)) {
+        const line = document.createElement('div'); line.className = 'pair';
+        const left = document.createElement('span'); left.textContent = name;
+        const right = document.createElement('strong'); right.textContent = count + ' / 30 markets';
+        line.append(left,right); evalList.append(line);
+        const track = document.createElement('div'); track.className = 'track';
+        const fill = document.createElement('div'); fill.className = 'fill'; fill.style.width = Math.min(100, count / 30 * 100) + '%';
+        track.append(fill); evalList.append(track);
+      }
+      set('news-age', 'Latest feed item seen ' + (data.news_last_seen ? age((Date.now() - new Date(data.news_last_seen).getTime()) / 1000) : 'never'));
+      const news = byId('news-list'); news.replaceChildren();
+      for (const item of data.news) {
+        const li = document.createElement('li');
+        const link = document.createElement('a');
+        link.textContent = item.title;
+        if (item.url.startsWith('https://')) { link.href = item.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+        li.append(link);
+        const detail = document.createElement('div'); detail.className = 'small muted'; detail.textContent = 'Seen ' + localTime(item.first_seen);
+        li.append(detail); news.append(li);
+      }
+      if (!data.news.length) { const li=document.createElement('li'); li.textContent='No BTC headlines stored yet.'; news.append(li); }
+      const outcomes = byId('outcomes-list'); outcomes.replaceChildren();
+      for (const item of data.outcomes) {
+        const div = document.createElement('div'); div.className = 'feed';
+        const line = document.createElement('div'); line.className = 'pair';
+        const name = document.createElement('strong'); name.textContent = item.slug;
+        const result = document.createElement('strong'); result.textContent = item.result; result.className = item.result === 'UP' ? 'up' : 'bad';
+        line.append(name,result); div.append(line);
+        const detail = document.createElement('div'); detail.className = 'small muted';
+        detail.textContent = 'Target ' + money(item.target_usd) + ' · final ' + money(item.final_usd) + ' · ended ' + localTime(item.end);
+        div.append(detail);
+        const forecast = document.createElement('div'); forecast.className = 'small muted';
+        forecast.textContent = 'Saved T-5m UP forecast: ' + pct(item.t5_forecast_probability_up);
+        div.append(forecast); outcomes.append(div);
+      }
+      if (!data.outcomes.length) outcomes.textContent = 'No confirmed outcomes stored yet.';
+      const evidence = byId('evidence-list'); evidence.replaceChildren();
+      if (data.evidence) {
+        const intro = document.createElement('div'); intro.className = 'small';
+        intro.textContent = 'Latest linked forecast: ' + data.evidence.market_slug + ' · ' + localTime(data.evidence.forecast_as_of);
+        evidence.append(intro);
+        const details = document.createElement('div'); details.className = 'small muted';
+        details.textContent = data.evidence.prior_case_count + ' prior cases · ' + data.evidence.news_count + ' headline links';
+        evidence.append(details);
+        for (const item of data.evidence.prior_cases) {
+          const line = document.createElement('div'); line.className = 'feed small';
+          line.textContent = 'Prior case · ' + item.slug + ' · outcome ' + item.outcome;
+          evidence.append(line);
+        }
+        for (const item of data.evidence.news) {
+          const line = document.createElement('div'); line.className = 'feed small';
+          const link = document.createElement('a'); link.textContent = 'Headline · ' + item.title;
+          if (item.url.startsWith('https://')) { link.href = item.url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+          line.append(link); evidence.append(line);
+        }
+      } else evidence.textContent = 'No prediction has linked context yet.';
+    }
+    async function refresh() {
+      if (requestInFlight) return;
+      requestInFlight = true;
+      const started = performance.now();
+      try {
+        const response = await fetch('/api/status', {cache:'no-store'});
+        if (!response.ok) throw new Error('Status ' + response.status);
+        const data = await response.json();
+        const finished = performance.now();
+        serverEpochMs = Date.parse(data.generated_at) + (finished - started) / 2;
+        syncAt = finished;
+        if (latest?.latest_coinbase_tick && (!data.latest_coinbase_tick ||
+            Date.parse(latest.latest_coinbase_tick.received_at) > Date.parse(data.latest_coinbase_tick.received_at)))
+          data.latest_coinbase_tick = latest.latest_coinbase_tick;
+        if (latest && latest.market?.id === data.market?.id && latest.market_quote &&
+            (!data.market_quote || Date.parse(latest.market_quote.received_at) > Date.parse(data.market_quote.received_at)))
+          data.market_quote = latest.market_quote;
+        if (latest && latest.market?.id === data.market?.id) data.live_estimate = latest.live_estimate;
+        const marketChanged = chartData?.market?.id !== data.market?.id;
+        latest = data;
+        lastError = null;
+        render(data);
+        if (pendingLiveTick) { const incoming = pendingLiveTick; pendingLiveTick = null; acceptLiveTick(incoming); }
+        if (pendingLiveQuote) { const incoming = pendingLiveQuote; pendingLiveQuote = null; acceptLiveQuote(incoming); }
+        mergeLatestTick(data);
+        if (chartData?.market?.id === data.market?.id) drawChart();
+        if (marketChanged) refreshChart();
+        tick();
+      } catch (error) { lastError = error; if (!latest) set('refresh', 'Data unavailable · ' + error.message); }
+      finally { requestInFlight = false; }
+    }
+    if (location.protocol === 'file:') {
+      byId('offline-hint').style.display='block';
+      set('refresh','Open live dashboard URL');
+    } else {
+      refresh(); refreshChart();
+      setInterval(refresh, 2000); setInterval(refreshChart, 5000); setInterval(tick, 250);
+      if ('EventSource' in window) {
+        const liveTicks = new EventSource('/api/ticks');
+        liveTicks.addEventListener('tick', event => {
+          try { acceptLiveTick(JSON.parse(event.data)); } catch (_) { /* periodic status remains available */ }
+        });
+        liveTicks.onopen = () => set('chart-stream-state', 'Live tick stream connected · local SQLite');
+        liveTicks.onerror = () => set('chart-stream-state', 'Live tick stream reconnecting · periodic refresh still active');
+        const marketPrices = new EventSource('/api/market-live');
+        marketPrices.addEventListener('quote', event => {
+          try { acceptLiveQuote(JSON.parse(event.data)); } catch (_) { /* saved quotes remain available */ }
+        });
+      } else set('chart-stream-state', 'Periodic refresh · this browser lacks live event support');
+      window.addEventListener('resize', drawChart);
+    }
+  </script>
+</body>
+</html>

@@ -76,6 +76,15 @@ class AuditTests(unittest.TestCase):
         self.assertIsNone(report['features']['largest_snapshot_gap_seconds'])
         with self.assertRaises(ValueError): audit(self.db,self.until,self.since)
 
+    def test_missing_market_start_is_not_counted_as_rollover(self):
+        self.market('first','2026-10-01T01:00:00Z','2026-10-01T01:15:00Z')
+        self.market('third','2026-10-01T01:30:00Z','2026-10-01T01:45:00Z')
+        report=audit(self.db,self.since,self.until)['markets']
+        self.assertEqual(report['seen'],2)
+        self.assertEqual(report['rollovers_observed'],0)
+        self.assertEqual(report['missing_internal_15m_starts'],
+                         ['2026-10-01T01:15:00+00:00'])
+
     def test_failure_breakdown_keeps_missing_history_separate_from_live_errors(self):
         entries = [
             ('polymarket_history',json.dumps({'missing_intervals':['old-window'],

@@ -13,7 +13,7 @@ The user’s current direction takes precedence over older handoff documents. Th
 
 Screenshots show completed and active 15-minute markets, Price to Beat, timer, UP/DOWN quotes, and account UI. Go Live can jump several intervals from an old URL to the currently active market. Login in a screenshot does not establish API authentication requirements.
 
-Public Polymarket US REST responses have verified BTC 15-minute and 1-hour market discovery, exact targets, quote/book access, and a resolved 15-minute outcome. The market WebSocket requires API-key authentication and remains unverified live. Keep using Polymarket US endpoints; do not substitute international Polymarket endpoints. See DATA_ACCESS_FINDINGS.md and MILESTONES.md for current evidence and gaps.
+Public Polymarket US REST responses have verified BTC 15-minute and 1-hour market discovery, exact targets, quote/book access, and a resolved 15-minute outcome. The read-only market WebSocket uses developer-key authentication and has been verified live; it carries outcome quotes/books, not a verified BRTI price feed. Keep using Polymarket US endpoints; do not substitute international Polymarket endpoints. See DATA_ACCESS_FINDINGS.md and MILESTONES.md for current evidence and gaps.
 
 Coinbase documents historical candles and live streaming. Historical candles may contain gaps, require bounded batches, and cannot reconstruct past order books or exact Polymarket settlements.
 
@@ -189,7 +189,7 @@ Create folders only as work needs them. This plan does not require generating an
 
 ## 15. Where we start and what we do not start
 
-The data-access research and first collector are complete. Deterministic 15-minute features and the untrained forecast/evaluation baseline are implemented. The next implementation is broader history and measurable additional signals, as described in MILESTONES.md. Predictive skill remains unestablished until many distinct markets are evaluated.
+The data-access research and first collector are complete. Deterministic 15-minute features and the untrained forecast/evaluation baseline are implemented. Collector start/stop/restart and consistent SQLite backup/recovery are verified. Next improve news timeliness, then evaluate historical signals on later data; MILESTONES.md holds the ordered remaining roadmap. Predictive skill remains unestablished until many distinct markets are evaluated.
 
 Do not begin with a vector database, a full dashboard, eight specialist models, automatic retraining, account login automation or order execution. No accuracy promise or implementation deadline is justified before access checks and collection measurements.
 

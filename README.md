@@ -1,6 +1,8 @@
 # BTC Intelligence
 
-Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, account credentials or OpenAI calls. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
+For a plain-language overview of work completed and remaining, see [PROGRESS_SUMMARY.md](docs/PROGRESS_SUMMARY.md).
+
+Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, trading-account access or OpenAI calls. Optional developer keys authenticate read-only market data. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
 
 Run from this project folder:
 
@@ -14,11 +16,17 @@ The default duration is 15 minutes. Hourly collection is deferred; saved hourly 
 
 The default database is `data/btc_intelligence.db`. Each invocation is bounded and exits; nothing starts automatically. Errors are recorded in `runs` and printed. Historical candles come from Coinbase and are predictive reference data, not BRTI settlement prices. Coverage reports expose missing candles.
 
-The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates and saves versioned feature snapshots and baseline forecasts. The long-running rollover test is still in progress. UI, FTS5/traversal and OpenAI analysis are later milestones.
+The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates and saves versioned feature snapshots and baseline forecasts. The bounded rollover test has finished; use `streaming.py --seconds 0` for local read-only monitoring until Ctrl+C. FTS5 news search and read-only context links exist; OpenAI analysis is deferred.
 
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 
 See [MILESTONES.md](docs/MILESTONES.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
+
+## Local status dashboard
+
+Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. Opening `backend/app/dashboard.html` as a `file://` preview cannot fetch the local `/api` routes; that preview now links to the live server. The server binds only to localhost and reads the existing SQLite database in query-only mode. The browser checks status every 2 seconds and refreshes full 15-minute Coinbase chart history every 5 seconds; each new status also updates the chart with the latest saved tick. Its UTC clock, market countdown, and saved-data ages tick locally between checks using the server timestamp. The chart groups captured stream ticks into five-second buckets and shows Polymarket's exact price to beat as a blue dotted line with its value, with source and partial capture labeled. The Coinbase chart can differ from Polymarket's BRTI chart. Other panels show the active market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, recent confirmed outcomes, saved BTC headlines, and the latest retrospectively linked evidence. Context links do not mean the baseline used that evidence. The dashboard makes a separate authenticated read-only Polymarket market-data WebSocket connection for direct UP/DOWN quotes, but it does not place orders. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately for Coinbase ticks, active-market discovery, and saved forecasts; the dashboard labels the data stale when it stops.
+
+The dashboard shows the latest saved Coinbase stream tick separately from the older Coinbase price used by the saved forecast. Both differ from Polymarket's BRTI chart source even at the same instant. It labels completed Coinbase candles **lagging** when the latest completed minute ended 60–120 seconds before the snapshot. Those candles remain usable; the separate live Coinbase ticker can still be fresh. At 120 seconds or more without a usable completed candle, required features become unavailable and the baseline abstains. Polymarket public UP/DOWN quotes and their saved times are displayed for comparison but do not enter the current probability baseline. Quotes older than 10 seconds are visibly marked **DELAYED**. The current public REST collector samples them about every 30 seconds, so a ticking dashboard clock does not make those prices continuous or suitable for execution. Quote prices are not calibrated probabilities.
 
 ## Streaming milestone
 
@@ -39,9 +47,28 @@ Run a bounded one-minute collection or explicitly collect until Ctrl+C:
 
 Public Coinbase BTC ticker events stream continuously and are deduplicated by trade ID. Each event preserves source and receive timestamps, price, size and source-provided side; side must not yet be interpreted as aggressive buying/selling pressure. Connection failures reconnect with capped exponential delay and resubscribe. Feed state distinguishes connecting, awaiting data, live, stale, disconnected, disabled and stopped. REST remains at 30-second intervals for market discovery, quotes and pending settlement; transient HTTP errors and 429 responses have bounded backoff. No order routes are implemented.
 
-Polymarket WebSocket requires `POLYMARKET_KEY_ID` and `POLYMARKET_SECRET_KEY` environment variables. Set them locally using your secret manager/shell; never paste them into chat or commit them. `.env.example` lists names but is not automatically loaded. Without keys, that stream is explicitly disabled while public REST continues. The authenticated adapter signs each handshake and reopens its market subscription on rollover. Its live protocol remains unverified until credentials are configured.
+Polymarket's read-only markets WebSocket uses `POLYMARKET_KEY_ID` and `POLYMARKET_SECRET_KEY`. The streaming command reads these from the process environment or the ignored project `.env` file, without executing that file; never paste keys into chat or commit them. Without keys, that stream is disabled while public REST continues. The adapter signs each handshake, follows the current 15-minute market on rollover, and saves at most one full book per second. A live authenticated handshake and market-data subscription were verified. The standard streaming command runs REST, Coinbase and (when keys are present) Polymarket collection together. For an isolated bounded check, run `.venv/bin/python backend/app/streaming.py --markets-only --seconds 60`; this mode does not duplicate Coinbase or REST collection. It cannot place orders.
 
-Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may wait for an in-flight REST request. Raw streaming retention is not yet automatic: monitor database size before unattended multi-day runs. Nothing starts on boot or keeps running after a bounded command exits.
+Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may wait for an in-flight REST request. The collector now stops without deleting data if the SQLite database plus write-ahead log reaches 2,048 MiB; set another cap with `--max-storage-mb`. This is a storage ceiling, not automatic retention. Nothing starts on boot or keeps running after a bounded command exits.
+
+## Collector controls and evidence recovery
+
+Run all commands from this repository with its virtual environment:
+
+```sh
+.venv/bin/python backend/app/operations.py status
+.venv/bin/python backend/app/operations.py start
+.venv/bin/python backend/app/operations.py stop
+.venv/bin/python backend/app/operations.py restart
+.venv/bin/python backend/app/operations.py backup --destination data/backups/manual_backup.db
+.venv/bin/python backend/app/operations.py recover --db data/backups/manual_backup.db --destination data/recovered.db
+```
+
+`start` launches a local detached process and appends output to `<database>.collector.log`; it retains the 2,048 MiB database-plus-WAL ceiling. Process start does not establish feed readiness: check dashboard freshness and saved forecasts. This is not a boot service; sleep, reboot, process failure and disk exhaustion can interrupt collection. `stop` requests graceful shutdown through a private local Unix socket and waits up to 45 seconds; it does not force-kill a process or remove evidence. `restart` stops before starting. Direct streaming commands use the same per-database lock, including markets-only mode, so two collectors cannot own the same resolved database path. Use distinct databases for isolated probes. Avoid filesystem aliases/hard links to the same database.
+
+The kernel releases the lock after a crash; stale socket/PID metadata cannot make an inactive collector look running. Commands never signal stored PIDs. A fresh unmanaged legacy REST heartbeat blocks start/restart and reports that controlled stop is unavailable; a crashed legacy heartbeat can require up to 90 seconds to expire. Backups preserve historical feed-health rows, so a just-recovered database can also require that cooldown before starting. `status` distinguishes lock ownership from a fresh unmanaged heartbeat.
+
+Backup and recovery use SQLite's online backup API, including committed WAL evidence while collection continues. Integrity and foreign-key checks must pass before a new file is published. Existing destinations and their WAL/SHM sidecars are refused; recovery always creates a separate database. Keep the original database and backup while inspecting the recovered file. Point the collector and dashboard at it using `--db` only after verification. A default 60-second backup deadline fails without publishing a partial destination. Backups consume additional disk space outside the collector's database-plus-WAL ceiling; no automatic schedule, retention or off-machine redundancy is provided. October 2 verification files in ignored `data/backups/` each occupy about 307 MiB.
 
 ## Milestone commits
 
@@ -63,7 +90,7 @@ Inspect market-grouped evaluation after confirmed outcomes arrive:
 .venv/bin/python backend/app/forecasts.py --report
 ```
 
-The report selects at most one forecast per market near each of T-10m, T-5m and T-1m (within 30 seconds). It compares Brier score, log loss and directional accuracy with a 50/50 baseline, shows calibration counts, and reports abstentions. Chronological 60/20/20 blocks appear only once a checkpoint has at least 30 distinct confirmed markets. Until then, scores are preliminary and the report says when there are no paired results. More live sessions are needed before drawing any accuracy conclusion.
+The read-only report selects at most one forecast per market near each of T-10m, T-5m and T-1m (within 30 seconds). It compares Brier score, log loss and directional accuracy with a 50/50 baseline, shows calibration counts, and reports abstentions. Chronological 60/20/20 blocks appear only once a checkpoint has at least 30 distinct confirmed markets. These early scores are preliminary; the latest block has only a few markets and is not a final holdout.
 
 ## Audit a bounded collection run
 
@@ -73,7 +100,9 @@ Use the read-only audit command during or after a run:
 .venv/bin/python backend/app/audit.py --since 2026-10-01T01:53:00Z
 ```
 
-Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, rollovers, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. The audit opens SQLite in read-only mode and does not alter the live collector.
+Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, consecutive rollovers, missing internal market starts, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. Both reports open SQLite in read-only mode and do not alter the collector.
+
+Run `.venv/bin/python backend/app/data_quality.py` for a read-only historical-gap and BTC-news freshness report. `--as-of <UTC ISO timestamp>` freezes its cutoff. It groups unavailable 15-minute intervals, separates pre-coverage dates from gaps within the saved range, and measures headline publication-to-first-seen delay. It does not fetch new data or measure whether news improves forecasts.
 
 ## Retrospective history (separate from live evidence)
 

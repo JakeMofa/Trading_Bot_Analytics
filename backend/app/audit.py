@@ -1,6 +1,7 @@
 """Read-only coverage and health report for a bounded 15-minute collection run."""
 import argparse
 from collections import Counter
+from datetime import timedelta
 import json
 from pathlib import Path
 import sqlite3
@@ -53,12 +54,22 @@ def audit(db, since, until):
     candle_status = Counter(row.get('candle_status','unknown') for row in quality)
     gaps = [(timestamp(snapshot_rows[i][1])-timestamp(snapshot_rows[i-1][1])).total_seconds()
             for i in range(1,len(snapshot_rows))]
+    starts = sorted({timestamp(row[3]) for row in market_rows})
+    internal_missing = []
+    for before, after in zip(starts, starts[1:]):
+        cursor = before + timedelta(minutes=15)
+        while cursor < after:
+            internal_missing.append(cursor.isoformat())
+            cursor += timedelta(minutes=15)
     outcomes = Counter(row[6] if row[6] in ('UP','DOWN')
                        and row[5]=='MARKET_STATUS_RESOLVED' and timestamp(row[7])<=until
                        else 'unconfirmed' for row in market_rows)
     return {
         'window': {'since':begin,'until':end,'hours':(until-since).total_seconds()/3600},
-        'markets': {'seen':len(market_rows),'rollovers_observed':max(0,len(market_rows)-1),
+        'markets': {'seen':len(market_rows),
+                    'rollovers_observed':sum(after-before == timedelta(minutes=15)
+                                             for before,after in zip(starts,starts[1:])),
+                    'missing_internal_15m_starts':internal_missing,
                     'confirmed':sum(row[6] in ('UP','DOWN') and row[5]=='MARKET_STATUS_RESOLVED'
                                     and timestamp(row[7])<=until
                                     for row in market_rows),

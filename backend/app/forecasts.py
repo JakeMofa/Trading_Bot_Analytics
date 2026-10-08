@@ -4,8 +4,10 @@ from datetime import timezone
 from decimal import Decimal
 import json
 from math import erf, log, sqrt
+from pathlib import Path
+import sqlite3
 
-from collector import connect, timestamp, utcnow
+from collector import timestamp, utcnow
 from features import initialize as initialize_features
 
 MODEL = 'gaussian_distance_v1'
@@ -107,7 +109,6 @@ def _score(rows):
 
 def evaluate(db):
     """Evaluate one prediction per resolved market at each fixed time checkpoint."""
-    initialize(db)
     records = db.execute('''SELECT p.market_id,p.as_of,p.created_at,p.seconds_remaining,
       p.probability_up,m.end,m.result
       FROM predictions p JOIN markets m ON m.id=p.market_id
@@ -170,7 +171,8 @@ def main():
     parser.add_argument('--db', default='data/btc_intelligence.db')
     parser.add_argument('--report', action='store_true', help='Print evaluation JSON from confirmed outcomes')
     args = parser.parse_args()
-    db = connect(args.db)
+    path = Path(args.db).resolve()
+    db = sqlite3.connect(path.as_uri() + '?mode=ro', uri=True)
     try:
         if args.report:
             print(json.dumps(evaluate(db), indent=2))

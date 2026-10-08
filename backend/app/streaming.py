@@ -10,11 +10,20 @@ import uuid
 from pathlib import Path
 from websockets.asyncio.client import connect as ws_connect
 from collector import connect, collect_once, amount, utcnow, timestamp, save_observation, refresh_recent_candles, record
+from operations import collector_lock, control_server
 from features import initialize as initialize_features, capture as capture_features
 from forecasts import initialize as initialize_forecasts, forecast_snapshot
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
 POLYMARKET_WS = 'wss://api.polymarket.us/v1/ws/markets'
+DEFAULT_MAX_STORAGE_MB = 2048
+
+
+def storage_bytes(path):
+    """Count the SQLite database and its write-ahead log without modifying either."""
+    root = Path(path)
+    return sum(item.stat().st_size for item in (root, Path(str(root) + '-wal'))
+               if item.exists())
 
 
 def initialize(db):
@@ -64,8 +73,27 @@ def auth_headers(key_id, secret, milliseconds=None):
 
 def subscription(slug):
     return {'subscribe':{'requestId':str(uuid.uuid4()),
-        'subscriptionType':'SUBSCRIPTION_TYPE_MARKET_DATA','marketSlugs':[slug],
-        'responsesDebounced':True}}
+        'subscriptionType':'SUBSCRIPTION_TYPE_MARKET_DATA','marketSlugs':[slug]}}
+
+
+def polymarket_credentials(env_path=None):
+    """Load only the two market-stream keys, without executing the local .env file."""
+    names = ('POLYMARKET_KEY_ID', 'POLYMARKET_SECRET_KEY')
+    values = {name: os.environ.get(name) for name in names}
+    path = Path(env_path) if env_path else Path(__file__).resolve().parents[2] / '.env'
+    if not all(values.values()) and path.is_file():
+        for line in path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            name, value = line.split('=', 1)
+            name = name.strip()
+            if name in values and not values[name]:
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                    value = value[1:-1]
+                values[name] = value
+    return values[names[0]], values[names[1]]
 
 
 def current_market(db):
@@ -147,6 +175,7 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect):
                 health(db,'polymarket_stream','awaiting_data')
                 last_message=time.monotonic()
                 last_data=None
+                last_saved=0
                 while not stop.is_set():
                     # Restart connection/subscription when the discovered market changes.
                     if current_market(db)!=market:
@@ -163,9 +192,13 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect):
                     msg=json.loads(raw)
                     if 'error' in msg:
                         raise ValueError('Polymarket subscription error')
-                    if save_polymarket(db,msg):
+                    if msg.get('marketData') or msg.get('market_data'):
                         last_data=time.monotonic()
-                        health(db,'polymarket_stream','live',data=True); attempt=0
+                        # One full book per second is enough for the dashboard and
+                        # bounds local storage during high-activity markets.
+                        if last_data-last_saved >= 1 and save_polymarket(db,msg):
+                            last_saved=last_data
+                            health(db,'polymarket_stream','live',data=True); attempt=0
         except Exception as exc:
             health(db,'polymarket_stream','disconnected',type(exc).__name__,reconnect=True)
             await pause(stop,reconnect_delay(attempt)); attempt+=1
@@ -187,6 +220,22 @@ def rest_cycle(path, refresh_candles=False):
         return messages
     finally:
         db.close()
+
+
+async def storage_guard_loop(path, db, stop, max_storage_mb):
+    while not stop.is_set():
+        used = storage_bytes(path)
+        if used >= max_storage_mb * 1024 * 1024:
+            detail = (f'Storage cap {max_storage_mb} MiB reached '
+                      f'({used / (1024 * 1024):.1f} MiB used); '
+                      'collection stopped without deleting data')
+            health(db, 'storage_guard', 'limit_reached', detail)
+            print(detail, flush=True)
+            stop.set()
+            return
+        health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
+        await pause(stop, 30)
+    health(db, 'storage_guard', 'stopped')
 
 
 async def rest_loop(path, db, stop, interval):
@@ -214,17 +263,31 @@ async def rest_loop(path, db, stop, interval):
     health(db,'rest_supervisor','stopped')
 
 
-async def run(path, seconds, interval):
-    db=connect(path); initialize(db); initialize_features(db); initialize_forecasts(db)
+async def run(path, seconds, interval, markets_only=False,
+              max_storage_mb=DEFAULT_MAX_STORAGE_MB):
+    with collector_lock(path) as socket_path:
+        await run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path)
+
+
+async def run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path):
+    key_id, secret = polymarket_credentials()
+    if markets_only and not (key_id and secret):
+        raise ValueError('Polymarket market-stream credentials are missing')
+    db=connect(path); initialize(db)
+    if not markets_only:
+        initialize_features(db); initialize_forecasts(db)
+    health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
     stop=asyncio.Event()
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGINT,signal.SIGTERM):
         loop.add_signal_handler(sig,stop.set)
+    server = await control_server(socket_path, stop)
     timer=loop.call_later(seconds,stop.set) if seconds else None
-    tasks=[asyncio.create_task(rest_loop(path,db,stop,interval)),
-           asyncio.create_task(coinbase_stream(db,stop)),
-           asyncio.create_task(polymarket_stream(db,stop,
-              os.environ.get('POLYMARKET_KEY_ID'),os.environ.get('POLYMARKET_SECRET_KEY')))]
+    tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb))]
+    if not markets_only:
+        tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval)),
+                      asyncio.create_task(coinbase_stream(db,stop))))
+    tasks.append(asyncio.create_task(polymarket_stream(db,stop,key_id,secret)))
     try:
         await asyncio.gather(*tasks)
         summary=db.execute('SELECT source,status,reconnects FROM feed_health').fetchall()
@@ -235,6 +298,8 @@ async def run(path, seconds, interval):
         for task in tasks:
             if not task.done(): task.cancel()
         await asyncio.gather(*tasks,return_exceptions=True)
+        server.close()
+        await server.wait_closed()
         db.close()
 
 
@@ -243,10 +308,13 @@ def main():
     p.add_argument('--db',default='data/btc_intelligence.db')
     p.add_argument('--seconds',type=int,default=60,help='Bounded runtime; 0 runs until Ctrl+C')
     p.add_argument('--rest-interval',type=int,default=30)
+    p.add_argument('--markets-only',action='store_true',help='Collect only read-only Polymarket market WebSocket data')
+    p.add_argument('--max-storage-mb',type=int,default=DEFAULT_MAX_STORAGE_MB,
+                   help='Stop collection if SQLite database plus WAL reaches this many MiB; default 2048')
     a=p.parse_args()
-    if a.seconds<0 or a.rest_interval<15:
-        p.error('seconds >=0; rest interval >=15 required')
-    asyncio.run(run(a.db,a.seconds,a.rest_interval))
+    if a.seconds<0 or a.rest_interval<15 or a.max_storage_mb<1:
+        p.error('seconds >=0; rest interval >=15; max storage >=1 MiB required')
+    asyncio.run(run(a.db,a.seconds,a.rest_interval,a.markets_only,a.max_storage_mb))
 
 
 if __name__=='__main__': main()

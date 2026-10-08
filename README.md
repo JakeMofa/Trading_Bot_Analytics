@@ -1,5 +1,7 @@
 # BTC Intelligence
 
+For a plain-language overview of work completed and remaining, see [PROGRESS_SUMMARY.md](docs/PROGRESS_SUMMARY.md).
+
 Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, trading-account access or OpenAI calls. Optional developer keys authenticate read-only market data. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
 
 Run from this project folder:

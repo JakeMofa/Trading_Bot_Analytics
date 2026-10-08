@@ -8,6 +8,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+Documentation update October 7: [PROGRESS_SUMMARY.md](PROGRESS_SUMMARY.md) summarizes completed work, recorded validation, partial features, and remaining gaps. Reviewed against this checklist and commit history; no new live verification or implementation milestone is claimed.
+
 - [x] **Milestone 1 — Data access and SQLite collector.** Discover the active 15-minute market and exact target, store Polymarket observations and Coinbase candles, join mid-session, reconcile delayed outcomes. Tests passed; pushed as `05ce7f4`.
 - [x] **Milestone 2 — Live BTC streaming.** Save Coinbase ticker events with source times and deduplication; reconnect with backoff; keep public Polymarket REST discovery and settlement checks. A 25-second live test saved 102 ticker events; 16 tests passed; pushed as `e9fdd73`.
 - [x] **Milestone 3 — Deterministic features.** Versioned 15-minute snapshots store exact target distance, remaining seconds, 1/5/15-minute returns, 15-minute realized volatility, 5/15-minute volume, source evidence, freshness and missing flags. Recent completed Coinbase candles refresh in one bounded request about once per minute; a one-minute lag is labeled. Live runs stored consecutive complete snapshots and verified the candle first-seen migration; 24 tests passed.

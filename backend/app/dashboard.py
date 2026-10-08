@@ -14,6 +14,7 @@ from forecasts import CHECKPOINTS, CHECKPOINT_TOLERANCE, MODEL, baseline
 from knowledge import trace_prediction
 
 HTML = Path(__file__).with_name('dashboard.html')
+PLAN = Path(__file__).resolve().parents[2] / 'docs' / 'MILESTONES.md'
 FRESH_SECONDS = 90
 CHART_SAMPLE_LIMIT = 12000
 CHART_BUCKET_SECONDS = 5
@@ -257,15 +258,111 @@ def status(db, now=None):
                         'candle_status': quality.get('candle_status'),
                         'candle_age_seconds': quality.get('candle_age_seconds'),
                         'missing_features': quality.get('missing_features', [])}
-            prediction = db.execute('''SELECT probability_up,abstain_reason,created_at
-              FROM predictions WHERE snapshot_id=? AND model_version=?
-              ORDER BY id DESC LIMIT 1''', (sid, MODEL)).fetchone()
+            # Select prediction fields, but handle older DB schemas that may not have newer columns.
+            cols = [r[1] for r in db.execute("PRAGMA table_info(predictions)").fetchall()]
+            base_fields = ['probability_up', 'abstain_reason', 'created_at']
+            optional = ['ensemble_up_prob', 'component_scores', 'model_version', 'decision_action', 'decision_confidence', 'decision_summary', 'decision_label', 'suggested_action', 'suggested_confidence']
+            present_optional = [c for c in optional if c in cols]
+            fields = base_fields + present_optional
+            # Prefer ensemble model predictions when available; otherwise fall back to baseline MODEL
+            sql = f"SELECT {','.join(fields)} FROM predictions WHERE snapshot_id=? AND model_version=? ORDER BY id DESC LIMIT 1"
+            prediction = db.execute(sql, (sid, 'ensemble_v1')).fetchone()
+            if not prediction:
+                prediction = db.execute(sql, (sid, MODEL)).fetchone()
             if prediction:
-                p, reason, created = prediction
-                forecast = {'model_version': MODEL, 'probability_up': p,
+                # check for a current_decisions override for this market
+                cd = None
+                try:
+                    has_cd = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='current_decisions'").fetchone()
+                    if has_cd:
+                        cd_row = db.execute('SELECT decision_action,decision_summary,decision_label,decision_hold_direction,decision_confidence,ensemble_up_prob,component_scores,suggested_action,suggested_confidence FROM current_decisions WHERE market_id=?', (market_id,)).fetchone()
+                        if cd_row:
+                            cd = {'decision_action': cd_row[0], 'decision_summary': cd_row[1], 'decision_label': cd_row[2], 'decision_hold_direction': cd_row[3], 'decision_confidence': cd_row[4], 'ensemble_probability_up': cd_row[5], 'component_scores': json.loads(cd_row[6]) if cd_row[6] else {}, 'suggested_action': cd_row[7], 'suggested_confidence': cd_row[8]}
+                except Exception:
+                    cd = None
+                res = dict(zip(fields, prediction))
+                p = res.get('probability_up')
+                reason = res.get('abstain_reason')
+                created = res.get('created_at')
+                ensemble_p = res.get('ensemble_up_prob')
+                components_json = res.get('component_scores')
+                model_version = res.get('model_version')
+                decision_action = res.get('decision_action')
+                decision_conf = res.get('decision_confidence')
+                try:
+                    components = json.loads(components_json) if components_json else {}
+                except Exception:
+                    components = {}
+                # default optional decision fields (handle older DB schemas or missing preds)
+                decision_summary = res.get('decision_summary') if res.get('decision_summary') is not None else None
+                decision_label = res.get('decision_label') if res.get('decision_label') is not None else None
+                # suggested fields from prediction (may be absent on older DBs)
+                suggested_action = res.get('suggested_action') if res.get('suggested_action') is not None else None
+                suggested_conf = res.get('suggested_confidence') if res.get('suggested_confidence') is not None else None
+                # apply current_decisions override if present
+                if cd:
+                    decision_action = cd.get('decision_action') or decision_action
+                    decision_conf = cd.get('decision_confidence') if cd.get('decision_confidence') is not None else decision_conf
+                    decision_summary = cd.get('decision_summary') if cd.get('decision_summary') is not None else decision_summary
+                    decision_label = cd.get('decision_label') if cd.get('decision_label') is not None else decision_label
+                    ensemble_p = cd.get('ensemble_probability_up') if cd.get('ensemble_probability_up') is not None else ensemble_p
+                    components = cd.get('component_scores') or components
+                    suggested_action = cd.get('suggested_action') or suggested_action
+                    suggested_conf = cd.get('suggested_confidence') if cd.get('suggested_confidence') is not None else suggested_conf
+                forecast = {'model_version': model_version or MODEL, 'probability_up': p,
                             'abstain_reason': reason, 'created_at': created,
-                            'current': snapshot['current'] and
-                                       timestamp(created) < timestamp(end)}
+                            'ensemble_probability_up': ensemble_p,
+                            'component_scores': components,
+                            'decision_action': decision_action,
+                            'decision_confidence': decision_conf,
+                            'decision_summary': decision_summary,
+                            'decision_label': decision_label,
+                            'suggested_action': suggested_action,
+                            'suggested_confidence': suggested_conf,
+                            'current': snapshot['current'] and (created and timestamp(created) < timestamp(end))}
+                # Deterministic 15-minute quick forecast (derived from ensemble or fallback probability)
+                try:
+                    prob_val = None
+                    if ensemble_p is not None:
+                        prob_val = float(ensemble_p)
+                    elif p is not None:
+                        prob_val = float(p)
+                    if prob_val is not None:
+                        action_15 = 'BUY_UP' if prob_val > 0.5 else 'BUY_DOWN'
+                        conf_15 = max(0.0, min(1.0, 2 * abs(prob_val - 0.5)))
+                        forecast['forecast_15m'] = {'action': action_15, 'confidence': conf_15, 'probability_up': prob_val}
+                    else:
+                        forecast['forecast_15m'] = None
+                except Exception:
+                    forecast['forecast_15m'] = None
+                # Attach latest AI suggestion for this market if available (include hold seconds when present)
+                try:
+                    ai_row = db.execute('SELECT ai_action,ai_confidence,ai_explanation,ai_hold_seconds,created_at FROM ai_suggestions WHERE market_id=? ORDER BY created_at DESC LIMIT 1', (market_id,)).fetchone()
+                    if ai_row:
+                        hold_seconds = ai_row[3]
+                        forecast['ai_suggestion'] = {'action': ai_row[0], 'confidence': ai_row[1], 'explanation': ai_row[2], 'hold_seconds': hold_seconds, 'created_at': ai_row[4]}
+                        # human-friendly hold_for
+                        try:
+                            if hold_seconds is not None:
+                                hs = int(float(hold_seconds))
+                                mins = hs // 60
+                                secs = hs % 60
+                                forecast['ai_suggestion']['hold_for'] = f"{mins}m {secs}s" if mins else f"{secs}s"
+                            else:
+                                forecast['ai_suggestion']['hold_for'] = None
+                        except Exception:
+                            forecast['ai_suggestion']['hold_for'] = None
+                        # Also expose a convenience field for AI "decision to buy" if AI recommended a buy direction
+                        if ai_row[0] and ai_row[0].upper().startswith('BUY'):
+                            forecast['ai_suggested_buy'] = ai_row[0]
+                        else:
+                            forecast['ai_suggested_buy'] = None
+                    else:
+                        forecast['ai_suggestion'] = None
+                        forecast['ai_suggested_buy'] = None
+                except Exception:
+                    forecast['ai_suggestion'] = None
+                    forecast['ai_suggested_buy'] = None
     feed_rows = db.execute('''SELECT source,status,updated_at,last_data_at,reconnects,detail
       FROM feed_health ORDER BY source''').fetchall()
     feeds = []
@@ -382,6 +479,13 @@ def handler_for(path, quote_relay=None):
                 return
             if self.path == '/':
                 data, content_type = HTML.read_bytes(), 'text/html; charset=utf-8'
+            elif self.path == '/api/plan':
+                try:
+                    data = PLAN.read_bytes()
+                    content_type = 'text/markdown; charset=utf-8'
+                except OSError:
+                    self.send_error(503, 'Project plan unavailable')
+                    return
             elif self.path == '/api/status':
                 try:
                     with open_readonly(path) as db:
@@ -397,6 +501,52 @@ def handler_for(path, quote_relay=None):
                     content_type = 'application/json; charset=utf-8'
                 except (OSError, sqlite3.Error, ValueError) as exc:
                     self.send_error(503, f'Chart data unavailable: {type(exc).__name__}')
+                    return
+            elif self.path == '/api/current_decisions':
+                # Return the current_decisions row for the active 15-min market (or empty)
+                try:
+                    with open_readonly(path) as db:
+                        now = datetime.now(timezone.utc).isoformat()
+                        market_row = db.execute('''SELECT id FROM markets WHERE duration=900 AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?) ORDER BY julianday(start) DESC LIMIT 1''', (now, now)).fetchone()
+                        if not market_row:
+                            data = json.dumps({'current_decisions': None}).encode()
+                        else:
+                            market_id = market_row[0]
+                            cd_row = db.execute('''SELECT market_id,snapshot_id,decision_action,decision_summary,decision_label,decision_confidence,ensemble_up_prob,component_scores,updated_at,decision_hold_direction,suggested_action,suggested_confidence FROM current_decisions WHERE market_id=?''', (market_id,)).fetchone()
+                            if not cd_row:
+                                data = json.dumps({'current_decisions': None}).encode()
+                            else:
+                                cols = ['market_id','snapshot_id','decision_action','decision_summary','decision_label','decision_confidence','ensemble_up_prob','component_scores','updated_at','decision_hold_direction','suggested_action','suggested_confidence']
+                                record = dict(zip(cols, cd_row))
+                                # try to decode component_scores
+                                try:
+                                    record['component_scores'] = json.loads(record['component_scores']) if record.get('component_scores') else {}
+                                except Exception:
+                                    pass
+                                # Attach latest AI suggestion if available
+                                try:
+                                    ai_row = db.execute('SELECT ai_action,ai_confidence,ai_explanation,ai_hold_seconds,created_at FROM ai_suggestions WHERE market_id=? ORDER BY created_at DESC LIMIT 1', (market_id,)).fetchone()
+                                    if ai_row:
+                                        hold_seconds = ai_row[3]
+                                        record['ai_suggestion'] = {'action': ai_row[0], 'confidence': ai_row[1], 'explanation': ai_row[2], 'hold_seconds': hold_seconds, 'created_at': ai_row[4]}
+                                        try:
+                                            if hold_seconds is not None:
+                                                # human readable hold duration
+                                                hs = float(hold_seconds)
+                                                mins = int(hs // 60)
+                                                secs = int(hs % 60)
+                                                if mins > 0:
+                                                    record['ai_suggestion']['hold_for'] = f"{mins}m {secs}s"
+                                                else:
+                                                    record['ai_suggestion']['hold_for'] = f"{secs}s"
+                                        except Exception:
+                                            record['ai_suggestion']['hold_for'] = None
+                                except Exception:
+                                    pass
+                                data = json.dumps({'current_decisions': record}).encode()
+                    content_type = 'application/json; charset=utf-8'
+                except (OSError, sqlite3.Error, ValueError) as exc:
+                    self.send_error(503, f'Current decisions unavailable: {type(exc).__name__}')
                     return
             else:
                 self.send_error(404)

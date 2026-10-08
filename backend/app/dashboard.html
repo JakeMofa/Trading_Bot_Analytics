@@ -16,6 +16,25 @@
     .muted { color:#95a7bb; }
     .small { font-size:.82rem; }
     .badge { border:1px solid #2f4155; border-radius:999px; padding:8px 13px; color:#bad5f1; background:#122033; white-space:nowrap; font-size:.8rem; }
+    .header-actions { display:flex; align-items:center; gap:10px; }
+    button { font:inherit; cursor:pointer; }
+    .menu-button, .dialog-close { border:1px solid #40546b; border-radius:6px; background:#172535; color:#e7f1fc; padding:9px 12px; }
+    .menu-button:hover, .dialog-close:hover { background:#22364b; }
+    dialog { width:min(920px,calc(100vw - 28px)); max-width:none; max-height:calc(100dvh - 32px); padding:0; border:1px solid #40546b; border-radius:10px; background:#101923; color:#f0f4fa; box-shadow:0 24px 80px #000a; }
+    dialog::backdrop { background:#05090ed9; }
+    .plan-header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:18px 22px; border-bottom:1px solid #29384a; }
+    .plan-header h2 { margin:0; }
+    .plan-body { padding:10px 24px 26px; overflow:auto; max-height:calc(100dvh - 112px); }
+    .plan-body h1, .plan-body h2, .plan-body h3 { letter-spacing:0; margin:24px 0 10px; color:#d8e8f8; }
+    .plan-body h1 { font-size:1.55rem; }
+    .plan-body h2 { font-size:1.2rem; }
+    .plan-body h3 { font-size:1rem; }
+    .plan-body p { margin:10px 0; line-height:1.55; }
+    .plan-body ul, .plan-body ol { padding-left:24px; list-style:disc; }
+    .plan-body li { border:0; padding:5px 0; line-height:1.5; }
+    .plan-body li.done { color:#a8c5bb; }
+    .plan-body code { color:#add7ff; background:#192838; padding:1px 4px; border-radius:3px; }
+    .plan-error { color:#ffb5a5; }
     .grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; }
     .card { background:#151e2b; border:1px solid #29384a; border-radius:18px; padding:22px; min-width:0; box-shadow:0 12px 35px #0002; }
     .market, .forecast { grid-column:span 6; }
@@ -50,8 +69,12 @@
 <body>
   <header>
     <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div id="collection-state" class="muted small">Checking saved collection status…</div></div>
-    <div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div>
+    <div class="header-actions"><button id="open-plan" class="menu-button" type="button">Plan &amp; progress</button><div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div></div>
   </header>
+  <dialog id="plan-dialog" aria-labelledby="plan-title">
+    <div class="plan-header"><div><h2 id="plan-title">Project plan &amp; progress</h2><div class="small muted">Live from docs/MILESTONES.md</div></div><button id="close-plan" class="dialog-close" type="button" aria-label="Close project plan">Close</button></div>
+    <div id="plan-content" class="plan-body" aria-live="polite"><p class="muted">Loading project plan…</p></div>
+  </dialog>
   <div id="offline-hint" class="card" style="display:none;margin-bottom:16px">This file preview cannot load live data. Open the <a href="http://127.0.0.1:8765/">live dashboard at 127.0.0.1:8765</a>.</div>
   <main class="grid">
     <section class="card market" aria-labelledby="market-heading">
@@ -81,7 +104,17 @@
       <div class="row">
         <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
         <div class="metric"><span class="label">DOWN probability</span><strong id="down-small">—</strong></div>
+        <div class="metric"><span class="label">Decision</span><strong id="decision-summary">—</strong><div id="decision-label" class="small muted">—</div></div>
+        <div class="metric"><span class="label">Decision to buy</span><strong id="decision-buy">—</strong><div id="decision-confidence" class="small muted">—</div></div>
+        <div class="metric"><span class="label">Suggested lean</span><strong id="suggested-action">—</strong><div id="suggested-confidence" class="small muted">—</div></div>
+        <div class="metric"><span class="label">Decision to sell</span><strong id="decision-sell">—</strong><div id="decision-hold" class="small muted">—</div></div>
       </div>
+      <div class="row" style="margin-top:8px">
+        <div class="metric"><span class="label">Forecast next 15m</span><strong id="forecast-15m">—</strong><div id="forecast-15m-confidence" class="small muted"></div></div>
+        <div class="metric"><span class="label">AI suggested lean</span><strong id="suggested-lean-ai">—</strong><div id="suggested-lean-ai-confidence" class="small muted"></div></div>
+        <div class="metric"><span class="label">AI decision to buy</span><strong id="ai-decision-buy">—</strong><div id="ai-explanation" class="small muted"></div><div id="ai-hold-duration" class="small muted"></div><div id="ai-hold-countdown" class="small muted" aria-live="polite"></div></div>
+      </div>
+      <div id="decision-reasons" class="small muted" style="margin-top:8px">—</div>
       <div class="line"></div>
       <div id="forecast-state" class="small muted">Waiting for a live BTC tick and recent volatility.</div>
       <div id="saved-forecast-state" class="small muted" style="margin-top:6px">Saved forecast: waiting for data.</div>
@@ -128,6 +161,110 @@
     const cents = value => value == null ? '—' : (Number(value) * 100).toFixed(0) + '¢';
     const age = value => value == null ? 'no data' : value < 60 ? Math.floor(value) + 's ago' : Math.floor(value / 60) + 'm ' + Math.floor(value % 60) + 's ago';
     const localTime = value => value ? new Date(value).toLocaleString() : 'unknown time';
+    function appendPlanInline(parent, text) {
+      const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+      let cursor = 0;
+      for (const match of text.matchAll(pattern)) {
+        parent.append(document.createTextNode(text.slice(cursor, match.index)));
+        const token = match[0];
+        if (token.startsWith('**')) {
+          const strong = document.createElement('strong');
+          strong.textContent = token.slice(2, -2);
+          parent.append(strong);
+        } else if (token.startsWith('`')) {
+          const code = document.createElement('code');
+          code.textContent = token.slice(1, -1);
+          parent.append(code);
+        } else {
+          const link = token.match(/^\[([^\]]+)\]\((https:\/\/[^)]+)\)$/);
+          if (link) {
+            const anchor = document.createElement('a');
+            anchor.textContent = link[1]; anchor.href = link[2];
+            anchor.target = '_blank'; anchor.rel = 'noopener noreferrer';
+            parent.append(anchor);
+          } else parent.append(document.createTextNode(token));
+        }
+        cursor = match.index + token.length;
+      }
+      parent.append(document.createTextNode(text.slice(cursor)));
+    }
+    let _aiCountdownTimer = null;
+    function clearCountdown() {
+      if (_aiCountdownTimer) { clearInterval(_aiCountdownTimer); _aiCountdownTimer = null; }
+    }
+    function startCountdown(createdAt, seconds) {
+      clearCountdown();
+      if (!createdAt || !seconds) return;
+      const createdMs = Date.parse(createdAt);
+      if (Number.isNaN(createdMs) || serverNowMs() == null) return;
+      const expireMs = createdMs + Number(seconds) * 1000;
+      function update() {
+        const now = serverNowMs();
+        if (now == null) return;
+        const rem = Math.max(0, Math.round((expireMs - now) / 1000));
+        const mins = Math.floor(rem / 60);
+        const secs = rem % 60;
+        byId('ai-hold-countdown').textContent = rem > 0 ? 'Expires in: ' + (mins>0 ? (mins + 'm ' + secs + 's') : (secs + 's')) : 'Expired';
+        if (rem <= 0) { clearCountdown(); }
+      }
+      update();
+      _aiCountdownTimer = setInterval(update, 1000);
+    }
+
+    function renderPlan(markdown) {
+      const content = byId('plan-content'); content.replaceChildren();
+      let list = null, paragraph = [];
+      const flushParagraph = () => {
+        if (!paragraph.length) return;
+        const p = document.createElement('p'); appendPlanInline(p, paragraph.join(' ')); content.append(p);
+        paragraph = [];
+      };
+      const closeList = () => { list = null; };
+      for (const line of markdown.split(/\r?\n/)) {
+        const heading = line.match(/^(#{1,3})\s+(.+)$/);
+        const item = line.match(/^\s*-\s+(?:\[([ xX])\]\s+)?(.+)$/);
+        if (heading) {
+          flushParagraph(); closeList();
+          const element = document.createElement('h' + heading[1].length);
+          appendPlanInline(element, heading[2]); content.append(element);
+        } else if (item) {
+          flushParagraph();
+          if (!list) { list = document.createElement('ul'); content.append(list); }
+          const li = document.createElement('li');
+          if (item[1]?.toLowerCase() === 'x') li.className = 'done';
+          appendPlanInline(li, item[2]); list.append(li);
+        } else if (!line.trim()) {
+          flushParagraph(); closeList();
+        } else if (/^\s*\|/.test(line)) {
+          flushParagraph(); closeList();
+          const row = document.createElement('p'); row.className = 'small muted';
+          row.textContent = line; content.append(row);
+        } else {
+          closeList(); paragraph.push(line.trim());
+        }
+      }
+      flushParagraph();
+    }
+    async function openPlan() {
+      const dialog = byId('plan-dialog');
+      dialog.showModal();
+      if (dialog.dataset.loaded) return;
+      try {
+        const response = await fetch('/api/plan', {cache:'no-store'});
+        if (!response.ok) throw new Error('Status ' + response.status);
+        renderPlan(await response.text());
+        dialog.dataset.loaded = 'true';
+      } catch (error) {
+        const message = document.createElement('p');
+        message.className = 'plan-error'; message.textContent = 'Project plan unavailable · ' + error.message;
+        byId('plan-content').replaceChildren(message);
+      }
+    }
+    byId('open-plan').addEventListener('click', openPlan);
+    byId('close-plan').addEventListener('click', () => byId('plan-dialog').close());
+    byId('plan-dialog').addEventListener('click', event => {
+      if (event.target === byId('plan-dialog')) byId('plan-dialog').close();
+    });
     let chartData = null, chartInFlight = false;
     function mergeLatestTick(data) {
       if (!chartData?.market || chartData.market.id !== data?.market?.id || !data.latest_coinbase_tick) return;
@@ -311,6 +448,72 @@
       set('forecast-up', liveProbability == null ? '—' : pct(liveProbability) + ' UP');
       set('up-small', pct(liveProbability));
       set('down-small', liveProbability == null ? '—' : pct(1 - Number(liveProbability)));
+      // Decision action and confidence from ensemble (if any)
+      const decisionAction = f?.decision_action || null;
+      const decisionSummary = f?.decision_summary || null;
+      const decisionLabel = f?.decision_label || null;
+      const decisionHold = f?.decision_hold_direction || null;
+      const decisionConf = f?.decision_confidence ? Number(f.decision_confidence) : null;
+      // Suggested lean (fast low-latency signal)
+      const suggestedAction = f?.suggested_action || null;
+      const suggestedConf = f?.suggested_confidence ? Number(f.suggested_confidence) : null;
+      // Decision summary (HOLD / BUY / SELL / BUY_MORE / SELL_MORE)
+      set('decision-summary', decisionSummary || '—');
+      // Decision to buy (directional) - only show when action is BUY_*
+      const buyAction = decisionAction && decisionAction.startsWith('BUY') ? decisionAction : '—';
+      set('decision-buy', buyAction);
+      // Suggested lean display (shows a quick directional lean even when conservative decision_summary is abstaining)
+      set('suggested-action', suggestedAction || '—');
+      set('suggested-confidence', suggestedConf ? ('Lean: ' + (Math.round(suggestedConf*1000)/10) + '%') : '');
+      // Decision to sell (directional) - only show when action is SELL_*
+      const sellAction = decisionAction && decisionAction.startsWith('SELL') ? decisionAction : '—';
+      set('decision-sell', sellAction);
+      // Hold direction display
+      set('decision-hold', decisionHold || (decisionAction === 'HOLD' ? (f?.ensemble_probability_up >= 0.5 ? 'HOLD_UP' : 'HOLD_DOWN') : ''));
+      set('decision-label', decisionLabel || '');
+      set('decision-confidence', decisionConf ? ('Confidence: ' + (Math.round(decisionConf*1000)/10) + '%') : '');
+      // Build reasons from component scores
+      if (f?.component_scores) {
+        const comps = f.component_scores;
+        const parts = [];
+        for (const [k,v] of Object.entries(comps)) parts.push(k + ': ' + (Math.round(Number(v)*1000)/10) + '%');
+        set('decision-reasons', 'Components: ' + parts.join(' · '));
+      } else set('decision-reasons', 'Components: not available');
+      // Deterministic next-15m quick forecast (added to UI): action and confidence
+      if (f?.forecast_15m) {
+        set('forecast-15m', f.forecast_15m.action || '—');
+        set('forecast-15m-confidence', f.forecast_15m.confidence != null ? ('Conf: ' + (Math.round(f.forecast_15m.confidence*1000)/10) + '%') : '');
+      } else { set('forecast-15m', '—'); set('forecast-15m-confidence', ''); }
+      // AI-supplied suggested lean and decision-to-buy
+      if (f?.ai_suggestion) {
+        set('suggested-lean-ai', f.ai_suggestion.action || '—');
+        set('suggested-lean-ai-confidence', f.ai_suggestion.confidence != null ? ('Conf: ' + (Math.round(f.ai_suggestion.confidence*1000)/10) + '%') : '');
+        set('ai-explanation', f.ai_suggestion.explanation || '');
+        set('ai-decision-buy', f.ai_suggested_buy || '—');
+        // show hold duration when AI recommends HOLD
+        if (f.ai_suggestion.hold_for) {
+          set('ai-hold-duration', 'AI hold for: ' + f.ai_suggestion.hold_for);
+          clearCountdown();
+          byId('ai-hold-countdown').textContent = '';
+        } else if (f.ai_suggestion.hold_seconds) {
+          const hs = Number(f.ai_suggestion.hold_seconds);
+          if (!Number.isNaN(hs) && hs > 0) {
+            const mins = Math.floor(hs / 60);
+            const secs = Math.floor(hs % 60);
+            set('ai-hold-duration', 'AI hold for: ' + (mins>0 ? (mins + 'm ' + secs + 's') : (secs + 's')));
+            // start countdown display using created_at as the start reference if available
+            startCountdown(f.ai_suggestion.created_at, hs);
+          } else {
+            set('ai-hold-duration', '');
+            clearCountdown();
+            byId('ai-hold-countdown').textContent = '';
+          }
+        } else {
+          set('ai-hold-duration', '');
+          clearCountdown();
+          byId('ai-hold-countdown').textContent = '';
+        }
+      } else { set('suggested-lean-ai', '—'); set('suggested-lean-ai-confidence', ''); set('ai-explanation', ''); set('ai-decision-buy', '—'); set('ai-hold-duration', ''); }
       set('forecast-state', estimateFresh
         ? liveProbability == null ? 'Live estimate unavailable · ' + e.abstain_reason
           : 'Live estimate from BTC tick ' + age(ageOf(e.as_of)) + ' · volatility snapshot ' + age(ageOf(e.snapshot_as_of))

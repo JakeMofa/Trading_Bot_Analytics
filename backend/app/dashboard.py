@@ -479,6 +479,27 @@ def handler_for(path, quote_relay=None):
                 return
             if self.path == '/':
                 data, content_type = HTML.read_bytes(), 'text/html; charset=utf-8'
+            elif self.path == '/api/plan_items':
+                # Prefer the plan saved by the Plan agent; fall back to the bundled sample.
+                root = Path(__file__).resolve().parents[2]
+                SAMPLE = root / 'plan_table_last.json'
+                if not SAMPLE.is_file():
+                    SAMPLE = root / 'docs' / 'plan_items_examples.json'
+                try:
+                    data = SAMPLE.read_bytes()
+                    content_type = 'application/json; charset=utf-8'
+                except OSError:
+                    self.send_error(503, 'Plan items unavailable')
+                    return
+            elif self.path == '/plan-table' or self.path == '/plan_table' or self.path == '/plan_table.html':
+                # Serve the standalone Plan Table preview page
+                PT = Path(__file__).with_name('plan_table.html')
+                try:
+                    data = PT.read_bytes()
+                    content_type = 'text/html; charset=utf-8'
+                except OSError:
+                    self.send_error(503, 'Plan Table preview unavailable')
+                    return
             elif self.path == '/api/plan':
                 try:
                     data = PLAN.read_bytes()

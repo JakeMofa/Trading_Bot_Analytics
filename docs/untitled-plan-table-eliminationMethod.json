@@ -1,0 +1,14 @@
+{
+  "plan_items": [
+    {
+      "id": "elimination-method-plan",
+      "title": "Elimination method for simultaneous equations",
+      "description": "Solve two linear simultaneous equations by aligning coefficients, eliminating one variable through addition or subtraction, then back-substituting to find the other variable.",
+      "status": "pending",
+      "owner": "user",
+      "due_date": "2026-10-21",
+      "priority": "medium",
+      "tags": ["math", "algebra", "elimination"]
+    }
+  ]
+}

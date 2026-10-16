@@ -7,3 +7,26 @@ Use official US APIs; exchange data is a reference input, not official settlemen
 After each completed, tested milestone, commit and push to the configured GitHub origin as authorized by the user. Exclude local data, virtual environments and secrets. Current focus is 15-minute markets; hourly collection is deferred.
 
 Use docs/MILESTONES.md as the live checklist: update progress, evidence, decisions and remaining gaps whenever a milestone changes. Keep docs/STRATEGIC_PLAN.md for the longer architecture. Do not treat the historical handoff documents as current instructions.
+
+## Plan agent (generic)
+
+The "Plan" agent is a general-purpose planning assistant available in the agent picker. It produces human-friendly plans and a machine-readable JSON object named "plan_items" that UI components (for example, a Plan Table) can consume.
+
+How it appears in the UI:
+- name: Plan
+- description: Researches and outlines multi-step plans
+- argument-hint: Outline the goal or problem to research
+- handoffs: "Start Implementation" and "Open in Editor" buttons (configurable in the agent file)
+
+Plan Table schema (consumed from the agent's final JSON output):
+- id (string, kebab-case)
+- title (string)
+- description (string)
+- status (one of: pending, in_progress, done, blocked)
+- owner (string or null)
+- due_date (ISO-8601 date YYYY-MM-DD or null)
+- priority (one of: low, medium, high)
+- tags (array of short strings)
+
+Sample data for UI development is available at docs/plan_items_examples.json.
+

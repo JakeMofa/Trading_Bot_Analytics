@@ -1,0 +1,155 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Plan Table Preview</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; margin:18px; background:#0b1018; color:#eaf3ff}
+    h1{font-size:1.3rem;margin-bottom:8px}
+    .card{background:#0f1720;padding:16px;border-radius:8px;border:1px solid #233240}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px 10px;border-bottom:1px solid #162532;text-align:left;font-size:0.95rem}
+    th{cursor:pointer;background:#0d1620;color:#cfe6ff}
+    tr:hover td{background:#0b1622}
+    .tag{display:inline-block;background:#193244;color:#bfe6ff;padding:3px 8px;border-radius:999px;margin-right:6px;font-size:0.8rem}
+    .muted{color:#9fb0c5;font-size:0.9rem}
+    .pill{padding:6px 10px;border-radius:999px;background:#122230;color:#cfe6ff;display:inline-block}
+    #filters{display:flex;gap:8px;align-items:center;margin-top:10px}
+    input, select{padding:6px 8px;border-radius:6px;border:1px solid #233240;background:#07101a;color:#dff}
+    .center{display:flex;gap:8px;align-items:center}
+  </style>
+</head>
+<body>
+  <h1>Plan Table Preview</h1>
+  <div class="card">
+    <div class="muted">This page fetches /api/plan_items and renders the Plan Table schema produced by the Plan agent.</div>
+    <div id="filters">
+      <div class="center">Filter status: <select id="filter-status"><option value="">All</option><option value="pending">pending</option><option value="in_progress">in_progress</option><option value="done">done</option><option value="blocked">blocked</option></select></div>
+      <div class="center">Search: <input id="search" placeholder="title or description"/></div>
+      <div style="margin-left:auto"><button id="reload">Reload</button></div>
+    </div>
+    <table id="plan-table" aria-live="polite">
+      <thead><tr>
+        <th data-key="id">ID</th>
+        <th data-key="title">Title</th>
+        <th data-key="description">Description</th>
+        <th data-key="status">Status</th>
+        <th data-key="owner">Owner</th>
+        <th data-key="due_date">Due</th>
+        <th data-key="priority">Priority</th>
+        <th data-key="tags">Tags</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <script>
+    const tbody = document.getElementById('tbody');
+    const filterStatus = document.getElementById('filter-status');
+    const search = document.getElementById('search');
+    const reload = document.getElementById('reload');
+
+    let items = [];
+    let sortKey = null;
+    let sortAsc = true;
+
+    async function load(){
+      try{
+        const res = await fetch('/api/plan_items');
+        if(!res.ok) throw new Error('Failed to fetch plan_items: '+res.status);
+        const data = await res.json();
+        items = Array.isArray(data.plan_items) ? data.plan_items : [];
+        render();
+      }catch(err){
+        tbody.innerHTML = `<tr><td colspan="8" style="color:#ffb5a5">${err.message}</td></tr>`;
+      }
+    }
+
+    function render(){
+      const statusFilter = filterStatus.value;
+      const q = search.value.trim().toLowerCase();
+      let out = items.filter(i => {
+        if(statusFilter && i.status !== statusFilter) return false;
+        if(q){
+          return (i.title||'').toLowerCase().includes(q) || (i.description||'').toLowerCase().includes(q);
+        }
+        return true;
+      });
+      if(sortKey){
+        out.sort((a,b)=>{
+          const va = (a[sortKey]||'').toString();
+          const vb = (b[sortKey]||'').toString();
+          if(va<vb) return sortAsc? -1:1;
+          if(va>vb) return sortAsc? 1:-1;
+          return 0;
+        });
+      }
+      tbody.innerHTML = out.map(i=>`<tr>
+        <td><code>${escapeHtml(i.id)}</code></td>
+        <td>${escapeHtml(i.title)}</td>
+        <td>${escapeHtml(i.description)}</td>
+        <td><span class="pill">${escapeHtml(i.status)}</span></td>
+        <td>${i.owner?escapeHtml(i.owner):'<span class="muted">—</span>'}</td>
+        <td>${i.due_date?escapeHtml(i.due_date):'<span class="muted">—</span>'}</td>
+        <td>${escapeHtml(i.priority||'')}</td>
+        <td>${(i.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</td>
+      </tr>`).join('');
+      if(out.length===0) tbody.innerHTML = '<tr><td colspan="8" class="muted">No plan items match the filters.</td></tr>';
+    }
+
+    function escapeHtml(s){
+      if(!s) return '';
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    document.querySelectorAll('th[data-key]').forEach(h=>{
+      h.addEventListener('click',()=>{
+        const k = h.getAttribute('data-key');
+        if(sortKey===k) sortAsc = !sortAsc; else { sortKey=k; sortAsc=true; }
+        render();
+      });
+    });
+
+    filterStatus.addEventListener('change', render);
+    search.addEventListener('input', render);
+    reload.addEventListener('click', load);
+
+    // initial load
+    load();
+  </script>
+</body>
+</html>

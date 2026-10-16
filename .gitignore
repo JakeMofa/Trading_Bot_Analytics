@@ -6,3 +6,6 @@ __pycache__/
 
 .env.*
 !.env.example
+.github/agents/plan-table.agent.md
+backend/app/plan_table.html
+docs/PLAN_UI_FINDINGS.md

@@ -23,6 +23,7 @@
 |---|---|---|---|
 | 0 | [ ] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
 | 1 | [ ] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
+| 1.5 | [ ] | FastAPI service layer | One local async API for dashboard, live state, models, Polymarket adapters, and later Supabase |
 | 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs |
 | 3 | [ ] | `microstructure_v1` | Independent order-flow/order-book probability |
 | 4 | [ ] | Specialist model framework | Every model uses the same output contract |
@@ -117,6 +118,62 @@ async persistence
 - Remote storage is not required for a live forecast.
 
 ---
+
+
+# Phase 1.5 — FastAPI Service Layer
+
+## Goal
+
+Add a lightweight local API around the live-state engine so the dashboard and future services do not query SQLite directly for every update.
+
+FastAPI does **not** make Polymarket or Supabase themselves faster. It helps our system by keeping a long-running async process, reusing connections, centralizing caching/state, and avoiding repeated client-side/database work.
+
+## Target role
+
+```text
+Polymarket / Exchanges / News
+            |
+            v
+      async collectors
+            |
+            v
+       Live State RAM
+            |
+            v
+          FastAPI
+      /state/current
+      /forecast/current
+      /models/current
+      /health
+      /history
+      /events
+            |
+      +-----+------+
+      |            |
+      v            v
+ dashboard      local tools
+
+SQLite <---- persistence ---- FastAPI/service process ---- async sync ----> Supabase/Postgres
+```
+
+## Checklist
+
+- [ ] Add FastAPI + Uvicorn dependencies.
+- [ ] Keep the live state in the same process or a clearly defined shared-state boundary.
+- [ ] Add `GET /state/current`.
+- [ ] Add `GET /forecast/current`.
+- [ ] Add `GET /models/current`.
+- [ ] Add `GET /health`.
+- [ ] Add bounded/read-only historical endpoints.
+- [ ] Add Server-Sent Events or WebSocket endpoint for dashboard live updates.
+- [ ] Keep Polymarket/exchange credentials server-side only.
+- [ ] Add connection pooling/reuse for future Postgres/Supabase access.
+- [ ] Do not route every market tick through Supabase.
+- [ ] Add request/response tests and latency measurements.
+
+## Supabase performance rule
+
+For long-term storage, prefer backend-side Postgres/Supabase access with pooled connections and batched writes. FastAPI should return current state from RAM/local cache; it should query Supabase only for historical/research requests or background synchronization.
 
 # Phase 2 — Coinbase Microstructure Inputs
 
@@ -626,6 +683,8 @@ Only upgrade when measured need appears:
 - [ ] **P0.6** Make OpenAI explicit opt-in.
 - [ ] **P0.7** Add Phase 0 tests.
 - [ ] **P1.1** Build Live State Engine.
+- [ ] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
+- [ ] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.
 - [ ] **P3.1** Build `microstructure_v1`.
 - [ ] **P4.1** Add specialist interface.

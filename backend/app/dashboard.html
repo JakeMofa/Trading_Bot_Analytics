@@ -107,10 +107,10 @@
         <div class="metric"><span class="label">Decision</span><strong id="decision-summary">—</strong><div id="decision-label" class="small muted">—</div></div>
         <div class="metric"><span class="label">Decision to buy</span><strong id="decision-buy">—</strong><div id="decision-confidence" class="small muted">—</div></div>
         <div class="metric"><span class="label">Suggested lean</span><strong id="suggested-action">—</strong><div id="suggested-confidence" class="small muted">—</div></div>
-        <div class="metric"><span class="label">Decision to sell</span><strong id="decision-sell">—</strong><div id="decision-hold" class="small muted">—</div></div>
+        <div class="metric"><span class="label">Research hold state</span><strong id="decision-sell">—</strong><div id="decision-hold" class="small muted">—</div></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div class="metric"><span class="label">Forecast next 15m</span><strong id="forecast-15m">—</strong><div id="forecast-15m-confidence" class="small muted"></div></div>
+        <div class="metric"><span class="label">Experimental ensemble next 15m</span><strong id="forecast-15m">—</strong><div id="forecast-15m-confidence" class="small muted"></div></div>
         <div class="metric"><span class="label">AI suggested lean</span><strong id="suggested-lean-ai">—</strong><div id="suggested-lean-ai-confidence" class="small muted"></div></div>
         <div class="metric"><span class="label">AI decision to buy</span><strong id="ai-decision-buy">—</strong><div id="ai-explanation" class="small muted"></div><div id="ai-hold-duration" class="small muted"></div><div id="ai-hold-countdown" class="small muted" aria-live="polite"></div></div>
       </div>
@@ -465,9 +465,8 @@
       // Suggested lean display (shows a quick directional lean even when conservative decision_summary is abstaining)
       set('suggested-action', suggestedAction || '—');
       set('suggested-confidence', suggestedConf ? ('Lean: ' + (Math.round(suggestedConf*1000)/10) + '%') : '');
-      // Decision to sell (directional) - only show when action is SELL_*
-      const sellAction = decisionAction && decisionAction.startsWith('SELL') ? decisionAction : '—';
-      set('decision-sell', sellAction);
+      // No execution/position state exists in V1; do not infer SELL actions.
+      set('decision-sell', decisionAction === 'HOLD' ? 'NO EDGE / HOLD' : '—');
       // Hold direction display
       set('decision-hold', decisionHold || (decisionAction === 'HOLD' ? (f?.ensemble_probability_up >= 0.5 ? 'HOLD_UP' : 'HOLD_DOWN') : ''));
       set('decision-label', decisionLabel || '');

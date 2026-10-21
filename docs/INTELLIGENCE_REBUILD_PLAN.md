@@ -10,10 +10,33 @@
 ## How to read this plan
 
 - `[x]` = completed
-- `[ ]` = not started / still in progress
+- `[~]` = in progress
+- `[ ]` = not started
 - Each phase has a clear goal and definition of done.
 - New models stay independent until they prove value on future unseen markets.
 - No automated trading is part of this plan.
+
+---
+
+## Current position
+
+**Current phase:** Phase 0 — Stabilize What Exists  
+**Current branch:** `codex/intelligence-rebuild-phase0`  
+**Next gate:** finish Phase 0 tests, verify baseline is unchanged, then start the Live State Engine.
+
+### Phase 0 progress already implemented on this branch
+
+- [x] Ensemble weights renormalize over available components.
+- [x] Baseline and `ensemble_v1` are stored as separate prediction rows.
+- [x] Polymarket ensemble input reads saved `bbo`, `book`, or `stream_book` evidence.
+- [x] News ensemble input uses `news_events` with timestamp-safe first-seen/publication checks.
+- [x] A `NO_EDGE` research state exists around 50/50.
+- [x] Model suggestions no longer imply a real SELL position.
+- [x] OpenAI is disabled unless `ENABLE_OPENAI_ANALYST=true`.
+- [x] OpenAI failure is non-critical to numerical collection/forecasting.
+- [ ] Add/finish Phase 0 unit tests.
+- [ ] Run the full test suite and compare baseline metrics before/after.
+- [~] Make the dashboard visibly label `ensemble_v1` as experimental.
 
 ---
 
@@ -21,7 +44,7 @@
 
 | Phase | Status | Build | Main result |
 |---|---|---|---|
-| 0 | [ ] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
+| 0 | [~] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
 | 1 | [ ] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
 | 1.5 | [ ] | FastAPI service layer | One local async API for dashboard, live state, models, Polymarket adapters, and later Supabase |
 | 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs |
@@ -48,19 +71,19 @@ Fix the current experimental intelligence layer before adding more feeds or mode
 
 ## Checklist
 
-- [ ] Preserve `gaussian_distance_v1` as the frozen baseline benchmark.
-- [ ] Fix ensemble missing-weight normalization.
-- [ ] Do not let unavailable components silently count as neutral/bearish evidence.
-- [ ] Store `ensemble_v1` separately from the baseline prediction row.
-- [ ] Fix Polymarket probability extraction to use actual saved `bbo`, `book`, or `stream_book` data.
-- [ ] Fix the current news-table mismatch and use `news_events`.
-- [ ] Enforce timestamp-safe news availability using both publication time and first-seen time.
-- [ ] Add a `NO_EDGE` state instead of forcing UP/DOWN near 50%.
-- [ ] Remove fake position assumptions from decision logic.
-- [ ] Make OpenAI explicitly opt-in.
-- [ ] Ensure AI failure never affects data collection or numerical forecasts.
+- [x] Preserve `gaussian_distance_v1` as the frozen baseline benchmark.
+- [x] Fix ensemble missing-weight normalization.
+- [x] Do not let unavailable components silently count as neutral/bearish evidence.
+- [x] Store `ensemble_v1` separately from the baseline prediction row.
+- [x] Fix Polymarket probability extraction to use actual saved `bbo`, `book`, or `stream_book` data.
+- [x] Fix the current news-table mismatch and use `news_events`.
+- [x] Enforce timestamp-safe news availability using both publication time and first-seen time.
+- [x] Add a `NO_EDGE` state instead of forcing UP/DOWN near 50%.
+- [x] Remove fake position assumptions from decision logic.
+- [x] Make OpenAI explicitly opt-in.
+- [x] Ensure AI failure never affects data collection or numerical forecasts.
 - [ ] Add unit tests for every change above.
-- [ ] Keep the current ensemble visibly labeled **experimental**.
+- [~] Keep the current ensemble visibly labeled **experimental**.
 
 ## Definition of done
 
@@ -675,12 +698,12 @@ Only upgrade when measured need appears:
 
 # Immediate work order
 
-- [ ] **P0.1** Fix ensemble weight normalization.
-- [ ] **P0.2** Keep baseline and ensemble rows separate.
-- [ ] **P0.3** Fix Polymarket component source.
-- [ ] **P0.4** Fix news source/schema.
-- [ ] **P0.5** Add NO_EDGE.
-- [ ] **P0.6** Make OpenAI explicit opt-in.
+- [x] **P0.1** Fix ensemble weight normalization.
+- [x] **P0.2** Keep baseline and ensemble rows separate.
+- [x] **P0.3** Fix Polymarket component source.
+- [x] **P0.4** Fix news source/schema.
+- [x] **P0.5** Add NO_EDGE.
+- [x] **P0.6** Make OpenAI explicit opt-in.
 - [ ] **P0.7** Add Phase 0 tests.
 - [ ] **P1.1** Build Live State Engine.
 - [ ] **P1.5.1** Add FastAPI service layer around current state/forecast/health.

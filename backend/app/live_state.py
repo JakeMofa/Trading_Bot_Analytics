@@ -133,14 +133,20 @@ class LiveState:
         bids = data.get('bids') or []
         offers = data.get('offers') or []
         sample = (data.get('stats') or {}).get('lastPriceSample') or {}
+        up_probability = _float(sample.get('longPx'))
+        down_probability = _float(sample.get('shortPx'))
+        if up_probability is None:
+            up_probability = _float(data.get('longQuote') or data.get('long_quote'))
+        if down_probability is None:
+            down_probability = _float(data.get('shortQuote') or data.get('short_quote'))
         quote = {
             'slug': slug,
             'received_at': _iso(received_at or utcnow()),
             'source_time': data.get('transactTime') or data.get('transact_time'),
             'best_bid': _float((bids[0] or {}).get('px')) if bids else None,
             'best_ask': _float((offers[0] or {}).get('px')) if offers else None,
-            'up_probability': _float(sample.get('longPx')),
-            'down_probability': _float(sample.get('shortPx')),
+            'up_probability': up_probability,
+            'down_probability': down_probability,
             'sample_time': sample.get('ts'),
         }
         with self._lock:
@@ -311,6 +317,17 @@ class LiveState:
             if market:
                 market['seconds_remaining'] = max(
                     0.0, (timestamp(market['end']) - now).total_seconds())
+            missing = []
+            if market is None:
+                missing.append('active_market')
+            elif market.get('target_usd') is None:
+                missing.append('price_to_beat')
+            if coinbase is None:
+                missing.append('coinbase_price')
+            if self._feature_snapshot is None:
+                missing.append('feature_snapshot')
+            if self._polymarket is None:
+                missing.append('polymarket_quote')
             return {
                 'updated_at': self._updated_at,
                 'market': market,
@@ -320,4 +337,5 @@ class LiveState:
                 'forecast': deepcopy(self._forecast),
                 'models': deepcopy(self._models),
                 'feeds': deepcopy(self._feeds),
+                'missing_data': missing,
             }

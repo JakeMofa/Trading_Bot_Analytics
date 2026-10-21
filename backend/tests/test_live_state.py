@@ -111,6 +111,22 @@ class LiveStateTests(unittest.TestCase):
         self.assertIsNone(snap['forecast'])
         self.assertEqual(snap['coinbase']['price_usd'], 101.0)
 
+    def test_specialist_slots_are_explicitly_missing_until_populated(self):
+        snap = self.state.snapshot(
+            datetime(2026,10,21,4,10,1,tzinfo=timezone.utc))
+        self.assertIn('trade_flow', snap['missing_data'])
+        self.assertIn('btc_order_book', snap['missing_data'])
+        self.state.set_trade_flow({'signed_volume_delta': 1.2},
+                                  '2026-10-21T04:10:00Z')
+        self.state.set_order_book({'depth_imbalance': 0.25},
+                                  '2026-10-21T04:10:00Z')
+        snap = self.state.snapshot(
+            datetime(2026,10,21,4,10,1,tzinfo=timezone.utc))
+        self.assertEqual(snap['trade_flow']['values']['signed_volume_delta'], 1.2)
+        self.assertEqual(snap['order_book']['values']['depth_imbalance'], 0.25)
+        self.assertNotIn('trade_flow', snap['missing_data'])
+        self.assertNotIn('btc_order_book', snap['missing_data'])
+
     def test_feed_health_is_memory_resident(self):
         self.state.update_feed_health(
             'coinbase_stream', 'live',

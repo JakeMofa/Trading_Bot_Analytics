@@ -1,8 +1,8 @@
 # BTC Intelligence
 
-For a plain-language overview of work completed and remaining, see [PROGRESS_SUMMARY.md](docs/PROGRESS_SUMMARY.md).
+For a plain-language overview of work completed and remaining, see [PROGRESS_SUMMARY.md](docs/PLAN/PROGRESS_SUMMARY.md).
 
-Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, trading-account access or OpenAI calls. Optional developer keys authenticate read-only market data. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
+Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders or trading-account access. OpenAI analysis is optional and disabled by default. Optional developer keys authenticate read-only market data. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
 
 Run from this project folder:
 
@@ -21,6 +21,32 @@ The basic collector polls market metadata and quotes every 30 seconds by default
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 
 See [MILESTONES.md](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/PLAN/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
+
+## FastAPI live-state service
+
+The new local service owns the shared in-memory Live State Engine and can also own the collectors, so current state and forecasts do not need to be rebuilt from SQLite on every dashboard request.
+
+Install dependencies as usual, then run:
+
+```sh
+.venv/bin/python -m pip install -r backend/requirements.txt
+.venv/bin/python backend/app/run_api.py
+```
+
+By default it binds to `127.0.0.1:8000`. Useful read-only endpoints are:
+
+```text
+GET /state/current
+GET /forecast/current
+GET /models/current
+GET /health
+GET /history/predictions?limit=100
+GET /events
+```
+
+Open `http://127.0.0.1:8000/docs` for the local OpenAPI UI. `/events` is a Server-Sent Events stream for live dashboard updates. The current-state endpoints read the shared RAM state; the bounded history endpoint reads SQLite in query-only mode.
+
+Do not run `streaming.py` or the detached collector against the same database at the same time as `run_api.py`: the service starts the collectors itself and the existing per-database lock prevents duplicate ownership. The legacy dashboard still works while it is being migrated to these FastAPI endpoints.
 
 ## Local status dashboard
 

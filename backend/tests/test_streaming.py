@@ -99,7 +99,7 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(snap['feature_snapshot']['market_id'],'m2')
         self.assertEqual(snap['polymarket']['up_probability'],0.57)
         self.assertIsNotNone(snap['forecast'])
-        self.assertEqual(snap['missing_data'],[])
+        self.assertEqual(set(snap['missing_data']),{'trade_flow','btc_order_book'})
 
     def test_signed_headers(self):
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey

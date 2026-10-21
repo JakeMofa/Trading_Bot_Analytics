@@ -48,10 +48,10 @@ Buying/selling, account changes, paid AI calls, and hourly collection remain def
 
 ## Project references
 
-- [README](../README.md): setup and commands.
+- [README](../../README.md): setup and commands.
 - [MILESTONES](MILESTONES.md): live checklist, detailed evidence, decisions, and next work.
 - [STRATEGIC_PLAN](STRATEGIC_PLAN.md): architecture and longer roadmap.
 - [PLAN_CROSSWALK](PLAN_CROSSWALK.md): original handoff mapped to current implementation.
-- [DATA_ACCESS_FINDINGS](DATA_ACCESS_FINDINGS.md): verified sources and unsupported fields.
+- [DATA_ACCESS_FINDINGS](../DATA_ACCESS_FINDINGS.md): verified sources and unsupported fields.
 
 The milestone checklist remains the live implementation tracker.

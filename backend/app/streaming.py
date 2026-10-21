@@ -399,26 +399,31 @@ async def rest_loop(path, db, stop, interval, live_state=None):
 
 
 async def run(path, seconds, interval, markets_only=False,
-              max_storage_mb=DEFAULT_MAX_STORAGE_MB):
+              max_storage_mb=DEFAULT_MAX_STORAGE_MB, live_state=None,
+              install_signal_handlers=True):
     with collector_lock(path) as socket_path:
-        await run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path)
+        await run_locked(path, seconds, interval, markets_only, max_storage_mb,
+                         socket_path, live_state=live_state,
+                         install_signal_handlers=install_signal_handlers)
 
 
-async def run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path):
+async def run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path,
+                     live_state=None, install_signal_handlers=True):
     key_id, secret = polymarket_credentials()
     if markets_only and not (key_id and secret):
         raise ValueError('Polymarket market-stream credentials are missing')
     db=connect(path); initialize(db)
     if not markets_only:
         initialize_features(db); initialize_forecasts(db)
-    live_state=LiveState()
+    live_state=live_state or LiveState()
     hydrate_live_state(db,live_state)
     health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB',
            live_state=live_state)
     stop=asyncio.Event()
     loop=asyncio.get_running_loop()
-    for sig in (signal.SIGINT,signal.SIGTERM):
-        loop.add_signal_handler(sig,stop.set)
+    if install_signal_handlers:
+        for sig in (signal.SIGINT,signal.SIGTERM):
+            loop.add_signal_handler(sig,stop.set)
     server = await control_server(socket_path, stop)
     timer=loop.call_later(seconds,stop.set) if seconds else None
     tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state))]

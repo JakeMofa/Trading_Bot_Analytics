@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import tempfile
@@ -9,8 +10,10 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from collector import connect, get_json
-from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream, polymarket_credentials, subscription, storage_bytes, storage_guard_loop, sync_live_market
+from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream, polymarket_credentials, subscription, storage_bytes, storage_guard_loop, sync_live_market, hydrate_live_state
 from live_state import LiveState
+from features import initialize as initialize_features
+from forecasts import initialize as initialize_forecasts
 
 class StreamTests(unittest.TestCase):
     def setUp(self):
@@ -58,6 +61,45 @@ class StreamTests(unittest.TestCase):
         row=sync_live_market(self.db,state)
         self.assertIsNotNone(row)
         self.assertEqual(state.market_identity(),('m','btc-market'))
+
+    def test_hydrate_live_state_restores_mid_interval_evidence(self):
+        initialize_features(self.db)
+        initialize_forecasts(self.db)
+        now=datetime(2026,10,21,4,10,0,tzinfo=timezone.utc)
+        self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,
+          first_seen,last_seen,raw_json) VALUES(?,?,?,?,?,?,?,?,?,?)''',
+          ('m2','btc-live',900,'2026-10-21T04:00:00+00:00',
+           '2026-10-21T04:15:00+00:00','100','MARKET_STATUS_OPEN',
+           '2026-10-21T04:00:00+00:00','2026-10-21T04:00:00+00:00','{}'))
+        ticker={'type':'ticker','product_id':'BTC-USD','trade_id':55,'price':'101',
+                'last_size':'0.2','time':'2026-10-21T04:09:59+00:00','side':'buy'}
+        self.db.execute('''INSERT INTO stream_events(source,event_id,received_at,
+          source_time,price,size,side,payload) VALUES(?,?,?,?,?,?,?,?)''',
+          ('coinbase','55','2026-10-21T04:09:59.100000+00:00',
+           ticker['time'],'101','0.2','buy',json.dumps(ticker)))
+        self.db.execute('''INSERT INTO feature_snapshots(
+          market_id,as_of,version,values_json,quality_json,evidence_json)
+          VALUES(?,?,?,?,?,?)''',
+          ('m2','2026-10-21T04:09:30+00:00',1,
+           json.dumps({'target_usd':'100','reference_price_usd':'100.5',
+                       'seconds_remaining':330,'realized_volatility_15m':'0.002'}),
+           json.dumps({'price':{'status':'fresh'},'candle_status':'fresh',
+                       'candle_age_seconds':20,'late_join':False}),'{}'))
+        self.db.execute('''INSERT INTO observations(market_id,received_at,kind,payload)
+          VALUES(?,?,?,?)''',
+          ('m2','2026-10-21T04:09:58+00:00','bbo',
+           json.dumps({'marketData':{'marketSlug':'btc-live',
+             'longQuote':{'value':'0.57'},'shortQuote':{'value':'0.43'}}})))
+        self.db.commit()
+
+        state=LiveState()
+        snap=hydrate_live_state(self.db,state,now)
+        self.assertEqual(snap['market']['id'],'m2')
+        self.assertEqual(snap['coinbase']['price_usd'],101.0)
+        self.assertEqual(snap['feature_snapshot']['market_id'],'m2')
+        self.assertEqual(snap['polymarket']['up_probability'],0.57)
+        self.assertIsNotNone(snap['forecast'])
+        self.assertEqual(snap['missing_data'],[])
 
     def test_signed_headers(self):
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey

@@ -1,6 +1,6 @@
 # BTC Intelligence Rebuild Plan
 
-**Branch:** `codex/live-state-phase1`  
+**Branch:** `codex/fastapi-phase1-5`  
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
 **Rule:** Keep the existing working collector/evaluation pipeline, rebuild the intelligence layer in measured phases.
@@ -21,8 +21,8 @@
 ## Current position
 
 **Current phase:** Phase 1.5 — FastAPI Service Layer  
-**Current branch:** `codex/live-state-phase1`  
-**Next gate:** put FastAPI around the tested Live State Engine so the dashboard can read current state/forecast/models/health from RAM.
+**Current branch:** `codex/fastapi-phase1-5`  
+**Next gate:** run a local live smoke test against the real `.env` + SQLite database, then migrate the dashboard's high-frequency current-state reads to FastAPI while leaving historical/research reads bounded.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -189,18 +189,31 @@ SQLite <---- persistence ---- FastAPI/service process ---- async sync ----> Supa
 
 ## Checklist
 
-- [ ] Add FastAPI + Uvicorn dependencies.
-- [ ] Keep the live state in the same process or a clearly defined shared-state boundary.
-- [ ] Add `GET /state/current`.
-- [ ] Add `GET /forecast/current`.
-- [ ] Add `GET /models/current`.
-- [ ] Add `GET /health`.
-- [ ] Add bounded/read-only historical endpoints.
-- [ ] Add Server-Sent Events or WebSocket endpoint for dashboard live updates.
-- [ ] Keep Polymarket/exchange credentials server-side only.
+- [x] Add FastAPI + Uvicorn dependencies.
+- [x] Keep the live state in the same process or a clearly defined shared-state boundary.
+- [x] Add `GET /state/current`.
+- [x] Add `GET /forecast/current`.
+- [x] Add `GET /models/current`.
+- [x] Add `GET /health`.
+- [x] Add bounded/read-only historical endpoints.
+- [x] Add Server-Sent Events or WebSocket endpoint for dashboard live updates.
+- [x] Keep Polymarket/exchange credentials server-side only.
 - [ ] Add connection pooling/reuse for future Postgres/Supabase access.
-- [ ] Do not route every market tick through Supabase.
-- [ ] Add request/response tests and latency measurements.
+- [x] Do not route every market tick through Supabase.
+- [x] Add request/response tests and latency measurements.
+
+### Current Phase 1.5 evidence
+
+- [x] `run_api.py` starts one local service process and loads the ignored project `.env`.
+- [x] FastAPI owns the same `LiveState` object passed into the collectors.
+- [x] `/state/current`, `/forecast/current`, `/models/current`, and `/health` read RAM state.
+- [x] `/history/predictions` is bounded to 1–500 rows and opens SQLite query-only.
+- [x] `/events` provides a Server-Sent Events stream when the RAM state changes.
+- [x] Response-time instrumentation is emitted as `X-Process-Time-Ms`.
+- [x] GitHub Actions passes 85 tests including FastAPI request/history tests.
+- [ ] Perform a real local live smoke test with the user's current database and credentials.
+- [ ] Migrate the legacy dashboard's high-frequency live panels to the new endpoints.
+- [ ] Add Postgres/Supabase pooling only when cloud sync work begins; no remote DB is in the hot path now.
 
 ## Supabase performance rule
 
@@ -714,8 +727,8 @@ Only upgrade when measured need appears:
 - [x] **P0.6** Make OpenAI explicit opt-in.
 - [x] **P0.7** Add Phase 0 tests.
 - [x] **P1.1** Build Live State Engine.
-- [ ] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
-- [ ] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
+- [x] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
+- [x] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.
 - [ ] **P3.1** Build `microstructure_v1`.
 - [ ] **P4.1** Add specialist interface.

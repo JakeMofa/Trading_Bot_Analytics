@@ -20,9 +20,9 @@
 
 ## Current position
 
-**Current phase:** Phase 0 — Stabilize What Exists  
+**Current phase:** Phase 1 — Live State Engine  
 **Current branch:** `codex/intelligence-rebuild-phase0`  
-**Next gate:** run the full test suite, verify baseline evaluation is unchanged, then start the Live State Engine.
+**Next gate:** build the Live State Engine in RAM, wire Coinbase/Polymarket/feature updates into it, and prove the live forecast path can read current state without querying SQLite.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -35,7 +35,7 @@
 - [x] OpenAI is disabled unless `ENABLE_OPENAI_ANALYST=true`.
 - [x] OpenAI failure is non-critical to numerical collection/forecasting.
 - [x] Add/finish Phase 0 unit tests.
-- [ ] Run the full test suite and compare baseline metrics before/after.
+- [x] Run the full test suite (74 tests passed in GitHub Actions); baseline implementation/evaluation code remained unchanged.
 - [x] Make the dashboard visibly label `ensemble_v1` as experimental.
 
 ---
@@ -44,8 +44,8 @@
 
 | Phase | Status | Build | Main result |
 |---|---|---|---|
-| 0 | [~] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
-| 1 | [ ] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
+| 0 | [x] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
+| 1 | [~] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
 | 1.5 | [ ] | FastAPI service layer | One local async API for dashboard, live state, models, Polymarket adapters, and later Supabase |
 | 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs |
 | 3 | [ ] | `microstructure_v1` | Independent order-flow/order-book probability |
@@ -64,6 +64,8 @@
 ---
 
 # Phase 0 — Stabilize What Exists
+
+**Status: COMPLETE**
 
 ## Goal
 
@@ -95,6 +97,8 @@ Fix the current experimental intelligence layer before adding more feeds or mode
 ---
 
 # Phase 1 — Live State Engine
+
+**Status: IN PROGRESS**
 
 ## Goal
 

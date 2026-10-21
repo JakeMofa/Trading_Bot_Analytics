@@ -10,6 +10,7 @@ from decision import decide_action
 from ensemble import (
     MODEL as ENSEMBLE_MODEL,
     compute_ensemble_for_snapshot,
+    ensure_schema,
     implied_from_market,
     news_probability,
     research_signal,
@@ -119,6 +120,7 @@ class EnsemblePhase0Tests(unittest.TestCase):
         self.assertEqual(research_signal(0.44), 'BUY_DOWN')
 
     def test_decision_logic_does_not_infer_position_from_previous_suggestion(self):
+        ensure_schema(self.db)
         self.db.execute('''UPDATE predictions SET decision_action='BUY_UP'
           WHERE snapshot_id=? AND model_version=?''',
           (self.snapshot_id, BASELINE_MODEL))

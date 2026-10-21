@@ -1,12 +1,8 @@
-"""Decision rules: map qualitative labels + confidence to actionable suggestions.
+"""Research decision rules for the experimental ensemble.
 
-Actions returned: 'BUY_UP', 'BUY_DOWN', 'SELL_UP', 'SELL_DOWN', 'HOLD'
-
-The logic:
-- Strong/Moderate UP with high confidence => BUY_UP
-- Strong/Moderate DOWN with high confidence => BUY_DOWN
-- Weak signals => HOLD unless confidence crosses a low threshold
-- If a previous BUY exists on the opposite side, recommend SELL of that side when a new opposite BUY is suggested
+These are directional research labels only. They do not represent actual
+positions or execution state. In particular, a prior model suggestion must
+never be treated as proof that a position exists.
 """
 import os
 from analysis import label_and_confidence
@@ -21,9 +17,9 @@ BUY_MORE_THRESHOLD = float(os.getenv('DECISION_BUY_MORE_THRESHOLD', '0.8'))
 def decide_action(db, market_id, component_probs, ensemble_prob, component_confidences=None):
     """
     Returns a tuple: (decision_action, decision_confidence_float, decision_summary)
-    decision_action: one of 'BUY_UP','BUY_DOWN','SELL_UP','SELL_DOWN','HOLD'
+    decision_action: one of 'BUY_UP','BUY_DOWN','HOLD'
     decision_confidence: float 0..1
-    decision_summary: one of 'HOLD','BUY','BUY_MORE','SELL','SELL_MORE'
+    decision_summary: one of 'HOLD','BUY','BUY_MORE'
     """
     label, conf = label_and_confidence(component_probs, ensemble_prob, component_confidences)
     # Basic mapping to directional action
@@ -39,29 +35,13 @@ def decide_action(db, market_id, component_probs, ensemble_prob, component_confi
     else:
         action = 'HOLD'
 
-    # Check for recent opposite buy to suggest selling it first
-    try:
-        row = db.execute("SELECT decision_action FROM predictions WHERE market_id=? AND decision_action IS NOT NULL ORDER BY created_at DESC LIMIT 1", (market_id,)).fetchone()
-        if row:
-            prev = row[0]
-            if prev == 'BUY_UP' and action == 'BUY_DOWN':
-                # Suggest closing previous UP position
-                action = 'SELL_UP'
-            elif prev == 'BUY_DOWN' and action == 'BUY_UP':
-                action = 'SELL_DOWN'
-    except Exception:
-        pass
-
-    # Map to summary: BUY / BUY_MORE / SELL / SELL_MORE / HOLD
+    # Map to a research summary. No SELL is inferred without real position state.
     summary = 'HOLD'
     if action == 'HOLD':
         summary = 'HOLD'
     elif action.startswith('BUY'):
         # strong confidence -> buy more
         summary = 'BUY_MORE' if conf >= BUY_MORE_THRESHOLD else 'BUY'
-    elif action.startswith('SELL'):
-        summary = 'SELL_MORE' if conf >= BUY_MORE_THRESHOLD else 'SELL'
-
     # For HOLD, also provide hold direction based on ensemble probability (up vs down) via component_probs/ensemble
     hold_dir = None
     try:

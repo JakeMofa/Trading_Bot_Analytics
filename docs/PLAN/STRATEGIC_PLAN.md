@@ -161,8 +161,9 @@ Trading_bot_Analytics/
   .env.example
   docs/
     reference/                 # Original handoff, screenshots and architecture
-    STRATEGIC_PLAN.md
-    PROJECT_SPEC.md
+    PLAN/
+      INTELLIGENCE_REBUILD_PLAN.md
+      STRATEGIC_PLAN.md
     DATA_ACCESS_FINDINGS.md
     DATA_MODEL.md
   research/

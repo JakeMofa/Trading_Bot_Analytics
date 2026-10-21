@@ -9,7 +9,8 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from collector import connect, get_json
-from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream, polymarket_credentials, subscription, storage_bytes, storage_guard_loop
+from streaming import initialize, save_coinbase, save_polymarket, health, auth_headers, reconnect_delay, coinbase_stream, polymarket_stream, polymarket_credentials, subscription, storage_bytes, storage_guard_loop, sync_live_market
+from live_state import LiveState
 
 class StreamTests(unittest.TestCase):
     def setUp(self):
@@ -23,10 +24,15 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT price,source_time FROM stream_events').fetchone(),('100.12',msg['time']))
         self.assertFalse(save_coinbase(self.db,{'type':'heartbeat'}))
     def test_health_preserves_last_data_and_counts_reconnects(self):
-        health(self.db,'feed','live',data=True)
+        state=LiveState()
+        health(self.db,'feed','live',data=True,live_state=state)
         before=self.db.execute('SELECT last_data_at FROM feed_health').fetchone()[0]
-        health(self.db,'feed','disconnected','timeout',reconnect=True)
+        health(self.db,'feed','disconnected','timeout',reconnect=True,live_state=state)
         self.assertEqual(self.db.execute('SELECT last_data_at,reconnects FROM feed_health').fetchone(),(before,1))
+        live=state.snapshot()['feeds']['feed']
+        self.assertEqual(live['status'],'disconnected')
+        self.assertEqual(live['reconnects'],1)
+        self.assertIsNotNone(live['last_data_at'])
     def test_storage_cap_stops_without_deleting_database(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'evidence.db'
@@ -42,6 +48,17 @@ class StreamTests(unittest.TestCase):
                              'limit_reached')
             self.assertEqual(path.stat().st_size, 900000)
             self.assertEqual(wal.stat().st_size, 200000)
+    def test_sync_live_market_populates_ram_state(self):
+        self.db.execute('''INSERT INTO markets(id,slug,duration,start,end,target,status,
+          first_seen,last_seen,raw_json) VALUES(?,?,?,?,?,?,?,?,?,?)''',
+          ('m','btc-market',900,'2026-10-21T04:00:00+00:00','2999-10-21T04:15:00+00:00',
+           '100','MARKET_STATUS_OPEN','2026-10-21T04:00:00+00:00',
+           '2026-10-21T04:00:00+00:00','{}'))
+        state=LiveState()
+        row=sync_live_market(self.db,state)
+        self.assertIsNotNone(row)
+        self.assertEqual(state.market_identity(),('m','btc-market'))
+
     def test_signed_headers(self):
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
         seed=bytes(range(32))

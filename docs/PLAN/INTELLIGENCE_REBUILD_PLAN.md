@@ -1,6 +1,6 @@
 # BTC Intelligence Rebuild Plan
 
-**Branch:** `codex/intelligence-rebuild-phase0`  
+**Branch:** `codex/live-state-phase1`  
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
 **Rule:** Keep the existing working collector/evaluation pipeline, rebuild the intelligence layer in measured phases.
@@ -20,9 +20,9 @@
 
 ## Current position
 
-**Current phase:** Phase 1 — Live State Engine  
-**Current branch:** `codex/intelligence-rebuild-phase0`  
-**Next gate:** build the Live State Engine in RAM, wire Coinbase/Polymarket/feature updates into it, and prove the live forecast path can read current state without querying SQLite.
+**Current phase:** Phase 1.5 — FastAPI Service Layer  
+**Current branch:** `codex/live-state-phase1`  
+**Next gate:** put FastAPI around the tested Live State Engine so the dashboard can read current state/forecast/models/health from RAM.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -45,8 +45,8 @@
 | Phase | Status | Build | Main result |
 |---|---|---|---|
 | 0 | [x] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
-| 1 | [~] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
-| 1.5 | [ ] | FastAPI service layer | One local async API for dashboard, live state, models, Polymarket adapters, and later Supabase |
+| 1 | [x] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
+| 1.5 | [~] | FastAPI service layer | One local async API for dashboard, live state, models, Polymarket adapters, and later Supabase |
 | 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs |
 | 3 | [ ] | `microstructure_v1` | Independent order-flow/order-book probability |
 | 4 | [ ] | Specialist model framework | Every model uses the same output contract |
@@ -98,7 +98,7 @@ Fix the current experimental intelligence layer before adding more feeds or mode
 
 # Phase 1 — Live State Engine
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
 ## Goal
 
@@ -106,21 +106,21 @@ Move the real-time decision path away from repeated DB queries.
 
 ## Live state should contain
 
-- [ ] Active market ID / slug.
-- [ ] Price to Beat.
-- [ ] Market start/end.
-- [ ] Seconds remaining.
-- [ ] Current BTC price.
-- [ ] 5s / 10s / 30s returns.
-- [ ] 1m / 3m / 5m / 15m returns.
-- [ ] Rolling volatility.
-- [ ] Trade flow.
-- [ ] Order-book state.
-- [ ] Polymarket UP/DOWN state.
-- [ ] Derivatives state when available.
-- [ ] Feed freshness.
-- [ ] Missing-data flags.
-- [ ] Reconnect / source-health state.
+- [x] Active market ID / slug.
+- [x] Price to Beat.
+- [x] Market start/end.
+- [x] Seconds remaining.
+- [x] Current BTC price.
+- [x] 5s / 10s / 30s returns.
+- [x] 1m / 3m / 5m / 15m returns.
+- [x] Rolling volatility.
+- [x] Trade-flow state slot + missing-data flag; Phase 2 supplies the live feed/features.
+- [x] BTC order-book state slot + missing-data flag; Phase 2 supplies L2 data.
+- [x] Polymarket UP/DOWN state.
+- [x] Derivatives state when available.
+- [x] Feed freshness.
+- [x] Missing-data flags.
+- [x] Reconnect / source-health state.
 
 ## Target live path
 
@@ -140,14 +140,18 @@ async persistence
 
 ## Definition of done
 
-- Current predictions can be produced from RAM state.
-- SQLite remains evidence/recovery storage.
-- Remote storage is not required for a live forecast.
+- [x] Current predictions can be produced from RAM state.
+- [x] SQLite remains evidence/recovery storage.
+- [x] Remote storage is not required for a live forecast.
+- [x] Mid-interval process restart can hydrate active market, recent BTC ticks, feature snapshot, Polymarket quote, feed health, and baseline state from SQLite.
+- [x] Coinbase and Polymarket streaming updates feed RAM directly while SQLite remains evidence storage.
 
 ---
 
 
 # Phase 1.5 — FastAPI Service Layer
+
+**Status: IN PROGRESS**
 
 ## Goal
 
@@ -709,7 +713,7 @@ Only upgrade when measured need appears:
 - [x] **P0.5** Add NO_EDGE.
 - [x] **P0.6** Make OpenAI explicit opt-in.
 - [x] **P0.7** Add Phase 0 tests.
-- [ ] **P1.1** Build Live State Engine.
+- [x] **P1.1** Build Live State Engine.
 - [ ] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
 - [ ] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.

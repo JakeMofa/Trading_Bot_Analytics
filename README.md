@@ -20,7 +20,7 @@ The basic collector polls market metadata and quotes every 30 seconds by default
 
 Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
 
-See [MILESTONES.md](docs/MILESTONES.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
+See [MILESTONES.md](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/PLAN/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
 
 ## Local status dashboard
 
@@ -72,7 +72,7 @@ Backup and recovery use SQLite's online backup API, including committed WAL evid
 
 ## Milestone commits
 
-The user requested a tested commit and push for each completed milestone. See `docs/MILESTONES.md` for progress and outstanding verification.
+The user requested a tested commit and push for each completed milestone. See `docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md` for progress and outstanding verification.
 
 ## Feature snapshots
 

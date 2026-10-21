@@ -8,6 +8,7 @@ import signal
 import time
 import uuid
 from pathlib import Path
+from datetime import timezone
 from websockets.asyncio.client import connect as ws_connect
 from collector import connect, collect_once, amount, utcnow, timestamp, save_observation, refresh_recent_candles, record
 from operations import collector_lock, control_server
@@ -106,10 +107,10 @@ def current_market(db):
     return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN' ORDER BY start DESC LIMIT 1",(now,now)).fetchone()
 
 
-def sync_live_market(db, live_state):
+def sync_live_market(db, live_state, now=None):
     if live_state is None:
         return None
-    now=utcnow().isoformat()
+    now=(now or utcnow()).isoformat()
     row=db.execute('''SELECT id,slug,start,end,target,status FROM markets
       WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN'
       ORDER BY start DESC LIMIT 1''',(now,now)).fetchone()
@@ -120,6 +121,91 @@ def sync_live_market(db, live_state):
         'id':row[0],'slug':row[1],'start':row[2],'end':row[3],
         'target_usd':row[4],'status':row[5]})
     return row
+
+
+def _table_exists(db, name):
+    return db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+                      (name,)).fetchone() is not None
+
+
+def hydrate_live_state(db, live_state, now=None):
+    """Warm RAM from persisted evidence so mid-interval restarts recover immediately."""
+    if live_state is None:
+        return None
+    now = now or utcnow()
+    if now.tzinfo is None:
+        raise ValueError('now needs timezone')
+    now = now.astimezone(timezone.utc)
+    cutoff = now.isoformat()
+
+    if _table_exists(db, 'feed_health'):
+        for source,status,updated,last_data,reconnects,detail in db.execute(
+                '''SELECT source,status,updated_at,last_data_at,reconnects,detail
+                   FROM feed_health''').fetchall():
+            live_state.update_feed_health(
+                source,status,detail,updated_at=updated,
+                last_data_at=last_data,reconnects=reconnects)
+
+    market = sync_live_market(db, live_state, now)
+    if not market:
+        return live_state.snapshot(now)
+    market_id = market[0]
+
+    if _table_exists(db, 'stream_events'):
+        rows = db.execute('''SELECT received_at,payload FROM (
+              SELECT received_at,payload,source_time FROM stream_events
+              WHERE source='coinbase'
+                AND julianday(source_time)<=julianday(?)
+                AND julianday(source_time)>=julianday(?) - (20.0/1440.0)
+              ORDER BY julianday(source_time) DESC LIMIT 100000)
+            ORDER BY julianday(source_time) ASC''', (cutoff, cutoff)).fetchall()
+        for received_at, payload in rows:
+            try:
+                live_state.update_coinbase_ticker(json.loads(payload), received_at)
+            except (TypeError, ValueError, json.JSONDecodeError):
+                continue
+
+    if _table_exists(db, 'feature_snapshots'):
+        row = db.execute('''SELECT id,as_of,values_json,quality_json
+          FROM feature_snapshots WHERE market_id=? AND julianday(as_of)<=julianday(?)
+          ORDER BY julianday(as_of) DESC,id DESC LIMIT 1''',
+          (market_id, cutoff)).fetchone()
+        if row:
+            try:
+                live_state.set_feature_snapshot(
+                    market_id,row[1],json.loads(row[2]),json.loads(row[3]),
+                    snapshot_id=row[0])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+
+    if _table_exists(db, 'observations'):
+        row = db.execute('''SELECT received_at,payload FROM observations
+          WHERE market_id=? AND kind IN ('bbo','book','stream_book')
+            AND julianday(received_at)<=julianday(?)
+          ORDER BY julianday(received_at) DESC,id DESC LIMIT 1''',
+          (market_id, cutoff)).fetchone()
+        if row:
+            try:
+                live_state.update_polymarket(json.loads(row[1]), row[0])
+            except (TypeError, ValueError, json.JSONDecodeError):
+                pass
+
+    if _table_exists(db, 'predictions'):
+        row = db.execute('''SELECT model_version,probability_up,abstain_reason,as_of
+          FROM predictions WHERE market_id=? AND model_version='gaussian_distance_v1'
+            AND julianday(as_of)<=julianday(?)
+          ORDER BY julianday(as_of) DESC,id DESC LIMIT 1''',
+          (market_id, cutoff)).fetchone()
+        if row:
+            live_state.set_forecast(row[0], row[1], row[2], as_of=row[3])
+
+    # If enough evidence was restored, refresh the current baseline directly from RAM.
+    ram_forecast = live_state.baseline_forecast(now)
+    if ram_forecast:
+        live_state.set_forecast(
+            ram_forecast['model_version'], ram_forecast['probability_up'],
+            ram_forecast['abstain_reason'], as_of=now)
+    return live_state.snapshot(now)
 
 
 def save_polymarket(db, msg):
@@ -192,7 +278,8 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect, live
         return
     attempt=0
     while not stop.is_set():
-        market=current_market(db)
+        market=(live_state.market_identity() if live_state is not None
+                else current_market(db))
         if not market:
             health(db,'polymarket_stream','awaiting_market',live_state=live_state)
             await pause(stop,2)
@@ -208,8 +295,10 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect, live
                 last_data=None
                 last_saved=0
                 while not stop.is_set():
-                    # Restart connection/subscription when the discovered market changes.
-                    if current_market(db)!=market:
+                    # Restart when the REST discovery loop rolls RAM to a new market.
+                    current=(live_state.market_identity() if live_state is not None
+                             else current_market(db))
+                    if current!=market:
                         break
                     try:
                         raw=await asyncio.wait_for(ws.recv(),2)
@@ -255,20 +344,20 @@ def rest_cycle(path, refresh_candles=False):
         db.close()
 
 
-async def storage_guard_loop(path, db, stop, max_storage_mb):
+async def storage_guard_loop(path, db, stop, max_storage_mb, live_state=None):
     while not stop.is_set():
         used = storage_bytes(path)
         if used >= max_storage_mb * 1024 * 1024:
             detail = (f'Storage cap {max_storage_mb} MiB reached '
                       f'({used / (1024 * 1024):.1f} MiB used); '
                       'collection stopped without deleting data')
-            health(db, 'storage_guard', 'limit_reached', detail)
+            health(db, 'storage_guard', 'limit_reached', detail,live_state=live_state)
             print(detail, flush=True)
             stop.set()
             return
         health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB',live_state=live_state)
         await pause(stop, 30)
-    health(db, 'storage_guard', 'stopped')
+    health(db, 'storage_guard', 'stopped',live_state=live_state)
 
 
 async def rest_loop(path, db, stop, interval, live_state=None):
@@ -320,18 +409,19 @@ async def run_locked(path, seconds, interval, markets_only, max_storage_mb, sock
     if markets_only and not (key_id and secret):
         raise ValueError('Polymarket market-stream credentials are missing')
     db=connect(path); initialize(db)
-    live_state=LiveState()
-    sync_live_market(db,live_state)
     if not markets_only:
         initialize_features(db); initialize_forecasts(db)
-    health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
+    live_state=LiveState()
+    hydrate_live_state(db,live_state)
+    health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB',
+           live_state=live_state)
     stop=asyncio.Event()
     loop=asyncio.get_running_loop()
     for sig in (signal.SIGINT,signal.SIGTERM):
         loop.add_signal_handler(sig,stop.set)
     server = await control_server(socket_path, stop)
     timer=loop.call_later(seconds,stop.set) if seconds else None
-    tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb))]
+    tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state))]
     if not markets_only:
         tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state)),
                       asyncio.create_task(coinbase_stream(db,stop,live_state=live_state))))

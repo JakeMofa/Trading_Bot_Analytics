@@ -15,7 +15,7 @@ from ensemble import research_signal
 from knowledge import trace_prediction
 
 HTML = Path(__file__).with_name('dashboard.html')
-PLAN = Path(__file__).resolve().parents[2] / 'docs' / 'MILESTONES.md'
+PLAN = Path(__file__).resolve().parents[2] / 'docs' / 'PLAN' / 'INTELLIGENCE_REBUILD_PLAN.md'
 FRESH_SECONDS = 90
 CHART_SAMPLE_LIMIT = 12000
 CHART_BUCKET_SECONDS = 5

@@ -180,7 +180,7 @@ class LiveState:
         return deepcopy(record)
 
     def update_feed_health(self, source, status, detail=None, updated_at=None,
-                           last_data_at=None, reconnects=None):
+                           last_data_at=None, reconnects=None, reconnect=False):
         with self._lock:
             prior = self._feeds.get(source, {})
             self._feeds[source] = {
@@ -190,7 +190,7 @@ class LiveState:
                 'updated_at': _iso(updated_at or utcnow()),
                 'last_data_at': _iso(last_data_at) if last_data_at else prior.get('last_data_at'),
                 'reconnects': int(reconnects if reconnects is not None
-                                  else prior.get('reconnects', 0)),
+                                  else prior.get('reconnects', 0) + (1 if reconnect else 0)),
             }
             self._touch(self._feeds[source]['updated_at'])
 

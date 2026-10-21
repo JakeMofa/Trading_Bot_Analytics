@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 0 — Stabilize What Exists  
 **Current branch:** `codex/intelligence-rebuild-phase0`  
-**Next gate:** finish Phase 0 tests, verify baseline is unchanged, then start the Live State Engine.
+**Next gate:** run the full test suite, verify baseline evaluation is unchanged, then start the Live State Engine.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -34,9 +34,9 @@
 - [x] Model suggestions no longer imply a real SELL position.
 - [x] OpenAI is disabled unless `ENABLE_OPENAI_ANALYST=true`.
 - [x] OpenAI failure is non-critical to numerical collection/forecasting.
-- [ ] Add/finish Phase 0 unit tests.
+- [x] Add/finish Phase 0 unit tests.
 - [ ] Run the full test suite and compare baseline metrics before/after.
-- [~] Make the dashboard visibly label `ensemble_v1` as experimental.
+- [x] Make the dashboard visibly label `ensemble_v1` as experimental.
 
 ---
 
@@ -82,8 +82,8 @@ Fix the current experimental intelligence layer before adding more feeds or mode
 - [x] Remove fake position assumptions from decision logic.
 - [x] Make OpenAI explicitly opt-in.
 - [x] Ensure AI failure never affects data collection or numerical forecasts.
-- [ ] Add unit tests for every change above.
-- [~] Keep the current ensemble visibly labeled **experimental**.
+- [x] Add unit tests for every change above.
+- [x] Keep the current ensemble visibly labeled **experimental**.
 
 ## Definition of done
 
@@ -704,7 +704,7 @@ Only upgrade when measured need appears:
 - [x] **P0.4** Fix news source/schema.
 - [x] **P0.5** Add NO_EDGE.
 - [x] **P0.6** Make OpenAI explicit opt-in.
-- [ ] **P0.7** Add Phase 0 tests.
+- [x] **P0.7** Add Phase 0 tests.
 - [ ] **P1.1** Build Live State Engine.
 - [ ] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
 - [ ] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.

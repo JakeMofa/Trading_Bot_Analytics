@@ -13,6 +13,7 @@ from collector import connect, collect_once, amount, utcnow, timestamp, save_obs
 from operations import collector_lock, control_server
 from features import initialize as initialize_features, capture as capture_features
 from forecasts import initialize as initialize_forecasts, forecast_snapshot
+from live_state import LiveState
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
 POLYMARKET_WS = 'wss://api.polymarket.us/v1/ws/markets'
@@ -38,7 +39,7 @@ def initialize(db):
     ''')
 
 
-def health(db, source, status, detail=None, data=False, reconnect=False):
+def health(db, source, status, detail=None, data=False, reconnect=False, live_state=None):
     now=utcnow().isoformat()
     with db:
         db.execute('''INSERT INTO feed_health VALUES(?,?,?,?,?,?)
@@ -47,6 +48,10 @@ def health(db, source, status, detail=None, data=False, reconnect=False):
         last_data_at=COALESCE(excluded.last_data_at,feed_health.last_data_at),
         reconnects=feed_health.reconnects+excluded.reconnects,detail=excluded.detail''',
         (source,status,now,now if data else None,int(reconnect),detail))
+    if live_state is not None:
+        live_state.update_feed_health(source,status,detail,updated_at=now,
+                                      last_data_at=now if data else None,
+                                      reconnect=reconnect)
 
 
 def save_coinbase(db, msg):
@@ -101,6 +106,22 @@ def current_market(db):
     return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN' ORDER BY start DESC LIMIT 1",(now,now)).fetchone()
 
 
+def sync_live_market(db, live_state):
+    if live_state is None:
+        return None
+    now=utcnow().isoformat()
+    row=db.execute('''SELECT id,slug,start,end,target,status FROM markets
+      WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN'
+      ORDER BY start DESC LIMIT 1''',(now,now)).fetchone()
+    if not row:
+        live_state.set_market(None)
+        return None
+    live_state.set_market({
+        'id':row[0],'slug':row[1],'start':row[2],'end':row[3],
+        'target_usd':row[4],'status':row[5]})
+    return row
+
+
 def save_polymarket(db, msg):
     payload=msg.get('marketData') or msg.get('market_data')
     if not payload:
@@ -126,53 +147,63 @@ async def pause(stop, seconds):
         pass
 
 
-async def coinbase_stream(db, stop, connector=ws_connect):
+async def coinbase_stream(db, stop, connector=ws_connect, live_state=None):
     attempt=0
     while not stop.is_set():
-        health(db,'coinbase_stream','connecting')
+        health(db,'coinbase_stream','connecting',live_state=live_state)
         try:
             async with connector(COINBASE_WS,ping_interval=20,ping_timeout=20,open_timeout=15,max_queue=128) as ws:
                 await ws.send(json.dumps({'type':'subscribe','product_ids':['BTC-USD'],
                                           'channels':['ticker','heartbeat']}))
-                health(db,'coinbase_stream','awaiting_data')
+                health(db,'coinbase_stream','awaiting_data',live_state=live_state)
                 last_data=None
                 while not stop.is_set():
                     msg=json.loads(await asyncio.wait_for(ws.recv(),10))
                     if msg.get('type')=='error':
                         raise ValueError('Coinbase subscription error')
                     if msg.get('type')=='ticker':
-                        save_coinbase(db,msg)
+                        inserted=save_coinbase(db,msg)
+                        if live_state is not None and inserted:
+                            live_state.update_coinbase_ticker(msg)
+                            ram_forecast=live_state.baseline_forecast()
+                            if ram_forecast:
+                                live_state.set_forecast(
+                                    ram_forecast['model_version'],
+                                    ram_forecast['probability_up'],
+                                    ram_forecast['abstain_reason'],
+                                    as_of=msg['time'])
                         last_data=time.monotonic()
                         age=(utcnow()-timestamp(msg['time'])).total_seconds()
-                        health(db,'coinbase_stream','live' if -5 <= age <= 30 else 'stale',data=True)
+                        health(db,'coinbase_stream','live' if -5 <= age <= 30 else 'stale',
+                               data=True,live_state=live_state)
                         attempt=0
                     elif last_data is not None and time.monotonic()-last_data>15:
-                        health(db,'coinbase_stream','stale','No ticker for 15 seconds')
+                        health(db,'coinbase_stream','stale','No ticker for 15 seconds',live_state=live_state)
         except Exception as exc:
             # Deliberately omit raw exception text: handshake errors may contain headers.
-            health(db,'coinbase_stream','disconnected',type(exc).__name__,reconnect=True)
+            health(db,'coinbase_stream','disconnected',type(exc).__name__,reconnect=True,live_state=live_state)
             await pause(stop,reconnect_delay(attempt)); attempt+=1
-    health(db,'coinbase_stream','stopped')
+    health(db,'coinbase_stream','stopped',live_state=live_state)
 
 
-async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect):
+async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect, live_state=None):
     if not key_id or not secret:
-        health(db,'polymarket_stream','disabled','Credentials absent; public REST remains active')
+        health(db,'polymarket_stream','disabled','Credentials absent; public REST remains active',live_state=live_state)
         return
     attempt=0
     while not stop.is_set():
         market=current_market(db)
         if not market:
-            health(db,'polymarket_stream','awaiting_market')
+            health(db,'polymarket_stream','awaiting_market',live_state=live_state)
             await pause(stop,2)
             continue
         try:
             headers=auth_headers(key_id,secret)  # fresh signature on every reconnect
-            health(db,'polymarket_stream','connecting')
+            health(db,'polymarket_stream','connecting',live_state=live_state)
             async with connector(POLYMARKET_WS,additional_headers=headers,
                     ping_interval=20,ping_timeout=20,open_timeout=15,max_queue=128) as ws:
                 await ws.send(json.dumps(subscription(market[1])))
-                health(db,'polymarket_stream','awaiting_data')
+                health(db,'polymarket_stream','awaiting_data',live_state=live_state)
                 last_message=time.monotonic()
                 last_data=None
                 last_saved=0
@@ -184,7 +215,7 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect):
                         raw=await asyncio.wait_for(ws.recv(),2)
                     except asyncio.TimeoutError:
                         if last_data is not None and time.monotonic()-last_data>15:
-                            health(db,'polymarket_stream','stale','No book update for 15 seconds')
+                            health(db,'polymarket_stream','stale','No book update for 15 seconds',live_state=live_state)
                         if time.monotonic()-last_message>30:
                             raise TimeoutError('Feed silent')
                         continue
@@ -194,15 +225,17 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect):
                         raise ValueError('Polymarket subscription error')
                     if msg.get('marketData') or msg.get('market_data'):
                         last_data=time.monotonic()
+                        if live_state is not None:
+                            live_state.update_polymarket(msg)
                         # One full book per second is enough for the dashboard and
                         # bounds local storage during high-activity markets.
                         if last_data-last_saved >= 1 and save_polymarket(db,msg):
                             last_saved=last_data
-                            health(db,'polymarket_stream','live',data=True); attempt=0
+                            health(db,'polymarket_stream','live',data=True,live_state=live_state); attempt=0
         except Exception as exc:
-            health(db,'polymarket_stream','disconnected',type(exc).__name__,reconnect=True)
+            health(db,'polymarket_stream','disconnected',type(exc).__name__,reconnect=True,live_state=live_state)
             await pause(stop,reconnect_delay(attempt)); attempt+=1
-    health(db,'polymarket_stream','stopped')
+    health(db,'polymarket_stream','stopped',live_state=live_state)
 
 
 def rest_cycle(path, refresh_candles=False):
@@ -233,17 +266,18 @@ async def storage_guard_loop(path, db, stop, max_storage_mb):
             print(detail, flush=True)
             stop.set()
             return
-        health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
+        health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB',live_state=live_state)
         await pause(stop, 30)
     health(db, 'storage_guard', 'stopped')
 
 
-async def rest_loop(path, db, stop, interval):
+async def rest_loop(path, db, stop, interval, live_state=None):
     last_candle_refresh = None
     while not stop.is_set():
         try:
             refresh = last_candle_refresh is None or time.monotonic()-last_candle_refresh >= 60
             messages=await asyncio.to_thread(rest_cycle,path,refresh)
+            sync_live_market(db,live_state)
             if refresh:
                 last_candle_refresh = time.monotonic()
             print('\n'.join(messages),flush=True)
@@ -251,16 +285,28 @@ async def rest_loop(path, db, stop, interval):
             if snapshot:
                 market_id, values, quality = snapshot
                 print(f"15m features: market={market_id} remaining={values['seconds_remaining']:.0f}s price={quality['price']['status']} missing={len(quality['missing_features'])}", flush=True)
-                snapshot_id = db.execute('SELECT id FROM feature_snapshots WHERE market_id=? ORDER BY id DESC LIMIT 1', (market_id,)).fetchone()[0]
+                snapshot_row = db.execute('''SELECT id,as_of FROM feature_snapshots
+                  WHERE market_id=? ORDER BY id DESC LIMIT 1''', (market_id,)).fetchone()
+                snapshot_id, snapshot_as_of = snapshot_row
+                if live_state is not None:
+                    live_state.set_feature_snapshot(
+                        market_id,snapshot_as_of,values,quality,snapshot_id=snapshot_id)
+                    ram_forecast=live_state.baseline_forecast()
+                    if ram_forecast:
+                        live_state.set_forecast(
+                            ram_forecast['model_version'],
+                            ram_forecast['probability_up'],
+                            ram_forecast['abstain_reason'],
+                            as_of=snapshot_as_of)
                 forecast = forecast_snapshot(db, snapshot_id)
                 if forecast:
                     print(f"15m baseline: UP={forecast['probability_up']} abstain={forecast['abstain_reason']}", flush=True)
             # collect_once logs per-source failures; don't declare the feeds healthy here.
-            health(db,'rest_supervisor','running','See runs for individual source errors')
+            health(db,'rest_supervisor','running','See runs for individual source errors',live_state=live_state)
         except Exception as exc:
-            health(db,'rest_supervisor','error',type(exc).__name__)
+            health(db,'rest_supervisor','error',type(exc).__name__,live_state=live_state)
         await pause(stop,interval)
-    health(db,'rest_supervisor','stopped')
+    health(db,'rest_supervisor','stopped',live_state=live_state)
 
 
 async def run(path, seconds, interval, markets_only=False,
@@ -274,6 +320,8 @@ async def run_locked(path, seconds, interval, markets_only, max_storage_mb, sock
     if markets_only and not (key_id and secret):
         raise ValueError('Polymarket market-stream credentials are missing')
     db=connect(path); initialize(db)
+    live_state=LiveState()
+    sync_live_market(db,live_state)
     if not markets_only:
         initialize_features(db); initialize_forecasts(db)
     health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB')
@@ -285,9 +333,10 @@ async def run_locked(path, seconds, interval, markets_only, max_storage_mb, sock
     timer=loop.call_later(seconds,stop.set) if seconds else None
     tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb))]
     if not markets_only:
-        tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval)),
-                      asyncio.create_task(coinbase_stream(db,stop))))
-    tasks.append(asyncio.create_task(polymarket_stream(db,stop,key_id,secret)))
+        tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state)),
+                      asyncio.create_task(coinbase_stream(db,stop,live_state=live_state))))
+    tasks.append(asyncio.create_task(polymarket_stream(
+        db,stop,key_id,secret,live_state=live_state)))
     try:
         await asyncio.gather(*tasks)
         summary=db.execute('SELECT source,status,reconnects FROM feed_health').fetchall()

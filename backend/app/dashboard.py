@@ -11,6 +11,7 @@ import time
 
 from collector import timestamp
 from forecasts import CHECKPOINTS, CHECKPOINT_TOLERANCE, MODEL, baseline
+from ensemble import research_signal
 from knowledge import trace_prediction
 
 HTML = Path(__file__).with_name('dashboard.html')
@@ -319,6 +320,7 @@ def status(db, now=None):
                             'decision_label': decision_label,
                             'suggested_action': suggested_action,
                             'suggested_confidence': suggested_conf,
+                            'experimental': (model_version == 'ensemble_v1'),
                             'current': snapshot['current'] and (created and timestamp(created) < timestamp(end))}
                 # Deterministic 15-minute quick forecast (derived from ensemble or fallback probability)
                 try:
@@ -328,7 +330,7 @@ def status(db, now=None):
                     elif p is not None:
                         prob_val = float(p)
                     if prob_val is not None:
-                        action_15 = 'BUY_UP' if prob_val > 0.5 else 'BUY_DOWN'
+                        action_15 = research_signal(prob_val)
                         conf_15 = max(0.0, min(1.0, 2 * abs(prob_val - 0.5)))
                         forecast['forecast_15m'] = {'action': action_15, 'confidence': conf_15, 'probability_up': prob_val}
                     else:

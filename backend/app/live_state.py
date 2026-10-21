@@ -47,6 +47,9 @@ class LiveState:
         self._market = None
         self._ticks = deque()
         self._polymarket = None
+        self._trade_flow = None
+        self._order_book = None
+        self._derivatives = None
         self._feature_snapshot = None
         self._forecast = None
         self._models = {}
@@ -153,6 +156,33 @@ class LiveState:
             self._polymarket = quote
             self._touch(quote['received_at'])
         return True
+
+    def set_trade_flow(self, values, as_of=None):
+        """Store current BTC trade-flow features when Phase 2 provides them."""
+        with self._lock:
+            self._trade_flow = {
+                'as_of': _iso(as_of or utcnow()),
+                'values': deepcopy(values or {}),
+            }
+            self._touch(self._trade_flow['as_of'])
+
+    def set_order_book(self, values, as_of=None):
+        """Store current BTC exchange order-book features when available."""
+        with self._lock:
+            self._order_book = {
+                'as_of': _iso(as_of or utcnow()),
+                'values': deepcopy(values or {}),
+            }
+            self._touch(self._order_book['as_of'])
+
+    def set_derivatives(self, values, as_of=None):
+        """Store derivatives state; populated by the later derivatives phase."""
+        with self._lock:
+            self._derivatives = {
+                'as_of': _iso(as_of or utcnow()),
+                'values': deepcopy(values or {}),
+            }
+            self._touch(self._derivatives['as_of'])
 
     def set_feature_snapshot(self, market_id, as_of, values, quality, snapshot_id=None):
         with self._lock:
@@ -328,11 +358,18 @@ class LiveState:
                 missing.append('feature_snapshot')
             if self._polymarket is None:
                 missing.append('polymarket_quote')
+            if self._trade_flow is None:
+                missing.append('trade_flow')
+            if self._order_book is None:
+                missing.append('btc_order_book')
             return {
                 'updated_at': self._updated_at,
                 'market': market,
                 'coinbase': coinbase,
                 'polymarket': deepcopy(self._polymarket),
+                'trade_flow': deepcopy(self._trade_flow),
+                'order_book': deepcopy(self._order_book),
+                'derivatives': deepcopy(self._derivatives),
                 'feature_snapshot': deepcopy(self._feature_snapshot),
                 'forecast': deepcopy(self._forecast),
                 'models': deepcopy(self._models),

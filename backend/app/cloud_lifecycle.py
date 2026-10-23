@@ -275,7 +275,6 @@ class LifecycleWorker:
         self.now_fn = now_fn or (lambda: datetime.now(timezone.utc))
         self.monotonic = monotonic or time.monotonic
         self.should_stop = should_stop or (lambda: False)
-        self.last_archive_ok = None
         self.continuous = False
         self._next_due = {"structured": 0.0, "archive": 0.0, "retention": 0.0}
 
@@ -342,17 +341,29 @@ class LifecycleWorker:
         try:
             initialize_local_sync(db)
             initialize_lifecycle_state(db)
-            started = _now()
-            self._record(db, last_cycle_started_at=started, worker_pid=os.getpid())
             now = self.monotonic()
             run_structured = force or now >= self._next_due["structured"]
             run_archive = force or now >= self._next_due["archive"]
             run_retention = force or now >= self._next_due["retention"]
+            if not any((run_structured, run_archive, run_retention)):
+                result["status"] = "idle"
+                return result
+
+            started = _now()
+            self._record(db, last_cycle_started_at=started, worker_pid=os.getpid())
+            if run_structured:
+                self._next_due["structured"] = now + self.config.structured_interval
+            if run_archive:
+                self._next_due["archive"] = now + self.config.raw_archive_interval
+            if run_retention:
+                self._next_due["retention"] = now + self.config.retention_interval
+
+            archive_ran_this_cycle = False
+            archive_ok_this_cycle = False
             cloud = None
             try:
                 cloud = self.cloud_factory()
                 if run_structured:
-                    self._next_due["structured"] = now + self.config.structured_interval
                     try:
                         moved = self._structured(db, cloud)
                         result["structured"] = moved
@@ -362,8 +373,8 @@ class LifecycleWorker:
                         result["errors"].append("structured")
                         self._fail(db, "structured", exc)
                 if run_archive:
-                    self._next_due["archive"] = now + self.config.raw_archive_interval
-                    self.last_archive_ok = True
+                    archive_ran_this_cycle = True
+                    archive_ok_this_cycle = True
                     for dataset in RAW_DATASETS:
                         try:
                             archived, caught_up = self._archive_dataset(db, cloud, dataset)
@@ -374,15 +385,14 @@ class LifecycleWorker:
                                 f"last_{dataset}_archive_rows": archived,
                                 f"{dataset}_archive_caught_up": int(caught_up)})
                         except Exception as exc:
-                            self.last_archive_ok = False
+                            archive_ok_this_cycle = False
                             result["errors"].append(f"archive:{dataset}")
                             self._fail(db, f"archive_{dataset}", exc)
                 if run_retention:
-                    self._next_due["retention"] = now + self.config.retention_interval
-                    result["retention"] = self._run_retention_stage(db, cloud, result)
+                    result["retention"] = self._run_retention_stage(
+                        db, cloud, result, archive_ran_this_cycle, archive_ok_this_cycle)
             except Exception as exc:
                 result["errors"].append("cloud_client")
-                self.last_archive_ok = False
                 self._fail(db, "cloud_client", exc)
             finally:
                 close = getattr(cloud, "close", None)
@@ -397,13 +407,17 @@ class LifecycleWorker:
         finally:
             db.close()
 
-    def _run_retention_stage(self, db, cloud, result):
+    def _run_retention_stage(self, db, cloud, result,
+                             archive_ran_this_cycle, archive_ok_this_cycle):
         if not self.retention.enabled:
             self._record(db, last_retention_status="disabled")
             return {"status": "disabled", "deleted": 0}
         if self.should_stop():
             return {"status": "skipped_stopping", "deleted": 0}
-        if self.last_archive_ok is not True:
+        if not archive_ran_this_cycle:
+            self._record(db, last_retention_status="skipped_archive_not_run")
+            return {"status": "skipped_archive_not_run", "deleted": 0}
+        if not archive_ok_this_cycle:
             self._record(db, last_retention_status="skipped_archive_not_verified")
             return {"status": "skipped_archive_not_verified", "deleted": 0}
         try:

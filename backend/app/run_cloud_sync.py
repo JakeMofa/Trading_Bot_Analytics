@@ -7,6 +7,7 @@ from pathlib import Path
 from cloud_memory import (
     CloudConfig,
     SupabaseHTTP,
+    archive_raw_backfill,
     archive_raw_window,
     open_local,
     sync_structured_once,
@@ -63,6 +64,19 @@ def main():
     archive.add_argument("--end", required=True, help="Exclusive ISO-8601 timestamp")
     archive.add_argument("--bucket", default=os.getenv("SUPABASE_RAW_BUCKET", "market-raw"))
 
+    raw_backfill = sub.add_parser(
+        "raw-backfill",
+        help="Archive raw evidence in resumable source-ID batches without deleting local rows",
+    )
+    raw_backfill.add_argument(
+        "--dataset", choices=("observations", "stream_events"), required=True
+    )
+    raw_backfill.add_argument("--batch-size", type=int, default=5000)
+    raw_backfill.add_argument("--max-batches", type=int, default=24)
+    raw_backfill.add_argument(
+        "--bucket", default=os.getenv("SUPABASE_RAW_BUCKET", "market-raw")
+    )
+
     args = parser.parse_args()
     config = CloudConfig.from_env(require_enabled=True)
     cloud = SupabaseHTTP(config)
@@ -73,7 +87,7 @@ def main():
             if not 1 <= batch_size <= 1000:
                 parser.error("batch size must be 1..1000")
             print("structured total:", run_structured(db, cloud, batch_size, args.backfill), flush=True)
-        else:
+        elif args.command == "archive":
             start, end = _utc(args.start), _utc(args.end)
             if start >= end:
                 parser.error("archive start must be before end")
@@ -81,6 +95,20 @@ def main():
                 db, cloud, args.dataset, start, end, bucket=args.bucket
             )
             print("archive:", result or "no rows in window", flush=True)
+        else:
+            if not 1 <= args.batch_size <= 50000:
+                parser.error("raw batch size must be 1..50000")
+            if not 1 <= args.max_batches <= 10000:
+                parser.error("max batches must be 1..10000")
+            result = archive_raw_backfill(
+                db,
+                cloud,
+                args.dataset,
+                max_batches=args.max_batches,
+                batch_size=args.batch_size,
+                bucket=args.bucket,
+            )
+            print("raw backfill:", result, flush=True)
     finally:
         db.close()
         cloud.close()

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Cloud Memory & Data Lifecycle  
 **Current branch:** `codex/cloud-memory-phase1-75`  
-**Next gate:** run a bounded real-data structured sync and raw-archive smoke test from the user's local SQLite database, then backfill/verify existing history before any retention/deletion is enabled.
+**Next gate:** review the real-database retention dry-run, then explicitly opt in to the first bounded production purge (`ENABLE_LOCAL_RETENTION=true` plus `apply --confirm`). Collector/API stay stopped until that decision.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -312,9 +312,17 @@ Coinbase / Polymarket / future feeds
 - [x] P1.75.4 Add deterministic gzip JSONL raw archive writer.
 - [x] P1.75.5 Add private Storage upload + authenticated readback/checksum verification + manifest.
 - [x] P1.75.6 Add sync/archive health telemetry to FastAPI (`/cloud/status` and separate cloud status inside `/health`); dashboard presentation can follow with the broader Phase 1.5 migration.
-- [~] P1.75.7 Backfill existing SQLite structured history: resumable/idempotent tooling is implemented; real local database execution/verification is pending.
-- [~] P1.75.8 Archive existing raw history and verify it: resumable source-cursor batches + authenticated checksum readback are implemented; real local database execution is pending.
-- [ ] P1.75.9 Enable configurable local retention only after verified backfill.
+- [x] P1.75.7 Backfill existing SQLite structured history: executed against the real database and independently verified in Supabase (markets 1,164; feature_snapshots 6,776; predictions 6,745; news_events 28; candles 48,812).
+- [x] P1.75.8 Archive existing raw history and verify it: 198,243 Polymarket observations and 1,168,729 Coinbase stream events archived; 274 raw archive objects verified by authenticated readback + SHA-256, 0 unverified.
+- [x] P1.75.9 Verified local retention (`backend/app/retention.py`, `run_retention.py`): implemented and tested; **disabled by default and not yet applied to the production database.**
+  - Eligibility = `received_at` older than `LOCAL_RAW_RETENTION_HOURS` (default 48) AND inside the source range of a verified `raw_archives` manifest (`verified_at` set, authenticated-readback metadata, SHA-256 present, matching bucket/dataset). Sync checkpoints are never trusted.
+  - `observations` use manifest ID ranges; `stream_events` use the `(received_at, source, event_id)` cursor range, never `rowid`. Both are separate.
+  - A manifest is rejected if local rows inside its range exceed its `event_count`; a dataset is blocked if any `received_at` is not canonical UTC microsecond format.
+  - The highest `observations.id` is always kept: the table has no AUTOINCREMENT, so emptying it would reuse archived IDs.
+  - Only `observations` and `stream_events` are touched; structured tables, `cloud_sync_state` and outcomes are never deleted. No VACUUM, ever (the file does not shrink until a deliberate VACUUM).
+  - CLI: `run_retention.py status` (local only), `dry-run` (default, read-only connection), `apply --confirm` (also requires `ENABLE_LOCAL_RETENTION=true`); bounded `RETENTION_DELETE_BATCH_SIZE` batches; idempotent and restart-safe. Manifests are read from Supabase for dry-run/apply only; the live path never calls this module.
+  - Evidence: 20 new tests (112 total) cover disabled-by-default, invalid hours, unverified/untrusted manifests, partial coverage, cutoff boundary, duplicate `received_at`, batching, dry-run writes nothing, confirmation gate, structured tables untouched, idempotence.
+  - Remaining gap: first production `apply` is a separate, explicit decision after reviewing the dry-run.
 - [ ] P1.75.10 Measure a new 24-hour run and tune retention.
 - [ ] P1.75.11 Add historical raw replay tooling for research/model validation.
 
@@ -851,8 +859,8 @@ Only upgrade when measured need appears:
 - [x] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
 - [x] **P1.75.1** Design/create Supabase structured-history schema and private Storage buckets.
 - [x] **P1.75.2** Build bounded structured sync + compressed raw archive writer with checksum verification.
-- [~] **P1.75.3** Backfill/verify current SQLite history in cloud — tooling complete; real local run pending.
-- [ ] **P1.75.4** Enable local retention only after verified cloud copies.
+- [x] **P1.75.3** Backfill/verify current SQLite history in cloud — real run complete and verified.
+- [~] **P1.75.4** Enable local retention only after verified cloud copies — tooling implemented (P1.75.9); production purge pending explicit opt-in.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.
 - [ ] **P3.1** Build `microstructure_v1`.
 - [ ] **P4.1** Add specialist interface.

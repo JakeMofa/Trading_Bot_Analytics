@@ -86,6 +86,22 @@ class SupabaseHTTP:
         response.raise_for_status()
         return len(rows)
 
+    def select(self, table, params, page_size=1000):
+        """Read-only paginated PostgREST select; any HTTP error propagates."""
+        rows, offset = [], 0
+        while True:
+            response = self.client.get(
+                f"{self.config.url}/rest/v1/{quote(table, safe='')}",
+                params={**params, "limit": page_size, "offset": offset},
+                headers=self._headers(),
+            )
+            response.raise_for_status()
+            page = response.json()
+            rows.extend(page)
+            if len(page) < page_size:
+                return rows
+            offset += page_size
+
     def upload_bytes(self, bucket, object_path, payload, content_type="application/gzip"):
         response = self.client.post(
             f"{self.config.url}/storage/v1/object/{quote(bucket, safe='')}/{quote(object_path, safe='/')}",

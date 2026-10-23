@@ -113,7 +113,17 @@ The Polymarket archive cursor uses the stable observation ID. Coinbase stream ev
 
 `GET /cloud/status` reports local structured/archive checkpoints separately from live forecast health. A cloud outage therefore stays observable without being treated as a live-model failure.
 
-**Local retention/deletion is not implemented or enabled yet**; structured backfill plus raw archive verification must succeed before any raw rows are removed.
+### Verified local retention (disabled by default)
+
+Raw `observations` and `stream_events` older than `LOCAL_RAW_RETENTION_HOURS` (default 48) become eligible for local deletion only when covered by a verified Supabase `raw_archives` manifest (authenticated readback + SHA-256). Sync checkpoints alone are never trusted. Structured tables, outcomes and `cloud_sync_state` are never deleted, and retention never runs `VACUUM`, so the SQLite file does not shrink on its own.
+
+```bash
+.venv/bin/python backend/app/run_retention.py status    # local only
+.venv/bin/python backend/app/run_retention.py dry-run   # read-only report (default)
+.venv/bin/python backend/app/run_retention.py apply --confirm   # also needs ENABLE_LOCAL_RETENTION=true
+```
+
+`apply` deletes in `RETENTION_DELETE_BATCH_SIZE` batches, is idempotent, and always keeps the newest `observations` row so row IDs are never reused. Dry-run and apply read manifests from Supabase; live forecasting never depends on this tool.
 
 ## Local status dashboard
 

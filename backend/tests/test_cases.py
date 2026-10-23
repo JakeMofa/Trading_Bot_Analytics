@@ -70,5 +70,30 @@ class CaseTests(unittest.TestCase):
               '2026-09-30T01:40:00Z')
         self.assertEqual(match_cases(self.db, target)['eligible_markets'], 0)
 
+    def test_missing_outcome_is_queried_once_per_market_and_rechecked_next_call(self):
+        prior = self.add('prior', '2026-09-30T01:00:00Z', '2026-09-30T01:15:00Z',
+                         '2026-09-30T01:00:30Z', '2026-09-30T01:05:00Z')
+        target = self.add('current', '2026-09-30T01:30:00Z', '2026-09-30T01:45:00Z',
+                          '2026-09-30T01:30:10Z', '2026-09-30T01:35:00Z')
+        with self.db:
+            self.db.execute('''INSERT INTO feature_snapshots
+              (market_id,as_of,version,values_json,quality_json,evidence_json)
+              SELECT market_id,'2026-09-30T01:08:00Z',version,values_json,quality_json,evidence_json
+              FROM feature_snapshots WHERE id=?''', (prior,))
+            save_market(self.db, normalize(raw('prior', '2026-09-30T01:00:00Z',
+                '2026-09-30T01:15:00Z', 'MARKET_STATUS_RESOLVED', '101')),
+                '2026-09-30T01:40:00Z')
+        queries = []
+        self.db.set_trace_callback(queries.append)
+        result = match_cases(self.db, target)
+        self.db.set_trace_callback(None)
+        self.assertEqual(result['eligible_markets'], 0)
+        self.assertEqual(sum('SELECT id,received_at,payload FROM observations' in sql
+                             for sql in queries), 1)
+        with self.db:
+            self.db.execute("UPDATE feature_snapshots SET as_of='2026-09-30T01:41:00Z' WHERE id=?",
+                            (target,))
+        self.assertEqual(match_cases(self.db, target)['eligible_markets'], 1)
+
 
 if __name__ == '__main__': unittest.main()

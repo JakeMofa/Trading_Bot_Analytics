@@ -58,10 +58,15 @@ def match_cases(db, snapshot_id, limit=5):
         AND julianday(s.as_of)<julianday(m.end)
       ORDER BY s.market_id,s.as_of''', (market_id, as_of)).fetchall()
     known = {}
+    checked = set()
     for row in rows:
         case_market = row[1]
-        if case_market in known:
+        if case_market in checked:
             continue
+        # A market without locally available outcome evidence must not trigger
+        # the same scan for every one of its snapshots. Cache misses only for
+        # this call, so the next call can see newly arrived outcome evidence.
+        checked.add(case_market)
         observations = db.execute('''SELECT id,received_at,payload FROM observations
           WHERE market_id=? AND kind='metadata' AND julianday(received_at)<=julianday(?)
           ORDER BY julianday(received_at),id''', (case_market, as_of)).fetchall()

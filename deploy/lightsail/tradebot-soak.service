@@ -1,0 +1,16 @@
+[Unit]
+Description=Read-only Tradebot initial-soak resource and health snapshot
+After=tradebot-api.service tradebot-lifecycle.service tradebot-ensemble.service
+
+[Service]
+Type=oneshot
+User=tradebot
+Group=tradebot
+WorkingDirectory=/opt/tradebot
+ExecStart=/opt/tradebot/.venv/bin/python deploy/lightsail/metrics.py --output data/cloud-soak.jsonl
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/tradebot/data
+UMask=0077

@@ -1,0 +1,11 @@
+[Unit]
+Description=Record Tradebot resource and health snapshots every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=15s
+Unit=tradebot-soak.service
+
+[Install]
+WantedBy=timers.target

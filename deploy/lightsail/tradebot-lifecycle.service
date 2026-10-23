@@ -1,0 +1,28 @@
+[Unit]
+Description=Tradebot bounded Supabase sync and verified raw archival
+Wants=network-online.target tradebot-api.service
+After=network-online.target tradebot-api.service
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+[Service]
+Type=simple
+User=tradebot
+Group=tradebot
+WorkingDirectory=/opt/tradebot
+EnvironmentFile=/opt/tradebot/.env
+Environment=PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+ExecStartPre=/opt/tradebot/.venv/bin/python deploy/lightsail/preflight.py
+ExecStart=/usr/bin/env ENABLE_OPENAI_ANALYST=false ENABLE_LOCAL_RETENTION=false /opt/tradebot/.venv/bin/python backend/app/run_cloud_lifecycle.py run
+Restart=always
+RestartSec=15
+TimeoutStopSec=90
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/tradebot/data
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -32,6 +32,45 @@ def _collector_status(task):
     }
 
 
+def _env_enabled(name, default="false"):
+    return str(os.getenv(name, default)).strip().lower() in ("1", "true", "yes", "on")
+
+
+def _read_cloud_status(db_path):
+    enabled = _env_enabled("ENABLE_SUPABASE_SYNC")
+    if db_path != ":memory:" and not Path(db_path).exists():
+        return {"enabled": enabled, "status": "no_local_database", "datasets": []}
+    db = sqlite3.connect(db_path)
+    try:
+        db.execute("PRAGMA query_only=ON")
+        exists = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='cloud_sync_state'"
+        ).fetchone()
+        if not exists:
+            return {
+                "enabled": enabled,
+                "status": "not_started" if enabled else "disabled",
+                "datasets": [],
+            }
+        rows = db.execute(
+            """SELECT dataset,last_source_id,last_source_time,last_source_key,
+                      rows_synced,status,detail,updated_at
+               FROM cloud_sync_state ORDER BY dataset"""
+        ).fetchall()
+        names = (
+            "dataset", "last_source_id", "last_source_time", "last_source_key",
+            "rows_synced", "status", "detail", "updated_at",
+        )
+        datasets = [dict(zip(names, row)) for row in rows]
+        unhealthy = [row for row in datasets if row["status"] not in ("ok", "verified")]
+        status = "disabled" if not enabled else (
+            "degraded" if unhealthy else ("ok" if datasets else "not_started")
+        )
+        return {"enabled": enabled, "status": status, "datasets": datasets}
+    finally:
+        db.close()
+
+
 def _read_prediction_history(db_path, limit):
     if db_path != ':memory:' and not Path(db_path).exists():
         return []
@@ -141,13 +180,19 @@ def create_app(live_state=None, db_path=None, start_collectors=True):
             if item not in ('trade_flow', 'btc_order_book')
         ]
         status = 'ok' if not required_missing and collector.get('error') is None else 'degraded'
+        cloud = await asyncio.to_thread(_read_cloud_status, resolved_db_path)
         return {
             'status': status,
             'collector': collector,
             'feeds': snapshot.get('feeds', {}),
             'missing_data': snapshot.get('missing_data', []),
+            'cloud': cloud,
             'updated_at': snapshot.get('updated_at'),
         }
+
+    @app.get('/cloud/status')
+    async def cloud_status():
+        return await asyncio.to_thread(_read_cloud_status, resolved_db_path)
 
     @app.get('/history/predictions')
     async def prediction_history(limit: int = Query(default=100, ge=1, le=500)):

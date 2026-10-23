@@ -247,6 +247,42 @@ def _map_outcome(row):
     }
 
 
+def _ensure_markets(db, cloud, market_ids):
+    ids = sorted({value for value in market_ids if value})
+    if not ids:
+        return
+    placeholders = ",".join("?" for _ in ids)
+    rows = _dict_rows(db.execute(
+        f"SELECT * FROM markets WHERE id IN ({placeholders})",
+        ids,
+    ))
+    if len(rows) != len(ids):
+        found = {row["id"] for row in rows}
+        missing = sorted(set(ids) - found)
+        raise RuntimeError(f"Missing local market dependencies: {missing}")
+    cloud.upsert("markets", [_map_market(row) for row in rows], "id")
+    outcomes = [item for item in (_map_outcome(row) for row in rows) if item]
+    if outcomes:
+        cloud.upsert("official_outcomes", outcomes, "market_id")
+
+
+def _ensure_snapshots(db, cloud, snapshot_ids):
+    ids = sorted({int(value) for value in snapshot_ids if value is not None})
+    if not ids:
+        return
+    placeholders = ",".join("?" for _ in ids)
+    rows = _dict_rows(db.execute(
+        f"SELECT * FROM feature_snapshots WHERE id IN ({placeholders})",
+        ids,
+    ))
+    if len(rows) != len(ids):
+        found = {row["id"] for row in rows}
+        missing = sorted(set(ids) - found)
+        raise RuntimeError(f"Missing local snapshot dependencies: {missing}")
+    _ensure_markets(db, cloud, [row["market_id"] for row in rows])
+    cloud.upsert("feature_snapshots", [_map_snapshot(row) for row in rows], "source_id")
+
+
 def _id_rows(db, dataset, table, limit):
     last_id, _, _, _ = _checkpoint(db, dataset)
     cursor = db.execute(
@@ -377,8 +413,9 @@ def sync_structured_once(db, cloud, batch_size=DEFAULT_BATCH_SIZE):
             last = rows[-1]
             _save_checkpoint(db, "markets", source_time=last["last_seen"],
                              source_key=last["id"], rows_added=len(rows))
+            total_synced = _checkpoint(db, "markets")[3]
             _cloud_checkpoint(cloud, "markets", source_time=last["last_seen"],
-                              source_key=last["id"], rows_synced=len(rows))
+                              source_key=last["id"], rows_synced=total_synced)
         result["markets"] = len(rows)
 
     specs = (
@@ -393,10 +430,15 @@ def sync_structured_once(db, cloud, batch_size=DEFAULT_BATCH_SIZE):
         rows = _id_rows(db, dataset, table, batch_size)
         mapped = [mapper(row) for row in rows]
         if mapped:
+            if dataset == "feature_snapshots":
+                _ensure_markets(db, cloud, [row["market_id"] for row in rows])
+            elif dataset == "predictions":
+                _ensure_snapshots(db, cloud, [row["snapshot_id"] for row in rows])
             cloud.upsert(table, mapped, conflict)
             last_id = rows[-1]["id"]
             _save_checkpoint(db, dataset, source_id=last_id, rows_added=len(rows))
-            _cloud_checkpoint(cloud, dataset, source_id=last_id, rows_synced=len(rows))
+            total_synced = _checkpoint(db, dataset)[3]
+            _cloud_checkpoint(cloud, dataset, source_id=last_id, rows_synced=total_synced)
         result[dataset] = len(rows)
 
     if _table_exists(db, "candles"):
@@ -406,7 +448,8 @@ def sync_structured_once(db, cloud, batch_size=DEFAULT_BATCH_SIZE):
             cloud.upsert("candles", mapped, "source,symbol,granularity,time")
             last_time = rows[-1]["time"]
             _save_checkpoint(db, "candles", source_id=last_time, rows_added=len(rows))
-            _cloud_checkpoint(cloud, "candles", source_id=last_time, rows_synced=len(rows))
+            total_synced = _checkpoint(db, "candles")[3]
+            _cloud_checkpoint(cloud, "candles", source_id=last_time, rows_synced=total_synced)
         result["candles"] = len(rows)
 
     return result

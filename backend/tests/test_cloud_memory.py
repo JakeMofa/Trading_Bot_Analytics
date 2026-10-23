@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
 from cloud_memory import (
     CloudConfig,
+    archive_raw_backfill,
     archive_raw_window,
     build_archive,
     initialize_local_sync,
@@ -231,6 +232,46 @@ class CloudMemoryTests(unittest.TestCase):
         self.assertEqual(raw1, raw2)
         self.assertEqual(zipped1, zipped2)
         self.assertEqual(hash1, hash2)
+
+    def test_raw_backfill_resumes_by_source_id_without_deleting_rows(self):
+        for idx in range(1, 6):
+            payload = {"marketData": {"marketSlug": "btc-test", "sequence": idx}}
+            self.db.execute(
+                """INSERT INTO observations VALUES(?,?,?,?,?,?)""",
+                (
+                    idx,
+                    "m1",
+                    f"2026-10-22T12:05:0{idx}+00:00",
+                    f"2026-10-22T12:05:0{idx}+00:00",
+                    "stream_book",
+                    json.dumps(payload),
+                ),
+            )
+        self.db.commit()
+        cloud = FakeCloud()
+
+        first = archive_raw_backfill(
+            self.db, cloud, "observations", max_batches=1, batch_size=2
+        )
+        self.assertEqual(first["events_archived_this_run"], 2)
+        self.assertEqual(first["last_source_id"], 2)
+        self.assertFalse(first["caught_up"])
+        self.assertEqual(self.db.execute("SELECT COUNT(*) FROM observations").fetchone()[0], 5)
+
+        second = archive_raw_backfill(
+            self.db, cloud, "observations", max_batches=10, batch_size=2
+        )
+        self.assertEqual(second["events_archived_this_run"], 3)
+        self.assertEqual(second["events_archived_total"], 5)
+        self.assertEqual(second["last_source_id"], 5)
+        self.assertTrue(second["caught_up"])
+        manifests = [
+            rows[0] for table, rows, _ in cloud.upserts if table == "raw_archives"
+        ]
+        self.assertEqual(
+            [(m["first_source_id"], m["last_source_id"]) for m in manifests],
+            [(1, 2), (3, 4), (5, 5)],
+        )
 
     def test_local_sync_schema_is_tiny_and_separate_from_raw_data(self):
         initialize_local_sync(self.db)

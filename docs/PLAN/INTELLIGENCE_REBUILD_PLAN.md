@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Cloud Memory & Data Lifecycle  
 **Current branch:** `codex/cloud-memory-phase1-75`  
-**Next gate:** establish the Supabase structured-history schema and private raw-archive storage, then build verified asynchronous SQLite → cloud sync before enabling any local retention/deletion.
+**Next gate:** run a bounded real-data structured sync and raw-archive smoke test from the user's local SQLite database, then backfill/verify existing history before any retention/deletion is enabled.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -276,42 +276,42 @@ Coinbase / Polymarket / future feeds
 
 - [x] Supabase is never required to produce a live forecast.
 - [x] The hot path remains `feed → RAM → features/models → forecast`.
-- [ ] Cloud writes run asynchronously after the forecast path.
+- [x] Cloud writes are isolated from the forecast path and run through a separate bounded sync/archive runner; automatic scheduling is still pending.
 - [ ] No local raw deletion until the corresponding cloud archive is verified.
-- [ ] Archive verification includes object existence plus event/row count and checksum metadata.
-- [ ] Cloud writes are idempotent and retry-safe.
-- [ ] Secrets stay server-side only.
-- [ ] Storage buckets used by the bot are private.
-- [ ] Raw feed archives are compressed before upload.
-- [ ] Structured history remains queryable without opening raw archives.
+- [x] Archive verification uses authenticated readback, compressed-byte count, SHA-256, event count, and a verified manifest.
+- [x] Structured cloud writes use stable source IDs/upserts and local/cloud checkpoints; raw archive object paths are deterministic and manifests upsert by bucket/path.
+- [x] Secrets stay server-side only.
+- [x] Storage buckets used by the bot are private.
+- [x] Raw feed archives are deterministic gzip-compressed JSONL before upload.
+- [x] Structured history remains queryable without opening raw archives.
 
 ## Initial Supabase Postgres tables
 
-- [ ] `markets`
-- [ ] `official_outcomes`
-- [ ] `feature_snapshots`
-- [ ] `predictions`
-- [ ] `model_outputs`
-- [ ] `evaluation_metrics`
-- [ ] `news_events`
-- [ ] `sync_checkpoints`
-- [ ] `raw_archives`
+- [x] `markets`
+- [x] `official_outcomes`
+- [x] `feature_snapshots`
+- [x] `predictions`
+- [x] `model_outputs`
+- [x] `evaluation_metrics`
+- [x] `news_events`
+- [x] `sync_checkpoints`
+- [x] `raw_archives`
 - [ ] Knowledge tables for trading/reference material when RAG work begins.
 
 ## Initial private Storage buckets
 
-- [ ] `market-raw` — compressed raw Coinbase/Polymarket/future L2 archives.
-- [ ] `knowledge` — trading/reference documents.
-- [ ] `backups` — optional verified SQLite/database backups.
+- [x] `market-raw` — compressed raw Coinbase/Polymarket/future L2 archives.
+- [x] `knowledge` — trading/reference documents.
+- [x] `backups` — optional verified SQLite/database backups.
 
 ## Implementation order
 
-- [~] P1.75.1 Design and create cloud schema.
-- [ ] P1.75.2 Add server-side Supabase client/config validation.
-- [ ] P1.75.3 Add idempotent structured batch sync.
-- [ ] P1.75.4 Add compressed raw archive writer.
-- [ ] P1.75.5 Add Storage upload + archive manifest/checksum verification.
-- [ ] P1.75.6 Add sync/archive health telemetry.
+- [x] P1.75.1 Design and create cloud schema; hosted migration applied and RLS verified.
+- [x] P1.75.2 Add server-side Supabase client/config validation with explicit opt-in.
+- [x] P1.75.3 Add idempotent structured batch sync with dependency-safe backfill/checkpoints.
+- [x] P1.75.4 Add deterministic gzip JSONL raw archive writer.
+- [x] P1.75.5 Add private Storage upload + authenticated readback/checksum verification + manifest.
+- [ ] P1.75.6 Add sync/archive health telemetry to operations/FastAPI/dashboard.
 - [ ] P1.75.7 Backfill existing SQLite structured history.
 - [ ] P1.75.8 Archive existing raw history and verify it.
 - [ ] P1.75.9 Enable configurable local retention only after verified backfill.
@@ -849,8 +849,8 @@ Only upgrade when measured need appears:
 - [x] **P1.1** Build Live State Engine.
 - [x] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
 - [x] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
-- [~] **P1.75.1** Design/create Supabase structured-history schema.
-- [ ] **P1.75.2** Build async structured sync + raw archive writer.
+- [x] **P1.75.1** Design/create Supabase structured-history schema and private Storage buckets.
+- [x] **P1.75.2** Build bounded structured sync + compressed raw archive writer with checksum verification.
 - [ ] **P1.75.3** Backfill/verify current SQLite history in cloud.
 - [ ] **P1.75.4** Enable local retention only after verified cloud copies.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.

@@ -276,6 +276,7 @@ class LifecycleWorker:
         self.monotonic = monotonic or time.monotonic
         self.should_stop = should_stop or (lambda: False)
         self.last_archive_ok = None
+        self.continuous = False
         self._next_due = {"structured": 0.0, "archive": 0.0, "retention": 0.0}
 
     # telemetry writes are best effort: a locked state table must not break a cycle
@@ -389,7 +390,8 @@ class LifecycleWorker:
                     close()
             status = "degraded" if result["errors"] else "ok"
             self._record(db, last_cycle_finished_at=_now(), last_cycle_status=status,
-                         worker_status="degraded" if result["errors"] else "running")
+                         worker_status="degraded" if result["errors"] else (
+                             "running" if self.continuous else "idle"))
             result["status"] = status
             return result
         finally:
@@ -417,6 +419,7 @@ class LifecycleWorker:
 
     def run_forever(self, stop, poll_seconds=1.0, on_cycle=None):
         """Loop until `stop` (threading.Event) is set; each stage keeps its own cadence."""
+        self.continuous = True
         db = open_lifecycle_db(self.db_path)
         try:
             initialize_lifecycle_state(db)

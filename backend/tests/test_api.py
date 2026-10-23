@@ -4,6 +4,7 @@ import sqlite3
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app'))
 
@@ -115,6 +116,32 @@ class FastAPITests(unittest.TestCase):
             self.assertEqual(
                 check.execute('SELECT COUNT(*) FROM predictions').fetchone()[0], 3)
             check.close()
+
+    def test_cloud_status_is_separate_from_live_health(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'cloud.db'
+            db = sqlite3.connect(path)
+            db.execute('''CREATE TABLE cloud_sync_state(
+              dataset TEXT PRIMARY KEY,last_source_id INTEGER,last_source_time TEXT,
+              last_source_key TEXT,rows_synced INTEGER NOT NULL,status TEXT NOT NULL,
+              detail TEXT,updated_at TEXT NOT NULL)''')
+            db.execute('''INSERT INTO cloud_sync_state VALUES(?,?,?,?,?,?,?,?)''',
+                       ('archive:observations',10,'2026-10-21T04:00:00Z',None,
+                        10,'verified','object','2026-10-21T04:01:00Z'))
+            db.commit()
+            db.close()
+
+            with patch.dict('os.environ', {'ENABLE_SUPABASE_SYNC':'true'}):
+                app = create_app(
+                    self.populated_state(), db_path=str(path), start_collectors=False)
+                with TestClient(app) as client:
+                    cloud = client.get('/cloud/status').json()
+                    self.assertTrue(cloud['enabled'])
+                    self.assertEqual(cloud['status'],'ok')
+                    self.assertEqual(cloud['datasets'][0]['rows_synced'],10)
+                    health = client.get('/health').json()
+                    self.assertEqual(health['cloud']['status'],'ok')
+                    self.assertEqual(health['status'],'ok')
 
     def test_sse_route_is_registered(self):
         app = create_app(LiveState(), start_collectors=False)

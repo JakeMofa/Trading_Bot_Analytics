@@ -31,6 +31,22 @@ class FakeCloud:
         self.uploads.append((bucket, object_path, payload, content_type))
         return {"bucket": bucket, "object_path": object_path, "bytes": len(payload)}
 
+    def verify_object(self, bucket, object_path, expected_sha256, expected_bytes):
+        uploaded = next(
+            item for item in self.uploads
+            if item[0] == bucket and item[1] == object_path
+        )
+        payload = uploaded[2]
+        import hashlib
+        actual = hashlib.sha256(payload).hexdigest()
+        if actual != expected_sha256 or len(payload) != expected_bytes:
+            raise RuntimeError("verification failed")
+        return {
+            "bytes": len(payload),
+            "sha256": actual,
+            "verified_at": "2026-10-22T12:30:00+00:00",
+        }
+
 
 class CloudMemoryTests(unittest.TestCase):
     def setUp(self):
@@ -194,6 +210,8 @@ class CloudMemoryTests(unittest.TestCase):
             "2026-10-22T13:00:00+00:00",
         )
         self.assertEqual(manifest["event_count"], 1)
+        self.assertEqual(manifest["verified_at"], "2026-10-22T12:30:00+00:00")
+        self.assertEqual(manifest["metadata"]["verification"], "authenticated_readback_sha256")
         self.assertEqual(len(cloud.uploads), 1)
         bucket, object_path, compressed, content_type = cloud.uploads[0]
         self.assertEqual(bucket, "market-raw")

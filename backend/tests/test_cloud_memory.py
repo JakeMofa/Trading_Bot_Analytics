@@ -273,6 +273,45 @@ class CloudMemoryTests(unittest.TestCase):
             [(1, 2), (3, 4), (5, 5)],
         )
 
+    def test_stream_event_backfill_uses_stable_received_time_key(self):
+        for event_id in ("100", "101", "102"):
+            self.db.execute(
+                """INSERT INTO stream_events VALUES(?,?,?,?,?,?,?,?)""",
+                (
+                    "coinbase", event_id, "2026-10-22T12:05:00+00:00",
+                    "2026-10-22T12:05:00+00:00", "101", "0.1", "buy",
+                    json.dumps({"trade_id": event_id}),
+                ),
+            )
+        self.db.commit()
+        cloud = FakeCloud()
+
+        first = archive_raw_backfill(
+            self.db, cloud, "stream_events", max_batches=1, batch_size=2
+        )
+        self.assertEqual(first["events_archived_this_run"], 2)
+        self.assertIsNone(first["last_source_id"])
+        state = self.db.execute(
+            """SELECT last_source_time,last_source_key FROM cloud_sync_state
+               WHERE dataset='archive:stream_events'"""
+        ).fetchone()
+        self.assertEqual(state[0], "2026-10-22T12:05:00+00:00")
+        self.assertEqual(json.loads(state[1]), ["coinbase", "101"])
+
+        second = archive_raw_backfill(
+            self.db, cloud, "stream_events", max_batches=10, batch_size=2
+        )
+        self.assertEqual(second["events_archived_this_run"], 1)
+        self.assertEqual(second["events_archived_total"], 3)
+        manifests = [
+            rows[0] for table, rows, _ in cloud.upserts if table == "raw_archives"
+        ]
+        self.assertTrue(all(m["first_source_id"] is None for m in manifests))
+        self.assertEqual(
+            json.loads(manifests[-1]["metadata"]["last_source_key"]),
+            ["coinbase", "102"],
+        )
+
     def test_local_sync_schema_is_tiny_and_separate_from_raw_data(self):
         initialize_local_sync(self.db)
         columns = [row[1] for row in self.db.execute("PRAGMA table_info(cloud_sync_state)")]

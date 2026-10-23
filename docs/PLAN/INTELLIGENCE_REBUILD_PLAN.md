@@ -1,6 +1,6 @@
 # BTC Intelligence Rebuild Plan
 
-**Branch:** `codex/fastapi-phase1-5`  
+**Branch:** `codex/cloud-memory-phase1-75`  
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
 **Rule:** Keep the existing working collector/evaluation pipeline, rebuild the intelligence layer in measured phases.
@@ -20,9 +20,9 @@
 
 ## Current position
 
-**Current phase:** Phase 1.5 — FastAPI Service Layer  
-**Current branch:** `codex/fastapi-phase1-5`  
-**Next gate:** run a local live smoke test against the real `.env` + SQLite database, then migrate the dashboard's high-frequency current-state reads to FastAPI while leaving historical/research reads bounded.
+**Current phase:** Phase 1.75 — Cloud Memory & Data Lifecycle  
+**Current branch:** `codex/cloud-memory-phase1-75`  
+**Next gate:** run a bounded real-data structured sync and raw-archive smoke test from the user's local SQLite database, then backfill/verify existing history before any retention/deletion is enabled.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -46,14 +46,15 @@
 |---|---|---|---|
 | 0 | [x] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
 | 1 | [x] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
-| 1.5 | [~] | FastAPI service layer | One local async API for dashboard, live state, models, Polymarket adapters, and later Supabase |
-| 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs |
+| 1.5 | [~] | FastAPI service layer | One local async API for dashboard and live-state access; live smoke/dashboard migration remain |
+| 1.75 | [~] | Cloud Memory & Data Lifecycle | Postgres for structured history, Storage for compressed raw archives, SQLite as short-term spool |
+| 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs after storage lifecycle is safe |
 | 3 | [ ] | `microstructure_v1` | Independent order-flow/order-book probability |
 | 4 | [ ] | Specialist model framework | Every model uses the same output contract |
 | 5 | [ ] | Multi-exchange spot inputs | Cross-exchange confirmation |
 | 6 | [ ] | Derivatives inputs/model | Funding, OI, liquidations, basis |
-| 7 | [ ] | Supabase/Postgres long-term storage | SQLite stays local/fast while history grows safely |
-| 8 | [ ] | Retention / archival | Local DB growth becomes controlled |
+| 7 | [ ] | Cloud storage maturity | Pooling, indexing, query optimization, cost/usage controls, backup/recovery |
+| 8 | [ ] | Retention / archival maturity | Tune retention windows and replay/compaction after measured growth |
 | 9 | [ ] | `historical_v2` | Rich leakage-safe historical matching |
 | 10 | [ ] | `openai_analyst_v1` | AI analyzes compact current market state |
 | 11 | [ ] | Dashboard specialist panels | See every model independently |
@@ -198,7 +199,7 @@ SQLite <---- persistence ---- FastAPI/service process ---- async sync ----> Supa
 - [x] Add bounded/read-only historical endpoints.
 - [x] Add Server-Sent Events or WebSocket endpoint for dashboard live updates.
 - [x] Keep Polymarket/exchange credentials server-side only.
-- [ ] Add connection pooling/reuse for future Postgres/Supabase access.
+- [ ] Add connection pooling/reuse only when direct Postgres access is introduced; Phase 1.75 starts with bounded asynchronous cloud writes.
 - [x] Do not route every market tick through Supabase.
 - [x] Add request/response tests and latency measurements.
 
@@ -213,11 +214,134 @@ SQLite <---- persistence ---- FastAPI/service process ---- async sync ----> Supa
 - [x] GitHub Actions passes 85 tests including FastAPI request/history tests.
 - [ ] Perform a real local live smoke test with the user's current database and credentials.
 - [ ] Migrate the legacy dashboard's high-frequency live panels to the new endpoints.
-- [ ] Add Postgres/Supabase pooling only when cloud sync work begins; no remote DB is in the hot path now.
+- [~] Cloud sync work has moved to Phase 1.75; no remote DB is in the hot path.
 
 ## Supabase performance rule
 
 For long-term storage, prefer backend-side Postgres/Supabase access with pooled connections and batched writes. FastAPI should return current state from RAM/local cache; it should query Supabase only for historical/research requests or background synchronization.
+
+
+# Phase 1.75 — Cloud Memory & Data Lifecycle
+
+**Status: IN PROGRESS**
+
+## Why this moved forward
+
+The real SQLite inspection showed that database growth is dominated by raw high-frequency evidence, not by forecasts or feature history:
+
+- `observations` (primarily Polymarket full book snapshots) is the largest storage consumer.
+- `stream_events` (primarily Coinbase stream evidence) is the second-largest storage consumer.
+- Feature snapshots, predictions, markets, outcomes, candles, and evaluation data are comparatively small.
+- A larger local machine would postpone the storage limit but would not solve indefinite growth.
+
+The architecture therefore changes before Coinbase L2 is added: the bot computes locally from RAM, keeps SQLite as a bounded hot/recovery spool, stores structured long-term intelligence in Supabase Postgres, and stores compressed raw feed archives in private Supabase Storage.
+
+## Target architecture
+
+```text
+Coinbase / Polymarket / future feeds
+                 |
+                 v
+             LiveState RAM
+                 |
+          features + models
+                 |
+                 v
+              forecast
+                 |
+        +--------+---------+
+        |                  |
+        v                  v
+     FastAPI          local SQLite
+   dashboard/API      hot/recovery spool
+                           |
+                    async persistence
+                    +------+------+
+                    |             |
+                    v             v
+          Supabase Postgres   Supabase Storage
+          structured history  compressed raw archive
+```
+
+## Storage responsibilities
+
+| Layer | Responsibility |
+|---|---|
+| RAM | Current market, rolling windows, current books/quotes, current specialist/model state |
+| SQLite | Recent raw evidence, restart/recovery state, upload backlog/checkpoints |
+| Supabase Postgres | Markets, outcomes, feature snapshots, predictions, model outputs, evaluations, historical summaries, news/event metadata, knowledge metadata/chunks |
+| Supabase Storage | Compressed Coinbase/Polymarket raw archives, future L2 archives, trading/reference documents, optional verified backups |
+
+## Hard rules
+
+- [x] Supabase is never required to produce a live forecast.
+- [x] The hot path remains `feed → RAM → features/models → forecast`.
+- [x] Cloud writes are isolated from the forecast path and run through a separate bounded sync/archive runner; automatic scheduling is still pending.
+- [ ] No local raw deletion until the corresponding cloud archive is verified.
+- [x] Archive verification uses authenticated readback, compressed-byte count, SHA-256, event count, and a verified manifest.
+- [x] Structured cloud writes use stable source IDs/upserts and local/cloud checkpoints; raw archive object paths are deterministic and manifests upsert by bucket/path.
+- [x] Secrets stay server-side only.
+- [x] Storage buckets used by the bot are private.
+- [x] Raw feed archives are deterministic gzip-compressed JSONL before upload.
+- [x] Structured history remains queryable without opening raw archives.
+
+## Initial Supabase Postgres tables
+
+- [x] `markets`
+- [x] `official_outcomes`
+- [x] `feature_snapshots`
+- [x] `predictions`
+- [x] `model_outputs`
+- [x] `evaluation_metrics`
+- [x] `news_events`
+- [x] `sync_checkpoints`
+- [x] `raw_archives`
+- [ ] Knowledge tables for trading/reference material when RAG work begins.
+
+## Initial private Storage buckets
+
+- [x] `market-raw` — compressed raw Coinbase/Polymarket/future L2 archives.
+- [x] `knowledge` — trading/reference documents.
+- [x] `backups` — optional verified SQLite/database backups.
+
+## Implementation order
+
+- [x] P1.75.1 Design and create cloud schema; hosted migration applied and RLS verified.
+- [x] P1.75.2 Add server-side Supabase client/config validation with explicit opt-in.
+- [x] P1.75.3 Add idempotent structured batch sync with dependency-safe backfill/checkpoints.
+- [x] P1.75.4 Add deterministic gzip JSONL raw archive writer.
+- [x] P1.75.5 Add private Storage upload + authenticated readback/checksum verification + manifest.
+- [x] P1.75.6 Add sync/archive health telemetry to FastAPI (`/cloud/status` and separate cloud status inside `/health`); dashboard presentation can follow with the broader Phase 1.5 migration.
+- [~] P1.75.7 Backfill existing SQLite structured history: resumable/idempotent tooling is implemented; real local database execution/verification is pending.
+- [~] P1.75.8 Archive existing raw history and verify it: resumable source-cursor batches + authenticated checksum readback are implemented; real local database execution is pending.
+- [ ] P1.75.9 Enable configurable local retention only after verified backfill.
+- [ ] P1.75.10 Measure a new 24-hour run and tune retention.
+- [ ] P1.75.11 Add historical raw replay tooling for research/model validation.
+
+## Initial retention target
+
+These are starting points, not permanent rules:
+
+| Data | Local target | Long-term destination |
+|---|---|---|
+| Full raw Polymarket books | ~48h | compressed Supabase Storage |
+| Raw Coinbase stream events | ~48h initially | compressed Supabase Storage |
+| Future Coinbase L2 | ~24–48h | compressed Supabase Storage |
+| Candles | longer/local as useful | Supabase Postgres |
+| Feature snapshots | longer/local as useful | Supabase Postgres |
+| Predictions/model outputs | longer/local as useful | Supabase Postgres |
+| Markets/outcomes/evaluation | keep (small) | Supabase Postgres |
+
+## Definition of done
+
+- Continuous collection can run without unbounded local disk growth.
+- A Supabase outage does not stop live forecasting.
+- Structured historical research can query Postgres directly.
+- Raw historical evidence remains recoverable/replayable from Storage.
+- Existing SQLite history is verified in cloud before any cleanup.
+- Storage/sync health is observable and tested.
+
+---
 
 # Phase 2 — Coinbase Microstructure Inputs
 
@@ -383,11 +507,11 @@ Measure leverage/positioning pressure that spot data alone cannot see.
 
 ---
 
-# Phase 7 — Storage Upgrade: RAM + SQLite + Supabase/Postgres
+# Phase 7 — Cloud Storage Maturity
 
 ## Goal
 
-Keep live analysis fast while allowing history to grow for months/years.
+Optimize the Phase 1.75 cloud foundation only after real usage data exists: pooling/direct Postgres where justified, indexes, cost controls, backup/recovery, and larger-scale analytical access.
 
 ## Storage responsibilities
 
@@ -413,22 +537,18 @@ Avoid:
 feed → Supabase → query Supabase → prediction
 ```
 
-## Supabase checklist
+## Maturity checklist
 
-- [ ] Design schema.
-- [ ] Create sync metadata/queue locally.
-- [ ] Idempotent upserts.
-- [ ] Stable source IDs.
-- [ ] Batch sync.
-- [ ] Retry/backoff.
-- [ ] Offline-safe operation.
-- [ ] Sync health visible in dashboard/ops.
-- [ ] Historical backfill from existing SQLite.
-- [ ] Verify row counts / checksums before deleting anything locally.
+- [ ] Measure Postgres query/write load before introducing direct connection pooling.
+- [ ] Add/adjust indexes from observed query plans.
+- [ ] Add cloud usage/cost telemetry and alerts.
+- [ ] Validate backup/restore and disaster-recovery procedures.
+- [ ] Tune archive partitioning/format for replay and research workloads.
+- [ ] Revisit larger analytical stores only if Postgres/object-storage workflows become a measured bottleneck.
 
 ---
 
-# Phase 8 — Retention / Local DB Growth
+# Phase 8 — Retention / Archive Maturity
 
 ## Goal
 
@@ -438,8 +558,8 @@ Stop the local DB from growing forever while preserving useful research data.
 
 | Data | Local retention | Long-term |
 |---|---|---|
-| Raw full order-book events | ~1–3 days initially | normally no |
-| Raw trades/ticks | ~7–30 days initially | optional archive |
+| Raw full order-book events | ~48h initial target | compressed Supabase Storage |
+| Raw trades/ticks | ~48h initial target | compressed Supabase Storage |
 | 1m candles | keep | yes |
 | Derived feature snapshots | keep | yes |
 | Markets / targets / outcomes | keep | yes |
@@ -729,14 +849,17 @@ Only upgrade when measured need appears:
 - [x] **P1.1** Build Live State Engine.
 - [x] **P1.5.1** Add FastAPI service layer around current state/forecast/health.
 - [x] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
+- [x] **P1.75.1** Design/create Supabase structured-history schema and private Storage buckets.
+- [x] **P1.75.2** Build bounded structured sync + compressed raw archive writer with checksum verification.
+- [~] **P1.75.3** Backfill/verify current SQLite history in cloud — tooling complete; real local run pending.
+- [ ] **P1.75.4** Enable local retention only after verified cloud copies.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.
 - [ ] **P3.1** Build `microstructure_v1`.
 - [ ] **P4.1** Add specialist interface.
 - [ ] **P5.1** Add second spot exchange.
 - [ ] **P6.1** Add derivatives feed.
-- [ ] **P7.1** Design Supabase schema.
-- [ ] **P7.2** Build async SQLite → Supabase sync.
-- [ ] **P8.1** Add retention controls.
+- [ ] **P7.1** Mature cloud storage performance/cost/recovery.
+- [ ] **P8.1** Tune retention/archive/replay using measured growth.
 - [ ] **P9.1** Build `historical_v2`.
 - [ ] **P10.1** Build `openai_analyst_v1`.
 - [ ] **P11.1** Add specialist dashboard.

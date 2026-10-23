@@ -40,6 +40,7 @@ GET /state/current
 GET /forecast/current
 GET /models/current
 GET /health
+GET /cloud/status
 GET /history/predictions?limit=100
 GET /events
 ```
@@ -47,6 +48,72 @@ GET /events
 Open `http://127.0.0.1:8000/docs` for the local OpenAPI UI. `/events` is a Server-Sent Events stream for live dashboard updates. The current-state endpoints read the shared RAM state; the bounded history endpoint reads SQLite in query-only mode.
 
 Do not run `streaming.py` or the detached collector against the same database at the same time as `run_api.py`: the service starts the collectors itself and the existing per-database lock prevents duplicate ownership. The legacy dashboard still works while it is being migrated to these FastAPI endpoints.
+
+## Cloud memory and raw archives
+
+Phase 1.75 keeps the live forecast path local while moving durable history to Supabase:
+
+```text
+feeds -> LiveState RAM -> features/models -> forecast
+                                |
+                                +-> local SQLite hot/recovery spool
+                                          |
+                                          +-> Supabase Postgres (structured history)
+                                          +-> private Supabase Storage (compressed raw archives)
+```
+
+The hosted schema lives in `supabase/schema/cloud_memory_v1.sql`. Structured tables are RLS-enabled, anonymous/authenticated table access is revoked, and server-side writes use the existing `SUPABASE_SECRET_KEY`. Never expose that key in a browser or commit it.
+
+The required private Storage buckets are defined reproducibly in `supabase/schema/storage_buckets_v1.sql`:
+
+```text
+market-raw
+knowledge
+backups
+```
+
+Cloud work is explicitly disabled unless `ENABLE_SUPABASE_SYNC=true`. A bounded structured smoke test is:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py structured
+```
+
+To backfill all currently unsynced structured history in bounded batches:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py structured --backfill
+```
+
+Raw evidence is archived separately in deterministic gzip-compressed JSONL windows. Example:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py archive \
+  --dataset observations \
+  --start 2026-10-22T12:00:00Z \
+  --end   2026-10-22T13:00:00Z
+```
+
+Use `--dataset stream_events` for Coinbase stream evidence. Upload success is followed by an authenticated private-bucket readback; only a matching byte count and SHA-256 receives a verified `raw_archives` manifest.
+
+For the existing large SQLite history, prefer the resumable source-cursor backfill instead of manually choosing hundreds of time windows:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py raw-backfill \
+  --dataset observations \
+  --max-batches 24 \
+  --batch-size 5000
+
+.venv/bin/python backend/app/run_cloud_sync.py raw-backfill \
+  --dataset stream_events \
+  --max-batches 24 \
+  --batch-size 5000
+```
+
+The Polymarket archive cursor uses the stable observation ID. Coinbase stream events use the stable `(received_at, source, event_id)` tuple rather than SQLite `rowid`, because `rowid` can change after VACUUM. The first Coinbase raw-backfill run creates a supporting local index for that durable cursor.
+
+`GET /cloud/status` reports local structured/archive checkpoints separately from live forecast health. A cloud outage therefore stays observable without being treated as a live-model failure.
+
+**Local retention/deletion is not implemented or enabled yet**; structured backfill plus raw archive verification must succeed before any raw rows are removed.
 
 ## Local status dashboard
 

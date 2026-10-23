@@ -104,6 +104,32 @@ class SupabaseHTTP:
             "bytes": len(payload),
         }
 
+    def download_bytes(self, bucket, object_path):
+        response = self.client.get(
+            f"{self.config.url}/storage/v1/object/authenticated/{quote(bucket, safe='')}/{quote(object_path, safe='/')}",
+            headers=self._headers(**{"Cache-Control": "no-store"}),
+        )
+        response.raise_for_status()
+        return response.content
+
+    def verify_object(self, bucket, object_path, expected_sha256, expected_bytes):
+        payload = self.download_bytes(bucket, object_path)
+        actual_sha256 = hashlib.sha256(payload).hexdigest()
+        if len(payload) != expected_bytes:
+            raise RuntimeError(
+                f"Storage verification size mismatch for {bucket}/{object_path}: "
+                f"{len(payload)} != {expected_bytes}"
+            )
+        if actual_sha256 != expected_sha256:
+            raise RuntimeError(
+                f"Storage verification checksum mismatch for {bucket}/{object_path}"
+            )
+        return {
+            "bytes": len(payload),
+            "sha256": actual_sha256,
+            "verified_at": _now(),
+        }
+
 
 LOCAL_STATE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS cloud_sync_state (
@@ -518,6 +544,9 @@ def archive_raw_window(db, cloud, dataset, start, end, bucket=RAW_BUCKET):
     raw, compressed, digest = build_archive(dataset, rows)
     source, object_path = archive_object_path(dataset, start, end)
     cloud.upload_bytes(bucket, object_path, compressed, "application/gzip")
+    verification = cloud.verify_object(
+        bucket, object_path, digest, len(compressed)
+    )
     manifest = {
         "source": source,
         "market_id": None,
@@ -531,8 +560,13 @@ def archive_raw_window(db, cloud, dataset, start, end, bucket=RAW_BUCKET):
         "event_count": len(rows),
         "uncompressed_bytes": len(raw),
         "compressed_bytes": len(compressed),
-        "verified_at": None,
-        "metadata": {"dataset": dataset, "format": "jsonl", "gzip_mtime": 0},
+        "verified_at": verification["verified_at"],
+        "metadata": {
+            "dataset": dataset,
+            "format": "jsonl",
+            "gzip_mtime": 0,
+            "verification": "authenticated_readback_sha256",
+        },
     }
     cloud.upsert("raw_archives", [manifest], "bucket,object_path")
     return manifest

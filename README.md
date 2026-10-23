@@ -48,6 +48,52 @@ Open `http://127.0.0.1:8000/docs` for the local OpenAPI UI. `/events` is a Serve
 
 Do not run `streaming.py` or the detached collector against the same database at the same time as `run_api.py`: the service starts the collectors itself and the existing per-database lock prevents duplicate ownership. The legacy dashboard still works while it is being migrated to these FastAPI endpoints.
 
+## Cloud memory and raw archives
+
+Phase 1.75 keeps the live forecast path local while moving durable history to Supabase:
+
+```text
+feeds -> LiveState RAM -> features/models -> forecast
+                                |
+                                +-> local SQLite hot/recovery spool
+                                          |
+                                          +-> Supabase Postgres (structured history)
+                                          +-> private Supabase Storage (compressed raw archives)
+```
+
+The hosted schema lives in `supabase/schema/cloud_memory_v1.sql`. Structured tables are RLS-enabled, anonymous/authenticated table access is revoked, and server-side writes use the existing `SUPABASE_SECRET_KEY`. Never expose that key in a browser or commit it.
+
+Create these **private** Supabase Storage buckets before raw archive uploads:
+
+```text
+market-raw
+knowledge
+backups
+```
+
+Cloud work is explicitly disabled unless `ENABLE_SUPABASE_SYNC=true`. A bounded structured smoke test is:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py structured
+```
+
+To backfill all currently unsynced structured history in bounded batches:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py structured --backfill
+```
+
+Raw evidence is archived separately in deterministic gzip-compressed JSONL windows. Example:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py archive \
+  --dataset observations \
+  --start 2026-10-22T12:00:00Z \
+  --end   2026-10-22T13:00:00Z
+```
+
+Use `--dataset stream_events` for Coinbase stream evidence. Upload success records a `raw_archives` manifest with byte counts, event count and SHA-256. **Local retention/deletion is not implemented or enabled yet**; cloud backfill and archive verification must succeed before any raw rows are removed.
+
 ## Local status dashboard
 
 Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. Opening `backend/app/dashboard.html` as a `file://` preview cannot fetch the local `/api` routes; that preview now links to the live server. The server binds only to localhost and reads the existing SQLite database in query-only mode. The browser checks status every 2 seconds and refreshes full 15-minute Coinbase chart history every 5 seconds; each new status also updates the chart with the latest saved tick. Its UTC clock, market countdown, and saved-data ages tick locally between checks using the server timestamp. The chart groups captured stream ticks into five-second buckets and shows Polymarket's exact price to beat as a blue dotted line with its value, with source and partial capture labeled. The Coinbase chart can differ from Polymarket's BRTI chart. Other panels show the active market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, recent confirmed outcomes, saved BTC headlines, and the latest retrospectively linked evidence. Context links do not mean the baseline used that evidence. The dashboard makes a separate authenticated read-only Polymarket market-data WebSocket connection for direct UP/DOWN quotes, but it does not place orders. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately for Coinbase ticks, active-market discovery, and saved forecasts; the dashboard labels the data stale when it stops.

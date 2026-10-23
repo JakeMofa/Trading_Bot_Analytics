@@ -143,6 +143,28 @@ class FastAPITests(unittest.TestCase):
                     self.assertEqual(health['cloud']['status'],'ok')
                     self.assertEqual(health['status'],'ok')
 
+    def test_cloud_status_includes_lifecycle_without_affecting_health(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'life.db'
+            db = sqlite3.connect(path)
+            import cloud_lifecycle
+            cloud_lifecycle.initialize_lifecycle_state(db)
+            db.execute("""UPDATE cloud_lifecycle_state SET worker_status='degraded',
+                          last_error_type='ConnectError', last_error_stage='structured'""")
+            db.commit()
+            db.close()
+            with patch.dict('os.environ', {'ENABLE_CLOUD_LIFECYCLE':'true'}):
+                app = create_app(
+                    self.populated_state(), db_path=str(path), start_collectors=False)
+                with TestClient(app) as client:
+                    cloud = client.get('/cloud/status').json()
+                    life = cloud['lifecycle']
+                    self.assertEqual(life['status'], 'stale')
+                    self.assertEqual(life['last_error_type'], 'ConnectError')
+                    self.assertNotIn('lifecycle', cloud['datasets'])
+                    health = client.get('/health').json()
+                    self.assertEqual(health['status'], 'ok')
+
     def test_sse_route_is_registered(self):
         app = create_app(LiveState(), start_collectors=False)
         paths = {route.path for route in app.routes}

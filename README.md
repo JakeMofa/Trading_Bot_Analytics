@@ -125,6 +125,18 @@ Raw `observations` and `stream_events` older than `LOCAL_RAW_RETENTION_HOURS` (d
 
 `apply` deletes in `RETENTION_DELETE_BATCH_SIZE` batches, is idempotent, and always keeps the newest `observations` row so row IDs are never reused. Dry-run and apply read manifests from Supabase; live forecasting never depends on this tool.
 
+### Cloud lifecycle worker (disabled by default)
+
+Process topology: FastAPI (`run_api.py`) owns the collector and live state; the **cloud lifecycle worker** is a separate process that does structured sync, raw archive and verified retention; the ensemble agent is the experimental model process. Never start `operations.py start` alongside `run_api.py`.
+
+```bash
+.venv/bin/python backend/app/run_cloud_lifecycle.py status   # read-only, local only
+.venv/bin/python backend/app/run_cloud_lifecycle.py once     # one bounded cycle
+.venv/bin/python backend/app/run_cloud_lifecycle.py run      # until SIGTERM/SIGINT
+```
+
+`once` and `run` need `ENABLE_CLOUD_LIFECYCLE=true` and `ENABLE_SUPABASE_SYNC=true`, and take a per-database lock (a second worker fails). Stages run on independent cadences. Retention runs only if `ENABLE_LOCAL_RETENTION=true` and the **same lifecycle cycle actually ran the raw archive stage successfully**; a successful prior cycle cannot authorize deletion later. Any cloud failure is recorded (exception type and HTTP code only), deletes nothing, and never affects the collector. Cycles with no due work do not open a Supabase client. State is in `cloud_lifecycle_state` and shown under `lifecycle` in `GET /cloud/status`; live `/health` status ignores it. The worker never runs VACUUM.
+
 ## Local status dashboard
 
 Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. Opening `backend/app/dashboard.html` as a `file://` preview cannot fetch the local `/api` routes; that preview now links to the live server. The server binds only to localhost and reads the existing SQLite database in query-only mode. The browser checks status every 2 seconds and refreshes full 15-minute Coinbase chart history every 5 seconds; each new status also updates the chart with the latest saved tick. Its UTC clock, market countdown, and saved-data ages tick locally between checks using the server timestamp. The chart groups captured stream ticks into five-second buckets and shows Polymarket's exact price to beat as a blue dotted line with its value, with source and partial capture labeled. The Coinbase chart can differ from Polymarket's BRTI chart. Other panels show the active market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, recent confirmed outcomes, saved BTC headlines, and the latest retrospectively linked evidence. Context links do not mean the baseline used that evidence. The dashboard makes a separate authenticated read-only Polymarket market-data WebSocket connection for direct UP/DOWN quotes, but it does not place orders. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately for Coinbase ticks, active-market discovery, and saved forecasts; the dashboard labels the data stale when it stops.

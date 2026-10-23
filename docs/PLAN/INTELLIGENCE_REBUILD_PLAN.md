@@ -21,7 +21,7 @@
 ## Current position
 
 **Current phase:** Phase 1.75 — Cloud Memory & Data Lifecycle  
-**Current branch:** `codex/cloud-memory-phase1-75`  
+**Current branch:** `codex/cloud-lifecycle-phase1-75`  
 **Next gate:** review the real-database retention dry-run, then explicitly opt in to the first bounded production purge (`ENABLE_LOCAL_RETENTION=true` plus `apply --confirm`). Collector/API stay stopped until that decision.
 
 ### Phase 0 progress already implemented on this branch
@@ -323,6 +323,11 @@ Coinbase / Polymarket / future feeds
   - CLI: `run_retention.py status` (local only), `dry-run` (default, read-only connection), `apply --confirm` (also requires `ENABLE_LOCAL_RETENTION=true`); bounded `RETENTION_DELETE_BATCH_SIZE` batches; idempotent and restart-safe. Manifests are read from Supabase for dry-run/apply only; the live path never calls this module.
   - Evidence: 20 new tests (112 total) cover disabled-by-default, invalid hours, unverified/untrusted manifests, partial coverage, cutoff boundary, duplicate `received_at`, batching, dry-run writes nothing, confirmation gate, structured tables untouched, idempotence.
   - Remaining gap: first production `apply` is a separate, explicit decision after reviewing the dry-run.
+- [x] P1.75.9b Cloud lifecycle worker (`backend/app/cloud_lifecycle.py`, `run_cloud_lifecycle.py`): implemented and tested (132 tests); disabled by default.
+  - Separate process from FastAPI/collector; per-DB `flock`; independent cadences for structured sync, observations/stream_events archive and retention; bounded catch-up per cycle; `busy_timeout`, short transactions, no network inside a write transaction; no VACUUM.
+  - Retention only when `ENABLE_LOCAL_RETENTION=true` and the cycle's archive verified; any failure skips deletion. Telemetry in `cloud_lifecycle_state` (sanitized type/HTTP code only), exposed in `GET /cloud/status`; `/health` unaffected.
+  - Topology: FastAPI owns collector + live state; lifecycle worker owns cloud copy/archive/retention; ensemble agent is the experimental model process.
+  - Remaining gap: first real `once` run, then restart order (API, worker, agent) and removal of the PRECOMPACT copy after a successful restart.
 - [ ] P1.75.10 Measure a new 24-hour run and tune retention.
 - [ ] P1.75.11 Add historical raw replay tooling for research/model validation.
 

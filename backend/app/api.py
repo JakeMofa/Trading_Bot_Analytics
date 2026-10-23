@@ -10,6 +10,7 @@ import time
 from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse
 
+from cloud_lifecycle import read_lifecycle_status
 from live_state import LiveState
 from streaming import DEFAULT_MAX_STORAGE_MB, run as run_collectors
 
@@ -37,6 +38,15 @@ def _env_enabled(name, default="false"):
 
 
 def _read_cloud_status(db_path):
+    status = _read_cloud_datasets(db_path)
+    try:
+        status["lifecycle"] = read_lifecycle_status(db_path)
+    except Exception as error:
+        status["lifecycle"] = {"status": "unavailable", "error": type(error).__name__}
+    return status
+
+
+def _read_cloud_datasets(db_path):
     enabled = _env_enabled("ENABLE_SUPABASE_SYNC")
     if db_path != ":memory:" and not Path(db_path).exists():
         return {"enabled": enabled, "status": "no_local_database", "datasets": []}

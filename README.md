@@ -40,6 +40,7 @@ GET /state/current
 GET /forecast/current
 GET /models/current
 GET /health
+GET /cloud/status
 GET /history/predictions?limit=100
 GET /events
 ```
@@ -63,7 +64,7 @@ feeds -> LiveState RAM -> features/models -> forecast
 
 The hosted schema lives in `supabase/schema/cloud_memory_v1.sql`. Structured tables are RLS-enabled, anonymous/authenticated table access is revoked, and server-side writes use the existing `SUPABASE_SECRET_KEY`. Never expose that key in a browser or commit it.
 
-Create these **private** Supabase Storage buckets before raw archive uploads:
+The required private Storage buckets are defined reproducibly in `supabase/schema/storage_buckets_v1.sql`:
 
 ```text
 market-raw
@@ -92,7 +93,27 @@ Raw evidence is archived separately in deterministic gzip-compressed JSONL windo
   --end   2026-10-22T13:00:00Z
 ```
 
-Use `--dataset stream_events` for Coinbase stream evidence. Upload success records a `raw_archives` manifest with byte counts, event count and SHA-256. **Local retention/deletion is not implemented or enabled yet**; cloud backfill and archive verification must succeed before any raw rows are removed.
+Use `--dataset stream_events` for Coinbase stream evidence. Upload success is followed by an authenticated private-bucket readback; only a matching byte count and SHA-256 receives a verified `raw_archives` manifest.
+
+For the existing large SQLite history, prefer the resumable source-cursor backfill instead of manually choosing hundreds of time windows:
+
+```sh
+.venv/bin/python backend/app/run_cloud_sync.py raw-backfill \
+  --dataset observations \
+  --max-batches 24 \
+  --batch-size 5000
+
+.venv/bin/python backend/app/run_cloud_sync.py raw-backfill \
+  --dataset stream_events \
+  --max-batches 24 \
+  --batch-size 5000
+```
+
+The Polymarket archive cursor uses the stable observation ID. Coinbase stream events use the stable `(received_at, source, event_id)` tuple rather than SQLite `rowid`, because `rowid` can change after VACUUM. The first Coinbase raw-backfill run creates a supporting local index for that durable cursor.
+
+`GET /cloud/status` reports local structured/archive checkpoints separately from live forecast health. A cloud outage therefore stays observable without being treated as a live-model failure.
+
+**Local retention/deletion is not implemented or enabled yet**; structured backfill plus raw archive verification must succeed before any raw rows are removed.
 
 ## Local status dashboard
 

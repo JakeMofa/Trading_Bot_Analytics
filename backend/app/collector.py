@@ -122,6 +122,8 @@ def connect(path):
     CREATE TABLE IF NOT EXISTS observations (
       id INTEGER PRIMARY KEY, market_id TEXT NOT NULL REFERENCES markets(id),
       received_at TEXT NOT NULL, source_time TEXT, kind TEXT NOT NULL, payload TEXT NOT NULL);
+    CREATE INDEX IF NOT EXISTS observations_market_kind_received
+      ON observations(market_id,kind,received_at);
     CREATE TABLE IF NOT EXISTS candles (
       source TEXT NOT NULL, symbol TEXT NOT NULL, granularity INTEGER NOT NULL,
       time INTEGER NOT NULL, low TEXT, high TEXT, open TEXT, close TEXT, volume TEXT,

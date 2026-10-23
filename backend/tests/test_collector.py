@@ -61,6 +61,30 @@ class CollectorTests(unittest.TestCase):
             found=discover(timestamp('2026-09-30T01:15:00Z'))
         self.assertEqual(found[900]['id'],'2')
 
+    def test_legacy_observation_index_upgrade_preserves_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'legacy.db'
+            db = connect(path)
+            raw = self.market()
+            raw['assetPriceTerms']['priceToBeat']['value'] = '100.1234567890123456789'
+            with db:
+                save_market(db, normalize(raw), '2026-09-30T01:05:00+00:00')
+                db.execute('DROP INDEX observations_market_kind_received')
+            before = db.execute('SELECT * FROM observations').fetchall()
+            db.close()
+            for _ in range(2):
+                db = connect(path)
+                self.assertEqual(db.execute('SELECT * FROM observations').fetchall(), before)
+                self.assertEqual(db.execute('SELECT target FROM markets').fetchone()[0],
+                                 '100.1234567890123456789')
+                self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(), [])
+                plan = db.execute('''EXPLAIN QUERY PLAN SELECT payload FROM observations
+                  WHERE market_id=? AND kind='metadata'
+                    AND julianday(received_at)<=julianday(?)''',
+                  ('1', '2026-09-30T01:10:00Z')).fetchall()
+                self.assertTrue(any('SEARCH observations USING INDEX' in row[3] for row in plan))
+                db.close()
+
     def test_book_fallback_and_delayed_resolution_do_not_block_collection(self):
         db=connect(':memory:')
         m=normalize(self.market())

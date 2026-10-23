@@ -42,7 +42,9 @@
 - [x] Reboot recovery verified: three services automatically active, both feeds live, new 22:30 UTC market followed, fresh RAM forecast, SQLite integrity `ok`, zero foreign-key violations, no application errors or unplanned restarts. Mac collector remains stopped and its DB checksum is unchanged since cutover.
 - [x] Independent readback from the VM verified compressed byte count, SHA-256 and JSONL event count for the newest archive from each feed; 297 manifests verified / zero unverified at the first check.
 - [x] Deployment performance diagnosis found repeated outcome scans for every historical snapshot when a market's raw metadata is no longer local. Experimental ensemble's first VM calculation took ~157 seconds. `match_cases` now caches missing-evidence lookups per market **within each call only**; later calls still see newly available evidence. Timestamp rules, fixed-scale scores and one-case-per-market behavior are unchanged. **137 local tests pass**, including query-count and later-outcome regression coverage.
-- [~] Validate the performance fix on the VM and record stable post-startup measurements; 24-hour soak remains pending.
+- [x] Missing-evidence caching passed **137 tests on Linux** and reduced VM matching to 9.07 seconds. On the stopped Mac DB, old/new complete results were identical; outcome lookups fell from 6,553 to 386 and elapsed time from 94.94 to 5.97 seconds.
+- [x] Query-plan inspection then found no observation index. Added an idempotent `(market_id,kind,received_at)` index; a legacy-DB regression checks preserved raw rows, exact target decimals and foreign keys. **138 local tests passed**. Matching an indexed copy of the production DB took 0.038 seconds; the production Mac DB and historical backups were not altered by benchmarking.
+- [~] Validate the final indexed version on the VM and record stable post-startup measurements; 24-hour soak remains pending.
 
 ### Phase 0 progress already implemented on this branch
 

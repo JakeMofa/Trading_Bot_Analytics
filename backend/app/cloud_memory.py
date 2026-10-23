@@ -536,22 +536,52 @@ def archive_object_path(dataset, start, end):
     return source, f"{source}/{prefix}/{name}"
 
 
-def _raw_id_rows(db, dataset, after_id, limit):
+def _stream_cursor_key(row):
+    return json.dumps([row["source"], row["event_id"]], separators=(",", ":"))
+
+
+def _raw_batch_rows(db, dataset, limit):
+    checkpoint_name = f"archive:{dataset}"
+    last_id, last_time, last_key, _ = _checkpoint(db, checkpoint_name)
     if dataset == "observations":
         cursor = db.execute(
             """SELECT id AS source_id,id,market_id,received_at,source_time,kind,payload
                FROM observations WHERE id>? ORDER BY id LIMIT ?""",
-            (after_id, limit),
+            (last_id or 0, limit),
         )
-    elif dataset == "stream_events":
+        return _dict_rows(cursor)
+    if dataset != "stream_events":
+        raise ValueError("dataset must be observations or stream_events")
+
+    # stream_events has a composite primary key but no stable INTEGER PRIMARY KEY.
+    # Never checkpoint SQLite rowid: VACUUM may renumber rowids. This index makes
+    # the durable (received_at,source,event_id) cursor efficient for backfill and
+    # later rolling retention.
+    db.execute(
+        """CREATE INDEX IF NOT EXISTS stream_events_archive_cursor
+           ON stream_events(received_at,source,event_id)"""
+    )
+    db.commit()
+    if last_time and last_key:
+        source, event_id = _json(last_key, [None, None])
+        if source is None or event_id is None:
+            raise RuntimeError("Invalid stream_events archive checkpoint key")
         cursor = db.execute(
-            """SELECT rowid AS source_id,rowid AS source_rowid,source,event_id,
-                      received_at,source_time,price,size,side,payload
-               FROM stream_events WHERE rowid>? ORDER BY rowid LIMIT ?""",
-            (after_id, limit),
+            """SELECT source,event_id,received_at,source_time,price,size,side,payload
+               FROM stream_events
+               WHERE received_at>?
+                  OR (received_at=? AND source>?)
+                  OR (received_at=? AND source=? AND event_id>?)
+               ORDER BY received_at,source,event_id LIMIT ?""",
+            (last_time, last_time, source, last_time, source, event_id, limit),
         )
     else:
-        raise ValueError("dataset must be observations or stream_events")
+        cursor = db.execute(
+            """SELECT source,event_id,received_at,source_time,price,size,side,payload
+               FROM stream_events
+               ORDER BY received_at,source,event_id LIMIT ?""",
+            (limit,),
+        )
     return _dict_rows(cursor)
 
 
@@ -563,7 +593,14 @@ def archive_batch_object_path(dataset, rows):
     ).astimezone(timezone.utc)
     source = "polymarket" if dataset == "observations" else "coinbase"
     prefix = started.strftime("%Y/%m/%d/%H")
-    name = f"{dataset}_{first['source_id']}_{last['source_id']}.jsonl.gz"
+    if dataset == "observations":
+        suffix = f"{first['source_id']}_{last['source_id']}"
+    else:
+        key_material = (
+            _stream_cursor_key(first) + "|" + _stream_cursor_key(last)
+        ).encode()
+        suffix = hashlib.sha256(key_material).hexdigest()[:16]
+    name = f"{dataset}_{suffix}.jsonl.gz"
     return source, f"{source}/{prefix}/{name}"
 
 
@@ -572,8 +609,7 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
         raise ValueError("raw archive batch limit must be 1..50000")
     initialize_local_sync(db)
     checkpoint_name = f"archive:{dataset}"
-    last_id, _, _, _ = _checkpoint(db, checkpoint_name)
-    rows = _raw_id_rows(db, dataset, last_id or 0, limit)
+    rows = _raw_batch_rows(db, dataset, limit)
     if not rows:
         return None
 
@@ -584,6 +620,14 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
         bucket, object_path, digest, len(compressed)
     )
     first, last = rows[0], rows[-1]
+    first_source_id = first.get("source_id")
+    last_source_id = last.get("source_id")
+    first_source_key = (
+        None if dataset == "observations" else _stream_cursor_key(first)
+    )
+    last_source_key = (
+        None if dataset == "observations" else _stream_cursor_key(last)
+    )
     manifest = {
         "source": source,
         "market_id": None,
@@ -597,22 +641,25 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
         "event_count": len(rows),
         "uncompressed_bytes": len(raw),
         "compressed_bytes": len(compressed),
-        "first_source_id": first["source_id"],
-        "last_source_id": last["source_id"],
+        "first_source_id": first_source_id,
+        "last_source_id": last_source_id,
         "verified_at": verification["verified_at"],
         "metadata": {
             "dataset": dataset,
             "format": "jsonl",
             "gzip_mtime": 0,
             "verification": "authenticated_readback_sha256",
+            "first_source_key": first_source_key,
+            "last_source_key": last_source_key,
         },
     }
     cloud.upsert("raw_archives", [manifest], "bucket,object_path")
     _save_checkpoint(
         db,
         checkpoint_name,
-        source_id=last["source_id"],
+        source_id=last_source_id,
         source_time=last["received_at"],
+        source_key=last_source_key,
         rows_added=len(rows),
         status="verified",
         detail=object_path,
@@ -621,8 +668,9 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
     _cloud_checkpoint(
         cloud,
         checkpoint_name,
-        source_id=last["source_id"],
+        source_id=last_source_id,
         source_time=last["received_at"],
+        source_key=last_source_key,
         rows_synced=total_synced,
         status="verified",
         detail=object_path,

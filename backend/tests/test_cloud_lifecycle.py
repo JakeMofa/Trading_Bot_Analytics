@@ -283,6 +283,58 @@ class LifecycleTests(unittest.TestCase):
         result, _ = self.run_with_structured(worker, force=False)
         self.assertEqual(result["archive"], {})
 
+    def test_retention_requires_archive_in_same_cycle(self):
+        clock = [1000.0]
+        worker = self.worker(
+            retention=False,
+            monotonic=lambda: clock[0],
+            config=make_config(
+                structured_interval=60,
+                raw_archive_interval=3600,
+                retention_interval=60,
+                raw_max_batches=5,
+            ),
+        )
+        first, _ = self.run_with_structured(worker, force=False)
+        self.assertEqual(first["archive"]["observations"]["archived"], 8)
+        self.assertEqual(first["retention"], {"status": "disabled", "deleted": 0})
+
+        # A prior successful archive must never authorize a later retention-only
+        # cycle. Retention needs a successful raw archive stage in this same cycle.
+        worker.retention = RetentionConfig(enabled=True, hours=48, batch_size=2)
+        clock[0] += 61
+        second, _ = self.run_with_structured(worker, force=False)
+        self.assertEqual(second["archive"], {})
+        self.assertEqual(
+            second["retention"], {"status": "skipped_archive_not_run", "deleted": 0})
+        self.assertEqual(self.count("observations"), 8)
+        self.assertEqual(self.count("stream_events"), 3)
+
+    def test_no_due_cycle_does_not_open_cloud_client(self):
+        clock = [1000.0]
+        calls = []
+        cloud = FakeCloud()
+
+        def factory():
+            calls.append(1)
+            return cloud
+
+        worker = LifecycleWorker(
+            self.path,
+            make_config(raw_max_batches=5),
+            RetentionConfig(enabled=False, hours=48, batch_size=2),
+            cloud_factory=factory,
+            monotonic=lambda: clock[0],
+        )
+        with patch.object(cloud_lifecycle, "sync_structured_once",
+                          return_value={"markets": 0}):
+            first = worker.run_cycle(force=False)
+            self.assertEqual(first["status"], "ok")
+            clock[0] += 30
+            second = worker.run_cycle(force=False)
+        self.assertEqual(second["status"], "idle")
+        self.assertEqual(len(calls), 1)
+
     def test_run_forever_marks_stopped(self):
         stop = threading.Event()
         worker = self.worker(config=make_config(raw_max_batches=5))

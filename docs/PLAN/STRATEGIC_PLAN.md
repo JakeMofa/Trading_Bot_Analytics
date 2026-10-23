@@ -19,6 +19,16 @@ Coinbase documents historical candles and live streaming. Historical candles may
 
 ## 3. Architecture and responsibility boundaries
 
+October 23, 2026 operating update: the user authorized moving the existing
+15-minute numerical/API/collector stack to a single Ubuntu Lightsail VM in the
+project's selected Region. RAM state and SQLite now run on that VM; Supabase
+remains the background structured-history/raw-archive destination. FastAPI is
+the sole collector owner; systemd separately supervises lifecycle and ensemble
+processes. OpenAI and automatic retention remain disabled for the initial cloud
+soak. Phase 2 and hourly ingestion remain deferred. Deployment evidence and the
+24-hour validation gate live in `INTELLIGENCE_REBUILD_PLAN.md` and
+`LIGHTSAIL_DEPLOYMENT_2026-10-23.md`.
+
 External sources → adapters → normalization/data health → shared BTC state and per-market sessions → SQLite evidence → feature calculations → numerical forecasts → optional historical/event retrieval and OpenAI analysis → dashboard and evaluation.
 
 - Source adapters obtain data and handle source-specific reconnects and limits.
@@ -147,7 +157,7 @@ Completion gate: forecasts trace to source evidence, dashboard status is honest,
 
 ## 13. Cost and retention strategy
 
-Aim for open-source local software and verified public feeds. Zero-cost access is a target, not an established property of every API. OpenAI is the planned paid exception; premium feeds/cloud infrastructure are excluded unless the user revises scope.
+Aim for open-source software and verified public feeds. Zero-cost access is a target, not an established property of every API. The user revised infrastructure scope on October 23, 2026 to authorize the roughly $12/month Lightsail VM described above. Other premium feeds/cloud services and paid OpenAI calls remain deferred unless separately authorized.
 
 Before choosing raw retention, measure bytes/hour for a sample run. Set configurable project and raw-data budgets below available disk capacity. Preserve targets, outcomes, forecast evidence, model versions and compact analyses. Keep raw books briefly if needed for debugging; archive or delete expired raw data using explicit retention policy. Monitor disk use and backfill progress. Preserve sufficient calculation evidence for reproducibility and record known limits when raw inputs expire.
 

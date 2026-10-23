@@ -228,6 +228,39 @@ class RetentionTests(unittest.TestCase):
             "SELECT event_id FROM stream_events ORDER BY received_at,source,event_id")]
         self.assertEqual(remaining, ["e5", "e6", "at-cutoff", "recent"])
 
+    def test_retention_preserves_observations_linked_to_predictions(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        self.db.execute("PRAGMA foreign_keys=ON")
+        self.db.execute("""CREATE TABLE prediction_context_links (
+            id INTEGER PRIMARY KEY,
+            outcome_observation_id INTEGER REFERENCES observations(id))""")
+        self.db.executemany("INSERT INTO prediction_context_links VALUES (?,?)",
+                            [(1, 2), (2, 2), (3, 15), (4, None)])
+        self.db.commit()
+        plan = self.plan()
+        report = plan["datasets"]["observations"]
+        self.assertEqual(report["eligible_rows"], 18)
+        self.assertEqual(report["protected_reference_rows"], 2)
+        self.assertEqual(report["uncovered_or_unverified_old_rows"], 0)
+        self.assertEqual(report["earliest_row_remaining_after_apply"],
+                         self.db.execute("SELECT received_at FROM observations WHERE id=2").fetchone()[0])
+        apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual([r[0] for r in self.db.execute("SELECT id FROM observations ORDER BY id")],
+                         [2, 15] + list(range(21, 31)))
+        self.assertEqual(self.db.execute("PRAGMA foreign_key_check").fetchall(), [])
+        self.assertEqual(self.count("prediction_context_links"), 4)
+
+    def test_reference_added_after_dry_run_is_protected_at_apply(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        self.db.execute("CREATE TABLE prediction_context_links (outcome_observation_id INTEGER)")
+        self.db.execute("INSERT INTO prediction_context_links VALUES (5)")
+        self.db.commit()
+        apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(self.db.execute("SELECT id FROM observations WHERE id=5").fetchone(), (5,))
+
     def test_stream_events_unverified_archive_deletes_nothing(self):
         for i in range(6):
             self.add_event("coinbase", f"e{i}", CUTOFF_DT - timedelta(days=2, seconds=i))

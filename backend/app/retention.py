@@ -212,13 +212,24 @@ def _protected_id(db, dataset):
     return db.execute("SELECT MAX(id) FROM observations").fetchone()[0]
 
 
-def _eligible_clause(dataset, spec, interval, cutoff, protected):
+def _unreferenced_observations(db):
+    if not db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='prediction_context_links'"
+    ).fetchone():
+        return "1"
+    return """id NOT IN (SELECT outcome_observation_id FROM prediction_context_links
+                         WHERE outcome_observation_id IS NOT NULL)"""
+
+
+def _eligible_clause(db, dataset, spec, interval, cutoff, protected):
     where, params = _between(spec, *interval)
     where += " AND received_at<?"
     params = (*params, cutoff)
     if protected is not None:
         where += " AND id<?"
         params = (*params, protected)
+    if dataset == "observations":
+        where += " AND " + _unreferenced_observations(db)
     return where, params
 
 
@@ -248,6 +259,13 @@ def _earliest_not_eligible(db, spec, intervals, cutoff, protected, dataset):
         ).fetchone()
         if row and row[0] < cutoff:
             candidates.append(row[0])
+    if dataset == "observations":
+        row = db.execute(
+            "SELECT MIN(received_at) FROM observations WHERE NOT ("
+            + _unreferenced_observations(db) + ")"
+        ).fetchone()[0]
+        if row:
+            candidates.append(row)
     recent = db.execute(
         f"SELECT MIN(received_at) FROM {spec.table} WHERE received_at>=?", (cutoff,)
     ).fetchone()[0]
@@ -280,19 +298,29 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
     protected = _protected_id(db, dataset)
     eligible = 0
     for interval in intervals:
-        where, params = _eligible_clause(dataset, spec, interval, cutoff, protected)
+        where, params = _eligible_clause(db, dataset, spec, interval, cutoff, protected)
         eligible += _count(db, spec, where, params)
+    referenced_rows = 0
+    if dataset == "observations":
+        for interval in intervals:
+            where, params = _between(spec, *interval)
+            where += " AND received_at<? AND NOT (" + _unreferenced_observations(db) + ")"
+            params = (*params, cutoff)
+            if protected is not None:
+                where += " AND id<?"
+                params = (*params, protected)
+            referenced_rows += _count(db, spec, where, params)
     protected_rows = 0
     if protected is not None and intervals:
         covered = any(lo[0] <= protected <= hi[0] for lo, hi in intervals)
         old_row = _count(db, spec, "id=? AND received_at<?", (protected, cutoff))
         protected_rows = 1 if covered and old_row else 0
-    uncovered = old - eligible - protected_rows
+    uncovered = old - eligible - protected_rows - referenced_rows
     sample = db.execute(
         f"SELECT AVG(length(payload)) FROM (SELECT payload FROM {spec.table} LIMIT 2000)"
     ).fetchone()[0] or 0
     earliest = None
-    if uncovered or protected_rows or eligible:
+    if uncovered or protected_rows or referenced_rows or eligible:
         earliest = _earliest_not_eligible(
             db, spec, intervals, cutoff, protected, dataset)
     report.update(
@@ -300,6 +328,7 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
         eligible_rows=eligible,
         uncovered_or_unverified_old_rows=uncovered,
         protected_sequence_rows=protected_rows,
+        protected_reference_rows=referenced_rows,
         rows_remaining_after_apply=total - eligible,
         approx_reclaimable_payload_bytes=int(sample * eligible),
         earliest_row_remaining_after_apply=earliest,
@@ -348,7 +377,7 @@ def apply_retention(db, plan, config, confirm=False):
         protected = _protected_id(db, dataset)
         deleted = batches = 0
         for interval in intervals:
-            where, params = _eligible_clause(dataset, spec, interval, cutoff, protected)
+            where, params = _eligible_clause(db, dataset, spec, interval, cutoff, protected)
             if dataset == "observations":
                 sql = f"""DELETE FROM observations WHERE id IN
                           (SELECT id FROM observations WHERE {where}

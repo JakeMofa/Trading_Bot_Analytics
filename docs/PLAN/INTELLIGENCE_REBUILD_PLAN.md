@@ -1,6 +1,6 @@
 # BTC Intelligence Rebuild Plan
 
-**Branch:** `codex/cloud-memory-phase1-75`  
+**Branch:** `codex/lightsail-deployment`
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
 **Rule:** Keep the existing working collector/evaluation pipeline, rebuild the intelligence layer in measured phases.
@@ -20,9 +20,22 @@
 
 ## Current position
 
-**Current phase:** Phase 1.75 — Cloud Memory & Data Lifecycle  
-**Current branch:** `codex/cloud-lifecycle-phase1-75`  
-**Next gate:** review the real-database retention dry-run, then explicitly opt in to the first bounded production purge (`ENABLE_LOCAL_RETENTION=true` plus `apply --confirm`). Collector/API stay stopped until that decision.
+**Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
+**Current branch:** `codex/lightsail-deployment` (from integration `codex/fastapi-phase1-5` at `2766234`)
+**Next gate:** migrate the verified SQLite/runtime to the authorized Ubuntu Lightsail VM, validate live feeds and cloud archival, then measure a 24-hour run. OpenAI and automatic retention remain **OFF**. Phase 2 remains deferred.
+
+### October 23, 2026 migration preflight
+
+- [x] Verified integration commit `2766234`; preserved unrelated local changes and historical backups. No changes to `main`.
+- [x] Baseline suite: 134 tests passed. The local socket test needs sandbox network permission; its first restricted run failed, then passed without code changes.
+- [x] Stopped the Mac ensemble and FastAPI/collector before checkpointing. Ensemble ignored SIGINT; standard SIGTERM stopped it. No forced SIGKILL.
+- [x] Found ten pre-existing foreign-key violations in `prediction_context_links`, caused by eight outcome observations removed during earlier retention. Restored exactly those eight rows from the read-only `data/backups/pre_retention_phase1_75.db`; preserved a separate pre-repair SQLite copy under ignored local deployment data.
+- [x] Fixed retention to preserve outcome observations referenced by prediction history, including references added after a dry-run. Two regression tests added; **136 tests passed**. No production retention was enabled or run.
+- [x] Production SQLite: integrity `ok`, zero foreign-key violations, WAL checkpoint `(0,0,0)`, 227,508,224 bytes (~217 MiB), zero WAL bytes after shutdown. Preserved source counts/checkpoint evidence locally.
+- [~] AWS access verified; selected Region from local profile is `us-east-2`. Project is on the active Free plan. AWS returned the $12/month `small_3_0` bundle (2 vCPU, 2 GiB RAM, 60 GB SSD); Ubuntu 24.04 instance and attached static IP provisioned. SSH restricted to the operator's current /32; API is not publicly exposed.
+- [ ] Complete VM dependency installation, transferred-database verification and systemd startup.
+- [ ] Verify live health, structured checkpoint advancement and authenticated raw archive readback from the VM.
+- [ ] Verify reboot recovery and record initial CPU/RAM/disk/restart measurements; 24-hour soak remains pending.
 
 ### Phase 0 progress already implemented on this branch
 
@@ -867,7 +880,8 @@ Only upgrade when measured need appears:
 - [x] **P1.75.1** Design/create Supabase structured-history schema and private Storage buckets.
 - [x] **P1.75.2** Build bounded structured sync + compressed raw archive writer with checksum verification.
 - [x] **P1.75.3** Backfill/verify current SQLite history in cloud — real run complete and verified.
-- [~] **P1.75.4** Enable local retention only after verified cloud copies — tooling implemented (P1.75.9); production purge pending explicit opt-in.
+- [x] **P1.75.4** Verified retention tooling and one-time production purge/compaction complete; automatic retention remains disabled for the initial AWS soak. October 23 integrity repair preserves referenced outcome evidence.
+- [~] **P1.75.5** Deploy the current numerical/API/lifecycle stack to Lightsail and validate 24/7 operation before Phase 2.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.
 - [ ] **P3.1** Build `microstructure_v1`.
 - [ ] **P4.1** Add specialist interface.

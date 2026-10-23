@@ -536,6 +536,130 @@ def archive_object_path(dataset, start, end):
     return source, f"{source}/{prefix}/{name}"
 
 
+def _raw_id_rows(db, dataset, after_id, limit):
+    if dataset == "observations":
+        cursor = db.execute(
+            """SELECT id AS source_id,id,market_id,received_at,source_time,kind,payload
+               FROM observations WHERE id>? ORDER BY id LIMIT ?""",
+            (after_id, limit),
+        )
+    elif dataset == "stream_events":
+        cursor = db.execute(
+            """SELECT rowid AS source_id,rowid AS source_rowid,source,event_id,
+                      received_at,source_time,price,size,side,payload
+               FROM stream_events WHERE rowid>? ORDER BY rowid LIMIT ?""",
+            (after_id, limit),
+        )
+    else:
+        raise ValueError("dataset must be observations or stream_events")
+    return _dict_rows(cursor)
+
+
+def archive_batch_object_path(dataset, rows):
+    first = rows[0]
+    last = rows[-1]
+    started = datetime.fromisoformat(
+        first["received_at"].replace("Z", "+00:00")
+    ).astimezone(timezone.utc)
+    source = "polymarket" if dataset == "observations" else "coinbase"
+    prefix = started.strftime("%Y/%m/%d/%H")
+    name = f"{dataset}_{first['source_id']}_{last['source_id']}.jsonl.gz"
+    return source, f"{source}/{prefix}/{name}"
+
+
+def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
+    if not 1 <= limit <= 50000:
+        raise ValueError("raw archive batch limit must be 1..50000")
+    initialize_local_sync(db)
+    checkpoint_name = f"archive:{dataset}"
+    last_id, _, _, _ = _checkpoint(db, checkpoint_name)
+    rows = _raw_id_rows(db, dataset, last_id or 0, limit)
+    if not rows:
+        return None
+
+    raw, compressed, digest = build_archive(dataset, rows)
+    source, object_path = archive_batch_object_path(dataset, rows)
+    cloud.upload_bytes(bucket, object_path, compressed, "application/gzip")
+    verification = cloud.verify_object(
+        bucket, object_path, digest, len(compressed)
+    )
+    first, last = rows[0], rows[-1]
+    manifest = {
+        "source": source,
+        "market_id": None,
+        "started_at": first["received_at"],
+        "ended_at": last["received_at"],
+        "bucket": bucket,
+        "object_path": object_path,
+        "compression": "gzip",
+        "content_type": "application/jsonl",
+        "sha256": digest,
+        "event_count": len(rows),
+        "uncompressed_bytes": len(raw),
+        "compressed_bytes": len(compressed),
+        "first_source_id": first["source_id"],
+        "last_source_id": last["source_id"],
+        "verified_at": verification["verified_at"],
+        "metadata": {
+            "dataset": dataset,
+            "format": "jsonl",
+            "gzip_mtime": 0,
+            "verification": "authenticated_readback_sha256",
+        },
+    }
+    cloud.upsert("raw_archives", [manifest], "bucket,object_path")
+    _save_checkpoint(
+        db,
+        checkpoint_name,
+        source_id=last["source_id"],
+        source_time=last["received_at"],
+        rows_added=len(rows),
+        status="verified",
+        detail=object_path,
+    )
+    total_synced = _checkpoint(db, checkpoint_name)[3]
+    _cloud_checkpoint(
+        cloud,
+        checkpoint_name,
+        source_id=last["source_id"],
+        source_time=last["received_at"],
+        rows_synced=total_synced,
+        status="verified",
+        detail=object_path,
+    )
+    return manifest
+
+
+def archive_raw_backfill(db, cloud, dataset, max_batches=24, batch_size=5000,
+                         bucket=RAW_BUCKET):
+    if not 1 <= max_batches <= 10000:
+        raise ValueError("max_batches must be 1..10000")
+    total_events = 0
+    batches = []
+    for _ in range(max_batches):
+        manifest = archive_raw_batch(
+            db, cloud, dataset, limit=batch_size, bucket=bucket
+        )
+        if manifest is None:
+            break
+        batches.append(manifest)
+        total_events += manifest["event_count"]
+        if manifest["event_count"] < batch_size:
+            break
+    last_id, last_time, _, rows_synced = _checkpoint(
+        db, f"archive:{dataset}"
+    )
+    return {
+        "dataset": dataset,
+        "batches": len(batches),
+        "events_archived_this_run": total_events,
+        "events_archived_total": rows_synced,
+        "last_source_id": last_id,
+        "last_source_time": last_time,
+        "caught_up": len(batches) == 0 or batches[-1]["event_count"] < batch_size,
+    }
+
+
 def archive_raw_window(db, cloud, dataset, start, end, bucket=RAW_BUCKET):
     """Upload one deterministic raw window and then record its manifest."""
     rows = _archive_rows(db, dataset, start, end)

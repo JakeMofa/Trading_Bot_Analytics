@@ -311,9 +311,9 @@ Coinbase / Polymarket / future feeds
 - [x] P1.75.3 Add idempotent structured batch sync with dependency-safe backfill/checkpoints.
 - [x] P1.75.4 Add deterministic gzip JSONL raw archive writer.
 - [x] P1.75.5 Add private Storage upload + authenticated readback/checksum verification + manifest.
-- [ ] P1.75.6 Add sync/archive health telemetry to operations/FastAPI/dashboard.
-- [ ] P1.75.7 Backfill existing SQLite structured history.
-- [ ] P1.75.8 Archive existing raw history and verify it.
+- [x] P1.75.6 Add sync/archive health telemetry to FastAPI (`/cloud/status` and separate cloud status inside `/health`); dashboard presentation can follow with the broader Phase 1.5 migration.
+- [~] P1.75.7 Backfill existing SQLite structured history: resumable/idempotent tooling is implemented; real local database execution/verification is pending.
+- [~] P1.75.8 Archive existing raw history and verify it: resumable source-cursor batches + authenticated checksum readback are implemented; real local database execution is pending.
 - [ ] P1.75.9 Enable configurable local retention only after verified backfill.
 - [ ] P1.75.10 Measure a new 24-hour run and tune retention.
 - [ ] P1.75.11 Add historical raw replay tooling for research/model validation.
@@ -851,7 +851,7 @@ Only upgrade when measured need appears:
 - [x] **P1.5.2** Add SSE/WebSocket live dashboard endpoint.
 - [x] **P1.75.1** Design/create Supabase structured-history schema and private Storage buckets.
 - [x] **P1.75.2** Build bounded structured sync + compressed raw archive writer with checksum verification.
-- [ ] **P1.75.3** Backfill/verify current SQLite history in cloud.
+- [~] **P1.75.3** Backfill/verify current SQLite history in cloud — tooling complete; real local run pending.
 - [ ] **P1.75.4** Enable local retention only after verified cloud copies.
 - [ ] **P2.1** Add/verify Coinbase trades + L2.
 - [ ] **P3.1** Build `microstructure_v1`.

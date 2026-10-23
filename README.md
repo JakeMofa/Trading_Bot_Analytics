@@ -135,7 +135,7 @@ Process topology: FastAPI (`run_api.py`) owns the collector and live state; the 
 .venv/bin/python backend/app/run_cloud_lifecycle.py run      # until SIGTERM/SIGINT
 ```
 
-`once` and `run` need `ENABLE_CLOUD_LIFECYCLE=true` and `ENABLE_SUPABASE_SYNC=true`, and take a per-database lock (a second worker fails). Stages run on independent cadences. Retention runs only if `ENABLE_LOCAL_RETENTION=true` and the same cycle's raw archive verified successfully; any cloud failure is recorded (exception type and HTTP code only), deletes nothing, and never affects the collector. State is in `cloud_lifecycle_state` and shown under `lifecycle` in `GET /cloud/status`; live `/health` status ignores it. The worker never runs VACUUM.
+`once` and `run` need `ENABLE_CLOUD_LIFECYCLE=true` and `ENABLE_SUPABASE_SYNC=true`, and take a per-database lock (a second worker fails). Stages run on independent cadences. Retention runs only if `ENABLE_LOCAL_RETENTION=true` and the **same lifecycle cycle actually ran the raw archive stage successfully**; a successful prior cycle cannot authorize deletion later. Any cloud failure is recorded (exception type and HTTP code only), deletes nothing, and never affects the collector. Cycles with no due work do not open a Supabase client. State is in `cloud_lifecycle_state` and shown under `lifecycle` in `GET /cloud/status`; live `/health` status ignores it. The worker never runs VACUUM.
 
 ## Local status dashboard
 

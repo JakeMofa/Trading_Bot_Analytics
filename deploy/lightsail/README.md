@@ -122,3 +122,69 @@ made by the dashboard. Free-form cloud error details/source keys are redacted.
 The branch closeout does not deploy anything. OpenAI and retention stay OFF,
 collector ownership stays with FastAPI, and the separate 24-hour soak review
 remains required before future phases.
+
+## Controlled manual CD
+
+`.github/workflows/deploy-tradebot.yml` deploys only on `workflow_dispatch` from
+`codex/lightsail-deployment`. Its push trigger runs deployment-control tests only;
+it registers/validates the workflow without deploying or changing `main`. Supply
+the full current deployment-branch SHA. The deploy job independently checks the
+branch HEAD, dispatch SHA and successful exact-SHA push run of `python-tests.yml`.
+Concurrent production deployments queue; the VM also takes an exclusive lock.
+
+The job needs a trusted self-hosted runner labeled `tradebot-private` on the
+operator's existing allowed SSH address. Use an ephemeral runner for one job,
+then remove its registration and local credentials. Production keeps running
+without the runner or Mac; another manual deployment needs a runner online.
+Do not open SSH to hosted-runner address ranges or expose port 8000. GitHub's
+Actions UI may not offer the Run button until the workflow is on the default
+branch; after its validation run, use the dispatch API/CLI against the deployment
+branch where supported. Do not modify main to work around registration failures.
+
+Required repository Actions Secrets (values must never enter source/logs):
+
+- `TRADEBOT_SSH_HOST`: existing VM address.
+- `TRADEBOT_SSH_USER`: restricted `tradebot-deploy` OS user.
+- `TRADEBOT_SSH_KEY`: dedicated deployment private key.
+- `TRADEBOT_SSH_KNOWN_HOSTS`: existing independently pinned SSH host entry.
+
+The dedicated key uses `restrict` and a forced command that invokes the root-owned
+`/usr/local/lib/tradebot-cd/deploy.py "$SSH_ORIGINAL_COMMAND"` through a narrowly
+scoped sudo rule. That user cannot run arbitrary commands, forward ports or open
+a shell through this key. Install reviewed `deploy.py` and `smoke.py` copies under
+that root-owned directory; application deployment cannot overwrite these copies.
+Updating the root helper is a separate operator action over existing pinned SSH.
+Do not copy app credentials to Actions: `.env` stays mode 600 on the VM.
+
+The sender exports only tracked Git history as a bundle with exactly the approved
+branch ref. The VM checks the ref, full SHA, ancestry, clean tracked checkout,
+active/enabled services, disabled flags, private configuration, free disk and
+read-only SQLite quick/foreign-key checks before checkout. Dependency, service-unit
+or preflight changes fail closed for reviewed operator provisioning; this Phase
+1.5 release changes none. No database migration, retention, archive deletion or
+Supabase reset is performed. The protected `.env` hash/permissions/owner are checked
+without printing them. Only changed application code restarts `tradebot-api`;
+ensemble, lifecycle and the timer retain their existing PIDs.
+
+Root-only records in `/opt/tradebot/data/deployments/` persist `OLD_REVISION`,
+`NEW_REVISION`, outcome and restarted services. Smoke checks retry for up to two
+minutes to tolerate startup/stream recovery. They require all core/System/history
+routes, valid dashboard HTML, an SSE data frame, fresh live streams, running
+collector, ensemble exposure, disabled flags and stable services. Cloud status is
+reported separately from live health. A material post-checkout failure restores
+OLD_REVISION, restarts affected API code, reruns checks appropriate to that revision,
+records rollback health and returns failure even when rollback succeeds. Failures
+before checkout do not roll back healthy production. Never test rollback by
+intentionally breaking the live collector; the simulated-failure test covers this
+path. No destructive database repair is attempted.
+
+Run deployment-control tests with:
+
+```sh
+python3 -m unittest discover -s deploy/lightsail -p test_cd.py -v
+```
+
+After deployment, independently inspect actual journals, process ownership, full
+SQLite integrity, telemetry/checkpoint advancement and all four dashboard tabs
+through the private operator tunnel before marking the roadmap complete. Automated
+smoke success alone does not certify the visual dashboard or Phase 1.75 soak.

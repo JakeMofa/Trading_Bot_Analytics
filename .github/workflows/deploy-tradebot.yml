@@ -1,0 +1,56 @@
+name: Deploy Tradebot
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full approved deployment-branch HEAD SHA (must have passing Python tests)
+        required: true
+        type: string
+  # Validation only. This registers the workflow without changing main.
+  push:
+    branches: [codex/lightsail-deployment]
+    paths: [.github/workflows/deploy-tradebot.yml, 'deploy/lightsail/**']
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tradebot-production
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate deployment controls
+        run: python3 -m unittest discover -s deploy/lightsail -p 'test_cd.py' -v
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/lightsail-deployment'
+    needs: validate
+    # A trusted operator runner reaches the existing SSH /32. No public API/firewall changes.
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require approved branch HEAD and exact-revision CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_REVISION: ${{ inputs.revision }}
+        run: python3 deploy/lightsail/verify_ci.py
+      - name: Deploy tracked code and run remote smoke checks with rollback
+        env:
+          APPROVED_REVISION: ${{ inputs.revision }}
+          DEPLOY_HOST: ${{ secrets.TRADEBOT_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.TRADEBOT_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.TRADEBOT_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.TRADEBOT_SSH_KNOWN_HOSTS }}
+        run: bash deploy/lightsail/dispatch.sh

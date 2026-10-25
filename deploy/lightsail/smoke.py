@@ -1,8 +1,22 @@
 """Private, read-only production smoke checks. Never print response bodies or secrets."""
 import argparse
 import json
+from pathlib import Path
 import time
 import urllib.request
+
+def check_secrets(body):
+    path = Path('/opt/tradebot/.env')
+    if not path.is_file():
+        return
+    for line in path.read_text().splitlines():
+        if '=' not in line or line.lstrip().startswith('#'):
+            continue
+        name, value = line.split('=', 1)
+        if any(token in name.upper() for token in ('SECRET', 'API_KEY', 'KEY_ID', 'PASSWORD', 'TOKEN')):
+            value = value.strip().strip('\"\'')
+            assert not (len(value) >= 8 and value.encode() in body), 'credential found in response'
+
 
 CORE = ('/health', '/state/current', '/forecast/current', '/models/current', '/cloud/status')
 PHASE = ('/system/status', '/system/history', '/dashboard', '/history/predictions', '/history/context', '/history/coinbase-chart')
@@ -17,9 +31,11 @@ def get(path):
             while time.monotonic() < deadline:
                 line = response.readline(2 * 1024 * 1024)
                 if line.startswith(b'data: '):
+                    check_secrets(line)
                     return json.loads(line[6:])
             raise AssertionError('SSE data frame missing')
         body = response.read(16 * 1024 * 1024)
+        check_secrets(body)
         if path == '/dashboard':
             assert 'text/html' in content_type and b'<html' in body.lower(), 'dashboard HTML'
             assert all(label in body for label in (b'Market', b'Models', b'History', b'System'))
@@ -31,6 +47,7 @@ def get(path):
 def check(legacy=False):
     result = {path: get(path) for path in CORE + (() if legacy else PHASE)}
     health = result['/health']
+    assert health['status'] == 'ok', 'live engine degraded'
     assert health['collector']['running'], 'collector stopped'
     assert health['collector'].get('error') is None, 'collector error'
     state = result['/state/current']

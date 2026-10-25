@@ -35,6 +35,11 @@ def services():
         assert properties['ActiveState'] == 'active', name + ' inactive'
         assert properties['UnitFileState'] == 'enabled', name + ' disabled'
         states[name] = properties
+    processes = run('ps', '-u', 'tradebot', '-o', 'args=').splitlines()
+    assert sum('backend/app/run_api.py' in line for line in processes) == 1, 'API collector ownership is not singular'
+    assert not any(re.search(r'backend/app/(streaming|run_collector|dashboard)\.py', line) for line in processes), 'competing collector/dashboard process'
+    listeners = run('ss', '-ltnH').splitlines()
+    assert all(line.split()[3] == '127.0.0.1:8000' for line in listeners if line.split()[3].endswith(':8000')), 'API publicly bound'
     return states
 
 

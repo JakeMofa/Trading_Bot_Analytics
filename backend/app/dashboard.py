@@ -596,20 +596,7 @@ def main():
         with open_readonly(args.db) as db:
             print(json.dumps(status(db), indent=2))
         return
-    relay = LiveQuoteRelay()
-    stop = threading.Event()
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), handler_for(args.db, relay))
-    quote_thread = threading.Thread(target=lambda: asyncio.run(live_quote_loop(args.db, relay, stop)),
-                                    daemon=True, name='read-only-market-quotes')
-    quote_thread.start()
-    print(f'Read-only dashboard: http://127.0.0.1:{args.port}', flush=True)
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        stop.set()
-        server.server_close()
+    print('Dashboard hosting moved to FastAPI. Run backend/app/run_api.py and open http://127.0.0.1:8000/dashboard. The legacy port 8765 server is retired.', flush=True)
 
 
 if __name__ == '__main__':

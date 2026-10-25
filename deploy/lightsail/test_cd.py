@@ -35,12 +35,26 @@ class DeploymentTests(unittest.TestCase):
              patch.object(cd, 'git', side_effect=git), patch.object(cd, 'preflight', return_value={}), \
              patch.object(cd, 'protected', return_value=('hash', 0o600, 1)), \
              patch.object(cd, 'run'), patch.object(cd, 'services'), \
-             patch.object(cd, 'smoke', side_effect=[{}, RuntimeError('material failure'), {}]) as smoke:
+             patch.object(cd, 'smoke', side_effect=[{}, AssertionError('material failure'), {}]) as smoke:
             with self.assertRaises(SystemExit):
                 cd.deploy(new, Path(directory) / 'input.bundle')
             self.assertIn(('checkout', '--detach', new), calls)
             self.assertIn(('checkout', '--detach', old), calls)
             self.assertEqual(smoke.call_count, 3)
+
+    def test_timer_has_no_process_fields_and_does_not_break_validation(self):
+        cd = load('deploy')
+        def run(*args, **kwargs):
+            if args[0] == 'systemctl':
+                base = 'ActiveState=active\nUnitFileState=enabled'
+                return base if args[2].endswith('.timer') else base + '\nMainPID=12\nNRestarts=0'
+            if args[0] == 'ps':
+                return '/opt/tradebot/.venv/bin/python backend/app/run_api.py'
+            return 'LISTEN 0 2048 127.0.0.1:8000 0.0.0.0:*'
+        with patch.object(cd, 'run', side_effect=run):
+            timer = cd.services()['tradebot-soak.timer']
+            self.assertEqual(timer['MainPID'], '0')
+            self.assertEqual(timer['NRestarts'], '0')
 
     def test_preflight_failure_never_checks_out_or_rolls_back(self):
         cd = load('deploy')

@@ -34,6 +34,8 @@ def services():
         properties = dict(line.split('=', 1) for line in run('systemctl', 'show', name, '-p', 'ActiveState', '-p', 'NRestarts', '-p', 'MainPID', '-p', 'UnitFileState').splitlines())
         assert properties['ActiveState'] == 'active', name + ' inactive'
         assert properties['UnitFileState'] == 'enabled', name + ' disabled'
+        properties.setdefault('NRestarts', '0')  # Timers have no process/restart fields.
+        properties.setdefault('MainPID', '0')
         states[name] = properties
     processes = run('ps', '-u', 'tradebot', '-o', 'args=').splitlines()
     assert sum('backend/app/run_api.py' in line for line in processes) == 1, 'API collector ownership is not singular'
@@ -70,7 +72,15 @@ def smoke(legacy=False, attempts=24):
     args = ['python3', str(HELPERS / 'smoke.py'), '--attempts', str(attempts)]
     if legacy:
         args.append('--legacy')
-    value = json.loads(run(*args, user=True))
+    try:
+        value = json.loads(run(*args, user=True))
+    except subprocess.CalledProcessError as error:
+        try:
+            failure = json.loads(error.stdout.strip().splitlines()[-1])
+            reason = failure.get('check', 'smoke request failed')
+        except (ValueError, IndexError, AttributeError):
+            reason = 'smoke command failed'
+        raise AssertionError(reason) from None
     print(json.dumps(value), flush=True)
     return value
 
@@ -122,7 +132,8 @@ def deploy(revision, bundle):
     except Exception as error:
         evidence['status'] = 'failed'
         evidence['error_type'] = type(error).__name__
-        if changed:
+        evidence['reason'] = str(error) if isinstance(error, AssertionError) else 'command/verification error'
+        if changed and isinstance(error, (AssertionError, subprocess.CalledProcessError)):
             # Only failures after checkout can be caused by the deployment. Never repair data.
             try:
                 git('checkout', '--detach', old)
@@ -134,6 +145,8 @@ def deploy(revision, bundle):
                 evidence['rollback'] = {'revision': old, 'health': 'PASS'}
             except Exception as rollback_error:
                 evidence['rollback'] = {'revision': old, 'health': 'FAIL', 'error_type': type(rollback_error).__name__}
+        if changed and not isinstance(error, (AssertionError, subprocess.CalledProcessError)):
+            evidence['verification'] = 'manual verification required; no material application failure established'
         save()
         raise SystemExit(1)
 

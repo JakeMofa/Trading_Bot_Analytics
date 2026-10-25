@@ -942,3 +942,61 @@ Only upgrade when measured need appears:
 - [ ] **P11.1** Add specialist dashboard.
 - [ ] **P12.1** Run forward collection/evaluation.
 - [ ] **P13.1** Train `meta_model_v1`.
+
+
+## Phase 1.75 retention enablement — STOPPED October 25, 2026
+
+**NOT COMPLETE. No retention apply, continuous enablement, restart or deployment
+was performed during this attempt.** Dedicated branch
+`codex/phase1-75-retention-enable` starts at deployment HEAD
+`eaca36c2b453c9e78f4c157a91b76aac398bedf0`. Production independently reports
+`a7c098900f8310367fc262a1b837c369bb63dc56`; the intervening commit is documentation
+only. Baseline deployment-branch CI run `40239979619` passed.
+
+Verified evidence:
+
+- Backend: 156 passed, 0 failed, 0 skipped; deployment controls: 6 passed,
+  0 failed, 0 skipped. The initial sandbox run had one worker/socket startup
+  failure; the unchanged full suite passed with the required local permissions.
+- Production API, ensemble, lifecycle and soak timer active/enabled; API private
+  at `127.0.0.1:8000`, collector running, feeds fresh, zero recorded service
+  restarts. OpenAI OFF and retention OFF.
+- Baseline captured starting `2026-10-25T22:42:23.680290+00:00`: SQLite
+  1,969,627,136 bytes; WAL 44,899,792 bytes; integrity `ok`; zero FK violations.
+  Database plus WAL leaves approximately 126.8 MiB below the unchanged 2,048 MiB
+  guard. This is current headroom, not proof of a safe steady-state 48h window.
+- Cloud inventory: observations 98 verified manifests / 379,498 archived events;
+  stream_events 391 verified manifests / 1,813,141 archived events; zero
+  unverified manifests. Earliest, near-cutoff and latest objects from each
+  dataset (six total) passed authenticated readback, compressed-byte/SHA-256,
+  decompressed event count, dataset/source/path and first/last range checks.
+  Inventory and spot checks do not constitute completed candidate coverage proof.
+- Query-only dry-run at cutoff `2026-10-23T22:48:12.749982+00:00` reported BOTH
+  datasets blocked as `non_canonical_received_at`, zero eligible rows and zero
+  database changes. Counts: observations 183,306; stream_events 652,795.
+  An independent range calculation found 16,506 old observation candidates,
+  eight protected old observations, and 87,411 old stream-event candidates;
+  these are diagnostic counts, NOT approved deletion bounds.
+- Follow-up read-only format inspection found exactly one 25-character timestamp
+  in each raw table: observations `2026-10-25T21:46:01+00:00` and stream_events
+  `2026-10-25T19:44:19+00:00`. All other inspected timestamps were 32 characters.
+  Existing retention requires UTC with six-digit microseconds. Raw writers use
+  default `datetime.isoformat()`, which omits the fraction at exactly zero
+  microseconds. No raw rows or archive metadata were changed.
+
+**BLOCKER:** existing retention refuses the actual timestamp formats, so dry-run
+candidate review and apply authorization gates are unresolved.
+**OWNER:** AI / WORK for diagnosis and a reviewed remedy; USER / OPERATOR for
+resolution of this explicit stop before any production change or data rewrite.
+**STOP CONDITION:** surprising/unexplained dry-run count mismatch, subsequently
+explained by the fail-closed timestamp-format block; checkpoint 9/10 cannot pass.
+**REQUIRED NEXT ACTION:** resolve timestamp compatibility with a reviewed,
+archive/cursor-safe approach; do not disable the format check or rewrite evidence
+to force eligibility. Then rerun coverage/dry-run, establish a verified backup,
+and pass all remaining apply/recovery/continuous-retention/CI/CD gates.
+
+Evidence is preserved locally under ignored
+`data/deploy/lightsail/phase1-75-20261025/`. Backup/recovery point was not created
+or verified; apply, restart/recovery, continuous retention, multiple retention
+cycles and storage stability are unperformed. No code/config change, secrets,
+main change, guard change, VACUUM, public exposure or Phase 2 work was included.

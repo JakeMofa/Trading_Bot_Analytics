@@ -35,7 +35,7 @@
 - [~] AWS access verified; selected Region from local profile is `us-east-2`. Project is on the active Free plan. AWS returned the $12/month `small_3_0` bundle (2 vCPU, 2 GiB RAM, 60 GB SSD); Ubuntu 24.04 instance and attached static IP provisioned. SSH restricted to the operator's current /32; API is not publicly exposed.
 - [x] VM dependencies installed and all **136 tests passed on Ubuntu/Python 3.12**. Transferred DB SHA-256, integrity, foreign keys and recorded table counts match the stopped Mac copy. Git bundle transfer avoids putting GitHub credentials on the VM.
 - [x] All three non-root systemd services active; service preflight rejects unsafe soak flags and OpenAI credentials. VM config contains only required Polymarket/Supabase credentials. FastAPI is the sole collector; no standalone collector or new feed is started.
-- [x] `/health` is `ok`; Coinbase and Polymarket are `live`; active 15-minute market and current numerical forecast present. Only expected `trade_flow` / `btc_order_book` fields are missing. Experimental ensemble remains a separate persisted model process; RAM `/models/current` currently exposes the baseline.
+- [x] `/health` is `ok`; Coinbase and Polymarket are `live`; active 15-minute market and current numerical forecast present. Only expected `trade_flow` / `btc_order_book` fields are missing. Experimental ensemble remains a separate persisted model process; at this deployment revision `/models/current` exposes only the RAM baseline. The Phase 1.5 feature branch adds persisted ensemble exposure before its separate manual deployment.
 - [x] First VM lifecycle cycle synced 1,478 structured rows, archived 15,420 new observations and 80,590 new Coinbase events with authenticated readback verification. Both archive checkpoints advanced; retention status `disabled`, no deletion recorded. Historical AI suggestion count remains 1,277.
 - [x] Added validated systemd units/runbook and a VM-side five-minute read-only metrics timer. Its JSONL ring is capped at 288 snapshots (~24 hours), independent of the Mac. Initial archive catch-up sample used ~612 MB host RAM, ~3.0 GB disk, and ~177 MB combined app-service memory; transient sampled CPU reached 62% during catch-up. These are initial samples, not 24-hour sizing conclusions.
 - [x] First-boot cloud-init's SSH reload failed because `ssh.service` was not yet active. Explicitly started the service after `sshd -t`; operator-only UFW and Lightsail firewall rules are active. This is a resolved initialization warning, not an application failure.
@@ -71,7 +71,7 @@
 |---|---|---|---|
 | 0 | [x] | Stabilize current ensemble / AI layer | Current signals become trustworthy enough for research |
 | 1 | [x] | Live State Engine | Current market state lives in RAM instead of repeated DB reads |
-| 1.5 | [~] | FastAPI service layer | One local async API for dashboard and live-state access; live smoke/dashboard migration remain |
+| 1.5 | [x] | FastAPI service layer | Dashboard, LiveState SSE, System monitoring and ensemble exposure implemented/tested; intentional production deployment remains separate |
 | 1.75 | [~] | Cloud Memory & Data Lifecycle | Postgres for structured history, Storage for compressed raw archives, SQLite as short-term spool |
 | 2 | [ ] | Coinbase trade + L2 ingestion | Real microstructure inputs after storage lifecycle is safe |
 | 3 | [ ] | `microstructure_v1` | Independent order-flow/order-book probability |
@@ -177,7 +177,7 @@ async persistence
 
 # Phase 1.5 — FastAPI Service Layer
 
-**Status: IN PROGRESS**
+**Status: IMPLEMENTED AND LOCALLY VERIFIED — final closeout also requires successful CI on the pushed feature branch; production deployment is deferred.**
 
 ## Goal
 
@@ -224,7 +224,7 @@ SQLite <---- persistence ---- FastAPI/service process ---- async sync ----> Supa
 - [x] Add bounded/read-only historical endpoints.
 - [x] Add Server-Sent Events or WebSocket endpoint for dashboard live updates.
 - [x] Keep Polymarket/exchange credentials server-side only.
-- [ ] Add connection pooling/reuse only when direct Postgres access is introduced; Phase 1.75 starts with bounded asynchronous cloud writes.
+- Deferred outside Phase 1.5: connection pooling/reuse when direct Postgres access is introduced; current background writes are unchanged.
 - [x] Do not route every market tick through Supabase.
 - [x] Add request/response tests and latency measurements.
 
@@ -232,14 +232,25 @@ SQLite <---- persistence ---- FastAPI/service process ---- async sync ----> Supa
 
 - [x] `run_api.py` starts one local service process and loads the ignored project `.env`.
 - [x] FastAPI owns the same `LiveState` object passed into the collectors.
-- [x] `/state/current`, `/forecast/current`, `/models/current`, and `/health` read RAM state.
+- [x] `/state/current`, `/forecast/current`, core `/health`, and baseline models read RAM state. `/models/current` adds a bounded query-only read of the existing separately persisted `ensemble_v1`; it never changes the RAM baseline or starts another process.
 - [x] `/history/predictions` is bounded to 1–500 rows and opens SQLite query-only.
 - [x] `/events` provides a Server-Sent Events stream when the RAM state changes.
 - [x] Response-time instrumentation is emitted as `X-Process-Time-Ms`.
-- [x] GitHub Actions passes 85 tests including FastAPI request/history tests.
-- [ ] Perform a real local live smoke test with the user's current database and credentials.
-- [ ] Migrate the legacy dashboard's high-frequency live panels to the new endpoints.
+- [x] Full local backend suite: **156 passed, 0 failed, 0 skipped** with OpenAI, Supabase sync and retention disabled. The existing Python 3.12 GitHub workflow covers main, codex/** and pull requests; Node.js 22 runs the shipped dashboard contract test. Pushed-revision CI must pass before final completion is reported.
+- [x] Real live API/feed/rollover/reboot smoke evidence is already recorded in the October 23 Lightsail deployment above (138 Linux tests on the indexed version). This supersedes starting another collector on the stopped Mac database. It does not claim that this new UI is deployed or that the 24-hour soak review is complete.
+- [x] FastAPI serves `/dashboard`; Market/Models/History/System navigation retains the useful market, forecast, Coinbase chart, quote, evaluation, outcome, headline and evidence panels. `/events` supplies live RAM updates; `/state/current` is initial/fallback only. No browser SQLite reads or separate feed relay remain in the production path.
 - [~] Cloud sync work has moved to Phase 1.75; no remote DB is in the hot path.
+
+### Phase 1.5 closeout evidence — October 25, 2026
+
+- `codex/phase1-5-dashboard-monitoring` starts at `1eceb8098f21136692230e11fc6d711290e74298`. Unrelated local changes (including AGENTS.md and `.env copy`) are excluded.
+- New read-only routes: `/dashboard`, `/dashboard/plan`, `/system/status`, `/system/history`, `/history/context`, `/history/coinbase-chart`. The last two reuse existing saved evaluation/context and bounded chart queries; they are slower history reads, never a live source or a collector.
+- `/state/current` and `/events` add server time and the existing deterministic RAM baseline estimate. `/forecast/current` stays unchanged. `/models/current` preserves existing model keys and adds the latest valid `ensemble_v1` with forecast/market provenance, age, experimental label and current-market match. Prior-market/stale ensemble decisions are excluded from the live panel. Forecast methodology and model process ownership are unchanged.
+- `/system/status` shows API/collector, timestamped service states/restart counts, current feed ages/cumulative reconnects, CPU/RAM/disk/uptime where available, DB/WAL sizes, OFF flags and existing local cloud lifecycle/checkpoints. CPU/services come from the latest five-minute sample and are marked stale after 15 minutes. Cheap Linux RAM/uptime and filesystem disk/DB sizes are read on request. No subprocess, remote service call or full environment dump is used.
+- `/system/history?limit=288` reads a bounded tail (16 MiB maximum, 256 KiB maximum accepted line, 1–288 returned samples) from `SYSTEM_TELEMETRY_PATH` or `cloud-soak.jsonl` alongside SQLite. It ignores malformed rows and projects only approved metrics. Missing data stays unavailable. Charts use actual recorded CPU/RAM/disk/DB/WAL/feed/reconnect/prediction/cloud/checkpoint measurements; missing measurements and time gaps are not filled. Reconnects are labeled cumulative, so no unreliable window delta is invented. Archive object counts are not present locally and remain explicitly unavailable; existing dataset verification/checkpoints are shown.
+- Cloud degradation remains separate from core live health, including corrupt/unreadable local telemetry. Free-form cloud error details and source keys are returned as null rather than exposing private diagnostics. Monitoring, history and ensemble reads run outside the async event loop with read-only connections; historical SQL has a one-second progress budget.
+- Tests cover dashboard assets, actual FastAPI-to-JavaScript rendering/SSE updates, live endpoints, missing/corrupt telemetry, bounds, safe projection, DB/WAL sizes, disabled flags and valid/invalid persisted ensembles. Browser preview used isolated synthetic fixtures with collectors disabled and verified all four pages plus recorded history charts. No live Mac collector or real cloud write was needed.
+- `dashboard.py --once` remains a diagnostic helper; its server launcher is retired and directs users to FastAPI. The Lightsail units, localhost binding, firewall and sole FastAPI collector ownership are unchanged. The existing runbook explains SSH-tunnel dashboard access and intentional manual deployment. No production deployment, retention/OpenAI enablement, Phase 2/L2, trading or new monitoring service is included.
 
 ## Supabase performance rule
 

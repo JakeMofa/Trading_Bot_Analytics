@@ -86,3 +86,39 @@ Mac DB would fork observation IDs and archive checkpoints; never run two writers
 or independently advance both copies. Preserve all backups and deployment keys
 outside Git. Instance stop/reboot does not provide disaster recovery; redundant
 backup/restore and measured retention policy remain follow-up work.
+
+## Phase 1.5 dashboard (code prepared; deploy intentionally)
+
+FastAPI serves the dashboard at `/dashboard` on its existing localhost port 8000.
+Market is the default page; Models, History and System are separate navigation
+areas. Do not start a separate port-8765 dashboard server or collector. The old
+`dashboard.py` launcher now points to FastAPI; `--once` is diagnostic only.
+
+After reviewing and intentionally deploying the tested feature revision, restart
+only `tradebot-api` for the new API/UI code. The existing ensemble/lifecycle and
+five-minute monitor remain their current single instances. No firewall or public
+binding change is needed. From the operator Mac, use the existing pinned SSH host:
+
+```sh
+ssh -N -L 8000:127.0.0.1:8000 <existing-operator-ssh-host>
+```
+
+Open `http://127.0.0.1:8000/dashboard`. Keep this API private; there is no public
+authentication layer in this phase. Validate Market live updates and all four
+pages, `/models/current`, `/system/status` and `/system/history` after deployment.
+
+The System history reader defaults to `cloud-soak.jsonl` alongside the configured
+SQLite path (`/opt/tradebot/data/cloud-soak.jsonl` on this VM). Optional
+`SYSTEM_TELEMETRY_PATH` overrides the server-side path; clients cannot choose it.
+Responses are read-only, capped at 288 samples and project only approved metrics.
+CPU and service states use timestamped five-minute snapshots (stale after 15
+minutes); cheap resource/file metrics and RAM feed ages are read on request.
+Missing files/fields remain unavailable. Keep `tradebot-soak.timer` running to
+advance the historical graphs. Reconnect totals are cumulative across restarts;
+archive object counts are unavailable locally, while dataset verification and
+checkpoints come from existing local lifecycle records. No remote cloud query is
+made by the dashboard. Free-form cloud error details/source keys are redacted.
+
+The branch closeout does not deploy anything. OpenAI and retention stay OFF,
+collector ownership stays with FastAPI, and the separate 24-hour soak review
+remains required before future phases.

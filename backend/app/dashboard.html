@@ -64,19 +64,30 @@
     .footer { margin-top:20px; color:#95a7bb; font-size:.78rem; }
     @media (max-width:900px) { .market,.forecast,.feeds,.evaluation,.news,.outcomes,.evidence { grid-column:span 12; } }
     @media (max-width:560px) { body { padding:16px; } header { flex-direction:column; } .card { padding:18px; } }
+    [hidden] { display:none !important; }
+    nav { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+    nav button { padding:10px 20px; border:1px solid #40546b; border-radius:8px; background:#172535; color:#e7f1fc; }
+    nav button[aria-pressed="true"] { background:#264a69; border-color:#65b3ff; }
+    #system-charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px; margin-top:20px; }
+    #system-charts svg { display:block;width:100%; }
+    table { width:100%;border-collapse:collapse;text-align:left;font-size:.85rem; }
+    th,td { padding:10px;border-bottom:1px solid #29384a; }
   </style>
 </head>
 <body>
   <header>
-    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>Live status</h1><div id="collection-state" class="muted small">Checking saved collection status…</div></div>
+    <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>BTC Intelligence</h1><div id="collection-state" class="muted small">Connecting to live market state…</div></div>
     <div class="header-actions"><button id="open-plan" class="menu-button" type="button">Plan &amp; progress</button><div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div></div>
   </header>
   <dialog id="plan-dialog" aria-labelledby="plan-title">
     <div class="plan-header"><div><h2 id="plan-title">Project plan &amp; progress</h2><div class="small muted">Live from docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md</div></div><button id="close-plan" class="dialog-close" type="button" aria-label="Close project plan">Close</button></div>
     <div id="plan-content" class="plan-body" aria-live="polite"><p class="muted">Loading project plan…</p></div>
   </dialog>
-  <div id="offline-hint" class="card" style="display:none;margin-bottom:16px">This file preview cannot load live data. Open the <a href="http://127.0.0.1:8765/">live dashboard at 127.0.0.1:8765</a>.</div>
-  <main class="grid">
+  <div id="offline-hint" class="card" style="display:none;margin-bottom:16px">This file preview cannot load live data. Open the <a href="http://127.0.0.1:8000/dashboard">live dashboard at 127.0.0.1:8000/dashboard</a>.</div>
+  <nav aria-label="Dashboard pages">
+    <button data-target="market" aria-pressed="true">Market</button><button data-target="models" aria-pressed="false">Models</button><button data-target="history" aria-pressed="false">History</button><button data-target="system" aria-pressed="false">System</button>
+  </nav>
+  <main class="grid" data-page="market">
     <section class="card market" aria-labelledby="market-heading">
       <h2 id="market-heading">Current market</h2>
       <div id="market-state" class="eyebrow">Waiting for data</div>
@@ -130,7 +141,9 @@
       <h2 id="feeds-heading">Feed health</h2>
       <div id="feeds-list" class="small muted">Waiting for data.</div>
     </section>
-    <section class="card evaluation" aria-labelledby="evaluation-heading">
+  </main>
+  <section data-page="models" hidden class="card"><h2>Models &amp; decisions</h2><p class="small muted">Baseline from RAM; ensemble_v1 from existing persisted forecasts. Experimental outputs are unvalidated. No orders are placed.</p><div id="models-list">Waiting for models…</div></section>
+  <section data-page="history" hidden><div class="card" style="overflow:auto;margin-bottom:16px"><h2>Prediction history</h2><p id="history-status">Loading…</p><table><thead><tr><th>Forecast time</th><th>Market</th><th>Model</th><th>UP</th><th>Abstention</th></tr></thead><tbody id="prediction-rows"></tbody></table></div><div class="grid">    <section class="card evaluation" aria-labelledby="evaluation-heading">
       <h2 id="evaluation-heading">Confirmed-market evaluation</h2>
       <div id="checkpoint-list"></div>
       <p class="small muted">Distinct resolved markets at each forecast time. Comparisons remain preliminary until 30 per checkpoint.</p>
@@ -151,8 +164,9 @@
       <div id="evidence-list" class="small muted">Waiting for data.</div>
       <p class="small muted">Links show context that was eligible at forecast time. They were attached retrospectively; the baseline forecast did not use this context.</p>
     </section>
-  </main>
-  <div class="footer">This page only reads the local SQLite database. It cannot place orders.</div>
+</div></section>
+  <section data-page="system" hidden><div class="card"><h2>System status</h2><p class="small muted">Read-only local monitoring. Service states and CPU use the timestamped five-minute snapshots. Missing measurements stay unavailable.</p><div id="system-status">Waiting for monitoring…</div></div><p id="system-history-status" role="status"></p><div id="system-charts"></div></section>
+  <div class="footer">Live data comes from FastAPI / LiveState. Saved history is read by the backend. Research only; no order execution.</div>
   <script>
     const byId = id => document.getElementById(id);
     const set = (id, value) => { byId(id).textContent = value ?? '—'; };
@@ -250,7 +264,7 @@
       dialog.showModal();
       if (dialog.dataset.loaded) return;
       try {
-        const response = await fetch('/api/plan', {cache:'no-store'});
+        const response = await fetch('/dashboard/plan', {cache:'no-store'});
         if (!response.ok) throw new Error('Status ' + response.status);
         renderPlan(await response.text());
         dialog.dataset.loaded = 'true';
@@ -354,9 +368,11 @@
       if (chartInFlight) return;
       chartInFlight=true;
       try {
-        const response=await fetch('/api/chart',{cache:'no-store'});
+        const response=await fetch('/history/coinbase-chart',{cache:'no-store'});
         if (!response.ok) throw new Error('Status '+response.status);
-        chartData=await response.json();
+        const saved = await response.json();
+        if (saved.market?.id === latest?.market?.id && saved.market) chartData = saved;
+        else if (!chartData || chartData.market?.id !== latest?.market?.id) chartData = {market:latest?.market, points:[]};
         mergeLatestTick(latest);
         updateChartSummary();
         drawChart();
@@ -364,33 +380,11 @@
       finally { chartInFlight=false; }
     }
     let latest = null, serverEpochMs = null, syncAt = null, requestInFlight = false, lastError = null;
-    let pendingLiveTick = null, pendingLiveQuote = null;
     let chartDrawPending = false;
     function scheduleChartDraw() {
       if (chartDrawPending) return;
       chartDrawPending = true;
       requestAnimationFrame(() => { chartDrawPending = false; drawChart(); });
-    }
-    function acceptLiveTick(t) {
-      if (!latest) { pendingLiveTick = t; return; }
-      if (!t?.source_time || !t?.received_at) return;
-      const current = latest.latest_coinbase_tick;
-      if (current && (Date.parse(t.received_at) < Date.parse(current.received_at) ||
-          Date.parse(t.received_at) === Date.parse(current.received_at) && latest.live_estimate)) return;
-      latest.latest_coinbase_tick = t;
-      latest.live_estimate = t.estimate?.market_id === latest.market?.id ? t.estimate : null;
-      mergeLatestTick(latest);
-      updateChartSummary();
-      scheduleChartDraw();
-      tick();
-    }
-    function acceptLiveQuote(q) {
-      if (!latest) { pendingLiveQuote = q; return; }
-      if (!latest?.market || q?.market_id !== latest.market.id) return;
-      const current = latest.market_quote;
-      if (current && Date.parse(q.received_at) <= Date.parse(current.received_at)) return;
-      latest.market_quote = q;
-      tick();
     }
     const serverNowMs = () => serverEpochMs == null ? null : serverEpochMs + performance.now() - syncAt;
     const ageOf = value => value ? Math.max(0, (serverNowMs() - Date.parse(value)) / 1000) : null;
@@ -398,7 +392,9 @@
       if (!latest || serverNowMs() == null) return;
       const now = serverNowMs();
       set('server-clock', 'UTC ' + new Date(now).toLocaleTimeString('en-GB', {timeZone:'UTC',hour12:false}));
-      const m = latest.market, s = latest.snapshot, f = latest.forecast, q = latest.market_quote, t = latest.latest_coinbase_tick, e = latest.live_estimate;
+      const candidate = savedModels.ensemble_v1;
+      const f = candidate && candidate.market_id === latest.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : latest.baseline_forecast;
+      const m = latest.market, s = latest.snapshot, q = latest.market_quote, t = latest.latest_coinbase_tick, e = latest.live_estimate;
       const remaining = m ? Math.max(0, Math.ceil((Date.parse(m.end) - now) / 1000)) : null;
       if (m && remaining === 0) set('market-state', 'Market ended · awaiting next saved market');
       set('market-timer', remaining == null ? '—' : remaining === 0 ? '0:00 · awaiting next market' : Math.floor(remaining / 60) + ':' + String(remaining % 60).padStart(2,'0') + ' left');
@@ -518,19 +514,19 @@
           : 'Live estimate from BTC tick ' + age(ageOf(e.as_of)) + ' · volatility snapshot ' + age(ageOf(e.snapshot_as_of))
         : 'Waiting for a fresh BTC tick and recent volatility.');
       set('saved-forecast-state', f?.probability_up != null
-        ? 'Saved 30-second forecast: ' + pct(f.probability_up) + ' UP · ' + age(ageOf(f.created_at))
+        ? 'Saved 30-second forecast: ' + pct(f.probability_up) + ' UP · ' + age(ageOf(f.created_at || f.as_of))
         : f?.abstain_reason ? 'Saved forecast abstained: ' + f.abstain_reason : 'Saved forecast: waiting for data.');
       const checkedAge = ageOf(latest.generated_at);
       set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge)
-        : storageLimited ? 'Storage cap reached · SQLite checked ' + age(checkedAge)
-        : collectionState === 'stopped' ? 'Collector stopped · SQLite checked ' + age(checkedAge)
-        : collectionState === 'stale' ? 'BTC feed stale · SQLite checked ' + age(checkedAge)
-        : 'SQLite checked ' + age(checkedAge));
+        : storageLimited ? 'Storage cap reached · LiveState checked ' + age(checkedAge)
+        : collectionState === 'stopped' ? 'Collector stopped · LiveState checked ' + age(checkedAge)
+        : collectionState === 'stale' ? 'BTC feed stale · LiveState checked ' + age(checkedAge)
+        : 'LiveState checked ' + age(checkedAge));
       updateChartSummary();
     }
     function render(data) {
       const m = data.market, s = data.snapshot, f = data.forecast;
-      set('market-state', m ? m.status.replaceAll('_', ' ') : 'No active market observed');
+      set('market-state', m ? (m.status || 'unknown').replaceAll('_', ' ') : 'No active market observed');
       set('target', money(m?.target_usd));
       set('reference', money(s?.reference_price_usd));
       set('distance', money(s?.distance_usd));
@@ -542,7 +538,7 @@
         const name = document.createElement('strong'); name.textContent = feed.source.replaceAll('_',' ');
         const state = document.createElement('span'); state.textContent = feed.effective_status; state.className = feed.effective_status === 'live' || feed.effective_status === 'running' ? 'up' : 'warn';
         line.append(name,state); div.append(line);
-        const sub = document.createElement('div'); sub.className = 'small muted'; sub.textContent = 'Last update ' + age(feed.age_seconds) + ' · reconnects ' + feed.reconnects + (feed.detail ? ' · ' + feed.detail : '');
+        const sub = document.createElement('div'); sub.className = 'small muted'; sub.textContent = 'Last update ' + age(feed.age_seconds) + ' · reconnects (cumulative) ' + feed.reconnects + (feed.detail ? ' · ' + feed.detail : '');
         div.append(sub); feeds.append(div);
       }
       if (!data.feeds.length) feeds.textContent = 'No feed health stored yet.';
@@ -604,55 +600,174 @@
         }
       } else evidence.textContent = 'No prediction has linked context yet.';
     }
+    let savedContext = {evaluation:{distinct_confirmed_markets_by_checkpoint:{}}, news:[], outcomes:[], evidence:null};
+    let savedModels = {};
+    let currentPage = 'market';
+    let lastStreamAt = 0;
+    function showPage(page) {
+      currentPage = page;
+      for (const node of document.querySelectorAll('[data-page]')) node.hidden = node.dataset.page !== page;
+      for (const button of document.querySelectorAll('nav button')) button.setAttribute('aria-pressed', String(button.dataset.target === page));
+      if (page === 'system') refreshSystem();
+      if (page === 'market') drawChart();
+    }
+    for (const button of document.querySelectorAll('nav button')) button.onclick = () => showPage(button.dataset.target);
+    function acceptState(state) {
+      serverEpochMs = Date.parse(state.generated_at) || Date.now(); syncAt = performance.now();
+      const marketChanged = latest?.market?.id !== state.market?.id;
+      const feature = state.feature_snapshot;
+      const quote = state.polymarket;
+      const candidate = savedModels.ensemble_v1;
+      const ensemble = candidate && candidate.market_id === state.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : null;
+      latest = {...savedContext, market:state.market, generated_at:state.generated_at,
+        snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status} : null,
+        forecast:ensemble || state.forecast, baseline_forecast:state.forecast, live_estimate:state.live_estimate,
+        latest_coinbase_tick:state.coinbase,
+        market_quote:quote ? {...quote, kind:'live_ws', up_quote:quote.up_probability, down_quote:quote.down_probability} : null,
+        feeds:Object.entries(state.feeds || {}).map(([source, feed]) => {
+          const seconds = ageOf(feed.last_data_at || feed.updated_at);
+          return {...feed, source, age_seconds:seconds, effective_status:seconds > 90 && ['live','running'].includes(feed.status) ? 'stale' : feed.status};
+        })};
+      lastError = null;
+      render(latest);
+      if (marketChanged || !chartData) {
+        chartData = {market:state.market, points:[]};
+        refreshChart();
+      }
+      mergeLatestTick(latest); scheduleChartDraw(); tick();
+    }
+    async function getJSON(path) {
+      const response = await fetch(path, {cache:'no-store'});
+      if (!response.ok) throw new Error('Request failed: ' + response.status);
+      return response.json();
+    }
     async function refresh() {
-      if (requestInFlight) return;
+      if (requestInFlight || Date.now() - lastStreamAt < 5000) return;
       requestInFlight = true;
-      const started = performance.now();
-      try {
-        const response = await fetch('/api/status', {cache:'no-store'});
-        if (!response.ok) throw new Error('Status ' + response.status);
-        const data = await response.json();
-        const finished = performance.now();
-        serverEpochMs = Date.parse(data.generated_at) + (finished - started) / 2;
-        syncAt = finished;
-        if (latest?.latest_coinbase_tick && (!data.latest_coinbase_tick ||
-            Date.parse(latest.latest_coinbase_tick.received_at) > Date.parse(data.latest_coinbase_tick.received_at)))
-          data.latest_coinbase_tick = latest.latest_coinbase_tick;
-        if (latest && latest.market?.id === data.market?.id && latest.market_quote &&
-            (!data.market_quote || Date.parse(latest.market_quote.received_at) > Date.parse(data.market_quote.received_at)))
-          data.market_quote = latest.market_quote;
-        if (latest && latest.market?.id === data.market?.id) data.live_estimate = latest.live_estimate;
-        const marketChanged = chartData?.market?.id !== data.market?.id;
-        latest = data;
-        lastError = null;
-        render(data);
-        if (pendingLiveTick) { const incoming = pendingLiveTick; pendingLiveTick = null; acceptLiveTick(incoming); }
-        if (pendingLiveQuote) { const incoming = pendingLiveQuote; pendingLiveQuote = null; acceptLiveQuote(incoming); }
-        mergeLatestTick(data);
-        if (chartData?.market?.id === data.market?.id) drawChart();
-        if (marketChanged) refreshChart();
-        tick();
-      } catch (error) { lastError = error; if (!latest) set('refresh', 'Data unavailable · ' + error.message); }
+      try { acceptState(await getJSON('/state/current')); }
+      catch (error) { lastError = error; set('refresh', 'Live data unavailable'); }
       finally { requestInFlight = false; }
+    }
+    function pair(parent, label, value) {
+      const row = document.createElement('div'); row.className = 'pair';
+      const left = document.createElement('span'); left.textContent = label;
+      const right = document.createElement('strong'); right.textContent = value ?? 'Unavailable';
+      row.append(left, right); parent.append(row);
+    }
+    async function refreshDetails() {
+      const results = await Promise.allSettled(['/models/current','/history/predictions?limit=100','/history/context'].map(getJSON));
+      if (results[0].status === 'fulfilled') {
+        savedModels = results[0].value.models;
+        const view = byId('models-list'); view.replaceChildren();
+        for (const [name, model] of Object.entries(savedModels)) {
+          const card = document.createElement('div'); card.className = 'feed';
+          pair(card, name, pct(model.probability_up) + ' UP');
+          pair(card, 'Forecast time', localTime(model.as_of));
+          if (model.market_id) pair(card, 'Market', model.market_id);
+          pair(card, 'Status', model.experimental ? 'Experimental · unvalidated' : model.abstain_reason || 'Baseline');
+          if (model.current_market === false) pair(card, 'Market match', 'Previous market · excluded from live decisions');
+          for (const key of ['decision_action','decision_summary','decision_label','decision_hold_direction','decision_confidence','suggested_action','suggested_confidence']) {
+            if (model[key] != null) pair(card, key.replaceAll('_',' '), model[key]);
+          }
+          view.append(card);
+        }
+        if (!Object.keys(savedModels).length) view.textContent = 'No model result available yet.';
+      }
+      if (results[1].status === 'fulfilled') {
+        const tbody = byId('prediction-rows'); tbody.replaceChildren();
+        for (const item of results[1].value.items) {
+          const tr = document.createElement('tr');
+          for (const value of [localTime(item.as_of),item.market_id,item.model_version,pct(item.probability_up),item.abstain_reason || '—']) {
+            const td = document.createElement('td'); td.textContent = value; tr.append(td);
+          }
+          tbody.append(tr);
+        }
+        set('history-status', tbody.children.length ? 'Latest 100 persisted forecasts' : 'No saved forecasts available.');
+      } else set('history-status', 'Prediction history unavailable.');
+      if (results[2].status === 'fulfilled') {
+        savedContext = {...savedContext, ...results[2].value};
+        if (latest) { latest = {...latest, ...savedContext}; render(latest); }
+      }
+    }
+    const bytes = value => value == null ? 'Unavailable' : (value / 1048576).toLocaleString(undefined,{maximumFractionDigits:1}) + ' MB';
+    const seconds = value => value == null ? 'Unavailable' : Number(value).toFixed(2) + ' sec';
+    function graph(parent, samples, key, label) {
+      const valid = samples.filter(s => typeof s[key] === 'number' && Number.isFinite(s[key]));
+      if (!valid.length) return;
+      const card = document.createElement('div'); card.className = 'card';
+      const title = document.createElement('h3'); title.textContent = label; card.append(title);
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns,'svg'); svg.setAttribute('viewBox','0 0 440 130'); svg.setAttribute('role','img'); svg.setAttribute('aria-label',label);
+      const times = samples.map(s => Date.parse(s.captured_at));
+      const minTime = Math.min(...times), maxTime = Math.max(...times);
+      const values = valid.map(s=>s[key]), low = Math.min(...values), high = Math.max(...values);
+      const point = s => [10+(Date.parse(s.captured_at)-minTime)/Math.max(1,maxTime-minTime)*420,110-(s[key]-low)/Math.max(0.00001,high-low)*90];
+      let previous = null;
+      for (const sample of samples) {
+        if (typeof sample[key] !== 'number') { previous = null; continue; }
+        const [x,y] = point(sample);
+        if (previous && Date.parse(sample.captured_at)-Date.parse(previous.captured_at)<=900000) {
+          const [px,py] = point(previous), line = document.createElementNS(ns,'line');
+          for (const [k,v] of Object.entries({x1:px,y1:py,x2:x,y2:y,stroke:'#65b3ff','stroke-width':2})) line.setAttribute(k,String(v));
+          svg.append(line);
+        }
+        const dot = document.createElementNS(ns,'circle'); dot.setAttribute('cx',String(x));dot.setAttribute('cy',String(y));dot.setAttribute('r','2');dot.setAttribute('fill','#65b3ff');
+        const tooltip=document.createElementNS(ns,'title');tooltip.textContent=localTime(sample.captured_at)+' · '+sample[key];dot.append(tooltip);svg.append(dot);previous=sample;
+      }
+      card.append(svg);
+      const caption=document.createElement('div');caption.className='small muted';
+      caption.textContent='Range '+low.toLocaleString()+' – '+high.toLocaleString()+' · '+localTime(valid[0].captured_at)+' → '+localTime(valid.at(-1).captured_at);
+      card.append(caption);parent.append(card);
+    }
+    let systemInFlight = false;
+    async function refreshSystem() {
+      if (systemInFlight || currentPage !== 'system') return;
+      systemInFlight = true;
+      try {
+        const [status, history] = await Promise.all([getJSON('/system/status'),getJSON('/system/history')]);
+        const view = byId('system-status');view.replaceChildren();
+        const host = status.host;
+        pair(view, 'API', status.api);
+        pair(view, 'Live engine health', status.live_engine_status);
+        pair(view, 'Collector', status.collector.running ? 'Running' : status.collector.enabled ? 'Stopped' : 'Disabled');
+        pair(view, 'Host telemetry', host.status + ' · '+localTime(host.captured_at));
+        pair(view, 'Host uptime', seconds(host.uptime_seconds));
+        pair(view, 'CPU (last 1-second sample)', host.cpu_percent == null ? 'Unavailable' : host.cpu_percent + '%');
+        pair(view, 'RAM used / total', bytes(host.ram_used_bytes)+' / '+bytes(host.ram_total_bytes));
+        pair(view, 'Disk used / total / free', bytes(host.disk_used_bytes)+' / '+bytes(host.disk_total_bytes)+' / '+bytes(host.disk_free_bytes));
+        pair(view, 'SQLite / WAL', bytes(status.sqlite.size_bytes)+' / '+bytes(status.sqlite.wal_size_bytes));
+        pair(view, 'OpenAI', status.openai_enabled ? 'ON' : 'OFF'); pair(view, 'Retention', status.retention_enabled ? 'ON' : 'OFF');
+        for (const [name,service] of Object.entries(status.services)) pair(view,name,service.state+' · restarts '+(service.restarts ?? 'unavailable')+(status.services_stale?' · stale/unavailable snapshot':''));
+        for (const [name,feed] of Object.entries(status.feeds)) {
+          pair(view,name,feed.status+' · age '+seconds(feed.age_seconds));
+          pair(view,name+' reconnects (historical cumulative total)',feed.reconnects_cumulative);
+        }
+        const cloud = status.cloud;
+        pair(view,'Supabase structured sync',cloud.status);
+        pair(view,'Cloud lifecycle',cloud.lifecycle?.status);
+        pair(view,'Archive object counts (verified / unverified)', 'Not recorded locally; dataset verification and checkpoints below');
+        for (const key of ['last_cycle_status','last_structured_success_at','last_structured_rows','last_observations_archive_at','last_observations_archive_rows','observations_archive_caught_up','last_stream_events_archive_at','last_stream_events_archive_rows','stream_events_archive_caught_up','last_error_type']) if (cloud.lifecycle?.[key] != null) pair(view,key.replaceAll('_',' '),cloud.lifecycle[key]);
+        for (const dataset of cloud.datasets || []) pair(view,dataset.dataset, dataset.status+' · rows '+dataset.rows_synced+' · checkpoint '+(dataset.last_source_id ?? 'unavailable'));
+        const charts=byId('system-charts');charts.replaceChildren();
+        set('system-history-status', history.items.length ? history.items.length+' recorded samples · gaps remain gaps; reconnects are cumulative' : 'Monitoring history unavailable. The five-minute monitor has no readable samples yet.');
+        for (const [key,label] of Object.entries({cpu_percent:'CPU (%)',ram_used_bytes:'RAM used (bytes)',disk_used_bytes:'Disk used (bytes)',sqlite_bytes:'SQLite (bytes)',wal_bytes:'WAL (bytes)',coinbase_age_seconds:'Coinbase age (seconds)',polymarket_age_seconds:'Polymarket age (seconds)',coinbase_reconnects_cumulative:'Coinbase reconnects (cumulative)',polymarket_reconnects_cumulative:'Polymarket reconnects (cumulative)',predictions:'Predictions (cumulative rows)',cloud_rows_synced:'Cloud rows synced (cumulative)',observations_archive_checkpoint:'Observations archive checkpoint',stream_events_archive_checkpoint:'Stream archive checkpoint'})) graph(charts,history.items,key,label);
+      } catch (_) { set('system-history-status','System monitoring unavailable. Live market collection continues independently.'); }
+      finally { systemInFlight=false; }
     }
     if (location.protocol === 'file:') {
       byId('offline-hint').style.display='block';
       set('refresh','Open live dashboard URL');
     } else {
-      refresh(); refreshChart();
-      setInterval(refresh, 2000); setInterval(refreshChart, 5000); setInterval(tick, 250);
+      refresh(); refreshDetails();
+      setInterval(refresh, 5000); setInterval(refreshDetails, 15000); setInterval(refreshSystem, 30000); setInterval(tick, 250);
       if ('EventSource' in window) {
-        const liveTicks = new EventSource('/api/ticks');
-        liveTicks.addEventListener('tick', event => {
-          try { acceptLiveTick(JSON.parse(event.data)); } catch (_) { /* periodic status remains available */ }
-        });
-        liveTicks.onopen = () => set('chart-stream-state', 'Live tick stream connected · local SQLite');
-        liveTicks.onerror = () => set('chart-stream-state', 'Live tick stream reconnecting · periodic refresh still active');
-        const marketPrices = new EventSource('/api/market-live');
-        marketPrices.addEventListener('quote', event => {
-          try { acceptLiveQuote(JSON.parse(event.data)); } catch (_) { /* saved quotes remain available */ }
-        });
-      } else set('chart-stream-state', 'Periodic refresh · this browser lacks live event support');
+        const stream = new EventSource('/events');
+        stream.onmessage = event => {
+          try { acceptState(JSON.parse(event.data)); lastStreamAt = Date.now(); }
+          catch (_) { lastError = new Error('Invalid live state'); }
+        };
+        stream.onerror = () => { lastStreamAt = 0; lastError = new Error('Live stream reconnecting'); refresh(); };
+      }
       window.addEventListener('resize', drawChart);
     }
   </script>

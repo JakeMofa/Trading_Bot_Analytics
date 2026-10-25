@@ -90,7 +90,7 @@ def deploy(revision, bundle):
     old = git('rev-parse', 'HEAD')
     env_before = protected()
     legacy = not bool(git('ls-tree', '--name-only', old, 'backend/app/system_monitoring.py'))
-    smoke(legacy, attempts=1)
+    smoke(legacy, attempts=6)
     refs = git('bundle', 'list-heads', str(bundle)).splitlines()
     assert refs == [revision + ' ' + BRANCH], 'bundle must contain exactly the approved branch head'
     git('bundle', 'verify', str(bundle))

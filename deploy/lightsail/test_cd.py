@@ -42,6 +42,32 @@ class DeploymentTests(unittest.TestCase):
             self.assertIn(('checkout', '--detach', old), calls)
             self.assertEqual(smoke.call_count, 3)
 
+    def test_internal_verification_error_does_not_trigger_application_rollback(self):
+        cd = load('deploy')
+        old, new = 'a' * 40, 'b' * 40
+        calls = []
+        def git(*args):
+            calls.append(args)
+            if args == ('rev-parse', 'HEAD'):
+                return old
+            if args[0] == 'ls-tree':
+                return ''
+            if args[:2] == ('bundle', 'list-heads'):
+                return new + ' ' + cd.BRANCH
+            if args == ('rev-parse', 'FETCH_HEAD'):
+                return new
+            if args[:2] == ('diff', '--name-only'):
+                return 'backend/app/api.py'
+            return ''
+        with tempfile.TemporaryDirectory() as directory, patch.object(cd, 'ROOT', Path(directory)), \
+             patch.object(cd, 'git', side_effect=git), patch.object(cd, 'preflight', return_value={}), \
+             patch.object(cd, 'protected', return_value=('hash', 0o600, 1)), \
+             patch.object(cd, 'run'), patch.object(cd, 'smoke', side_effect=[{}, KeyError('checker bug')]):
+            with self.assertRaises(SystemExit):
+                cd.deploy(new, Path(directory) / 'input.bundle')
+            self.assertIn(('checkout', '--detach', new), calls)
+            self.assertNotIn(('checkout', '--detach', old), calls)
+
     def test_timer_has_no_process_fields_and_does_not_break_validation(self):
         cd = load('deploy')
         def run(*args, **kwargs):

@@ -22,7 +22,7 @@ CORE = ('/health', '/state/current', '/forecast/current', '/models/current', '/c
 PHASE = ('/system/status', '/system/history', '/dashboard', '/history/predictions', '/history/context', '/history/coinbase-chart')
 
 
-def get(path):
+def _get(path):
     with urllib.request.urlopen('http://127.0.0.1:8000' + path, timeout=15) as response:
         content_type = response.headers.get('Content-Type', '')
         if path == '/events':
@@ -42,6 +42,15 @@ def get(path):
             return 'HTML'
         assert 'application/json' in content_type, 'JSON content type'
         return json.loads(body)
+
+
+def get(path):
+    try:
+        return _get(path)
+    except AssertionError as error:
+        raise AssertionError(path + ': ' + str(error)) from None
+    except Exception as error:
+        raise AssertionError(path + ': request failed (' + type(error).__name__ + ')') from None
 
 
 def check(legacy=False):

@@ -87,7 +87,7 @@ or independently advance both copies. Preserve all backups and deployment keys
 outside Git. Instance stop/reboot does not provide disaster recovery; redundant
 backup/restore and measured retention policy remain follow-up work.
 
-## Phase 1.5 dashboard (code prepared; deploy intentionally)
+## Phase 1.5 dashboard (production verified October 25, 2026)
 
 FastAPI serves the dashboard at `/dashboard` on its existing localhost port 8000.
 Market is the default page; Models, History and System are separate navigation
@@ -119,7 +119,8 @@ archive object counts are unavailable locally, while dataset verification and
 checkpoints come from existing local lifecycle records. No remote cloud query is
 made by the dashboard. Free-form cloud error details/source keys are redacted.
 
-The branch closeout does not deploy anything. OpenAI and retention stay OFF,
+The original feature-branch closeout did not deploy production. The October 25
+manual CD release below is now verified. OpenAI and retention stay OFF,
 collector ownership stays with FastAPI, and the separate 24-hour soak review
 remains required before future phases.
 
@@ -167,8 +168,9 @@ without printing them. Only changed application code restarts `tradebot-api`;
 ensemble, lifecycle and the timer retain their existing PIDs.
 
 Root-only records in `/opt/tradebot/data/deployments/` persist `OLD_REVISION`,
-`NEW_REVISION`, outcome and restarted services. Smoke checks retry for up to two
-minutes to tolerate startup/stream recovery. They require all core/System/history
+`NEW_REVISION`, outcome and restarted services. Baseline smoke allows six attempts and post-deploy smoke allows 24 attempts,
+separated by five seconds plus bounded per-request timeouts, to tolerate transient
+requests and startup/stream recovery. They require all core/System/history
 routes, valid dashboard HTML, an SSE data frame, fresh live streams, running
 collector, ensemble exposure, disabled flags and stable services. Cloud status is
 reported separately from live health. A material post-checkout failure restores
@@ -184,7 +186,35 @@ Run deployment-control tests with:
 python3 -m unittest discover -s deploy/lightsail -p test_cd.py -v
 ```
 
-After deployment, independently inspect actual journals, process ownership, full
-SQLite integrity, telemetry/checkpoint advancement and all four dashboard tabs
+After deployment, independently inspect actual journals, process ownership, read-only
+SQLite integrity/foreign-key checks, telemetry/checkpoint advancement and all four dashboard tabs
 through the private operator tunnel before marking the roadmap complete. Automated
 smoke success alone does not certify the visual dashboard or Phase 1.75 soak.
+
+
+### First verified controlled deployment
+
+Manual CD run [40239236113](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/40239236113)
+succeeded October 25, 2026 at approximately 5:19 p.m. America/Chicago, deploying
+`a7c098900f8310367fc262a1b837c369bb63dc56` from old production
+`1eceb8098f21136692230e11fc6d711290e74298`. Only API restarted; all required
+routes/SSE, four dashboard tabs, single collector, disabled flags, unchanged
+protected environment, healthy SQLite checks and cloud lifecycle were verified.
+The existing source-of-truth plan contains detailed evidence and the two resolved
+failed attempts. The first exercised actual rollback; the second stopped before
+checkout on a request timeout. Both failures remained visibly FAILED in Actions.
+
+To dispatch a reviewed current deployment-branch revision after its CI passes,
+bring a trusted ephemeral `tradebot-private` runner online at the existing allowed
+operator address, then run:
+
+```sh
+gh workflow run deploy-tradebot.yml --repo JakeMofa/Trading_Bot_Analytics \
+  --ref codex/lightsail-deployment -f revision=<full-approved-HEAD-SHA>
+```
+
+Wait for the actual deploy job result, then inspect production. A push validation
+run is not a deployment. The temporary runner unregisters after one job, so no
+persistent Mac runner was installed. Protect the runner machine as production
+access: it executes trusted repository workflow code and receives deployment
+Secrets. Keep it limited to an authorized deployment window.

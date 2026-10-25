@@ -138,6 +138,10 @@ class DashboardAPITests(unittest.TestCase):
         feed=self.client.get('/system/status').json()['feeds']['polymarket']
         self.assertEqual(feed['reconnects_cumulative'],17)
         self.assertLess(feed['age_seconds'],5)
+        self.state.update_feed_health('polymarket_stream','live',last_data_at='2020-01-01T00:00:00Z')
+        stale=self.client.get('/system/status').json()['feeds']['polymarket']
+        self.assertEqual(stale['status'],'stale')
+        self.assertEqual(stale['reported_status'],'live')
 
     def test_ensemble_latest_valid_and_baseline_remain_separate(self):
         with sqlite3.connect(self.db) as db:

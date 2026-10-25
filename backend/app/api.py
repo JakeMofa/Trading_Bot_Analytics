@@ -239,8 +239,13 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
         for name in ('coinbase', 'polymarket'):
             feed = snapshot.get('feeds', {}).get(name + '_stream', {})
             data = snapshot.get(name) or {}
-            feeds[name] = {'status': feed.get('status', 'unavailable'),
-                           'age_seconds': elapsed(data.get('received_at') or feed.get('last_data_at')),
+            age_seconds = elapsed(data.get('received_at') or feed.get('last_data_at'))
+            reported_status = feed.get('status', 'unavailable')
+            effective_status = reported_status
+            if reported_status in ('live', 'running'):
+                effective_status = 'unavailable' if age_seconds is None else 'stale' if age_seconds > 90 else reported_status
+            feeds[name] = {'status': effective_status, 'reported_status': reported_status,
+                           'age_seconds': age_seconds,
                            'reconnects_cumulative': feed.get('reconnects')}
         collector = _collector_status(app.state.collector_task)
         result.update({'api': 'responding', 'live_engine_status': _live_health(snapshot, collector),

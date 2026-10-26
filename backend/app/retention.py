@@ -7,6 +7,7 @@ checkpoint is never trusted on its own. Only `observations` and
 `stream_events` are ever touched. Nothing here runs VACUUM, and live
 forecasting never imports or depends on this module.
 """
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import copy
@@ -14,6 +15,7 @@ import json
 import os
 import re
 import sqlite3
+import time
 
 
 DEFAULT_RETENTION_HOURS = 48
@@ -208,7 +210,113 @@ def _count(db, spec, where, params):
     ).fetchone()[0]
 
 
+class _PreparedManifests(list):
+    """Private immutable evidence copy; no current-local facts are cached here."""
+    def __init__(self, manifests, bucket):
+        super().__init__(copy.deepcopy(manifests))
+        self.bucket = bucket
+        self.parsed = {}
+        for dataset, spec in SPECS.items():
+            valid, rejected, considered = [], {}, 0
+            for manifest in self:
+                if manifest.get("source") != spec.source:
+                    continue
+                considered += 1
+                try:
+                    lo, hi = _manifest_interval(dataset, manifest, bucket)
+                except ValueError as exc:
+                    reason = str(exc)
+                    rejected[reason] = rejected.get(reason, 0) + 1
+                else:
+                    valid.append((lo, hi, manifest["event_count"]))
+            self.parsed[dataset] = (valid, rejected, considered)
+
+
+def _validated_timestamp_cache(db):
+    # Validity is a pure fact about the exact string, not about a row or snapshot.
+    # This read is outside the write lock. Changed/new strings are checked again
+    # from the fresh transaction snapshot; malformed values always fail closed.
+    cache = set()
+    for table in SPECS:
+        for (value,) in db.execute(f"SELECT received_at FROM {table}"):
+            if value not in cache:
+                canonical_time(value)
+                cache.add(value)
+    return cache
+
+
+class _ValidationSnapshot:
+    """Fresh minimal local state, created only under the current writer lock."""
+    def __init__(self, db, timestamp_cache):
+        self.db = db
+        self.records, self.keys = {}, {}
+        for dataset in SPECS:
+            columns = "id,received_at" if dataset == "observations" else "source,event_id,received_at"
+            records = []
+            for row in db.execute(f"SELECT {columns} FROM {dataset}"):
+                value = row[-1]
+                if value not in timestamp_cache:
+                    canonical_time(value)
+                    timestamp_cache.add(value)
+                stamp = value[:19] + ".000000+00:00" if len(value) == 25 else value
+                if dataset == "observations":
+                    key = (row[0],)
+                else:
+                    key = (stamp, row[0], row[1])
+                records.append((key, value))
+            records.sort(key=lambda item: item[0])
+            self.records[dataset] = records
+            self.keys[dataset] = [item[0] for item in records]
+
+    def __getattr__(self, name):
+        return getattr(self.db, name)
+
+    def select(self, dataset, intervals, cutoff, protected, pending, limit):
+        references = set()
+        if dataset == "observations" and self.db.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='prediction_context_links'"
+        ).fetchone():
+            references = {r[0] for r in self.db.execute(
+                "SELECT outcome_observation_id FROM prediction_context_links "
+                "WHERE outcome_observation_id IS NOT NULL")}
+        keys, records = self.keys[dataset], self.records[dataset]
+        for lo, hi in intervals:
+            selected = []
+            for i in range(bisect_left(keys, lo), bisect_right(keys, hi)):
+                key, value = records[i]
+                stamp = value[:19] + ".000000+00:00" if len(value) == 25 else value
+                identity = (key[0],) if dataset == "observations" else (key[1], key[2], value)
+                if stamp >= cutoff or identity not in pending:
+                    continue
+                if dataset == "observations" and (
+                        (protected is not None and key[0] >= protected) or key[0] in references):
+                    continue
+                selected.append(identity)
+                if len(selected) == limit:
+                    break
+            # Keep the existing per-interval bounded-batch contract.
+            if selected:
+                return selected
+        return []
+
+
 def _usable_intervals(db, dataset, manifests, bucket):
+    if isinstance(db, _ValidationSnapshot) and isinstance(manifests, _PreparedManifests):
+        if manifests.bucket != bucket:
+            raise RetentionError("prepared manifest bucket changed")
+        valid, original_rejected, considered = manifests.parsed[dataset]
+        rejected, intervals = dict(original_rejected), []
+        keys = db.keys[dataset]
+        for lo, hi, event_count in valid:
+            # Count ALL current local identities in each original range, including
+            # late rows outside approved scope. A late row can invalidate coverage.
+            if bisect_right(keys, hi) - bisect_left(keys, lo) > event_count:
+                reason = "local_rows_exceed_manifest"
+                rejected[reason] = rejected.get(reason, 0) + 1
+            else:
+                intervals.append((lo, hi))
+        return _merge(intervals), {"considered": considered, "usable": len(intervals),
+                                   "rejected": rejected}
     spec = SPECS[dataset]
     intervals, rejected = [], {}
 
@@ -437,6 +545,8 @@ def apply_retention(db, plan, config, confirm=False):
     if "_approved" not in plan or "_manifests" not in plan:
         raise RetentionError("plan lacks approved identities and manifest evidence")
     cutoff = canonical_time(plan["cutoff"])
+    evidence = _PreparedManifests(plan["_manifests"], plan["_bucket"])
+    timestamp_cache = _validated_timestamp_cache(db)
     result = {"mode": "apply", "cutoff": cutoff, "datasets": {}}
     for dataset, spec in SPECS.items():
         approved = {tuple(key) for key in plan["_approved"][dataset]}
@@ -447,27 +557,12 @@ def apply_retention(db, plan, config, confirm=False):
             # shares a reserved writer lock; collection can resume after COMMIT.
             db.execute("BEGIN IMMEDIATE")
             try:
-                for table in SPECS:
-                    if _bad_time_format(db, table):
-                        raise RetentionError("unsupported received_at at apply; refusing deletes")
+                current = _ValidationSnapshot(db, timestamp_cache)
                 intervals, _ = _usable_intervals(
-                    db, dataset, plan["_manifests"], plan["_bucket"])
+                    current, dataset, evidence, plan["_bucket"])
                 protected = _protected_id(db, dataset)
-                selected = []
-                columns = "id" if dataset == "observations" else "source,event_id,received_at"
-                for interval in intervals:
-                    where, params = _eligible_clause(
-                        db, dataset, spec, interval, cutoff, protected)
-                    for row in db.execute(f"SELECT {columns} FROM {dataset} WHERE {where}", params):
-                        key = tuple(row)
-                        if key in pending:
-                            selected.append(key)
-                            if len(selected) == config.batch_size:
-                                break
-                    # Preserve the per-interval batching contract: commit even
-                    # a partial batch before selecting from another interval.
-                    if selected:
-                        break
+                selected = current.select(
+                    dataset, intervals, cutoff, protected, pending, config.batch_size)
                 if not selected:
                     db.commit()
                     break
@@ -480,9 +575,15 @@ def apply_retention(db, plan, config, confirm=False):
             except BaseException:
                 db.rollback()
                 raise
+            # Release full snapshots outside the writer lock before the next batch.
+            current = None
             pending.difference_update(selected)
             deleted += count
             batches += 1
+            if pending:
+                # Give SQLite busy-handler waiters an unlocked handoff window.
+                # This is outside the transaction; every next batch revalidates.
+                time.sleep(0.1)
         result["datasets"][dataset] = {
             "planned_rows": len(approved), "deleted_rows": deleted,
             "skipped_rows": len(approved) - deleted, "batches": batches}

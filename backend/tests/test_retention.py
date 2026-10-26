@@ -178,6 +178,82 @@ class RetentionTests(unittest.TestCase):
             with self.subTest(metadata=field), self.assertRaises(ValueError):
                 retention._manifest_interval("stream_events", bad, "market-raw")
 
+    def test_new_malformed_timestamp_after_cache_preparation_fails_closed(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        original = retention._validated_timestamp_cache
+        def prepare(db):
+            cache = original(db)
+            db.execute("INSERT INTO observations VALUES(99,'m1',?,NULL,'book','{}')",
+                       ("2026-10-01T00:00:00.123+00:00",))
+            db.commit()
+            return cache
+        with patch.object(retention, "_validated_timestamp_cache", side_effect=prepare):
+            with self.assertRaises(RetentionError):
+                apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(self.count("observations"), 31)
+
+    def test_apply_range_counts_use_fresh_snapshot_not_payload_range_scans(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        seen = []
+        self.db.set_trace_callback(seen.append)
+        try:
+            result = apply_retention(self.db, plan, RetentionConfig(True, 48, 3), confirm=True)
+        finally:
+            self.db.set_trace_callback(None)
+        self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 20)
+        self.assertEqual(result["datasets"]["observations"]["batches"], 8)
+        self.assertFalse(any("SELECT COUNT(*) FROM observations WHERE" in sql for sql in seen))
+        self.assertEqual(sum(sql == "SELECT id,received_at FROM observations" for sql in seen), 8)
+
+    def test_late_reference_between_committed_batches_is_rechecked(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        self.db.execute("CREATE TABLE prediction_context_links (outcome_observation_id INTEGER)")
+        self.db.commit()
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "late-reference.db")
+            hook = [False]
+            writer_holder = []
+            class Target(sqlite3.Connection):
+                def commit(connection):
+                    super().commit()
+                    if hook[0]:
+                        hook[0] = False
+                        writer_holder[0].execute("INSERT INTO prediction_context_links VALUES(5)")
+                        writer_holder[0].commit()
+            target = sqlite3.connect(path, factory=Target)
+            self.db.backup(target)
+            writer = sqlite3.connect(path, timeout=0)
+            writer_holder.append(writer)
+            try:
+                plan = plan_retention(target, self.cloud.manifests, self.config, NOW)
+                hook[0] = True
+                result = apply_retention(target, plan, RetentionConfig(True, 48, 3), confirm=True)
+                self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 19)
+                self.assertEqual(target.execute("SELECT id FROM observations WHERE id=5").fetchone(), (5,))
+                self.assertEqual(target.execute("SELECT COUNT(*) FROM prediction_context_links").fetchone()[0], 1)
+            finally:
+                writer.close()
+                target.close()
+
+    def test_writer_handoff_is_outside_transaction_and_next_batch_revalidates(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        handoffs = []
+        def handoff(seconds):
+            self.assertFalse(self.db.in_transaction)
+            self.assertEqual(seconds, 0.1)
+            handoffs.append(True)
+        with patch.object(retention.time, "sleep", side_effect=handoff):
+            result = apply_retention(self.db, plan, RetentionConfig(True, 48, 3), confirm=True)
+        self.assertEqual(result["datasets"]["observations"]["batches"], 8)
+        self.assertEqual(len(handoffs), 7)
+
     def test_retention_disabled_and_validated_by_default(self):
         self.assertFalse(RetentionConfig().enabled)
         self.assertEqual(RetentionConfig().hours, 48)

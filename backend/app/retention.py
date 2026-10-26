@@ -26,6 +26,8 @@ MANIFEST_COLUMNS = (
 # runs separately before any comparison or deletion. Stored evidence is untouched.
 TIME_KEY = "(CASE WHEN length(received_at)=25 THEN substr(received_at,1,19)||'.000000+00:00' ELSE received_at END)"
 UTC_TIME_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{6})?\+00:00")
+MANIFEST_UTC_TIME_RE = re.compile(
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?\+00:00")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -96,6 +98,17 @@ def canonical_time(value):
     return dt.astimezone(timezone.utc).isoformat(timespec="microseconds")
 
 
+def canonical_manifest_time(value):
+    """Normalize UTC manifest cursors; never relax the raw received_at contract."""
+    if not isinstance(value, str) or not MANIFEST_UTC_TIME_RE.fullmatch(value):
+        raise RetentionError("unsupported manifest timestamp representation")
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise RetentionError("invalid manifest timestamp") from exc
+    return dt.isoformat(timespec="microseconds")
+
+
 def retention_cutoff(now, hours):
     return canonical_time(now - timedelta(hours=hours))
 
@@ -154,8 +167,8 @@ def _manifest_interval(dataset, manifest, bucket):
     try:
         first_key = json.loads(meta.get("first_source_key") or "null")
         last_key = json.loads(meta.get("last_source_key") or "null")
-        lo = (canonical_time(manifest["started_at"]), *first_key)
-        hi = (canonical_time(manifest["ended_at"]), *last_key)
+        lo = (canonical_manifest_time(manifest["started_at"]), *first_key)
+        hi = (canonical_manifest_time(manifest["ended_at"]), *last_key)
     except (TypeError, ValueError, KeyError, RetentionError):
         raise ValueError("missing_cursor_keys")
     if len(lo) != 3 or len(hi) != 3 or not all(isinstance(v, str) for v in lo + hi):

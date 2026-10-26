@@ -60,6 +60,33 @@ def ts(dt):
     return dt.isoformat(timespec="microseconds")
 
 
+class ManifestTimestampTests(unittest.TestCase):
+    def test_exact_seconds_and_all_fractional_widths_normalize(self):
+        for fraction in ("", ".1", ".12", ".123", ".1234", ".12345", ".123456"):
+            value = "2026-10-25T19:44:19" + fraction + "+00:00"
+            expected = "2026-10-25T19:44:19." + fraction[1:].ljust(6, "0") + "+00:00"
+            with self.subTest(value=value):
+                self.assertEqual(retention.canonical_manifest_time(value), expected)
+
+    def test_unsupported_or_invalid_manifest_times_fail_closed(self):
+        for value in (None, 123, "junk", "2026-10-25T19:44:19",
+                      "2026-10-25T19:44:19.1234567+00:00",
+                      "2026-10-25T19:44:19+01:00", "2026-10-25T19:44:19-00:00",
+                      "2026-10-25T19:44:19+00:01", "2026-10-25T19:44:19Z",
+                      "2026-10-25 19:44:19+00:00", "2026-02-30T19:44:19.1+00:00",
+                      "2026-10-25T24:44:19.1+00:00", "2026-10-25T19:44:60+00:00"):
+            with self.subTest(value=value), self.assertRaises(RetentionError):
+                retention.canonical_manifest_time(value)
+
+    def test_manifest_compatibility_does_not_relax_raw_parser(self):
+        for fraction in (".1", ".12", ".123", ".1234", ".12345"):
+            value = "2026-10-25T19:44:19" + fraction + "+00:00"
+            with self.subTest(value=value):
+                retention.canonical_manifest_time(value)
+                with self.assertRaises(RetentionError):
+                    canonical_time(value)
+
+
 class RetentionTests(unittest.TestCase):
     def setUp(self):
         self.db = sqlite3.connect(":memory:")
@@ -121,6 +148,35 @@ class RetentionTests(unittest.TestCase):
 
     def structured_counts(self):
         return {t: self.count(t) for t in STRUCTURED}
+
+    def test_production_manifest_fraction_preserves_evidence_and_verification(self):
+        observed = "2026-10-01T01:56:34.15214+00:00"
+        self.add_event("coinbase", "1100743489", datetime.fromisoformat(observed))
+        self.archive_all("stream_events", 10)
+        manifest = self.cloud.manifests[0]
+        manifest["started_at"] = observed
+        manifest["ended_at"] = observed
+        original = json.loads(json.dumps(manifest))
+        with self.assertRaises(RetentionError):
+            canonical_time(observed)  # Previously used for manifest cursors.
+        lo, hi = retention._manifest_interval("stream_events", manifest, "market-raw")
+        self.assertEqual(lo, ("2026-10-01T01:56:34.152140+00:00", "coinbase", "1100743489"))
+        self.assertEqual(hi, lo)
+        self.assertEqual(self.plan()["datasets"]["stream_events"]["eligible_rows"], 1)
+        self.assertEqual(manifest, original)
+        for field, value in (("verified_at", None), ("bucket", "wrong"),
+                             ("source", "wrong"), ("sha256", "invalid"),
+                             ("event_count", 0), ("compressed_bytes", 0)):
+            bad = json.loads(json.dumps(original))
+            bad[field] = value
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                retention._manifest_interval("stream_events", bad, "market-raw")
+        for field, value in (("dataset", "observations"), ("verification", "unchecked"),
+                             ("first_source_key", "null"), ("last_source_key", "[]")):
+            bad = json.loads(json.dumps(original))
+            bad["metadata"][field] = value
+            with self.subTest(metadata=field), self.assertRaises(ValueError):
+                retention._manifest_interval("stream_events", bad, "market-raw")
 
     def test_retention_disabled_and_validated_by_default(self):
         self.assertFalse(RetentionConfig().enabled)

@@ -102,6 +102,23 @@ class CollectorTests(unittest.TestCase):
         self.assertIsNone(db.execute('SELECT result FROM markets').fetchone()[0])
         db.close()
 
+    def test_live_rest_observations_emit_zero_microseconds(self):
+        db = connect(':memory:')
+        now = timestamp('2026-09-30T01:10:00Z')
+        market = normalize(self.market())
+        def response(base, path, params=None):
+            if path.endswith('/ticker'):
+                return {'price': '101'}
+            return {'marketData': {}}
+        with patch('collector.utcnow', return_value=now), \
+             patch('collector.discover', return_value={900: market}), \
+             patch('collector.get_json', side_effect=response):
+            collect_once(db)
+        self.assertEqual(db.execute('SELECT kind,received_at FROM observations ORDER BY id').fetchall(),
+                         [('metadata', '2026-09-30T01:10:00.000000+00:00'),
+                          ('bbo', '2026-09-30T01:10:00.000000+00:00')])
+        db.close()
+
     def test_default_collects_and_reconciles_only_15m(self):
         db=connect(':memory:')
         short=normalize(self.market())

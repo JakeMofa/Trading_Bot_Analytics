@@ -64,7 +64,7 @@ def save_coinbase(db, msg):
     timestamp(msg['time'])
     with db:
         inserted=db.execute('INSERT OR IGNORE INTO stream_events VALUES(?,?,?,?,?,?,?,?)',
-          ('coinbase',str(msg['trade_id']),utcnow().isoformat(),msg['time'],price,
+          ('coinbase',str(msg['trade_id']),utcnow().isoformat(timespec='microseconds'),msg['time'],price,
            amount(msg.get('last_size')),msg.get('side'),json.dumps(msg))).rowcount
     return bool(inserted)
 
@@ -217,7 +217,7 @@ def save_polymarket(db, msg):
     if not row:
         return False
     with db:
-        save_observation(db,row[0],utcnow().isoformat(),'stream_book',msg,
+        save_observation(db,row[0],utcnow().isoformat(timespec='microseconds'),'stream_book',msg,
                          payload.get('transactTime') or payload.get('transact_time'))
     return True
 

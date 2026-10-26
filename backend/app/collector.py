@@ -217,7 +217,7 @@ def collect_once(db, durations=(900,)):
     messages = []
     try:
         markets = discover(utcnow(), durations)
-        received = utcnow().isoformat()
+        received = utcnow().isoformat(timespec='microseconds')
         for duration in durations:
             m = markets.get(duration)
             if not m:
@@ -238,7 +238,7 @@ def collect_once(db, durations=(900,)):
                 if not isinstance(book.get('marketData'), dict):
                     raise ValueError('Missing marketData')
                 with db:
-                    save_observation(db,m['id'],utcnow().isoformat(),kind,book,book['marketData'].get('transactTime'))
+                    save_observation(db,m['id'],utcnow().isoformat(timespec='microseconds'),kind,book,book['marketData'].get('transactTime'))
             except Exception as exc:
                 detail = f"{m['slug']} endpoint={kind}: {exc}"
                 record(db,'polymarket_quotes',False,detail)
@@ -256,7 +256,7 @@ def collect_once(db, durations=(900,)):
             m = normalize(raw)
             if m:
                 with db:
-                    save_market(db,m,utcnow().isoformat())
+                    save_market(db,m,utcnow().isoformat(timespec='microseconds'))
         except Exception as exc:
             record(db,'polymarket_resolution',False,f'{slug}: {exc}')
     try:

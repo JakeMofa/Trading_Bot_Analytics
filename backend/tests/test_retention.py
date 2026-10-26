@@ -4,11 +4,15 @@ import json
 from pathlib import Path
 import sqlite3
 import sys
+import tempfile
+from unittest.mock import patch
 import unittest
 
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
+
+import retention
 
 from cloud_memory import (
     CloudConfig,
@@ -281,15 +285,75 @@ class RetentionTests(unittest.TestCase):
         report = self.plan()["datasets"]["stream_events"]
         self.assertEqual(report["eligible_rows"], 0)
 
+    def test_old_plan_skips_range_with_new_unarchived_row(self):
+        when = CUTOFF_DT - timedelta(days=2)
+        self.add_event("coinbase", "a", when)
+        self.add_event("coinbase", "z", when + timedelta(seconds=2))
+        self.archive_all("stream_events", 10)
+        plan = self.plan()
+        self.assertEqual(plan["datasets"]["stream_events"]["eligible_rows"], 2)
+        self.add_event("coinbase", "late", when + timedelta(seconds=1))
+        fresh = self.plan()["datasets"]["stream_events"]
+        self.assertEqual(fresh["eligible_rows"], 0)
+        self.assertEqual(fresh["uncovered_or_unverified_old_rows"], 3)
+        result = apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(result["datasets"]["stream_events"]["deleted_rows"], 0)
+        self.assertEqual(self.count("stream_events"), 3)
+
+    def test_new_identity_cannot_enter_scope_even_with_manifest_count_slack(self):
+        when = CUTOFF_DT - timedelta(days=2)
+        for name, offset in (("a", 0), ("b", 1), ("z", 2)):
+            self.add_event("coinbase", name, when + timedelta(seconds=offset))
+        self.archive_all("stream_events", 10)
+        self.db.execute("DELETE FROM stream_events WHERE event_id='b'")
+        self.db.commit()
+        plan = self.plan()
+        self.add_event("coinbase", "late", when + timedelta(seconds=1))
+        result = apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(result["datasets"]["stream_events"]["deleted_rows"], 2)
+        self.assertEqual(self.db.execute("SELECT event_id FROM stream_events").fetchall(), [("late",)])
+
+    def test_separate_writer_blocked_between_validation_and_delete(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder) / "race.db")
+            target = sqlite3.connect(path)
+            self.db.backup(target)
+            writer = sqlite3.connect(path, timeout=0)
+            try:
+                plan = plan_retention(target, self.cloud.manifests, self.config, NOW)
+                original = retention._usable_intervals
+                attempted = []
+                def check_locked(db, dataset, manifests, bucket):
+                    answer = original(db, dataset, manifests, bucket)
+                    if dataset == "observations":
+                        with self.assertRaisesRegex(sqlite3.OperationalError, "locked"):
+                            writer.execute("INSERT INTO observations VALUES(99,'m1',?,NULL,'book','{}')", (ts(CUTOFF_DT - timedelta(days=1)),))
+                        writer.rollback()
+                        attempted.append(True)
+                    return answer
+                with patch.object(retention, "_usable_intervals", side_effect=check_locked):
+                    result = apply_retention(target, plan, RetentionConfig(True, 48, 7), confirm=True)
+                self.assertGreater(len(attempted), 1)
+                self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 20)
+                writer.execute("INSERT INTO observations VALUES(99,'m1',?,NULL,'book','{}')", (ts(CUTOFF_DT - timedelta(days=1)),))
+                writer.commit()
+                self.assertEqual(target.execute("SELECT COUNT(*) FROM observations WHERE id=99").fetchone()[0], 1)
+            finally:
+                writer.close()
+                target.close()
+
     def test_non_canonical_timestamp_format_blocks_dataset(self):
         self.seed_observations()
         self.archive_all("observations", 10)
         self.db.execute(
-            "INSERT INTO observations VALUES(99,'m1','2026-10-01T00:00:00+00:00',NULL,'book','{}')")
+            "INSERT INTO observations VALUES(99,'m1','2026-10-01T00:00:00.123+00:00',NULL,'book','{}')")
         report = self.plan()["datasets"]["observations"]
         self.assertEqual(report["blocked"], "non_canonical_received_at")
         self.assertEqual(report["eligible_rows"], 0)
-        apply_retention(self.db, self.plan(), self.config, confirm=True)
+        with self.assertRaises(RetentionError):
+            apply_retention(self.db, self.plan(), self.config, confirm=True)
         self.assertEqual(self.count("observations"), 31)
 
     def test_dry_run_issues_no_delete_or_write(self):
@@ -334,8 +398,34 @@ class RetentionTests(unittest.TestCase):
         self.archive_all("observations", 10)
         structured = self.structured_counts()
         config = RetentionConfig(enabled=True, hours=48, batch_size=3)
-        result = apply_retention(self.db, plan_retention(
-            self.db, self.cloud.manifests, config, NOW), config, confirm=True)
+        plan = plan_retention(self.db, self.cloud.manifests, config, NOW)
+        committed_batches = []
+        transaction_start = [None]
+        def trace(sql):
+            if sql == "BEGIN IMMEDIATE":
+                transaction_start[0] = self.db.total_changes
+            elif sql == "COMMIT" and transaction_start[0] is not None:
+                changed = self.db.total_changes - transaction_start[0]
+                if changed:
+                    committed_batches.append(changed)
+                transaction_start[0] = None
+        self.db.set_trace_callback(trace)
+        try:
+            result = apply_retention(self.db, plan, config, confirm=True)
+            first_batches = list(committed_batches)
+            again = apply_retention(self.db, plan, config, confirm=True)
+        finally:
+            self.db.set_trace_callback(None)
+        self.assertEqual(first_batches, [3, 3, 3, 1, 3, 3, 3, 1])
+        self.assertEqual(sum(first_batches), 20)
+        self.assertTrue(all(0 < size <= config.batch_size for size in first_batches))
+        self.assertEqual(committed_batches, first_batches)
+        self.assertEqual(result["datasets"]["observations"]["batches"], len(first_batches))
+        self.assertEqual(result["datasets"]["observations"]["skipped_rows"], 0)
+        self.assertEqual(again["datasets"]["observations"]["deleted_rows"], 0)
+        self.assertEqual(again["datasets"]["observations"]["batches"], 0)
+        self.assertEqual(self.db.execute("SELECT id FROM observations ORDER BY id").fetchall(),
+                         [(i,) for i in range(21, 31)])
         # 2 manifests with old rows x ceil(10/3)=4 batches each.
         self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 20)
         self.assertEqual(result["datasets"]["observations"]["batches"], 8)
@@ -367,12 +457,93 @@ class RetentionTests(unittest.TestCase):
         report = self.plan()["datasets"]["observations"]
         self.assertEqual(report["eligible_rows"], 15)
 
-    def test_canonical_time_normalizes_offsets(self):
-        self.assertEqual(
-            canonical_time("2026-10-17T15:28:26.310944-05:00"),
-            "2026-10-17T20:28:26.310944+00:00")
+    def test_timestamp_contract_and_explicit_timezone_policy(self):
+        for raw, expected in (
+            ("2026-10-25T21:46:01+00:00", "2026-10-25T21:46:01.000000+00:00"),
+            ("2026-10-25T21:46:01.123456+00:00", "2026-10-25T21:46:01.123456+00:00"),
+        ):
+            self.assertEqual(canonical_time(raw), expected)
+        for raw in ("2026-10-17T20:28:26", "junk", "2026-02-30T00:00:00+00:00",
+                    "2026-10-17T20:28:26Z", "2026-10-17T20:28:26.1+00:00",
+                    "2026-10-17T15:28:26.310944-05:00", "2026-10-17 20:28:26+00:00"):
+            with self.subTest(raw=raw), self.assertRaises(RetentionError):
+                canonical_time(raw)
+        # Internal aware datetime inputs are explicitly converted to UTC.
+        self.assertEqual(canonical_time(datetime.fromisoformat("2026-10-17T15:28:26-05:00")),
+                         "2026-10-17T20:28:26.000000+00:00")
+
+    def test_exact_seconds_covered_and_cutoff_kept_without_rewriting_evidence(self):
+        self.seed_observations()
+        for i in range(1, 31):
+            self.db.execute("UPDATE observations SET received_at=replace(received_at,'.000000','') WHERE id=?", (i,))
+        self.db.execute("UPDATE observations SET received_at=? WHERE id=20", (CUTOFF_DT.isoformat(),))
+        self.add_event("coinbase", "old", CUTOFF_DT - timedelta(seconds=1))
+        self.add_event("coinbase", "cutoff", CUTOFF_DT)
+        self.db.execute("UPDATE stream_events SET received_at=replace(received_at,'.000000','')")
+        self.db.commit()
+        self.archive_all("observations", 10)
+        self.archive_all("stream_events", 10)
+        before = self.db.iterdump()
+        evidence = list(before)
+        manifests = json.dumps(self.cloud.manifests, sort_keys=True)
+        plan = self.plan()
+        self.assertEqual(plan["datasets"]["observations"]["eligible_rows"], 19)
+        self.assertEqual(plan["datasets"]["stream_events"]["eligible_rows"], 1)
+        self.assertEqual(list(self.db.iterdump()), evidence)
+        self.assertEqual(json.dumps(self.cloud.manifests, sort_keys=True), manifests)
+        apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(self.db.execute("SELECT received_at FROM observations WHERE id=20").fetchone()[0], CUTOFF_DT.isoformat())
+        self.assertEqual(self.db.execute("SELECT event_id FROM stream_events").fetchall(), [("cutoff",)])
+
+    def test_mixed_width_stream_cursor_orders_timestamp_source_and_event(self):
+        same = CUTOFF_DT - timedelta(seconds=1)
+        for source, event, when in (("coinbase", "a", same), ("coinbase", "b", same),
+                                     ("other", "a", same),
+                                     ("coinbase", "fraction", same + timedelta(microseconds=1))):
+            self.add_event(source, event, when)
+        self.archive_all("stream_events", 10)
+        # Historical representations differ but their logical positions do not.
+        self.db.execute("UPDATE stream_events SET received_at=replace(received_at,'.000000','') WHERE event_id='a'")
+        self.db.commit()
+        manifest = self.cloud.manifests[0]
+        manifest["ended_at"] = same.isoformat()
+        manifest["metadata"]["last_source_key"] = json.dumps(["coinbase", "b"])
+        manifest["event_count"] = 2
+        plan = self.plan()
+        report = plan["datasets"]["stream_events"]
+        self.assertEqual(report["eligible_rows"], 2)
+        self.assertEqual(report["uncovered_or_unverified_old_rows"], 2)
+        apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(set(self.db.execute("SELECT source,event_id FROM stream_events")),
+                         {("other", "a"), ("coinbase", "fraction")})
+
+    def test_malformed_timestamp_added_after_plan_fails_before_any_delete(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        self.db.execute("UPDATE observations SET received_at='2026-99-99T00:00:00.000000+00:00' WHERE id=1")
+        self.db.commit()
         with self.assertRaises(RetentionError):
-            canonical_time("2026-10-17T20:28:26")
+            apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(self.count("observations"), 30)
+
+    def test_shared_writer_preserves_caller_timestamp(self):
+        from collector import save_observation
+        raw = "2026-09-30T01:20:00Z"
+        save_observation(self.db, "m1", raw, "book", {})
+        self.assertEqual(self.db.execute("SELECT received_at FROM observations").fetchone()[0], raw)
+
+    def test_live_raw_writers_emit_zero_microseconds(self):
+        from unittest.mock import patch
+        from streaming import save_coinbase, save_polymarket
+        self.db.execute("ALTER TABLE markets ADD COLUMN slug TEXT")
+        self.db.execute("UPDATE markets SET slug='m1'")
+        with patch("streaming.utcnow", return_value=NOW):
+            self.assertTrue(save_polymarket(self.db, {"marketData": {"marketSlug": "m1"}}))
+            save_coinbase(self.db, {"type": "ticker", "product_id": "BTC-USD",
+                                   "trade_id": 1, "time": NOW.isoformat(), "price": "100"})
+        for table in ("observations", "stream_events"):
+            self.assertEqual(self.db.execute(f"SELECT received_at FROM {table}").fetchone()[0], ts(NOW))
 
 
 class ManifestFetchTests(unittest.TestCase):

@@ -1000,3 +1000,199 @@ Evidence is preserved locally under ignored
 or verified; apply, restart/recovery, continuous retention, multiple retention
 cycles and storage stability are unperformed. No code/config change, secrets,
 main change, guard change, VACUUM, public exposure or Phase 2 work was included.
+
+
+### Timestamp continuation — local test STOP, October 25, 2026
+
+Feature branch remains `codex/phase1-75-retention-enable` at
+`e22866fd116fade0300504338638eda68b14cc46`; changes are uncommitted.
+Read-only production check at `2026-10-25T23:14:57.825910+00:00` confirmed
+runtime `a7c098900f8310367fc262a1b837c369bb63dc56`, healthy collector/feeds,
+active API/ensemble/lifecycle with zero service restarts, and OpenAI/retention OFF.
+SQLite 1,988,763,648 bytes plus WAL 44,899,792 bytes leaves about 108.6 MiB
+below the unchanged 2,048 MiB guard; steady-state working-set safety is unproven.
+
+Local draft changes add explicit microseconds at raw write boundaries, strict
+UTC second/six-fraction parsing, semantic date validation, and canonical SQL
+comparison keys with indexed raw stream envelopes. Observation identity remains
+ID/range based; stream identity remains timestamp/source/event_id. No historical
+production row, archive object or manifest was changed. No production write,
+restart, apply or deployment occurred.
+
+Dedicated retention: 26 passed, 0 failed, 0 skipped. Full backend: 159 passed,
+1 failed, 0 skipped (160 total). Deployment controls: 6 passed, 0 failed,
+0 skipped. Full-suite failure:
+`test_cases.CaseTests.test_known_outcome_only_one_snapshot_per_market` expects
+`2026-09-30T01:20:00Z` but gets `2026-09-30T01:20:00.000000+00:00` because
+shared observation-writer normalization changes a supplied timestamp's spelling.
+The explicit user STOP-on-test-failure gate was honored. Do not weaken the test;
+review the writer boundary and historical-case response compatibility before
+resuming. Local logs are `/tmp/tradebot-backend-tests.log`,
+`/tmp/tradebot-retention-tests.log`, and `/tmp/tradebot-cd-tests.log`.
+
+No commit/push/CI/PR or deployment was attempted. Fresh coverage/dry-run,
+independent reconciliation, backup, apply, integrity/FKs, restart/recovery,
+continuous retention, real cycles, storage stability and working-set headroom
+remain NOT REACHED. Phase 1.75 remains NOT COMPLETE. Stop before Phase 2.
+
+
+### Writer-boundary resume — stream safety STOP, October 25, 2026
+
+Start/end committed HEAD: `e22866fd116fade0300504338638eda68b14cc46` on
+`codex/phase1-75-retention-enable`. Uncommitted retention/parser/comparison
+changes were preserved. Removed normalization from shared `save_observation`;
+live collector discovery/quote/resolution and Polymarket WebSocket receive times
+now explicitly emit six microseconds. Coinbase stream emission retains the draft
+six-microsecond fix. Historical-case test expectation is unchanged.
+
+Focused results: retention 27/27, streaming 12/12, collector 10/10, historical
+cases 3/3. `test_known_outcome_only_one_snapshot_per_market` PASS. Added separate
+shared-writer preservation, live WebSocket/Coinbase and live REST regression
+coverage. Full backend and deployment-control reruns NOT REACHED due to the
+following mandatory stream-safety STOP.
+
+In-memory reproduction (no production access): archive two old stream events,
+plan retention (2 eligible), insert a third late event inside the archived cursor
+interval, then apply the original plan. Fresh planning rejects the manifest with
+`local_rows_exceed_manifest` and reports 0 eligible / 3 uncovered; apply using the
+original plan instead deletes 3, including the unarchived late event. Apply trusts
+previously approved intervals without revalidating archive coverage after planning.
+Logical cursor remains timestamp/source/event_id, but stream deletion safety FAILS.
+
+BLOCKER: unarchived late stream evidence can be deleted between plan and apply.
+OWNER: retention implementation. STOP CONDITION: unverified evidence would be
+deleted / stream safety not established. REQUIRED NEXT ACTION: authorized repair
+of apply-time coverage validation and concurrency protection, with regression for
+a late row arriving after planning, before rerunning all required gates. Do not
+work around this STOP or enable retention.
+
+No commit/push/CI/PR, production read/write, backup, retention apply, restart or
+deployment occurred in this resume. Production historical rows, archive objects
+and manifests were NOT modified. Production OpenAI/retention OFF is the supplied
+baseline, not freshly verified. Fresh coverage/cutoff/dry-run/reconciliation,
+backup/recovery, integrity/FKs, live engine, deployment, continuous retention,
+multiple cycles, storage stability/headroom remain NOT REACHED. Phase 1.75 NOT
+COMPLETE. Stop before Phase 2.
+
+
+### Import-error resume — focused retention gate STOP, October 25, 2026
+
+**PHASE 1.75 — NOT COMPLETE.** Verified branch
+`codex/phase1-75-retention-enable` and committed HEAD
+`e22866fd116fade0300504338638eda68b14cc46`. Preserved existing uncommitted
+work. Moved only `import retention` below the test module's app-path setup;
+no test assertions were changed.
+
+Reviewed the unverified implementation before testing: planning captures approved
+identities in a read snapshot; apply intersects those identities with fresh local
+manifest coverage, newest observation anchor and prediction-reference protections
+inside each bounded `BEGIN IMMEDIATE` transaction. Apply does not use stale
+`plan['_intervals']` as final authority. This review does not establish completion.
+
+Focused retention gate: **30 executed, 29 passed, 1 failed, 0 skipped**.
+Late-row-after-plan, manifest-count-slack, separate-writer lock and late-reference
+regressions passed. Mandatory gate failed in
+`test_apply_uses_bounded_batches_and_leaves_structured_tables_alone`,
+`backend/tests/test_retention.py:405`: expected observation batch count 8,
+actual 7 (`AssertionError: 7 != 8`). Evidence:
+`/tmp/tradebot-phase175-retention-resume.log`.
+
+**BLOCKER:** focused bounded-batch safety regression fails.
+**OWNER:** retention implementation / this worker.
+**STOP CONDITION:** any mandatory safety/test gate failure.
+**REQUIRED NEXT ACTION:** obtain authorization to investigate the batch-count
+mismatch and repair the implementation without weakening safety tests, then
+restart the focused gate and remaining gates in order.
+
+Stopped after this gate. No further suites, commit/push, feature CI, production
+access, retention apply, backup, service restart, deployment or continuous
+retention occurred. Production baseline was not freshly revalidated. Every
+remaining original Phase 1.75 gate is pending; stop before Phase 2.
+
+
+### Bounded-batch repair — full backend gate STOP, October 25, 2026
+
+**PHASE 1.75 — NOT COMPLETE.** Branch/committed HEAD verified unchanged:
+`codex/phase1-75-retention-enable`,
+`e22866fd116fade0300504338638eda68b14cc46`.
+
+Reproduced the authorized known batch-count failure in isolation (expected 8,
+actual 7). Root cause: candidate selection crossed disjoint archive interval
+boundaries, packing 20 rows into ceil(20/3)=7 batches instead of preserving the
+committed per-interval contract (two intervals, each ceil(10/3)=4). Repaired
+selection to commit a nonempty partial interval batch before moving to another
+interval. Kept fresh coverage/protection validation inside every BEGIN IMMEDIATE,
+approved identity intersection and exact deletion predicates. Original expected
+batch count remains 8; no assertions were weakened or removed.
+
+Strengthened the existing regression with SQLite transaction tracing: committed
+changes are [3,3,3,1,3,3,3,1], sum 20, no batch exceeds 3, reported batch count
+matches actual committed delete batches, exact remaining IDs are 21..30, and
+re-applying the same approved plan commits no additional deletes/batches.
+
+Gate evidence:
+- Focused retention/concurrency: 30 passed, 0 failed, 0 skipped
+  (`/tmp/tradebot-phase175-retention-repaired.log`).
+- Streaming: 12 passed; collector: 10 passed; historical: 3 passed; no failures
+  or skips (`/tmp/tradebot-phase175-streaming.log`,
+  `/tmp/tradebot-phase175-collector.log`, `/tmp/tradebot-phase175-historical.log`).
+- Full backend: 165 executed, 164 passed, 1 failed, 0 skipped
+  (`/tmp/tradebot-phase175-backend.log`).
+
+**BLOCKER:** `test_lock_release_after_crash_and_controlled_restart`
+(`backend/tests/test_operations.py:80`) fails with
+`AssertionError: Worker failed to start`.
+**OWNER:** operations worker startup/recovery test path; root cause uninvestigated.
+**STOP CONDITION:** any mandatory test/safety gate failure.
+**REQUIRED NEXT ACTION:** authorize investigation of the worker-startup failure,
+repair its cause without weakening tests, and restart required validation gates.
+
+Stopped at the full backend gate. Deployment-control tests, final diff review,
+commit/push, feature CI and every production/retention/recovery/deployment gate
+remain pending. No production access or writes, backup, retention apply, restart,
+deployment, continuous enablement or Phase 2 occurred. Existing unrelated local
+changes remain preserved; no commit was made.
+
+
+### Operations startup investigation — local gates passed, October 25, 2026
+
+Isolated the known operations failure with unchanged code and tests. The worker
+command uses the active Python interpreter, injects the absolute app module path,
+and supplies a unique temporary database identity. It successfully imports
+operations and takes the per-database flock, then exits immediately at
+`asyncio.start_unix_server` / `socket.bind` with
+`PermissionError: [Errno 1] Operation not permitted`. The earlier full-suite log
+contains the same traceback. No retention module is imported by this minimal
+worker. It does not open SQLite, read retention flags or run deletion transactions.
+This is a local execution-sandbox socket restriction, not an established code
+regression, stale PID/lock or startup timeout. No timeout, sleep, readiness
+condition, assertion or operations implementation was changed.
+
+With local Unix socket access allowed, the unchanged isolated crash/restart test
+passed (including duplicate-lock rejection, kernel lock release after SIGKILL,
+same-identity restart and acknowledged controlled shutdown). Unique temp paths
+exclude old database identities; a stale socket after crash is unlinked by the
+existing control-server startup. The readiness deadline stayed at five seconds.
+The entire operations module passed 5/5 and full backend passed **165/165,
+0 failures, 0 skips**, with OpenAI, sync and retention disabled. Deployment
+controls subsequently passed **6/6, 0 failures, 0 skips**.
+
+Evidence: `/tmp/tradebot-phase175-operations-isolated.log` (sandbox diagnosis),
+`/tmp/tradebot-phase175-operations-isolated-unrestricted.log`,
+`/tmp/tradebot-phase175-operations-module.log`,
+`/tmp/tradebot-phase175-backend-unrestricted.log`,
+`/tmp/tradebot-phase175-deployment-controls.log`.
+
+Reviewed accumulated application/test diff: strict accepted UTC timestamp widths,
+writer-boundary canonical emission while shared historical writer preserves input,
+approved identity capture in a single snapshot, fresh coverage and references
+under each BEGIN IMMEDIATE, exact identity deletes, per-interval bounded batches
+and committed-delete accounting. Existing/new regressions pass, including eight
+observation batches and same-plan safe re-apply. Diff whitespace check passed.
+Only intended application/tests and this checklist are eligible for the feature
+commit; unrelated AGENTS.md and untracked local files/secrets remain excluded.
+
+**PHASE 1.75 remains NOT COMPLETE.** Local test/diff gates passed; commit/push,
+exact-revision feature CI and all remaining production coverage/reconciliation,
+backup/apply/integrity/live-engine/recovery/CD/continuous-cycle/storage gates
+remain required. No production action has been taken in this investigation.

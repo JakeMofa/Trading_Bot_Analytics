@@ -9,6 +9,7 @@ forecasting never imports or depends on this module.
 """
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+import copy
 import json
 import os
 import re
@@ -21,6 +22,10 @@ MANIFEST_COLUMNS = (
     "source,bucket,object_path,sha256,event_count,compressed_bytes,"
     "first_source_id,last_source_id,started_at,ended_at,verified_at,metadata"
 )
+# SQL normalization is exact (no julianday rounding of microseconds). Validation
+# runs separately before any comparison or deletion. Stored evidence is untouched.
+TIME_KEY = "(CASE WHEN length(received_at)=25 THEN substr(received_at,1,19)||'.000000+00:00' ELSE received_at END)"
+UTC_TIME_RE = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{6})?\+00:00")
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -39,7 +44,7 @@ class Spec:
 SPECS = {
     "observations": Spec("observations", "polymarket", "id", "?"),
     "stream_events": Spec(
-        "stream_events", "coinbase", "(received_at,source,event_id)", "(?,?,?)"
+        "stream_events", "coinbase", f"({TIME_KEY},source,event_id)", "(?,?,?)"
     ),
 }
 
@@ -76,12 +81,17 @@ class RetentionConfig:
 
 
 def canonical_time(value):
-    """Local received_at format: UTC, 6-digit microseconds, +00:00."""
+    """Accept only system UTC strings; normalize trusted aware datetime inputs."""
     if isinstance(value, datetime):
         dt = value
     else:
-        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    if dt.tzinfo is None:
+        if not isinstance(value, str) or not UTC_TIME_RE.fullmatch(value):
+            raise RetentionError("unsupported received_at representation")
+        try:
+            dt = datetime.fromisoformat(value)
+        except ValueError as exc:
+            raise RetentionError("invalid received_at timestamp") from exc
+    if dt.tzinfo is None or dt.utcoffset() is None:
         raise RetentionError("timestamps must include a timezone")
     return dt.astimezone(timezone.utc).isoformat(timespec="microseconds")
 
@@ -104,10 +114,14 @@ def fetch_verified_manifests(cloud, bucket):
 
 
 def _between(spec, lo, hi):
-    return (
-        f"{spec.key_sql}>={spec.marker} AND {spec.key_sql}<={spec.marker}",
-        (*lo, *hi),
-    )
+    where = f"{spec.key_sql}>={spec.marker} AND {spec.key_sql}<={spec.marker}"
+    params = (*lo, *hi)
+    if spec.table == "stream_events":
+        # Preserve use of the existing raw cursor index. This inclusive second
+        # envelope includes both legal widths; exact canonical bounds follow.
+        where = "received_at>=? AND received_at<? AND " + where
+        params = (lo[0][:19], hi[0][:19] + "~", *params)
+    return where, params
 
 
 def _manifest_interval(dataset, manifest, bucket):
@@ -142,7 +156,7 @@ def _manifest_interval(dataset, manifest, bucket):
         last_key = json.loads(meta.get("last_source_key") or "null")
         lo = (canonical_time(manifest["started_at"]), *first_key)
         hi = (canonical_time(manifest["ended_at"]), *last_key)
-    except (TypeError, ValueError, KeyError):
+    except (TypeError, ValueError, KeyError, RetentionError):
         raise ValueError("missing_cursor_keys")
     if len(lo) != 3 or len(hi) != 3 or not all(isinstance(v, str) for v in lo + hi):
         raise ValueError("missing_cursor_keys")
@@ -163,10 +177,15 @@ def _merge(intervals):
 
 
 def _bad_time_format(db, table):
+    def valid(value):
+        try:
+            canonical_time(value)
+            return 1
+        except RetentionError:
+            return 0
+    db.create_function("retention_valid_time", 1, valid, deterministic=True)
     return db.execute(
-        f"""SELECT 1 FROM {table}
-            WHERE length(received_at)<>32 OR substr(received_at,-6)<>'+00:00'
-            LIMIT 1"""
+        f"SELECT 1 FROM {table} WHERE NOT retention_valid_time(received_at) LIMIT 1"
     ).fetchone() is not None
 
 
@@ -223,7 +242,7 @@ def _unreferenced_observations(db):
 
 def _eligible_clause(db, dataset, spec, interval, cutoff, protected):
     where, params = _between(spec, *interval)
-    where += " AND received_at<?"
+    where += f" AND {TIME_KEY}<?"
     params = (*params, cutoff)
     if protected is not None:
         where += " AND id<?"
@@ -241,33 +260,39 @@ def _earliest_not_eligible(db, spec, intervals, cutoff, protected, dataset):
     gaps.append((previous, None))
     candidates = []
     for after, before in gaps:
-        where, params = "received_at<?", [cutoff]
+        where, params = f"{TIME_KEY}<?", [cutoff]
         if after is not None:
             where += f" AND {spec.key_sql}>{spec.marker}"
             params += list(after)
+            if dataset == "stream_events":
+                where += " AND received_at>=?"
+                params.append(after[0][:19])
         if before is not None:
             where += f" AND {spec.key_sql}<{spec.marker}"
             params += list(before)
+            if dataset == "stream_events":
+                where += " AND received_at<?"
+                params.append(before[0][:19] + "~")
         row = db.execute(
-            f"SELECT MIN(received_at) FROM {spec.table} WHERE {where}", params
+            f"SELECT MIN({TIME_KEY}) FROM {spec.table} WHERE {where}", params
         ).fetchone()[0]
         if row:
             candidates.append(row)
     if protected is not None:
         row = db.execute(
-            "SELECT received_at FROM observations WHERE id=?", (protected,)
+            f"SELECT {TIME_KEY} FROM observations WHERE id=?", (protected,)
         ).fetchone()
         if row and row[0] < cutoff:
             candidates.append(row[0])
     if dataset == "observations":
         row = db.execute(
-            "SELECT MIN(received_at) FROM observations WHERE NOT ("
+            f"SELECT MIN({TIME_KEY}) FROM observations WHERE NOT ("
             + _unreferenced_observations(db) + ")"
         ).fetchone()[0]
         if row:
             candidates.append(row)
     recent = db.execute(
-        f"SELECT MIN(received_at) FROM {spec.table} WHERE received_at>=?", (cutoff,)
+        f"SELECT MIN({TIME_KEY}) FROM {spec.table} WHERE {TIME_KEY}>=?", (cutoff,)
     ).fetchone()[0]
     if recent:
         candidates.append(recent)
@@ -278,7 +303,7 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
     spec = SPECS[dataset]
     total = db.execute(f"SELECT COUNT(*) FROM {spec.table}").fetchone()[0]
     oldest, newest = db.execute(
-        f"SELECT MIN(received_at),MAX(received_at) FROM {spec.table}"
+        f"SELECT MIN({TIME_KEY}),MAX({TIME_KEY}) FROM {spec.table}"
     ).fetchone()
     report = {
         "total_rows": total,
@@ -287,13 +312,13 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
         "blocked": None,
     }
     if _bad_time_format(db, spec.table):
-        # String comparison against the cutoff is only sound for one canonical format.
+        # Reject unsupported evidence before using normalized SQL comparison keys.
         report.update(blocked="non_canonical_received_at", rows_older_than_cutoff=None,
                       eligible_rows=0, uncovered_or_unverified_old_rows=None,
                       protected_sequence_rows=0, rows_remaining_after_apply=total,
                       manifests={"considered": 0, "usable": 0, "rejected": {}})
         return report, []
-    old = _count(db, spec, "received_at<?", (cutoff,))
+    old = _count(db, spec, f"{TIME_KEY}<?", (cutoff,))
     intervals, manifest_stats = _usable_intervals(db, dataset, manifests, bucket)
     protected = _protected_id(db, dataset)
     eligible = 0
@@ -304,7 +329,7 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
     if dataset == "observations":
         for interval in intervals:
             where, params = _between(spec, *interval)
-            where += " AND received_at<? AND NOT (" + _unreferenced_observations(db) + ")"
+            where += f" AND {TIME_KEY}<? AND NOT (" + _unreferenced_observations(db) + ")"
             params = (*params, cutoff)
             if protected is not None:
                 where += " AND id<?"
@@ -313,7 +338,7 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
     protected_rows = 0
     if protected is not None and intervals:
         covered = any(lo[0] <= protected <= hi[0] for lo, hi in intervals)
-        old_row = _count(db, spec, "id=? AND received_at<?", (protected, cutoff))
+        old_row = _count(db, spec, f"id=? AND {TIME_KEY}<?", (protected, cutoff))
         protected_rows = 1 if covered and old_row else 0
     uncovered = old - eligible - protected_rows - referenced_rows
     sample = db.execute(
@@ -341,15 +366,38 @@ def _dataset_plan(db, dataset, manifests, cutoff, now, bucket):
 
 
 def plan_retention(db, manifests, config=None, now=None, bucket="market-raw"):
+    """Capture reports and approved identities from one read-only snapshot."""
+    owns_transaction = not db.in_transaction
+    if owns_transaction:
+        db.execute("BEGIN")
+    try:
+        return _plan_retention(db, list(manifests), config, now, bucket)
+    finally:
+        if owns_transaction:
+            db.rollback()
+
+
+def _plan_retention(db, manifests, config=None, now=None, bucket="market-raw"):
     """Read-only planning pass; performs no writes."""
     config = config or RetentionConfig()
     now = now or datetime.now(timezone.utc)
     cutoff = retention_cutoff(now, config.hours)
-    datasets, intervals = {}, {}
+    datasets, intervals, approved = {}, {}, {}
     for dataset in SPECS:
         datasets[dataset], intervals[dataset] = _dataset_plan(
             db, dataset, manifests, cutoff, now, bucket)
+        spec = SPECS[dataset]
+        columns = "id" if dataset == "observations" else "source,event_id,received_at"
+        approved[dataset] = []
+        for interval in intervals[dataset]:
+            where, params = _eligible_clause(
+                db, dataset, spec, interval, cutoff, _protected_id(db, dataset))
+            approved[dataset].extend(tuple(row) for row in db.execute(
+                f"SELECT {columns} FROM {dataset} WHERE {where}", params))
     return {
+        "_approved": approved,
+        "_manifests": copy.deepcopy(manifests),
+        "_bucket": bucket,
         "mode": "dry-run",
         "cutoff": cutoff,
         "retention_hours": config.hours,
@@ -370,30 +418,61 @@ def apply_retention(db, plan, config, confirm=False):
         raise RetentionError("apply requires explicit confirmation (--confirm)")
     if not config.enabled:
         raise RetentionError("ENABLE_LOCAL_RETENTION is not true; refusing to delete")
-    cutoff = plan["cutoff"]
+    # Never commit a caller's pending writes or inherit a deferred read snapshot.
+    if db.in_transaction:
+        raise RetentionError("apply requires a connection without an active transaction")
+    if "_approved" not in plan or "_manifests" not in plan:
+        raise RetentionError("plan lacks approved identities and manifest evidence")
+    cutoff = canonical_time(plan["cutoff"])
     result = {"mode": "apply", "cutoff": cutoff, "datasets": {}}
-    for dataset, intervals in plan["_intervals"].items():
-        spec = SPECS[dataset]
-        protected = _protected_id(db, dataset)
+    for dataset, spec in SPECS.items():
+        approved = {tuple(key) for key in plan["_approved"][dataset]}
+        pending = set(approved)
         deleted = batches = 0
-        for interval in intervals:
-            where, params = _eligible_clause(db, dataset, spec, interval, cutoff, protected)
-            if dataset == "observations":
-                sql = f"""DELETE FROM observations WHERE id IN
-                          (SELECT id FROM observations WHERE {where}
-                           ORDER BY id LIMIT ?)"""
-            else:
-                sql = f"""DELETE FROM stream_events WHERE (source,event_id) IN
-                          (SELECT source,event_id FROM stream_events WHERE {where}
-                           ORDER BY received_at,source,event_id LIMIT ?)"""
-            while True:
-                cursor = db.execute(sql, (*params, config.batch_size))
-                db.commit()
-                if cursor.rowcount <= 0:
+        while pending:
+            # All cloud IO precedes apply. Each local recheck and bounded DELETE
+            # shares a reserved writer lock; collection can resume after COMMIT.
+            db.execute("BEGIN IMMEDIATE")
+            try:
+                for table in SPECS:
+                    if _bad_time_format(db, table):
+                        raise RetentionError("unsupported received_at at apply; refusing deletes")
+                intervals, _ = _usable_intervals(
+                    db, dataset, plan["_manifests"], plan["_bucket"])
+                protected = _protected_id(db, dataset)
+                selected = []
+                columns = "id" if dataset == "observations" else "source,event_id,received_at"
+                for interval in intervals:
+                    where, params = _eligible_clause(
+                        db, dataset, spec, interval, cutoff, protected)
+                    for row in db.execute(f"SELECT {columns} FROM {dataset} WHERE {where}", params):
+                        key = tuple(row)
+                        if key in pending:
+                            selected.append(key)
+                            if len(selected) == config.batch_size:
+                                break
+                    # Preserve the per-interval batching contract: commit even
+                    # a partial batch before selecting from another interval.
+                    if selected:
+                        break
+                if not selected:
+                    db.commit()
                     break
-                deleted += cursor.rowcount
-                batches += 1
-        result["datasets"][dataset] = {"deleted_rows": deleted, "batches": batches}
+                # Exact reviewed identities only, never a broad range predicate.
+                predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
+                before = db.total_changes
+                db.executemany(f"DELETE FROM {dataset} WHERE {predicate}", selected)
+                count = db.total_changes - before
+                db.commit()
+            except BaseException:
+                db.rollback()
+                raise
+            pending.difference_update(selected)
+            deleted += count
+            batches += 1
+        result["datasets"][dataset] = {
+            "planned_rows": len(approved), "deleted_rows": deleted,
+            "skipped_rows": len(approved) - deleted, "batches": batches}
     return result
 
 
@@ -409,7 +488,7 @@ def local_status(db, config, now=None):
     }
     for dataset, spec in SPECS.items():
         total, oldest, newest = db.execute(
-            f"SELECT COUNT(*),MIN(received_at),MAX(received_at) FROM {spec.table}"
+            f"SELECT COUNT(*),MIN({TIME_KEY}),MAX({TIME_KEY}) FROM {spec.table}"
         ).fetchone()
         status["datasets"][dataset] = {
             "total_rows": total, "oldest_row": oldest, "newest_row": newest}

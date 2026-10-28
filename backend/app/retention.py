@@ -245,28 +245,104 @@ def _validated_timestamp_cache(db):
     return cache
 
 
+def _validate_current_timestamps(db, timestamp_cache):
+    """Fresh global fail-closed guard without materializing unrelated row keys.
+
+    Every current value is read under the writer lock, including values outside
+    approved ranges. Only the pure validity of an exact string can be reused.
+    SQLite drives the scan; Python receives no identities or payloads here.
+    """
+    def valid(value):
+        if value not in timestamp_cache:
+            try:
+                canonical_time(value)
+            except RetentionError:
+                return 0
+            timestamp_cache.add(value)
+        return 1
+
+    name = "retention_current_timestamp_valid"
+    db.create_function(name, 1, valid, deterministic=True)
+    try:
+        for table in SPECS:
+            cursor = db.execute(
+                f"SELECT 1 FROM {table} WHERE NOT {name}(received_at) LIMIT 1")
+            try:
+                invalid = cursor.fetchone() is not None
+            finally:
+                cursor.close()
+            if invalid:
+                raise RetentionError("unsupported received_at at apply; refusing deletes")
+    finally:
+        # Do not retain a potentially large per-apply cache on the connection.
+        db.create_function(name, 1, None)
+
+
+def _scope_manifest_ranges(dataset, evidence, approved):
+    """Static original manifests that can contain an approved identity.
+
+    The full ORIGINAL bounds are kept, never clipped to candidate bounds. Fresh
+    range counts must still include late/unapproved/newer rows that can invalidate
+    the archive evidence. No current-local existence or eligibility is cached.
+    """
+    keys = sorted((identity[0],) if dataset == "observations" else
+                  (canonical_time(identity[2]), identity[0], identity[1])
+                  for identity in approved)
+    return [(lo, hi, count) for lo, hi, count in evidence.parsed[dataset][0]
+            if bisect_left(keys, lo) < bisect_right(keys, hi)]
+
+
+def _observation_covering_index(db):
+    # Reuse the deployed covering index, whose leaves include the INTEGER PRIMARY
+    # KEY id. Avoid payload-table lookups for id bounds. No index is created. A
+    # missing index falls back to ordinary SQL (e.g. minimal test databases).
+    name = "observations_market_kind_received"
+    if any(row[1] == name for row in db.execute("PRAGMA index_list(observations)")):
+        if "received_at" in {row[2] for row in db.execute(f"PRAGMA index_info({name})")}:
+            return name
+    return None
+
+
 class _ValidationSnapshot:
-    """Fresh minimal local state, created only under the current writer lock."""
-    def __init__(self, db, timestamp_cache):
-        self.db = db
+    """Fresh current keys inside relevant ORIGINAL manifest-range envelopes.
+
+    Only the active dataset needs key reconstruction. Global timestamp validity
+    is still rechecked for BOTH raw tables, including unrelated/unapproved rows.
+    All range counts, local identities, references and eligibility remain fresh
+    under the same BEGIN IMMEDIATE as DELETE.
+    """
+    def __init__(self, db, timestamp_cache, dataset, ranges, observation_index=None):
+        self.db, self.dataset, self.ranges = db, dataset, ranges
         self.records, self.keys = {}, {}
-        for dataset in SPECS:
-            columns = "id,received_at" if dataset == "observations" else "source,event_id,received_at"
-            records = []
-            for row in db.execute(f"SELECT {columns} FROM {dataset}"):
+        _validate_current_timestamps(db, timestamp_cache)
+        records = []
+        if ranges:
+            lo = min(item[0] for item in ranges)
+            hi = max(item[1] for item in ranges)
+            if dataset == "observations":
+                hint = f" INDEXED BY {observation_index}" if observation_index else ""
+                query = (f"SELECT id,received_at FROM observations{hint} "
+                         "WHERE id>=? AND id<=?")
+                params = (lo[0], hi[0])
+            else:
+                # Strict raw timestamps have only two widths. At zero
+                # microseconds the 25-character form sorts before the 32-char
+                # form, so include it at the lower boundary. Otherwise raw
+                # timestamp ordering equals canonical chronological ordering.
+                lower = lo[0]
+                if lower[19:26] == ".000000":
+                    lower = lower[:19] + "+00:00"
+                query = ("SELECT source,event_id,received_at FROM stream_events "
+                         "WHERE received_at>=? AND received_at<=?")
+                params = (lower, hi[0])
+            for row in db.execute(query, params):
                 value = row[-1]
-                if value not in timestamp_cache:
-                    canonical_time(value)
-                    timestamp_cache.add(value)
                 stamp = value[:19] + ".000000+00:00" if len(value) == 25 else value
-                if dataset == "observations":
-                    key = (row[0],)
-                else:
-                    key = (stamp, row[0], row[1])
+                key = (row[0],) if dataset == "observations" else (stamp, row[0], row[1])
                 records.append((key, value))
             records.sort(key=lambda item: item[0])
-            self.records[dataset] = records
-            self.keys[dataset] = [item[0] for item in records]
+        self.records[dataset] = records
+        self.keys[dataset] = [item[0] for item in records]
 
     def __getattr__(self, name):
         return getattr(self.db, name)
@@ -294,7 +370,6 @@ class _ValidationSnapshot:
                 selected.append(identity)
                 if len(selected) == limit:
                     break
-            # Keep the existing per-interval bounded-batch contract.
             if selected:
                 return selected
         return []
@@ -306,8 +381,10 @@ def _usable_intervals(db, dataset, manifests, bucket):
             raise RetentionError("prepared manifest bucket changed")
         valid, original_rejected, considered = manifests.parsed[dataset]
         rejected, intervals = dict(original_rejected), []
+        if dataset != db.dataset:
+            raise RetentionError("validation snapshot dataset changed")
         keys = db.keys[dataset]
-        for lo, hi, event_count in valid:
+        for lo, hi, event_count in db.ranges:
             # Count ALL current local identities in each original range, including
             # late rows outside approved scope. A late row can invalidate coverage.
             if bisect_right(keys, hi) - bisect_left(keys, lo) > event_count:
@@ -547,17 +624,20 @@ def apply_retention(db, plan, config, confirm=False):
     cutoff = canonical_time(plan["cutoff"])
     evidence = _PreparedManifests(plan["_manifests"], plan["_bucket"])
     timestamp_cache = _validated_timestamp_cache(db)
+    observation_index = _observation_covering_index(db)
     result = {"mode": "apply", "cutoff": cutoff, "datasets": {}}
     for dataset, spec in SPECS.items():
         approved = {tuple(key) for key in plan["_approved"][dataset]}
         pending = set(approved)
+        ranges = _scope_manifest_ranges(dataset, evidence, approved)
         deleted = batches = 0
         while pending:
             # All cloud IO precedes apply. Each local recheck and bounded DELETE
             # shares a reserved writer lock; collection can resume after COMMIT.
             db.execute("BEGIN IMMEDIATE")
             try:
-                current = _ValidationSnapshot(db, timestamp_cache)
+                current = _ValidationSnapshot(
+                    db, timestamp_cache, dataset, ranges, observation_index)
                 intervals, _ = _usable_intervals(
                     current, dataset, evidence, plan["_bucket"])
                 protected = _protected_id(db, dataset)

@@ -207,7 +207,117 @@ class RetentionTests(unittest.TestCase):
         self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 20)
         self.assertEqual(result["datasets"]["observations"]["batches"], 8)
         self.assertFalse(any("SELECT COUNT(*) FROM observations WHERE" in sql for sql in seen))
-        self.assertEqual(sum(sql == "SELECT id,received_at FROM observations" for sql in seen), 8)
+        self.assertFalse(any(sql == "SELECT id,received_at FROM observations" for sql in seen))
+        bounded = [sql for sql in seen if sql.startswith(
+            "SELECT id,received_at FROM observations WHERE id>=")]
+        self.assertEqual(len(bounded), 8)  # Fresh current keys in every transaction.
+        for table in ("observations", "stream_events"):
+            guards = [sql for sql in seen if sql.startswith(
+                f"SELECT 1 FROM {table} WHERE NOT retention_current_timestamp_valid")]
+            self.assertEqual(len(guards), 8)  # Even unrelated raw rows remain guarded.
+
+    def test_key_snapshot_only_materializes_active_dataset_manifest_envelope(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        for i in range(50):
+            self.add_event("coinbase", str(i), NOW + timedelta(seconds=i))
+        evidence = retention._PreparedManifests(self.cloud.manifests, "market-raw")
+        cache = retention._validated_timestamp_cache(self.db)
+        ranges = retention._scope_manifest_ranges("observations", evidence, {(1,)})
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            snapshot = retention._ValidationSnapshot(
+                self.db, cache, "observations", ranges)
+            self.assertEqual(set(snapshot.keys), {"observations"})
+            self.assertEqual(snapshot.keys["observations"], [(i,) for i in range(1, 11)])
+            # Full ORIGINAL manifest, not candidate-only keys, is counted.
+            intervals, _ = retention._usable_intervals(
+                snapshot, "observations", evidence, "market-raw")
+            self.assertEqual(intervals, [((1,), (10,))])
+        finally:
+            self.db.rollback()
+
+    def test_malformed_unrelated_stream_after_cache_preparation_blocks_observation_delete(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        original = retention._validated_timestamp_cache
+        def prepare(db):
+            cache = original(db)
+            db.execute("INSERT INTO stream_events VALUES(?,?,?,?,?,?,?,?)",
+                       ("other", "unrelated", "2099-02-30T00:00:00.000000+00:00",
+                        ts(NOW), "100", "1", "buy", "{}"))
+            db.commit()
+            return cache
+        with patch.object(retention, "_validated_timestamp_cache", side_effect=prepare):
+            with self.assertRaises(RetentionError):
+                apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(self.count("observations"), 30)
+
+    def test_late_row_outside_candidate_span_still_invalidates_full_manifest(self):
+        self.seed_observations()
+        # An original manifest may have sparse local ids. The range is 1..30,
+        # but the approved scope contains only id1. Insert id15 into its gap.
+        self.db.execute("DELETE FROM observations WHERE id BETWEEN 11 AND 19")
+        self.db.commit()
+        self.archive_all("observations", 100)
+        plan = self.plan()
+        plan["_approved"]["observations"] = [(1,)]
+        self.db.execute("INSERT INTO observations VALUES(15,'m1',?,NULL,'book','{}')",
+                        (ts(CUTOFF_DT - timedelta(days=1)),))
+        self.db.commit()
+        result = apply_retention(self.db, plan, self.config, confirm=True)
+        self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 0)
+        self.assertIsNotNone(self.db.execute("SELECT 1 FROM observations WHERE id=1").fetchone())
+
+    def test_bounded_stream_snapshot_keeps_both_utc_widths_and_exact_tie_keys(self):
+        when = CUTOFF_DT - timedelta(hours=1)
+        self.add_event("coinbase", "a", when)
+        self.add_event("coinbase", "z", when)
+        self.db.execute("UPDATE stream_events SET received_at=? WHERE event_id='a'",
+                        (when.isoformat(),))
+        self.db.commit()
+        self.archive_all("stream_events", 100)
+        plan = self.plan()
+        result = apply_retention(self.db, plan, RetentionConfig(True, 48, 1), confirm=True)
+        self.assertEqual(result["datasets"]["stream_events"]["deleted_rows"], 2)
+        self.assertEqual(self.count("stream_events"), 0)
+
+    def test_stream_key_envelope_does_not_materialize_unrelated_same_second_rows(self):
+        when = CUTOFF_DT - timedelta(hours=1)
+        for name, micro in (("early", 0), ("lo", 100000), ("hi", 200000), ("late", 900000)):
+            self.add_event("coinbase", name, when + timedelta(microseconds=micro))
+        self.db.execute("UPDATE stream_events SET received_at=? WHERE event_id='early'",
+                        (when.isoformat(),))
+        self.db.commit()
+        cache = retention._validated_timestamp_cache(self.db)
+        lo = (ts(when + timedelta(microseconds=100000)), "coinbase", "lo")
+        hi = (ts(when + timedelta(microseconds=200000)), "coinbase", "hi")
+        self.db.execute("BEGIN IMMEDIATE")
+        try:
+            snapshot = retention._ValidationSnapshot(
+                self.db, cache, "stream_events", [(lo, hi, 2)])
+            self.assertEqual(snapshot.keys["stream_events"], [lo, hi])
+        finally:
+            self.db.rollback()
+
+    def test_existing_covering_index_is_optional_and_no_main_schema_change(self):
+        self.seed_observations()
+        self.db.execute("CREATE INDEX observations_market_kind_received ON observations(market_id,kind,received_at)")
+        self.db.commit()
+        self.archive_all("observations", 10)
+        plan = self.plan()
+        before = self.db.execute("SELECT type,name,sql FROM sqlite_master ORDER BY name").fetchall()
+        seen = []
+        self.db.set_trace_callback(seen.append)
+        try:
+            apply_retention(self.db, plan, self.config, confirm=True)
+        finally:
+            self.db.set_trace_callback(None)
+        self.assertTrue(any("INDEXED BY observations_market_kind_received WHERE id>=" in sql for sql in seen))
+        self.assertEqual(self.db.execute("SELECT type,name,sql FROM sqlite_master ORDER BY name").fetchall(), before)
+        with self.assertRaises(sqlite3.OperationalError):
+            self.db.execute("SELECT retention_current_timestamp_valid(?)", (ts(NOW),)).fetchone()
 
     def test_late_reference_between_committed_batches_is_rechecked(self):
         self.seed_observations()

@@ -57,3 +57,7 @@ October 30, 2026, approximately 17:21 America/Chicago: production Git revision `
 DB 3,995,750,400 bytes; WAL 5,409,592 bytes; free disk 51,879,768,064 bytes. Headroom calculated against the **previously recorded** 4096 MiB guard: 293,807,304 bytes (~280.20 MiB). The guard configuration and OFF flags were not freshly verified by this timed-out HTTP sample. No deployment, restart or production modification occurred.
 
 Next implementation work is I7 release-scope review and controlled production validation. The current feature branch also contains unqualified retention changes; do not deploy those merely to release the feature-worker fix. The official roadmap remains the sole execution checklist.
+
+### Subsequent I7-only release attempt
+
+See [the October 30 release attempt](PLAN/I7_RELEASE_ATTEMPT_2026-10-30.md). Isolated worker revision `d56b4a7` passed 159 backend tests, six deployment controls and exact-revision CI, excluding retention changes. Manual CD was cancelled in SQLite preflight before checkout when observed feature age exceeded 331 seconds and HTTP responsiveness remained poor. Only this attempt's verification reader was terminated; the ephemeral runner was removed. Production stayed on `a7c0989` with the same service PIDs, OFF flags and 4096 MiB guard. The worker fix is still undeployed; I7 remains OPEN. The next gate is a reviewed verification/release procedure that protects collection while preserving complete SQLite checks, not an automatic retry or a skipped integrity gate.

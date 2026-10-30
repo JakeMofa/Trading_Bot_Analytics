@@ -1,6 +1,6 @@
 # BTC Intelligence Rebuild Plan
 
-**Branch:** `codex/lightsail-deployment`
+**Branch:** `codex/phase1-75-retention-enable` (working); `codex/lightsail-deployment` (release target)
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
 **Rule:** Keep the existing working collector/evaluation pipeline, rebuild the intelligence layer in measured phases.
@@ -21,8 +21,8 @@
 ## Current position
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
-**Current branch:** `codex/lightsail-deployment` (from integration `codex/fastapi-phase1-5` at `2766234`)
-**Next gate:** migrate the verified SQLite/runtime to the authorized Ubuntu Lightsail VM, validate live feeds and cloud archival, then measure a 24-hour run. OpenAI and automatic retention remain **OFF**. Phase 2 remains deferred.
+**Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
+**Next gate:** I7 controlled release and production validation. The worker fix is isolated/tested but remains undeployed after the October 30 live SQLite preflight STOP. Preserve complete verification gates; then resolve retention R5/R6 and the remaining Phase 1.75 gates. OpenAI and retention remain **OFF**. Stop before Phase 2; broader architecture planning is deferred.
 
 ### October 23, 2026 migration preflight
 
@@ -1196,3 +1196,14 @@ commit; unrelated AGENTS.md and untracked local files/secrets remain excluded.
 exact-revision feature CI and all remaining production coverage/reconciliation,
 backup/apply/integrity/live-engine/recovery/CD/continuous-cycle/storage gates
 remain required. No production action has been taken in this investigation.
+
+### October 30, 2026 — I7-only release prepared; live verification STOP
+
+- [x] Preserved the current feature checkout and all pre-existing local edits. Historical context pack and index saved in `docs/PROJECT_CONTEXT.md` (`9876eb9`); full exports remain local-only and Git-ignored. All six compact files read; full transcript review unfinished. No failed reviewers restarted or Tradebot paid OpenAI calls made.
+- [x] Isolated only the worker containment from `b809efc` onto the existing deployment branch as `d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a`. No new branch/worktree. Retention/collector timestamp changes excluded. Exported-source validation: **159 backend + 6 deployment tests PASS**, compilation PASS; exact-revision CI run `41138048640` PASS.
+- [~] Manual controlled CD run `41138249460` passed workflow and SHA/CI gates, then remained in full SQLite preflight verification before checkout. During 85 five-second live samples, 148/170 probes timed out and observed feature age reached **331.25 seconds**. The verification reader was in disk wait; this does not individually attribute all added lag to that reader.
+- [x] Stopped safely before checkout: cancelled the workflow, verified old production SHA and absence of a new checkout record, terminated only this attempt's verification Python process (9199), confirmed exit, and removed the one-job runner after automatic unregistration. No application service was signaled/restarted. No deployment/rollback, retention, guard change, VACUUM/WAL manipulation, schema/index change, AWS/network change or Phase 2.
+- [ ] **I7 remains OPEN; worker fix NOT DEPLOYED.** Fresh production stays `a7c0989`; API/ensemble/lifecycle PIDs 2273/849/843, active, zero automatic restarts. Process OpenAI/retention OFF, guard4096 MiB. The final 13 samples through 17:38:13 America/Chicago still timed out; no recovery PASS. Final DB3,996,729,344 bytes, WAL9,805,632 bytes, diskfree51,865,370,624 bytes.
+- **BLOCKER / OWNER:** full live SQLite verification cannot yet be completed safely alongside the blocking feature scan / controlled-release preflight path. Preserve complete structural/FK gates; do not retry the same heavy scan or force a release.
+- **NEXT:** prepare/review a bounded verification and release procedure that protects collection and preserves rollback and complete SQLite checks. Then deploy the tested I7-only revision and validate multiple cycles, API/feed responsiveness, feature age, I/O, collector coexistence and WAL growth. Retention R5/R6 remains STOP; Phase 1.75 unfinished; Phase 2 deferred.
+- Evidence and precise limits: `I7_RELEASE_ATTEMPT_2026-10-30.md`; local `evidence/phase175-baseline/i7-only-release-20261030/`. Broader architecture discussion remains deferred until the Phase 2 boundary per the user's current direction.

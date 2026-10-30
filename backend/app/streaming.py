@@ -5,6 +5,7 @@ import base64
 import json
 import os
 import signal
+import sqlite3
 import time
 import uuid
 from pathlib import Path
@@ -360,6 +361,29 @@ async def storage_guard_loop(path, db, stop, max_storage_mb, live_state=None):
     health(db, 'storage_guard', 'stopped',live_state=live_state)
 
 
+def feature_cycle(path):
+    """Run one feature/forecast cycle on a connection owned by this worker.
+
+    Keep slow historical reads off the API/collector event loop. The caller
+    awaits this whole cycle before scheduling another; never share its SQLite
+    connection or mutate LiveState from the worker.
+    """
+    db = sqlite3.connect(path, timeout=5)
+    try:
+        db.execute('PRAGMA foreign_keys=ON')
+        snapshot = capture_features(db)
+        if not snapshot:
+            return None
+        market_id, values, quality = snapshot
+        snapshot_id, snapshot_as_of = db.execute(
+            'SELECT id,as_of FROM feature_snapshots WHERE market_id=? ORDER BY id DESC LIMIT 1',
+            (market_id,)).fetchone()
+        forecast = forecast_snapshot(db, snapshot_id)
+        return snapshot, snapshot_id, snapshot_as_of, forecast
+    finally:
+        db.close()
+
+
 async def rest_loop(path, db, stop, interval, live_state=None):
     last_candle_refresh = None
     while not stop.is_set():
@@ -370,13 +394,14 @@ async def rest_loop(path, db, stop, interval, live_state=None):
             if refresh:
                 last_candle_refresh = time.monotonic()
             print('\n'.join(messages),flush=True)
-            snapshot = capture_features(db)
-            if snapshot:
+            started = time.monotonic()
+            print(f'Feature cycle started: {utcnow().isoformat()}', flush=True)
+            cycle = await asyncio.to_thread(feature_cycle, path)
+            print(f'Feature cycle finished: {utcnow().isoformat()} elapsed={time.monotonic()-started:.3f}s', flush=True)
+            if cycle:
+                snapshot, snapshot_id, snapshot_as_of, forecast = cycle
                 market_id, values, quality = snapshot
                 print(f"15m features: market={market_id} remaining={values['seconds_remaining']:.0f}s price={quality['price']['status']} missing={len(quality['missing_features'])}", flush=True)
-                snapshot_row = db.execute('''SELECT id,as_of FROM feature_snapshots
-                  WHERE market_id=? ORDER BY id DESC LIMIT 1''', (market_id,)).fetchone()
-                snapshot_id, snapshot_as_of = snapshot_row
                 if live_state is not None:
                     live_state.set_feature_snapshot(
                         market_id,snapshot_as_of,values,quality,snapshot_id=snapshot_id)
@@ -387,7 +412,6 @@ async def rest_loop(path, db, stop, interval, live_state=None):
                             ram_forecast['probability_up'],
                             ram_forecast['abstain_reason'],
                             as_of=snapshot_as_of)
-                forecast = forecast_snapshot(db, snapshot_id)
                 if forecast:
                     print(f"15m baseline: UP={forecast['probability_up']} abstain={forecast['abstain_reason']}", flush=True)
             # collect_once logs per-source failures; don't declare the feeds healthy here.

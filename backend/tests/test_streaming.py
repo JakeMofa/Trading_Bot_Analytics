@@ -160,4 +160,71 @@ class StreamTests(unittest.TestCase):
         self.assertEqual(self.db.execute('SELECT count(*) FROM stream_events').fetchone()[0],1)
         self.assertEqual(self.db.execute("SELECT reconnects FROM feed_health WHERE source='coinbase_stream'").fetchone()[0],1)
 
+
+class FeatureWorkerTests(unittest.TestCase):
+    def test_feature_worker_keeps_event_loop_and_real_collector_save_live(self):
+        import threading
+        from streaming import rest_loop
+        entered, release = threading.Event(), threading.Event()
+        owner = threading.get_ident()
+        worker_threads = []
+        def slow_capture(db):
+            worker_threads.append(threading.get_ident())
+            self.assertEqual(db.execute('PRAGMA busy_timeout').fetchone()[0], 5000)
+            self.assertEqual(db.execute('PRAGMA foreign_keys').fetchone()[0], 1)
+            # Hold an actual WAL read snapshot while the collector writes.
+            db.execute('BEGIN')
+            db.execute('SELECT COUNT(*) FROM stream_events').fetchone()
+            entered.set()
+            if not release.wait(5):
+                raise AssertionError('event loop did not release the worker')
+            db.rollback()
+            return None
+        async def exercise(path, db):
+            stop = asyncio.Event()
+            async def finish_cycle(*args): stop.set()
+            with patch('streaming.rest_cycle', return_value=[]), \
+                 patch('streaming.capture_features', side_effect=slow_capture) as capture, \
+                 patch('streaming.pause', side_effect=finish_cycle), patch('builtins.print'):
+                task = asyncio.create_task(rest_loop(path, db, stop, 0))
+                try:
+                    self.assertTrue(await asyncio.to_thread(entered.wait, 2))
+                    self.assertFalse(task.done())
+                    # This runs on the same event loop as API handlers/feed callbacks.
+                    state = LiveState()
+                    msg = {'type':'ticker','product_id':'BTC-USD','trade_id':77,
+                           'price':'101.25','time':'2026-10-30T18:00:00Z'}
+                    self.assertTrue(save_coinbase(db, msg))
+                    state.update_coinbase_ticker(msg)
+                    self.assertEqual(state.snapshot()['coinbase']['price_usd'],101.25)
+                    self.assertEqual(db.execute('PRAGMA busy_timeout').fetchone()[0],5000)
+                    for _ in range(3): await asyncio.sleep(0)
+                    self.assertEqual(capture.call_count,1)
+                finally:
+                    release.set()
+                    await asyncio.wait_for(task,2)
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder)/'worker.db')
+            db = connect(path); initialize(db); initialize_features(db)
+            try: asyncio.run(exercise(path,db))
+            finally: db.close()
+        self.assertNotEqual(worker_threads,[owner])
+
+    def test_feature_worker_closes_connection_after_error(self):
+        import sqlite3
+        from streaming import feature_cycle
+        closed = []
+        class TrackingConnection(sqlite3.Connection):
+            def close(self):
+                closed.append(True)
+                super().close()
+        factory = sqlite3.connect
+        with tempfile.TemporaryDirectory() as folder, \
+             patch('streaming.sqlite3.connect', side_effect=lambda *a,**kw: factory(*a,**kw,factory=TrackingConnection)), \
+             patch('streaming.capture_features',side_effect=RuntimeError('calculation failed')):
+            with self.assertRaisesRegex(RuntimeError,'calculation failed'):
+                feature_cycle(str(Path(folder)/'worker.db'))
+        self.assertEqual(closed,[True])
+
+
 if __name__=='__main__': unittest.main()

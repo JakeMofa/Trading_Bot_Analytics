@@ -57,6 +57,36 @@ class FeatureTests(unittest.TestCase):
         capture(self.db, at)
         self.assertEqual(self.db.execute('SELECT COUNT(*) FROM feature_snapshots').fetchone()[0],1)
 
+    def test_worker_preserves_feature_evidence_and_forecast(self):
+        import tempfile
+        import sqlite3
+        from streaming import feature_cycle
+        self.event(1, '2026-09-30T01:10:20Z', '2026-09-30T01:10:21Z', '101.25')
+        self.candles()
+        self.db.commit()
+        at = timestamp('2026-09-30T01:10:25Z')
+        expected = calculate(self.db, 'm1', at)
+        with tempfile.TemporaryDirectory() as folder:
+            path = str(Path(folder)/'features.db')
+            disk = sqlite3.connect(path)
+            self.db.backup(disk)
+            disk.close()
+            with patch('features.utcnow',return_value=at), patch('forecasts.utcnow',return_value=at):
+                snapshot, snapshot_id, snapshot_as_of, forecast = feature_cycle(path)
+                repeated = feature_cycle(path)
+            self.assertEqual(snapshot, ('m1',expected[0],expected[1]))
+            self.assertEqual(snapshot_as_of, at.isoformat())
+            self.assertEqual(repeated[1],snapshot_id)
+            self.assertIsNotNone(forecast['probability_up'])
+            disk = sqlite3.connect(path)
+            try:
+                evidence = json.loads(disk.execute('SELECT evidence_json FROM feature_snapshots WHERE id=?',(snapshot_id,)).fetchone()[0])
+                self.assertEqual(evidence,expected[2])
+                self.assertEqual(disk.execute('SELECT COUNT(*) FROM predictions').fetchone()[0],1)
+                self.assertEqual(disk.execute('PRAGMA foreign_key_check').fetchall(),[])
+            finally:
+                disk.close()
+
     def test_candles_backfilled_later_do_not_leak_into_old_snapshot(self):
         self.candles()
         self.db.execute("UPDATE candles SET first_seen='2026-09-30T01:11:00Z'")

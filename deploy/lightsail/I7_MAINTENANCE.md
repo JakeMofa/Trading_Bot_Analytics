@@ -1,4 +1,8 @@
-# I7 maintenance continuation — prepared, not executed
+# WITHDRAWN — copy-based I7 maintenance
+
+The user rejected database copies and snapshots. This procedure is superseded
+by `I7_SCOPED_RELEASE.md`; its CLI execution is disabled. The material below is
+historical preparation, never executed, and must not be used operationally.
 
 This is a one-time operational procedure for the I7 STOP recorded in
 `docs/PLAN/I7_RELEASE_ATTEMPT_2026-10-30.md`. The official execution roadmap

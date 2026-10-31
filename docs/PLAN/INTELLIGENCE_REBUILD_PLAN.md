@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** I7 controlled release and production validation. The worker fix is isolated/tested but remains undeployed after the October 30 live SQLite preflight STOP. Preserve complete verification gates; then resolve retention R5/R6 and the remaining Phase 1.75 gates. OpenAI and retention remain **OFF**. Stop before Phase 2; broader architecture planning is deferred.
+**Next gate:** I7 controlled release and production validation. The worker fix is isolated/tested but remains undeployed after the October 30 live SQLite preflight STOP. Use the user-authorized exact-release exception with full quick/FK audit explicitly outstanding; then resolve retention R5/R6 and the remaining Phase 1.75 gates. OpenAI and retention remain **OFF**. Stop before Phase 2; broader architecture planning is deferred.
 
 ### October 23, 2026 migration preflight
 
@@ -1215,3 +1215,12 @@ remain required. No production action has been taken in this investigation.
 - [ ] Proposed supervised window: 20-minute work budget plus five-minute recovery reserve; intentional collection gap requires operator approval. Stop monitor, wait for a responsive API stop window, stop API/lifecycle/ensemble, prove no SQLite owners/nonempty WAL, create and readback-verify a root-private copy on the same VM, then complete quick/FK checks in bounded read-only child processes before checkout. No Mac DB copy, retention, manual WAL operation, schema/index change, guard increase, credentials/network/AWS resource change or Phase 2.
 - [ ] Fresh exact-SHA CI must pass for application and helper before execution. The helper accepts a trusted operator acknowledgment; it does not independently query GitHub. On failure, restore prior code/services without overwriting collected DB data; report unproven API recovery honestly. New-code success is only `deployed_pending_I7_validation`.
 - **Current position unchanged:** I7 OPEN, worker fix undeployed; full live verification STOP preserved. Retention R5/R6 STOP; Phase 1.75 unfinished. See `I7_RELEASE_ATTEMPT_2026-10-30.md` for evidence and the bounded continuation. No new production measurement is claimed by this preparation.
+
+### October 30, 2026 — authorized no-copy I7 exact-release exception
+
+- [x] User rejected database copies/snapshots and selected a scoped code-only release exception. Copy-based maintenance runbook is withdrawn and its execute CLI disabled. The replacement operational procedure is `deploy/lightsail/I7_SCOPED_RELEASE.md`; this document remains the single roadmap.
+- [x] Prepared temporary protected deployment-helper controls for exact old `a7c098900f8310367fc262a1b837c369bb63dc56` -> application `d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a`, exact six-file scope, bundle/ancestry and one-use root-owned exact-CI acknowledgment. Full quick/FK checks explicitly `NOT_PERFORMED_SCOPED_I7_EXCEPTION`; bounded five-second metadata child is readiness only. Normal release verification unchanged.
+- [x] Local validation: 182 backend + 33 deployment/control tests PASS, compile/diff checks PASS. Existing socket test required local socket access. Tested refusal, real metadata-only SQLite fixtures, child timeout/reaping, partial checkout, restart/smoke/deadline recovery and failed rollback reporting.
+- [ ] Require exact helper CI, freshly verify application CI/branch, temporarily install verified helper through existing pinned operator SSH, dispatch existing Actions workflow once, restart only API, restore protected helper afterward. Work600s + recovery180s inside Actions900s; no automatic retry.
+- [ ] Observe >=20 minutes and >=3 completed feature cycles (max30 minutes). Record five-second/two-second-timeout API/feed probes, timestamps, feature/input age, rollover, service stability, persistence and resource/storage evidence. Snapshot target30s; input-price rule30s. Containment and freshness reported separately; I7 remains OPEN until evidence passes.
+- Retention/paid OpenAI OFF; guard4096; no DB copy/snapshot, full live scan, WAL manipulation, migration/index, infrastructure/network change or Phase2. Full quick/FK audit remains outstanding before retention.

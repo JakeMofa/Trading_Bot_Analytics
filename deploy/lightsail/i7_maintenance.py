@@ -402,6 +402,8 @@ def main():
     parser.add_argument('--check', choices=('quick_check', 'foreign_key_check'))
     parser.add_argument('--seconds', type=int, default=420)
     args = parser.parse_args()
+    if args.execute:
+        parser.error('WITHDRAWN: database-copy maintenance is not authorized; use the exact-release I7 procedure')
     if args.check_copy:
         if not args.check or not 1 <= args.seconds <= 420:
             parser.error('bounded check required')

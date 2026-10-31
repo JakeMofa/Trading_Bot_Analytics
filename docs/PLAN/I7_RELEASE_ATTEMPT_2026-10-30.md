@@ -68,3 +68,7 @@ with fresh exact-SHA CI verification for both the application and helper. It is
 not a request to bypass the original checks or expand the forced deployment key.
 No production upload, service stop, new live scan or release retry occurred while
 preparing it. I7 remains OPEN and the worker fix remains undeployed.
+
+## Superseded continuation
+
+The user rejected the copy-based maintenance proposal above. It was never executed; its CLI is now disabled. The user authorized [the no-copy exact-release exception](../../deploy/lightsail/I7_SCOPED_RELEASE.md): bounded metadata readiness, explicitly outstanding full quick/FK audit, exact-CI application/helper, API-only restart, code rollback and separate containment/freshness validation. The historical STOP remains recorded; this is a new explicit policy decision, not a retroactive verification PASS.

@@ -31,3 +31,5 @@ jobs:
           ENABLE_SUPABASE_SYNC: "false"
           ENABLE_LOCAL_RETENTION: "false"
         run: python -m unittest discover -s backend/tests -v
+      - name: Run deployment and maintenance controls
+        run: python -m unittest discover -s deploy/lightsail -p 'test_*.py' -v

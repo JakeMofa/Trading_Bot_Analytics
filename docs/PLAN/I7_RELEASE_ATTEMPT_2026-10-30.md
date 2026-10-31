@@ -39,3 +39,32 @@ The attempt was cancelled rather than extending its budget or bypassing checks. 
 **NEXT:** review a bounded verification/release procedure that preserves complete structural/FK checks and rollback while protecting collection. Any controlled maintenance, revised helper or altered release procedure must be concrete and reviewed before use. Then deploy the I7-only revision through the approved path and validate several complete feature cycles, API/feed responsiveness, feature age, disk reads, collector coexistence and WAL behavior. Worker containment alone still does not shorten the historical scan. Retention R5/R6 remain STOP; Phase 2 remains deferred.
 
 Local evidence: `/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/i7-only-release-20261030/` (backend/deployment test logs, live/final monitor JSONL and final revision/service projection). Historical evidence remains in `i7-feature-stall/`.
+
+## Prepared continuation — not executed
+
+The bounded operator procedure is now implemented in
+`deploy/lightsail/i7_maintenance.py`, with [the reviewable runbook](../../deploy/lightsail/I7_MAINTENANCE.md).
+It defaults to plan-only, is not installed in the VM, and is not called by normal CD.
+It is fixed to old runtime `a7c0989` and I7-only application revision `d56b4a7`.
+
+Local validation: **26 deployment/maintenance tests PASS**, compilation and diff
+checks PASS. Tests cover real immutable SQLite verification, foreign-key violations,
+corrupt copies, alias/inode ownership, WAL preservation, child timeout/reaping,
+restart-file configuration that inherited variables cannot mask, failed-check
+non-deployment, partial-stop recovery and code rollback ordering. CI now runs all
+deployment/maintenance tests in addition to the backend suite.
+
+Proposed scope is 20 minutes of work plus five reserved for recovery, under a
+separate supervised maintenance approval. Stop the monitor, find a responsive API
+stop window, then stop the three SQLite-owning application services. Refuse
+remaining DB owners/nonempty WAL; create and independently verify a root-private
+consistent copy on the same VM; require full quick/FK checks before checkout.
+Each SQL check has a maximum 420-second budget and an independently bounded child.
+Restore old code/services on failure, preserving the live DB and any new data.
+Never certify old-code API health from service-running status alone.
+
+This requires a deliberate collection gap and one-time trusted-operator path,
+with fresh exact-SHA CI verification for both the application and helper. It is
+not a request to bypass the original checks or expand the forced deployment key.
+No production upload, service stop, new live scan or release retry occurred while
+preparing it. I7 remains OPEN and the worker fix remains undeployed.

@@ -72,3 +72,7 @@ preparing it. I7 remains OPEN and the worker fix remains undeployed.
 ## Superseded continuation
 
 The user rejected the copy-based maintenance proposal above. It was never executed; its CLI is now disabled. The user authorized [the no-copy exact-release exception](../../deploy/lightsail/I7_SCOPED_RELEASE.md): bounded metadata readiness, explicitly outstanding full quick/FK audit, exact-CI application/helper, API-only restart, code rollback and separate containment/freshness validation. The historical STOP remains recorded; this is a new explicit policy decision, not a retroactive verification PASS.
+
+## Later authorized release — successful, I7 still OPEN
+
+The scoped no-copy exception subsequently released`d56b4a7` through Actions41159675569. The original protected helper is restored. [Production validation](I7_PRODUCTION_VALIDATION_2026-10-30.md) supersedes this report's earlier undeployed runtime checkpoint; the original failed attempt remains historical evidence. Sampled API containment passed, freshness/rollover did not. Full quick/FK audit remains explicitly outstanding.

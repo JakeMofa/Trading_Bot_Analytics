@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** I7 controlled release and production validation. The worker fix is isolated/tested but remains undeployed after the October 30 live SQLite preflight STOP. Use the user-authorized exact-release exception with full quick/FK audit explicitly outstanding; then resolve retention R5/R6 and the remaining Phase 1.75 gates. OpenAI and retention remain **OFF**. Stop before Phase 2; broader architecture planning is deferred.
+**Next gate:** I7 source-time lookup performance, snapshot freshness and market rollover. Worker containment `d56b4a7` is DEPLOYED via Actions41159675569; sampled API responsiveness passed, freshness/rollover did not. Full quick/FK audit remains explicitly outstanding after the authorized exact-release exception. Retention R5/R6 remains STOP; Phase1.75 unfinished. OpenAI/retention OFF, guard4096. Stop before Phase2.
 
 ### October 23, 2026 migration preflight
 
@@ -1224,3 +1224,13 @@ remain required. No production action has been taken in this investigation.
 - [ ] Require exact helper CI, freshly verify application CI/branch, temporarily install verified helper through existing pinned operator SSH, dispatch existing Actions workflow once, restart only API, restore protected helper afterward. Work600s + recovery180s inside Actions900s; no automatic retry.
 - [ ] Observe >=20 minutes and >=3 completed feature cycles (max30 minutes). Record five-second/two-second-timeout API/feed probes, timestamps, feature/input age, rollover, service stability, persistence and resource/storage evidence. Snapshot target30s; input-price rule30s. Containment and freshness reported separately; I7 remains OPEN until evidence passes.
 - Retention/paid OpenAI OFF; guard4096; no DB copy/snapshot, full live scan, WAL manipulation, migration/index, infrastructure/network change or Phase2. Full quick/FK audit remains outstanding before retention.
+
+### October 30, 2026 — I7 worker deployed; API containment observed, freshness FAIL
+
+- [x] Implemented and published no-copy exact-release controls (`c2304eb`); local182 backend +33 deployment/control tests and exact helper CI41159551744 PASS. Candidate`d56b4a7` exact CI41138048640 reverified. User explicitly authorized execution; no new branch/worktree.
+- [x] Manual Actions41159675569 succeeded once: production now`d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a`. Five-second metadata readiness and all12 existing smoke routes/SSE/dashboard PASS. Full quick/FK audit explicitly **NOT_PERFORMED_SCOPED_I7_EXCEPTION**; remains required before retention.
+- [x] API only restarted(PID2273->10915); ensemble849/lifecycle843/monitor retained. Existing systemd60s stop policy killed the unresponsive old API, followed by~85s startup/hydration; stop-request-to-listener~146s. No extra kill or WAL command. Missing source events not assumed backfilled. Original protected helper hash restored, authorization consumed/absent; ephemeral runner unregistered and removed.
+- [x] Completed 20.85min post-release observation, 11 cycles, 498 probes: **0 failures/0 timeouts**, max0.075s. 2 extension samples lacked probes due unmatched journal reads, disclosed. Cycle duration83.576–86.720s; new snapshot age84.084–204.277s vs30s target **FAIL**. Polymarket stale around rollover; observed first new market~51s late. Follow-up next rollover at02:46:49UTC had new market/live feeds but missing features and degraded health.
+- [ ] **I7 OPEN:** sampled API stall containment passes; full freshness/rollover requirements do not. EXPLAIN-only inspection confirms source-filtered stream sort and REST-price table scan/sort. Synthetic in-memory expression-index feasibility passed5 cases, but tie behavior, build I/O/lock budget and writer overhead are unqualified. No production index/schema change.
+- **NEXT:** separately review/test the smallest source-time lookup optimization with preserved as-of, exact-decimal, provenance and stale/missing semantics; include rollover/discovery latency. Retention R5/R6 STOP and remaining Phase1.75 gates pending. Full quick/FK audit outstanding. OpenAI/retention OFF, guard4096; no DB copy/snapshot, retention, VACUUM, manual WAL, infrastructure/network change or Phase2.
+- Evidence: `I7_PRODUCTION_VALIDATION_2026-10-30.md`; local`evidence/phase175-baseline/i7-scoped-release-20261030/`.

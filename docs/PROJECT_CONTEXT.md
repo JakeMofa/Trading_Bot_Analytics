@@ -67,3 +67,7 @@ A [bounded maintenance procedure](../deploy/lightsail/I7_MAINTENANCE.md) and pla
 ## Current continuation — user-authorized no-copy release
 
 The copy-based maintenance proposal was rejected; its runbook is withdrawn and execute CLI disabled. Follow [the exact-release exception](../deploy/lightsail/I7_SCOPED_RELEASE.md) and the official roadmap. Full integrity/FK checks are explicitly outstanding; no historical PASS substitutes for current evidence. Production release and multi-cycle validation remain pending at preparation time.
+
+## Latest verified result — worker deployed, I7 OPEN
+
+Actions41159675569 released`d56b4a7`. More than20min and11 feature cycles showed zero failed sampled API probes; snapshots remained84–204s old and rollover was delayed. Original helper restored; one-use exception/runner cleaned up. Final follow-up streams live, but health degraded pending new-market features. See [production evidence](PLAN/I7_PRODUCTION_VALIDATION_2026-10-30.md) and the official roadmap. No new DB copy/snapshot or retention; full quick/FK audit outstanding.

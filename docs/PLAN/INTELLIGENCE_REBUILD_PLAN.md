@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Approved generated-only split qualification (validated WRITE<=500ms,total/commit<=1000ms,collector<1s,FULL and existing protections unchanged). Three passes required; stop first failed/missing evidence. Production500ms unchanged; capacitySTOP separately,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Generated split harness a18ce3c exact-CI PASS; representative NOTPROVEN because one SSH connection timed out before launch (0/3 trials,0 committed). Restore approved VM execution path, then pending fail-fast qualification; no repeat policy approval. Production500ms unchanged,capacitySTOP separate,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1970,3 +1970,25 @@ new6 tests PASS(one Linux strace integration skip). Exact Linux CI and one exist
 800000/2350000-row representative qualification pending; remaining two trials only
 if first passes. Prior failures remain failures under original500ms policy. No
 production deletion/deployment/settings change; capacitySTOP and Phase1.75OPEN.
+
+## Generated split qualification: implementation PASS, representative NOT PROVEN
+
+User approved generated-only split gates. Exact implementation a18ce3c6a9ab1e8c9321f521d17768c3f39526db
+passed CI41359072373:252 backend tests,103 deployment controls; actual Linux strace
+integration ran successfully (tiny197-row cleanup, not representative evidence).
+Production retention.py and its500ms policy unchanged. New harness independently
+bounds validated WAL WRITE syscall occupancy500ms,BEGIN-entry/commit-return1000ms,
+commit1000ms and collector delays<1s/noerrors;FULL/default settings/protections and
+resource limits preserved. Missing/ambiguous trace fails closed before next batch.
+
+Existing800000/2350000-row,500-row-batch,three-trial fail-fast runner prepared.
+Single SSH connection timed out before connecting; no remote code/fixture/load or
+preflight started. Trials0/3,committed0; all representative occupancy/transaction/
+commit/collector/throughput/overhead measurements unavailable, completionNOTPERFORMED.
+No retry/recoverywindow. NOTPROVEN; no performance pass claimed. Previous failures
+remain failures under original policy. Next: restore existing approved SSH route
+and run pending qualification once; no further policy approval needed.
+
+Evidence/procedure: [RETENTION_SPLIT_QUALIFICATION_2026-11-01.md](RETENTION_SPLIT_QUALIFICATION_2026-11-01.md).
+Production unchanged,flagsOFF,deleted0,capacitySTOPseparate,93161cfpreserved,
+capdeadlineunchanged,I7/Phase1.75OPEN. No deployment/cleanup/storage-policy authority.

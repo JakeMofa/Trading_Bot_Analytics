@@ -8,6 +8,8 @@ archive payload JSON is compared with exact Decimal parsing, never float coercio
 from datetime import datetime,timezone
 from decimal import Decimal
 import gzip
+import copy
+import time
 import hashlib
 import io
 import json
@@ -202,3 +204,54 @@ def install_delete_scope(db, manifests):
     except BaseException:
         db.execute('ROLLBACK TO install_recovery_scope');db.execute('RELEASE install_recovery_scope')
         raise
+
+
+def prepare_scope(db, cloud, manifests, dataset, cutoff, bucket='market-raw', limit=1000):
+    """Read-only bounded proposal plus fresh private readback; NEVER applies it.
+
+    Current eligibility is still rechecked by apply_retention inside its writer
+    transaction. Original whole manifest boundaries/counts are never clipped.
+    The caller must use a read-only connection and save the returned raw proof
+    privately before requesting any deletion.
+    """
+    import retention
+    if dataset not in COLUMNS or not 1<=limit<=1000:raise RecoveryError('invalid bounded scope')
+    if db.in_transaction:raise RecoveryError('scope preparation requires an unlocked connection')
+    cutoff=canonical_time(cutoff);started=time.monotonic()
+    usable=[];rejected=0
+    for manifest in manifests:
+        if (manifest.get('metadata') or {}).get('dataset')!=dataset:continue
+        try:lo,hi=_manifest_interval(dataset,manifest,bucket)
+        except (ValueError,TypeError,KeyError):rejected+=1;continue
+        usable.append((lo,hi,manifest))
+    usable.sort(key=lambda item:item[:2])
+    current=[];seen=set();objects=[];used=[]
+    for lo,hi,manifest in usable:
+        remaining=limit-len(current)
+        if remaining<=0:break
+        protected=retention._protected_id(db,dataset)
+        where,params=retention._eligible_clause(db,dataset,retention.SPECS[dataset],(lo,hi),cutoff,protected)
+        order='id' if dataset=='observations' else 'received_at,source,event_id'
+        cursor=db.execute('SELECT '+','.join(COLUMNS[dataset])+' FROM '+dataset+' WHERE '+where+' ORDER BY '+order+' LIMIT ?',(*params,remaining))
+        try:rows=[dict(zip(COLUMNS[dataset],row)) for row in cursor.fetchall()]
+        finally:cursor.close()
+        rows=[row for row in rows if identity(dataset,row) not in seen]
+        if not rows:continue
+        if type(manifest.get('compressed_bytes')) is not int or not 0<manifest['compressed_bytes']<=MAX_COMPRESSED:
+            raise RecoveryError('archive compressed limit')
+        keys={identity(dataset,row) for row in rows}
+        compressed=cloud.download_bytes(bucket,manifest['object_path'])
+        proof,found=verify_archive(manifest,compressed,keys,bucket)
+        # Fail this proposal on uncovered/mutated/precision-lost rows instead of
+        # silently approving a smaller, unexplained scope.
+        build_manifest(dataset,rows,[(proof,found)])
+        seen.update(keys);current.extend(rows);objects.append((proof,found));used.append(copy.deepcopy(manifest))
+    if not current:raise RecoveryError('no bounded verified recoverable rows')
+    recovery=build_manifest(dataset,current,objects)
+    reconstruction=reconstruct_in_memory(recovery)
+    approved={name:[] for name in COLUMNS}
+    approved[dataset]=[identity(dataset,row) for row in current]
+    return {'format':1,'status':'PREPARED_NOT_APPLIED','cutoff':cutoff,
+            'recovery':recovery,'reconstruction':reconstruction,
+            'plan':{'cutoff':cutoff,'_approved':approved,'_manifests':used,'_bucket':bucket},
+            'rejected_manifest_count':rejected,'preparation_seconds':time.monotonic()-started}

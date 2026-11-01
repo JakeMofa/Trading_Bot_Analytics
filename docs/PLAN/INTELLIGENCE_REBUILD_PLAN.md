@@ -1410,3 +1410,12 @@ Prepared the next controls: TEMP exact-full-row recovery guard blocks mutation/u
 ### Integrity-child interruption containment
 
 6201867 exact CI41284484947 PASS (222 backend plus57controls on Linux). Before production use, the audit helper now owns its read-only child process group directly: timeout or parent interruption terminates/kills/reaps it before service recovery. Added real Linux kill/reap and parent-interruption regressions. Local59controls pass with two Linux-only skips; backend unchanged. Requires new exact helper CI. No production maintenance has run; no live process or service was signalled by these generated/unit tests.
+
+
+### Bounded private-archive recovery preparation
+
+Added a default-plan-only operator that selects at most1000 raw rows through original full manifest ranges, reads applicable private objects using the existing authenticated download client, verifies checksum/compressed size/count/boundaries, preserves original raw columns and demonstrates in-memory reconstruction. It freezes the48h cutoff and exact approved identities; it never deletes, uploads, enables flags or creates indexes. Fresh eligibility/protected-reference checks remain required in the deletion transaction. Private proof publication is immutable and0600; diagnostic output includes only stage/type/count/hash, never credentials or raw payload.227local backend tests PASS (two Linux-only skips); requires exact CI before any production readback. Production R7 proof remains PENDING.
+
+Supabase docs/changelog verified: private download remains supported; October12 TLS cipher notice does not change the download contract. Official reference: https://supabase.com/docs/reference/python/storage-from-download . No Supabase schema/access-policy change.
+
+Production integrity helper7e5e7d2 CI41284629743 PASS; read-only preflight PASS, then supervised full quick/FK audit started2026-11-01T07:26:19.086790Z. Writer services intentionally paused; recovery reserve3min within30min work budget. This entry records IN_PROGRESS, not a passing audit or currently-live collection claim. No copies/snapshots/deletion/manual WAL operations.

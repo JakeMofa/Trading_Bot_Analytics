@@ -82,6 +82,28 @@ class RecoveryProofTests(unittest.TestCase):
             self.assertEqual(db.execute('SELECT id FROM observations').fetchall(),[(2,)])
         finally:db.close()
 
+    def test_scope_preparation_is_bounded_read_only_and_preserves_whole_manifest(self):
+        import sqlite3
+        from types import SimpleNamespace
+        rows=[{'id':i,'market_id':'m','received_at':STAMP,'source_time':None,'kind':'book','payload':'{}'} for i in range(1,4)]
+        manifest,compressed=self.archive('observations',rows)
+        db=sqlite3.connect(':memory:')
+        try:
+            db.execute('CREATE TABLE observations(id INTEGER PRIMARY KEY,market_id,received_at,source_time,kind,payload)')
+            db.executemany('INSERT INTO observations VALUES(?,?,?,?,?,?)',[tuple(row[c] for c in recovery.COLUMNS['observations']) for row in rows]);db.commit()
+            db.execute('PRAGMA query_only=ON')
+            downloads=[]
+            def download(bucket,path):downloads.append((bucket,path));return compressed
+            result=recovery.prepare_scope(db,SimpleNamespace(download_bytes=download),[manifest],
+                                           'observations','2026-10-02T00:00:00.000000+00:00',limit=1)
+            self.assertEqual(result['status'],'PREPARED_NOT_APPLIED')
+            self.assertEqual(result['plan']['_approved']['observations'],[(1,)])
+            self.assertEqual(result['plan']['_manifests'][0]['event_count'],3)
+            self.assertEqual(result['reconstruction']['reconstructed_rows'],1)
+            self.assertEqual(db.execute('SELECT count(*) FROM observations').fetchone()[0],3)
+            self.assertEqual(len(downloads),1)
+        finally:db.close()
+
     def test_json_string_payload_is_compared_as_a_string(self):
         row={'id':1,'market_id':'m','received_at':STAMP,'source_time':None,'kind':'book','payload':'"{}"'}
         m,b=self.archive('observations',[row]);proof,found=recovery.verify_archive(m,b,{(1,)})

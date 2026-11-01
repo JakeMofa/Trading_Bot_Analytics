@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Revised smoke-only procedure awaiting approval; storage STOP497.796814MiB headroom versus required512MiB. Preparedpolicy corrected64->512;2c24dde superseded for execution, newcandidate/exactCI required. No scan/install/dispatch. Multi-cycle/boundary acceptance NOTPERFORMED; no soak. I7/Phase1.75OPEN,flagsOFF,ceiling/deadline unchanged.
+**Next gate:** Deployment STOP; storage495.129MiB<512MiB. Correctedpolicy254e619 CI41332855253 PASS. One decision: review verified-reusable-capacity accounting while retaining512MiB reserve/5120MiB physicalceiling, enabling separately qualified cleanup before deployment; no gate/deletion change authorized. No deployment approval request while blocked. Phase1.75OPEN; capdeadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1775,3 +1775,39 @@ scan/install/authority/dispatch/restart/cleanup. Ceiling5120/deadlineunchanged.
 Storage requires separately reviewed resolution; approval cannot override gate.
 Procedure: deploy/lightsail/RELEASE_VERIFICATION_REVIEW.md. No repeatedCIpolling;
 report pendingcommit/Actionscheckpoint andyield. Retention/paidAIOFF,deleted0.
+
+## Storage resolution recommendation — deployment remains STOP
+
+Bounded metadata17:48:50.976794UTC: DB4592.007813MiB,WAL32.863342MiB,total4624.871155;
+physicalheadroom495.128845MiB,512MiBshortfall16.871155. page_size4096,
+page_count1175771,freelist0,auto_vacuumNONE. Filesystemfree50993676288bytes does
+not increase the5120MiB applicationceiling. No historicalquery or operation.
+
+Options: wait/normalautomaticcheckpoint mayreuseWAL but guaranteedrecovery0;
+normal lastconnectionclose couldreleaseup to32.863342MiB giving527.992188MiB,
+only15.992188MiB abovegate before regrowth, and needs separately reviewed writer
+interruption/control changes. Not sustainable or authorized here. Removing logs/
+fixtures recovers0 toward DB+WAL gate. Archive uploads alone recover0 SQLitepages.
+Ordinary archive-proved DELETE cancreate reusablepages but withauto_vacuumNONE
+cannot promise physicalfile shrink; per-batch recoveryunknown until measured.
+VACUUM/rebuild/copies/guardincrease forbidden, so no compliant guaranteed physical
+512MiB restoration exists today. No unchangedtrial or manualWAL action proposed.
+
+One recommended decision: review a512MiB EFFECTIVE-capacity gate counting only
+verified reusableSQLitepages alongside physicalheadroom, retaining5120MiB physical
+ceiling and512MiB reserve amount. Do not implement/change gate now. This would let
+separately qualified, recovery-proved bounded cleanup precede applicationdeployment,
+rather than requiring deployment to qualifycleanup. Cleanupqualification must first
+address measuredcommit operation under unchanged500ms policy, use existingCI Linux
+fixtures and pinneddeployedwriter, and preserve truthful read-only collection guards;
+no need to ship freshness/index changes or repeat failed unchangedtrials.
+At currentfreelist0 the proposed accounting also FAILS. Instant deficit17690688bytes
+requires at least4320verified reusable4096-bytepages (16.875MiB); actual
+qualification must additionally cover measuredWAL/regrowth/workload reserves. This
+is not an approved cleanupscope or a promised rowcount/reclaimedcapacity.
+
+Correctedpolicy254e619 exactCI41332855253 PASS, one statuscheck; no waitingmonitor
+or repeatedpolling needed. Productionunchanged,storageSTOP,noapprovalrequestrepeated.
+No cleanup/deploy/install/scan/guardchange/soak. I7/Phase1.75OPEN,flagsOFF;
+capreviewdeadlineunchanged. Decisionneeded is capacity-accounting design review,
+not deployment approval or authorization to delete.

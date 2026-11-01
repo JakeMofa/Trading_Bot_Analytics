@@ -169,6 +169,9 @@ def trial(args,number):
             spec=importlib.util.spec_from_file_location('retention_candidate',args.candidate)
             module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
             db=collector.connect(str(path));stream.initialize(db)
+            native=module._load_native_time_validator(db)
+            result['timestamp_engine']='native_strict_v1' if native else 'portable_merge'
+            if args.require_native and not native:raise RuntimeError('reviewed native timestamp artifact required')
             db.execute('CREATE INDEX IF NOT EXISTS stream_events_archive_cursor ON stream_events(received_at,source,event_id)')
             now=datetime.now(timezone.utc);old=now-timedelta(days=3);recent=now-timedelta(hours=1)
             raw={'id':'fixture','slug':'fixture','status':'MARKET_STATUS_OPEN',
@@ -258,6 +261,7 @@ def main():
     parser.add_argument('--observations',type=int,default=578343)
     parser.add_argument('--stream-events',type=int,default=1684881)
     parser.add_argument('--check-production',action='store_true')
+    parser.add_argument('--require-native',action='store_true',help='Fail closed unless reviewed native artifact is loaded')
     parser.add_argument('--trials',type=int,choices=(1,2,3),default=3,
                         help='Bound a diagnostic run; qualification still requires three full passes')
     parser.add_argument('--expected-save-sha256')

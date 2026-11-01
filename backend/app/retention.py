@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import copy
+import hashlib
+from pathlib import Path
 import json
 import os
 import re
@@ -233,14 +235,61 @@ class _PreparedManifests(list):
             self.parsed[dataset] = (valid, rejected, considered)
 
 
+# The optional binary is built from this reviewed source, never downloaded or
+# compiled by application startup. Its manifest pins both source and binary.
+NATIVE_TIME_SOURCE_SHA256 = "2b39ba8167896c0e370f2c50f944a1fa23147af8d3f27c3c8e43faae81f43495"
+
+
+def _native_library_path():
+    return Path(__file__).with_name("_retention_time.so")
+
+
+def _load_native_time_validator(db):
+    library = _native_library_path()
+    manifest = library.with_suffix(".json")
+    if not library.exists() and not manifest.exists():
+        return False  # Portable, safety-equivalent merge path retains its deadline.
+    try:
+        if library.is_symlink() or manifest.is_symlink():
+            raise ValueError("symlink")
+        if library.stat().st_size > 2 * 1024 * 1024 or manifest.stat().st_size > 4096:
+            raise ValueError("oversize")
+        if library.stat().st_mode & 0o022 or manifest.stat().st_mode & 0o022:
+            raise ValueError("writable by another role")
+        proof = json.loads(manifest.read_text())
+        if (type(proof.get("format")) is not int or proof["format"] != 1
+                or proof.get("source_sha256") != NATIVE_TIME_SOURCE_SHA256
+                or proof.get("binary_sha256") != hashlib.sha256(library.read_bytes()).hexdigest()):
+            raise ValueError("native proof mismatch")
+        config = getattr(sqlite3, "SQLITE_DBCONFIG_ENABLE_LOAD_EXTENSION", None)
+        if config is not None and hasattr(db, "setconfig"):
+            db.setconfig(config, True)
+            try:
+                db.load_extension(str(library))
+            finally:
+                db.setconfig(config, False)
+        else:
+            db.enable_load_extension(True)
+            try:
+                db.load_extension(str(library))
+            finally:
+                db.enable_load_extension(False)
+    except (OSError,ValueError,TypeError,AttributeError,sqlite3.Error):
+        raise RetentionError("native timestamp validator unavailable or unverified") from None
+    return True
+
+
 class _TimestampCache:
-    """TEMP index contains only validity facts about exact timestamp strings."""
-    pass
+    """Only pure timestamp validity, never mutable row/eligibility facts."""
+    def __init__(self, native=False):
+        self.native = native
 
 
 def _validated_timestamp_cache(db):
     if db.in_transaction:
         raise RetentionError("timestamp preparation requires no active transaction")
+    if _load_native_time_validator(db):
+        return _TimestampCache(native=True)
     db.execute("DROP TABLE IF EXISTS temp.retention_valid_times")
     db.execute("DROP TABLE IF EXISTS temp.retention_fresh_valid_times")
     db.execute("CREATE TEMP TABLE retention_valid_times(value TEXT PRIMARY KEY) WITHOUT ROWID")
@@ -267,11 +316,19 @@ def _validated_timestamp_cache(db):
     return _TimestampCache()
 
 
-def _validate_current_timestamps(db, timestamp_cache):
+def _validate_current_timestamps(db, timestamp_cache, timings=None):
     """Fresh global scan in SQLite; Python only validates previously unseen strings."""
     if not isinstance(timestamp_cache, _TimestampCache):
         raise RetentionError("timestamp cache was not prepared")
     for table in SPECS:
+        if timestamp_cache.native:
+            # Native fixed-format/calendar validation removes sort/cache probes,
+            # not the fresh global scan. Every current row is checked under the
+            # caller's writer lock, including unrelated/unapproved identities.
+            with _measure_phase(timings if timings is not None else {}, "timestamp_"+table):
+                if db.execute(f"SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1(received_at) LIMIT 1").fetchone():
+                    raise RetentionError("unsupported received_at at apply; refusing deletes")
+            continue
         # Ordered set difference lets SQLite merge covering-index streams instead
         # of performing a fresh B-tree lookup for every known timestamp. Binary
         # collation is explicit: case-distinct malformed evidence must not match.
@@ -337,9 +394,9 @@ class _ValidationSnapshot:
     No Python materialization/sort of the manifest envelope. Original range
     counts include all current rows, including unapproved/late/newer identities.
     """
-    def __init__(self, db, timestamp_cache, dataset, ranges, observation_index=None):
+    def __init__(self, db, timestamp_cache, dataset, ranges, observation_index=None, phase_timings=None):
         self.db, self.dataset, self.ranges = db, dataset, ranges
-        _validate_current_timestamps(db, timestamp_cache)
+        _validate_current_timestamps(db, timestamp_cache, phase_timings)
 
     def __getattr__(self, name):
         return getattr(self.db, name)
@@ -667,7 +724,7 @@ def apply_retention(db, plan, config, confirm=False):
                 try:
                     operation = "timestamp_revalidation"
                     with _measure_phase(timings, operation):
-                        current = _ValidationSnapshot(db, timestamp_cache, dataset, ranges)
+                        current = _ValidationSnapshot(db, timestamp_cache, dataset, ranges, phase_timings=timings)
                     operation = "manifest_coverage"
                     with _measure_phase(timings, operation):
                         intervals, _ = _usable_intervals(current, dataset, evidence, plan["_bucket"])

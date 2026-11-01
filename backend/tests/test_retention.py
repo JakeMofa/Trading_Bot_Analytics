@@ -215,7 +215,8 @@ class RetentionTests(unittest.TestCase):
         self.assertTrue(all("LIMIT 3" in sql for sql in selections))
         for table in ("observations", "stream_events"):
             guards = [sql for sql in seen if sql.startswith(
-                f"SELECT received_at COLLATE BINARY FROM {table}")]
+                f"SELECT received_at COLLATE BINARY FROM {table}") or sql.startswith(
+                f"SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1")]
             self.assertEqual(len(guards), 8)  # Even unrelated raw rows remain guarded.
 
     def test_key_snapshot_only_materializes_active_dataset_manifest_envelope(self):

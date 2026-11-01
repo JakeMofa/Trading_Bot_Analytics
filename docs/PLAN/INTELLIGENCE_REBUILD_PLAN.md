@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** R5/R6 STOP: approved indexed-NOT-IN candidate was~5x slower in the refreshed-scale local benchmark and was reverted before VM qualification. Existing global timestamp merge previously exceeded500ms on Linux. No compliant replacement demonstrated; preserve fresh transaction proof and unchanged limits. Production last verified live on d56b4a7/temporary5120MiB; bridge review due2026-11-02T01:56:47.671426Z. Retention/paid AI OFF; freshness improvements undeployed; I7/Phase1.75 OPEN.
+**Next gate:** Native strict timestamp proof candidate prepared: same fresh global checks, no sort/cache probes; local prototype~198ms vs~650ms merge. Require exact-CI Linux artifact and three native-required generated trials under unchanged limits. R5/R6 still STOP, no production deletion/release/index. Last verified production d56b4a7/5120 bridge; review due2026-11-02T01:56:47.671426Z. Retention/paid AI OFF; I7/Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -1316,3 +1316,11 @@ remain required. No production action has been taken in this investigation.
 
 - Follow-up generated-only comparison explicitly set TEMP cache2000KiB vs131072KiB (128MiB), with the same654328/1896953 profile and no production configuration changes. Cached NOT IN observation runs0.547290/0.560505/0.537571s, median0.547290s; stream merge median0.342729s. Existing merge medians0.313319/0.329028s. Even the cached observation check alone exceeds500ms locally; this is not sufficient evidence for a Linux trial. No runtime cache tuning or candidate query retained.
 - Reproducible standalone benchmark now includes both bounded cache settings. Candidate diagnostics milestone6ef8ce2 exact CI41272687425 PASS (199local backend/51controls; Linux-only test skipped locally). Local tiny benchmark verifies all three variants. Evidence `timestamp-temp-cache-local.json` preserves all repetitions. R5/R6 STOP and production gates unchanged; no compliant implementation demonstrated and no assertion of general impossibility.
+
+
+### October31,2026 — native strict timestamp proof candidate prepared
+
+- New access strategy retains a fresh global scan of both raw tables in every writer transaction but validates exact raw timestamp bytes directly in a small C SQLite scalar function. No sorting, validity-cache B-tree probes, Python callback per row, or cached row/eligibility facts. Strict25/32-byte UTC formats, ASCII digits, Gregorian calendar/leap years, hour/minute/second bounds, NULL/BLOB rejection match the Python contract. Existing coverage/reference/anchor/exact-identity delete checks and250ms target/500ms deadline unchanged.
+- Prototype generated654328/1896953 local checks measured native observation median~51.6ms and stream~146.0ms (sum~197.6ms), versus merge medians~314.8/334.9ms. Local warm-cache evidence is not Linux qualification. Native/Python parser equivalence includes16701 initial cases plus malformed-character mutations in retained tests. Existing retention safety suite also runs through native mode.
+- Prepared source/binary SHA-pinned artifact loader; invalid/incomplete artifact fails closed. Missing optional artifact retains the safety-equivalent portable path and its unchanged deadline. Extension loading disabled immediately after trusted load; scalar marked DIRECTONLY. No schema, data, public API or application-config change. Build only on local/CI hosts; production has no compiler/headers and receives no package install. CI publishes an exact-commit Linux artifact, verified before isolated VM use. No compile/download on application startup.
+- **203 backend tests PASS (one Linux-only skipped),51controls PASS**, tiny verified-native benchmark and diff PASS. Require exact-commit CI/artifact, then native-required Linux qualification on generated fixtures. R5/R6 stays STOP until three full passes under existing180s/512MiB/2GiB, collector and production-health limits. No production release/cleanup/index/retention enablement in this milestone.

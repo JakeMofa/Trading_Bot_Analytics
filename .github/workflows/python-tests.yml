@@ -33,3 +33,12 @@ jobs:
         run: python -m unittest discover -s backend/tests -v
       - name: Run deployment and maintenance controls
         run: python -m unittest discover -s deploy/lightsail -p 'test_*.py' -v
+
+      - name: Build reviewed Linux timestamp validator artifact
+        run: python backend/build_retention_native.py --output "$RUNNER_TEMP/retention-native/_retention_time.so"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: retention-native-${{ github.sha }}
+          path: ${{ runner.temp }}/retention-native/
+          if-no-files-found: error
+          retention-days: 7

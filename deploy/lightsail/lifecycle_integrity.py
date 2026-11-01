@@ -25,6 +25,12 @@ RECOVERY_SECONDS=180
 class IntegrityStop(RuntimeError):pass
 
 
+class DatabaseOwnerStop(IntegrityStop):
+    def __init__(self,owners):
+        super().__init__('database descriptors did not drain within existing deadline')
+        self.owner_diagnostics=owners
+
+
 class UnreapedIntegrityChild(IntegrityStop):
     def __init__(self,pid):
         super().__init__('integrity child unreaped; manual recovery required')
@@ -64,6 +70,7 @@ def run_gate(host,clock=time.monotonic,*,kind="integrity"):
     try:
         # Includes clean exact revision, private bind, flags, storage, sole owner,
         # expected source hashes and three completed qualification trials.
+        report['phase']='preflight'
         previous=host.preflight(min(30,remaining()))
         if set(previous)!=set(WRITERS) or any(value!='active' for value in previous.values()):
             raise IntegrityStop('expected active writer services')
@@ -71,17 +78,23 @@ def run_gate(host,clock=time.monotonic,*,kind="integrity"):
             # Record intent BEFORE stop: a timed-out command may have stopped it.
             if pause_started is None:
                 pause_started=clock();report['collection_pause_requested_at']=datetime.now(timezone.utc).isoformat()
+            report['phase']='stop:'+unit
             paused=True;report['stopped_units'].append(unit);host.save(report)
             host.stop(unit,min(30,remaining()))
+        report['phase']='drain_database_owners'
         host.require_no_database_owners(min(10,remaining()))
+        if hasattr(host,'owner_drain_seconds'):report['owner_drain_seconds']=host.owner_drain_seconds
         if hasattr(host,'raw_baseline'):
             report['last_paused_raw_received_at']={key:value[1] if value else None for key,value in host.raw_baseline.items()}
         for check in operations[kind]:
+            report['phase']=check
             report['checks'].append(host.check(check,remaining()))
             host.save(report)
         report[passed_key]=True
     except BaseException as error:
         report['failure_type']=type(error).__name__
+        if isinstance(error,IntegrityStop):report['failure_reason']=str(error)
+        if hasattr(error,'owner_diagnostics'):report['owner_diagnostics']=error.owner_diagnostics
         if hasattr(error,'operation_result'):report['operation_failure']=error.operation_result
         if isinstance(error,UnreapedIntegrityChild):
             report.update(unreaped_child_pid=error.pid,manual_recovery_required=True)
@@ -138,7 +151,7 @@ class LinuxHost:
         self.bridge=i7_capacity_bridge.Host()
         self.bounded_process=bounded_child
         self.qualification=qualification;self.report=Path(report)
-        self.before=None;self.config=None;self.raw_baseline={}
+        self.before=None;self.config=None;self.raw_baseline={};self.paused_baseline_captured=False
     class Budget:
         def __init__(self,seconds):self.end=time.monotonic()+seconds
         def seconds(self,cap):
@@ -204,25 +217,42 @@ class LinuxHost:
         self.command(['systemctl','stop',unit],seconds)
     def start(self,unit,seconds):
         self.command(['systemctl','start',unit],seconds)
-    def require_no_database_owners(self,seconds):
-        end=time.monotonic()+seconds
+    def database_owners(self,deadline):
         db=self.ROOT/'data/btc_intelligence.db'
-        identities=set()
+        identities={}
         for path in (db,Path(str(db)+'-wal'),Path(str(db)+'-shm')):
-            if path.exists():st=path.stat();identities.add((st.st_dev,st.st_ino))
+            if path.exists():
+                st=path.stat();identities[(st.st_dev,st.st_ino)]=path.name
+        owners=[]
         for process in Path('/proc').iterdir():
-            if time.monotonic()>end:raise IntegrityStop('owner scan deadline')
+            if time.monotonic()>deadline:raise DatabaseOwnerStop(owners)
             if not process.name.isdigit():continue
             try:
                 for fd in (process/'fd').iterdir():
                     try:
-                        st=fd.stat()
-                        if (st.st_dev,st.st_ino) in identities:raise IntegrityStop('unexpected remaining database owner')
+                        st=fd.stat();name=identities.get((st.st_dev,st.st_ino))
+                        if name is None:continue
+                        flags=next(line.split()[1] for line in (process/'fdinfo'/fd.name).read_text().splitlines() if line.startswith('flags:'))
+                        owners.append({'pid':int(process.name),'descriptor':int(fd.name),
+                                       'file':name,'access_mode':int(flags,8)&os.O_ACCMODE,
+                                       'is_operator':int(process.name)==os.getpid()})
                     except FileNotFoundError:pass
             except FileNotFoundError:pass
-        # Capture the FINAL paused receipt, not a preflight row that could be
-        # followed by another save before systemd completes the stop.
+        return owners
+    def require_no_database_owners(self,seconds):
+        started=time.monotonic();end=started+seconds
+        # Keep the SAME no-owner condition and deadline. Allow descriptors to
+        # finish closing; do not reject a normal, short shutdown race instantly.
+        # Unknown/read-only owners are not exempted and are never signalled.
+        while True:
+            owners=self.database_owners(end)
+            if not owners:break
+            remaining=end-time.monotonic()
+            if remaining<=0:raise DatabaseOwnerStop(owners)
+            time.sleep(min(.05,remaining))
+        self.owner_drain_seconds=time.monotonic()-started
         self.raw_baseline=self.capture_paused_baseline(self.ROOT/'data/btc_intelligence.db')
+        self.paused_baseline_captured=True
     @staticmethod
     def capture_paused_baseline(path):
         with closing(sqlite3.connect(Path(path).as_uri()+'?mode=ro',uri=True,timeout=.1)) as db:
@@ -266,9 +296,11 @@ class LinuxHost:
                 if last is None:raise IntegrityStop('missing persistence baseline')
                 row=connection.execute('SELECT received_at FROM '+dataset+' WHERE rowid>? ORDER BY rowid LIMIT 1',(last[0],)).fetchone()
                 if row is None:raise IntegrityStop('persisted collection not advanced')
-                gaps[dataset]=(datetime.fromisoformat(row[0])-datetime.fromisoformat(last[1])).total_seconds()
+                if self.paused_baseline_captured:
+                    gaps[dataset]=(datetime.fromisoformat(row[0])-datetime.fromisoformat(last[1])).total_seconds()
         return {'status':'PASS','feeds_advancing':True,'retention_off':True,'paid_ai_off':True,
-                'raw_received_gap_seconds':gaps}
+                'raw_received_gap_seconds':gaps,
+                'gap_baseline':('final_paused_receipt' if self.paused_baseline_captured else 'UNAVAILABLE_PAUSE_DRAIN_FAILED')}
     def save(self,report):
         temporary=self.report.with_suffix('.pending')
         descriptor=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_TRUNC|os.O_NOFOLLOW,0o600)

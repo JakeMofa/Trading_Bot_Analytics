@@ -94,6 +94,7 @@ class IntegrityGateTests(unittest.TestCase):
             timer={'ActiveState':'active','UnitFileState':'enabled'}
             host=object.__new__(module.LinuxHost);host.ROOT=root
             host.before={'tradebot-soak.timer':timer};host.config=(hashlib.sha256(config.read_bytes()).hexdigest(),st.st_uid,st.st_gid,st.st_mode)
+            host.paused_baseline_captured=True
             host.raw_baseline={key:(1,old.isoformat()) for key in ('observations','stream_events')}
             host.bridge=SimpleNamespace(probe=probe,verify=lambda *args:None,states=lambda *args:{'tradebot-soak.timer':timer})
             with patch.object(module.time,'sleep',return_value=None):result=host.verify_recovery(5)
@@ -124,6 +125,25 @@ class IntegrityGateTests(unittest.TestCase):
             db.commit();db.close()
             baseline=module.LinuxHost.capture_paused_baseline(p)
             self.assertEqual(baseline['stream_events'],(2,'2026-10-01T00:00:01+00:00'))
+
+    def test_short_descriptor_race_drains_without_relaxing_condition(self):
+        from unittest.mock import Mock,patch
+        host=object.__new__(module.LinuxHost);host.ROOT=Path('/generated')
+        owner={'pid':123,'descriptor':4,'access_mode':0,'file':'btc_intelligence.db'}
+        host.database_owners=Mock(side_effect=[[owner],[]])
+        host.capture_paused_baseline=Mock(return_value={'observations':(1,'stamp')})
+        with patch.object(module.time,'sleep',return_value=None):host.require_no_database_owners(1)
+        self.assertTrue(host.paused_baseline_captured);self.assertEqual(host.database_owners.call_count,2)
+
+    def test_persistent_owner_stops_with_pid_and_never_captures_false_baseline(self):
+        from unittest.mock import Mock,patch
+        host=object.__new__(module.LinuxHost);host.ROOT=Path('/generated');host.paused_baseline_captured=False
+        owner={'pid':123,'descriptor':4,'access_mode':2,'file':'btc_intelligence.db'}
+        host.database_owners=Mock(return_value=[owner]);host.capture_paused_baseline=Mock()
+        with patch.object(module.time,'monotonic',side_effect=[0,2]):
+            with self.assertRaises(module.DatabaseOwnerStop) as caught:host.require_no_database_owners(1)
+        self.assertEqual(caught.exception.owner_diagnostics[0]['pid'],123)
+        host.capture_paused_baseline.assert_not_called();self.assertFalse(host.paused_baseline_captured)
 
     def test_checks_are_read_only_and_fk_failure_is_not_hidden(self):
         with tempfile.TemporaryDirectory() as folder:

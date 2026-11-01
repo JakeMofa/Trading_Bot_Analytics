@@ -1719,3 +1719,13 @@ Production procedure/budgets/evidence reuse remain explicitly UNAPPROVED. Rollov
 acceptance20min/3cycles/boundary NOTRUN; retention/paidAIOFF,productiondataintact,
 ceilingunchanged,phase1.75OPEN. No retentionexperiment,manualWAL,index orPhase2;
 capreview2026-11-02T01:56:47.671426Z unchanged.
+
+### Final control review: distinguish startup transport readiness from source health
+
+Initialcontroldd9cd6d CI41331354926 PASS; isolatedabf288b CI41331505238 andpush-only
+DeployTradebot validation41331505153 PASS. No production phases ran. Final review
+added boundedAPIstartup readiness<=180s inside600scodebudget, recordingtransport
+failures separately. Only transport startup is polled; onceAPIresponds, collection
+health is validated once, with source/identityfailure STOP, not a recoverywindow.
+Explicit final work-deadline checks prevent latePASS. No applicationblob/policy
+budget changes, no production actions. Require fresh exact CI onfinalcontrolsource.

@@ -90,3 +90,15 @@ Follow-up02:33:46UTC confirmed unchanged d56b4a7, active API17165/ensemble849/li
 Local diagnostic improvements now retain sanitized reason, feed status/timestamp/age and fixture stage without arbitrary response bodies.197backend tests PASS (one Linux-only test skipped),51controls PASS; unchanged deadlines and resource caps. No additional stress test or production cleanup was attempted.
 
 **R5/R6 STOP; I7 and Phase1.75 OPEN.** Next resolve the guarded health condition and obtain three complete qualified Linux trials. All archive, integrity/FK, recovery-manifest, production cleanup, index/freshness release, lifecycle enablement and24-hour soak gates remain outstanding. Temporary5120 bridge review remains due2026-11-02T01:56:47.671426Z (November1,19:56CST); no automatic extension or ceiling increase.
+
+## Bounded diagnosis — exact operation measured, qualification STOP
+
+[Candidate44cb0ec CI41270810424](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41270810424) PASS;197 local backend tests (one Linux-only skipped)/51controls PASS. The initially restricted local backend run could not start its socket-based process-control worker; the complete suite passed with local socket access.
+
+Generated Linux diagnostic began2026-11-01T03:52:10.489725Z with652932 observations/1890841 stream rows. It reached retention apply and failed at **timestamp_revalidation:sqlite_progress**, writer0.511735474s vs500ms limit, failing transaction committed0. Production guard failures0; fixture collector170saves/170RAM updates,0errors, maxsave532.6ms/heartbeat561.9ms. Preparation92.368s, total118.760s, peakfixture482989381bytes, maxRSS102216KiB. No trials2/3. This directly identifies the current blocker; the earlier health-guard failure remains unidentifiable from available historical logs.
+
+A local generated EXPLAIN benchmark confirmed global scans plus an observations TEMP timestamp sort. At200k/600k rows shared-merge totals~196–202ms, scoped-cache merge~183–194ms, scoped probes~607–640ms over three warm repetitions. Neither alternative demonstrates sufficient improvement; no speculative algorithm fix was shipped. This is diagnostic evidence, not R5/R6 qualification.
+
+All generated/staged files removed after process/content/hash checks. Post-test03:55:23UTC: production d56b4a7 unchanged, API17165/ensemble849/lifecycle843 unchanged, zero automatic restarts, both feeds live, paid AI/retention OFF, guard5120. DB4350054400/WAL18160992bytes (~954.1MiB guard headroom), free51506302976bytes. No production rows deleted, index installed or service/configuration changed in this diagnosis.
+
+**STOP is retained as required by the approved plan.** Next develop an evidenced replacement for the expensive current-transaction timestamp proof, preserving strict formats and all safety checks, before another qualification attempt. Three full passing trials, archive verification, integrity/FK audit, recovery proof and controlled cleanup remain required. Bridge review deadline unchanged; I7/Phase1.75 remain open.

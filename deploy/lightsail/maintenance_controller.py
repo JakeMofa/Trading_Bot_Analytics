@@ -14,7 +14,7 @@ class Stop(RuntimeError):pass
 def run(host, clock=time.monotonic):
     report={'status':'STOP','changed':False,'stop_requested':[],'recovery_failures':[],
             'multi_cycle_acceptance':'NOT_PERFORMED','boundary_acceptance':'NOT_PERFORMED'}
-    first=None;other=0.;verify=0.;old=None;states=None;monitor=None
+    first=None;other=0.;verify=0.;old=None;states=None;monitor=None;recovery_end=None
     def left(kind):
         limit=(VERIFY-verify) if kind=='verify' else (OTHER-other)
         if first is not None:limit=min(limit,first+INTERRUPTION-clock()-RECOVERY-REAP)
@@ -23,6 +23,7 @@ def run(host, clock=time.monotonic):
     def work(kind,fn,*args):
         nonlocal other,verify
         budget=left(kind);at=clock()
+        report.setdefault('events',[]).append({'phase':getattr(fn,'__name__','operation'),'at':host.utcnow()})
         try:return fn(*args,budget)
         finally:
             elapsed=clock()-at
@@ -31,7 +32,8 @@ def run(host, clock=time.monotonic):
             if elapsed>budget:raise Stop('operation exceeded reserved budget')
     try:
         # Must not stop anything unless exact CI/helper/runtime/flags/disk match.
-        states,old=host.preflight()
+        states,old=host.preflight();report['old']=old
+        monitor={'restoration_intent':True}
         monitor=work('other',host.pause_monitor)
         for unit in WRITERS:
             if states.get(unit)=='active':
@@ -57,9 +59,9 @@ def run(host, clock=time.monotonic):
         report['status']='DEPLOYED_SMOKE_TESTED'
     except BaseException as error:
         report['failure_type']=type(error).__name__
-        if isinstance(error,Stop):report['reason']=str(error)
+        if isinstance(error,Stop) or type(error).__name__=='Stop':report['reason']=str(error)
         if first is not None:
-            end=min(first+INTERRUPTION,clock()+RECOVERY)
+            end=min(first+INTERRUPTION,clock()+RECOVERY);recovery_end=end
             def recover(fn,*args):
                 remaining=end-clock()
                 if remaining<=0:raise Stop('absolute recovery deadline')
@@ -79,10 +81,12 @@ def run(host, clock=time.monotonic):
                     except BaseException as failure:report['recovery_failures'].append(['code',type(failure).__name__])
             for unit in WRITERS:
                 if states.get(unit)=='active':
+                    if any(x[0]=='child' for x in report['recovery_failures']):
+                        report['recovery_failures'].append([unit,'blocked_by_unreaped_child']);continue
                     try:recover(host.start,unit)
                     except BaseException as failure:report['recovery_failures'].append([unit,type(failure).__name__])
         if monitor is not None:
-            try:host.restore_monitor(monitor,max(.001,(first+INTERRUPTION-clock()) if first else 30))
+            try:host.restore_monitor(monitor,max(.001,min(30,(recovery_end-clock()) if recovery_end else OTHER-other)))
             except BaseException as failure:report['recovery_failures'].append(['monitor',type(failure).__name__])
         report['status']='MANUAL_ACTION_REQUIRED' if report['recovery_failures'] else 'STOP'
     finally:

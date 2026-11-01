@@ -3,7 +3,7 @@ set -euo pipefail
 umask 077
 [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]
 [[ "$GITHUB_REF" == refs/heads/codex/lightsail-deployment ]]
-[[ "${RELEASE_OPERATION:-}" == verify || "${RELEASE_OPERATION:-}" == deploy-verified ]]
+[[ "${RELEASE_OPERATION:-}" == verify || "${RELEASE_OPERATION:-}" == deploy-verified || "${RELEASE_OPERATION:-}" == maintenance ]]
 [[ "$APPROVED_REVISION" =~ ^[0-9a-f]{40}$ ]]
 [[ "$GITHUB_SHA" == "$APPROVED_REVISION" ]]
 [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
@@ -20,4 +20,4 @@ git bundle create "$cd_work_dir/source.bundle" refs/heads/codex/lightsail-deploy
 ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
   -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 \
   -o UserKnownHostsFile="$cd_work_dir/known_hosts" -i "$cd_work_dir/key" \
-  "$DEPLOY_USER@$DEPLOY_HOST" "$RELEASE_OPERATION $APPROVED_REVISION" < "$cd_work_dir/source.bundle"
+  "$DEPLOY_USER@$DEPLOY_HOST" "$RELEASE_OPERATION $APPROVED_REVISION" < "$cd_work_dir/source.bundle" | python3 deploy/lightsail/summarize_release.py

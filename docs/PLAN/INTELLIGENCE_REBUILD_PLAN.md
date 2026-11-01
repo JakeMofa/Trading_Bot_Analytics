@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Deployment STOP; storage495.129MiB<512MiB. Correctedpolicy254e619 CI41332855253 PASS. One decision: review verified-reusable-capacity accounting while retaining512MiB reserve/5120MiB physicalceiling, enabling separately qualified cleanup before deployment; no gate/deletion change authorized. No deployment approval request while blocked. Phase1.75OPEN; capdeadlineunchanged.
+**Next gate:** One quiescent maintenance attempt explicitly authorized. Adapter/workflow complete locally; freeze exact maintenance candidate and require CI. No production operation yet.512MiB physical poststop gate,2590s absolute interruption, no concurrent proofreuse/soak. Retention/paidAI OFF; Phase1.75OPEN, capdeadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1829,3 +1829,24 @@ ineligible. No productionpreflight/stops/scan/install/dispatch performed. Contin
 sameauthorizedattempt afterCI completion; do not ask user to repeatapproval.
 No observation/soak; finalsmokeonly. Boundary/multicycleacceptanceNOTPERFORMED.
 FlagsOFF,dataintact,guard5120/capdeadlineunchanged,I7/Phase1.75OPEN.
+
+## Authorized maintenance implementation completed locally; freeze exact candidate
+
+Continuation implements Linux maintenanceadapter, one maintenanceoperation in the
+existingmanualworkflow(50minouter), fixed2590sfirst-stop interruptiondeadline,
+1800sverification/600scombinedother/10sreap/180sreservedrecovery. No reuseconcurrent
+proof. Rootmanifest pins release/runtime/CI/helpers and original helperCODE hashes;
+preflight beforestop, physical512MiB poststopgate, no DBowners exemptions, owned
+completequick/FK child, writersstaystoppedthroughcheckout, bounded functional smoke,
+all-service recovery/code-onlyrollback and all-helpercode restoration. Partialmonitor
+stop intent recorded; failures remainSTOP/MANUAL. Unreapedchild preventsunsafe
+writerrestoration and records manualactions, never signals unknownowners.
+
+246backendPASS(two Linuxskips);102controlsPASS(three Linuxskips). Simulations cover
+partialstop,checkfailure,lowspace,timeout,partialcheckout/startup/smoke,rollback/
+recovery/helperfailures. StructuredActions summaries/whitelisted sanitizedartifacts
+added; no rawlogs/db/credentials published. Appfd90458blobs unchanged.
+Freeze controlcandidate and exactCI before production. One maintenanceauthorization
+retained, no newapproval needed. No productionstops/install/scan/dispatch yet.
+Quiescentcapacity feasibility remains narrow; mustrefresh before installation.
+No observation/soak; boundary/multicycleNOTPERFORMED. FlagsOFF,guard/deadline unchanged.

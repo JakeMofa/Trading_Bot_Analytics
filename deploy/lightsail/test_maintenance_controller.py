@@ -50,3 +50,13 @@ class Tests(unittest.TestCase):
         h=Host();h.verify=lambda reap,b:(setattr(h,'t',h.t+b+1) or {'status':'PASS'})
         r=m.run(h,lambda:h.t);self.assertNotEqual(r['status'],'DEPLOYED_SMOKE_TESTED')
         self.assertNotIn('checkout',h.actions)
+
+    def test_failed_rollback_and_unreaped_child_are_manual_action(self):
+        h=Host('smoke')
+        def bad(*args):raise RuntimeError('rollback failed')
+        h.checkout_old=bad;r=m.run(h,lambda:h.t)
+        self.assertEqual(r['status'],'MANUAL_ACTION_REQUIRED')
+        self.assertIn('start:tradebot-lifecycle',h.actions)
+        h=Host('verify');h.reap_owned_child=bad;r=m.run(h,lambda:h.t)
+        self.assertEqual(r['status'],'MANUAL_ACTION_REQUIRED')
+        self.assertNotIn('start:tradebot-api',h.actions)

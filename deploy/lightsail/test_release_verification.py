@@ -267,9 +267,9 @@ class VerificationTests(unittest.TestCase):
     def test_workflow_remains_manual_phase_specific_and_old_dispatch_cannot_bypass(self):
         root=Path(__file__).resolve().parents[2]
         workflow=(root/'.github/workflows/deploy-tradebot.yml').read_text()
-        self.assertIn('options: [verify, deploy-verified]',workflow)
+        self.assertIn('options: [verify, deploy-verified, maintenance]',workflow)
         self.assertIn('timeout-minutes: 35',workflow);self.assertIn('timeout-minutes: 15',workflow)
-        self.assertEqual(workflow.count("if: github.event_name == 'workflow_dispatch'"),2)
+        self.assertEqual(workflow.count("if: github.event_name == 'workflow_dispatch'"),3)
         env=dict(os.environ,GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REF='refs/heads/codex/lightsail-deployment',RELEASE_OPERATION='deploy',APPROVED_REVISION=NEW,GITHUB_SHA=NEW)
         result=subprocess.run(['bash',str(root/'deploy/lightsail/dispatch.sh')],env=env,capture_output=True,timeout=2)
         self.assertNotEqual(result.returncode,0)

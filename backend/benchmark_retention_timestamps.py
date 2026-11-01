@@ -27,13 +27,15 @@ with tempfile.TemporaryDirectory(prefix='generated-timestamp-plan-') as folder:
    else:db.executemany('INSERT INTO stream_events VALUES(?,?,?,?)',[('coinbase',str(lo+j),v,'{}') for j,v in enumerate(stamps)])
    db.executemany('INSERT OR IGNORE INTO retention_valid_times VALUES(?)',[(s,) for s in stamps])
  db.commit();results=[]
- for variant in ('old_merge','candidate'):
+ for variant in ('old_merge','candidate','cached_candidate'):
+  cache_kib=131072 if variant=='cached_candidate' else 2000
+  db.execute(f'PRAGMA temp.cache_size=-{cache_kib}')
   for table in ('observations','stream_events'):
    query=(f'SELECT received_at COLLATE BINARY FROM {table} EXCEPT SELECT value COLLATE BINARY FROM temp.retention_valid_times ORDER BY 1' if variant=='old_merge' or table=='stream_events' else 'SELECT DISTINCT received_at COLLATE BINARY FROM observations INDEXED BY observations_market_kind_received WHERE received_at IS NULL OR received_at COLLATE BINARY NOT IN (SELECT value FROM temp.retention_valid_times)')
    plan=list(db.execute('EXPLAIN QUERY PLAN '+query));times=[]
    for _ in range(3):
     start=time.monotonic();rows=list(db.execute(query));times.append(time.monotonic()-start)
-   results.append({'variant':variant,'table':table,'seconds':times,'unknown_count':len(rows),'plan':plan})
+   results.append({'variant':variant,'temp_cache_kib':cache_kib,'table':table,'seconds':times,'unknown_count':len(rows),'plan':plan})
  value={'generated_only':True,'local_warm_cache_not_qualification':True,'rows':profile,'results':results}
  print(json.dumps(value))
  db.close()

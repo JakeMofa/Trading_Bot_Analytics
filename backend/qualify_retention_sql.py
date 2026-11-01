@@ -30,7 +30,17 @@ def deployed(path):
     return streaming,collector,live_state
 
 
+def validate_fixture_path(path):
+    parent=path.parent
+    if (path.name!='fixture.db' or not parent.name.startswith('generated-retention-')
+            or path.is_symlink() or parent.is_symlink()
+            or parent.stat().st_uid!=os.getuid() or parent.stat().st_mode&0o077
+            or Path('/opt/tradebot') in path.resolve().parents):
+        raise ValueError('collector actor accepts only its private generated fixture')
+
+
 def actor(args):
+    validate_fixture_path(args.collector)
     resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
     stream,collector,live=deployed(args.deployed_app)
     db=sqlite3.connect(args.collector,timeout=5);db.execute('PRAGMA foreign_keys=ON')

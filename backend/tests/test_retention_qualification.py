@@ -1,12 +1,27 @@
 """Linux harness self-test uses tiny generated data, not a production R5 pass."""
 import json
+import importlib.util
+import os
 from pathlib import Path
 import subprocess
 import sys
 import unittest
+import tempfile
 
 
 class QualificationHarnessTests(unittest.TestCase):
+    def test_actor_rejects_existing_production_paths_and_symlinks(self):
+        backend=Path(__file__).resolve().parents[1]
+        spec=importlib.util.spec_from_file_location('qualification_guard',backend/'qualify_retention_sql.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory(prefix='generated-retention-') as folder:
+            path=Path(folder)/'fixture.db';path.touch()
+            module.validate_fixture_path(path)
+            with self.assertRaises(ValueError):module.validate_fixture_path(Path('/opt/tradebot/data/btc_intelligence.db'))
+            with self.assertRaises(ValueError):module.validate_fixture_path(Path(folder)/'other.db')
+            path.unlink();path.symlink_to('/opt/tradebot/data/btc_intelligence.db')
+            with self.assertRaises(ValueError):module.validate_fixture_path(path)
+
     @unittest.skipUnless(sys.platform=='linux','Linux qualification harness')
     def test_three_tiny_complete_trials_and_actual_save_ordering(self):
         backend=Path(__file__).resolve().parents[1]

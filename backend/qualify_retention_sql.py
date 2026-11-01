@@ -23,6 +23,8 @@ import tempfile
 import threading
 import time
 import urllib.request
+sys.path.insert(0,str(Path(__file__).resolve().parent))
+from qualification_lock_gate import LockGate, TraceUnavailable, LockGateFailure
 
 
 def deployed(path):
@@ -148,12 +150,45 @@ def write_progress_report(path, result, failure, started):
     temporary.replace(path)
 
 
+def tracer_metrics():
+    try:
+        p=Path('/proc')/str(os.getppid())
+        if p.joinpath('comm').read_text().strip()!='strace':return {'status':'unavailable'}
+        fields=p.joinpath('stat').read_text().rsplit(')',1)[1].split()
+        return {'cpu_seconds':(int(fields[11])+int(fields[12]))/os.sysconf('SC_CLK_TCK'),
+                'rss_bytes':int(fields[21])*os.sysconf('SC_PAGE_SIZE')}
+    except (OSError,ValueError,IndexError):return {'status':'unavailable'}
+
+
+def require_current_sources(value, now=None):
+    now=now or datetime.now(timezone.utc)
+    def stamp(v):
+        try:
+            at=datetime.fromisoformat(v.replace('Z','+00:00'))
+            if at.tzinfo is None:raise ValueError()
+            return at
+        except (AttributeError,TypeError,ValueError):raise ProductionGuardStop('production_source_timestamp_invalid',{}) from None
+    market=value.get('market') or {}
+    if not market.get('id') or not market.get('slug') or not stamp(market.get('start'))<=now<stamp(market.get('end')):
+        raise ProductionGuardStop('production_market_not_current',{'market_id':market.get('id')})
+    if (value.get('polymarket') or {}).get('slug')!=market['slug']:
+        raise ProductionGuardStop('production_quote_market_mismatch',{'market_id':market['id']})
+    for source in ('coinbase','polymarket'):
+        age=(now-stamp((value.get(source) or {}).get('source_time'))).total_seconds()
+        if not -5<=age<=30:raise ProductionGuardStop('production_source_not_fresh:'+source,{'age_seconds':age})
+    return True
+
+
 def trial(args,number):
     start=time.monotonic();result={'trial':number,'started_at':datetime.now(timezone.utc).isoformat(),'status':'STOP','generated_only':True,
                                  'synthetic_archive_claims_not_cloud_verification':True,
                                  'trade_id_base':args.trade_id_base,'batch_size':getattr(args,'batch_size',1000)}
+    lock_gate=None;split=bool(getattr(args,"split_gate",False))
     worker=None;db=None;monitor_stop=threading.Event();failure=[]
     def checkpoint(stage, dataset=None, partial=None):
+        if lock_gate is not None and stage=='before_bookkeeping':
+            try:lock_gate.batch(sum(d.get('completed_batches',d.get('batches',0)) for d in partial['datasets'].values()))
+            finally:result['lock_evidence']=lock_gate.summary()
         result['stage']=stage
         if dataset is not None:result['active_dataset']=dataset
         if partial is not None:result['partial_apply']=partial
@@ -172,7 +207,7 @@ def trial(args,number):
         stop=path.with_suffix('.stop');ready=path.with_suffix('.ready');report=folder/'collector.json'
         def disk_bytes():
             identities={}
-            for file in folder.iterdir():
+            for file in (Path(args.work_dir).parent.rglob('*') if split else folder.iterdir()):
                 if file.is_file():
                     s=file.stat();identities[(s.st_dev,s.st_ino)]=s.st_size
             # SQLite may unlink TEMP files while their descriptors remain open.
@@ -194,6 +229,9 @@ def trial(args,number):
                         with urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2) as response:
                             health=json.load(response)
                         require_production_health(health)
+                        if split:
+                            with urllib.request.urlopen('http://127.0.0.1:8000/state/current',timeout=2) as response:state=json.load(response)
+                            require_current_sources(state)
                         next_probe=time.monotonic()+5
                 except Exception as error:
                     detail={'error_type':type(error).__name__,**context,'at':datetime.now(timezone.utc).isoformat()}
@@ -266,6 +304,14 @@ def trial(args,number):
             configure_fixture_checkpoint(db,path,getattr(args,'fixture_autocheckpoint_pages',0))
             result['sqlite_settings']={key:db.execute('PRAGMA '+key).fetchone()[0]
                 for key in ('journal_mode','synchronous','wal_autocheckpoint','page_size')}
+            if split:
+                validate_fixture_path(path)
+                if result['sqlite_settings']['synchronous']!=2 or result['sqlite_settings']['wal_autocheckpoint']!=1000:
+                    raise TraceUnavailable('split gate requires FULL/default automatic checkpoint')
+                if not getattr(db,'_generated_trace',False):raise TraceUnavailable('generated markers not enabled')
+                module.MAX_WRITE_SECONDS=1.0 # private imported candidate in generated child ONLY
+                result['qualification_policy']={'writer_occupancy_ms':500,'transaction_total_ms':1000,'commit_call_ms':1000}
+                result['sqlite_build']={'version':sqlite3.sqlite_version,'source_id':db.execute('SELECT sqlite_source_id()').fetchone()[0]}
             config=module.RetentionConfig(True,48,getattr(args,'batch_size',1000))
             checkpoint('plan_retention')
             plan=module.plan_retention(db,evidence,config,now)
@@ -283,7 +329,14 @@ def trial(args,number):
                 time.sleep(.01)
             try:
                 checkpoint('retention_apply')
+                if split:
+                    lock_gate=LockGate(str(args.trace_prefix)+'.'+str(os.getpid()),path,os.getpid());lock_gate.arm()
                 result['apply']=module.apply_retention(db,plan,config,confirm=True,progress=checkpoint)
+                if split:
+                    lock_gate.drain()
+                    if lock_gate.active is not None or lock_gate.pending is not None or not lock_gate.rows:
+                        raise TraceUnavailable('incomplete final lock trace')
+                    result['lock_evidence']=lock_gate.summary()
                 result['max_write_lock_seconds']=max(d['max_write_lock_seconds'] for d in result['apply']['datasets'].values())
             except module.RetentionBudgetError as error:
                 result.update(error_type=type(error).__name__,phase=error.phase,
@@ -297,6 +350,11 @@ def trial(args,number):
             result['status']='PASS'
         except BaseException as error:
             result.update(status='STOP',error_type=type(error).__name__)
+            if split:result['qualification_result']='NOT_PROVEN' if isinstance(error,TraceUnavailable) else 'FAIL'
+            if lock_gate is not None:
+                try:lock_gate.drain()
+                except (TraceUnavailable,LockGateFailure) as trace_error:result['trace_error_type']=type(trace_error).__name__
+                result['lock_evidence']=lock_gate.summary()
             if hasattr(error,'retention_progress'):result['partial_apply']=error.retention_progress
             if hasattr(error,'retention_failed_operation'):
                 result['failed_operation']=error.retention_failed_operation
@@ -313,7 +371,7 @@ def trial(args,number):
             if report.exists():
                 result['collector']=json.loads(report.read_text())
                 result['collector_interference']=dict(result['collector'])
-                result['writer_lock_occupancy']={'status':'unmeasured','requires':'validated offline syscall trace; never inferred from transaction state'}
+                result['writer_lock_occupancy']=(lock_gate.summary() if lock_gate is not None else {'status':'unmeasured','requires':'validated syscall trace; never inferred from transaction state'})
                 actor_result=result['collector']
                 if (actor_result['errors'] or actor_result['save_max_seconds']>=1 or actor_result['heartbeat_max_seconds']>=1
                         or actor_result['saves']==0 or actor_result['saves']!=actor_result['ram_updates']):result['status']='STOP'
@@ -329,9 +387,12 @@ def trial(args,number):
             result.pop('cleanup_pending',None)
             result['production_guard_errors']=failure
             result['elapsed_seconds']=time.monotonic()-start
+            if split:result['tracer_process']=tracer_metrics()
             result['max_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             if failure or result['elapsed_seconds']>180:result['status']='STOP'
             for sig,handler in previous.items():signal.signal(sig,handler)
+    if split:
+        result['qualification_result']='PASS' if result['status']=='PASS' else result.get('qualification_result','FAIL')
     return result
 
 
@@ -339,10 +400,10 @@ class FixtureReapError(RuntimeError):
     def __init__(self,pid):self.pid=pid
 
 
-def bounded_process(command, work_seconds=177):
+def bounded_process(command, work_seconds=177, env=None):
     """Only a newly created fixture process group is signalled and reaped."""
     child=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
-                           text=True,start_new_session=True)
+                           text=True,start_new_session=True,env=env)
     timed_out=False
     try:
         stdout,stderr=child.communicate(timeout=work_seconds)
@@ -371,12 +432,21 @@ def supervised_trial(args,number):
                  '--trade-id-base',str(getattr(args,'trade_id_base',0)),
                  '--batch-size',str(getattr(args,'batch_size',1000)),
                  '--fixture-autocheckpoint-pages',str(getattr(args,'fixture_autocheckpoint_pages',0))]
+        env=None
+        if getattr(args,'split_gate',False):
+            if not shutil.which('strace'):
+                result={'trial':number,'status':'STOP','qualification_result':'NOT_PROVEN','error_type':'StraceUnavailable'}
+                return result
+            trace=folder/'syscall'
+            command+=['--split-gate','--trace-prefix',str(trace)]
+            env=dict(os.environ,PYTHONPATH=str(Path(__file__).parent/'diagnostics'),TRADEBOT_GENERATED_LOCK_TRACE='1',PYTHONDONTWRITEBYTECODE='1')
+            command=['strace','-ff','-ttt','-T','-yy','-s','256','-e','trace=fcntl,write,pwrite64,fdatasync,fsync','-o',str(trace),*command]
         if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
         if args.check_production:command+=['--check-production']
         if args.require_native:command+=['--require-native']
         if args.require_indexed:command+=['--require-indexed']
         try:
-            code,stdout,stderr,timed_out=bounded_process(command)
+            code,stdout,stderr,timed_out=bounded_process(command,env=env)
             try:result=json.loads(report.read_text())
             except (OSError,ValueError):
                 result={'trial':number,'status':'STOP','error_type':'MissingOrIncompleteFixtureReport'}
@@ -389,9 +459,25 @@ def supervised_trial(args,number):
                     'fixture_pid':error.pid,'retained_generated_container':str(folder)}
     finally:
         # Never unlink an active fixture underneath an unreaped process.
-        if reaped:shutil.rmtree(folder)
+        if reaped:
+            if getattr(args,'split_gate',False) and args.work_dir is not None:
+                evidence=Path(args.work_dir)/('trace-evidence-'+str(number));evidence.mkdir(mode=0o700,exist_ok=False)
+                for file in folder.glob('syscall.*'):shutil.move(str(file),evidence/file.name)
+                result['trace_evidence_directory']=str(evidence)
+                result['trace_bytes']=sum(f.stat().st_size for f in evidence.iterdir())
+            shutil.rmtree(folder)
     result['supervised_elapsed_seconds']=time.monotonic()-started
-    if result['supervised_elapsed_seconds']>180:result['status']='STOP'
+    if getattr(args,'split_gate',False):
+        datasets=result.get('apply',result.get('partial_apply',{})).get('datasets',{})
+        result['actual_committed_rows']=sum(d.get('deleted_rows',d.get('committed_rows_seen',0)) for d in datasets.values())
+        result['max_commit_call_seconds']=max((p.get('commit',0) for d in datasets.values() for p in d.get('phase_seconds',[])),default=None)
+        result['max_transaction_total_seconds']=max([r['begin_to_commit_return_seconds'] for r in result.get('lock_evidence',{}).get('batches',[])] + [v for d in datasets.values() for v in d.get('transaction_total_seconds',[])] + [result.get('failed_write_seconds',0)],default=None)
+        result['committed_rows_per_supervised_second']=result['actual_committed_rows']/result['supervised_elapsed_seconds']
+        result['workload_complete']=bool(result.get('apply')) and all(d.get('deleted_rows')==d.get('planned_rows') for d in datasets.values())
+        result['qualification_result']='PASS' if result.get('status')=='PASS' else result.get('qualification_result','FAIL')
+    if result['supervised_elapsed_seconds']>180:
+        result['status']='STOP'
+        if getattr(args,'split_gate',False):result['qualification_result']='FAIL'
     return result
 
 
@@ -413,6 +499,8 @@ def main():
                         help='Generated trial batch ceiling; never raises the qualified1000-row maximum')
     parser.add_argument('--fixture-autocheckpoint-pages',type=int,choices=(0,256),default=0,
                         help='Explicit generated-only256-page automatic threshold experiment;0 preserves defaults')
+    parser.add_argument('--split-gate',action='store_true',help='Approved generated-only traced500ms occupancy/1000ms total policy')
+    parser.add_argument('--trace-prefix',type=Path,help=argparse.SUPPRESS)
     parser.add_argument('--expected-save-sha256')
     parser.add_argument('--trial-child',type=int,choices=(1,2,3),help=argparse.SUPPRESS)
     parser.add_argument('--trial-report',type=Path,help=argparse.SUPPRESS)
@@ -421,14 +509,22 @@ def main():
     args=parser.parse_args()
     if sys.platform!='linux':parser.error('qualification requires Linux; use unit tests on other hosts')
     if args.collector:return actor(args)
+    if args.split_gate and (not args.require_indexed or args.work_dir is None or args.fixture_autocheckpoint_pages):
+        parser.error('split gate requires indexed generated fixture, private work root and unchanged checkpoint settings')
     if args.require_native and args.require_indexed:parser.error('choose one qualification strategy')
     if args.check_production and (args.deployed_app.resolve()!=Path('/opt/tradebot/backend/app')
                                   or not re.fullmatch('[0-9a-f]{64}',args.expected_save_sha256 or '')):
         parser.error('production guard requires actual deployed app and expected helper SHA256')
     if min(args.observations,args.stream_events)<100 or max(args.observations,args.stream_events)>10000000:
         parser.error('generated row counts must be100..10000000')
+    if args.split_gate:
+        root=args.work_dir
+        if (root.is_symlink() or root.stat().st_uid!=os.getuid() or root.stat().st_mode&0o077
+                or Path('/opt/tradebot') in root.resolve().parents or root.resolve()==Path('/opt/tradebot')):
+            parser.error('private generated work root outside production required')
     resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
     if args.trial_child:
+        if args.split_gate and (args.trace_prefix is None or args.trace_prefix.parent.resolve()!=args.work_dir.resolve()):parser.error('private supervisor trace required')
         if args.trial_report is None:parser.error('trial child requires report path')
         result=trial(args,args.trial_child)
         args.trial_report.write_text(json.dumps(result))

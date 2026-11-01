@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Retentionperformance NOTPROVEN: commitoverrun dominanceunknown; review generated-only split-gateproposal (500ms measuredWRITE,1000ms total/commit plusunchangedcollector/FULL/completionguards). NOTAPPLIED; production500ms remains. No unchangedtrial. CapacitySTOPseparate,93161cfpreserved,rotationstopped,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Approved generated-only split qualification (validated WRITE<=500ms,total/commit<=1000ms,collector<1s,FULL and existing protections unchanged). Three passes required; stop first failed/missing evidence. Production500ms unchanged; capacitySTOP separately,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1949,3 +1949,24 @@ Details: [RETENTION_PERFORMANCE_DECISION_2026-11-01.md](RETENTION_PERFORMANCE_DE
 Capacitygate stays separatelySTOP evenif futureperformancepasses.93161cf preserved,
 rotationstopped, flagsOFF,deleted0,deadlineunchanged,Phase1.75OPEN. SharedChatGPTlink
 unavailable; no inferredcontents used. No Redis/DuckDB/service/writercoordinator.
+
+## Approved generated-only split qualification instrumentation
+
+User approves only generated qualification: validated WAL WRITE occupancy<=500ms,
+total BEGIN-entry through commit-return and commit call<=1000ms, collector save/
+heartbeat<1s with zero errors. FULL/default1000-page automatic checkpoint, exact
+identities/archive/reference/resource/workload limits unchanged. Production
+retention.py unchanged; private generated imported candidate uses1000ms total.
+
+New incremental per-TID strace gates require resolved fixture shm byte120 len1
+acquire/release entry/exit brackets,2us rounding reserve and monotonic marker
+correlation. Missing/ambiguous evidence NOT PROVEN; each batch checked before next.
+Trace logs counted cumulatively against2GiB fixture guard, tracing CPU/RSS/bytes
+and parsing time reported; untraced overhead not isolated. No intrusive production
+trace. Production guard additionally requires current market and fresh source time.
+
+Local93 retention safety tests PASS(two Linux skips); harness7 PASS(two skips);
+new6 tests PASS(one Linux strace integration skip). Exact Linux CI and one existing
+800000/2350000-row representative qualification pending; remaining two trials only
+if first passes. Prior failures remain failures under original500ms policy. No
+production deletion/deployment/settings change; capacitySTOP and Phase1.75OPEN.

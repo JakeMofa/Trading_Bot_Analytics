@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** R5/R6 PASS (3Linux trials, maxwriter97.61ms); full quick/FK checks PASS with recovery independently confirmed. R7 PASS for exact1000-observation recovery proof only. Isolated retention/health c124950 / CI41287429837 PASS, NOT deployed. Next: exact-CI explicit timestamp-guard maintenance, then protected first cleanup≤1000. Automatic retention/paidAI OFF; d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
+**Next gate:** R5/R6 PASS; full quick/FK PASS with independent recovery; R7 PASS for exact1000-observation proof. Timestamp guards installed/validated, maintenance4d6747a PASS. Next: exact-CI first proved cleanup≤1000 rows and collector verification; operator234local tests PASS. Automatic retention/paidAI OFF, appd56b4a7; freshness unresolved. Temporary5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -1450,3 +1450,12 @@ Next: install timestamp guards only after exact helper CI/fresh preflight, resto
 Corrected control waits for zero descriptors within the SAME10s drain deadline, captures phase/PID/descriptor/access mode on failure, exempts nobody and never signals unknown owners. This addresses short close races without changing the gate. If no final paused baseline was captured, future recovery reports no misleading preflight-derived gap. Original attempt's Coinbase0.5105s/observation81.463531s figures used the preflight baseline and are not certified precise maintenance gaps. Collection-interruption upper bound100.710535s; no second full integrity scan or data operation occurred.
 
 70local controls PASS (two Linux-only skips), backend227unchanged. Exact new CI required before a revised maintenance attempt. R5/R6 and exact R7 scope preserved; timestamp guards/first cleanup/continuous retention/I7 freshness remain pending. No budget, guard ceiling, flags, configuration, infrastructure or branch change.
+
+
+## Timestamp guards installed; first exact cleanup operator tested
+
+Revised4d6747a / exact CI41289317190 maintenance PASS. Both guard indexes committed in116.327s, both current invalid sets empty. DB+WAL4503465984→4503478272 bytes (+12288); no raw deletion. Writer services restored and advancing feeds verified; automatic retention/paidAI OFF. Measured final-paused-to-first-recovered raw receipt gaps: observations222.349703s, streams222.527555s; upper interruption237.550328s. Original2a attempt remains STOP with unknown past owner. This revised attempt drained immediately (6.16ms), so no claim that a particular prior owner/race was identified.
+
+First-scope operator adds exact full-row recovery protection, runtime denial of structured writes/other-dataset deletes/attachments, discarded full-row page warming outside the writer, and in-memory DELETE identity callbacks. Callbacks do not inflate total_changes and are reconciled against actual committed counts; rollback callbacks are never reported as committed, and late commit overruns remain STOP with committed rows reported. All original current coverage/reference/anchor/global timestamp checks stay inside the500ms core transaction; no mutable safety cache. Post-checks cover every child table referencing the affected raw table; full pre-delete quick/FK evidence remains preserved.
+
+234local backend tests PASS (two Linux-only skips), including late-reference, mutation-after-warm, structured-delete denial and committed-overrun cases;70controls previously PASS. Production first cleanup NOT RUN. Require exact helper/release CI, protect the private R7 artifact hash, then execute only this≤1000-row scope and verify collector/feed/API behavior before any later bounded catch-up. No automatic retention, price indexes, freshness application release, permanent cap promotion or Phase2.

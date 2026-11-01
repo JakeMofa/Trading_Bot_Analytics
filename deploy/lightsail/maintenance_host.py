@@ -123,16 +123,33 @@ class Host:
         if self.child is not None and self.child.poll() is None:rv.reap(self.child,min(10,seconds))
     def checkout_release(self,seconds):self.cmd('git','checkout','--detach',self.release,user=True,seconds=min(30,seconds))
     def checkout_old(self,old,seconds):self.cmd('git','checkout','--detach',old,user=True,seconds=min(30,seconds))
+    def collection_probe(self,before=None):
+        #512MiB is the quiescent verification prerequisite, not a post-start
+        #allocation waiver. Resumed collection must stay below the hard5120 cap.
+        health=rv.fetch('/health');state=rv.fetch('/state/current')
+        rv.require(health.get('collector',{}).get('running') is True,'collector not running')
+        progress=rv.collection_state(state)
+        for source in ('coinbase_stream','polymarket_stream'):
+            rv.require(health.get('feeds',{}).get(source,{}).get('status')=='live','feed not live')
+        result=rv.owned_process([sys.executable,str(Path(__file__).with_name('release_verification.py')),
+            '--persistence',str(self.cd.ROOT/'data/btc_intelligence.db'),'--market',str(state['market']['id'])],timeout=2)
+        rv.require(result.returncode==0,'persistence probe failed');progress.update(json.loads(result.stdout))
+        now=datetime.now(timezone.utc)
+        rv.require(all(-5<=(now-rv.stamp(t)).total_seconds()<=30 for t in progress.values()),'persistence/receipt stale')
+        if before:rv.require(all(progress[k]!=before[k] for k in progress),'collection did not advance')
+        rv.require(self.allocation(1)['physical_mib']<5120,'physical ceiling reached')
+        return progress,health
+
     def smoke(self,seconds):
         end=time.monotonic()+seconds
         rv.require(end-time.monotonic()>40,'insufficient smoke reservation')
         rv.wait_for_api(min(180,max(.01,end-time.monotonic()-30)))
         rv.require(end-time.monotonic()>30,'insufficient probe reservation')
-        first,_=rv.probe(self.cd)
+        first,_=self.collection_probe()
         result=json.loads(self.cmd(sys.executable,str(Path(__file__).with_name('smoke.py')),'--rollover-release','--attempts','1',seconds=max(.01,min(180,end-time.monotonic()))))
         time.sleep(min(5,max(0,end-time.monotonic())))
         rv.require(end-time.monotonic()>30,'insufficient final probe reservation')
-        rv.probe(self.cd,first)
+        self.collection_probe(first)
         with rv.commands(self.cd,max(.01,end-time.monotonic()-30)):after=self.cd.runtime_preflight()
         rv.require(self.cmd('git','rev-parse','HEAD',user=True,seconds=15)==self.release,'wrong deployed revision')
         rv.require(self.cd.protected()==self.protected,'configuration changed')
@@ -140,7 +157,7 @@ class Host:
         rv.require(self.allocation(1)['physical_mib']<5120,'physical ceiling reached')
         return {'status':'PASS','endpoints':result,'allocation':self.allocation(1),'at':self.utcnow(),
             'before_receipts':self.baseline,'after_receipts':first,
-            'receipt_gap_seconds':{k:(rv.stamp(first[k])-rv.stamp(self.baseline[k])).total_seconds() for k in self.baseline}}
+            'receipt_gap_upper_seconds':{k:(rv.stamp(first[k])-rv.stamp(self.baseline[k])).total_seconds() for k in self.baseline}}
     def save(self,report):
         self.record.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
         report.update(release=self.release,at=self.utcnow())

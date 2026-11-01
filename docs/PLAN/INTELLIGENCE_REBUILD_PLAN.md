@@ -1850,3 +1850,11 @@ Freeze controlcandidate and exactCI before production. One maintenanceauthorizat
 retained, no newapproval needed. No productionstops/install/scan/dispatch yet.
 Quiescentcapacity feasibility remains narrow; mustrefresh before installation.
 No observation/soak; boundary/multicycleNOTPERFORMED. FlagsOFF,guard/deadline unchanged.
+
+Maintenance smoke correctly applies hard5120MiB ceiling after collection resumes;
+512MiB physicalreserve is still mandatory while quiescent before verification.
+No accounting substitution/ceiling change. Legacy concurrent-verification route's
+512MiB livegate remains unchanged; authorizedmaintenance has its own source/
+persistence probe.103controltestsPASS(three Linuxskips), with stage-specificstorage
+regression. Receipt gaps explicitly upperbounds from recorded before/after samples.
+Applicationblobs unchanged. Freeze revisedcandidate before any production action.

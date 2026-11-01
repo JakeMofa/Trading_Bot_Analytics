@@ -43,3 +43,13 @@ class AdapterTests(unittest.TestCase):
         p=Path(__file__).resolve().parents[2]
         self.assertIn('timeout-minutes: 50',(p/'.github/workflows/deploy-tradebot.yml').read_text())
         self.assertEqual(h.controller.OTHER+h.controller.VERIFY+h.controller.REAP+h.controller.RECOVERY,h.controller.INTERRUPTION)
+
+    def test_resumed_collection_uses_ceiling_not_quiescent_reserve(self):
+        from datetime import datetime,timezone,timedelta
+        import json
+        now=datetime.now(timezone.utc);t=now.isoformat();host=self.host('/tmp')
+        host.allocation=Mock(return_value={'physical_mib':5000,'headroom_mib':120})
+        state={'market':{'id':'m','slug':'m','start':(now-timedelta(seconds=5)).isoformat(),'end':(now+timedelta(minutes=5)).isoformat()},'coinbase':{'source_time':t,'received_at':t},'polymarket':{'slug':'m','source_time':t,'received_at':t}}
+        health={'collector':{'running':True},'feeds':{n:{'status':'live'} for n in ('coinbase_stream','polymarket_stream')}}
+        with patch.object(h.rv,'fetch',side_effect=[health,state]),patch.object(h.rv,'owned_process',return_value=SimpleNamespace(returncode=0,stdout=json.dumps({'coinbase_persisted':t,'polymarket_persisted':t}))):
+            host.collection_probe()

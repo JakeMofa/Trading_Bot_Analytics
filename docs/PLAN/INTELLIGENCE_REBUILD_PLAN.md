@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Scoped generated-only tracing after untraced preparation; original deadlines/workload/gates unchanged. Tiny Linux exact-CI required before one representative trial; continue2/3 only if firstPASS. Production500ms unchanged,capacitySTOP separate,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Scoped tracing6d9edc3 exact-CI/tiny PASS; representative NOTPROVEN, preflight STOP expired market2051369 (23:17Z),0trials/0cleanup. Resolve current-market feed precondition before pending qualification; no bypass/recoverywindow/retry. Original clocks/gates unchanged,capacitySTOP separate,93161cf preserved,flagsuntouched,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -2055,3 +2055,34 @@ Corrected assertion counts complete BEGIN-entry/commit-return brackets, still2
 with exactly2validated lock intervals, firstmarker trace_ready, no traced fixture
 preparation/payload writes. No harness/policy/workload change or representative
 trial occurred. Local93retention tests PASS(two Linux skips). New exact CI required.
+
+## Scoped tracing conformance PASS; representative preflight STOP
+
+User-authorized scope correction implemented241b1ee; corrected tiny assertion
+6d9edc3e2ba6de31cc3dd8115736314d74c7ece3 exact CI41361239486 PASS:253backend,
+103controls. Tiny Linux strace test ran:197exact deletions,2complete validated
+lock brackets; preparation untraced/included in total,trace-ready before actor,
+no payloadwrite capture. Initial241b1ee CI41361117611 failed only an assertion
+counting TEMP commits; no representative trial was run before corrected CI.
+Local93retention safety tests PASS(two skips). Six staged files byte-exact6d9edc3.
+
+Generated-only tracing now attaches exact authorized tracerPID after preparation,
+before collector; capturesfcntl/sync/writev markers only.32MiB per-file hard cap,
+aggregate32MiB monitor and existing2GiB accounting. Original170s work/177s supervisor/
+180s total clock includes preparation, no reset. Workload/FULL/default1000checkpoint,
+500ms lock/1000ms total+commit,collector<1s/noerrors/ordering unchanged. Stage/prep
+elapsed survives timeout. No production retention.py change or new dependency.
+
+After CI, fresh preflight rejected production_market_not_current before any fixture
+or trial. One23:17:16.335158Z explanatory snapshot:market2051369 expired23:15Z
+(136.335s old),matching expired quote,Polymarket source23:15:34.714391858Z~101.621s
+old despite live label/lastreceipt23:17:08.870998Z. Coinbase current,collectorrunning,
+API health0.081088s/current0.042213s. No recoverywindow/retry/scan. Newtrials0/3,
+cleanup0; all representative lock/commit/collector/throughput/overhead NOTMEASURED,
+workloadNOTPERFORMED. No new prep bottleneck claim. Prior runtimeFAIL preserved.
+
+Nextaction: resolve expired-current-market feed precondition before resuming pending
+qualification; no bypass or auto retry. Detailed evidence:
+[RETENTION_SPLIT_QUALIFICATION_2026-11-01.md](RETENTION_SPLIT_QUALIFICATION_2026-11-01.md).
+Productionunchanged,capacitySTOPseparate,flagsuntouched,93161cf preserved,deadline
+unchanged,I7/Phase1.75OPEN; multi-cycle/real-boundary acceptance NOTPERFORMED.

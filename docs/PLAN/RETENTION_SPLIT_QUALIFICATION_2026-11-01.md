@@ -155,3 +155,97 @@ authorization to retry. It avoids spending tracing work on fixture construction;
 its ability to meet the runtime gate remains unproven. Keep production500ms and
 all generated split limits unchanged. Old failures remain failures; capacitySTOP,
 I7/Phase1.75OPEN, frozen93161cf and cap-review deadline unchanged.
+
+## Scoped tracing implemented; new representative preflight STOP
+
+User authorized correcting tracing scope, tiny tests, exact-commit CI, then one
+representative trial with conditional trials2/3. Implementation241b1ee moved
+capture after untraced fixture generation/index/plan preparation. Corrected test
+commit `6d9edc3e2ba6de31cc3dd8115736314d74c7ece3` passed
+[exact CI41361239486](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41361239486):
+253 backend tests and103 deployment-control tests. Linux strace integration
+actually ran. All six staged source files match that exact commit byte for byte.
+Local93 retention safety tests PASS(two Linux skips),7 harness tests PASS(two
+Linux skips),7 lock/phase tests PASS(one Linux skip).
+
+The earlier241b1ee CI41361117611 failed a test assertion: the tiny qualification
+passed, but the test counted TEMP bookkeeping commit markers as retention commits.
+Corrected assertion counts complete measured BEGIN/commit-return brackets, with
+exactly2validated lock intervals. No representative trial ran on failed CI.
+
+### Trace scope and preserved limits
+
+Preparation runs without strace. Timing markers are disabled during preparation.
+After preparation, before the competing collector starts, the private generated
+child authorizes only its exact tracer child PID through LinuxPR_SET_PTRACER.
+A bounded attachment handshake requires matching TracerPid and captured
+`trace_ready`; this is attachment evidence, never writer-lock evidence. Actual
+occupancy still requires exact fixture shm byte120,len1 F_SETLK entry/exit bounds.
+The collector starts only after attachment. Save-before-RAM ordering unchanged.
+
+Capture onlyfcntl,fdatasync,fsync andwritev(markers). SQLite payload pwrite64 and
+ordinary write syscalls are excluded. Trace limit:32MiB hard per file, aggregate
+32MiB monitored per trial, all trace bytes also included in existing aggregate
+2GiB fixture accounting. Dead tracer before next batch, missing or ambiguous
+lock evidence, or trace-limit failures stop. No package/new native extension,
+VFS, service, writer coordinator or production instrumentation introduced.
+
+The original170s work alarm,177s supervisor work cutoff and180s total trial limit
+are unchanged. Neither the alarm nor overall elapsed clock resets at attachment.
+Preparation and stage durations are recorded even when preparation is interrupted.
+FULL/default1000-page automatic checkpoint,800000/2350000-row workload,500-row
+batches,500ms writer-occupancy/1000ms transaction/commit split limits and collector
+<1s/noerrors protections remain unchanged. Production retention.py remains unchanged.
+
+The tiny generated test deletes exactly98 observations/99 events and proves:
+preparation elapsed is included, earliest trace follows preparation, first marker
+is trace_ready, no payload write syscalls, bounded trace, exactly2complete measured
+transactions and validated occupancy evidence for each. It is conformance evidence,
+not representative VM performance or production qualification.
+
+### Representative attempt blocked before preparation
+
+After exact CI success, the launcher reached the read-only production preflight.
+It raised `ProductionGuardStop: production_market_not_current` before any generated
+fixture/preparation, collector or tracer started. No trial runtime was consumed;
+0of3 new qualification trials started,0 cleanup rows committed. No recovery window
+or unchanged retry. The temporary source staging directory was
+`/tmp/tradebot-scoped-qualification-8w5xjc7h`; it is not a database or backup.
+
+One bounded explanatory snapshot at2026-11-01T23:17:16.335158Z showed:
+
+| Evidence | Value |
+|---|---|
+| Displayed market |2051369 /cpc-btc-updown-15m-2026-11-01-2300z|
+| Market end |23:15:00Z; expired by136.335s|
+| Quote identity |matches that expired market, not a current market|
+| Polymarket source_time |23:15:34.714391858Z,~101.621s old|
+| Polymarket feed label /last_data_at |live /23:17:08.870998Z|
+| Coinbase source_time |23:17:16.387512Z, current|
+| Collector |running,error null|
+| Health /current-state response |0.081088s /0.042213s|
+| Installed tracer /helper identity |strace available,pinned helper SHA unchanged|
+| Available memory /filesystem free |1391448064bytes /50136244224bytes|
+
+The recent receipt timestamp and live label do not prove current-market source
+freshness. The current-market preflight correctly rejected the expired identity.
+This snapshot establishes the safety blocker, not a new investigation of feature
+job duration or persistence. Do not classify responsive API/receipt activity as
+healthy current-market collection. No further production queries/scans or recovery
+observation were run.
+
+New representative occupancy, transaction/commit duration, collector interference,
+cleanup throughput and tracing overhead: NOT MEASURED. Workload completion:
+NOT PERFORMED. No new preparation bottleneck measured, because preparation did
+not start. Prior traced-preparation deadline failure remains FAIL; historical
+500ms failures unchanged. Source-policy and trace-boundary conformance PASS;
+representative performance NOT PROVEN, qualification preflight STOP.
+
+Private source manifest, completed CI log and bounded snapshot are retained under
+`/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/scoped-qualification-6d9edc3/`.
+Next action is to resolve the expired-current-market feed precondition before
+resuming this pending qualification. No gate bypass, automatic recovery wait or
+retry is authorized by this report. No production changes/deployment/cleanup,
+no manual WAL operation, no storage or deadline change. CapacitySTOP remains
+separate, flags untouched, frozen93161cf preserved,I7/Phase1.75OPEN. Multi-cycle
+and real-boundary acceptance NOT PERFORMED.

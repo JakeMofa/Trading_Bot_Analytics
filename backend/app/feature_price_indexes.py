@@ -19,7 +19,8 @@ def create_price_indexes(db):
     if not db.in_transaction:
         raise ValueError('explicit transaction required for index preparation')
     def canonical(sql):
-        return ' '.join(sql.lower().replace('if not exists ', '').split())
+        # Fail closed on other spellings; never lowercase case-sensitive literals.
+        return ' '.join(sql.replace('IF NOT EXISTS ', '').split())
     for statement in INDEX_STATEMENTS:
         name = statement.split()[5]
         existing = db.execute("SELECT sql FROM sqlite_schema WHERE type='index' AND name=?", (name,)).fetchone()

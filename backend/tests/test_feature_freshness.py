@@ -82,6 +82,12 @@ class PriceIndexTests(unittest.TestCase):
                 create_price_indexes(db)
             db.rollback()
             self.assertFalse(db.execute("SELECT name FROM sqlite_schema WHERE name LIKE 'feature_%price_time_v2'").fetchall())
+            db.execute('BEGIN')
+            db.execute("CREATE INDEX feature_stream_price_time_v2 ON stream_events "
+                       "(source, julianday(source_time) DESC, event_id ASC) WHERE source='COINBASE'")
+            with self.assertRaisesRegex(ValueError,'definition differs'):
+                create_price_indexes(db)
+            db.rollback()
         finally:db.close()
 
 

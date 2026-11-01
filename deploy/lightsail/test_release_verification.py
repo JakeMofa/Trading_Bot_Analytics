@@ -100,6 +100,14 @@ class VerificationTests(unittest.TestCase):
         self.assertEqual(m.source(cd,NEW,Path('bundle')),m.OLD)
         cd.git=Mock(side_effect=lambda *args:'wrong' if args[0]=='rev-parse' and ':' in args[-1] else git(*args))
         with self.assertRaises(m.Stop):m.source(cd,NEW,Path('bundle'))
+    def test_startup_readiness_only_retries_transport_and_remains_bounded(self):
+        with patch.object(m,'fetch',side_effect=[m.NotReady('starting'),{'collector':{'running':False}}]) as fetch,patch.object(m.time,'sleep'):
+            result=m.wait_for_api(1)
+            self.assertEqual(result['transport_failures'],1)
+            self.assertEqual(fetch.call_count,2) # A responding but unhealthy API is not retried here.
+        with patch.object(m,'fetch',side_effect=m.Stop('malformed response')),self.assertRaises(m.Stop):m.wait_for_api(1)
+        with patch.object(m.time,'monotonic',side_effect=[0,2]),self.assertRaisesRegex(m.Stop,'readiness deadline'):m.wait_for_api(1)
+
     def test_whole_probe_and_metadata_process_timeouts(self):
         with patch.object(m,'owned_process',side_effect=subprocess.TimeoutExpired('child',2)) as run:
             with self.assertRaises(subprocess.TimeoutExpired):m.fetch('/health')
@@ -149,6 +157,7 @@ class VerificationTests(unittest.TestCase):
                 stack.enter_context(patch.object(m,'EVIDENCE',p));stack.enter_context(patch.object(m.os,'geteuid',return_value=0))
                 stack.enter_context(patch.object(m,'private_read',return_value=e));stack.enter_context(patch.object(m,'identity',return_value={'inode':1}))
                 stack.enter_context(patch.object(m,'source',return_value=m.OLD));stack.enter_context(patch.object(m,'fetch',return_value={}))
+                stack.enter_context(patch.object(m,'wait_for_api',return_value={'seconds':0,'transport_failures':0}))
                 stack.enter_context(patch.object(m.time,'sleep'))
                 stack.enter_context(patch.object(m,'probe',return_value=({'a':1},{'status':'degraded','diagnostic_reasons':['feature_snapshot_missing']})))
                 selected=[m.OLD]

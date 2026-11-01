@@ -36,6 +36,9 @@ FEATURE_REASONS = {'feature_snapshot_missing','feature_as_of_stale'}
 class Stop(RuntimeError):pass
 
 
+class NotReady(Stop):pass
+
+
 def require(condition, reason):
     if not condition:raise Stop(reason)
 
@@ -296,6 +299,7 @@ def verify(cd, revision, bundle):
             require(after_services==before_services,'service identity changed during verification')
             require(cd.protected()==protected,'configuration changed during verification')
             result.update(review=doc,finished_at=time.time(),protected=list(protected),services=after_services)
+            remaining()
             validate_evidence(result,revision,old,sha(cd.__file__),before_identity,time.time())
             immutable_write(EVIDENCE,result)
             print(json.dumps({'verification':'PASS','release':revision,'checks':result['checks']}),flush=True)
@@ -326,6 +330,7 @@ def reviewed_deploy(cd, revision, bundle):
             changed=True # A partial checkout is also rolled back.
             cd.git('checkout','--detach',revision)
             cd.run('systemctl','restart','tradebot-api',timeout=90)
+            result['api_readiness']=wait_for_api(min(180,remaining()))
             # Keep aggregate feature unavailability visible; never require false ok.
             progress,health=probe(cd)
             reasons=set(health.get('diagnostic_reasons',[]))
@@ -342,6 +347,7 @@ def reviewed_deploy(cd, revision, bundle):
                         for n in before if n!='tradebot-api'),'unrelated service changed')
             require(before['tradebot-api']['NRestarts']==after['tradebot-api']['NRestarts'],'automatic API restart')
             require(cd.protected()==protected,'protected environment changed')
+            remaining()
             result.update(status='deployed_pending_acceptance',services_restarted=['tradebot-api'],diagnostic_reasons=sorted(reasons))
         except BaseException as error:
             result['failure_type']=type(error).__name__
@@ -360,10 +366,30 @@ def reviewed_deploy(cd, revision, bundle):
             immutable_write(record,result)
 
 
+def wait_for_api(seconds):
+    """Startup transport readiness only. Never retry unhealthy source evidence."""
+    start=time.monotonic();failures=0
+    while time.monotonic()-start<seconds:
+        try:
+            fetch('/health')
+            elapsed=time.monotonic()-start
+            require(elapsed<=seconds,'API startup readiness deadline')
+            return {'seconds':elapsed,'transport_failures':failures}
+        except (NotReady,subprocess.TimeoutExpired):
+            failures+=1
+            left=seconds-(time.monotonic()-start)
+            if left>0:time.sleep(min(1,left))
+    raise Stop('API startup readiness deadline')
+
+
 def fetch(route):
     require(route in ('/health','/state/current','/dashboard','/events'),'unsupported probe route')
     child=owned_process([sys.executable,__file__,'--http',route],timeout=2)
-    require(child.returncode==0,'API probe failed')
+    if child.returncode:
+        failure=json.loads(child.stdout)
+        if failure.get('error_type') in ('URLError','TimeoutError','ConnectionRefusedError','ConnectionResetError'):
+            raise NotReady('API transport not ready')
+        raise Stop('API probe failed')
     return json.loads(child.stdout)
 
 

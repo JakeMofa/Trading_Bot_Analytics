@@ -157,3 +157,12 @@ installation remain separate manual actions after procedure approval.
 Service PID/restart identities and the protected configuration digest are checked
 before/after verification and again before deployment. Evidence does not survive
 an intervening service restart, configuration change or database/schema replacement.
+
+Startup readiness is distinct from collection recovery: after API restart, allow
+up to180s within the existing600s code budget for transport to become available.
+Only connection/transport failures are polled. Once health responds, run collection
+validation once; expired identity, stale source data or unexpected degradation is
+a failure, not a new recovery/retry window. Startup timing/failure counts are
+recorded separately and are not counted as the subsequent20min acceptance probes.
+The final control qualification includes this readiness regression (19new controls;
+89total working-tree controls, including three platform-specific skips locally).

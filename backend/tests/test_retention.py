@@ -194,7 +194,7 @@ class RetentionTests(unittest.TestCase):
                 apply_retention(self.db, plan, self.config, confirm=True)
         self.assertEqual(self.count("observations"), 31)
 
-    def test_apply_range_counts_use_fresh_snapshot_not_payload_range_scans(self):
+    def test_apply_coverage_rechecks_schema_inside_each_writer_without_payload_scans(self):
         self.seed_observations()
         self.archive_all("observations", 10)
         plan = self.plan()
@@ -206,8 +206,18 @@ class RetentionTests(unittest.TestCase):
             self.db.set_trace_callback(None)
         self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 20)
         self.assertEqual(result["datasets"]["observations"]["batches"], 8)
-        counts = [sql for sql in seen if sql.startswith("SELECT COUNT(*) FROM observations WHERE")]
-        self.assertGreaterEqual(len(counts), 8)  # All current identities counted under each writer lock.
+        writer = False
+        coverage_checks = 0
+        for sql in seen:
+            if sql == "BEGIN IMMEDIATE":
+                writer = True
+                coverage_checks = 0
+            if sql == 'PRAGMA table_info(observations)':
+                self.assertTrue(writer)
+                coverage_checks += 1
+            if sql == "COMMIT" and writer:
+                self.assertGreater(coverage_checks, 0)
+                writer = False
         self.assertFalse(any(sql == "SELECT id,received_at FROM observations" for sql in seen))
         self.assertFalse(any(sql.startswith("SELECT id,received_at FROM observations WHERE id>=") for sql in seen))
         selections = [sql for sql in seen if sql.startswith("SELECT raw.id FROM temp.retention_pending_observations")]
@@ -320,7 +330,7 @@ class RetentionTests(unittest.TestCase):
             apply_retention(self.db, plan, self.config, confirm=True)
         finally:
             self.db.set_trace_callback(None)
-        self.assertTrue(any("SELECT COUNT(*) FROM observations WHERE id>=" in sql for sql in seen))
+        self.assertTrue(any(sql == 'PRAGMA table_info(observations)' for sql in seen))
         self.assertFalse(any("INDEXED BY observations_market_kind_received" in sql for sql in seen))
         self.assertEqual(self.db.execute("SELECT type,name,sql FROM sqlite_master ORDER BY name").fetchall(), before)
         with self.assertRaises(sqlite3.OperationalError):

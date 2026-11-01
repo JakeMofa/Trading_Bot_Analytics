@@ -1811,3 +1811,21 @@ or repeatedpolling needed. Productionunchanged,storageSTOP,noapprovalrequestrepe
 No cleanup/deploy/install/scan/guardchange/soak. I7/Phase1.75OPEN,flagsOFF;
 capreviewdeadlineunchanged. Decisionneeded is capacity-accounting design review,
 not deployment approval or authorization to delete.
+
+## Authorized maintenance attempt: controller state machine implementation started
+
+User explicitly authorizes ONE quiescent verification/deployment attempt under
+30minverification/10minother/10sreap/3minrecovery and43min10s absoluteinterruption.
+No concurrent-write proofreuse. Prepared pure maintenancecontroller with a single
+absolute stop-request deadline, combinedother budget, recoveryreservation, physical
+512MiB gate, quiescence/identity checks, partialcheckoutrollback and all-service
+recovery attempts. Four simulated-host tests cover success, preflight/partialstop,
+failedchecks, lowcapacity, partialcheckout/smoke, timeout and recoveryfailures.
+
+Checkpoint1 INCOMPLETE: Linuxhost adapter/manualworkflow integration and exact
+maintenance release candidate are NOT qualified yet. This is controller-core CI,
+not production authority or a deployable release. Existing oldcandidates remain
+ineligible. No productionpreflight/stops/scan/install/dispatch performed. Continue
+sameauthorizedattempt afterCI completion; do not ask user to repeatapproval.
+No observation/soak; finalsmokeonly. Boundary/multicycleacceptanceNOTPERFORMED.
+FlagsOFF,dataintact,guard5120/capdeadlineunchanged,I7/Phase1.75OPEN.

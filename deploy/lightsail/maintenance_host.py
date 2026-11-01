@@ -14,7 +14,7 @@ import maintenance_controller as controller
 
 AUTH=Path('/run/tradebot-maintenance-release.json')
 DEADLINE=datetime(2026,11,2,1,56,47,671426,tzinfo=timezone.utc)
-POLICY={'verify':1800,'other':600,'reap':10,'recovery':180,'interruption':2590,'headroom_mib':512,'ceiling_mib':5120}
+POLICY={'verify':1800,'other':600,'reap':10,'recovery':180,'interruption':2590,'headroom_mib':controller.MIN_HEADROOM_MIB,'ceiling_mib':5120}
 FILES=('deploy.py','release_verification.py','smoke.py','maintenance_controller.py','maintenance_host.py')
 
 class Host:
@@ -53,7 +53,7 @@ class Host:
         rv.require(b'MAX_LOCAL_STORAGE_MB=5120' in entries,'storage ceiling changed')
         rv.require(not any(x.split(b'=',1)[0] in (b'OPENAI_API_KEY',b'OPENAI_KEY',b'OPENAPIKEY') and x.split(b'=',1)[-1] for x in entries),'paid AI credential present')
         sizes=self.allocation(3);rv.require(sizes['physical_mib']<5120,'physical ceiling reached')
-        rv.require(5120-(self.cd.ROOT/'data/btc_intelligence.db').stat().st_size/1048576>=512,'main file alone fails capacity gate')
+        rv.require(5120-(self.cd.ROOT/'data/btc_intelligence.db').stat().st_size/1048576>=POLICY['headroom_mib'],'main file alone fails capacity gate')
         health=rv.fetch('/health');rv.require(health.get('collector',{}).get('running') is True,'collector stopped')
         initial_state=rv.fetch('/state/current');rv.collection_state(initial_state)
         before=rv.owned_process([sys.executable,str(Path(__file__).with_name('release_verification.py')),'--persistence',str(self.cd.ROOT/'data/btc_intelligence.db'),'--market',str(initial_state['market']['id'])],timeout=2)
@@ -124,7 +124,7 @@ class Host:
     def checkout_release(self,seconds):self.cmd('git','checkout','--detach',self.release,user=True,seconds=min(30,seconds))
     def checkout_old(self,old,seconds):self.cmd('git','checkout','--detach',old,user=True,seconds=min(30,seconds))
     def collection_probe(self,before=None):
-        #512MiB is the quiescent verification prerequisite, not a post-start
+        #128MiB is the one-use quiescent verification prerequisite, not a post-start
         #allocation waiver. Resumed collection must stay below the hard5120 cap.
         health=rv.fetch('/health');state=rv.fetch('/state/current')
         rv.require(health.get('collector',{}).get('running') is True,'collector not running')

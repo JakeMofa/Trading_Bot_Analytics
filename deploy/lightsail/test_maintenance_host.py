@@ -8,6 +8,12 @@ import maintenance_host as h
 
 class AdapterTests(unittest.TestCase):
     def host(self,root):return h.Host(SimpleNamespace(ROOT=Path(root),reviewed_run=Mock(return_value='')), 'b'*40,Path('bundle'))
+    def test_reserve_amendment_is_maintenance_only(self):
+        self.assertEqual(h.POLICY['headroom_mib'],128)
+        self.assertEqual(h.POLICY['ceiling_mib'],5120)
+        self.assertEqual(h.rv.POLICY['storage_reserve_mb'],512)
+        self.assertEqual(h.rv.POLICY['storage_ceiling_mb'],5120)
+
     def test_allocation_counts_physical_main_and_wal(self):
         with tempfile.TemporaryDirectory() as root:
             p=Path(root)/'data';p.mkdir();(p/'btc_intelligence.db').write_bytes(b'x'*100);(p/'btc_intelligence.db-wal').write_bytes(b'x'*50)

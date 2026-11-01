@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Decision C: dominant representative delay UNPROVEN. Separate duration/collector diagnostics implemented and exact CI passed; actual occupancy requires offline validated syscall evidence. Representative fixture never started: sustained feed preflight and bounded recovery failed. Stop unchanged qualification trials; review checkpoint-scheduling separation proposal in RETENTION_DIAGNOSTICS_DECISION_2026-11-01.md. Existing500ms gate unchanged; production deleted0, retention/paidAI OFF. I7/Phase1.75 OPEN, Phase2 deferred; temporary5120 review2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Bounded production evidence identifies delayed Polymarket rollover: rest_loop awaits185.921s feature worker before next discovery. Reuse tested independent discovery/feature scheduling from a6958f6; review source-time/expired-market health correction. No production changes authorized in this diagnosis. Retention commit issue remains separately OPEN;500ms gate unchanged, deleted0, retention/paidAI OFF. I7/Phase1.75 OPEN; Phase2 deferred; cap review2026-11-02T01:56:47.671426Z unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1590,3 +1590,31 @@ boundary, no dependency/VFS/single-writer/buffering redesign bundled. Details an
 missing evidence in [RETENTION_DIAGNOSTICS_DECISION_2026-11-01.md](RETENTION_DIAGNOSTICS_DECISION_2026-11-01.md).
 Production unchanged,deleted0,retention/paidAI OFF. I7/Phase1.75 OPEN; no Phase2.
 Temporary5120 review2026-11-02T01:56:47.671426Z unchanged, no extension.
+
+## Production preflight diagnosis: delayed Polymarket rollover, not a global feed outage
+
+Bounded read-only logs/rowid samples/source timestamps identify deployedrest_loop's
+await of185.921sfeature_cycle across16:15UTC, followed by30spause, delaying REST
+discovery/RAM rollover. New2037956 first seen16:18:26.153924, firstbook16:18:26.836114
+(206.836s late). Ended2038542 repeated exactsource timestamp16:15:15.440365678Z on
+six~31s receipts through16:18:22.707881. Coinbase2624events16:13..16:21, maxgap4.909s;
+API initialpreflight/all25recoveryprobesHTTP200. No generated load or retention ran.
+
+Polymarket current-market collection genuinely delayed; no evidence of venue-wide
+outage. Historical failed-body enum unavailable, but receipt/source/identity
+reconstruction identifies the affected path. False-healthy reporting ALSO evidenced:
+16:15:30telemetryhealthok whilemarketended; replay saves refreshreceipt-basedlive.
+This was not shown to be a false rejection of healthycurrent-marketdata.
+
+Smallest proposed correction: reuse a6958f6's tested independent REST/serialfeature
+scheduling and publication guards; do not await featurecompletion beforediscovery.
+It fixes rolloverdependency, not slowfeature freshness. Existing ea6e6de stopped-
+collectorhealthfix is insufficient here; add expired/mismatched/source-stale health
+regressions before claimingtruthfuloverallhealth. No runtimechange or indexbuild
+underthisinstruction. Checkpointownership redesign has no bearing on this cause.
+
+Detailed timestamps,evidencebounds,limits and proposedreuse:
+[FEED_PREFLIGHT_DIAGNOSIS_2026-11-01.md](FEED_PREFLIGHT_DIAGNOSIS_2026-11-01.md).
+EvidenceconsistencychecksPASS; productionunchanged,cleanup0,retention/paidAIOFF.
+Retentioncommitissue/500msgate remainseparateandunchanged. I7/Phase1.75OPEN;
+Phase2deferred; capreview2026-11-02T01:56:47.671426Z unchanged.

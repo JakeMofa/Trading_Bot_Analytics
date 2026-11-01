@@ -206,14 +206,16 @@ class RetentionTests(unittest.TestCase):
             self.db.set_trace_callback(None)
         self.assertEqual(result["datasets"]["observations"]["deleted_rows"], 20)
         self.assertEqual(result["datasets"]["observations"]["batches"], 8)
-        self.assertFalse(any("SELECT COUNT(*) FROM observations WHERE" in sql for sql in seen))
+        counts = [sql for sql in seen if sql.startswith("SELECT COUNT(*) FROM observations WHERE")]
+        self.assertGreaterEqual(len(counts), 8)  # All current identities counted under each writer lock.
         self.assertFalse(any(sql == "SELECT id,received_at FROM observations" for sql in seen))
-        bounded = [sql for sql in seen if sql.startswith(
-            "SELECT id,received_at FROM observations WHERE id>=")]
-        self.assertEqual(len(bounded), 8)  # Fresh current keys in every transaction.
+        self.assertFalse(any(sql.startswith("SELECT id,received_at FROM observations WHERE id>=") for sql in seen))
+        selections = [sql for sql in seen if sql.startswith("SELECT raw.id FROM temp.retention_pending_observations")]
+        self.assertGreaterEqual(len(selections), 8)  # May skip exhausted manifest intervals.
+        self.assertTrue(all("LIMIT 3" in sql for sql in selections))
         for table in ("observations", "stream_events"):
             guards = [sql for sql in seen if sql.startswith(
-                f"SELECT 1 FROM {table} WHERE NOT retention_current_timestamp_valid")]
+                f"SELECT DISTINCT received_at FROM {table} AS raw")]
             self.assertEqual(len(guards), 8)  # Even unrelated raw rows remain guarded.
 
     def test_key_snapshot_only_materializes_active_dataset_manifest_envelope(self):
@@ -228,8 +230,9 @@ class RetentionTests(unittest.TestCase):
         try:
             snapshot = retention._ValidationSnapshot(
                 self.db, cache, "observations", ranges)
-            self.assertEqual(set(snapshot.keys), {"observations"})
-            self.assertEqual(snapshot.keys["observations"], [(i,) for i in range(1, 11)])
+            self.assertEqual(snapshot.dataset, "observations")
+            self.assertEqual(snapshot.range_count((1,), (10,)), 10)
+            self.assertNotIn("keys", vars(snapshot))  # No materialized envelope in Python.
             # Full ORIGINAL manifest, not candidate-only keys, is counted.
             intervals, _ = retention._usable_intervals(
                 snapshot, "observations", evidence, "market-raw")
@@ -297,7 +300,8 @@ class RetentionTests(unittest.TestCase):
         try:
             snapshot = retention._ValidationSnapshot(
                 self.db, cache, "stream_events", [(lo, hi, 2)])
-            self.assertEqual(snapshot.keys["stream_events"], [lo, hi])
+            self.assertEqual(snapshot.range_count(lo, hi), 2)
+            self.assertNotIn("records", vars(snapshot))
         finally:
             self.db.rollback()
 
@@ -314,7 +318,8 @@ class RetentionTests(unittest.TestCase):
             apply_retention(self.db, plan, self.config, confirm=True)
         finally:
             self.db.set_trace_callback(None)
-        self.assertTrue(any("INDEXED BY observations_market_kind_received WHERE id>=" in sql for sql in seen))
+        self.assertTrue(any("SELECT COUNT(*) FROM observations WHERE id>=" in sql for sql in seen))
+        self.assertFalse(any("INDEXED BY observations_market_kind_received" in sql for sql in seen))
         self.assertEqual(self.db.execute("SELECT type,name,sql FROM sqlite_master ORDER BY name").fetchall(), before)
         with self.assertRaises(sqlite3.OperationalError):
             self.db.execute("SELECT retention_current_timestamp_valid(?)", (ts(NOW),)).fetchone()

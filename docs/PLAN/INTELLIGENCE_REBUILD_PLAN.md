@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Implement user-authorized5120MiB bridge to restore collection, then qualify retention writer-lock repair and complete the48h lifecycle. Prior4096-only prohibition is superseded for this approved bridge. Production remains guard-stopped until execution proof. R5/R6 and full quick/FK audit outstanding; I7 OPEN, Phase1.75 unfinished; no DB copies/snapshots, VACUUM, manual WAL or Phase2.
+**Next gate:** R5/R6 Linux qualification of the prepared SQL retention repair. User-authorized5120MiB bridge restored collection on unchanged`d56b4a7`;24h review due2026-11-02T01:56:47.671426Z. I7 freshness/rollover code remains undeployed; full quick/FK/archive-recovery/cleanup gates outstanding. Retention and paid AI OFF; I7 OPEN, Phase1.75 unfinished; no DB copies/snapshots, VACUUM, manual WAL or Phase2.
 
 ### October 23, 2026 migration preflight
 
@@ -1262,3 +1262,11 @@ remain required. No production action has been taken in this investigation.
 - [ ] Fresh archive/readback and full SQLite quick/FK verification before deletion; R7 archive-backed exact-raw-row recovery manifest and in-memory reconstruction, not a fullDB backup. First production cleanup<=1000rows with identity/protected/FK/collector verification; no broad purge. Maintenance30min +3min recovery.
 - [ ] Qualified index installation and isolated freshness/health release; >=20min,>=3cycles and market boundary,<=30s snapshot age, zero2s API timeouts. No reuse of prior deployment exception.
 - [ ] Retention enabled only in lifecycle after gates, leaving API/ensemble OFF. Role-specific preflight/service change required because existing command forcesOFF. Hourly archive/retention initially; same-cycle verified archives required.24h soak before permanent5120 ceiling / Phase1.75 closeout.
+
+### October31,2026 — collection restored; SQL retention candidate prepared
+
+- [x] Authorized **5120MiB bridge ACTIVE**, application unchanged`d56b4a7`. Exact helper`8187465` CI41263032555 passed and export/VM SHA matched. Guard-only config change, API-only restart~0.393s(PID17165), ensemble849/lifecycle843/monitor unchanged; zero automatic restarts. No DB copy/config backup, no retention/index/application release.
+- [x] Passed5continuous minutes after existing rollover reset (114 samples total), live feeds/current market/API/dashboard/SSE. Review due`2026-11-02T01:56:47.671426+00:00` UTC (2026-11-01T19:56:47.671426-06:00 Chicago);5120 not permanent until24h measured stability. Paid AI/retention remainOFF.
+- [x] Prepared SQL/TEMP retention optimization retaining all fresh writer-transaction safety checks. Deadline500ms/target250ms, accurate post-commit overrun reporting; temp bookkeeping outside writer,100ms handoff.44existing retention safety tests and2new deadline tests pass.
+- [x] Full local **194 backend tests PASS,1Linux-only self-test skipped;51 deployment/control tests PASS**, compile/diff PASS. Generated Linux harness prepared with180s/trial,512MiB/process and2GiB fixture/TEMP cap; production health guard, actual deployed collector save/RAM ordering and exact helper hash.
+- [ ] Require exact candidate CI, then three complete Linux generated-fixture trials. R5/R6 remains STOP until those pass; stop on any failed bound/interference. No production cleanup or archive/audit gates bypassed. See `LIFECYCLE_48H_EXECUTION_2026-10-31.md`; local`evidence/phase175-baseline/lifecycle-implementation-20261031/`.

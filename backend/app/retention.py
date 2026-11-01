@@ -232,50 +232,54 @@ class _PreparedManifests(list):
             self.parsed[dataset] = (valid, rejected, considered)
 
 
+class _TimestampCache:
+    """TEMP index contains only validity facts about exact timestamp strings."""
+    pass
+
+
 def _validated_timestamp_cache(db):
-    # Validity is a pure fact about the exact string, not about a row or snapshot.
-    # This read is outside the write lock. Changed/new strings are checked again
-    # from the fresh transaction snapshot; malformed values always fail closed.
-    cache = set()
-    for table in SPECS:
-        for (value,) in db.execute(f"SELECT received_at FROM {table}"):
-            if value not in cache:
-                canonical_time(value)
-                cache.add(value)
-    return cache
+    if db.in_transaction:
+        raise RetentionError("timestamp preparation requires no active transaction")
+    db.execute("DROP TABLE IF EXISTS temp.retention_valid_times")
+    db.execute("CREATE TEMP TABLE retention_valid_times(value TEXT PRIMARY KEY) WITHOUT ROWID")
+    try:
+        for table in SPECS:
+            cursor = db.execute(f"SELECT DISTINCT received_at FROM {table}")
+            try:
+                while True:
+                    rows = cursor.fetchmany(1000)
+                    if not rows:
+                        break
+                    for (value,) in rows:
+                        canonical_time(value)
+                    db.executemany("INSERT OR IGNORE INTO temp.retention_valid_times VALUES(?)", rows)
+            finally:
+                cursor.close()
+        db.commit()  # TEMP preparation only; no caller transaction is inherited.
+    except BaseException:
+        db.rollback()
+        db.execute("DROP TABLE IF EXISTS temp.retention_valid_times")
+        raise
+    return _TimestampCache()
 
 
 def _validate_current_timestamps(db, timestamp_cache):
-    """Fresh global fail-closed guard without materializing unrelated row keys.
-
-    Every current value is read under the writer lock, including values outside
-    approved ranges. Only the pure validity of an exact string can be reused.
-    SQLite drives the scan; Python receives no identities or payloads here.
-    """
-    def valid(value):
-        if value not in timestamp_cache:
-            try:
-                canonical_time(value)
-            except RetentionError:
-                return 0
-            timestamp_cache.add(value)
-        return 1
-
-    name = "retention_current_timestamp_valid"
-    db.create_function(name, 1, valid, deterministic=True)
-    try:
-        for table in SPECS:
-            cursor = db.execute(
-                f"SELECT 1 FROM {table} WHERE NOT {name}(received_at) LIMIT 1")
-            try:
-                invalid = cursor.fetchone() is not None
-            finally:
-                cursor.close()
-            if invalid:
-                raise RetentionError("unsupported received_at at apply; refusing deletes")
-    finally:
-        # Do not retain a potentially large per-apply cache on the connection.
-        db.create_function(name, 1, None)
+    """Fresh global scan in SQLite; Python only validates previously unseen strings."""
+    if not isinstance(timestamp_cache, _TimestampCache):
+        raise RetentionError("timestamp cache was not prepared")
+    for table in SPECS:
+        cursor = db.execute(f"""SELECT DISTINCT received_at FROM {table} AS raw
+          WHERE NOT EXISTS (SELECT 1 FROM temp.retention_valid_times AS valid
+                            WHERE valid.value=raw.received_at)""")
+        try:
+            for (value,) in cursor:
+                try:
+                    canonical_time(value)
+                except RetentionError:
+                    raise RetentionError("unsupported received_at at apply; refusing deletes") from None
+                db.execute("INSERT OR IGNORE INTO temp.retention_valid_times VALUES(?)", (value,))
+        finally:
+            cursor.close()
 
 
 def _scope_manifest_ranges(dataset, evidence, approved):
@@ -303,73 +307,61 @@ def _observation_covering_index(db):
     return None
 
 
-class _ValidationSnapshot:
-    """Fresh current keys inside relevant ORIGINAL manifest-range envelopes.
+def _prepare_pending(db, dataset, identities):
+    name = "retention_pending_" + dataset
+    db.execute(f"DROP TABLE IF EXISTS temp.{name}")
+    if dataset == "observations":
+        db.execute(f"CREATE TEMP TABLE {name}(id INTEGER PRIMARY KEY)")
+        db.executemany(f"INSERT INTO temp.{name} VALUES(?)", ((key[0],) for key in identities))
+    else:
+        db.execute(f"""CREATE TEMP TABLE {name}(stamp TEXT,source TEXT,event_id TEXT,received_at TEXT,
+          PRIMARY KEY(stamp,source,event_id,received_at)) WITHOUT ROWID""")
+        db.executemany(f"INSERT INTO temp.{name} VALUES(?,?,?,?)",
+                       ((canonical_time(key[2]),key[0],key[1],key[2]) for key in identities))
+    db.commit()
 
-    Only the active dataset needs key reconstruction. Global timestamp validity
-    is still rechecked for BOTH raw tables, including unrelated/unapproved rows.
-    All range counts, local identities, references and eligibility remain fresh
-    under the same BEGIN IMMEDIATE as DELETE.
+
+class _ValidationSnapshot:
+    """Current facts are queried under the same writer lock as exact DELETE.
+
+    No Python materialization/sort of the manifest envelope. Original range
+    counts include all current rows, including unapproved/late/newer identities.
     """
     def __init__(self, db, timestamp_cache, dataset, ranges, observation_index=None):
         self.db, self.dataset, self.ranges = db, dataset, ranges
-        self.records, self.keys = {}, {}
         _validate_current_timestamps(db, timestamp_cache)
-        records = []
-        if ranges:
-            lo = min(item[0] for item in ranges)
-            hi = max(item[1] for item in ranges)
-            if dataset == "observations":
-                hint = f" INDEXED BY {observation_index}" if observation_index else ""
-                query = (f"SELECT id,received_at FROM observations{hint} "
-                         "WHERE id>=? AND id<=?")
-                params = (lo[0], hi[0])
-            else:
-                # Strict raw timestamps have only two widths. At zero
-                # microseconds the 25-character form sorts before the 32-char
-                # form, so include it at the lower boundary. Otherwise raw
-                # timestamp ordering equals canonical chronological ordering.
-                lower = lo[0]
-                if lower[19:26] == ".000000":
-                    lower = lower[:19] + "+00:00"
-                query = ("SELECT source,event_id,received_at FROM stream_events "
-                         "WHERE received_at>=? AND received_at<=?")
-                params = (lower, hi[0])
-            for row in db.execute(query, params):
-                value = row[-1]
-                stamp = value[:19] + ".000000+00:00" if len(value) == 25 else value
-                key = (row[0],) if dataset == "observations" else (stamp, row[0], row[1])
-                records.append((key, value))
-            records.sort(key=lambda item: item[0])
-        self.records[dataset] = records
-        self.keys[dataset] = [item[0] for item in records]
 
     def __getattr__(self, name):
         return getattr(self.db, name)
 
+    def range_count(self, lo, hi):
+        where, params = _between(SPECS[self.dataset], lo, hi)
+        return _count(self.db, SPECS[self.dataset], where, params)
+
     def select(self, dataset, intervals, cutoff, protected, pending, limit):
-        references = set()
-        if dataset == "observations" and self.db.execute(
-                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='prediction_context_links'"
-        ).fetchone():
-            references = {r[0] for r in self.db.execute(
-                "SELECT outcome_observation_id FROM prediction_context_links "
-                "WHERE outcome_observation_id IS NOT NULL")}
-        keys, records = self.keys[dataset], self.records[dataset]
+        if dataset != self.dataset:
+            raise RetentionError("validation snapshot dataset changed")
         for lo, hi in intervals:
-            selected = []
-            for i in range(bisect_left(keys, lo), bisect_right(keys, hi)):
-                key, value = records[i]
-                stamp = value[:19] + ".000000+00:00" if len(value) == 25 else value
-                identity = (key[0],) if dataset == "observations" else (key[1], key[2], value)
-                if stamp >= cutoff or identity not in pending:
-                    continue
-                if dataset == "observations" and (
-                        (protected is not None and key[0] >= protected) or key[0] in references):
-                    continue
-                selected.append(identity)
-                if len(selected) == limit:
-                    break
+            if dataset == "observations":
+                refs = ""
+                if self.db.execute("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='prediction_context_links'").fetchone():
+                    refs = """ AND NOT EXISTS (SELECT 1 FROM prediction_context_links AS refs
+                              WHERE refs.outcome_observation_id=raw.id)"""
+                query = f"""SELECT raw.id FROM temp.retention_pending_observations AS p
+                  CROSS JOIN observations AS raw ON raw.id=p.id
+                  WHERE p.id>=? AND p.id<=? AND {TIME_KEY}<? AND raw.id<? {refs}
+                  ORDER BY p.id LIMIT ?"""
+                params = (lo[0],hi[0],cutoff,protected,limit)
+            else:
+                query = """SELECT raw.source,raw.event_id,raw.received_at
+                  FROM temp.retention_pending_stream_events AS p
+                  CROSS JOIN stream_events AS raw ON raw.source=p.source AND raw.event_id=p.event_id
+                  WHERE (p.stamp,p.source,p.event_id)>=(?,?,?)
+                    AND (p.stamp,p.source,p.event_id)<=(?,?,?) AND p.stamp<?
+                    AND raw.received_at=p.received_at
+                  ORDER BY p.stamp,p.source,p.event_id,p.received_at LIMIT ?"""
+                params = (*lo,*hi,cutoff,limit)
+            selected = [tuple(row) for row in self.db.execute(query, params)]
             if selected:
                 return selected
         return []
@@ -383,11 +375,10 @@ def _usable_intervals(db, dataset, manifests, bucket):
         rejected, intervals = dict(original_rejected), []
         if dataset != db.dataset:
             raise RetentionError("validation snapshot dataset changed")
-        keys = db.keys[dataset]
         for lo, hi, event_count in db.ranges:
             # Count ALL current local identities in each original range, including
             # late rows outside approved scope. A late row can invalidate coverage.
-            if bisect_right(keys, hi) - bisect_left(keys, lo) > event_count:
+            if db.range_count(lo, hi) > event_count:
                 reason = "local_rows_exceed_manifest"
                 rejected[reason] = rejected.get(reason, 0) + 1
             else:
@@ -610,13 +601,26 @@ def public_report(plan):
     return {k: v for k, v in plan.items() if not k.startswith("_")}
 
 
+class RetentionBudgetError(RetentionError):
+    def __init__(self, phase, seconds, committed_rows=0):
+        super().__init__("retention writer budget exceeded; subsequent batches stopped")
+        self.phase, self.seconds, self.committed_rows = phase, seconds, committed_rows
+
+
+MAX_WRITE_SECONDS = 0.5
+TARGET_WRITE_SECONDS = 0.25
+
+
 def apply_retention(db, plan, config, confirm=False):
-    """Delete eligible rows in bounded batches. Needs config flag AND confirm."""
+    """Exact approved deletes with current SQL rechecks and a bounded writer hold.
+
+    Owns its temporary progress handler. External qualification supervisors must
+    enforce their overall deadline separately. No network runs in this function.
+    """
     if confirm is not True:
         raise RetentionError("apply requires explicit confirmation (--confirm)")
     if not config.enabled:
         raise RetentionError("ENABLE_LOCAL_RETENTION is not true; refusing to delete")
-    # Never commit a caller's pending writes or inherit a deferred read snapshot.
     if db.in_transaction:
         raise RetentionError("apply requires a connection without an active transaction")
     if "_approved" not in plan or "_manifests" not in plan:
@@ -624,50 +628,77 @@ def apply_retention(db, plan, config, confirm=False):
     cutoff = canonical_time(plan["cutoff"])
     evidence = _PreparedManifests(plan["_manifests"], plan["_bucket"])
     timestamp_cache = _validated_timestamp_cache(db)
-    observation_index = _observation_covering_index(db)
-    result = {"mode": "apply", "cutoff": cutoff, "datasets": {}}
-    for dataset, spec in SPECS.items():
-        approved = {tuple(key) for key in plan["_approved"][dataset]}
-        pending = set(approved)
-        ranges = _scope_manifest_ranges(dataset, evidence, approved)
-        deleted = batches = 0
-        while pending:
-            # All cloud IO precedes apply. Each local recheck and bounded DELETE
-            # shares a reserved writer lock; collection can resume after COMMIT.
-            db.execute("BEGIN IMMEDIATE")
-            try:
-                current = _ValidationSnapshot(
-                    db, timestamp_cache, dataset, ranges, observation_index)
-                intervals, _ = _usable_intervals(
-                    current, dataset, evidence, plan["_bucket"])
-                protected = _protected_id(db, dataset)
-                selected = current.select(
-                    dataset, intervals, cutoff, protected, pending, config.batch_size)
-                if not selected:
+    result = {"mode":"apply", "cutoff":cutoff, "datasets":{}}
+    try:
+        for dataset, spec in SPECS.items():
+            approved = {tuple(key) for key in plan["_approved"][dataset]}
+            pending = set(approved)
+            ranges = _scope_manifest_ranges(dataset, evidence, approved)
+            _prepare_pending(db, dataset, approved)
+            deleted = batches = 0
+            lock_times = []
+            while pending:
+                db.execute("BEGIN IMMEDIATE")
+                locked_at = time.monotonic()
+                deadline = locked_at + MAX_WRITE_SECONDS
+                db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+                try:
+                    current = _ValidationSnapshot(db, timestamp_cache, dataset, ranges)
+                    intervals, _ = _usable_intervals(current, dataset, evidence, plan["_bucket"])
+                    protected = _protected_id(db, dataset)
+                    selected = current.select(dataset, intervals, cutoff, protected, pending, config.batch_size)
+                    if time.monotonic() >= deadline:
+                        raise RetentionBudgetError("validation",time.monotonic()-locked_at)
+                    if not selected:
+                        db.commit()
+                        duration = time.monotonic()-locked_at
+                        lock_times.append(duration)
+                        if duration > MAX_WRITE_SECONDS:
+                            raise RetentionBudgetError("empty_commit",duration)
+                        break
+                    predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
+                    before = db.total_changes
+                    db.executemany(f"DELETE FROM {dataset} WHERE {predicate}",selected)
+                    count = db.total_changes-before
+                    if time.monotonic() >= deadline:
+                        raise RetentionBudgetError("delete",time.monotonic()-locked_at)
                     db.commit()
-                    break
-                # Exact reviewed identities only, never a broad range predicate.
+                    duration = time.monotonic()-locked_at
+                    lock_times.append(duration)
+                    if duration > MAX_WRITE_SECONDS:
+                        # This batch committed safely; report it rather than
+                        # implying rollback can undo a completed transaction.
+                        raise RetentionBudgetError("commit",duration,count)
+                except BaseException as error:
+                    db.set_progress_handler(None,0)
+                    db.rollback()
+                    if isinstance(error,sqlite3.OperationalError) and time.monotonic()>=deadline:
+                        raise RetentionBudgetError("sqlite_progress",time.monotonic()-locked_at) from None
+                    raise
+                finally:
+                    db.set_progress_handler(None,0)
+                pending.difference_update(selected)
+                # TEMP bookkeeping is outside the main-database writer lock.
+                table = "retention_pending_" + dataset
                 predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
-                before = db.total_changes
-                db.executemany(f"DELETE FROM {dataset} WHERE {predicate}", selected)
-                count = db.total_changes - before
+                db.executemany(f"DELETE FROM temp.{table} WHERE {predicate}",selected)
                 db.commit()
-            except BaseException:
-                db.rollback()
-                raise
-            # Release full snapshots outside the writer lock before the next batch.
-            current = None
-            pending.difference_update(selected)
-            deleted += count
-            batches += 1
-            if pending:
-                # Give SQLite busy-handler waiters an unlocked handoff window.
-                # This is outside the transaction; every next batch revalidates.
-                time.sleep(0.1)
-        result["datasets"][dataset] = {
-            "planned_rows": len(approved), "deleted_rows": deleted,
-            "skipped_rows": len(approved) - deleted, "batches": batches}
-    return result
+                deleted += count
+                batches += 1
+                if pending:
+                    time.sleep(0.1)
+            result["datasets"][dataset] = {
+                "planned_rows":len(approved), "deleted_rows":deleted,
+                "skipped_rows":len(approved)-deleted, "batches":batches,
+                "write_lock_seconds":lock_times,
+                "max_write_lock_seconds":max(lock_times,default=0.0)}
+        return result
+    finally:
+        db.set_progress_handler(None,0)
+        if db.in_transaction:
+            db.rollback()
+        for name in ("retention_valid_times","retention_pending_observations","retention_pending_stream_events"):
+            db.execute(f"DROP TABLE IF EXISTS temp.{name}")
 
 
 def local_status(db, config, now=None):

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Approved one-use maintenance128MiB reserve implemented/tested; freeze exact successor of93161cf and requireCI, then fresh capacity/time preflight for authorized single attempt. Normal512MiB/physical5120 cap unchanged; no retry. RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,6d9edc3 preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Maintenance128 successor78bcaf0 exact-CI PASS; one workflow41362768630 cancelled queued, no approved runner/no maintenance steps. Originalhelpers restored,unusedauth revoked,interruption0s,headroom295.676MiB. Restore existing approved runner availability before explicit resumption; no auto retry/repeatreserveapproval. RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,flagsOFF,Phase1.75OPEN,cap/deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -2147,3 +2147,33 @@ marketboundaries; no sourcepoll/soak/retry. Mandatory capacity/time/source check
 repeat once immediately before helper installation/attempt. No production install,
 authority,dispatch or service stop yet at this entry. Continue authorized attempt
 without repeatapproval; retain fullverification/budget/recovery/code-onlyrollback.
+
+## Maintenance128 qualified; single dispatch BLOCKED_NO_APPROVED_RUNNER
+
+Frozen78bcaf07baac8ba5f26a6c7dd827c35283511f30 parent93161cf,exactPythonCI41362300963/
+validation41362300987 PASS. Only5maintenancepolicy/test/procedurefiles differ; app,
+normal512verifier/workflow unchanged.169backend/41isolatedcontrolsPASS;105working
+controlsPASS.6d9edc3/passCI preserved. Approved128 onlyone-usequiescent route,
+5120physicalcap and1800/600/10/180/2590limits unchanged.
+
+Fresh23:30metadata headroom298.402283MiB/deadline8807sPASS; immediatepreinstall
+source/currentmarket/recentpersistence/capacity/timePASS.23:34:24headroom297.621033,
+8543.67sbeforereview. Exact5helpers installed with CODE-only originalrecords;
+rootone-useauthority created. No DB/configcopy. One initialbetweenboundary start,
+no sourcepoll/soak/recoverywindow. Singlemanualworkflow41362768630 dispatched23:34:31.
+ValidationPASS;maintenancejob queued,no runner_name,self-hosted/tradebot-private.
+Bounded runnerinventory returned no repository-visible runners. No infrachange.
+Cancelled23:36:58 with no maintenance steps; no retry/alternate route.
+
+Underexistingdeploylock verifiedunclaimedauthority/unchangedruntime/PIDs. Original
+helpercode/modes/hashes restored;neworiginallyabsenthelpers removed CODEonly;
+unusedauthority revoked,notconsumed.23:37:23.858797Z oldd56b4a7/API23471/ensemble23478/
+lifecycle23474 active/restarts0; actualinterruption0s,writerstops0,productioncleanup0.
+Main5024210944/WAL34459712bytes,remainingphysicalheadroom295.675720MiB. Fullverification,
+deployment,functionalsmoke,multicycle/realboundary NOTPERFORMED. FlagsOFF,cap5120,
+reviewdeadline unchanged,I7/Phase1.75OPEN. No continuingworkflowwaiter/backgroundsoak.
+
+Retention BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX. Nextprerequisite: restoreavailability
+ofexistingapprovedprivate execution route; replacementinfra/route requiresreview.
+No repeatedreserveapproval needed; no automaticnewdispatch/qualification. Evidence:
+[ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md](ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md).

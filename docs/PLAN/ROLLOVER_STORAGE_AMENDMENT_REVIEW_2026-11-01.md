@@ -114,3 +114,10 @@ fresh capacity and unchanged deadline checks. Normal512MiB route remains binding
 No repeat approval is required for that scope. Only maintenance reserve constants,
 its precheck, boundary tests and procedure change; physical5120 accounting and all
 budgets remain unchanged. Production execution evidence must be recorded separately.
+
+Successor78bcaf0/exact CI PASS. The single maintenance dispatch was blocked by an
+unavailable approved runner and cancelled before any maintenance steps. Temporary
+helpers restored,unused authority revoked. No deployment/interruption; remaining
+headroom295.675720MiB at23:37:23Z. See
+[ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md](ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md).
+No automatic retry or repeat reserve approval; runtime/cap/flags/deadline unchanged.

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Rotating-raw assessment NO-GO undercurrentlimits: retainedlegacyDB alreadyfails512MiB reserve before newallocation. MigrationFAIL; steadycapacity/correctness/performance/safetyNOTPROVEN. Checkpoint1STOP, no prototype/trial/workaround. Preserve93161cf/deploymentSTOP; review migrationconstraints separately. FlagsOFF,Phase1.75OPEN,capdeadlineunchanged.
+**Next gate:** Retentionperformance NOTPROVEN: commitoverrun dominanceunknown; review generated-only split-gateproposal (500ms measuredWRITE,1000ms total/commit plusunchangedcollector/FULL/completionguards). NOTAPPLIED; production500ms remains. No unchangedtrial. CapacitySTOPseparate,93161cfpreserved,rotationstopped,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1926,3 +1926,26 @@ install/restart/upload/newdependency/infra/Phase2. No unchangedqualificationtria
 Frozenrollover/controller preserved. No productionmigrationauthorization inferred.
 DeploymentSTOP,flagsOFF,I7/Phase1.75OPEN,capdeadlineunchanged. Next: separately
 review migrationconstraints; no anotherdesign/parametersearch authorized here.
+
+## Retention performance decision: NOT PROVEN, explicit generated-policy proposal
+
+Review finds commit-call latency remainingblocker; no evidenced smallSQLchange.
+Validatedtrace has lock-heldWALsync58.225ms andpostreleaseDBsync116.707ms; traced
+220.379mscommit vs99.423msWRITEupper. Historical>500mscommit nottraced, cause/dominance
+unknown. Previous1000/500/256failures remainSTOP. No newtrial/VMload/recoverywindow.
+
+Current93retentiontestsPASS(two Linuxskips)+2provedoperatortestsPASS; coverage,
+protected/late references, durabilitysettings and committedoverrun semantics intact.
+Existingreducedtrace23997rows/11.798431s=2033.914rows/s inclsetup/cleanup;65saves/RAM,
+0errors,maxsave137.707ms,heartbeat165.329ms. Diagnostic, notproductionqualification.
+
+Propose FORREVIEW generatedqualification split: validatedWRITEupper<=500ms,
+commit/total<=1000ms,collector/heartbeat<1000ms/noerrors,fullworkload<=180s,
+FULL/defaultjournal/settings/archive/reference/storageguards unchanged.1000is
+proposedceiling,notguarantee. Intrusivetracingonlygenerated; no productionoccupancy
+claim. Requires explicitapproval, NOTAPPLIED. Production500ms policy staysunchanged;
+no relabeloldfailures. One nextaction: decide thisgenerated-onlypolicyproposal.
+Details: [RETENTION_PERFORMANCE_DECISION_2026-11-01.md](RETENTION_PERFORMANCE_DECISION_2026-11-01.md).
+Capacitygate stays separatelySTOP evenif futureperformancepasses.93161cf preserved,
+rotationstopped, flagsOFF,deleted0,deadlineunchanged,Phase1.75OPEN. SharedChatGPTlink
+unavailable; no inferredcontents used. No Redis/DuckDB/service/writercoordinator.

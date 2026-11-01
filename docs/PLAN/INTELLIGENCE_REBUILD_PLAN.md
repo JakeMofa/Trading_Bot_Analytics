@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Controlcandidate2c24dde exactPythonCI41331916958 andvalidation-only41331917043 PASS; workingbde20f5 CI41331790634 PASS. Review concrete productionprocedure/budgets/300s concurrent-write evidence policy before any helper install, heavy scan or dispatch. No production authority created or operation run; rollover20min/3cycle/boundary acceptance NOTRUN. Retentionexperiments paused,flagsOFF,deleted0,ceiling unchanged; Phase1.75 OPEN, capreview2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Revised smoke-only procedure awaiting approval; storage STOP497.796814MiB headroom versus required512MiB. Preparedpolicy corrected64->512;2c24dde superseded for execution, newcandidate/exactCI required. No scan/install/dispatch. Multi-cycle/boundary acceptance NOTPERFORMED; no soak. I7/Phase1.75OPEN,flagsOFF,ceiling/deadline unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1759,3 +1759,19 @@ Controlpreparation milestone delivered; productionprocedure review is next.
 Rollover20min/3cycle/boundary validation NOTRUN; do not resume retentionexperiments.
 Retention/paidAIOFF,productiondeleted0,dataintact,ceilingunchanged; no copy/snapshot,
 manualWAL/index/Phase2. I7/Phase1.75OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
+
+## Revised approval request: smoke-only ending;512MiB storage gate STOP
+
+User revision supersedes20-30minute observation/backgroundsoak: after an approved
+deployment run bounded functional API/currentmarket/source/persistence/dashboard/SSE/
+service smoke, report andyield. Multi-cycle/real-boundary acceptance NOTPERFORMED;
+I7/Phase1.75OPEN. Revision itself explicitly does NOT authorize production operations.
+
+Fresh17:41:57.932247UTC DB+WAL4846731328bytes, headroom497.796814MiB<512MiB:STOP.
+Priorcontrol64MiB reserve was inconsistent with required512MiB; restored512MiB
+in preparedpolicy.19controltestsPASS(one Linuxskip). Frozen2c24dde helperhashes/CI
+cannot qualify revisedpolicy; newcandidate/exactCI/reviewbindings required. No heavy
+scan/install/authority/dispatch/restart/cleanup. Ceiling5120/deadlineunchanged.
+Storage requires separately reviewed resolution; approval cannot override gate.
+Procedure: deploy/lightsail/RELEASE_VERIFICATION_REVIEW.md. No repeatedCIpolling;
+report pendingcommit/Actionscheckpoint andyield. Retention/paidAIOFF,deleted0.

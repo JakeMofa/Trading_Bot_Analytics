@@ -1567,3 +1567,26 @@ controls PASS. Prior48-pair trace revalidated. One representative generated-only
 investigation pending; no matrix/settings experiment. Production unchanged,
 retention/paidAI OFF, deleted0; I7/Phase1.75 OPEN, Phase2 deferred, cap deadline
 2026-11-02T01:56:47.671426Z unchanged.
+
+## Separate diagnostics complete; representative investigation prerequisite STOP — decision C
+
+Implementationddda7d5 exact CI41325279117 PASS;93local tests PASS(two Linux-only
+skips). Transaction/commit durations and collector-interference reports separated;
+actual lock occupancy explicitly unmeasured in runtime, available only through
+validated opt-in offline generated syscall instrumentation. Legacy500ms gate intact.
+
+One800000observation/2350000stream representative profile prepared, default1000-page
+threshold/FULL/500-row ceiling. Initial feed preflight failed; one120s bounded
+recovery window could not obtain13consecutive healthy samples. NO generated fixture,
+actor,trace or retention transaction started. Independent work-directory checks empty,
+trace/report absent.16:19:42UTC single follow-up had bothfeeds live; it does not
+satisfy the failed sustained baseline. No further attempt. Prior502.686ms STOP
+unchanged; historical dominant delay remains unproven.
+
+DecisionC: stop qualification and review explicit separation of passive-checkpoint
+scheduling from deletion commits, retaining FULL durability and existing collector,
+storage,workload/memory gates. Proposal only; requires review of no-manual-WAL
+boundary, no dependency/VFS/single-writer/buffering redesign bundled. Details and
+missing evidence in [RETENTION_DIAGNOSTICS_DECISION_2026-11-01.md](RETENTION_DIAGNOSTICS_DECISION_2026-11-01.md).
+Production unchanged,deleted0,retention/paidAI OFF. I7/Phase1.75 OPEN; no Phase2.
+Temporary5120 review2026-11-02T01:56:47.671426Z unchanged, no extension.

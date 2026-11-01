@@ -69,6 +69,49 @@ class TimestampGuardTests(unittest.TestCase):
             db.execute('BEGIN IMMEDIATE');guards.create_indexes(db);db.rollback()
         finally:db.close()
 
+    def test_split_range_count_equals_original_across_seconds_widths_and_sources(self):
+        from datetime import datetime,timedelta,timezone
+        db=sqlite3.connect(':memory:');rng=random.Random(175)
+        try:
+            db.executescript('CREATE TABLE observations(received_at TEXT);CREATE TABLE stream_events(source TEXT,event_id TEXT,received_at TEXT,PRIMARY KEY(source,event_id));CREATE INDEX stream_events_archive_cursor ON stream_events(received_at,source,event_id);')
+            base=datetime(2026,10,31,23,59,55,tzinfo=timezone.utc);keys=[]
+            for i in range(500):
+                when=base+timedelta(seconds=rng.randrange(12),microseconds=rng.choice((0,1,100000,999999)))
+                raw=when.isoformat() if i%2 else when.isoformat(timespec='microseconds')
+                source=rng.choice(('aaa','coinbase','zzz'));event=str(i)
+                db.execute('INSERT INTO stream_events VALUES(?,?,?)',(source,event,raw))
+                keys.append((retention.canonical_time(raw),source,event))
+            db.commit();db.execute('BEGIN IMMEDIATE');guards.create_indexes(db);db.commit()
+            marker=retention._validated_timestamp_cache(db);db.execute('BEGIN IMMEDIATE')
+            retention._validate_current_timestamps(db,marker)
+            for _ in range(300):
+                lo,hi=sorted(rng.sample(keys,2))
+                where,params=retention._between(retention.SPECS['stream_events'],lo,hi)
+                expected=retention._count(db,retention.SPECS['stream_events'],where,params)
+                self.assertEqual(retention._stream_range_count_validated(db,lo,hi),expected,(lo,hi))
+            db.rollback()
+        finally:db.close()
+
+    def test_stream_cursor_delete_preserves_exact_text_identities(self):
+        case=safety.RetentionTests(methodName='test_verified_old_observations_are_eligible_and_new_are_kept');case.setUp()
+        try:
+            from datetime import timedelta
+            for event in ('001','1','2'):
+                case.add_event('coinbase',event,safety.NOW-timedelta(days=3))
+            case.archive_all('stream_events',3)
+            case.add_event('coinbase','unapproved',safety.NOW-timedelta(days=3))
+            plan=case.plan();seen=[];case.db.set_trace_callback(seen.append)
+            result=retention.apply_retention(case.db,plan,retention.RetentionConfig(True,48,2),confirm=True)
+            case.db.set_trace_callback(None)
+            deleted=result['datasets']['stream_events']['deleted_rows']
+            remaining={row[0] for row in case.db.execute('SELECT event_id FROM stream_events')}
+            self.assertEqual(deleted,3);self.assertEqual(remaining,{'unapproved'})
+            statements=[sql for sql in seen if sql.startswith('DELETE FROM stream_events')]
+            self.assertEqual(len(statements),3)
+            self.assertTrue(all('INDEXED BY stream_events_archive_cursor' in sql for sql in statements))
+            self.assertFalse(case.db.execute("SELECT name FROM sqlite_temp_master WHERE name LIKE 'retention_%'").fetchall())
+        finally:case.tearDown()
+
     def test_full_existing_safety_suite_with_transactionally_maintained_guards(self):
         for name in unittest.defaultTestLoader.getTestCaseNames(safety.RetentionTests):
             with self.subTest(case=name):

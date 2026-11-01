@@ -144,6 +144,25 @@ def _between(spec, lo, hi):
     return where, params
 
 
+def _stream_range_count_validated(db, lo, hi):
+    """Exact current count after global strict-UTC validation in this writer TX.
+
+    Only boundary seconds need canonical tuple comparisons. Every valid raw
+    timestamp strictly between those seconds is inside the original range,
+    regardless of source/event id. No candidate clipping or cached row count.
+    """
+    spec=SPECS['stream_events'];first,last=lo[0][:19],hi[0][:19]
+    if first==last:
+        where,params=_between(spec,lo,hi)
+        return _count(db,spec,where,params)
+    total=_count(db,spec,'received_at>=? AND received_at<?',(first+'~',last))
+    exact=f'{spec.key_sql}>={spec.marker} AND {spec.key_sql}<={spec.marker}'
+    for second in (first,last):
+        total+=_count(db,spec,'received_at>=? AND received_at<? AND '+exact,
+                      (second,second+'~',*lo,*hi))
+    return total
+
+
 def _manifest_interval(dataset, manifest, bucket):
     """Return (lo, hi) key tuples, or raise ValueError naming the rejection."""
     spec = SPECS[dataset]
@@ -389,6 +408,17 @@ def _observation_covering_index(db):
     return None
 
 
+def _stream_delete_sql(db):
+    # Reuse the full existing archive cursor to verify all three exact identity
+    # fields from its covering leaves. PK(source,event_id) lacks received_at.
+    name="stream_events_archive_cursor"
+    full=any(row[1]==name and not row[4] for row in db.execute('PRAGMA index_list(stream_events)'))
+    hint=""
+    if full and [row[2] for row in db.execute(f'PRAGMA index_info({name})')]==['received_at','source','event_id']:
+        hint=f" INDEXED BY {name}"
+    return f"DELETE FROM stream_events{hint} WHERE source=? AND event_id=? AND received_at=?"
+
+
 def _prepare_pending(db, dataset, identities):
     name = "retention_pending_" + dataset
     db.execute(f"DROP TABLE IF EXISTS temp.{name}")
@@ -417,6 +447,8 @@ class _ValidationSnapshot:
         return getattr(self.db, name)
 
     def range_count(self, lo, hi):
+        if self.dataset == "stream_events":
+            return _stream_range_count_validated(self.db, lo, hi)
         where, params = _between(SPECS[self.dataset], lo, hi)
         return _count(self.db, SPECS[self.dataset], where, params)
 
@@ -721,7 +753,14 @@ def apply_retention(db, plan, config, confirm=False):
     evidence = _PreparedManifests(plan["_manifests"], plan["_bucket"])
     timestamp_cache = _validated_timestamp_cache(db)
     result = {"mode":"apply", "cutoff":cutoff, "datasets":{}}
+    original_cache = db.execute('PRAGMA main.cache_size').fetchone()[0]
+    page_size = db.execute('PRAGMA main.page_size').fetchone()[0]
+    cache_bytes = -original_cache*1024 if original_cache<0 else original_cache*page_size
     try:
+        # Keep the bounded batch's selected main-index pages resident through
+        # DELETE. Connection-local only: never alter collector settings or disk
+        # limits. A larger caller cache is preserved; all exits restore exactly.
+        if cache_bytes<16*1024**2:db.execute('PRAGMA main.cache_size=-16384')
         for dataset, spec in SPECS.items():
             approved = {tuple(key) for key in plan["_approved"][dataset]}
             pending = set(approved)
@@ -766,7 +805,8 @@ def apply_retention(db, plan, config, confirm=False):
                     before = db.total_changes
                     operation = "exact_delete"
                     with _measure_phase(timings, operation):
-                        db.executemany(f"DELETE FROM {dataset} WHERE {predicate}",selected)
+                        sql = _stream_delete_sql(db) if dataset == "stream_events" else f"DELETE FROM {dataset} WHERE {predicate}"
+                        db.executemany(sql,selected)
                     count = db.total_changes-before
                     if time.monotonic() >= deadline:
                         raise RetentionBudgetError("delete",time.monotonic()-locked_at)
@@ -819,8 +859,11 @@ def apply_retention(db, plan, config, confirm=False):
         db.set_progress_handler(None,0)
         if db.in_transaction:
             db.rollback()
-        for name in ("retention_valid_times","retention_fresh_valid_times","retention_pending_observations","retention_pending_stream_events"):
-            db.execute(f"DROP TABLE IF EXISTS temp.{name}")
+        try:
+            for name in ("retention_valid_times","retention_fresh_valid_times","retention_pending_observations","retention_pending_stream_events"):
+                db.execute(f"DROP TABLE IF EXISTS temp.{name}")
+        finally:
+            db.execute(f'PRAGMA main.cache_size={original_cache}')
 
 
 def local_status(db, config, now=None):

@@ -371,6 +371,20 @@ class RetentionTests(unittest.TestCase):
         self.assertEqual(result["datasets"]["observations"]["batches"], 8)
         self.assertEqual(len(handoffs), 7)
 
+    def test_progress_reporting_is_unlocked_and_preserves_committed_counts(self):
+        self.seed_observations()
+        self.archive_all("observations", 10)
+        stages=[]
+        def progress(stage,dataset,result):
+            self.assertFalse(self.db.in_transaction)
+            stages.append((stage,dataset))
+            if stage=="committed_batch":
+                self.assertGreater(result["datasets"][dataset]["committed_rows_seen"],0)
+        result=apply_retention(self.db,self.plan(),RetentionConfig(True,48,3),
+                               confirm=True,progress=progress)
+        self.assertEqual(result["datasets"]["observations"]["batches"],8)
+        self.assertEqual(sum(stage=="committed_batch" for stage,_ in stages),8)
+
     def test_retention_disabled_and_validated_by_default(self):
         self.assertFalse(RetentionConfig().enabled)
         self.assertEqual(RetentionConfig().hours, 48)

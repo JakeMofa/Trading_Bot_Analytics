@@ -751,7 +751,7 @@ def _measure_phase(timings, name):
         timings[name] = time.monotonic() - started
 
 
-def apply_retention(db, plan, config, confirm=False):
+def apply_retention(db, plan, config, confirm=False, *, progress=None):
     """Exact approved deletes with current SQL rechecks and a bounded writer hold.
 
     Owns its temporary progress handler. External qualification supervisors must
@@ -769,6 +769,13 @@ def apply_retention(db, plan, config, confirm=False):
     evidence = _PreparedManifests(plan["_manifests"], plan["_bucket"])
     timestamp_cache = _validated_timestamp_cache(db)
     result = {"mode":"apply", "cutoff":cutoff, "datasets":{}}
+    def checkpoint(stage, dataset=None):
+        # Optional diagnostics run only while MAIN has no writer transaction.
+        # They are never consulted for deletion eligibility or cached safety facts.
+        if progress is not None:
+            if db.in_transaction:
+                raise RetentionError("progress reporting requires an unlocked connection")
+            progress(stage, dataset, result)
     original_cache = db.execute('PRAGMA main.cache_size').fetchone()[0]
     original_temp_cache = db.execute('PRAGMA temp.cache_size').fetchone()[0]
     page_size = db.execute('PRAGMA main.page_size').fetchone()[0]
@@ -784,6 +791,7 @@ def apply_retention(db, plan, config, confirm=False):
         for dataset, spec in SPECS.items():
             approved = {tuple(key) for key in plan["_approved"][dataset]}
             pending = set(approved)
+            checkpoint("prepare_pending", dataset)
             prepare_started=time.monotonic()
             ranges = _scope_manifest_ranges(dataset, evidence, approved)
             _prepare_pending(db, dataset, approved)
@@ -796,11 +804,14 @@ def apply_retention(db, plan, config, confirm=False):
                         "phase_seconds":phase_times,"static_prepare_seconds":static_prepare_seconds,
                         "unlocked_warm_seconds":[]}
             result["datasets"][dataset] = observed
+            checkpoint("prepared_pending", dataset)
             while pending:
+                checkpoint("before_batch", dataset)
                 if dataset == "stream_events":
                     warm_started=time.monotonic()
                     try:_warm_stream_pages(db,config.batch_size)
                     finally:observed["unlocked_warm_seconds"].append(time.monotonic()-warm_started)
+                checkpoint("warmed_batch", dataset)
                 db.execute("BEGIN IMMEDIATE")
                 locked_at = time.monotonic()
                 deadline = locked_at + MAX_WRITE_SECONDS
@@ -867,6 +878,7 @@ def apply_retention(db, plan, config, confirm=False):
                 predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
                 db.executemany(f"DELETE FROM temp.{table} WHERE {predicate}",selected)
                 db.commit()
+                checkpoint("committed_batch", dataset)
                 deleted += count
                 batches += 1
                 if pending:
@@ -883,6 +895,9 @@ def apply_retention(db, plan, config, confirm=False):
         # Preserve measured completed work even when the overall supervisor fires.
         # This does not claim that an interrupted commit was rolled back.
         error.retention_progress = result
+        if not db.in_transaction:
+            try:checkpoint("failed_apply")
+            except BaseException:pass  # Preserve the original measured failure.
         raise
     finally:
         db.set_progress_handler(None,0)

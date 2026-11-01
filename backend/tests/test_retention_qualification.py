@@ -29,6 +29,21 @@ class QualificationHarnessTests(unittest.TestCase):
             module.require_production_health(health,now)
         self.assertEqual(caught.exception.reason,'production_collector_stopped')
 
+    def test_provisional_progress_is_atomic_and_never_reports_pass(self):
+        import time
+        backend=Path(__file__).resolve().parents[1]
+        spec=importlib.util.spec_from_file_location('qualification_progress',backend/'qualify_retention_sql.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as folder:
+            path=Path(folder)/'trial.json'
+            original={'status':'PASS','stage':'committed_batch','partial_apply':{'committed':1000}}
+            module.write_progress_report(path,original,[],time.monotonic())
+            saved=json.loads(path.read_text())
+            self.assertEqual(saved['status'],'STOP');self.assertTrue(saved['incomplete'])
+            self.assertEqual(saved['partial_apply']['committed'],1000)
+            self.assertEqual(original['status'],'PASS')
+            self.assertFalse(path.with_suffix('.pending').exists())
+
     def test_actor_rejects_existing_production_paths_and_symlinks(self):
         backend=Path(__file__).resolve().parents[1]
         spec=importlib.util.spec_from_file_location('qualification_guard',backend/'qualify_retention_sql.py')
@@ -80,10 +95,12 @@ class QualificationHarnessTests(unittest.TestCase):
         self.assertEqual(len(rows),3)
         one=subprocess.run([sys.executable,str(backend/'qualify_retention_sql.py'),
             '--deployed-app',str(backend/'app'),'--candidate',str(backend/'app/retention.py'),
-            '--observations','100','--stream-events','100','--trials','1','--require-indexed'],capture_output=True,text=True,timeout=10)
+            '--observations','100','--stream-events','100','--trials','1','--require-indexed',
+            '--trade-id-base','1000000000'],capture_output=True,text=True,timeout=10)
         self.assertEqual(one.returncode,0,one.stdout+one.stderr)
         self.assertEqual(len(one.stdout.splitlines()),1)
         indexed=json.loads(one.stdout);self.assertEqual(indexed['timestamp_engine'],'indexed_invalid_v1')
+        self.assertEqual(indexed['trade_id_base'],1000000000)
         self.assertEqual(indexed['apply']['datasets']['stream_events']['deleted_rows'],99)
         for row in rows:
             self.assertEqual(row['status'],'PASS',row)

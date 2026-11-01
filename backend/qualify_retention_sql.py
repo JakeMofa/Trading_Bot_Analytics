@@ -82,15 +82,15 @@ def actor(args):
         db.close();args.collector_report.write_text(json.dumps(result))
 
 
-def manifest(dataset,lo,hi,start,end):
+def manifest(dataset,lo,hi,start,end,trade_id_base=0):
     return {'source':'polymarket' if dataset=='observations' else 'coinbase',
             'bucket':'market-raw','object_path':'synthetic-only/'+dataset,
             'sha256':'a'*64,'event_count':hi-lo+1,'compressed_bytes':1,
             'first_source_id':lo,'last_source_id':hi,
             'started_at':start,'ended_at':end,'verified_at':end,
             'metadata':{'dataset':dataset,'verification':'authenticated_readback_sha256',
-                        'first_source_key':json.dumps(['coinbase',str(lo)]),
-                        'last_source_key':json.dumps(['coinbase',str(hi)])}}
+                        'first_source_key':json.dumps(['coinbase',str(trade_id_base+lo)]),
+                        'last_source_key':json.dumps(['coinbase',str(trade_id_base+hi)])}}
 
 
 class ProductionGuardStop(RuntimeError):
@@ -120,10 +120,29 @@ def require_production_health(health,now=None):
     return projection
 
 
+def write_progress_report(path, result, failure, started):
+    """Atomic provisional STOP survives child termination, never certifies a pass."""
+    if path is None:return
+    pending=dict(result)
+    pending.update(status='STOP', incomplete=True,
+                   production_guard_errors=list(failure),
+                   elapsed_seconds=time.monotonic()-started)
+    temporary=path.with_suffix('.pending')
+    temporary.write_text(json.dumps(pending))
+    temporary.replace(path)
+
+
 def trial(args,number):
     start=time.monotonic();result={'trial':number,'started_at':datetime.now(timezone.utc).isoformat(),'status':'STOP','generated_only':True,
-                                 'synthetic_archive_claims_not_cloud_verification':True}
+                                 'synthetic_archive_claims_not_cloud_verification':True,
+                                 'trade_id_base':args.trade_id_base}
     worker=None;db=None;monitor_stop=threading.Event();failure=[]
+    def checkpoint(stage, dataset=None, partial=None):
+        result['stage']=stage
+        if dataset is not None:result['active_dataset']=dataset
+        if partial is not None:result['partial_apply']=partial
+        write_progress_report(args.trial_report,result,failure,start)
+    checkpoint('starting')
     def deadline(signum,frame):raise TimeoutError('trial work deadline/resource/production guard')
     previous={sig:signal.signal(sig,deadline) for sig in (signal.SIGALRM,signal.SIGUSR1)}
     signal.alarm(170)
@@ -162,7 +181,7 @@ def trial(args,number):
                     failure.append(detail);os.kill(os.getpid(),signal.SIGUSR1);return
         watcher=threading.Thread(target=monitor,daemon=True);watcher.start()
         try:
-            result['stage']='load_candidate'
+            checkpoint('load_candidate')
             actual_sha=hashlib.sha256((args.deployed_app/'streaming.py').read_bytes()).hexdigest()
             if args.expected_save_sha256 and actual_sha!=args.expected_save_sha256:
                 raise RuntimeError('deployed collector helper differs from qualified target')
@@ -191,7 +210,7 @@ def trial(args,number):
             eligible={'observations':min(40031,args.observations-1),'stream_events':min(196509,args.stream_events-1)}
             evidence=[]
             for dataset,count in counts.items():
-                result['stage']='generate_'+dataset
+                checkpoint('generate_'+dataset)
                 old_count=eligible[dataset]
                 def received(i):
                     base,rank,count,span=(old,i-1,old_count,12*3600) if i<=old_count else (recent,i-old_count-1,counts[dataset]-old_count,46*3600)
@@ -201,17 +220,19 @@ def trial(args,number):
                     for i in range(lo,min(lo+20000,count+1)):
                         at=received(i)
                         rows.append((i,'fixture-'+str(i%97),at,None,('book','bbo','stream_book')[i%3],'{}') if dataset=='observations' else
-                                    ('coinbase',str(i),at,at,'100.000001','0.10','buy','{}'))
+                                    ('coinbase',str(args.trade_id_base+i),at,at,'100.000001','0.10','buy','{}'))
                     marks='(?,?,?,?,?,?)' if dataset=='observations' else '(?,?,?,?,?,?,?,?)'
                     db.executemany('INSERT INTO '+dataset+' VALUES'+marks,rows);db.commit()
+                    result['generated_rows_in_stage']=min(lo+19999,count)
+                    checkpoint('generate_'+dataset)
                 evidence.append(manifest(dataset,1,old_count,
-                    received(1),received(old_count)))
+                    received(1),received(old_count),args.trade_id_base))
             db.execute('CREATE TABLE prediction_context_links(outcome_observation_id INTEGER REFERENCES observations(id))')
             db.execute('INSERT INTO prediction_context_links VALUES(1)');db.commit()
             result.update(rows=counts,eligible_before_protection=eligible,
                           deployed_save_sha256=hashlib.sha256((args.deployed_app/'streaming.py').read_bytes()).hexdigest())
             if args.require_indexed:
-                result['stage']='build_timestamp_guards'
+                checkpoint('build_timestamp_guards')
                 built=time.monotonic();db.execute('BEGIN IMMEDIATE')
                 module.timestamp_guards.create_indexes(db);db.commit()
                 result['guard_build_seconds']=time.monotonic()-built
@@ -219,7 +240,7 @@ def trial(args,number):
                     raise RuntimeError('invalid fixture timestamp in indexed guard')
                 result['timestamp_engine']='indexed_invalid_v1'
             config=module.RetentionConfig(True,48,1000)
-            result['stage']='plan_retention'
+            checkpoint('plan_retention')
             plan=module.plan_retention(db,evidence,config,now)
             expected={'observations':eligible['observations']-1,'stream_events':eligible['stream_events']}
             if any(plan['datasets'][key]['eligible_rows']!=value for key,value in expected.items()):
@@ -234,8 +255,8 @@ def trial(args,number):
                 if worker.poll() is not None or time.monotonic()>=wait_until:raise RuntimeError('collector fixture startup')
                 time.sleep(.01)
             try:
-                result['stage']='retention_apply'
-                result['apply']=module.apply_retention(db,plan,config,confirm=True)
+                checkpoint('retention_apply')
+                result['apply']=module.apply_retention(db,plan,config,confirm=True,progress=checkpoint)
                 result['max_write_lock_seconds']=max(d['max_write_lock_seconds'] for d in result['apply']['datasets'].values())
             except module.RetentionBudgetError as error:
                 result.update(error_type=type(error).__name__,phase=error.phase,
@@ -254,6 +275,8 @@ def trial(args,number):
                 result['failed_operation']=error.retention_failed_operation
                 result['failed_write_seconds']=error.retention_failed_write_seconds
         finally:
+            result['cleanup_pending']=True
+            write_progress_report(args.trial_report,result,failure,start)
             signal.signal(signal.SIGUSR1,signal.SIG_IGN);signal.alarm(0)
             monitor_stop.set();watcher.join(3)
             stop.touch()
@@ -274,6 +297,7 @@ def trial(args,number):
                 pending['production_guard_errors']=list(failure)
                 args.trial_report.write_text(json.dumps(pending))
             if db is not None:db.close()
+            result.pop('cleanup_pending',None)
             result['production_guard_errors']=failure
             result['elapsed_seconds']=time.monotonic()-start
             result['max_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -314,7 +338,8 @@ def supervised_trial(args,number):
         command=[sys.executable,__file__,'--candidate',str(args.candidate),
                  '--deployed-app',str(args.deployed_app),'--work-dir',str(folder),
                  '--observations',str(args.observations),'--stream-events',str(args.stream_events),
-                 '--trial-child',str(number),'--trial-report',str(report)]
+                 '--trial-child',str(number),'--trial-report',str(report),
+                 '--trade-id-base',str(getattr(args,'trade_id_base',0))]
         if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
         if args.check_production:command+=['--check-production']
         if args.require_native:command+=['--require-native']
@@ -346,6 +371,8 @@ def main():
     parser.add_argument('--work-dir',type=Path)
     parser.add_argument('--observations',type=int,default=578343)
     parser.add_argument('--stream-events',type=int,default=1684881)
+    parser.add_argument('--trade-id-base',type=int,choices=(0,1000000000),default=0,
+                        help='Synthetic string IDs: adversarial variable widths (0) or observed ten-digit Coinbase shape')
     parser.add_argument('--check-production',action='store_true')
     parser.add_argument('--require-native',action='store_true',help='Fail closed unless reviewed native artifact is loaded')
     parser.add_argument('--require-indexed',action='store_true',help='Qualify explicit invalid-timestamp guard indexes, without native artifact')

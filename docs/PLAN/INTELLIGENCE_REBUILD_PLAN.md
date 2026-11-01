@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** R5/R6 STOP: indexed proof is fast, cold stream delete still exceeded500ms. Follow-up adds discarded read-only page warming outside writer, ordered frozen TEMP preparation and restored MAIN32MiB/TEMP16MiB budgets;214local backend/51controls pass. Require exact CI and three full indexed trials. No production guards/cleanup; d56b4a7 live feeds/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
+**Next gate:** R5/R6 STOP: latest warmed fixture hit177s supervisor deadline without a complete report. Added atomic unlocked progress reporting and explicit observed ten-digit ID profile;220local backend/51controls pass. Require exact CI and measured Linux qualification; no production guards/cleanup. d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -1372,3 +1372,14 @@ remain required. No production action has been taken in this investigation.
 - Next candidate warms the next bounded approved identity pages using read-only main-PK lookups BEFORE acquiring the writer; every value is discarded. Warming is NOT eligibility/scope proof. Under BEGIN IMMEDIATE, fresh guard definitions/membership, full original manifest counts, references/anchor/eligibility and exact-identity selection/deletion still all run independently. A regression mutates raw data after warming and verifies rollback/no deletion.
 - Prepare only immutable approved identities in TEMP-primary-key order, rather than unordered set insertion. Set private connection targets MAIN32MiB +TEMP16MiB (preserve larger caller settings, restore exact originals on success/failure);512MiB process limit and collector5s busy timeout unchanged. No persistent/app/storage/WAL settings changed. Local196509-row static preparation1.896s ->0.937s; not Linux qualification.
 - Add per-dataset static-preparation and unlocked-warming timing, retaining measured commit/write phases and truthful partial commits. **214backend tests PASS (two Linux-only skipped),51controls PASS**, diff/benchmark PASS. Require exact CI then three complete indexed Linux trials under unchanged1000/100ms/500ms/180s and resource/health limits. No production index/deletion/release/config change; guard installation/other gates remain pending.
+
+
+## Qualification deadline diagnostics and observed ID profile — November 1, 2026
+
+Candidate b5ef255 / exact CI41282322948 PASS ran at06:49:59UTC with663455 observations/1931647 streams. The supervisor stopped it at177.151s (exit-15); no complete child report survived. This is STOP, not evidence that writer/collector gates passed. No subsequent trials ran. Exact-hash staging cleanup confirmed no fixture process/files remained. At07:00:41UTC production was still d56b4a7, same service PIDs/zero restarts, retention/paid AI OFF and guard5120; Coinbase live, Polymarket marked stale around rollover. No production schema, rows, code, settings or services changed.
+
+Added atomic provisional STOP reports throughout fixture preparation and unlocked apply checkpoints, retaining stage, committed counts and phase timings even if cleanup is killed. Reporting never runs under the main writer lock and cannot certify an incomplete pass. Limits remain500ms/180s/512MiB/2GiB.
+
+Read-only first100/last100 stream-ID shape samples at06:57:43UTC were all Coinbase ASCII digits of length10. This is a bounded sample, not a full-table assertion. Added explicit synthetic ten-digit-ID profile; default variable-width adversarial profile remains available and its failures remain recorded. Cardinality, full deletion workload, strict string identities, safety checks and deadlines are unchanged. Future passing results apply only to the tested profile; unfamiliar production scopes require qualification rather than numeric coercion.
+
+Prepared a pure raw-row recovery verifier: bounded authenticated-readback bytes supplied by caller, checksum/size/count/boundary validation, exact Decimal JSON comparison and byte-exact original raw-column reconstruction in memory. Four tests pass. No cloud readback or production recovery manifest has been completed; R7 remains pending. Local220 backend tests pass (two Linux-only skipped),51 controls pass. R5/R6 STOP; production guard installation, cleanup, freshness release and24h soak remain blocked pending evidence.

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** RUNNER READY id26 online/idle/self-hosted+tradebot-private on existing operatorMac; candidate78bcaf0/passCI preserved. Fresh headroom289.086MiB/deadline7781s PASS; userauthorizationretained,rootmanifestabsent/revoked recordnotreused. No helpers/newdispatch; cancelledworkflow not retried. RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,flagsOFF,Phase1.75OPEN,cap/deadlineunchanged.
+**Next gate:** Authorized maintenance78bcaf0 IN_PROGRESS workflow41364015738; writers intentionally paused,owned complete-verification child31617 running at23:53:47Z. No PASS/checkout/smoke yet; await bounded controller/recovery,restorehelpers/revokeauthority. No retry/soak; flagsOFF,cleanup0,cap/deadlineunchanged,Phase1.75OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -2202,3 +2202,22 @@ no productionchange, no known-rolloverdiagnosis, scan,cleanup/WAL/DBcopy orsoak.
 YieldRUNNERREADY; laterexecutionstillrequiresfreshsource/persistence/capacity/time.
 RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,I7/Phase1.75OPEN,deadlineunchanged.
 Report: [ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md](ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md).
+
+## Authorized resumed maintenance IN PROGRESS — not a verification/release PASS
+
+User explicitly resumes one maintenance attempt for unchanged78bcaf0/passCI.
+Runner26 online/idle/labelsPASS.23:49:16freshmetadata headroom287.417908MiB,
+7650.805sbeforeunchangedreview;flagsOFF,guard5120,oldd56b4a7clean/sameservicePIDs.
+Fresh exactrelease/CI/helpers/rootauthority created in newprivatecode-record directory,
+not reused from revokedattempt. Final23:49:56.404554 binding/capacity/timePASS:
+287.417908MiB,7611.267sbeforereview,3477.401sauthorityremaining;runnerstillonlineidle.
+
+Single NEWmanualworkflow41364015738 dispatched23:50:03Z; old41362768630 remainscancelled.
+Existingrunner acceptedjob,checkout/exactrevisionCIcheckPASS,controlledmaintenance
+step running. One23:53:47.406805 boundedphasecheck:API/ensemble/lifecycle intentionally
+inactive/PIDs0,authorityclaimed,ownedfullverificationchild31617 running. No newscan,
+healthpollingwindow/soak/retry. No verificationPASS/checkout/smoke claimed yet.
+Maintenance1800verification/600other/
+10reap/180recovery/2590absoluteinterruption unchanged. This entry isIN_PROGRESS,
+notcompletion; awaitexistingcontrollerresult and restorehelpers/revokeauthority.
+Retention/paidAIOFF,productioncleanup0,capdeadlineunchanged,I7/Phase1.75OPEN.

@@ -145,7 +145,12 @@ def trial(args,number):
                  'marketType':'ASSET_PRICE_MARKET_TYPE_UP_DOWN',
                  'windowStart':(old-timedelta(minutes=15)).isoformat(),'windowEnd':old.isoformat(),
                  'priceToBeat':{'value':'100'}}}
-            collector.save_market(db,collector.normalize(raw),old.isoformat());db.execute('DELETE FROM observations');db.commit()
+            # Multiple market/kind groups prevent the observation covering index
+            # from accidentally supplying global timestamp order in this fixture.
+            for market in range(97):
+                raw['id']=raw['slug']='fixture-'+str(market)
+                collector.save_market(db,collector.normalize(raw),old.isoformat())
+            db.execute('DELETE FROM observations');db.commit()
             counts={'observations':args.observations,'stream_events':args.stream_events}
             eligible={'observations':min(40031,args.observations-1),'stream_events':min(196509,args.stream_events-1)}
             evidence=[]
@@ -155,7 +160,7 @@ def trial(args,number):
                     rows=[]
                     for i in range(lo,min(lo+2000,count+1)):
                         at=((old if i<=old_count else recent)+timedelta(microseconds=i)).isoformat(timespec='microseconds')
-                        rows.append((i,'fixture',at,None,'book','{}') if dataset=='observations' else
+                        rows.append((i,'fixture-'+str(i%97),at,None,('book','bbo','stream_book')[i%3],'{}') if dataset=='observations' else
                                     ('coinbase',str(i),at,at,'100.000001','0.10','buy','{}'))
                     marks='(?,?,?,?,?,?)' if dataset=='observations' else '(?,?,?,?,?,?,?,?)'
                     db.executemany('INSERT INTO '+dataset+' VALUES'+marks,rows);db.commit()

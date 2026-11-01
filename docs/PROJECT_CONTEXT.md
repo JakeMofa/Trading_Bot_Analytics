@@ -85,3 +85,7 @@ R5/R6 is still STOP. First Linux generated trial reached500ms writer limit; revi
 ## Latest bounded diagnosis — timestamp revalidation is the measured blocker
 
 Candidate44cb0ec exact CI passed. One generated Linux trial reached retention apply, then exceeded500ms writer limit at timestamp_revalidation (511.7ms); production health guard recorded zero failures. Follow-up both feeds live and original service PIDs unchanged. Earlier health failure cannot be reconstructed from available historical logs. No production deletion/index/service change; generated fixtures removed. R5/R6 remains STOP pending an evidenced revalidation algorithm change and three passing trials. See execution report/master roadmap. Temporary5120 bridge review deadline unchanged.
+
+## Latest candidate outcome — NOT IN rejected before VM use
+
+The approved indexed-NOT-IN observation check was implemented and passed correctness tests, but representative local generated benchmarks showed~5x slower observation validation than the existing merge (median1.652s vs0.332s). Runtime query restored; rejected query retained only in a reproducible generated-only benchmark. Added partial phase timing and regression coverage;199backend/51controls pass. R5/R6 STOP: no compliant current-transaction timestamp proof yet. No further VM trial/deployment/deletion. Last fresh04:16:29UTC production check live on unchanged d56b4a7/5120 bridge; review deadline unchanged. See master roadmap/execution report.

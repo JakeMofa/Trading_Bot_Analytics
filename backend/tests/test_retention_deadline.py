@@ -2,6 +2,7 @@
 from pathlib import Path
 import sys
 import unittest
+import sqlite3
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
@@ -10,6 +11,37 @@ import test_retention as safety
 
 
 class WriterDeadlineTests(unittest.TestCase):
+    def test_global_guard_detects_null_case_and_new_strings_with_optional_index(self):
+        for bad in (None, '2026-10-01t00:00:00.000000+00:00', '2026-02-30T00:00:00.000000+00:00'):
+            for indexed in (False, True):
+                with self.subTest(bad=bad, indexed=indexed), sqlite3.connect(':memory:') as db:
+                    db.executescript('CREATE TABLE observations(id INTEGER PRIMARY KEY,market_id TEXT,kind TEXT,received_at TEXT COLLATE NOCASE); CREATE TABLE stream_events(received_at TEXT);')
+                    if indexed:
+                        db.execute('CREATE INDEX observations_market_kind_received ON observations(market_id,kind,received_at)')
+                    good='2026-10-01T00:00:00.000000+00:00'
+                    db.execute('INSERT INTO observations VALUES(1,?,?,?)',('m','book',good));db.commit()
+                    cache=retention._validated_timestamp_cache(db)
+                    db.execute('INSERT INTO observations VALUES(2,?,?,?)',('m','book',bad));db.commit()
+                    db.execute('BEGIN IMMEDIATE')
+                    with self.assertRaises(retention.RetentionError):
+                        retention._validate_current_timestamps(db,cache)
+                    db.rollback()
+
+    def test_global_guard_validates_unknown_only_once(self):
+        with sqlite3.connect(':memory:') as db:
+            db.executescript('CREATE TABLE observations(received_at TEXT); CREATE TABLE stream_events(received_at TEXT);')
+            cache=retention._validated_timestamp_cache(db)
+            value='2026-10-01T00:00:00.000000+00:00'
+            db.executemany('INSERT INTO observations VALUES(?)',[(value,)]*3);db.commit()
+            seen=[];db.set_trace_callback(seen.append)
+            db.execute('BEGIN IMMEDIATE')
+            with patch.object(retention,'canonical_time',wraps=retention.canonical_time) as valid:
+                retention._validate_current_timestamps(db,cache)
+                self.assertEqual(valid.call_count,1)
+                retention._validate_current_timestamps(db,cache)
+                self.assertEqual(valid.call_count,1)
+            db.rollback()
+
     def test_case_distinct_malformed_timestamp_cannot_match_validity_cache(self):
         fixture=safety.RetentionTests(methodName='test_verified_old_observations_are_eligible_and_new_are_kept')
         fixture.setUp()
@@ -42,6 +74,7 @@ class WriterDeadlineTests(unittest.TestCase):
                     retention.apply_retention(fixture.db,plan,retention.RetentionConfig(True,48,3),confirm=True)
             self.assertEqual(caught.exception.phase,'commit')
             self.assertEqual(caught.exception.committed_rows,3)
+            self.assertIn('commit',caught.exception.phase_seconds)
             self.assertEqual(before-fixture.count('observations'),3)
             self.assertFalse(fixture.db.in_transaction)
         finally:fixture.tearDown()

@@ -220,7 +220,8 @@ def trial(args,number):
                 result['max_write_lock_seconds']=max(d['max_write_lock_seconds'] for d in result['apply']['datasets'].values())
             except module.RetentionBudgetError as error:
                 result.update(error_type=type(error).__name__,phase=error.phase,
-                              lock_seconds=error.seconds,committed_rows=error.committed_rows)
+                              lock_seconds=error.seconds,committed_rows=error.committed_rows,
+                              phase_seconds=error.phase_seconds)
                 raise
             if db.execute('SELECT 1 FROM observations WHERE id=1').fetchone() is None:raise RuntimeError('protected reference lost')
             if db.execute('PRAGMA foreign_key_check').fetchone() is not None:raise RuntimeError('fixture foreign key violation')

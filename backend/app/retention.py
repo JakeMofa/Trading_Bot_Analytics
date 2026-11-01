@@ -8,6 +8,7 @@ checkpoint is never trusted on its own. Only `observations` and
 forecasting never imports or depends on this module.
 """
 from bisect import bisect_left, bisect_right
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import copy
@@ -611,13 +612,23 @@ def public_report(plan):
 
 
 class RetentionBudgetError(RetentionError):
-    def __init__(self, phase, seconds, committed_rows=0):
+    def __init__(self, phase, seconds, committed_rows=0, phase_seconds=None):
         super().__init__("retention writer budget exceeded; subsequent batches stopped")
         self.phase, self.seconds, self.committed_rows = phase, seconds, committed_rows
+        self.phase_seconds = phase_seconds or {}
 
 
 MAX_WRITE_SECONDS = 0.5
 TARGET_WRITE_SECONDS = 0.25
+
+
+@contextmanager
+def _measure_phase(timings, name):
+    started = time.monotonic()
+    try:
+        yield
+    finally:
+        timings[name] = time.monotonic() - started
 
 
 def apply_retention(db, plan, config, confirm=False):
@@ -646,23 +657,30 @@ def apply_retention(db, plan, config, confirm=False):
             _prepare_pending(db, dataset, approved)
             deleted = batches = 0
             lock_times = []
+            phase_times = []
             while pending:
                 db.execute("BEGIN IMMEDIATE")
                 locked_at = time.monotonic()
                 deadline = locked_at + MAX_WRITE_SECONDS
+                timings = {}
                 db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
                 try:
                     operation = "timestamp_revalidation"
-                    current = _ValidationSnapshot(db, timestamp_cache, dataset, ranges)
+                    with _measure_phase(timings, operation):
+                        current = _ValidationSnapshot(db, timestamp_cache, dataset, ranges)
                     operation = "manifest_coverage"
-                    intervals, _ = _usable_intervals(current, dataset, evidence, plan["_bucket"])
+                    with _measure_phase(timings, operation):
+                        intervals, _ = _usable_intervals(current, dataset, evidence, plan["_bucket"])
                     operation = "protected_identity_selection"
-                    protected = _protected_id(db, dataset)
-                    selected = current.select(dataset, intervals, cutoff, protected, pending, config.batch_size)
+                    with _measure_phase(timings, operation):
+                        protected = _protected_id(db, dataset)
+                        selected = current.select(dataset, intervals, cutoff, protected, pending, config.batch_size)
                     if time.monotonic() >= deadline:
                         raise RetentionBudgetError("validation",time.monotonic()-locked_at)
                     if not selected:
-                        db.commit()
+                        operation = "commit"
+                        with _measure_phase(timings, operation):
+                            db.commit()
                         duration = time.monotonic()-locked_at
                         lock_times.append(duration)
                         if duration > MAX_WRITE_SECONDS:
@@ -671,11 +689,14 @@ def apply_retention(db, plan, config, confirm=False):
                     predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
                     before = db.total_changes
                     operation = "exact_delete"
-                    db.executemany(f"DELETE FROM {dataset} WHERE {predicate}",selected)
+                    with _measure_phase(timings, operation):
+                        db.executemany(f"DELETE FROM {dataset} WHERE {predicate}",selected)
                     count = db.total_changes-before
                     if time.monotonic() >= deadline:
                         raise RetentionBudgetError("delete",time.monotonic()-locked_at)
-                    db.commit()
+                    operation = "commit"
+                    with _measure_phase(timings, operation):
+                        db.commit()
                     duration = time.monotonic()-locked_at
                     lock_times.append(duration)
                     if duration > MAX_WRITE_SECONDS:
@@ -686,9 +707,12 @@ def apply_retention(db, plan, config, confirm=False):
                     db.set_progress_handler(None,0)
                     db.rollback()
                     if isinstance(error,sqlite3.OperationalError) and time.monotonic()>=deadline:
-                        raise RetentionBudgetError(operation+":sqlite_progress",time.monotonic()-locked_at) from None
+                        raise RetentionBudgetError(operation+":sqlite_progress",time.monotonic()-locked_at,phase_seconds=timings) from None
+                    if isinstance(error, RetentionBudgetError):
+                        error.phase_seconds = timings
                     raise
                 finally:
+                    phase_times.append(timings)
                     db.set_progress_handler(None,0)
                 pending.difference_update(selected)
                 # TEMP bookkeeping is outside the main-database writer lock.
@@ -703,7 +727,7 @@ def apply_retention(db, plan, config, confirm=False):
             result["datasets"][dataset] = {
                 "planned_rows":len(approved), "deleted_rows":deleted,
                 "skipped_rows":len(approved)-deleted, "batches":batches,
-                "write_lock_seconds":lock_times,
+                "write_lock_seconds":lock_times, "phase_seconds":phase_times,
                 "max_write_lock_seconds":max(lock_times,default=0.0)}
         return result
     finally:

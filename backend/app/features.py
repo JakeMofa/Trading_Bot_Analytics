@@ -5,9 +5,20 @@ import json
 
 from collector import amount, timestamp, utcnow
 
-VERSION = 1
+# v2 specifies equal-source-time ordering: smallest input key within each source.
+VERSION = 2
 MAX_PRICE_AGE_SECONDS = 30
 MAX_CANDLE_AGE_SECONDS = 60
+
+
+def price_query(table, key):
+    if (table, key) not in (('stream_events', 'event_id'), ('reference_prices', 'id')):
+        raise ValueError('unsupported price source')
+    return f'''SELECT {key}, price, source_time, received_at FROM {table}
+      WHERE source='coinbase' AND source_time IS NOT NULL
+        AND julianday(source_time)<=julianday(?)
+        AND julianday(received_at)<=julianday(?)
+      ORDER BY julianday(source_time) DESC, {key} ASC LIMIT 1'''
 
 
 def initialize(db):
@@ -32,11 +43,7 @@ def _price(db, as_of):
     candidates = []
     for table, source, key in (('stream_events', 'coinbase_stream', 'event_id'),
                                ('reference_prices', 'coinbase_rest', 'id')):
-        row = db.execute(f'''SELECT {key}, price, source_time, received_at FROM {table}
-          WHERE source='coinbase' AND source_time IS NOT NULL
-            AND julianday(source_time)<=julianday(?)
-            AND julianday(received_at)<=julianday(?)
-          ORDER BY julianday(source_time) DESC LIMIT 1''', (cutoff, cutoff)).fetchone()
+        row = db.execute(price_query(table, key), (cutoff, cutoff)).fetchone()
         if row:
             age = (as_of - timestamp(row[2])).total_seconds()
             if age >= 0:

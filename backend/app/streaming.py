@@ -394,32 +394,73 @@ async def rest_loop(path, db, stop, interval, live_state=None):
             if refresh:
                 last_candle_refresh = time.monotonic()
             print('\n'.join(messages),flush=True)
-            started = time.monotonic()
-            print(f'Feature cycle started: {utcnow().isoformat()}', flush=True)
-            cycle = await asyncio.to_thread(feature_cycle, path)
-            print(f'Feature cycle finished: {utcnow().isoformat()} elapsed={time.monotonic()-started:.3f}s', flush=True)
-            if cycle:
-                snapshot, snapshot_id, snapshot_as_of, forecast = cycle
-                market_id, values, quality = snapshot
-                print(f"15m features: market={market_id} remaining={values['seconds_remaining']:.0f}s price={quality['price']['status']} missing={len(quality['missing_features'])}", flush=True)
-                if live_state is not None:
-                    live_state.set_feature_snapshot(
-                        market_id,snapshot_as_of,values,quality,snapshot_id=snapshot_id)
-                    ram_forecast=live_state.baseline_forecast()
-                    if ram_forecast:
-                        live_state.set_forecast(
-                            ram_forecast['model_version'],
-                            ram_forecast['probability_up'],
-                            ram_forecast['abstain_reason'],
-                            as_of=snapshot_as_of)
-                if forecast:
-                    print(f"15m baseline: UP={forecast['probability_up']} abstain={forecast['abstain_reason']}", flush=True)
             # collect_once logs per-source failures; don't declare the feeds healthy here.
             health(db,'rest_supervisor','running','See runs for individual source errors',live_state=live_state)
         except Exception as exc:
             health(db,'rest_supervisor','error',type(exc).__name__,live_state=live_state)
         await pause(stop,interval)
     health(db,'rest_supervisor','stopped',live_state=live_state)
+
+
+FEATURE_INTERVAL_SECONDS = 15
+MAX_PUBLISHED_FEATURE_AGE_SECONDS = 30
+
+
+def publish_feature_cycle(cycle, live_state, now=None):
+    """Publish only fresh results for the still-active market; history stays saved."""
+    if not cycle or live_state is None:
+        return False
+    now = now or utcnow()
+    snapshot, snapshot_id, snapshot_as_of, forecast = cycle
+    market_id, values, quality = snapshot
+    market = live_state.snapshot(now).get('market')
+    age = (now - timestamp(snapshot_as_of)).total_seconds()
+    if (not market or str(market['id']) != str(market_id)
+            or not timestamp(market['start']) <= now < timestamp(market['end'])
+            or not 0 <= age <= MAX_PUBLISHED_FEATURE_AGE_SECONDS):
+        return False
+    if not live_state.set_feature_snapshot(market_id, snapshot_as_of, values, quality,
+                                           snapshot_id=snapshot_id):
+        return False
+    ram_forecast = live_state.baseline_forecast()
+    if ram_forecast:
+        live_state.set_forecast(ram_forecast['model_version'], ram_forecast['probability_up'],
+                                ram_forecast['abstain_reason'], as_of=snapshot_as_of)
+    return True
+
+
+async def feature_loop(path, db, stop, live_state=None, interval=FEATURE_INTERVAL_SECONDS):
+    """One serial feature worker independent of REST discovery; no queued cycles."""
+    while not stop.is_set():
+        try:
+            started = time.monotonic()
+            print(f'Feature cycle started: {utcnow().isoformat()}', flush=True)
+            worker = asyncio.create_task(asyncio.to_thread(feature_cycle, path))
+            try:
+                cycle = await asyncio.shield(worker)
+            except asyncio.CancelledError:
+                # Cancelling an await cannot stop SQLite in a thread. Drain the
+                # sole owner before supervisor teardown, without publishing.
+                while not worker.done():
+                    try:
+                        await asyncio.shield(worker)
+                    except asyncio.CancelledError:
+                        continue  # Repeated supervisor cancellation must not detach SQLite.
+                    except Exception:
+                        break
+                if not worker.cancelled():
+                    worker.exception()  # Retrieve a failed worker without masking cancellation.
+                raise
+            print(f'Feature cycle finished: {utcnow().isoformat()} elapsed={time.monotonic()-started:.3f}s', flush=True)
+            if not stop.is_set():
+                published = publish_feature_cycle(cycle, live_state)
+                if cycle:
+                    print(f'Feature publication: snapshot={cycle[1]} published={published}', flush=True)
+            health(db, 'feature_supervisor', 'running', live_state=live_state)
+        except Exception as exc:
+            health(db, 'feature_supervisor', 'error', type(exc).__name__, live_state=live_state)
+        await pause(stop, interval)
+    health(db, 'feature_supervisor', 'stopped', live_state=live_state)
 
 
 async def run(path, seconds, interval, markets_only=False,
@@ -453,6 +494,7 @@ async def run_locked(path, seconds, interval, markets_only, max_storage_mb, sock
     tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state))]
     if not markets_only:
         tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state)),
+                      asyncio.create_task(feature_loop(path,db,stop,live_state)),
                       asyncio.create_task(coinbase_stream(db,stop,live_state=live_state))))
     tasks.append(asyncio.create_task(polymarket_stream(
         db,stop,key_id,secret,live_state=live_state)))

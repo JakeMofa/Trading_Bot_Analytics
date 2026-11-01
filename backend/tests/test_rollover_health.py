@@ -54,17 +54,19 @@ class BoundarySchedulingTests(unittest.TestCase):
         entered,release=threading.Event(),threading.Event();calls=[]
         before=datetime(2026,11,1,16,14,59,tzinfo=timezone.utc)
         clock=[before];state=LiveState();subscriptions=[]
+        old_subscribed=asyncio.Event();new_subscribed=asyncio.Event()
         def market(name,start):return {'id':name,'slug':name,'start':start.isoformat(),'end':(start+timedelta(minutes=15)).isoformat(),'target_usd':'100'}
         state.set_market(market('old',before-timedelta(minutes=14,seconds=59)))
         def slow(path):
             calls.append(threading.get_ident());entered.set()
-            if not release.wait(3):raise AssertionError('worker not released')
+            if not release.wait(5):raise AssertionError('worker not released')
             return (('old',{},{}),1,before.isoformat(),None)
         class WS:
             async def __aenter__(self):return self
             async def __aexit__(self,*args):pass
             async def send(self,raw):
                 self.slug=json.loads(raw)['subscribe']['marketSlugs'][0];subscriptions.append(self.slug)
+                (new_subscribed if self.slug=='new' else old_subscribed).set()
             async def recv(self):
                 await asyncio.sleep(0)
                 return json.dumps({'marketData':{'marketSlug':self.slug,'transactTime':clock[0].isoformat()}})
@@ -80,12 +82,9 @@ class BoundarySchedulingTests(unittest.TestCase):
                 rest=None
                 try:
                     self.assertTrue(await asyncio.to_thread(entered.wait,1))
-                    for _ in range(10):await asyncio.sleep(0)
-                    self.assertIn('old',subscriptions)
+                    await asyncio.wait_for(old_subscribed.wait(),1)
                     rest=asyncio.create_task(rest_loop('unused',db,stop,30,state))
-                    for _ in range(100):
-                        if 'new' in subscriptions:break
-                        await asyncio.sleep(.001)
+                    await asyncio.wait_for(new_subscribed.wait(),2)
                     self.assertIn('new',subscriptions)
                     self.assertFalse(feature.done());self.assertEqual(len(calls),1)
                     self.assertIsNone(state.snapshot(clock[0])['feature_snapshot'])

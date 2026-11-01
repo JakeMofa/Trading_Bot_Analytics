@@ -1649,3 +1649,12 @@ Details/scope/acceptance: [ROLLOVER_HEALTH_RELEASE_2026-11-01.md](ROLLOVER_HEALT
 blocked independently; no newtrial,cleanup or500msgatechange. Productiondeleted0,
 retention/paidAIOFF,guardunchanged. I7/Phase1.75OPEN,Phase2deferred;
 capreview2026-11-02T01:56:47.671426Z unchanged.
+
+### Exact CI caught boundary-test synchronization race; corrected before promotion
+
+74bfbe6 CI41328799829 FAILED only new mocked boundarysubscription assertion:100ms
+polling did not guarantee REST-thread dispatch on Linux. Replaced polling with
+explicit old/new subscription events and bounded waits while solefeatureworker
+remainsblocked. No application behavior or production action changed. Require
+newexactCI; do not count failedrevision asPASS. First isolatedrelease export169
+backend/6controls PASS locally; it is unpromoted and superseded by corrected tests.

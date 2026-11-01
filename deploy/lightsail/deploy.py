@@ -335,7 +335,7 @@ def deploy(revision, bundle):
 def main():
     # SSH_ORIGINAL_COMMAND is passed as one argument by the forced command entry.
     command = sys.argv[1] if len(sys.argv) == 2 else ''
-    match = re.fullmatch(r'(deploy|verify|deploy-verified) ([0-9a-f]{40})', command)
+    match = re.fullmatch(r'(deploy|verify|deploy-verified|maintenance) ([0-9a-f]{40})', command)
     if not match:
         raise SystemExit('Only deploy, verify or deploy-verified <full SHA> is allowed')
     with open('/run/lock/tradebot-deploy.lock', 'w') as lock:
@@ -354,6 +354,9 @@ def main():
             bundle.chmod(0o644)
             if match[1] == 'deploy':
                 deploy(match[2], bundle)
+            elif match[1]=='maintenance':
+                from maintenance_host import execute
+                execute(sys.modules[__name__],match[2],bundle)
             else:
                 from release_verification import verify, reviewed_deploy
                 (verify if match[1]=='verify' else reviewed_deploy)(sys.modules[__name__],match[2],bundle)

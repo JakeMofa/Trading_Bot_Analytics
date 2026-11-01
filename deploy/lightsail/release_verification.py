@@ -24,7 +24,7 @@ AUTH = Path('/run/tradebot-release-review.json')
 EVIDENCE = Path('/run/tradebot-release-verification.json')
 POLICY = {'work_seconds':1800, 'reap_seconds':10, 'recovery_seconds':180,
           'freshness_seconds':300, 'deploy_seconds':600,
-          'storage_ceiling_mb':5120,'storage_reserve_mb':64}
+          'storage_ceiling_mb':5120,'storage_reserve_mb':512}
 APP_FILES = {'backend/app/api.py','backend/app/streaming.py','backend/app/live_health.py'}
 OLD = 'd56b4a73ad6f1a10ba2bac928087cd5d85c6a42a'
 APP_BLOBS = {'backend/app/api.py':'ab3a2d3747d3551b18d3f21db813e025b2221393',

@@ -11,8 +11,8 @@ on:
         description: Reviewed phase (production review file required on VM)
         required: true
         type: choice
-        default: verify
-        options: [verify, deploy-verified]
+        default: maintenance
+        options: [verify, deploy-verified, maintenance]
   # Validation only. This registers the workflow without changing main.
   push:
     branches: [codex/lightsail-deployment]
@@ -61,6 +61,14 @@ jobs:
           DEPLOY_KEY: ${{ secrets.TRADEBOT_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.TRADEBOT_SSH_KNOWN_HOSTS }}
         run: bash deploy/lightsail/dispatch.sh
+      - name: Upload sanitized release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradebot-${{ inputs.operation }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/release-evidence.jsonl
+          if-no-files-found: warn
+          retention-days: 7
 
   deploy:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/lightsail-deployment' && inputs.operation == 'deploy-verified'
@@ -88,3 +96,46 @@ jobs:
           DEPLOY_KEY: ${{ secrets.TRADEBOT_SSH_KEY }}
           DEPLOY_KNOWN_HOSTS: ${{ secrets.TRADEBOT_SSH_KNOWN_HOSTS }}
         run: bash deploy/lightsail/dispatch.sh
+      - name: Upload sanitized release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradebot-${{ inputs.operation }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/release-evidence.jsonl
+          if-no-files-found: warn
+          retention-days: 7
+
+  maintenance:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/lightsail-deployment' && inputs.operation == 'maintenance'
+    needs: validate
+    # A trusted operator runner reaches the existing SSH /32. No public API/firewall changes.
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require approved branch HEAD and exact-revision CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APPROVED_REVISION: ${{ inputs.revision }}
+        run: python3 deploy/lightsail/verify_ci.py
+      - name: One authorized quiescent maintenance verification and deployment
+        env:
+          APPROVED_REVISION: ${{ inputs.revision }}
+          RELEASE_OPERATION: maintenance
+          DEPLOY_HOST: ${{ secrets.TRADEBOT_SSH_HOST }}
+          DEPLOY_USER: ${{ secrets.TRADEBOT_SSH_USER }}
+          DEPLOY_KEY: ${{ secrets.TRADEBOT_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.TRADEBOT_SSH_KNOWN_HOSTS }}
+        run: bash deploy/lightsail/dispatch.sh
+      - name: Upload sanitized release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tradebot-${{ inputs.operation }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/release-evidence.jsonl
+          if-no-files-found: warn
+          retention-days: 7

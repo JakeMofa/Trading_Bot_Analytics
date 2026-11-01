@@ -831,7 +831,9 @@ def apply_retention(db, plan, config, confirm=False, *, progress=None):
             lock_times = []
             phase_times = []
             observed = {"planned_rows":len(approved), "committed_rows_seen":0,
-                        "completed_batches":0, "write_lock_seconds":lock_times,
+                        "completed_batches":0, "write_lock_seconds":lock_times, # legacy post-BEGIN total; gate unchanged
+                        "transaction_total_seconds":lock_times,
+                        "writer_lock_occupancy_seconds":None,
                         "phase_seconds":phase_times,"static_prepare_seconds":static_prepare_seconds,
                         "unlocked_warm_seconds":[], "unlocked_bookkeeping_seconds":[]}
             result["datasets"][dataset] = observed
@@ -917,11 +919,15 @@ def apply_retention(db, plan, config, confirm=False, *, progress=None):
             result["datasets"][dataset] = {
                 "planned_rows":len(approved), "deleted_rows":deleted,
                 "skipped_rows":len(approved)-deleted, "batches":batches,
-                "write_lock_seconds":lock_times, "phase_seconds":phase_times,
+                "write_lock_seconds":lock_times, # legacy post-BEGIN total; gate unchanged
+                        "transaction_total_seconds":lock_times,
+                        "writer_lock_occupancy_seconds":None, "phase_seconds":phase_times,
                 "static_prepare_seconds":static_prepare_seconds,
                 "unlocked_warm_seconds":observed["unlocked_warm_seconds"],
                 "unlocked_bookkeeping_seconds":observed["unlocked_bookkeeping_seconds"],
-                "max_write_lock_seconds":max(lock_times,default=0.0)}
+                "max_write_lock_seconds":max(lock_times,default=0.0),
+                "max_transaction_total_seconds":max(lock_times,default=0.0),
+                "commit_call_seconds":[t["commit"] for t in phase_times if "commit" in t]}
         return result
     except BaseException as error:
         # Preserve measured completed work even when the overall supervisor fires.

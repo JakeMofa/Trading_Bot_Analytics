@@ -312,6 +312,8 @@ def trial(args,number):
                 except subprocess.TimeoutExpired:worker.kill();worker.wait();result['status']='STOP';result['actor_cleanup']='killed_fixture_actor'
             if report.exists():
                 result['collector']=json.loads(report.read_text())
+                result['collector_interference']=dict(result['collector'])
+                result['writer_lock_occupancy']={'status':'unmeasured','requires':'validated offline syscall trace; never inferred from transaction state'}
                 actor_result=result['collector']
                 if (actor_result['errors'] or actor_result['save_max_seconds']>=1 or actor_result['heartbeat_max_seconds']>=1
                         or actor_result['saves']==0 or actor_result['saves']!=actor_result['ram_updates']):result['status']='STOP'

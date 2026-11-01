@@ -1553,3 +1553,17 @@ Historical overrun attribution remains INCONCLUSIVE; production deleted0,
 retention/paidAI OFF, no journal/config/service changes. I7/Phase1.75 OPEN;
 freshness/rollover,cleanup/capacity,lifecycle/24h soak pending; Phase2 deferred.
 Temporary5120 review2026-11-02T01:56:47.671426Z unchanged; no extension.
+
+## Separate retention diagnostics implemented; one representative investigation pending
+
+Explicit transaction_total_seconds and commit_call_seconds now accompany legacy
+write_lock_seconds fields; legacy500ms total gate unchanged. Actual occupancy is
+None/unmeasured unless validated offline syscall evidence supplies lock bounds.
+Generated collector save/heartbeat/errors are reported independently. Opt-in
+private-generated-only marker instrumentation and offline strace parser reject
+unrelated lock ranges and incomplete syscall exits; neither is installed in normal
+production.91local retention tests PASS(two Linux-only skips); two new parser/privacy
+controls PASS. Prior48-pair trace revalidated. One representative generated-only
+investigation pending; no matrix/settings experiment. Production unchanged,
+retention/paidAI OFF, deleted0; I7/Phase1.75 OPEN, Phase2 deferred, cap deadline
+2026-11-02T01:56:47.671426Z unchanged.

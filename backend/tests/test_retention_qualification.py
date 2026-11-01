@@ -50,6 +50,11 @@ class QualificationHarnessTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
         rows=[json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(len(rows),3)
+        one=subprocess.run([sys.executable,str(backend/'qualify_retention_sql.py'),
+            '--deployed-app',str(backend/'app'),'--candidate',str(backend/'app/retention.py'),
+            '--observations','100','--stream-events','100','--trials','1'],capture_output=True,text=True,timeout=10)
+        self.assertEqual(one.returncode,0,one.stdout+one.stderr)
+        self.assertEqual(len(one.stdout.splitlines()),1)
         for row in rows:
             self.assertEqual(row['status'],'PASS',row)
             self.assertEqual(row['collector']['saves'],row['collector']['ram_updates'])

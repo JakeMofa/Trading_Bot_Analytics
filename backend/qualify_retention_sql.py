@@ -120,7 +120,7 @@ def require_production_health(health,now=None):
 
 
 def trial(args,number):
-    start=time.monotonic();result={'trial':number,'status':'STOP','generated_only':True,
+    start=time.monotonic();result={'trial':number,'started_at':datetime.now(timezone.utc).isoformat(),'status':'STOP','generated_only':True,
                                  'synthetic_archive_claims_not_cloud_verification':True}
     worker=None;db=None;monitor_stop=threading.Event();failure=[]
     def deadline(signum,frame):raise TimeoutError('trial work deadline/resource/production guard')
@@ -257,6 +257,8 @@ def main():
     parser.add_argument('--observations',type=int,default=578343)
     parser.add_argument('--stream-events',type=int,default=1684881)
     parser.add_argument('--check-production',action='store_true')
+    parser.add_argument('--trials',type=int,choices=(1,2,3),default=3,
+                        help='Bound a diagnostic run; qualification still requires three full passes')
     parser.add_argument('--expected-save-sha256')
     parser.add_argument('--collector',type=Path)
     parser.add_argument('--collector-report',type=Path)
@@ -269,7 +271,7 @@ def main():
     if min(args.observations,args.stream_events)<100 or max(args.observations,args.stream_events)>10000000:
         parser.error('generated row counts must be100..10000000')
     resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
-    for number in range(1,4):
+    for number in range(1,args.trials+1):
         result=trial(args,number);print(json.dumps(result),flush=True)
         if result['status']!='PASS':raise SystemExit(1)
 

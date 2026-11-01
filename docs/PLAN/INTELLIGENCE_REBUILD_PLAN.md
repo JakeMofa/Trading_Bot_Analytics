@@ -2128,3 +2128,22 @@ application unchanged. Require exactCI before fresh read-only productionprefligh
 No productioninstall/authority/dispatch/stops/scans yet, no retry or newcontroller.
 Retention BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX; preserve6d9edc3/CI. Capdeadlineunchanged,
 flagsOFF,Phase1.75OPEN; smokeonly ifdeployed,multi-cycle/boundaryNOTPERFORMED.
+
+## Maintenance128 successor frozen; exact CI and metadata preflight PASS
+
+Exact successor78bcaf07baac8ba5f26a6c7dd827c35283511f30 parent93161cf onexisting
+deploymentbranch; only5maintenancepolicy/test/procedure files differ. Entire
+application,normal512MiB verifier and manualworkflow byte-identical93161cf.
+Exact PythonCI41362300963/validation-only41362300987 PASS. Isolated169backend
+PASS,41controlsPASS(one Linuxskip); working105controlsPASS(three Linuxskips).
+No newbranch/worktree;6d9edc3 and old93161cf preserved.
+
+Fresh23:30:00.060612Z read-onlypreflight: main5021351936/WAL34459712bytes,
+headroom298.402283MiB>=128; filesystemfree50127618048bytes;8807.361148s before
+unchangedreviewdeadline>2590s interruption. d56b4a7 clean,servicesactive/restarts0,
+flagsOFF,guard5120,privateAPI,solecollector. Capacity/timePASS forsinglemaintenance
+route only,notretention/capacitycleanup PASS. Initial attempt scheduled between
+marketboundaries; no sourcepoll/soak/retry. Mandatory capacity/time/source checks
+repeat once immediately before helper installation/attempt. No production install,
+authority,dispatch or service stop yet at this entry. Continue authorized attempt
+without repeatapproval; retain fullverification/budget/recovery/code-onlyrollback.

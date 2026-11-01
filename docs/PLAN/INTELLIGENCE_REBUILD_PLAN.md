@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Retention qualification BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX; preserve6d9edc3/pass CI, no more VM trials or rollover diagnosis. Review one-use128MiB reserve for existing quiescent schema-free release; NOTAPPROVED/NOTIMPLEMENTED. Physical5120 cap/current512 reserve remain,capacitySTOP,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Approved one-use maintenance128MiB reserve implemented/tested; freeze exact successor of93161cf and requireCI, then fresh capacity/time preflight for authorized single attempt. Normal512MiB/physical5120 cap unchanged; no retry. RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,6d9edc3 preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -2114,3 +2114,17 @@ physical check before execution,capdeadline unchanged. No bypass/cleanup/DBcopy/
 operation/production change. Explicit approval required before amendment or production.
 Review: [ROLLOVER_STORAGE_AMENDMENT_REVIEW_2026-11-01.md](ROLLOVER_STORAGE_AMENDMENT_REVIEW_2026-11-01.md).
 FlagsOFF,I7/Phase1.75OPEN; acceptance smokeonly,multi-cycle/boundary NOTPERFORMED.
+
+## Approved128MiB maintenance-only reserve implemented/tested
+
+User explicitly approves one-use128MiB amendment and continuation of existing single
+maintenance attempt after exact-CI/freshcapacity/deadline checks. Normal/live512MiB
+policy remains unchanged. Existingmaintenancecontroller128boundary and adapter
+mainfilefeasibility use sameconstant;5120physicalcap/accounting unchanged.105controls
+PASS(three Linux-onlyskips), including127.999STOP,128PASS,511PASS,normal512unchanged,
+unchanged1800/600/10/180/2590budgets and rollback/recovery tests. Compile/diff checked.
+Freeze successor of93161cf with only5maintenancecode/test/procedure files; pinned
+application unchanged. Require exactCI before fresh read-only productionpreflight.
+No productioninstall/authority/dispatch/stops/scans yet, no retry or newcontroller.
+Retention BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX; preserve6d9edc3/CI. Capdeadlineunchanged,
+flagsOFF,Phase1.75OPEN; smokeonly ifdeployed,multi-cycle/boundaryNOTPERFORMED.

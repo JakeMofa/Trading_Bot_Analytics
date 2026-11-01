@@ -7,6 +7,7 @@ import time
 
 WRITERS=('tradebot-api','tradebot-ensemble','tradebot-lifecycle')
 OTHER=600; VERIFY=1800; REAP=10; RECOVERY=180; INTERRUPTION=2590
+MIN_HEADROOM_MIB=128 # user-approved one-use pinned rollover maintenance only
 
 class Stop(RuntimeError):pass
 
@@ -43,7 +44,7 @@ def run(host, clock=time.monotonic):
         work('other',host.require_quiescence)
         allocation=work('other',host.allocation)
         report['allocation']=allocation
-        if allocation['headroom_mib']<512:raise Stop('physical headroom below512MiB')
+        if allocation['headroom_mib']<MIN_HEADROOM_MIB:raise Stop('physical headroom below128MiB')
         binding=work('other',host.identity)
         report['checks']=work('verify',host.verify,REAP)
         if report['checks'].get('status')!='PASS':raise Stop('complete verification failed')

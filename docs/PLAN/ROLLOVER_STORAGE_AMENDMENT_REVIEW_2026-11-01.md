@@ -105,3 +105,12 @@ This breaks the dependency by allowing the collection-continuity fix to be
 released before cleanup qualification; it does not clear retention/capacity. Only
 after the fix and truthful health are independently validated should pending
 qualification resume. No new architecture, controller or experiment is needed.
+
+## User approval and implementation scope
+
+The user explicitly approved this one-use128MiB amendment and continuation of the
+previously authorized single maintenance attempt after tested successor/exact CI,
+fresh capacity and unchanged deadline checks. Normal512MiB route remains binding.
+No repeat approval is required for that scope. Only maintenance reserve constants,
+its precheck, boundary tests and procedure change; physical5120 accounting and all
+budgets remain unchanged. Production execution evidence must be recorded separately.

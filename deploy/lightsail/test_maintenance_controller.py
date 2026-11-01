@@ -36,8 +36,14 @@ class Tests(unittest.TestCase):
                     for unit in m.WRITERS:self.assertIn('start:'+unit,h.actions)
                 self.assertEqual(r['boundary_acceptance'],'NOT_PERFORMED')
     def test_insufficient_capacity_restores_without_checkout(self):
-        h=Host();h.allocation=lambda b:{'headroom_mib':511}
+        h=Host();h.allocation=lambda b:{'headroom_mib':127.999}
         self.assertEqual(m.run(h,lambda:h.t)['status'],'STOP');self.assertNotIn('checkout',h.actions)
+    def test_approved_reserve_boundary_does_not_change_budgets(self):
+        for headroom in (128,511):
+            h=Host();h.allocation=lambda b:{'headroom_mib':headroom}
+            self.assertEqual(m.run(h,lambda:h.t)['status'],'DEPLOYED_SMOKE_TESTED')
+        self.assertEqual((m.VERIFY,m.OTHER,m.REAP,m.RECOVERY,m.INTERRUPTION),(1800,600,10,180,2590))
+
     def test_failed_recovery_does_not_skip_other_services(self):
         h=Host('verify');original=h.start
         def start(u,b):

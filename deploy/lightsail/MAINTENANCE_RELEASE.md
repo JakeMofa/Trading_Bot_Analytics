@@ -14,7 +14,7 @@ this conservatively shortens possible SQL work, never extends the30minute ceilin
 
 Operator preflight BEFORE helper install: exact CI/runtime, clean tracked checkout,
 private binding, sole collector, flagsOFF, services active, cap5120, free disk and
-cap deadline; main-file-only maximum possible headroom must still be>=512MiB.
+cap deadline; main-file-only maximum possible headroom must still be>=128MiB.
 A failure here leaves production untouched. Do not proceed if the paused physical
 headroom can no longer possibly pass; do not wait for a more favorable sample.
 
@@ -28,7 +28,7 @@ old=d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a, exact ci_run, expires_at no more t
 one hour away and before the cap deadline; helpers maps the five filenames to
 installed SHA256; original_helpers maps each to null or {path,sha256,mode}.
 Policy must equal {verify:1800,other:600,reap:10,recovery:180,interruption:2590,
-headroom_mib:512,ceiling_mib:5120}. No credential values enter reports or GitHub.
+headroom_mib:128,ceiling_mib:5120}. No credential values enter reports or GitHub.
 
 Use existing manual deploy-tradebot.yml, existing deployment branch/private runner,
 revision=qualified candidate, operation=maintenance. No SSH/firewall/infra changes.
@@ -37,7 +37,7 @@ consumed before monitor/writer stops. Record monitor states; pause active timer
 and oneshot. Record active writer states and stop API, ensemble, lifecycle. Any
 partial stop enters recovery. Refuse all unexplained DB/WAL/SHM descriptors; signal
 none. Allow only SQLite's ordinary last-connection close. Measure real physical
-allocation; <512MiB headroom means restore services and STOP, not another attempt.
+allocation; <128MiB headroom means restore services and STOP, not another attempt.
 
 Run complete quick/FK in one owned read-only child, reaping on timeout/interruption.
 Keep all writers stopped; bind release/runtime/helper/database/schema/configuration
@@ -60,3 +60,8 @@ real-boundary acceptance NOT PERFORMED. Record receipt gaps, not claimed backfil
 No retention/paidAI, deletion, copy/snapshot, VACUUM, manualWAL, index, guard increase
 or Phase2. Deadline2026-11-02T01:56:47.671426Z unchanged; preflight requires enough
 remaining time for the absolute interruption ceiling. Phase1.75/I7 OPEN.
+
+User-approved amendment2026-11-01:128MiB applies only to this one-use quiescent
+route and pinned rollover application. Normal/live512MiB policy unchanged;5120MiB
+ceiling,physical accounting,verification/recovery/interruption limits unchanged.
+Fresh capacity/deadline failures stop before installation/authority/dispatch.

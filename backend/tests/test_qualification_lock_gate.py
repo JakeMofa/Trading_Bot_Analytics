@@ -44,6 +44,24 @@ class Tests(unittest.TestCase):
         g.consume('2.200000 fcntl(5<'+str(Path('/tmp/generated-retention-test/fixture.db-shm').resolve())+'>, F_SETLK, {l_type=F_UNLCK, l_whence=SEEK_SET, l_start=120, l_len=1} <unfinished ...>')
         g.consume('2.200020 <... fcntl resumed>) = 0 <0.000010>');g.consume(lines[-1])
         self.assertAlmostEqual(g.rows[0]['occupancy_upper_seconds'],.199022)
+    def test_writev_marker_and_preparation_marker_suppression(self):
+        from unittest.mock import patch
+        import os,sqlite3
+        spec=importlib.util.spec_from_file_location('phase_markers',Path(__file__).resolve().parents[1]/'diagnostics/sitecustomize.py')
+        module=importlib.util.module_from_spec(spec)
+        with patch.dict(os.environ,{},clear=True):spec.loader.exec_module(module)
+        db=sqlite3.connect(':memory:',factory=module.DiagnosticConnection);db._generated_trace=True
+        with patch.dict(os.environ,{},clear=True),patch.object(module.os,'writev') as write:
+            db.execute('BEGIN IMMEDIATE');db.commit();write.assert_not_called()
+            os.environ['TRADEBOT_LOCK_PHASE']='1'
+            db.execute('BEGIN IMMEDIATE');db.commit();self.assertEqual(write.call_count,4)
+        db.close()
+        g=self.gate()
+        for line in self.lines():
+            if 'LOCKDIAG' in line:
+                line=line.replace('write(2<pipe:[1]>, ','writev(2<pipe:[1]>, [{iov_base=').replace(', 120) = 120',', iov_len=120}], 1) = 120')
+            g.consume(line)
+        self.assertEqual(len(g.rows),1)
     def test_total_gate_and_production_constant_are_separate(self):
         g=self.gate();lines=self.lines()
         lines[0]=self.markers('begin_entry',1.7)
@@ -81,3 +99,20 @@ class Tests(unittest.TestCase):
             self.assertEqual(report['apply']['datasets']['stream_events']['deleted_rows'],99)
             self.assertEqual(report['lock_evidence']['transactions'],2)
             self.assertLessEqual(report['lock_evidence']['max_occupancy_upper_seconds'],.5)
+            self.assertGreater(report['preparation_seconds'],0)
+            self.assertGreaterEqual(report['elapsed_seconds'],report['preparation_seconds'])
+            self.assertLess(report['trace_bytes'],1024**2)
+            text=''.join(p.read_text() for p in Path(report['trace_evidence_directory']).iterdir())
+            self.assertIn('trace_ready',text)
+            self.assertNotIn('pwrite64(',text)
+            self.assertNotIn(' write(',text)
+            self.assertEqual(report['trace_phase']['syscalls'],'fcntl,writev,fdatasync,fsync')
+            # The very first main-thread marker is the attach barrier, never
+            # a preparation commit. Every retention batch has lock evidence.
+            markers=[l for l in text.splitlines() if 'LOCKDIAG' in l]
+            self.assertIn('trace_ready',markers[0])
+            self.assertEqual(sum('begin_entry' in l for l in markers),2)
+            self.assertEqual(sum('commit_return' in l for l in markers),2)
+            from datetime import datetime
+            earliest=min(float(l.split()[0]) for l in text.splitlines() if l[:1].isdigit())
+            self.assertGreaterEqual(earliest,datetime.fromisoformat(report['started_at']).timestamp()+report['preparation_seconds']-.01)

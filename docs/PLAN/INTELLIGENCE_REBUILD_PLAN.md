@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** SSH restored; exact a18ce3c generated trial1 FAIL170s preparation deadline,retention performance NOTPROVEN (0 cleanup rows,no retention/collector measurements). Trials2/3 not run. Review retention-phase-only tracing before any new trial; no retry authorized here. Production500ms unchanged,capacitySTOP separate,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Scoped generated-only tracing after untraced preparation; original deadlines/workload/gates unchanged. Tiny Linux exact-CI required before one representative trial; continue2/3 only if firstPASS. Production500ms unchanged,capacitySTOP separate,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -2022,3 +2022,26 @@ capdeadline unchanged,I7/Phase1.75OPEN; boundary/multi-cycle NOTPERFORMED.
 One nextaction: review retention-phase-only tracing, capturing before firstBEGIN
 and everybatch with unchanged180s/FULL/resource/gates. Proposed only; no newtrial.
 Detailed evidence and trace hashes: [RETENTION_SPLIT_QUALIFICATION_2026-11-01.md](RETENTION_SPLIT_QUALIFICATION_2026-11-01.md).
+
+## Generated trace scope correction: tested locally, Linux CI pending
+
+User authorizes phase-scoped tracing, tiny test then exact CI and representative
+fail-fast qualification. Preparation now executes untraced inside original170s
+work alarm/180s whole-trial deadline; clocks not reset. Before collector start,
+private generated child authorizes only its exact tracerPID via LinuxPR_SET_PTRACER
+and requires actual attachment plus captured trace_ready barrier. No general
+ptrace permission, package, native extension, production modification or service.
+Only fcntl,fdatasync,fsync,writev(marker) traced; no write/pwrite64 payload capture.
+Trace hard per-file32MiB limit plus aggregate32MiB monitor, included in existing
+2GiB accounting. All previous workload,FULL,default1000 checkpoint,500/1000ms split
+limits and collector save-before-RAM ordering preserved. Each batch requires
+complete validated shm WRITE syscalls; dead tracer before nextbatch stops.
+Preparation/stage durations recorded even if deadline interrupts before retention.
+
+Local46 core retention tests PASS;7 harness tests PASS(two Linux skips),7 lock/phase
+tests PASS(one Linux strace skip). Linux tiny conformance test now asserts no
+preparation trace, trace-ready before measurement,2complete transactions, no payload
+write syscalls, bounded trace and elapsed includes preparation. Exact CI pending;
+no representative run before success. Previous deadline failure remainsFAIL and
+retentionperformanceNOTPROVEN. Productionunchanged,capacitySTOP,flagsOFF,93161cf
+preserved,capdeadline unchanged,I7/Phase1.75OPEN.

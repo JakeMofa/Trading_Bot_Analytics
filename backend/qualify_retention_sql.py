@@ -25,6 +25,7 @@ import time
 import urllib.request
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from qualification_lock_gate import LockGate, TraceUnavailable, LockGateFailure
+from qualification_trace_phase import TracePhase, TRACE_LIMIT_BYTES
 
 
 def deployed(path):
@@ -150,9 +151,9 @@ def write_progress_report(path, result, failure, started):
     temporary.replace(path)
 
 
-def tracer_metrics():
+def tracer_metrics(pid=None):
     try:
-        p=Path('/proc')/str(os.getppid())
+        p=Path('/proc')/str(pid or os.getppid())
         if p.joinpath('comm').read_text().strip()!='strace':return {'status':'unavailable'}
         fields=p.joinpath('stat').read_text().rsplit(')',1)[1].split()
         return {'cpu_seconds':(int(fields[11])+int(fields[12]))/os.sysconf('SC_CLK_TCK'),
@@ -184,8 +185,17 @@ def trial(args,number):
                                  'synthetic_archive_claims_not_cloud_verification':True,
                                  'trade_id_base':args.trade_id_base,'batch_size':getattr(args,'batch_size',1000)}
     lock_gate=None;split=bool(getattr(args,"split_gate",False))
+    tracer=None
     worker=None;db=None;monitor_stop=threading.Event();failure=[]
+    stage_at=start
     def checkpoint(stage, dataset=None, partial=None):
+        nonlocal stage_at
+        now_at=time.monotonic()
+        prior=result.get('stage')
+        if prior:result.setdefault('stage_seconds',{})[prior]=result.setdefault('stage_seconds',{}).get(prior,0)+now_at-stage_at
+        stage_at=now_at
+        if tracer is not None and stage=='before_batch' and tracer.process.poll() is not None:
+            raise TraceUnavailable('tracer exited before next batch')
         if lock_gate is not None and stage=='before_bookkeeping':
             try:lock_gate.batch(sum(d.get('completed_batches',d.get('batches',0)) for d in partial['datasets'].values()))
             finally:result['lock_evidence']=lock_gate.summary()
@@ -223,6 +233,9 @@ def trial(args,number):
                 context={'reason':'fixture_disk_check'}
                 try:
                     size=disk_bytes();result['peak_fixture_disk_bytes']=max(size,result.get('peak_fixture_disk_bytes',0))
+                    if split:
+                        trace_size=sum(p.stat().st_size for p in Path(args.work_dir).glob('syscall.*') if p.is_file())
+                        if trace_size>=TRACE_LIMIT_BYTES:raise ProductionGuardStop('trace_output_limit',{'bytes':trace_size})
                     if size>2*1024**3-4*1024**2:raise ProductionGuardStop('fixture_disk_limit',{'bytes':size})
                     if args.check_production and time.monotonic()>=next_probe:
                         context={'reason':'production_health_request_failed'}
@@ -320,6 +333,11 @@ def trial(args,number):
                 raise RuntimeError('generated eligibility differs from required full workload')
             result['expected_eligible_rows']=expected
             result['preparation_seconds']=time.monotonic()-start
+            if split:
+                checkpoint('attach_generated_trace')
+                tracer=TracePhase(args.trace_prefix,path)
+                result['trace_phase']=tracer.start(db)
+                result['trace_phase']['preparation_seconds']=result['preparation_seconds']
             worker=subprocess.Popen([sys.executable,__file__,'--collector',str(path),
                                      '--collector-report',str(report),'--deployed-app',str(args.deployed_app)],
                                     stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -350,6 +368,7 @@ def trial(args,number):
             result['status']='PASS'
         except BaseException as error:
             result.update(status='STOP',error_type=type(error).__name__)
+            if 'preparation_seconds' not in result:result['preparation_incomplete_seconds']=time.monotonic()-start
             if split:result['qualification_result']='NOT_PROVEN' if isinstance(error,TraceUnavailable) else 'FAIL'
             if lock_gate is not None:
                 try:lock_gate.drain()
@@ -360,6 +379,7 @@ def trial(args,number):
                 result['failed_operation']=error.retention_failed_operation
                 result['failed_write_seconds']=error.retention_failed_write_seconds
         finally:
+            checkpoint('cleanup')
             result['cleanup_pending']=True
             write_progress_report(args.trial_report,result,failure,start)
             signal.signal(signal.SIGUSR1,signal.SIG_IGN);signal.alarm(0)
@@ -387,7 +407,12 @@ def trial(args,number):
             result.pop('cleanup_pending',None)
             result['production_guard_errors']=failure
             result['elapsed_seconds']=time.monotonic()-start
-            if split:result['tracer_process']=tracer_metrics()
+            if split and tracer is not None:
+                result['tracer_process']=tracer_metrics(tracer.process.pid if tracer.process else None)
+                try:tracer.stop()
+                except TraceUnavailable:
+                    result['status']='STOP';result['qualification_result']='NOT_PROVEN';result['trace_detach']='failed'
+            result['elapsed_seconds']=time.monotonic()-start
             result['max_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             if failure or result['elapsed_seconds']>180:result['status']='STOP'
             for sig,handler in previous.items():signal.signal(sig,handler)
@@ -433,6 +458,7 @@ def supervised_trial(args,number):
                  '--batch-size',str(getattr(args,'batch_size',1000)),
                  '--fixture-autocheckpoint-pages',str(getattr(args,'fixture_autocheckpoint_pages',0))]
         env=None
+        result={'trial':number,'status':'STOP','qualification_result':'NOT_PROVEN'}
         if getattr(args,'split_gate',False):
             if not shutil.which('strace'):
                 result={'trial':number,'status':'STOP','qualification_result':'NOT_PROVEN','error_type':'StraceUnavailable'}
@@ -440,7 +466,7 @@ def supervised_trial(args,number):
             trace=folder/'syscall'
             command+=['--split-gate','--trace-prefix',str(trace)]
             env=dict(os.environ,PYTHONPATH=str(Path(__file__).parent/'diagnostics'),TRADEBOT_GENERATED_LOCK_TRACE='1',PYTHONDONTWRITEBYTECODE='1')
-            command=['strace','-ff','-ttt','-T','-yy','-s','256','-e','trace=fcntl,write,pwrite64,fdatasync,fsync','-o',str(trace),*command]
+            # Child prepares untraced, then attaches its exact permitted tracer PID.
         if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
         if args.check_production:command+=['--check-production']
         if args.require_native:command+=['--require-native']

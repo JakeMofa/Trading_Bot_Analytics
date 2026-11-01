@@ -55,7 +55,7 @@ class LockGate:
         end=max(start+Decimal(duration[1]),observed)
         if not self.enabled:return
         if 'LOCKDIAG' in body:
-            match=re.search(r'write\(2.*?, ("(?:[^"\\]|\\.)*")',body)
+            match=re.search(r'(?:write\(2.*?, |writev\(2.*?iov_base=)("(?:[^"\\]|\\.)*")',body)
             if not match:raise TraceUnavailable('truncated marker')
             value=json.loads(ast.literal_eval(match[1]).split('LOCKDIAG ',1)[1])
             if value['pid']!=self.pid:raise TraceUnavailable('wrong marker PID')

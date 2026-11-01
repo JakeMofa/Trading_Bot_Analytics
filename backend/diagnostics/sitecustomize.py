@@ -3,8 +3,8 @@ import sqlite3,os,time,json
 _original_connect=sqlite3.connect
 class DiagnosticConnection(sqlite3.Connection):
  def _mark(self,event):
-  if getattr(self,"_generated_trace",False):
-   os.write(2,("LOCKDIAG "+json.dumps({"pid":os.getpid(),"event":event,"mono_ns":time.monotonic_ns(),"real_ns":time.time_ns()})+"\n").encode())
+  if getattr(self,"_generated_trace",False) and os.environ.get("TRADEBOT_LOCK_PHASE")=="1":
+   os.writev(2,[("LOCKDIAG "+json.dumps({"pid":os.getpid(),"event":event,"mono_ns":time.monotonic_ns(),"real_ns":time.time_ns()})+"\n").encode()])
  def commit(self):
   self._mark("commit_entry")
   try:return super().commit()

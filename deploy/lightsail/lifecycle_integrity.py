@@ -12,6 +12,7 @@ import hashlib
 import os
 import shutil
 import subprocess
+import signal
 from pathlib import Path
 import sqlite3
 import time
@@ -94,15 +95,34 @@ def run_gate(host,clock=time.monotonic):
     return report
 
 
+def bounded_child(command,seconds):
+    """Terminate/reap the read-only child group on deadline OR parent signal."""
+    child=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                           text=True,start_new_session=True)
+    try:
+        out,err=child.communicate(timeout=seconds)
+        return child.returncode,out,err,False
+    except BaseException as error:
+        try:os.killpg(child.pid,signal.SIGTERM)
+        except ProcessLookupError:pass
+        try:out,err=child.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            try:os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            try:out,err=child.communicate(timeout=1)
+            except subprocess.TimeoutExpired:raise IntegrityStop('integrity child unreaped; manual recovery required') from None
+        if isinstance(error,subprocess.TimeoutExpired):return child.returncode,out,err,True
+        raise
+
+
 class LinuxHost:
     """Pinned operator adapter: credential-free reports, read-only SQLite child."""
     ROOT=Path('/opt/tradebot')
     REVISION='d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a'
     def __init__(self,qualification,report):
         import i7_capacity_bridge
-        import qualify_retention_sql
         self.bridge=i7_capacity_bridge.Host()
-        self.bounded_process=qualify_retention_sql.bounded_process
+        self.bounded_process=bounded_child
         self.qualification=qualification;self.report=Path(report)
         self.before=None;self.config=None;self.raw_baseline={}
     class Budget:
@@ -192,7 +212,7 @@ class LinuxHost:
         work=seconds-2
         args=['sudo','-u','tradebot',str(self.ROOT/'.venv/bin/python'),'-B',str(Path(__file__).resolve()),
               '--check',check,'--database',str(self.ROOT/'data/btc_intelligence.db'),'--seconds',str(work)]
-        code,out,err,timed_out=self.bounded_process(args,work_seconds=work)
+        code,out,err,timed_out=self.bounded_process(args,work)
         if code or timed_out:raise IntegrityStop('bounded integrity child failed')
         return json.loads(out)
     def verify_recovery(self,seconds):
@@ -253,7 +273,12 @@ def main():
                 host.preflight(30);result={'status':'PASS','mode':'preflight_only','services_untouched':True}
             except BaseException as error:result={'status':'STOP','mode':'preflight_only','failure_type':type(error).__name__}
             host.save(result)
-        else:result=run_gate(host)
+        else:
+            def interrupted(signum,frame):raise TimeoutError('operator interrupted')
+            previous={sig:signal.signal(sig,interrupted) for sig in (signal.SIGTERM,signal.SIGINT)}
+            try:result=run_gate(host)
+            finally:
+                for sig,handler in previous.items():signal.signal(sig,handler)
         raise SystemExit(0 if result['status']=='PASS' else 1)
     if args.check is None:
         print(json.dumps({'mode':'plan_only','work_seconds':WORK_SECONDS,

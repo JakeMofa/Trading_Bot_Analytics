@@ -1,6 +1,8 @@
 import importlib.util
 from pathlib import Path
 import sqlite3
+import sys
+import time
 import tempfile
 import unittest
 
@@ -23,6 +25,32 @@ class Host:
 
 
 class IntegrityGateTests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='linux','Linux process group termination')
+    def test_bounded_child_kills_and_reaps_sigterm_ignoring_process(self):
+        started=time.monotonic()
+        code,out,err,timed_out=module.bounded_child([sys.executable,'-c',
+            'import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);print("ready",flush=True);time.sleep(60)'],.5)
+        self.assertTrue(timed_out);self.assertLess(code,0);self.assertIn('ready',out)
+        self.assertLess(time.monotonic()-started,3)
+
+    @unittest.skipUnless(sys.platform=='linux','Linux parent interruption')
+    def test_parent_interruption_reaps_child_before_recovery(self):
+        import signal
+        from unittest.mock import patch
+        children=[];original=module.subprocess.Popen
+        def spawn(*args,**kwargs):
+            child=original(*args,**kwargs);children.append(child);return child
+        def interrupt(signum,frame):raise RuntimeError('interrupted test parent')
+        previous=signal.signal(signal.SIGALRM,interrupt)
+        try:
+            signal.setitimer(signal.ITIMER_REAL,.2)
+            with patch.object(module.subprocess,'Popen',side_effect=spawn):
+                with self.assertRaises(RuntimeError):
+                    module.bounded_child([sys.executable,'-c','import time;time.sleep(60)'],10)
+            self.assertIsNotNone(children[0].poll())
+        finally:
+            signal.setitimer(signal.ITIMER_REAL,0);signal.signal(signal.SIGALRM,previous)
+
     def test_full_pass_restores_previous_writers(self):
         host=Host();result=module.run_gate(host)
         self.assertEqual(result['status'],'PASS')

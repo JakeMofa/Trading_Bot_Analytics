@@ -1405,3 +1405,8 @@ R5 performance and R6 collector coexistence PASS for this tested profile. R0–R
 Exact-hash generated staging cleanup verified.07:18:46UTC production remained d56b4a7/same PIDs/zero restarts, bothfeeds live, retention/paidAI OFF,guard5120, DB4469121024/WAL18366992 bytes. This is a recorded sample, not an ongoing-health guarantee. Bridge review due2026-11-02T01:56:47.671426Z remains unchanged.
 
 Prepared the next controls: TEMP exact-full-row recovery guard blocks mutation/unapproved deletes transactionally; its indexes avoid repeating the pending-scan mistake. Prepared explicit operator-only read-only quick/FK audit with30min work+3min recovery reserve, independent bounded/reaped SQLite child, partial-stop recovery, restoration of every stopped writer even after a restart failure, unchanged configuration and measured raw receive gaps. Default is plan-only; no audit/service stop/index installation has run.222local backend/57controls PASS (two Linux-only backend skips); require exact new helper CI, hash-pinned export and safe preflight before supervised production maintenance. No consumed I7 exception reuse.
+
+
+### Integrity-child interruption containment
+
+6201867 exact CI41284484947 PASS (222 backend plus57controls on Linux). Before production use, the audit helper now owns its read-only child process group directly: timeout or parent interruption terminates/kills/reaps it before service recovery. Added real Linux kill/reap and parent-interruption regressions. Local59controls pass with two Linux-only skips; backend unchanged. Requires new exact helper CI. No production maintenance has run; no live process or service was signalled by these generated/unit tests.

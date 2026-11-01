@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
 import sys
@@ -26,6 +27,23 @@ class FastAPITests(unittest.TestCase):
             self.assertIsNone(body['collector']['error'])
             self.assertEqual(body['status'], 'degraded')
 
+    def test_health_keeps_http_200_and_explains_expired_market(self):
+        state = self.populated_state()
+        app = create_app(state, start_collectors=False)
+        with TestClient(app) as client:
+            healthy = client.get('/health').json()
+            self.assertEqual(healthy['status'], 'ok')
+            self.assertEqual(healthy['diagnostic_reasons'], [])
+            state.set_market({'id':'m','slug':'btc-market',
+                'start':'2026-01-01T00:00:00Z','end':'2026-01-01T00:15:00Z',
+                'target_usd':'100'})
+            response = client.get('/health')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()['status'], 'degraded')
+            self.assertIn('market_expired', response.json()['diagnostic_reasons'])
+            self.assertIn('feeds', response.json())
+            self.assertIn('missing_data', response.json())
+
     def test_storage_guard_limit_degrades_health_even_with_populated_ram(self):
         state = self.populated_state()
         state.update_feed_health('storage_guard', 'limit_reached')
@@ -35,6 +53,7 @@ class FastAPITests(unittest.TestCase):
 
     def populated_state(self):
         state = LiveState()
+        current = datetime.now(timezone.utc).isoformat()
         state.set_market({
             'id': 'm',
             'slug': 'btc-market',
@@ -50,25 +69,26 @@ class FastAPITests(unittest.TestCase):
             'price': '101',
             'last_size': '0.1',
             'side': 'buy',
-            'time': '2026-10-21T04:10:00Z',
-        }, '2026-10-21T04:10:00.100000Z')
+            'time': current,
+        }, current)
         state.update_polymarket({
             'marketData': {
                 'marketSlug': 'btc-market',
+                'transactTime': current,
                 'longQuote': {'value': '0.55'},
                 'shortQuote': {'value': '0.45'},
             }
-        }, '2026-10-21T04:10:00.200000Z')
+        }, current)
         state.set_feature_snapshot(
-            'm', '2026-10-21T04:10:00Z',
+            'm', current,
             {'realized_volatility_15m': '0.002', 'target_usd': '100'},
             {'price': {'status': 'fresh'}, 'candle_status': 'fresh'})
         state.set_forecast(
-            'gaussian_distance_v1', 0.7, as_of='2026-10-21T04:10:00Z')
+            'gaussian_distance_v1', 0.7, as_of=current)
         state.update_feed_health(
             'coinbase_stream', 'live',
-            updated_at='2026-10-21T04:10:01Z',
-            last_data_at='2026-10-21T04:10:00Z')
+            updated_at=current,
+            last_data_at=current)
         return state
 
     def test_state_forecast_models_and_health_are_served_from_shared_ram(self):

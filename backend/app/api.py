@@ -13,6 +13,7 @@ from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
 
 from cloud_lifecycle import read_lifecycle_status
 from live_state import LiveState
+from live_health import degradation_reasons
 from streaming import DEFAULT_MAX_STORAGE_MB, run as run_collectors
 from system_monitoring import read_history, host_status, read_ensemble, elapsed
 
@@ -57,15 +58,7 @@ def _collector_status(task):
 
 
 def _live_health(snapshot, collector):
-    # A guard-stopped task can exit cleanly with old RAM still populated.
-    # Explicit read-only apps (collectors disabled) keep their existing behavior.
-    if collector.get('enabled') and not collector.get('running'):
-        return 'degraded'
-    if snapshot.get('feeds', {}).get('storage_guard', {}).get('status') == 'limit_reached':
-        return 'degraded'
-    required_missing = [item for item in snapshot.get('missing_data', [])
-                        if item not in ('trade_flow', 'btc_order_book')]
-    return 'ok' if not required_missing and collector.get('error') is None else 'degraded'
+    return 'degraded' if degradation_reasons(snapshot, collector) else 'ok'
 
 
 def _env_enabled(name, default="false"):
@@ -255,6 +248,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                            'reconnects_cumulative': feed.get('reconnects')}
         collector = _collector_status(app.state.collector_task)
         result.update({'api': 'responding', 'live_engine_status': _live_health(snapshot, collector),
+                       'diagnostic_reasons': degradation_reasons(snapshot, collector),
                        'collector': collector, 'feeds': feeds,
                        'openai_enabled': _env_enabled('ENABLE_OPENAI_ANALYST'),
                        'retention_enabled': _env_enabled('ENABLE_LOCAL_RETENTION'),
@@ -294,10 +288,12 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     async def health():
         snapshot = state.snapshot()
         collector = _collector_status(app.state.collector_task)
-        status = _live_health(snapshot, collector)
         cloud = await asyncio.to_thread(_read_cloud_status, resolved_db_path)
+        reasons = degradation_reasons(snapshot, collector)
+        status = 'degraded' if reasons else 'ok'
         return {
             'status': status,
+            'diagnostic_reasons': reasons,
             'collector': collector,
             'feeds': snapshot.get('feeds', {}),
             'missing_data': snapshot.get('missing_data', []),

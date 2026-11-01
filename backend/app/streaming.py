@@ -173,9 +173,9 @@ def hydrate_live_state(db, live_state, now=None):
           (market_id, cutoff)).fetchone()
         if row:
             try:
-                live_state.set_feature_snapshot(
-                    market_id,row[1],json.loads(row[2]),json.loads(row[3]),
-                    snapshot_id=row[0])
+                publish_feature_cycle(
+                    ((market_id,json.loads(row[2]),json.loads(row[3])),
+                     row[0],row[1],None),live_state,now)
             except (TypeError, ValueError, json.JSONDecodeError):
                 pass
 
@@ -414,7 +414,10 @@ def publish_feature_cycle(cycle, live_state, now=None):
     snapshot, snapshot_id, snapshot_as_of, forecast = cycle
     market_id, values, quality = snapshot
     market = live_state.snapshot(now).get('market')
-    age = (now - timestamp(snapshot_as_of)).total_seconds()
+    try:
+        age = (now - timestamp(snapshot_as_of)).total_seconds()
+    except (TypeError, ValueError, AttributeError):
+        return False
     if (not market or str(market['id']) != str(market_id)
             or not timestamp(market['start']) <= now < timestamp(market['end'])
             or not 0 <= age <= MAX_PUBLISHED_FEATURE_AGE_SECONDS):

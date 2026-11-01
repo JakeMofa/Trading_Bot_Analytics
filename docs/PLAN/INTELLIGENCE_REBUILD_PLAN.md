@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Bounded production evidence identifies delayed Polymarket rollover: rest_loop awaits185.921s feature worker before next discovery. Reuse tested independent discovery/feature scheduling from a6958f6; review source-time/expired-market health correction. No production changes authorized in this diagnosis. Retention commit issue remains separately OPEN;500ms gate unchanged, deleted0, retention/paidAI OFF. I7/Phase1.75 OPEN; Phase2 deferred; cap review2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Rollover/truthful-health implementation tested; exact working/candidate CI and scoped candidate preparation pending. Production release BLOCKED: complete quick/FK verification cannot safely fit900sworkflow with recovery; consumed I7 exception forbidden. Review bounded verification/release compatibility once before production. No deployment/acceptance yet; retention trials deferred,500ms gate unchanged,deleted0,retention/paidAI OFF. I7/Phase1.75 OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1618,3 +1618,34 @@ Detailed timestamps,evidencebounds,limits and proposedreuse:
 EvidenceconsistencychecksPASS; productionunchanged,cleanup0,retention/paidAIOFF.
 Retentioncommitissue/500msgate remainseparateandunchanged. I7/Phase1.75OPEN;
 Phase2deferred; capreview2026-11-02T01:56:47.671426Z unchanged.
+
+## Independent rollover and truthful health implemented; release controls BLOCK production
+
+Working implementation reuses independent REST/one serial worker/publication guards
+froma6958f6; no price-query/version/index/retention changes in this milestone.
+New pure aggregate-health reasons check expired/missing market, quote identity,
+source timestamp validity/30s freshness/5s future tolerance, features and collector.
+Replayed old events with fresh receipts cannot restoreok. Startup feature hydration
+uses publication guards; historical data unchanged. API routes/HTTP/fields kept,
+add diagnostic_reasons. Status/reasons evaluated together after asynccloudread.
+
+Simulated186s blocked feature spans boundary: discovery and websocket subscription
+advance before completion, one worker, oldresultnotpublished. Existing serialworker,
+connectionownership,cancellation and publicationtests reused; source/identity/HTTP200
+recoveryregressions added.246backend PASS(two Linux-only skips);70controls PASS(two
+Linux-only skips). Unixsocket sandbox restriction resolved by permitted test run.
+Require exactworking/candidate CI and isolated release-tree suites before release.
+
+Production blocked before any attempt: normal inline livequick/FK checks have no
+child deadline inside900sdeployworkflow; historical fullaudit860.837s leaves39.163s,
+not180srecovery+deployment. Consumed fixeda7c0989->d56b4a7 exception cannot be reused.
+Smallest controlreview: separately budgeted/supervised completeverification phase,
+exact release/runtime/database/schema binding and approved freshness/recovery rules;
+no implicit skippedchecks or budgetextension. ApplicationrestartAPIonly/code-only
+rollback. No newverification scan/helperinstall/dispatch/restart executed.
+
+Details/scope/acceptance: [ROLLOVER_HEALTH_RELEASE_2026-11-01.md](ROLLOVER_HEALTH_RELEASE_2026-11-01.md).
+20minute/3cycle/boundary acceptance NOTRUN, milestoneNOTCOMPLETE. Retention remains
+blocked independently; no newtrial,cleanup or500msgatechange. Productiondeleted0,
+retention/paidAIOFF,guardunchanged. I7/Phase1.75OPEN,Phase2deferred;
+capreview2026-11-02T01:56:47.671426Z unchanged.

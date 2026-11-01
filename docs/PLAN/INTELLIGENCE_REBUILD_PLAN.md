@@ -2045,3 +2045,13 @@ write syscalls, bounded trace and elapsed includes preparation. Exact CI pending
 no representative run before success. Previous deadline failure remainsFAIL and
 retentionperformanceNOTPROVEN. Productionunchanged,capacitySTOP,flagsOFF,93161cf
 preserved,capdeadline unchanged,I7/Phase1.75OPEN.
+
+## Tiny phase-scope CI correction
+
+241b1ee CI41361117611 correctly blocked representative execution: actual tiny
+qualification passed but test incorrectly expected only2commit markers, ignoring
+TEMP preparation/bookkeeping commits outside measured BEGIN brackets (6observed).
+Corrected assertion counts complete BEGIN-entry/commit-return brackets, still2
+with exactly2validated lock intervals, firstmarker trace_ready, no traced fixture
+preparation/payload writes. No harness/policy/workload change or representative
+trial occurred. Local93retention tests PASS(two Linux skips). New exact CI required.

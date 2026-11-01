@@ -112,7 +112,13 @@ class Tests(unittest.TestCase):
             markers=[l for l in text.splitlines() if 'LOCKDIAG' in l]
             self.assertIn('trace_ready',markers[0])
             self.assertEqual(sum('begin_entry' in l for l in markers),2)
-            self.assertEqual(sum('commit_return' in l for l in markers),2)
+            # TEMP bookkeeping also commits outside measured BEGIN brackets.
+            active=False;completed=0
+            for line in markers:
+                if 'begin_entry' in line:active=True
+                if active and 'commit_return' in line:completed+=1;active=False
+            self.assertEqual(completed,2)
+            self.assertFalse(active)
             from datetime import datetime
             earliest=min(float(l.split()[0]) for l in text.splitlines() if l[:1].isdigit())
             self.assertGreaterEqual(earliest,datetime.fromisoformat(report['started_at']).timestamp()+report['preparation_seconds']-.01)

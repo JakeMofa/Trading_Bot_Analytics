@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** One quiescent maintenance attempt explicitly authorized. Adapter/workflow complete locally; freeze exact maintenance candidate and require CI. No production operation yet.512MiB physical poststop gate,2590s absolute interruption, no concurrent proofreuse/soak. Retention/paidAI OFF; Phase1.75OPEN, capdeadlineunchanged.
+**Next gate:** Checkpoint1 PASS:maintenance93161cf exactCI41336249861/validation41336249942 PASS. Checkpoint2 CAPACITY_STOP before productionchanges: mainDB4611.141MiB leaves atmost508.859MiB evenwithoutWAL, below512. Need explicit storage-boundary decision; do not repeat deploymentapproval/attempt. No helper/authority/stop/scan/dispatch; interruption0,flagsOFF. I7/Phase1.75OPEN, capdeadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1858,3 +1858,43 @@ No accounting substitution/ceiling change. Legacy concurrent-verification route'
 persistence probe.103controltestsPASS(three Linuxskips), with stage-specificstorage
 regression. Receipt gaps explicitly upperbounds from recorded before/after samples.
 Applicationblobs unchanged. Freeze revisedcandidate before any production action.
+
+## Checkpoint1 PASS; checkpoint2 read-only capacity STOP before production changes
+
+Frozenmaintenance release93161cf8843cd0264fe9b75d20b2204e979ca062 onexistingdeployment
+branch; working2c2528e34c0c66c249d77c5a818c6aba925507b9. ExactPythonCI41336249861 PASS;
+validation-only DeployTradebot41336249942 PASS(push, no manualdispatch). App tree
+byte-identicalfd90458; corrected512MiB quiescentpolicy included. Isolated169backend/
+39controlsPASS locally(one Linuxskip); working246backend/103controlsPASS(two/three
+Linuxskips). Completed adapter/workflow, fixed2590s interruption budget, ownedfull
+check/reap, all-service recovery, code-onlyrollback/helperrestoration, structured
+Actions summaries and whitelist-sanitized artifacts. No newbranch/worktree.
+
+Proceeded under existingone-attempt authorization to checkpoint2 read-onlymetadata
+preflight. At2026-11-01T18:22:55.662170Z mainDB4835131392bytes(4611.140625MiB),
+WAL34459712bytes(32.863342MiB), actualheadroom475.996033MiB. Even omittingALLWAL,
+maximumheadroom508.859375MiB<512MiB by3.140625MiB. Thus ordinary WALclose cannot
+establish capacity without shrinking mainfile; no allowed action in this exact
+code-only maintenance route can satisfy the physical prerequisite. No accounting
+substitution/guardincrease/cleanup/compaction was attempted. Remaining source/API
+preflight was not pursued after this decisive capacity failure.
+
+Runtime d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a, trackedclean, API23471/ensemble23478/
+lifecycle23474 active,NRestarts0, monitor timeractive; soleAPIowner1,no competing
+collectors, flagsOFF, cap5120. Filesystemfree50973425664bytes doesnotoverridecap.
+No helperinstalled, authoritycreated, monitor/writerstopped, heavycheck, workflow
+maintenance dispatch or appdeployment. Actualcollectioninterruption0. No restoration
+needed. Rootone-useattemptwas notconsumed; no automaticsecondpreflight/attempt.
+
+Specific decisionneeded: whether to amend a storage boundary for this exact route.
+If512MiB remains mandatory and physical main-file reclamation remains forbidden,
+the authorized maintenance cannot run. Do not request the same deployment approval,
+repeat qualification/CI polling or expand into another storage redesign. Existing
+one-attempt authorization is retained but blocked by the failed technical gate.
+
+FullDBchecks NOTRUN; functional smoke NOTRUN; multi-cycle/real-boundaryacceptance
+NOTPERFORMED; I7/Phase1.75OPEN. Retention/paidAIOFF,deleted0,guard/deadlineunchanged.
+Privateevidence: lifecycle-implementation-20261031/maintenance-93161cf (metadata
+preflight, qualification logs, candidate manifest/checksums; no DB or credentials).
+Productiondeploymenthistory/tagging remains after maintenance milestone, not a
+reason to modify frozen candidate or advance a blocked release.

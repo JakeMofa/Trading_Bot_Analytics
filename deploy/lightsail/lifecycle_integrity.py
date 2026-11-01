@@ -25,6 +25,12 @@ RECOVERY_SECONDS=180
 class IntegrityStop(RuntimeError):pass
 
 
+class UnreapedIntegrityChild(IntegrityStop):
+    def __init__(self,pid):
+        super().__init__('integrity child unreaped; manual recovery required')
+        self.pid=pid
+
+
 def check_database(path,check,seconds):
     if check not in ('quick_check','foreign_key_check'):raise IntegrityStop('unsupported integrity check')
     path=Path(path).resolve(strict=True)
@@ -71,6 +77,8 @@ def run_gate(host,clock=time.monotonic):
         report['integrity_passed']=True
     except BaseException as error:
         report['failure_type']=type(error).__name__
+        if isinstance(error,UnreapedIntegrityChild):
+            report.update(unreaped_child_pid=error.pid,manual_recovery_required=True)
     finally:
         if paused:
             recovery_deadline=min(started+WORK_SECONDS+RECOVERY_SECONDS,clock()+RECOVERY_SECONDS)
@@ -110,7 +118,7 @@ def bounded_child(command,seconds):
             try:os.killpg(child.pid,signal.SIGKILL)
             except ProcessLookupError:pass
             try:out,err=child.communicate(timeout=1)
-            except subprocess.TimeoutExpired:raise IntegrityStop('integrity child unreaped; manual recovery required') from None
+            except subprocess.TimeoutExpired:raise UnreapedIntegrityChild(child.pid) from None
         if isinstance(error,subprocess.TimeoutExpired):return child.returncode,out,err,True
         raise
 
@@ -229,8 +237,11 @@ class LinuxHost:
             time.sleep(budget.seconds(5))
         self.bridge.verify(budget,5120)
         after=self.bridge.states(budget)
-        if after['tradebot-soak.timer']['MainPID']!=self.before['tradebot-soak.timer']['MainPID']:
-            raise IntegrityStop('monitor changed')
+        # Timers have no MainPID. Compare their actual state properties.
+        for states in (self.before,after):
+            timer=states.get('tradebot-soak.timer',{})
+            if timer.get('ActiveState')!='active' or timer.get('UnitFileState')!='enabled':
+                raise IntegrityStop('monitor timer changed')
         p=self.ROOT/'.env';st=p.stat()
         if self.config!=(hashlib.sha256(p.read_bytes()).hexdigest(),st.st_uid,st.st_gid,st.st_mode):
             raise IntegrityStop('protected configuration changed')

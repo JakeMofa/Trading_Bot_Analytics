@@ -73,6 +73,41 @@ class IntegrityGateTests(unittest.TestCase):
         self.assertIn('start:tradebot-ensemble',host.calls);self.assertIn('start:tradebot-api',host.calls)
         self.assertEqual(result['recovery_start_failures'][0]['unit'],'tradebot-lifecycle')
 
+    def test_timer_without_mainpid_passes_actual_read_only_recovery(self):
+        from datetime import datetime,timedelta,timezone
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        import hashlib
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder);(root/'data').mkdir();config=root/'.env'
+            config.write_bytes(b'generated_fixture=true');config.chmod(0o600);st=config.stat()
+            db=sqlite3.connect(root/'data/btc_intelligence.db')
+            old=datetime(2026,10,1,tzinfo=timezone.utc)
+            for table in ('observations','stream_events'):
+                db.execute('CREATE TABLE '+table+'(received_at TEXT)')
+                db.executemany('INSERT INTO '+table+' VALUES(?)',[(old.isoformat(),),((old+timedelta(seconds=2)).isoformat(),)])
+            db.commit();db.close()
+            now=datetime.now(timezone.utc);counter=[0]
+            def probe(route):
+                counter[0]+=1;stamp=(now-timedelta(seconds=2)+timedelta(milliseconds=counter[0]*100)).isoformat()
+                return {'collector_running':True,'guard_status':'watching','feeds':{key:{'status':'live','last_data_at':stamp} for key in ('coinbase_stream','polymarket_stream')}}
+            timer={'ActiveState':'active','UnitFileState':'enabled'}
+            host=object.__new__(module.LinuxHost);host.ROOT=root
+            host.before={'tradebot-soak.timer':timer};host.config=(hashlib.sha256(config.read_bytes()).hexdigest(),st.st_uid,st.st_gid,st.st_mode)
+            host.raw_baseline={key:(1,old.isoformat()) for key in ('observations','stream_events')}
+            host.bridge=SimpleNamespace(probe=probe,verify=lambda *args:None,states=lambda *args:{'tradebot-soak.timer':timer})
+            with patch.object(module.time,'sleep',return_value=None):result=host.verify_recovery(5)
+            self.assertEqual(result['status'],'PASS')
+            self.assertEqual(result['raw_received_gap_seconds'],{'observations':2,'stream_events':2})
+
+    def test_unreaped_child_is_explicit_even_after_services_recover(self):
+        host=Host()
+        def check(*args):raise module.UnreapedIntegrityChild(12345)
+        host.check=check
+        result=module.run_gate(host)
+        self.assertEqual(result['status'],'STOP');self.assertEqual(result['unreaped_child_pid'],12345)
+        self.assertTrue(result['manual_recovery_required']);self.assertEqual(result['recovery']['status'],'PASS')
+
     def test_checks_are_read_only_and_fk_failure_is_not_hidden(self):
         with tempfile.TemporaryDirectory() as folder:
             p=Path(folder)/'generated.db';db=sqlite3.connect(p)

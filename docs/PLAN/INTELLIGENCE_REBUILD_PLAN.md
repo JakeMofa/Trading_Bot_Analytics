@@ -1419,3 +1419,12 @@ Added a default-plan-only operator that selects at most1000 raw rows through ori
 Supabase docs/changelog verified: private download remains supported; October12 TLS cipher notice does not change the download contract. Official reference: https://supabase.com/docs/reference/python/storage-from-download . No Supabase schema/access-policy change.
 
 Production integrity helper7e5e7d2 CI41284629743 PASS; read-only preflight PASS, then supervised full quick/FK audit started2026-11-01T07:26:19.086790Z. Writer services intentionally paused; recovery reserve3min within30min work budget. This entry records IN_PROGRESS, not a passing audit or currently-live collection claim. No copies/snapshots/deletion/manual WAL operations.
+
+
+### Full SQLite checks passed; verifier STOP and independent recovery
+
+Production audit7e5e7d2/CI41284629743: quick_check PASS782.745s, foreign_key_check PASS78.092s. The attempt remains STOP: recovery verifier incorrectly indexed MainPID on tradebot-soak.timer, which has no process PID. This was a helper defect, not an observed failed service restart. Do not relabel the original attempt as successful. Corrected timer checks use ActiveState/UnitFileState; regression exercises actual recovery logic with a PID-less timer. Unreaped-child failures now retain PID/manual-recovery status.61local controls PASS (two Linux-only skips); backend227unchanged.
+
+Independent read-only follow-up confirmed all three services active, zero automatic restarts, flagsOFF, guard5120, original appd56b4a7. Twelve5s feed/API samples passed, max39.34ms, both feed timestamps advancing. Monitoring timer active; envmtime2026-11-01T01:56:47.667263Z matches bridge application. API started07:40:41UTC. Persisted Coinbase received gap862.791950s:07:26:19.440384→07:40:42.232334UTC. Observation gap unavailable within bounded256recent rows; no broader scan/backfill claim. No additional restart or repeated integrity scan was used for confirmation.
+
+Full SQLite verification is now evidenced separately from the failed overall maintenance report; independent recovery is PASS. R7 private archive/exact-row proof remains PENDING, no production deletion/guard indexes/application deployment. Evidence: production-integrity-7e5e7d2.jsonl, post-integrity-keyerror-runtime.json, independent-integrity-recovery.jsonl in lifecycle-implementation-20261031. Continue with exact-CI read-only archive recovery preparation, preserving all remaining gates and the existing bridge deadline.

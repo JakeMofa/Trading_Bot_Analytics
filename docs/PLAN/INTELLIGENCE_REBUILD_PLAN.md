@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Generated split harness a18ce3c exact-CI PASS; representative NOTPROVEN because one SSH connection timed out before launch (0/3 trials,0 committed). Restore approved VM execution path, then pending fail-fast qualification; no repeat policy approval. Production500ms unchanged,capacitySTOP separate,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** SSH restored; exact a18ce3c generated trial1 FAIL170s preparation deadline,retention performance NOTPROVEN (0 cleanup rows,no retention/collector measurements). Trials2/3 not run. Review retention-phase-only tracing before any new trial; no retry authorized here. Production500ms unchanged,capacitySTOP separate,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1992,3 +1992,33 @@ and run pending qualification once; no further policy approval needed.
 Evidence/procedure: [RETENTION_SPLIT_QUALIFICATION_2026-11-01.md](RETENTION_SPLIT_QUALIFICATION_2026-11-01.md).
 Production unchanged,flagsOFF,deleted0,capacitySTOPseparate,93161cfpreserved,
 capdeadlineunchanged,I7/Phase1.75OPEN. No deployment/cleanup/storage-policy authority.
+
+## SSH restored; generated split trial1 runtime FAIL, performance NOT PROVEN
+
+User confirmed restored SSH; pinned access verified22:59:15Z. Five staged files
+byte-identical to exact-CI-passed a18ce3c (CI41359072373,252backend/103controls).
+Read-only safety refreshed: current matching sources/market, collector running,
+helper pinned,strace installed,~1.29GiB available memory,~47.27GiB physical free.
+API retention/paidAI false. Production main+WAL headroom317.351501MiB fails512MiB;
+capacitySTOP remains separate. Initial safe-start launcher rejected before trial;
+bounded interval-edge wait corrected, no workload retry or harness change.
+
+Trial1 started23:01:30.606778Z with800000/2350000rows,500batch,FULL/default1000.
+Existing170s work deadline interrupted generate_observations (last progress740000).
+No retention or competing actor started. Actual cleanup committed0; occupancy,
+transaction/commit,collector delays/heartbeat/errors NOTMEASURED. Work incomplete;
+trials2/3 NOTRUN, no retry. Child173.729700s/supervised174.034300s inclcleanup;
+peak disk713822456bytes,RSS41172KiB. Tracer57.58CPU seconds,RSS4014080bytes,
+trace610562532bytes. No untraced control, elapsed tracing overhead not isolated.
+Empty-list0 timing is a sentinel, not measured zero occupancy. RuntimeFAIL and
+retentionperformanceNOTPROVEN; prior500ms failures unchanged.
+
+One bounded23:05Z postcheck: sources fresh,current matching unexpired market,
+collector running; API routes<2s; servicesactive,reportedrestarts0; flagsOFF.
+Disposable generatedDB removed by harness; only generated traces retained. No
+production cleanup/deployment/DBcopy/settings/WAL operation. CapacitySTOP,93161cf,
+capdeadline unchanged,I7/Phase1.75OPEN; boundary/multi-cycle NOTPERFORMED.
+
+One nextaction: review retention-phase-only tracing, capturing before firstBEGIN
+and everybatch with unchanged180s/FULL/resource/gates. Proposed only; no newtrial.
+Detailed evidence and trace hashes: [RETENTION_SPLIT_QUALIFICATION_2026-11-01.md](RETENTION_SPLIT_QUALIFICATION_2026-11-01.md).

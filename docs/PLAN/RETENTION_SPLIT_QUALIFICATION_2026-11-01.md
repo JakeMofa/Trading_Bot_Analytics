@@ -74,3 +74,84 @@ needed. No production deployment, deletion, retention enablement, storage-policy
 change, manual WAL operation or new infrastructure was performed or authorized.
 Capacity remains separately STOP; frozen rollover release93161cf is preserved.
 Retention and paid AI remain OFF; I7/Phase1.75 OPEN; cap deadline unchanged.
+
+## Resumed execution after access restoration
+
+The user confirmed restored/tested SSH and authorized resumption from6fd4ce0
+using the CI-passed a18ce3c harness. Existing pinned SSH was independently verified
+at2026-11-01T22:59:15.577677Z. All five staged source files were compared byte for
+byte with a18ce3c. No harness or production code changed. The prior connection
+failure remains an accurate historical record, superseded only as an access blocker.
+
+The initial safe-start launcher rejected the early seconds of the new interval
+before any trial or fixture started. Its bounded wait was corrected to handle
+that interval edge; this was not a workload retry. One bounded wait then reached
+the already-required safe start at23:01:30Z. No recovery window or soak followed.
+
+Fresh preflight PASS: current matching market and fresh Coinbase/Polymarket source
+timestamps; collector running; helper SHA pinned; installed strace; available RAM
+1386545152bytes and filesystem space50758447104bytes. API confirms retention and
+paid AI false. Production main5001482240/WAL34459712bytes are metadata only; their
+combined headroom under5120MiB is317.351501MiB, below512MiB. Capacity remains STOP;
+this is not a capacity approval. Generated work uses a separate private directory
+on the existing filesystem with the unchanged2GiB/process-workspace guard.
+
+### First trial: FAIL runtime gate; retention performance NOT PROVEN
+
+Started2026-11-01T23:01:30.606778Z. The existing170-second work deadline interrupted
+fixture preparation at `generate_observations`. Last progress recorded740000 of
+800000 observations; stream generation, indexed-guard preparation and retention
+application were not reached. The harness stopped after this first failure;
+trials2/3 were not launched. No unchanged retry or threshold change.
+
+| Measurement | Observed result |
+|---|---|
+| Trial attempts / completed representative workloads |1 /0; trials2/3 NOT RUN|
+| Actual committed cleanup rows |0|
+| Maximum retention writer-lock occupancy |NOT MEASURED; no retention transactions|
+| Retention transaction / commit-call duration |NOT MEASURED; no retention transactions|
+| Competing collector saves / delays / heartbeat / errors |NOT MEASURED; actor not started|
+| Cleanup throughput |0rows over174.034300451s supervised time; no measured retention execution rate|
+| Workload completion |false; fixture preparation incomplete|
+| Child elapsed including cleanup |173.729699602s|
+| Supervised elapsed including cleanup |174.034300451s|
+| Peak fixture plus tracing disk |713822456bytes, below2GiB guard|
+| Generated child peak RSS |41172KiB|
+| Tracer CPU / sampled RSS |57.58CPU seconds /4014080bytes|
+| Trace output |610562532bytes|
+| SQLite settings |WAL,FULL=2,default automatic checkpoint1000,page4096|
+| Production guard errors during trial |0; distinct from unmeasured fixture collector errors|
+
+The report's empty-list maximum transaction value0 is an implementation sentinel,
+not a timing measurement. There is no lock-occupancy evidence for retention, so
+performance qualification is NOT PROVEN despite the definitive runtime FAIL.
+Tracing included fixture construction: the measured tracer CPU and610.6MB output
+establish substantial instrumentation work before retention. There is no untraced
+control; elapsed overhead and whether the same preparation would fit untraced are
+not isolated. Do not attribute the historical502.686ms failure to this result.
+
+The supervisor reaped the generated workload and removed its disposable fixture;
+no fixture.db files remain. Only generated trace evidence remains in
+`/tmp/tradebot-split-qualification-eqt2u2w_/work/trace-evidence-1`.
+Main trace SHA256:
+`01d3133fd823c58f7fb3384da3122c4eefa96b242a154d0e3aeedf57760026d4`.
+Private local report/source hashes:
+`/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/split-qualification-a18ce3c-restored/`.
+No database copied, restored or retained as a backup.
+
+One bounded post-check at23:05Z: both feeds live with current source timestamps,
+matching unexpired23:00–23:15market, collector running/no reported error; health
+1.6294s,current-state0.2473s,system-status0.5935s (all below2s). Reported API,
+ensemble and lifecycle services active with zero restarts, service evidence fresh.
+Retention/paid AI remain false. Main5004308480/WAL34459712bytes; capacity STOP.
+No application deployment, production cleanup, configuration, journal or storage
+policy operation occurred. Multi-cycle/boundary acceptance NOT PERFORMED.
+
+One next action: review a narrow instrumentation change that begins syscall
+capture after fixture preparation, before the first retention BEGIN, while still
+requiring complete lock evidence for every batch and preserving the existing
+whole-trial/resource limits. This is a proposal, not an implemented change or an
+authorization to retry. It avoids spending tracing work on fixture construction;
+its ability to meet the runtime gate remains unproven. Keep production500ms and
+all generated split limits unchanged. Old failures remain failures; capacitySTOP,
+I7/Phase1.75OPEN, frozen93161cf and cap-review deadline unchanged.

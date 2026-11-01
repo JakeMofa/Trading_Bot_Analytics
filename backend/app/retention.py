@@ -480,6 +480,25 @@ class _ValidationSnapshot:
         where, params = _between(SPECS[self.dataset], lo, hi)
         return _count(self.db, SPECS[self.dataset], where, params)
 
+    def range_exceeds_manifest(self, lo, hi, event_count):
+        if self.dataset == "observations":
+            # An INTEGER PRIMARY KEY rowid alias has at most one row per integer.
+            # A dense archive's original integer bounds therefore prove an
+            # upper bound without reading payload-bearing table pages. Recheck
+            # schema under this same writer transaction; unusual schemas fall
+            # back to the original current-row count. No mutable fact is cached.
+            schema = self.db.execute(
+                "SELECT sql FROM sqlite_schema WHERE type='table' AND name='observations'"
+            ).fetchone()
+            primary = [row for row in self.db.execute('PRAGMA table_info(observations)') if row[5]]
+            alias = (schema is not None and schema[0].lstrip().upper().startswith('CREATE TABLE')
+                     and len(primary) == 1 and primary[0][1] == 'id'
+                     and primary[0][2].upper() == 'INTEGER'
+                     and not any(row[3] == 'pk' for row in self.db.execute('PRAGMA index_list(observations)')))
+            if alias and hi[0] - lo[0] + 1 <= event_count:
+                return False
+        return self.range_count(lo, hi) > event_count
+
     def select(self, dataset, intervals, cutoff, protected, pending, limit):
         if dataset != self.dataset:
             raise RetentionError("validation snapshot dataset changed")
@@ -520,7 +539,7 @@ def _usable_intervals(db, dataset, manifests, bucket):
         for lo, hi, event_count in db.ranges:
             # Count ALL current local identities in each original range, including
             # late rows outside approved scope. A late row can invalidate coverage.
-            if db.range_count(lo, hi) > event_count:
+            if db.range_exceeds_manifest(lo, hi, event_count):
                 reason = "local_rows_exceed_manifest"
                 rejected[reason] = rejected.get(reason, 0) + 1
             else:

@@ -108,6 +108,23 @@ class IntegrityGateTests(unittest.TestCase):
         self.assertEqual(result['status'],'STOP');self.assertEqual(result['unreaped_child_pid'],12345)
         self.assertTrue(result['manual_recovery_required']);self.assertEqual(result['recovery']['status'],'PASS')
 
+    def test_guard_maintenance_never_claims_full_integrity_check(self):
+        host=Host();result=module.run_gate(host,kind='timestamp_guards')
+        self.assertEqual(result['status'],'PASS');self.assertTrue(result['timestamp_guards_passed'])
+        self.assertNotIn('integrity_passed',result)
+        self.assertIn('timestamp_guards',host.calls);self.assertNotIn('quick_check',host.calls)
+        with self.assertRaises(module.IntegrityStop):module.run_gate(host,kind='skip_all')
+
+    def test_paused_baseline_uses_final_saved_row_not_preflight_receipt(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=Path(folder)/'generated.db';db=sqlite3.connect(p)
+            for table in ('observations','stream_events'):
+                db.execute('CREATE TABLE '+table+'(received_at TEXT)')
+                db.executemany('INSERT INTO '+table+' VALUES(?)',[('2026-10-01T00:00:00+00:00',),('2026-10-01T00:00:01+00:00',)])
+            db.commit();db.close()
+            baseline=module.LinuxHost.capture_paused_baseline(p)
+            self.assertEqual(baseline['stream_events'],(2,'2026-10-01T00:00:01+00:00'))
+
     def test_checks_are_read_only_and_fk_failure_is_not_hidden(self):
         with tempfile.TemporaryDirectory() as folder:
             p=Path(folder)/'generated.db';db=sqlite3.connect(p)

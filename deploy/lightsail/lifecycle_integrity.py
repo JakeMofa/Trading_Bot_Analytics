@@ -47,9 +47,12 @@ def check_database(path,check,seconds):
     finally:db.close()
 
 
-def run_gate(host,clock=time.monotonic):
+def run_gate(host,clock=time.monotonic,*,kind="integrity"):
     """Host performs bounded effects; any audit failure stays failed after recovery."""
-    started=clock();report={'status':'STOP','checks':[], 'stopped_units':[],
+    operations={'integrity':('quick_check','foreign_key_check'),'timestamp_guards':('timestamp_guards',)}
+    if kind not in operations:raise IntegrityStop('unsupported maintenance operation')
+    passed_key=kind+'_passed'
+    started=clock();report={'kind':kind,'status':'STOP','checks':[], 'stopped_units':[],
                             'started_at':datetime.now(timezone.utc).isoformat()}
     previous=None;paused=False;recovery_deadline=None;pause_started=None
     def remaining(recovery=False):
@@ -71,12 +74,15 @@ def run_gate(host,clock=time.monotonic):
             paused=True;report['stopped_units'].append(unit);host.save(report)
             host.stop(unit,min(30,remaining()))
         host.require_no_database_owners(min(10,remaining()))
-        for check in ('quick_check','foreign_key_check'):
+        if hasattr(host,'raw_baseline'):
+            report['last_paused_raw_received_at']={key:value[1] if value else None for key,value in host.raw_baseline.items()}
+        for check in operations[kind]:
             report['checks'].append(host.check(check,remaining()))
             host.save(report)
-        report['integrity_passed']=True
+        report[passed_key]=True
     except BaseException as error:
         report['failure_type']=type(error).__name__
+        if hasattr(error,'operation_result'):report['operation_failure']=error.operation_result
         if isinstance(error,UnreapedIntegrityChild):
             report.update(unreaped_child_pid=error.pid,manual_recovery_required=True)
     finally:
@@ -96,7 +102,7 @@ def run_gate(host,clock=time.monotonic):
             if failures:
                 report['recovery_start_failures']=failures
                 report['recovery_failure_type']='ServiceRecoveryFailed'
-        if report.get('integrity_passed') and not report.get('failure_type') and not report.get('recovery_failure_type'):
+        if report.get(passed_key) and not report.get('failure_type') and not report.get('recovery_failure_type'):
             report['status']='PASS'
         report['elapsed_seconds']=clock()-started
         host.save(report)
@@ -214,6 +220,14 @@ class LinuxHost:
                         if (st.st_dev,st.st_ino) in identities:raise IntegrityStop('unexpected remaining database owner')
                     except FileNotFoundError:pass
             except FileNotFoundError:pass
+        # Capture the FINAL paused receipt, not a preflight row that could be
+        # followed by another save before systemd completes the stop.
+        self.raw_baseline=self.capture_paused_baseline(self.ROOT/'data/btc_intelligence.db')
+    @staticmethod
+    def capture_paused_baseline(path):
+        with closing(sqlite3.connect(Path(path).as_uri()+'?mode=ro',uri=True,timeout=.1)) as db:
+            return {table:db.execute('SELECT rowid,received_at FROM '+table+' ORDER BY rowid DESC LIMIT 1').fetchone()
+                    for table in ('observations','stream_events')}
     def check(self,check,seconds):
         # Reserve two seconds INSIDE the work budget for terminate/kill/reap.
         if seconds<=2:raise IntegrityStop("insufficient child recovery reserve")

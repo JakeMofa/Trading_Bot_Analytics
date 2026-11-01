@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** R5/R6 STOP: latest warmed fixture hit177s supervisor deadline without a complete report. Added atomic unlocked progress reporting and explicit observed ten-digit ID profile;220local backend/51controls pass. Require exact CI and measured Linux qualification; no production guards/cleanup. d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
+**Next gate:** R5/R6 STOP pending exact CI and three full Linux trials of repaired TEMP bookkeeping. Instrumentation found full pending-table scan per stream identity outside writer; fixed complete primary-key lookup. Latest trial writers passed but total173s workload incomplete.221local backend/51controls pass. No production guards/cleanup; d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -1383,3 +1383,12 @@ Added atomic provisional STOP reports throughout fixture preparation and unlocke
 Read-only first100/last100 stream-ID shape samples at06:57:43UTC were all Coinbase ASCII digits of length10. This is a bounded sample, not a full-table assertion. Added explicit synthetic ten-digit-ID profile; default variable-width adversarial profile remains available and its failures remain recorded. Cardinality, full deletion workload, strict string identities, safety checks and deadlines are unchanged. Future passing results apply only to the tested profile; unfamiliar production scopes require qualification rather than numeric coercion.
 
 Prepared a pure raw-row recovery verifier: bounded authenticated-readback bytes supplied by caller, checksum/size/count/boundary validation, exact Decimal JSON comparison and byte-exact original raw-column reconstruction in memory. Four tests pass. No cloud readback or production recovery manifest has been completed; R7 remains pending. Local220 backend tests pass (two Linux-only skipped),51 controls pass. R5/R6 STOP; production guard installation, cleanup, freshness release and24h soak remain blocked pending evidence.
+
+
+## TEMP pending-table scan repaired — November 1, 2026
+
+498284a exact CI41283166554 PASS. Observed-shape trial at07:03:18UTC used664240 observations/1934508 streams. STOP at173.062s from170s work alarm, not a writer overrun: all40030observations committed, max79.63ms;3000streams committed, max42.39ms and108.99ms total stream writer time. Collector737saves/737RAM,0errors,maxsave58.34ms/heartbeat129.54ms; production guard failures0. Full workload did not complete, so R5/R6 remain STOP. No later trials ran.
+
+Incremental reports exposed the precise unbounded operation: outside-writer TEMP bookkeeping deleted by(source,event_id,received_at), omitting the leading stamp of its WITHOUT ROWID primary key. EXPLAIN confirmed a full pending-table scan per identity. Repaired bookkeeping includes canonical stamp plus all three original exact string identity fields; no current eligibility, coverage, cutoff, protected-reference or deletion check changed. Added a per-batch unlocked-bookkeeping timing and checkpoint.
+
+Generated196509-row local comparison: old10removals178.38ms; new1000removals4.76ms. EXPLAIN changes SCAN to SEARCH USING PRIMARY KEY on all four columns. Regression verifies indexed lookup and distinct007/7/70 identities.221local backend/51controls pass (two Linux-only skipped). Exact CI and three full Linux trials required before release/cleanup. The observed10-digit profile remains distinct from adversarial variable-width qualification; no claim that untested shapes are qualified. Production unchanged; full archive/integrity/R7 gates and I7 freshness/rollover remain open.

@@ -435,6 +435,18 @@ def _warm_stream_pages(db, batch_size):
                    (source,event_id)).fetchone()
 
 
+def _remove_pending(db, dataset, selected):
+    if dataset == "observations":
+        db.executemany("DELETE FROM temp.retention_pending_observations WHERE id=?", selected)
+    else:
+        # stamp leads the WITHOUT ROWID primary key. Omitting it turns EACH
+        # exact identity removal into a full pending-table scan.
+        db.executemany("""DELETE FROM temp.retention_pending_stream_events
+            WHERE stamp=? AND source=? AND event_id=? AND received_at=?""",
+            ((canonical_time(key[2]), *key) for key in selected))
+    db.commit()
+
+
 def _prepare_pending(db, dataset, identities):
     name = "retention_pending_" + dataset
     db.execute(f"DROP TABLE IF EXISTS temp.{name}")
@@ -802,7 +814,7 @@ def apply_retention(db, plan, config, confirm=False, *, progress=None):
             observed = {"planned_rows":len(approved), "committed_rows_seen":0,
                         "completed_batches":0, "write_lock_seconds":lock_times,
                         "phase_seconds":phase_times,"static_prepare_seconds":static_prepare_seconds,
-                        "unlocked_warm_seconds":[]}
+                        "unlocked_warm_seconds":[], "unlocked_bookkeeping_seconds":[]}
             result["datasets"][dataset] = observed
             checkpoint("prepared_pending", dataset)
             while pending:
@@ -874,10 +886,10 @@ def apply_retention(db, plan, config, confirm=False, *, progress=None):
                     db.set_progress_handler(None,0)
                 pending.difference_update(selected)
                 # TEMP bookkeeping is outside the main-database writer lock.
-                table = "retention_pending_" + dataset
-                predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
-                db.executemany(f"DELETE FROM temp.{table} WHERE {predicate}",selected)
-                db.commit()
+                checkpoint("before_bookkeeping", dataset)
+                bookkeeping_started=time.monotonic()
+                try:_remove_pending(db,dataset,selected)
+                finally:observed["unlocked_bookkeeping_seconds"].append(time.monotonic()-bookkeeping_started)
                 checkpoint("committed_batch", dataset)
                 deleted += count
                 batches += 1
@@ -889,6 +901,7 @@ def apply_retention(db, plan, config, confirm=False, *, progress=None):
                 "write_lock_seconds":lock_times, "phase_seconds":phase_times,
                 "static_prepare_seconds":static_prepare_seconds,
                 "unlocked_warm_seconds":observed["unlocked_warm_seconds"],
+                "unlocked_bookkeeping_seconds":observed["unlocked_bookkeeping_seconds"],
                 "max_write_lock_seconds":max(lock_times,default=0.0)}
         return result
     except BaseException as error:

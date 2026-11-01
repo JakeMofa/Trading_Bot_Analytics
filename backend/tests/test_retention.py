@@ -371,6 +371,21 @@ class RetentionTests(unittest.TestCase):
         self.assertEqual(result["datasets"]["observations"]["batches"], 8)
         self.assertEqual(len(handoffs), 7)
 
+    def test_stream_pending_removal_uses_complete_temp_primary_key(self):
+        at="2026-10-01T00:00:00.000000+00:00"
+        keys={("coinbase",str(i),at) for i in range(10000)}
+        retention._prepare_pending(self.db,"stream_events",keys)
+        queries=[]
+        self.db.set_trace_callback(queries.append)
+        try:retention._remove_pending(self.db,"stream_events",[("coinbase","007",at),("coinbase","7",at)])
+        finally:self.db.set_trace_callback(None)
+        query=next(q for q in queries if q.startswith("DELETE"))
+        explain=self.db.execute("EXPLAIN QUERY PLAN "+query).fetchall()
+        self.assertTrue(any("SEARCH" in row[3] and "PRIMARY KEY" in row[3] for row in explain),explain)
+        self.assertEqual(self.db.execute("SELECT count(*) FROM temp.retention_pending_stream_events").fetchone()[0],9999)
+        # No numeric coercion: absent007 must never match7, nor affect70.
+        self.assertIsNotNone(self.db.execute("SELECT 1 FROM temp.retention_pending_stream_events WHERE event_id='70'").fetchone())
+
     def test_progress_reporting_is_unlocked_and_preserves_committed_counts(self):
         self.seed_observations()
         self.archive_all("observations", 10)

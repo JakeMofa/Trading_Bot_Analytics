@@ -1,6 +1,6 @@
 # BTC Intelligence Rebuild Plan
 
-**Branch:** `codex/lightsail-deployment`
+**Branch:** `codex/phase1-75-retention-enable` (working); `codex/lightsail-deployment` (release target)
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
 **Rule:** Keep the existing working collector/evaluation pipeline, rebuild the intelligence layer in measured phases.
@@ -21,8 +21,8 @@
 ## Current position
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
-**Current branch:** `codex/lightsail-deployment` (from integration `codex/fastapi-phase1-5` at `2766234`)
-**Next gate:** migrate the verified SQLite/runtime to the authorized Ubuntu Lightsail VM, validate live feeds and cloud archival, then measure a 24-hour run. OpenAI and automatic retention remain **OFF**. Phase 2 remains deferred.
+**Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
+**Next gate:** R5/R6 PASS for observed Coinbase-ID generated profile: three full Linux trials, maxwriter97.61ms, zero collector/production-guard failures (e0d311e/CI41283537103). Next: exact-CI operator controls, fresh full SQLite audit, authenticated archive readback and R7 exact-row recovery before≤1000-row cleanup. No production guards/cleanup; d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -942,3 +942,489 @@ Only upgrade when measured need appears:
 - [ ] **P11.1** Add specialist dashboard.
 - [ ] **P12.1** Run forward collection/evaluation.
 - [ ] **P13.1** Train `meta_model_v1`.
+
+
+## Phase 1.75 retention enablement — STOPPED October 25, 2026
+
+**NOT COMPLETE. No retention apply, continuous enablement, restart or deployment
+was performed during this attempt.** Dedicated branch
+`codex/phase1-75-retention-enable` starts at deployment HEAD
+`eaca36c2b453c9e78f4c157a91b76aac398bedf0`. Production independently reports
+`a7c098900f8310367fc262a1b837c369bb63dc56`; the intervening commit is documentation
+only. Baseline deployment-branch CI run `40239979619` passed.
+
+Verified evidence:
+
+- Backend: 156 passed, 0 failed, 0 skipped; deployment controls: 6 passed,
+  0 failed, 0 skipped. The initial sandbox run had one worker/socket startup
+  failure; the unchanged full suite passed with the required local permissions.
+- Production API, ensemble, lifecycle and soak timer active/enabled; API private
+  at `127.0.0.1:8000`, collector running, feeds fresh, zero recorded service
+  restarts. OpenAI OFF and retention OFF.
+- Baseline captured starting `2026-10-25T22:42:23.680290+00:00`: SQLite
+  1,969,627,136 bytes; WAL 44,899,792 bytes; integrity `ok`; zero FK violations.
+  Database plus WAL leaves approximately 126.8 MiB below the unchanged 2,048 MiB
+  guard. This is current headroom, not proof of a safe steady-state 48h window.
+- Cloud inventory: observations 98 verified manifests / 379,498 archived events;
+  stream_events 391 verified manifests / 1,813,141 archived events; zero
+  unverified manifests. Earliest, near-cutoff and latest objects from each
+  dataset (six total) passed authenticated readback, compressed-byte/SHA-256,
+  decompressed event count, dataset/source/path and first/last range checks.
+  Inventory and spot checks do not constitute completed candidate coverage proof.
+- Query-only dry-run at cutoff `2026-10-23T22:48:12.749982+00:00` reported BOTH
+  datasets blocked as `non_canonical_received_at`, zero eligible rows and zero
+  database changes. Counts: observations 183,306; stream_events 652,795.
+  An independent range calculation found 16,506 old observation candidates,
+  eight protected old observations, and 87,411 old stream-event candidates;
+  these are diagnostic counts, NOT approved deletion bounds.
+- Follow-up read-only format inspection found exactly one 25-character timestamp
+  in each raw table: observations `2026-10-25T21:46:01+00:00` and stream_events
+  `2026-10-25T19:44:19+00:00`. All other inspected timestamps were 32 characters.
+  Existing retention requires UTC with six-digit microseconds. Raw writers use
+  default `datetime.isoformat()`, which omits the fraction at exactly zero
+  microseconds. No raw rows or archive metadata were changed.
+
+**BLOCKER:** existing retention refuses the actual timestamp formats, so dry-run
+candidate review and apply authorization gates are unresolved.
+**OWNER:** AI / WORK for diagnosis and a reviewed remedy; USER / OPERATOR for
+resolution of this explicit stop before any production change or data rewrite.
+**STOP CONDITION:** surprising/unexplained dry-run count mismatch, subsequently
+explained by the fail-closed timestamp-format block; checkpoint 9/10 cannot pass.
+**REQUIRED NEXT ACTION:** resolve timestamp compatibility with a reviewed,
+archive/cursor-safe approach; do not disable the format check or rewrite evidence
+to force eligibility. Then rerun coverage/dry-run, establish a verified backup,
+and pass all remaining apply/recovery/continuous-retention/CI/CD gates.
+
+Evidence is preserved locally under ignored
+`data/deploy/lightsail/phase1-75-20261025/`. Backup/recovery point was not created
+or verified; apply, restart/recovery, continuous retention, multiple retention
+cycles and storage stability are unperformed. No code/config change, secrets,
+main change, guard change, VACUUM, public exposure or Phase 2 work was included.
+
+
+### Timestamp continuation — local test STOP, October 25, 2026
+
+Feature branch remains `codex/phase1-75-retention-enable` at
+`e22866fd116fade0300504338638eda68b14cc46`; changes are uncommitted.
+Read-only production check at `2026-10-25T23:14:57.825910+00:00` confirmed
+runtime `a7c098900f8310367fc262a1b837c369bb63dc56`, healthy collector/feeds,
+active API/ensemble/lifecycle with zero service restarts, and OpenAI/retention OFF.
+SQLite 1,988,763,648 bytes plus WAL 44,899,792 bytes leaves about 108.6 MiB
+below the unchanged 2,048 MiB guard; steady-state working-set safety is unproven.
+
+Local draft changes add explicit microseconds at raw write boundaries, strict
+UTC second/six-fraction parsing, semantic date validation, and canonical SQL
+comparison keys with indexed raw stream envelopes. Observation identity remains
+ID/range based; stream identity remains timestamp/source/event_id. No historical
+production row, archive object or manifest was changed. No production write,
+restart, apply or deployment occurred.
+
+Dedicated retention: 26 passed, 0 failed, 0 skipped. Full backend: 159 passed,
+1 failed, 0 skipped (160 total). Deployment controls: 6 passed, 0 failed,
+0 skipped. Full-suite failure:
+`test_cases.CaseTests.test_known_outcome_only_one_snapshot_per_market` expects
+`2026-09-30T01:20:00Z` but gets `2026-09-30T01:20:00.000000+00:00` because
+shared observation-writer normalization changes a supplied timestamp's spelling.
+The explicit user STOP-on-test-failure gate was honored. Do not weaken the test;
+review the writer boundary and historical-case response compatibility before
+resuming. Local logs are `/tmp/tradebot-backend-tests.log`,
+`/tmp/tradebot-retention-tests.log`, and `/tmp/tradebot-cd-tests.log`.
+
+No commit/push/CI/PR or deployment was attempted. Fresh coverage/dry-run,
+independent reconciliation, backup, apply, integrity/FKs, restart/recovery,
+continuous retention, real cycles, storage stability and working-set headroom
+remain NOT REACHED. Phase 1.75 remains NOT COMPLETE. Stop before Phase 2.
+
+
+### Writer-boundary resume — stream safety STOP, October 25, 2026
+
+Start/end committed HEAD: `e22866fd116fade0300504338638eda68b14cc46` on
+`codex/phase1-75-retention-enable`. Uncommitted retention/parser/comparison
+changes were preserved. Removed normalization from shared `save_observation`;
+live collector discovery/quote/resolution and Polymarket WebSocket receive times
+now explicitly emit six microseconds. Coinbase stream emission retains the draft
+six-microsecond fix. Historical-case test expectation is unchanged.
+
+Focused results: retention 27/27, streaming 12/12, collector 10/10, historical
+cases 3/3. `test_known_outcome_only_one_snapshot_per_market` PASS. Added separate
+shared-writer preservation, live WebSocket/Coinbase and live REST regression
+coverage. Full backend and deployment-control reruns NOT REACHED due to the
+following mandatory stream-safety STOP.
+
+In-memory reproduction (no production access): archive two old stream events,
+plan retention (2 eligible), insert a third late event inside the archived cursor
+interval, then apply the original plan. Fresh planning rejects the manifest with
+`local_rows_exceed_manifest` and reports 0 eligible / 3 uncovered; apply using the
+original plan instead deletes 3, including the unarchived late event. Apply trusts
+previously approved intervals without revalidating archive coverage after planning.
+Logical cursor remains timestamp/source/event_id, but stream deletion safety FAILS.
+
+BLOCKER: unarchived late stream evidence can be deleted between plan and apply.
+OWNER: retention implementation. STOP CONDITION: unverified evidence would be
+deleted / stream safety not established. REQUIRED NEXT ACTION: authorized repair
+of apply-time coverage validation and concurrency protection, with regression for
+a late row arriving after planning, before rerunning all required gates. Do not
+work around this STOP or enable retention.
+
+No commit/push/CI/PR, production read/write, backup, retention apply, restart or
+deployment occurred in this resume. Production historical rows, archive objects
+and manifests were NOT modified. Production OpenAI/retention OFF is the supplied
+baseline, not freshly verified. Fresh coverage/cutoff/dry-run/reconciliation,
+backup/recovery, integrity/FKs, live engine, deployment, continuous retention,
+multiple cycles, storage stability/headroom remain NOT REACHED. Phase 1.75 NOT
+COMPLETE. Stop before Phase 2.
+
+
+### Import-error resume — focused retention gate STOP, October 25, 2026
+
+**PHASE 1.75 — NOT COMPLETE.** Verified branch
+`codex/phase1-75-retention-enable` and committed HEAD
+`e22866fd116fade0300504338638eda68b14cc46`. Preserved existing uncommitted
+work. Moved only `import retention` below the test module's app-path setup;
+no test assertions were changed.
+
+Reviewed the unverified implementation before testing: planning captures approved
+identities in a read snapshot; apply intersects those identities with fresh local
+manifest coverage, newest observation anchor and prediction-reference protections
+inside each bounded `BEGIN IMMEDIATE` transaction. Apply does not use stale
+`plan['_intervals']` as final authority. This review does not establish completion.
+
+Focused retention gate: **30 executed, 29 passed, 1 failed, 0 skipped**.
+Late-row-after-plan, manifest-count-slack, separate-writer lock and late-reference
+regressions passed. Mandatory gate failed in
+`test_apply_uses_bounded_batches_and_leaves_structured_tables_alone`,
+`backend/tests/test_retention.py:405`: expected observation batch count 8,
+actual 7 (`AssertionError: 7 != 8`). Evidence:
+`/tmp/tradebot-phase175-retention-resume.log`.
+
+**BLOCKER:** focused bounded-batch safety regression fails.
+**OWNER:** retention implementation / this worker.
+**STOP CONDITION:** any mandatory safety/test gate failure.
+**REQUIRED NEXT ACTION:** obtain authorization to investigate the batch-count
+mismatch and repair the implementation without weakening safety tests, then
+restart the focused gate and remaining gates in order.
+
+Stopped after this gate. No further suites, commit/push, feature CI, production
+access, retention apply, backup, service restart, deployment or continuous
+retention occurred. Production baseline was not freshly revalidated. Every
+remaining original Phase 1.75 gate is pending; stop before Phase 2.
+
+
+### Bounded-batch repair — full backend gate STOP, October 25, 2026
+
+**PHASE 1.75 — NOT COMPLETE.** Branch/committed HEAD verified unchanged:
+`codex/phase1-75-retention-enable`,
+`e22866fd116fade0300504338638eda68b14cc46`.
+
+Reproduced the authorized known batch-count failure in isolation (expected 8,
+actual 7). Root cause: candidate selection crossed disjoint archive interval
+boundaries, packing 20 rows into ceil(20/3)=7 batches instead of preserving the
+committed per-interval contract (two intervals, each ceil(10/3)=4). Repaired
+selection to commit a nonempty partial interval batch before moving to another
+interval. Kept fresh coverage/protection validation inside every BEGIN IMMEDIATE,
+approved identity intersection and exact deletion predicates. Original expected
+batch count remains 8; no assertions were weakened or removed.
+
+Strengthened the existing regression with SQLite transaction tracing: committed
+changes are [3,3,3,1,3,3,3,1], sum 20, no batch exceeds 3, reported batch count
+matches actual committed delete batches, exact remaining IDs are 21..30, and
+re-applying the same approved plan commits no additional deletes/batches.
+
+Gate evidence:
+- Focused retention/concurrency: 30 passed, 0 failed, 0 skipped
+  (`/tmp/tradebot-phase175-retention-repaired.log`).
+- Streaming: 12 passed; collector: 10 passed; historical: 3 passed; no failures
+  or skips (`/tmp/tradebot-phase175-streaming.log`,
+  `/tmp/tradebot-phase175-collector.log`, `/tmp/tradebot-phase175-historical.log`).
+- Full backend: 165 executed, 164 passed, 1 failed, 0 skipped
+  (`/tmp/tradebot-phase175-backend.log`).
+
+**BLOCKER:** `test_lock_release_after_crash_and_controlled_restart`
+(`backend/tests/test_operations.py:80`) fails with
+`AssertionError: Worker failed to start`.
+**OWNER:** operations worker startup/recovery test path; root cause uninvestigated.
+**STOP CONDITION:** any mandatory test/safety gate failure.
+**REQUIRED NEXT ACTION:** authorize investigation of the worker-startup failure,
+repair its cause without weakening tests, and restart required validation gates.
+
+Stopped at the full backend gate. Deployment-control tests, final diff review,
+commit/push, feature CI and every production/retention/recovery/deployment gate
+remain pending. No production access or writes, backup, retention apply, restart,
+deployment, continuous enablement or Phase 2 occurred. Existing unrelated local
+changes remain preserved; no commit was made.
+
+
+### Operations startup investigation — local gates passed, October 25, 2026
+
+Isolated the known operations failure with unchanged code and tests. The worker
+command uses the active Python interpreter, injects the absolute app module path,
+and supplies a unique temporary database identity. It successfully imports
+operations and takes the per-database flock, then exits immediately at
+`asyncio.start_unix_server` / `socket.bind` with
+`PermissionError: [Errno 1] Operation not permitted`. The earlier full-suite log
+contains the same traceback. No retention module is imported by this minimal
+worker. It does not open SQLite, read retention flags or run deletion transactions.
+This is a local execution-sandbox socket restriction, not an established code
+regression, stale PID/lock or startup timeout. No timeout, sleep, readiness
+condition, assertion or operations implementation was changed.
+
+With local Unix socket access allowed, the unchanged isolated crash/restart test
+passed (including duplicate-lock rejection, kernel lock release after SIGKILL,
+same-identity restart and acknowledged controlled shutdown). Unique temp paths
+exclude old database identities; a stale socket after crash is unlinked by the
+existing control-server startup. The readiness deadline stayed at five seconds.
+The entire operations module passed 5/5 and full backend passed **165/165,
+0 failures, 0 skips**, with OpenAI, sync and retention disabled. Deployment
+controls subsequently passed **6/6, 0 failures, 0 skips**.
+
+Evidence: `/tmp/tradebot-phase175-operations-isolated.log` (sandbox diagnosis),
+`/tmp/tradebot-phase175-operations-isolated-unrestricted.log`,
+`/tmp/tradebot-phase175-operations-module.log`,
+`/tmp/tradebot-phase175-backend-unrestricted.log`,
+`/tmp/tradebot-phase175-deployment-controls.log`.
+
+Reviewed accumulated application/test diff: strict accepted UTC timestamp widths,
+writer-boundary canonical emission while shared historical writer preserves input,
+approved identity capture in a single snapshot, fresh coverage and references
+under each BEGIN IMMEDIATE, exact identity deletes, per-interval bounded batches
+and committed-delete accounting. Existing/new regressions pass, including eight
+observation batches and same-plan safe re-apply. Diff whitespace check passed.
+Only intended application/tests and this checklist are eligible for the feature
+commit; unrelated AGENTS.md and untracked local files/secrets remain excluded.
+
+**PHASE 1.75 remains NOT COMPLETE.** Local test/diff gates passed; commit/push,
+exact-revision feature CI and all remaining production coverage/reconciliation,
+backup/apply/integrity/live-engine/recovery/CD/continuous-cycle/storage gates
+remain required. No production action has been taken in this investigation.
+
+### October 30, 2026 — I7-only release prepared; live verification STOP
+
+- [x] Preserved the current feature checkout and all pre-existing local edits. Historical context pack and index saved in `docs/PROJECT_CONTEXT.md` (`9876eb9`); full exports remain local-only and Git-ignored. All six compact files read; full transcript review unfinished. No failed reviewers restarted or Tradebot paid OpenAI calls made.
+- [x] Isolated only the worker containment from `b809efc` onto the existing deployment branch as `d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a`. No new branch/worktree. Retention/collector timestamp changes excluded. Exported-source validation: **159 backend + 6 deployment tests PASS**, compilation PASS; exact-revision CI run `41138048640` PASS.
+- [~] Manual controlled CD run `41138249460` passed workflow and SHA/CI gates, then remained in full SQLite preflight verification before checkout. During 85 five-second live samples, 148/170 probes timed out and observed feature age reached **331.25 seconds**. The verification reader was in disk wait; this does not individually attribute all added lag to that reader.
+- [x] Stopped safely before checkout: cancelled the workflow, verified old production SHA and absence of a new checkout record, terminated only this attempt's verification Python process (9199), confirmed exit, and removed the one-job runner after automatic unregistration. No application service was signaled/restarted. No deployment/rollback, retention, guard change, VACUUM/WAL manipulation, schema/index change, AWS/network change or Phase 2.
+- [ ] **I7 remains OPEN; worker fix NOT DEPLOYED.** Fresh production stays `a7c0989`; API/ensemble/lifecycle PIDs 2273/849/843, active, zero automatic restarts. Process OpenAI/retention OFF, guard4096 MiB. The final 13 samples through 17:38:13 America/Chicago still timed out; no recovery PASS. Final DB3,996,729,344 bytes, WAL9,805,632 bytes, diskfree51,865,370,624 bytes.
+- **BLOCKER / OWNER:** full live SQLite verification cannot yet be completed safely alongside the blocking feature scan / controlled-release preflight path. Preserve complete structural/FK gates; do not retry the same heavy scan or force a release.
+- **NEXT:** prepare/review a bounded verification and release procedure that protects collection and preserves rollback and complete SQLite checks. Then deploy the tested I7-only revision and validate multiple cycles, API/feed responsiveness, feature age, I/O, collector coexistence and WAL growth. Retention R5/R6 remains STOP; Phase 1.75 unfinished; Phase 2 deferred.
+- Evidence and precise limits: `I7_RELEASE_ATTEMPT_2026-10-30.md`; local `evidence/phase175-baseline/i7-only-release-20261030/`. Broader architecture discussion remains deferred until the Phase 2 boundary per the user's current direction.
+
+### October 30, 2026 — bounded I7 maintenance continuation prepared
+
+- [x] Implemented `deploy/lightsail/i7_maintenance.py` and its reviewed-scope runbook `deploy/lightsail/I7_MAINTENANCE.md` on the existing feature branch. Plan-only by default; fixed old runtime `a7c0989` and I7-only application candidate `d56b4a7`. No normal CD/forced-command helper change, new branch/worktree or production operation.
+- [x] **26 local deployment/maintenance tests PASS**, compilation and diff checks PASS. Real SQLite fixtures verify complete checks and FK/corruption refusal without file mutation. Tests also cover owner aliases, WAL preservation, child timeout/reaping, restart configuration masking, failed-check non-deployment, partial-stop restoration and code rollback. GitHub CI now includes all deployment/maintenance tests alongside backend tests.
+- [ ] Proposed supervised window: 20-minute work budget plus five-minute recovery reserve; intentional collection gap requires operator approval. Stop monitor, wait for a responsive API stop window, stop API/lifecycle/ensemble, prove no SQLite owners/nonempty WAL, create and readback-verify a root-private copy on the same VM, then complete quick/FK checks in bounded read-only child processes before checkout. No Mac DB copy, retention, manual WAL operation, schema/index change, guard increase, credentials/network/AWS resource change or Phase 2.
+- [ ] Fresh exact-SHA CI must pass for application and helper before execution. The helper accepts a trusted operator acknowledgment; it does not independently query GitHub. On failure, restore prior code/services without overwriting collected DB data; report unproven API recovery honestly. New-code success is only `deployed_pending_I7_validation`.
+- **Current position unchanged:** I7 OPEN, worker fix undeployed; full live verification STOP preserved. Retention R5/R6 STOP; Phase 1.75 unfinished. See `I7_RELEASE_ATTEMPT_2026-10-30.md` for evidence and the bounded continuation. No new production measurement is claimed by this preparation.
+
+### October 30, 2026 — authorized no-copy I7 exact-release exception
+
+- [x] User rejected database copies/snapshots and selected a scoped code-only release exception. Copy-based maintenance runbook is withdrawn and its execute CLI disabled. The replacement operational procedure is `deploy/lightsail/I7_SCOPED_RELEASE.md`; this document remains the single roadmap.
+- [x] Prepared temporary protected deployment-helper controls for exact old `a7c098900f8310367fc262a1b837c369bb63dc56` -> application `d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a`, exact six-file scope, bundle/ancestry and one-use root-owned exact-CI acknowledgment. Full quick/FK checks explicitly `NOT_PERFORMED_SCOPED_I7_EXCEPTION`; bounded five-second metadata child is readiness only. Normal release verification unchanged.
+- [x] Local validation: 182 backend + 33 deployment/control tests PASS, compile/diff checks PASS. Existing socket test required local socket access. Tested refusal, real metadata-only SQLite fixtures, child timeout/reaping, partial checkout, restart/smoke/deadline recovery and failed rollback reporting.
+- [ ] Require exact helper CI, freshly verify application CI/branch, temporarily install verified helper through existing pinned operator SSH, dispatch existing Actions workflow once, restart only API, restore protected helper afterward. Work600s + recovery180s inside Actions900s; no automatic retry.
+- [ ] Observe >=20 minutes and >=3 completed feature cycles (max30 minutes). Record five-second/two-second-timeout API/feed probes, timestamps, feature/input age, rollover, service stability, persistence and resource/storage evidence. Snapshot target30s; input-price rule30s. Containment and freshness reported separately; I7 remains OPEN until evidence passes.
+- Retention/paid OpenAI OFF; guard4096; no DB copy/snapshot, full live scan, WAL manipulation, migration/index, infrastructure/network change or Phase2. Full quick/FK audit remains outstanding before retention.
+
+### October 30, 2026 — I7 worker deployed; API containment observed, freshness FAIL
+
+- [x] Implemented and published no-copy exact-release controls (`c2304eb`); local182 backend +33 deployment/control tests and exact helper CI41159551744 PASS. Candidate`d56b4a7` exact CI41138048640 reverified. User explicitly authorized execution; no new branch/worktree.
+- [x] Manual Actions41159675569 succeeded once: production now`d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a`. Five-second metadata readiness and all12 existing smoke routes/SSE/dashboard PASS. Full quick/FK audit explicitly **NOT_PERFORMED_SCOPED_I7_EXCEPTION**; remains required before retention.
+- [x] API only restarted(PID2273->10915); ensemble849/lifecycle843/monitor retained. Existing systemd60s stop policy killed the unresponsive old API, followed by~85s startup/hydration; stop-request-to-listener~146s. No extra kill or WAL command. Missing source events not assumed backfilled. Original protected helper hash restored, authorization consumed/absent; ephemeral runner unregistered and removed.
+- [x] Completed 20.85min post-release observation, 11 cycles, 498 probes: **0 failures/0 timeouts**, max0.075s. 2 extension samples lacked probes due unmatched journal reads, disclosed. Cycle duration83.576–86.720s; new snapshot age84.084–204.277s vs30s target **FAIL**. Polymarket stale around rollover; observed first new market~51s late. Follow-up next rollover at02:46:49UTC had new market/live feeds but missing features and degraded health.
+- [ ] **I7 OPEN:** sampled API stall containment passes; full freshness/rollover requirements do not. EXPLAIN-only inspection confirms source-filtered stream sort and REST-price table scan/sort. Synthetic in-memory expression-index feasibility passed5 cases, but tie behavior, build I/O/lock budget and writer overhead are unqualified. No production index/schema change.
+- **NEXT:** separately review/test the smallest source-time lookup optimization with preserved as-of, exact-decimal, provenance and stale/missing semantics; include rollover/discovery latency. Retention R5/R6 STOP and remaining Phase1.75 gates pending. Full quick/FK audit outstanding. OpenAI/retention OFF, guard4096; no DB copy/snapshot, retention, VACUUM, manual WAL, infrastructure/network change or Phase2.
+- Evidence: `I7_PRODUCTION_VALIDATION_2026-10-30.md`; local`evidence/phase175-baseline/i7-scoped-release-20261030/`.
+
+### October 31, 2026 — I7 freshness/rollover local implementation
+
+- [x] Implemented local feature version2 with explicit per-source timestamp tie ordering (stream TEXT key ASC; REST numeric ID ASC), preserving received/source cutoff, Decimal values, provenance and stale/missing behavior. Explicit transaction-only index preparation refuses conflicting definitions; never invoked on startup.
+- [x] Feature work now has an independent serial loop with15s pause after completion; REST/source request cadence unchanged. No feature overlap/backlog. Expired, changed-market, future and >30s-old results cannot be newly published to RAM; cancelled workers drain before teardown, including repeated cancellation. Already-published snapshots still expose their original as_of as they age; not a full RAM freshness redesign.
+- [x] **189 backend +33 deployment/control tests PASS**, compile/diff checks PASS. New regressions cover indexed/unindexed equivalence, actual stream NOT NULL schema, timestamp offsets/ties, late/future/stale/missing inputs, concurrent REST progress, cadence, publication fences, cancellation draining, transaction requirements and wrong-definition refusal.
+- [x] Synthetic100k/1m rows per price table measured build time, page growth and warm lookup speed; another writer received SQLITE_BUSY during the schema transaction and resumed afterward. This is generated data, no DB copy/snapshot, and is **not production qualification**. Details: `I7_FRESHNESS_LOCAL_2026-10-31.md`; local`evidence/phase175-baseline/i7-freshness-local-20261031/`.
+- [ ] **NOT DEPLOYED.** No production reads/changes in this milestone; last verified runtime remains`d56b4a7`. Qualify current guard headroom, combined index/WAL/build/ongoing storage growth and increased snapshot cadence, bounded writer interruption, abort/recovery and required verification before any production CREATE INDEX or release. Do not deploy scheduler alone expecting fast results; its age gate rejects slow completions. Do not reuse prior consumed release exception.
+- I7 OPEN, full quick/FK audit outstanding, retention R5/R6 STOP, paid AI/retention OFF, guard4096 unchanged; no infrastructure/network changes or Phase2.
+
+### October 31, 2026 — fresh capacity STOP supersedes healthy checkpoint
+
+- [x] Fresh read-only evidence at`2026-11-01T00:32:04.840498+00:00` (2026-10-31T19:32:04.840498-05:00 Chicago): production still`d56b4a7`, clean checkout, original API/ensemble/lifecycle PIDs10915/849/843 active and zero automatic restarts; collector **STOPPED**, feeds stopped since~04:24AM October31 Chicago; storage_guard`limit_reached`. HTTP/SSE/dashboard respond with retained state, not live evidence.
+- [x] DB4278059008 +WAL17431752 = 4096.499214MiB against4096MiB, headroom-523464bytes. Filesystem still48.038GiB free. Header-only five-second SQLite child found0 free pages, auto_vacuum NONE; deleting rows alone must not be assumed to shrink allocated guard usage. No full integrity/FK scan.
+- [x] Implemented local read-only readiness assessment with no execute mode; current result STOP for collector/feed/guard/capacity and unqualified build budget. Prepared health correction: clean collector exit or guard reach now degrades cached-RAM health. **Not deployed.**
+- [x] **191 backend +40 deployment/control tests PASS**, compile/diff PASS. Existing branch and unrelated edits preserved. See `I7_CAPACITY_STOP_2026-10-31.md`; local`evidence/phase175-baseline/i7-capacity-stop-20261031/`.
+- [ ] **NEXT / blocker:** a reviewed capacity recovery operation under user constraints, before index installation, release or restart. Do not bypass/increase guard, delete/rewrite WAL, run retention/VACUUM, create DB copies/snapshots or replace DB as a workaround. R5/R6 remains STOP. Synthetic index work remains unqualified for production. No source collection resumed.
+- I7 OPEN; freshness/rollover code remains local-only, full quick/FK audit outstanding, paid AI/retention OFF, guard4096, Phase1.75 unfinished; Phase2 deferred.
+
+### October31,2026 — user authorized end-to-end lifecycle implementation
+
+- User approved a temporary **5120MiB** bridge,48h raw retention, controlled production cleanup only after safety gates, and5120 as permanent ceiling only after measured stability. This explicitly supersedes the earlier4096-only restriction for this operation; no further automatic guard increases. No DB copies/snapshots, VACUUM, manual WAL, new infrastructure, paid AI or Phase2.
+- [x] Prepared exact-runtime operator bridge helper and bridge-aware readiness. One4096->5120 config setting, unchanged application`d56b4a7`, API-only restart, >=10GiB disk free / >=512MiB proposed headroom,5min continuous feed/current-market/API observation,10min work +3min recovery,24h review deadline. No retained .env backup or credentials in evidence. **51 deployment/control tests PASS**, compile/diff PASS.
+- [ ] Exact helper CI, then authorized bridge execution and measured restoration. Until execution evidence, production remains guard-stopped at4096; do not claim resumed collection.
+- [ ] Narrow retention SQL/temp-key optimization with all current transaction safety checks; target250ms/max500ms writer transactions,1000row initial batches/100ms handoff; three full Linux generated-fixture trials<=180s each with actual deployed collector ordering,150ms saves/50ms heartbeat, zero errors and maxsave/heartbeat<1s. Limits2GiB fixture disk/512MiB per process; stop on production interference. R5/R6 remain STOP until proof.
+- [ ] Fresh archive/readback and full SQLite quick/FK verification before deletion; R7 archive-backed exact-raw-row recovery manifest and in-memory reconstruction, not a fullDB backup. First production cleanup<=1000rows with identity/protected/FK/collector verification; no broad purge. Maintenance30min +3min recovery.
+- [ ] Qualified index installation and isolated freshness/health release; >=20min,>=3cycles and market boundary,<=30s snapshot age, zero2s API timeouts. No reuse of prior deployment exception.
+- [ ] Retention enabled only in lifecycle after gates, leaving API/ensemble OFF. Role-specific preflight/service change required because existing command forcesOFF. Hourly archive/retention initially; same-cycle verified archives required.24h soak before permanent5120 ceiling / Phase1.75 closeout.
+
+### October31,2026 — collection restored; SQL retention candidate prepared
+
+- [x] Authorized **5120MiB bridge ACTIVE**, application unchanged`d56b4a7`. Exact helper`8187465` CI41263032555 passed and export/VM SHA matched. Guard-only config change, API-only restart~0.393s(PID17165), ensemble849/lifecycle843/monitor unchanged; zero automatic restarts. No DB copy/config backup, no retention/index/application release.
+- [x] Passed5continuous minutes after existing rollover reset (114 samples total), live feeds/current market/API/dashboard/SSE. Review due`2026-11-02T01:56:47.671426+00:00` UTC (2026-11-01T19:56:47.671426-06:00 Chicago);5120 not permanent until24h measured stability. Paid AI/retention remainOFF.
+- [x] Prepared SQL/TEMP retention optimization retaining all fresh writer-transaction safety checks. Deadline500ms/target250ms, accurate post-commit overrun reporting; temp bookkeeping outside writer,100ms handoff.44existing retention safety tests and2new deadline tests pass.
+- [x] Full local **194 backend tests PASS,1Linux-only self-test skipped;51 deployment/control tests PASS**, compile/diff PASS. Generated Linux harness prepared with180s/trial,512MiB/process and2GiB fixture/TEMP cap; production health guard, actual deployed collector save/RAM ordering and exact helper hash.
+- [ ] Require exact candidate CI, then three complete Linux generated-fixture trials. R5/R6 remains STOP until those pass; stop on any failed bound/interference. No production cleanup or archive/audit gates bypassed. See `LIFECYCLE_48H_EXECUTION_2026-10-31.md`; local`evidence/phase175-baseline/lifecycle-implementation-20261031/`.
+
+### October31,2026 — first Linux retention qualification STOP; local merge candidate
+
+- Exact candidate`1c714e4` CI41264132465 passed195 backend/51 controls, including tiny Linux harness self-test. Actual isolated Linux profile647089 observations/1867728 stream rows used real deployed save helper SHA95a49c2ac04b6dbb04223e0f363df0a6132bd7b0cc10fda7145a2055bd1efa12.
+- **R5/R6 remains STOP:** first generated trial aborted at writer deadline0.500101783s (`sqlite_progress`),0committed rows. Full trial48.289s, peak generated disk466999157bytes, maxRSS100380KiB; fixture collector95saves/95RAM updates,0errors, maxsave0.431038s, maxheartbeat0.451962s. Production guard recorded0interference errors; generated directory empty after cleanup. No production retention/index/release or additional trials of this failed candidate.
+- Prepared local ordered SQL timestamp-set merge candidate (replacing per-value B-tree probes), preserving current global validation under the writer lock, explicit binary collation and separate staging of newly valid strings until merge cursor closes. Same250ms target/500ms deadline; no relaxed proof or extended budget. Add operation-phase attribution. Local synthetic1m indexed membership check0.285s vsorderedmerge0.092s, not a Linux qualification PASS. New exact CI and fresh qualification required.
+- Collection remains restored under temporary5120 bridge; do not disable or enlarge it because fixture qualification failed.24h review deadline unchanged.
+
+
+### October31,2026 — revised Linux qualification STOP; production follow-up live
+
+- Revised timestamp-merge/profile candidate`2753c4a` passed exact CI41265091345 (196backend/51controls). Second generated profile647996 observations/1871555 stream rows stopped after40.725s during fixture generation: production health guard recorded RuntimeError. Retention apply had not begun; merge writer performance remains unqualified. Old diagnostics did not retain the precise feed/collector condition, so causation is unresolved. Trials2/3 not run; no further stress retries.
+- Follow-up02:33:46UTC: unchanged`d56b4a7`, API17165/ensemble849/lifecycle843 active with zero automatic restarts, guard5120, paid AI/retention OFF, both feeds live. DB4300345344/WAL18160992bytes; diskfree51556388864bytes. Feature snapshot still stale. Subsequent read-only baseline02:37:53–02:39:23UTC:19/19 samples passed, collector running and both feeds fresh/live. This90s sample does not explain or invalidate the earlier safety STOP.
+- Both isolated staging directories and generated fixtures removed after checking processes, directory contents and code hashes. No production DB copied/deleted/replaced, index installed, retention enabled or application release performed.
+- Added typed, sanitized guard diagnostics (reason/feed timestamp/status/age), fixture-stage attribution and regression coverage. **197 local backend tests PASS (one Linux-only self-test skipped),51controls PASS**, diff check PASS. No deadline or resource limit weakened. R5/R6 remains STOP; next work is precise guard-condition diagnosis and then three qualified trials, not production cleanup. Bridge review deadline unchanged; I7/Phase1.75 OPEN.
+
+
+### October31,2026 — bounded diagnosis before another qualification
+
+- Existing API journal02:29:30–02:33:00UTC confirms feature work but has no historical feed-transition log identifying the prior guard failure. Do not infer its cause. Fresh03:50:21UTC runtime remains clean d56b4a7, original PIDs/zero restarts, both feeds live, guard5120, paid AI/retention OFF; DB4346855424/WAL18160992bytes.
+- Prepared explicitly bounded one-trial diagnostic mode, with unchanged default three trials, resource/write/health limits and synthetic-only isolation. One pass cannot clear R5/R6. Trial records now include start UTC; precise sanitized health failure/stage diagnostics already tested.197backend tests (one Linux-only skipped)/51controls pass locally; exact CI required before VM use. No cleanup/index/application release authorized by these test results alone.
+
+
+### October31,2026 — measured retention blocker: global timestamp revalidation
+
+- Exact diagnostic candidate44cb0ec CI41270810424 PASS. One generated-only Linux trial at652932 observations/1890841 stream rows began2026-11-01T03:52:10.489725Z. Preparation92.368s; trial118.760s; peakfixture482989381bytes/maxRSS102216KiB, within approved overall resource limits.
+- **R5/R6 STOP:** retention apply reached `timestamp_revalidation:sqlite_progress`, writer duration0.511735474s vs500ms maximum. Failing transaction committed0rows. Fixture collector170saves/170RAM updates,0errors, maxsave0.532594s/maxheartbeat0.561937s. Production guard recorded **no failures**. This identifies the current writer bottleneck; it does not retrospectively identify the previous unrecorded health condition. No trials2/3 or automatic retries.
+- Local generated200k-observation/600k-stream EXPLAIN shows observations covering-index scan plus TEMP ORDER BY B-tree, stream covering-index scan and validity-cache merge. Three warm repetitions: shared merge~0.196–0.202s total; separate-cache merge~0.183–0.194s; separate-cache probes~0.607–0.640s. These are local warm-cache diagnostics, not Linux qualification. Cache partitioning alone shows no supported margin at actual scale; do not claim it fixes the500ms gate or weaken current-global validation. No speculative retention algorithm change shipped.
+- VM fixture staging removed after checking expected code hashes, empty generated directory and absent fixture process.03:55:23UTC post-test: same d56b4a7/PIDs17165/849/843, zero automatic restarts, both feeds live, guard5120, paid AI/retention OFF. DB4350054400/WAL18160992bytes, free51506302976bytes; guard headroom~954.1MiB. No production DELETE/index/service/config change in this diagnosis.
+- **Next gate:** a reviewed replacement for the measured global timestamp revalidation cost that preserves fresh in-transaction proof, followed by three full Linux qualification passes under unchanged limits. Existing candidate is unqualified; no further whole-fixture retry without an evidenced algorithm change. Full audit/archive/recovery/cleanup/freshness/lifecycle/soak gates remain blocked. Temporary bridge review deadline unchanged2026-11-02T01:56:47.671426Z. I7 and Phase1.75 OPEN; no Phase2.
+
+
+### October31,2026 — approved indexed-NOT-IN candidate rejected locally
+
+- Fresh read-only preflight2026-11-01T04:16:29UTC: production d56b4a7 clean, API17165/ensemble849/lifecycle843 active with zero automatic restarts, guard5120, paid AI/retention OFF, feeds live. DB4362436608/WAL18160992bytes; free51493785600bytes. Indexed MAX(rowid) upper bounds585752/1715411 sized generated profile654328 observations/1896953 stream rows. No historical production scan or write.
+- Implemented the approved observation candidate locally: optional existing covering index, binary indexed NOT IN against TEMP validity facts, explicit NULL detection, unknown-only deduplication/staging; stream merge unchanged. Focused correctness tests passed.
+- **Rejected before Linux qualification:** generated scale benchmark with97market/3kind groups and the harness's old/recent timestamp overlap measured observation median **1.652084s candidate vs0.332051s existing merge (~5x slower)** over3repetitions. Stream query unchanged (medians0.389064/0.374931s). Initial disjoint-timestamp benchmark also rejected it (1.617995vs0.346658s). Eliminating sort traded it for expensive indexed lookups; tiny planning benchmark did not generalize. These local warm-cache timings are not production timings or qualification.
+- Restored the existing runtime merge query. Retained candidate only in generated-only reproducible `backend/benchmark_retention_timestamps.py`; it accepts row counts, never an existing DB path. No unchanged VM trial or production deployment attempted.
+- Added per-writer-transaction timing for timestamp revalidation, manifest coverage, protected selection, deletion and commit; expose partial timings on budget exceptions/harness results. Added NULL/case/calendar/optional-index and unknown-dedup/cache regression coverage. **199backend tests PASS (one Linux-only skipped),51controls PASS**, benchmark tiny-run and diff PASS. No safety or time limit weakened.
+- **R5/R6 STOP under the approved failure rule:** no compliant replacement has been demonstrated. The unresolved constraint is fresh global timestamp proof on both raw tables in every<=500ms writer transaction at current scale. A replacement must demonstrate a different access strategy/proof implementation, not another unchanged trial; no assertion that all possible implementations are impossible. No archive/readback/audit/recovery/cleanup/index/freshness/lifecycle/soak gates advanced. I7/Phase1.75 OPEN;5120 review deadline unchanged2026-11-02T01:56:47.671426Z.
+
+
+### October31,2026 — bounded TEMP-cache alternative also rejected locally
+
+- Follow-up generated-only comparison explicitly set TEMP cache2000KiB vs131072KiB (128MiB), with the same654328/1896953 profile and no production configuration changes. Cached NOT IN observation runs0.547290/0.560505/0.537571s, median0.547290s; stream merge median0.342729s. Existing merge medians0.313319/0.329028s. Even the cached observation check alone exceeds500ms locally; this is not sufficient evidence for a Linux trial. No runtime cache tuning or candidate query retained.
+- Reproducible standalone benchmark now includes both bounded cache settings. Candidate diagnostics milestone6ef8ce2 exact CI41272687425 PASS (199local backend/51controls; Linux-only test skipped locally). Local tiny benchmark verifies all three variants. Evidence `timestamp-temp-cache-local.json` preserves all repetitions. R5/R6 STOP and production gates unchanged; no compliant implementation demonstrated and no assertion of general impossibility.
+
+
+### October31,2026 — native strict timestamp proof candidate prepared
+
+- New access strategy retains a fresh global scan of both raw tables in every writer transaction but validates exact raw timestamp bytes directly in a small C SQLite scalar function. No sorting, validity-cache B-tree probes, Python callback per row, or cached row/eligibility facts. Strict25/32-byte UTC formats, ASCII digits, Gregorian calendar/leap years, hour/minute/second bounds, NULL/BLOB rejection match the Python contract. Existing coverage/reference/anchor/exact-identity delete checks and250ms target/500ms deadline unchanged.
+- Prototype generated654328/1896953 local checks measured native observation median~51.6ms and stream~146.0ms (sum~197.6ms), versus merge medians~314.8/334.9ms. Local warm-cache evidence is not Linux qualification. Native/Python parser equivalence includes16701 initial cases plus malformed-character mutations in retained tests. Existing retention safety suite also runs through native mode.
+- Prepared source/binary SHA-pinned artifact loader; invalid/incomplete artifact fails closed. Missing optional artifact retains the safety-equivalent portable path and its unchanged deadline. Extension loading disabled immediately after trusted load; scalar marked DIRECTONLY. No schema, data, public API or application-config change. Build only on local/CI hosts; production has no compiler/headers and receives no package install. CI publishes an exact-commit Linux artifact, verified before isolated VM use. No compile/download on application startup.
+- **203 backend tests PASS (one Linux-only skipped),51controls PASS**, tiny verified-native benchmark and diff PASS. Require exact-commit CI/artifact, then native-required Linux qualification on generated fixtures. R5/R6 stays STOP until three full passes under existing180s/512MiB/2GiB, collector and production-health limits. No production release/cleanup/index/retention enablement in this milestone.
+
+
+### November1,2026 — native trial reached apply; total-budget STOP and bounded follow-up
+
+- Candidatea3e1593 exact CI41273629417 PASS; native artifact13070079047 verified (source2b39ba8167896c0e370f2c50f944a1fa23147af8d3f27c3c8e43faae81f43495, binary1a7e9b8b8402e6e9cc1dda269459795dc457e04f0c8fa8b2e8326e3803d4333b). No compiler/header/package install on VM.
+- First native-required Linux trial began2026-11-01T04:45:59.129643Z after old-code rollover delay cleared. Generated656041 observations/1904238 streams. Preparation71.8419s; apply reached the170s work deadline and cleanup brought total to186.8597s, beyond180s. **R5/R6 STOP**; no trials2/3. No RetentionBudgetError or production-health failure reported, but incomplete partial lock metrics mean this is not proof all writer durations passed. Fixture collector726saves/726RAM,0errors, maxsave331.7ms/maxheartbeat382.2ms; peakfixture486200645bytes/maxRSS138160KiB.
+- Staging/generated files removed only after process/content/hash checks. Fresh05:29:52UTC production remains clean d56b4a7, PIDs17165/849/843 and zero restarts, both feeds live, guard5120, retention/paid AI OFF. DB4405575680/WAL18366992bytes, free51450019840bytes. No production release/index/deletion/config change.
+- Follow-up candidate uses the same verified native proof during read-only planning (removing Python parsing per raw row), and groups GENERATED SETUP inserts into20000 rows per commit. Generated cardinality/identities/indexes unchanged; actual retention stays1000-row batches/100ms handoff/500ms hard writer cap, actual collector5s busy timeout unchanged.
+- Added partial transaction/phase evidence on overall interruption and a separate fixture-process-group supervisor.170s soft work + cleanup must fit180s total; supervisor starts termination at177s with bounded TERM/KILL/reap. Explicit STOP/retained fixture if reaping fails; never unlink active fixture or report it cleaned.4MiB of the2GiB fixture allowance reserved for supervisor metadata/artifact overhead; memory512MiB/process unchanged. No manual WAL operation: automatic close behavior remains intact.
+- **205 backend tests PASS (two Linux-only skipped),51controls PASS**, diff PASS. Linux CI must exercise real process termination/reaping and tiny three-trial supervision before another full native-required trial. Exact CI/artifact required; this is a materially changed candidate, not an unchanged retry. Bridge review due2026-11-02T01:56:47.671426Z remains unchanged; I7/Phase1.75 OPEN.
+
+
+### November1,2026 — phase attribution narrows native writer overrun; pure prefix candidate
+
+- Follow-up71402ec exact CI41277408489 PASS, artifact13072290252 verified. Generated658953/1914798 profile started05:35:04.737792UTC. Setup fell to50.3823s; supervised total54.2323s. R5/R6 STOP after7fixture commits: one1000-row commit finished at0.502769427s. Accurate partial evidence records7000fixture rows committed; no database rollback is claimed for that completed commit. Production deletion count remains0.
+- Failing transaction phases: observations0.133619s, streams0.330733s, combined timestamp0.464398s, coverage0.003466s, selection0.001754s, delete0.008756s, commit0.024297s. Collector14saves/14RAM,0errors, maxsave0.432769s/heartbeat0.483783s; production guard failures0; peakfixture489052781bytes/RSS99272KiB. No trials2/3.
+- Cleaned verified stage/fixtures after process/hash checks. Fresh05:38:38UTC production d56b4a7, samePIDs/zero restarts, both feeds live, guard5120, paid AI/retention OFF. DB4410212352/WAL18366992bytes, free51445329920bytes. No production release/index/deletion/config change.
+- New candidate keeps a single24-byte connection-local positive cache for exact19-byte calendar prefixes. Complete raw length, fraction digits and UTC suffix are still checked on EVERY row; a cache hit only reuses pure calendar validity, never current row/reference/count/eligibility facts. Source hash pin changes with reviewed C; SQLite frees cache on function replacement/connection close. Full fresh global checks unchanged.
+- Strengthened generated fixture: old timestamps span12h within72–60h age; recent timestamps span46h within47–1h age, instead of adjacent microseconds. Original eligible population and exact identity boundaries preserved; assert planned eligible counts equal40030 observations/196509 streams (or scaled tiny profile), preventing a timestamp-range mistake from silently reducing workload. Retention remains1000rows/100ms, hard500ms/180s and resource caps unchanged.
+- Local day-scale654328/1896953 O2-prototype native checks: observation median46.1ms, stream124.5ms (total170.6ms); this is not a matched production comparison or Linux qualification. **206backend tests PASS (two Linux-only skipped),51controls PASS**, diff PASS. Final build uses portable O3 without fast-math or architecture-specific flags; full safety/equivalence tests pass. Require exact CI/new source-pinned artifact before another guarded qualification; all later gates remain blocked.
+
+
+### November1,2026 — indexed global-validity proof replaces repeated full scans
+
+- Prefix candidate829d257 exact CI41278263026 PASS; generated659812/1918076 trial started05:49:56UTC. Three fixture commits3000rows completed (median314.7ms/max485.1ms), then fresh timestamp proof reached500.149ms (observations201.9ms/streams298.1ms), rolled back that transaction and stopped. Preparation63.182s, supervised65.978s; collector8saves/8RAM,0errors, maxsave439.8ms/heartbeat488.7ms; production guard failures0. No trials2/3.
+- Cleaned verified fixture/stage.05:53:56UTC production unchanged d56b4a7/PIDs17165/849/843, zero restarts, live feeds,5120 guard, paid AI/retention OFF; DB4418834432/WAL18366992bytes/free51436580864bytes. No production index or deletion.
+- New strategy uses TWO ordinary additive partial indexes containing exactly INVALID received_at rows, with a strict SQLite-built-in-only predicate equivalent to raw Python parsing. SQLite maintains membership transactionally for all writers, including old code and foreign connections. Each deletion transaction freshly verifies exact index definitions and probes invalid membership in BOTH raw tables under its writer lock. No cached current counts/references/eligibility, no stale certificate, no scope broadening. Invalid data is preserved and blocks deletion; dropping/replacing a guard fails closed.
+- Predicate handles UTF-8 byte length, NULL/BLOB, ASCII digit patterns, Gregorian/leap calendar, valid clock fields, only25/32-byte +00:00 forms. Byte length avoids TEXT-length's embedded-NUL trap. Tests compare16895cases, NOCASE columns, foreign-writer mutations and full existing retention safety cases. Install requires caller-owned explicit transaction and UTF-8; never invoked at startup. No native binary/compiler dependency for indexed runtime.
+- Local generated day-scale654328/1896953 benchmark: two guards built4.085s, added8192bytes; full definition+empty-invalid probes median~26.4us observations/~19.2us streams. This is not Linux qualification or a production build-time guarantee. **210backend tests PASS (two Linux-only skipped),51controls PASS**, diff PASS. Qualification adds explicit guard-build timing, indexed-engine requirement and verifies full expected deletions, in addition to unchanged1000row/100ms/500ms/180s and resource/feed limits.
+- **Production ordering implication (not yet executed):** guards are a prerequisite to indexed retention and would be explicitly installed during supervised maintenance AFTER R5/R6 and full archive/integrity/recovery gates, BEFORE first cleanup. Source-time feature indexes still follow qualified cleanup/capacity. Keep this scope visible; no silent startup migration or consumed release-exception reuse. All production schema changes remain pending tested operator controls and fresh readiness. R5/R6 STOP until three passing indexed trials; I7/Phase1.75 OPEN.
+
+
+### November1,2026 — indexed timestamp proof passes; next hotspot is stream deletion
+
+- Indexed3938fb4 exact CI41279502588 PASS. Trial06:10:04UTC at660998 observations/1922598 streams built guards7.471s; preparation64.282s/supervised108.123s. Fresh global timestamp proof measured83.2MICROseconds. All40030eligible observations deleted across41fixture batches (max57.3ms/median33.1ms);1000streams committed, then next stream transaction stopped503.134ms in exact_delete (coverage112.4ms, selection6.3ms, deletion384.2ms before rollback). Committed fixture rows remain recorded; no production rows deleted.
+- Collector285saves/285RAM,0errors,maxsave434.8ms/heartbeat446.6ms; production guard failures0. R5/R6 STOP; no trials2/3. Staging cleaned after process/content/hash checks. Fresh06:16:22UTC production stilld56b4a7/samePIDs/zero restarts, both feeds live (health degraded around rollover),5120 guard, paid AI/retention OFF. DB4431720448/WAL18366992bytes/free51423559680bytes.
+- Local set-based exact-delete experiments showed no useful gain; not adopted. Keep exact source/event/RAW received_at deletes. Reuse the full existing archive cursor when its current metadata matches(received_at,source,event_id), otherwise safe fallback; no stream-rowid identity or new index in this change.
+- Optimize ONLY validated in-transaction stream manifest counts: raw interior seconds counted by existing indexed range; boundary seconds retain the original canonical tuple comparisons. Disjoint union equals full original bounds, including late/unapproved/other-source rows; no candidate clipping or current count caching. Property checks compare300ranges across mixed25/32widths, midnight/month boundaries, fractions and source/event ties with original SQL. Planning outside the validated transaction retains original count logic.
+- Bound the retention connection's MAIN page cache to a16MiB working-set target (preserve larger caller setting), restoring exact original on success/failure. Collector timeout/cache, storage ceiling, persistent configuration, WAL/checkpoint settings unchanged. Still within512MiB process limit. Local1.92m WAL fixture: original range median46.3ms vs split8.1ms; per-row default delete9.0ms, covered-cursor11.2ms, covered-cursor+16MiB cache6.2ms. Local warm results are not qualification.
+- **213backend tests PASS (two Linux-only skipped),51controls PASS**, diff/benchmark PASS. Need exact CI and three full indexed Linux trials with unchanged1000row/100ms/500ms/180s, memory/disk/health limits. New guard indexes still NOT installed in production; archive/integrity/recovery/cleanup/freshness/lifecycle/soak gates pending.
+
+
+### November1,2026 — warm pages outside writer; bound static TEMP preparation
+
+- e088ac2 exact CI41281335177 PASS. Trial06:35:01UTC at662540/1928469 built guards8.063s, prepared63.390s, supervised74.772s. All40030observations completed (max199.7ms/median31.7ms); first stream transaction stopped505.094ms: timestamp0.472ms, coverage36.184ms, selection4.143ms, deletion464.178ms before rollback. No stream rows committed. Collector69saves/69RAM,0errors,maxsave532.6ms/heartbeat583.0ms; production guard failures0. R5/R6 STOP; no later trials.
+- Next candidate warms the next bounded approved identity pages using read-only main-PK lookups BEFORE acquiring the writer; every value is discarded. Warming is NOT eligibility/scope proof. Under BEGIN IMMEDIATE, fresh guard definitions/membership, full original manifest counts, references/anchor/eligibility and exact-identity selection/deletion still all run independently. A regression mutates raw data after warming and verifies rollback/no deletion.
+- Prepare only immutable approved identities in TEMP-primary-key order, rather than unordered set insertion. Set private connection targets MAIN32MiB +TEMP16MiB (preserve larger caller settings, restore exact originals on success/failure);512MiB process limit and collector5s busy timeout unchanged. No persistent/app/storage/WAL settings changed. Local196509-row static preparation1.896s ->0.937s; not Linux qualification.
+- Add per-dataset static-preparation and unlocked-warming timing, retaining measured commit/write phases and truthful partial commits. **214backend tests PASS (two Linux-only skipped),51controls PASS**, diff/benchmark PASS. Require exact CI then three complete indexed Linux trials under unchanged1000/100ms/500ms/180s and resource/health limits. No production index/deletion/release/config change; guard installation/other gates remain pending.
+
+
+## Qualification deadline diagnostics and observed ID profile — November 1, 2026
+
+Candidate b5ef255 / exact CI41282322948 PASS ran at06:49:59UTC with663455 observations/1931647 streams. The supervisor stopped it at177.151s (exit-15); no complete child report survived. This is STOP, not evidence that writer/collector gates passed. No subsequent trials ran. Exact-hash staging cleanup confirmed no fixture process/files remained. At07:00:41UTC production was still d56b4a7, same service PIDs/zero restarts, retention/paid AI OFF and guard5120; Coinbase live, Polymarket marked stale around rollover. No production schema, rows, code, settings or services changed.
+
+Added atomic provisional STOP reports throughout fixture preparation and unlocked apply checkpoints, retaining stage, committed counts and phase timings even if cleanup is killed. Reporting never runs under the main writer lock and cannot certify an incomplete pass. Limits remain500ms/180s/512MiB/2GiB.
+
+Read-only first100/last100 stream-ID shape samples at06:57:43UTC were all Coinbase ASCII digits of length10. This is a bounded sample, not a full-table assertion. Added explicit synthetic ten-digit-ID profile; default variable-width adversarial profile remains available and its failures remain recorded. Cardinality, full deletion workload, strict string identities, safety checks and deadlines are unchanged. Future passing results apply only to the tested profile; unfamiliar production scopes require qualification rather than numeric coercion.
+
+Prepared a pure raw-row recovery verifier: bounded authenticated-readback bytes supplied by caller, checksum/size/count/boundary validation, exact Decimal JSON comparison and byte-exact original raw-column reconstruction in memory. Four tests pass. No cloud readback or production recovery manifest has been completed; R7 remains pending. Local220 backend tests pass (two Linux-only skipped),51 controls pass. R5/R6 STOP; production guard installation, cleanup, freshness release and24h soak remain blocked pending evidence.
+
+
+## TEMP pending-table scan repaired — November 1, 2026
+
+498284a exact CI41283166554 PASS. Observed-shape trial at07:03:18UTC used664240 observations/1934508 streams. STOP at173.062s from170s work alarm, not a writer overrun: all40030observations committed, max79.63ms;3000streams committed, max42.39ms and108.99ms total stream writer time. Collector737saves/737RAM,0errors,maxsave58.34ms/heartbeat129.54ms; production guard failures0. Full workload did not complete, so R5/R6 remain STOP. No later trials ran.
+
+Incremental reports exposed the precise unbounded operation: outside-writer TEMP bookkeeping deleted by(source,event_id,received_at), omitting the leading stamp of its WITHOUT ROWID primary key. EXPLAIN confirmed a full pending-table scan per identity. Repaired bookkeeping includes canonical stamp plus all three original exact string identity fields; no current eligibility, coverage, cutoff, protected-reference or deletion check changed. Added a per-batch unlocked-bookkeeping timing and checkpoint.
+
+Generated196509-row local comparison: old10removals178.38ms; new1000removals4.76ms. EXPLAIN changes SCAN to SEARCH USING PRIMARY KEY on all four columns. Regression verifies indexed lookup and distinct007/7/70 identities.221local backend/51controls pass (two Linux-only skipped). Exact CI and three full Linux trials required before release/cleanup. The observed10-digit profile remains distinct from adversarial variable-width qualification; no claim that untested shapes are qualified. Production unchanged; full archive/integrity/R7 gates and I7 freshness/rollover remain open.
+
+
+## R5/R6 qualified on existing Linux VM — November 1, 2026
+
+Exact candidate e0d311edcceb4be15811c55f6f8650484d107930, CI41283537103 PASS. Three complete generated-only trials passed: 101.998s / maxwriter87.44ms; 126.860s / maxwriter79.36ms; 77.612s / maxwriter97.61ms. Each deleted40030 observations and196509 streams at refreshed representative cardinality (664603–665010 observations/1936125–1938116 streams). Actual deployed save→RAM order,150ms save attempts,50ms heartbeat,500ms writer/180s total/512MiB-process/2GiB-fixture limits retained. All actor errors0, saves=RAM; maxsave108.52ms/heartbeat156.76ms; production guard failures0. No rows were deleted from production.
+
+The complete TEMP primary-key repair removed the hidden outside-writer repeated scan. Generated benchmark old10removals178.38ms vsnew1000removals4.76ms; full Linux stream-bookkeeping now completes rather than timing out. Qualification applies to the explicit observed10-digit Coinbase key profile. Variable-width adversarial results remain historical failures; unfamiliar production scopes require qualification, never coercion. Generated payloads are synthetic, not a replica of production bytes. First actual cleanup remains a separately supervised≤1000-row trial.
+
+R5 performance and R6 collector coexistence PASS for this tested profile. R0–R4 accepted historical evidence preserved. R7 exact raw-row recovery/archive readback and fresh full production SQLite verification remain PENDING; R8–R17/I7/Phase1.75 remain OPEN. Old board statements requiring snapshots or claiming no optimization authorization are superseded by the user's subsequent implementation plan; no copies/snapshots were made.
+
+Exact-hash generated staging cleanup verified.07:18:46UTC production remained d56b4a7/same PIDs/zero restarts, bothfeeds live, retention/paidAI OFF,guard5120, DB4469121024/WAL18366992 bytes. This is a recorded sample, not an ongoing-health guarantee. Bridge review due2026-11-02T01:56:47.671426Z remains unchanged.
+
+Prepared the next controls: TEMP exact-full-row recovery guard blocks mutation/unapproved deletes transactionally; its indexes avoid repeating the pending-scan mistake. Prepared explicit operator-only read-only quick/FK audit with30min work+3min recovery reserve, independent bounded/reaped SQLite child, partial-stop recovery, restoration of every stopped writer even after a restart failure, unchanged configuration and measured raw receive gaps. Default is plan-only; no audit/service stop/index installation has run.222local backend/57controls PASS (two Linux-only backend skips); require exact new helper CI, hash-pinned export and safe preflight before supervised production maintenance. No consumed I7 exception reuse.
+
+
+### Integrity-child interruption containment
+
+6201867 exact CI41284484947 PASS (222 backend plus57controls on Linux). Before production use, the audit helper now owns its read-only child process group directly: timeout or parent interruption terminates/kills/reaps it before service recovery. Added real Linux kill/reap and parent-interruption regressions. Local59controls pass with two Linux-only skips; backend unchanged. Requires new exact helper CI. No production maintenance has run; no live process or service was signalled by these generated/unit tests.
+
+
+### Bounded private-archive recovery preparation
+
+Added a default-plan-only operator that selects at most1000 raw rows through original full manifest ranges, reads applicable private objects using the existing authenticated download client, verifies checksum/compressed size/count/boundaries, preserves original raw columns and demonstrates in-memory reconstruction. It freezes the48h cutoff and exact approved identities; it never deletes, uploads, enables flags or creates indexes. Fresh eligibility/protected-reference checks remain required in the deletion transaction. Private proof publication is immutable and0600; diagnostic output includes only stage/type/count/hash, never credentials or raw payload.227local backend tests PASS (two Linux-only skips); requires exact CI before any production readback. Production R7 proof remains PENDING.
+
+Supabase docs/changelog verified: private download remains supported; October12 TLS cipher notice does not change the download contract. Official reference: https://supabase.com/docs/reference/python/storage-from-download . No Supabase schema/access-policy change.
+
+Production integrity helper7e5e7d2 CI41284629743 PASS; read-only preflight PASS, then supervised full quick/FK audit started2026-11-01T07:26:19.086790Z. Writer services intentionally paused; recovery reserve3min within30min work budget. This entry records IN_PROGRESS, not a passing audit or currently-live collection claim. No copies/snapshots/deletion/manual WAL operations.
+
+
+### Full SQLite checks passed; verifier STOP and independent recovery
+
+Production audit7e5e7d2/CI41284629743: quick_check PASS782.745s, foreign_key_check PASS78.092s. The attempt remains STOP: recovery verifier incorrectly indexed MainPID on tradebot-soak.timer, which has no process PID. This was a helper defect, not an observed failed service restart. Do not relabel the original attempt as successful. Corrected timer checks use ActiveState/UnitFileState; regression exercises actual recovery logic with a PID-less timer. Unreaped-child failures now retain PID/manual-recovery status.61local controls PASS (two Linux-only skips); backend227unchanged.
+
+Independent read-only follow-up confirmed all three services active, zero automatic restarts, flagsOFF, guard5120, original appd56b4a7. Twelve5s feed/API samples passed, max39.34ms, both feed timestamps advancing. Monitoring timer active; envmtime2026-11-01T01:56:47.667263Z matches bridge application. API started07:40:41UTC. Persisted Coinbase received gap862.791950s:07:26:19.440384→07:40:42.232334UTC. Observation gap unavailable within bounded256recent rows; no broader scan/backfill claim. No additional restart or repeated integrity scan was used for confirmation.
+
+Full SQLite verification is now evidenced separately from the failed overall maintenance report; independent recovery is PASS. R7 private archive/exact-row proof remains PENDING, no production deletion/guard indexes/application deployment. Evidence: production-integrity-7e5e7d2.jsonl, post-integrity-keyerror-runtime.json, independent-integrity-recovery.jsonl in lifecycle-implementation-20261031. Continue with exact-CI read-only archive recovery preparation, preserving all remaining gates and the existing bridge deadline.

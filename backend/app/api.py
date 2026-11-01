@@ -57,6 +57,12 @@ def _collector_status(task):
 
 
 def _live_health(snapshot, collector):
+    # A guard-stopped task can exit cleanly with old RAM still populated.
+    # Explicit read-only apps (collectors disabled) keep their existing behavior.
+    if collector.get('enabled') and not collector.get('running'):
+        return 'degraded'
+    if snapshot.get('feeds', {}).get('storage_guard', {}).get('status') == 'limit_reached':
+        return 'degraded'
     required_missing = [item for item in snapshot.get('missing_data', [])
                         if item not in ('trade_flow', 'btc_order_book')]
     return 'ok' if not required_missing and collector.get('error') is None else 'degraded'

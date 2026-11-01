@@ -75,3 +75,9 @@ Actions41159675569 released`d56b4a7`. More than20min and11 feature cycles showed
 ## Latest October31 production evidence — capacity STOP
 
 The collector and feeds have stopped at the4096MiB guard; responsive HTTP serves cached state. This supersedes the October30 healthy samples. Freshness code and the new health/readiness correction are not deployed. See [capacity STOP and revised plan](PLAN/I7_CAPACITY_STOP_2026-10-31.md) and the authoritative roadmap. No production write/restart or capacity workaround was performed.
+
+## Latest October31 execution — collection restored, retention qualification STOP
+
+This supersedes the capacity STOP above: the authorized guard-only5120MiB bridge restored collection on unchanged d56b4a7, with API-only restart and five continuous healthy minutes. Review due2026-11-02T01:56:47.671426Z (November1,19:56CST);5120 remains temporary.
+
+R5/R6 is still STOP. First Linux generated trial reached500ms writer limit; revised trial stopped during generation after a production health-guard failure, before retention apply. Follow-up19/19 read-only samples showed live feeds, but the earlier precise guard condition was not captured. Improved diagnostics are tested locally; no further stress retry or production deletion/index installation occurred. Retention and paid AI remainOFF. I7 freshness/rollover improvements remain undeployed. See [execution report](PLAN/LIFECYCLE_48H_EXECUTION_2026-10-31.md) and the authoritative roadmap for remaining gates.

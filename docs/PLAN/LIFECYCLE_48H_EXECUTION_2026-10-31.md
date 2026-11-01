@@ -80,3 +80,13 @@ A local ordered SQL set-merge candidate now replaces per-value membership probes
 Binary collation and all current-snapshot checks are retained; the deadline is
 unchanged. This remains R5/R6 STOP until a new exact-CI candidate completes all
 three Linux trials. First-attempt evidence is preserved separately.
+
+## Revised Linux qualification — STOP; guard diagnostics incomplete
+
+Candidate2753c4a passed [exact CI41265091345](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41265091345),196backend/51controls. The revised647996-observation/1871555-stream profile stopped after40.725s during fixture generation when the production health guard raised RuntimeError. Retention apply had not begun. The older guard recorded only the exception class; the precise condition and cause are unknown. This is not evidence that the revised merge exceeded its writer budget. Trials2/3 were not run.
+
+Follow-up02:33:46UTC confirmed unchanged d56b4a7, active API17165/ensemble849/lifecycle843, zero automatic restarts, live feeds, guard5120 and retention/paid AI OFF. DB4300345344/WAL18160992bytes; free disk51556388864bytes. Features remain stale. A subsequent90-second read-only baseline (02:37:53–02:39:23UTC) passed19/19 collector/feed samples; that does not establish the earlier failure's cause. Both generated-fixture staging directories were removed after process/content/hash checks.
+
+Local diagnostic improvements now retain sanitized reason, feed status/timestamp/age and fixture stage without arbitrary response bodies.197backend tests PASS (one Linux-only test skipped),51controls PASS; unchanged deadlines and resource caps. No additional stress test or production cleanup was attempted.
+
+**R5/R6 STOP; I7 and Phase1.75 OPEN.** Next resolve the guarded health condition and obtain three complete qualified Linux trials. All archive, integrity/FK, recovery-manifest, production cleanup, index/freshness release, lifecycle enablement and24-hour soak gates remain outstanding. Temporary5120 bridge review remains due2026-11-02T01:56:47.671426Z (November1,19:56CST); no automatic extension or ceiling increase.

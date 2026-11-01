@@ -92,6 +92,33 @@ def manifest(dataset,lo,hi,start,end):
                         'last_source_key':json.dumps(['coinbase',str(hi)])}}
 
 
+class ProductionGuardStop(RuntimeError):
+    def __init__(self,reason,projection):
+        super().__init__(reason)
+        self.reason,self.projection=reason,projection
+
+
+def require_production_health(health,now=None):
+    """Keep only typed safe diagnostics; never log arbitrary HTTP response bodies."""
+    now=now or datetime.now(timezone.utc)
+    projection={'collector_running':health.get('collector',{}).get('running') is True,'feeds':{}}
+    bad=[]
+    for name in ('coinbase_stream','polymarket_stream'):
+        feed=health.get('feeds',{}).get(name,{})
+        status=feed.get('status')
+        if status not in ('live','running','stale','disconnected','connecting','stopped','awaiting_data','disabled'):
+            status='unknown'
+        try:
+            stamp=datetime.fromisoformat(feed['last_data_at'].replace('Z','+00:00'))
+            age=(now-stamp).total_seconds();at=stamp.isoformat()
+        except (KeyError,TypeError,ValueError,AttributeError):age=None;at=None
+        projection['feeds'][name]={'status':status,'last_data_at':at,'age_seconds':age}
+        if status!='live' or age is None or not 0<=age<30:bad.append(name)
+    if not projection['collector_running']:raise ProductionGuardStop('production_collector_stopped',projection)
+    if bad:raise ProductionGuardStop('production_feed_not_fresh_live:'+','.join(bad),projection)
+    return projection
+
+
 def trial(args,number):
     start=time.monotonic();result={'trial':number,'status':'STOP','generated_only':True,
                                  'synthetic_archive_claims_not_cloud_verification':True}
@@ -117,20 +144,24 @@ def trial(args,number):
         def monitor():
             next_probe=0.0
             while not monitor_stop.wait(.25):
+                context={'reason':'fixture_disk_check'}
                 try:
                     size=disk_bytes();result['peak_fixture_disk_bytes']=max(size,result.get('peak_fixture_disk_bytes',0))
-                    if size>2*1024**3:raise RuntimeError('fixture disk limit')
+                    if size>2*1024**3:raise ProductionGuardStop('fixture_disk_limit',{'bytes':size})
                     if args.check_production and time.monotonic()>=next_probe:
+                        context={'reason':'production_health_request_failed'}
                         with urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2) as response:
                             health=json.load(response)
-                        if not health.get('collector',{}).get('running'):raise RuntimeError('production collector stopped')
-                        if any(health.get('feeds',{}).get(k,{}).get('status')!='live' for k in ('coinbase_stream','polymarket_stream')):
-                            raise RuntimeError('production feed degraded')
+                        require_production_health(health)
                         next_probe=time.monotonic()+5
                 except Exception as error:
-                    failure.append(type(error).__name__);os.kill(os.getpid(),signal.SIGUSR1);return
+                    detail={'error_type':type(error).__name__,**context,'at':datetime.now(timezone.utc).isoformat()}
+                    if isinstance(error,ProductionGuardStop):
+                        detail.update(reason=error.reason,projection=error.projection)
+                    failure.append(detail);os.kill(os.getpid(),signal.SIGUSR1);return
         watcher=threading.Thread(target=monitor,daemon=True);watcher.start()
         try:
+            result['stage']='load_candidate'
             actual_sha=hashlib.sha256((args.deployed_app/'streaming.py').read_bytes()).hexdigest()
             if args.expected_save_sha256 and actual_sha!=args.expected_save_sha256:
                 raise RuntimeError('deployed collector helper differs from qualified target')
@@ -155,6 +186,7 @@ def trial(args,number):
             eligible={'observations':min(40031,args.observations-1),'stream_events':min(196509,args.stream_events-1)}
             evidence=[]
             for dataset,count in counts.items():
+                result['stage']='generate_'+dataset
                 old_count=eligible[dataset]
                 for lo in range(1,count+1,2000):
                     rows=[]
@@ -172,6 +204,7 @@ def trial(args,number):
             result.update(rows=counts,eligible_before_protection=eligible,
                           deployed_save_sha256=hashlib.sha256((args.deployed_app/'streaming.py').read_bytes()).hexdigest())
             config=module.RetentionConfig(True,48,1000)
+            result['stage']='plan_retention'
             plan=module.plan_retention(db,evidence,config,now)
             result['preparation_seconds']=time.monotonic()-start
             worker=subprocess.Popen([sys.executable,__file__,'--collector',str(path),
@@ -182,6 +215,7 @@ def trial(args,number):
                 if worker.poll() is not None or time.monotonic()>=wait_until:raise RuntimeError('collector fixture startup')
                 time.sleep(.01)
             try:
+                result['stage']='retention_apply'
                 result['apply']=module.apply_retention(db,plan,config,confirm=True)
                 result['max_write_lock_seconds']=max(d['max_write_lock_seconds'] for d in result['apply']['datasets'].values())
             except module.RetentionBudgetError as error:

@@ -10,6 +10,25 @@ import tempfile
 
 
 class QualificationHarnessTests(unittest.TestCase):
+    def test_production_guard_identifies_feed_or_collector_without_raw_body(self):
+        from datetime import datetime,timezone
+        backend=Path(__file__).resolve().parents[1]
+        spec=importlib.util.spec_from_file_location('qualification_projection',backend/'qualify_retention_sql.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        now=datetime(2026,10,31,tzinfo=timezone.utc)
+        health={'collector':{'running':True},'feeds':{name:{'status':'live','last_data_at':now.isoformat()}
+                for name in ('coinbase_stream','polymarket_stream')},'private_fixture':'must not escape'}
+        self.assertTrue(module.require_production_health(health,now)['collector_running'])
+        health['feeds']['polymarket_stream']['status']='stale'
+        with self.assertRaises(module.ProductionGuardStop) as caught:
+            module.require_production_health(health,now)
+        self.assertEqual(caught.exception.reason,'production_feed_not_fresh_live:polymarket_stream')
+        self.assertNotIn('private_fixture',caught.exception.projection)
+        health['collector']['running']=False
+        with self.assertRaises(module.ProductionGuardStop) as caught:
+            module.require_production_health(health,now)
+        self.assertEqual(caught.exception.reason,'production_collector_stopped')
+
     def test_actor_rejects_existing_production_paths_and_symlinks(self):
         backend=Path(__file__).resolve().parents[1]
         spec=importlib.util.spec_from_file_location('qualification_guard',backend/'qualify_retention_sql.py')

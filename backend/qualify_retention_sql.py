@@ -40,6 +40,22 @@ def validate_fixture_path(path):
         raise ValueError('collector actor accepts only its private generated fixture')
 
 
+
+def configure_fixture_checkpoint(db,path,pages):
+    """Authorized generated-only automatic threshold; never manual checkpoint."""
+    if pages not in (0,256):raise ValueError('only the authorized fixture threshold is allowed')
+    if not pages:return
+    validate_fixture_path(path)
+    main=next(row[2] for row in db.execute('PRAGMA database_list') if row[1]=='main')
+    if not main or Path(main).resolve()!=path.resolve() or db.in_transaction:
+        raise ValueError('private generated main connection required')
+    if db.execute('PRAGMA synchronous').fetchone()[0]!=2:
+        raise ValueError('FULL durability must remain enabled')
+    db.execute('PRAGMA wal_autocheckpoint=256')
+    if db.execute('PRAGMA wal_autocheckpoint').fetchone()[0]!=256 or db.execute('PRAGMA synchronous').fetchone()[0]!=2:
+        raise ValueError('fixture automatic threshold or durability mismatch')
+
+
 def actor(args):
     validate_fixture_path(args.collector)
     resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
@@ -246,6 +262,10 @@ def trial(args,number):
                 if any(module.timestamp_guards.invalid_exists(db,t) for t in module.SPECS):
                     raise RuntimeError('invalid fixture timestamp in indexed guard')
                 result['timestamp_engine']='indexed_invalid_v1'
+            result['sqlite_settings_before_experiment']=dict(result['sqlite_settings'])
+            configure_fixture_checkpoint(db,path,getattr(args,'fixture_autocheckpoint_pages',0))
+            result['sqlite_settings']={key:db.execute('PRAGMA '+key).fetchone()[0]
+                for key in ('journal_mode','synchronous','wal_autocheckpoint','page_size')}
             config=module.RetentionConfig(True,48,getattr(args,'batch_size',1000))
             checkpoint('plan_retention')
             plan=module.plan_retention(db,evidence,config,now)
@@ -347,7 +367,8 @@ def supervised_trial(args,number):
                  '--observations',str(args.observations),'--stream-events',str(args.stream_events),
                  '--trial-child',str(number),'--trial-report',str(report),
                  '--trade-id-base',str(getattr(args,'trade_id_base',0)),
-                 '--batch-size',str(getattr(args,'batch_size',1000))]
+                 '--batch-size',str(getattr(args,'batch_size',1000)),
+                 '--fixture-autocheckpoint-pages',str(getattr(args,'fixture_autocheckpoint_pages',0))]
         if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
         if args.check_production:command+=['--check-production']
         if args.require_native:command+=['--require-native']
@@ -388,6 +409,8 @@ def main():
                         help='Bound a diagnostic run; qualification still requires three full passes')
     parser.add_argument('--batch-size',type=int,choices=(250,500,1000),default=1000,
                         help='Generated trial batch ceiling; never raises the qualified1000-row maximum')
+    parser.add_argument('--fixture-autocheckpoint-pages',type=int,choices=(0,256),default=0,
+                        help='Explicit generated-only256-page automatic threshold experiment;0 preserves defaults')
     parser.add_argument('--expected-save-sha256')
     parser.add_argument('--trial-child',type=int,choices=(1,2,3),help=argparse.SUPPRESS)
     parser.add_argument('--trial-report',type=Path,help=argparse.SUPPRESS)

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Production trial STOP with0 rows deleted. Revised1000/500-row generated trials STOP at commit693/537ms against500ms. No production retry. Proposed generated-only automatic-checkpoint experiment awaits explicit permission; no journal changes executed. Runtime recovered; retention/paidAI OFF, appd56b4a7. Capacity/freshness/lifecycle/24h soak and I7/Phase1.75 OPEN. Temporary5120 review due2026-11-02T01:56:47.671426Z.
+**Next gate:** First production cleanup STOP with0 rows committed; revised dense-capacity qualification STOP on trial2 commit693ms. Next exact-CI generated500-row diagnostic under unchanged500ms/180s limits. Automatic retention/paidAI OFF, appd56b4a7; no production retry. Full quick/FK and scoped R7 evidence preserved. Freshness/capacity/lifecycle/24h soak unresolved; I7/Phase1.75 OPEN. Temporary5120 bridge review due2026-11-02T01:56:47.671426Z.
 
 ### October 23, 2026 migration preflight
 
@@ -1495,3 +1495,11 @@ Read-only fixture settings:journal_mode=wal,synchronous=2(FULL),wal_autocheckpoi
 Next proposed investigation is a GENERATED-ONLY automatic-checkpoint threshold experiment(256pages vs1000), preserving FULL durability and existing safety/resource/health gates. It requires explicit user permission under the handoff's no-manual-WAL restriction; not executed or approved for production. First actual cleanup, reusable capacity, source-time indexes/freshness release, lifecycle-only retention and24h soak remain pending. Full24h soak cannot finish before November1,19:56CST bridge review; no silent extension/permanent promotion. I7/Phase1.75 remain OPEN and Phase2 deferred.
 
 Final recovered runtime60.535s/13samples PASS; actual flagsOFF, guard5120, applicationd56b4a7, all3services active/zero automatic restarts, both feeds advancing, no2sHTTP timeout. Evidence smaller-batch-final-recovery-a092bfb.jsonl.
+
+## Authorized generated-only automatic checkpoint experiment prepared
+
+User explicitly authorized the256-page automatic-checkpoint experiment on generated fixtures only, preserving FULL durability,500ms writer/180s trial limits and unchanged production. This does not authorize production journal changes or manual checkpoints.
+
+Harness option --fixture-autocheckpoint-pages accepts only0(default,unchanged) or256. It applies AFTER generated population/guard build and BEFORE retention planning, only on the private newly generated fixture's exact main connection outside transactions; rejects production/non-generated paths, mismatched/in-memory connections and non-FULL durability. It records before/after SQLite settings and forwards the option through bounded child supervision. No PRAGMA wal_checkpoint, production connection, change to collector/runtime retention or service configuration. Existing500-row trial workload and100ms handoff retained.
+
+Seven local harness tests PASS(two Linux-only skipped), compile/diff PASS. Linux CI must exercise actual tiny indexed256-page trial and report FULL durability/original1000-page setting before a new full generated run. Full-scale experiment not yet executed; prior1000/500-row commit STOP evidence preserved. Runtime remainsd56b4a7, retention/paidAI OFF; total production deletions0. I7/Phase1.75 OPEN; bridge review deadline unchanged.

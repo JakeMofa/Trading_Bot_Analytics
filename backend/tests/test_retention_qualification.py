@@ -10,6 +10,30 @@ import tempfile
 
 
 class QualificationHarnessTests(unittest.TestCase):
+    def test_checkpoint_experiment_is_private_generated_only_and_keeps_full_durability(self):
+        import sqlite3
+        from contextlib import closing
+        backend=Path(__file__).resolve().parents[1]
+        spec=importlib.util.spec_from_file_location('qualification_checkpoint',backend/'qualify_retention_sql.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory(prefix='generated-retention-') as folder:
+            path=Path(folder)/'fixture.db'
+            with closing(sqlite3.connect(path)) as db:
+                db.execute('PRAGMA journal_mode=WAL')
+                self.assertEqual(db.execute('PRAGMA synchronous').fetchone()[0],2)
+                module.configure_fixture_checkpoint(db,path,256)
+                self.assertEqual(db.execute('PRAGMA wal_autocheckpoint').fetchone()[0],256)
+                self.assertEqual(db.execute('PRAGMA synchronous').fetchone()[0],2)
+                with self.assertRaises(ValueError):module.configure_fixture_checkpoint(db,Path('/opt/tradebot/data/btc_intelligence.db'),256)
+                with self.assertRaises(ValueError):module.configure_fixture_checkpoint(db,path,512)
+                db.execute('BEGIN')
+                with self.assertRaises(ValueError):module.configure_fixture_checkpoint(db,path,256)
+                db.rollback()
+                db.execute('PRAGMA synchronous=NORMAL')
+                with self.assertRaises(ValueError):module.configure_fixture_checkpoint(db,path,256)
+            with closing(sqlite3.connect(':memory:')) as other:
+                with self.assertRaises(ValueError):module.configure_fixture_checkpoint(other,path,256)
+
     def test_production_guard_identifies_feed_or_collector_without_raw_body(self):
         from datetime import datetime,timezone
         backend=Path(__file__).resolve().parents[1]
@@ -65,11 +89,12 @@ class QualificationHarnessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             args=SimpleNamespace(work_dir=Path(folder),candidate=backend/'app/retention.py',
                 deployed_app=backend/'app',observations=100,stream_events=100,
-                expected_save_sha256=None,check_production=False,require_native=False,require_indexed=False,batch_size=500)
+                expected_save_sha256=None,check_production=False,require_native=False,require_indexed=False,batch_size=500,fixture_autocheckpoint_pages=256)
             with patch.object(module,'bounded_process',side_effect=module.FixtureReapError(12345)) as process:
                 result=module.supervised_trial(args,1)
             command=process.call_args.args[0]
             self.assertEqual(command[command.index('--batch-size')+1],'500')
+            self.assertEqual(command[command.index('--fixture-autocheckpoint-pages')+1],'256')
             self.assertEqual(result['status'],'STOP');self.assertEqual(result['fixture_pid'],12345)
             retained=Path(result['retained_generated_container'])
             self.assertEqual(retained.parent,Path(folder));self.assertTrue(retained.is_dir())
@@ -98,12 +123,15 @@ class QualificationHarnessTests(unittest.TestCase):
         one=subprocess.run([sys.executable,str(backend/'qualify_retention_sql.py'),
             '--deployed-app',str(backend/'app'),'--candidate',str(backend/'app/retention.py'),
             '--observations','100','--stream-events','100','--trials','1','--require-indexed',
-            '--trade-id-base','1000000000','--batch-size','500'],capture_output=True,text=True,timeout=10)
+            '--trade-id-base','1000000000','--batch-size','500','--fixture-autocheckpoint-pages','256'],capture_output=True,text=True,timeout=10)
         self.assertEqual(one.returncode,0,one.stdout+one.stderr)
         self.assertEqual(len(one.stdout.splitlines()),1)
         indexed=json.loads(one.stdout);self.assertEqual(indexed['timestamp_engine'],'indexed_invalid_v1')
         self.assertEqual(indexed['trade_id_base'],1000000000)
         self.assertEqual(indexed['batch_size'],500)
+        self.assertEqual(indexed['sqlite_settings']['wal_autocheckpoint'],256)
+        self.assertEqual(indexed['sqlite_settings']['synchronous'],2)
+        self.assertEqual(indexed['sqlite_settings_before_experiment']['wal_autocheckpoint'],1000)
         self.assertEqual(indexed['apply']['datasets']['stream_events']['deleted_rows'],99)
         for row in rows:
             self.assertEqual(row['status'],'PASS',row)

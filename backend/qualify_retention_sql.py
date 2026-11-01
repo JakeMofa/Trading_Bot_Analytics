@@ -15,6 +15,7 @@ from pathlib import Path
 import resource
 import re
 import signal
+import shutil
 import sqlite3
 import subprocess
 import sys
@@ -147,7 +148,7 @@ def trial(args,number):
                 context={'reason':'fixture_disk_check'}
                 try:
                     size=disk_bytes();result['peak_fixture_disk_bytes']=max(size,result.get('peak_fixture_disk_bytes',0))
-                    if size>2*1024**3:raise ProductionGuardStop('fixture_disk_limit',{'bytes':size})
+                    if size>2*1024**3-4*1024**2:raise ProductionGuardStop('fixture_disk_limit',{'bytes':size})
                     if args.check_production and time.monotonic()>=next_probe:
                         context={'reason':'production_health_request_failed'}
                         with urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2) as response:
@@ -191,9 +192,9 @@ def trial(args,number):
             for dataset,count in counts.items():
                 result['stage']='generate_'+dataset
                 old_count=eligible[dataset]
-                for lo in range(1,count+1,2000):
+                for lo in range(1,count+1,20000):
                     rows=[]
-                    for i in range(lo,min(lo+2000,count+1)):
+                    for i in range(lo,min(lo+20000,count+1)):
                         at=((old if i<=old_count else recent)+timedelta(microseconds=i)).isoformat(timespec='microseconds')
                         rows.append((i,'fixture-'+str(i%97),at,None,('book','bbo','stream_book')[i%3],'{}') if dataset=='observations' else
                                     ('coinbase',str(i),at,at,'100.000001','0.10','buy','{}'))
@@ -231,6 +232,10 @@ def trial(args,number):
             result['status']='PASS'
         except BaseException as error:
             result.update(status='STOP',error_type=type(error).__name__)
+            if hasattr(error,'retention_progress'):result['partial_apply']=error.retention_progress
+            if hasattr(error,'retention_failed_operation'):
+                result['failed_operation']=error.retention_failed_operation
+                result['failed_write_seconds']=error.retention_failed_write_seconds
         finally:
             signal.signal(signal.SIGUSR1,signal.SIG_IGN);signal.alarm(0)
             monitor_stop.set();watcher.join(3)
@@ -244,12 +249,75 @@ def trial(args,number):
                 if (actor_result['errors'] or actor_result['save_max_seconds']>=1 or actor_result['heartbeat_max_seconds']>=1
                         or actor_result['saves']==0 or actor_result['saves']!=actor_result['ram_updates']):result['status']='STOP'
             elif worker is not None:result['status']='STOP';result['actor_report']='missing'
+            # A last-connection automatic close/checkpoint can itself be slow.
+            # Save a provisional STOP before it; the parent enforces the TOTAL
+            # deadline and reaps the whole fixture process group if needed.
+            if args.trial_report:
+                pending=dict(result);pending['status']='STOP';pending['cleanup_pending']=True
+                pending['production_guard_errors']=list(failure)
+                args.trial_report.write_text(json.dumps(pending))
             if db is not None:db.close()
             result['production_guard_errors']=failure
             result['elapsed_seconds']=time.monotonic()-start
             result['max_rss_kib']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             if failure or result['elapsed_seconds']>180:result['status']='STOP'
             for sig,handler in previous.items():signal.signal(sig,handler)
+    return result
+
+
+class FixtureReapError(RuntimeError):
+    def __init__(self,pid):self.pid=pid
+
+
+def bounded_process(command, work_seconds=177):
+    """Only a newly created fixture process group is signalled and reaped."""
+    child=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,
+                           text=True,start_new_session=True)
+    timed_out=False
+    try:
+        stdout,stderr=child.communicate(timeout=work_seconds)
+    except subprocess.TimeoutExpired:
+        timed_out=True
+        try:os.killpg(child.pid,signal.SIGTERM)
+        except ProcessLookupError:pass
+        try:stdout,stderr=child.communicate(timeout=1)
+        except subprocess.TimeoutExpired:
+            try:os.killpg(child.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            try:stdout,stderr=child.communicate(timeout=1)
+            except subprocess.TimeoutExpired:raise FixtureReapError(child.pid) from None
+    return child.returncode,stdout,stderr,timed_out
+
+
+def supervised_trial(args,number):
+    started=time.monotonic()
+    folder=Path(tempfile.mkdtemp(prefix='bounded-retention-',dir=args.work_dir))
+    report=folder/'trial.json';reaped=True
+    try:
+        command=[sys.executable,__file__,'--candidate',str(args.candidate),
+                 '--deployed-app',str(args.deployed_app),'--work-dir',str(folder),
+                 '--observations',str(args.observations),'--stream-events',str(args.stream_events),
+                 '--trial-child',str(number),'--trial-report',str(report)]
+        if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
+        if args.check_production:command+=['--check-production']
+        if args.require_native:command+=['--require-native']
+        try:
+            code,stdout,stderr,timed_out=bounded_process(command)
+            try:result=json.loads(report.read_text())
+            except (OSError,ValueError):
+                result={'trial':number,'status':'STOP','error_type':'MissingOrIncompleteFixtureReport'}
+            if code or timed_out:
+                result['status']='STOP';result['supervisor_timeout']=timed_out
+                result['fixture_exit_code']=code
+        except FixtureReapError as error:
+            reaped=False
+            result={'trial':number,'status':'STOP','error_type':'FixtureReapError',
+                    'fixture_pid':error.pid,'retained_generated_container':str(folder)}
+    finally:
+        # Never unlink an active fixture underneath an unreaped process.
+        if reaped:shutil.rmtree(folder)
+    result['supervised_elapsed_seconds']=time.monotonic()-started
+    if result['supervised_elapsed_seconds']>180:result['status']='STOP'
     return result
 
 
@@ -265,6 +333,8 @@ def main():
     parser.add_argument('--trials',type=int,choices=(1,2,3),default=3,
                         help='Bound a diagnostic run; qualification still requires three full passes')
     parser.add_argument('--expected-save-sha256')
+    parser.add_argument('--trial-child',type=int,choices=(1,2,3),help=argparse.SUPPRESS)
+    parser.add_argument('--trial-report',type=Path,help=argparse.SUPPRESS)
     parser.add_argument('--collector',type=Path)
     parser.add_argument('--collector-report',type=Path)
     args=parser.parse_args()
@@ -276,8 +346,13 @@ def main():
     if min(args.observations,args.stream_events)<100 or max(args.observations,args.stream_events)>10000000:
         parser.error('generated row counts must be100..10000000')
     resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
+    if args.trial_child:
+        if args.trial_report is None:parser.error('trial child requires report path')
+        result=trial(args,args.trial_child)
+        args.trial_report.write_text(json.dumps(result))
+        return
     for number in range(1,args.trials+1):
-        result=trial(args,number);print(json.dumps(result),flush=True)
+        result=supervised_trial(args,number);print(json.dumps(result),flush=True)
         if result['status']!='PASS':raise SystemExit(1)
 
 

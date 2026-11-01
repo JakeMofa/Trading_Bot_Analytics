@@ -195,6 +195,8 @@ def _merge(intervals):
 
 
 def _bad_time_format(db, table):
+    if _load_native_time_validator(db):
+        return db.execute(f"SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1(received_at) LIMIT 1").fetchone() is not None
     def valid(value):
         try:
             canonical_time(value)
@@ -715,6 +717,10 @@ def apply_retention(db, plan, config, confirm=False):
             deleted = batches = 0
             lock_times = []
             phase_times = []
+            observed = {"planned_rows":len(approved), "committed_rows_seen":0,
+                        "completed_batches":0, "write_lock_seconds":lock_times,
+                        "phase_seconds":phase_times}
+            result["datasets"][dataset] = observed
             while pending:
                 db.execute("BEGIN IMMEDIATE")
                 locked_at = time.monotonic()
@@ -755,6 +761,8 @@ def apply_retention(db, plan, config, confirm=False):
                     with _measure_phase(timings, operation):
                         db.commit()
                     duration = time.monotonic()-locked_at
+                    observed["committed_rows_seen"] += count
+                    observed["completed_batches"] += 1
                     lock_times.append(duration)
                     if duration > MAX_WRITE_SECONDS:
                         # This batch committed safely; report it rather than
@@ -763,6 +771,8 @@ def apply_retention(db, plan, config, confirm=False):
                 except BaseException as error:
                     db.set_progress_handler(None,0)
                     db.rollback()
+                    error.retention_failed_operation = operation
+                    error.retention_failed_write_seconds = time.monotonic()-locked_at
                     if isinstance(error,sqlite3.OperationalError) and time.monotonic()>=deadline:
                         raise RetentionBudgetError(operation+":sqlite_progress",time.monotonic()-locked_at,phase_seconds=timings) from None
                     if isinstance(error, RetentionBudgetError):
@@ -787,6 +797,11 @@ def apply_retention(db, plan, config, confirm=False):
                 "write_lock_seconds":lock_times, "phase_seconds":phase_times,
                 "max_write_lock_seconds":max(lock_times,default=0.0)}
         return result
+    except BaseException as error:
+        # Preserve measured completed work even when the overall supervisor fires.
+        # This does not claim that an interrupted commit was rolled back.
+        error.retention_progress = result
+        raise
     finally:
         db.set_progress_handler(None,0)
         if db.in_transaction:

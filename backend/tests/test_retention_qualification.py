@@ -41,6 +41,34 @@ class QualificationHarnessTests(unittest.TestCase):
             path.unlink();path.symlink_to('/opt/tradebot/data/btc_intelligence.db')
             with self.assertRaises(ValueError):module.validate_fixture_path(path)
 
+    def test_unreaped_fixture_is_reported_and_not_unlinked(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        backend=Path(__file__).resolve().parents[1]
+        spec=importlib.util.spec_from_file_location('qualification_reap_failure',backend/'qualify_retention_sql.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        with tempfile.TemporaryDirectory() as folder:
+            args=SimpleNamespace(work_dir=Path(folder),candidate=backend/'app/retention.py',
+                deployed_app=backend/'app',observations=100,stream_events=100,
+                expected_save_sha256=None,check_production=False,require_native=False)
+            with patch.object(module,'bounded_process',side_effect=module.FixtureReapError(12345)):
+                result=module.supervised_trial(args,1)
+            self.assertEqual(result['status'],'STOP');self.assertEqual(result['fixture_pid'],12345)
+            retained=Path(result['retained_generated_container'])
+            self.assertEqual(retained.parent,Path(folder));self.assertTrue(retained.is_dir())
+
+    @unittest.skipUnless(sys.platform=='linux','Linux process-group supervisor')
+    def test_supervisor_terminates_and_reaps_ignoring_child(self):
+        backend=Path(__file__).resolve().parents[1]
+        spec=importlib.util.spec_from_file_location('qualification_supervisor',backend/'qualify_retention_sql.py')
+        module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+        import time
+        started=time.monotonic()
+        code,stdout,stderr,timed_out=module.bounded_process([sys.executable,'-c',
+            'import signal,time;signal.signal(signal.SIGTERM,signal.SIG_IGN);print("ready",flush=True);time.sleep(60)'],work_seconds=1.0)
+        self.assertTrue(timed_out);self.assertLess(code,0)
+        self.assertIn('ready',stdout);self.assertLess(time.monotonic()-started,3)
+
     @unittest.skipUnless(sys.platform=='linux','Linux qualification harness')
     def test_three_tiny_complete_trials_and_actual_save_ordering(self):
         backend=Path(__file__).resolve().parents[1]

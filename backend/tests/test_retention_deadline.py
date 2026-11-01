@@ -75,6 +75,8 @@ class WriterDeadlineTests(unittest.TestCase):
             self.assertEqual(caught.exception.phase,'commit')
             self.assertEqual(caught.exception.committed_rows,3)
             self.assertIn('commit',caught.exception.phase_seconds)
+            observed=caught.exception.retention_progress['datasets']['observations']
+            self.assertEqual(observed['committed_rows_seen'],3)
             self.assertEqual(before-fixture.count('observations'),3)
             self.assertFalse(fixture.db.in_transaction)
         finally:fixture.tearDown()

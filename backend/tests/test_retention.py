@@ -216,7 +216,8 @@ class RetentionTests(unittest.TestCase):
         for table in ("observations", "stream_events"):
             guards = [sql for sql in seen if sql.startswith(
                 f"SELECT received_at COLLATE BINARY FROM {table}") or sql.startswith(
-                f"SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1")]
+                f"SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1") or sql.startswith(
+                f"SELECT 1 FROM main.{table} INDEXED BY retention_{table}_invalid_time_v1")]
             self.assertEqual(len(guards), 8)  # Even unrelated raw rows remain guarded.
 
     def test_key_snapshot_only_materializes_active_dataset_manifest_envelope(self):

@@ -20,6 +20,8 @@ import re
 import sqlite3
 import time
 
+import retention_timestamp_guards as timestamp_guards
+
 
 DEFAULT_RETENTION_HOURS = 48
 DEFAULT_DELETE_BATCH_SIZE = 5000
@@ -195,6 +197,8 @@ def _merge(intervals):
 
 
 def _bad_time_format(db, table):
+    if timestamp_guards.available(db, table):
+        return timestamp_guards.invalid_exists(db, table)
     if _load_native_time_validator(db):
         return db.execute(f"SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1(received_at) LIMIT 1").fetchone() is not None
     def valid(value):
@@ -283,13 +287,16 @@ def _load_native_time_validator(db):
 
 class _TimestampCache:
     """Only pure timestamp validity, never mutable row/eligibility facts."""
-    def __init__(self, native=False):
+    def __init__(self, native=False, indexed=False):
         self.native = native
+        self.indexed = indexed
 
 
 def _validated_timestamp_cache(db):
     if db.in_transaction:
         raise RetentionError("timestamp preparation requires no active transaction")
+    if all(timestamp_guards.available(db, table) for table in SPECS):
+        return _TimestampCache(indexed=True)
     if _load_native_time_validator(db):
         return _TimestampCache(native=True)
     db.execute("DROP TABLE IF EXISTS temp.retention_valid_times")
@@ -323,6 +330,12 @@ def _validate_current_timestamps(db, timestamp_cache, timings=None):
     if not isinstance(timestamp_cache, _TimestampCache):
         raise RetentionError("timestamp cache was not prepared")
     for table in SPECS:
+        if timestamp_cache.indexed:
+            # Current schema + current invalid membership, protected by the same
+            # writer transaction as DELETE; no mutable validity certificate.
+            if timestamp_guards.invalid_exists(db, table):
+                raise RetentionError("unsupported received_at at apply; refusing deletes")
+            continue
         if timestamp_cache.native:
             # Native fixed-format/calendar validation removes sort/cache probes,
             # not the fresh global scan. Every current row is checked under the

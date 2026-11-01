@@ -12,6 +12,7 @@ parser=argparse.ArgumentParser(description='Compare timestamp guards on generate
 parser.add_argument('--observations',type=int,default=654328)
 parser.add_argument('--stream-events',type=int,default=1896953)
 parser.add_argument('--native-library',type=Path,help='Optional reviewed native artifact, not a database')
+parser.add_argument('--guard-indexes',action='store_true',help='Build invalid-only indexes on this generated fixture only')
 parser.add_argument('--day-scale-times',action='store_true',help='Spread timestamps across day-scale windows, not adjacent microseconds')
 args=parser.parse_args()
 profile={'observations':args.observations,'stream_events':args.stream_events}
@@ -37,16 +38,27 @@ with tempfile.TemporaryDirectory(prefix='generated-timestamp-plan-') as folder:
   sys.path.insert(0,str(Path(__file__).parent/'app'));import retention
   with patch.object(retention,'_native_library_path',return_value=args.native_library):
    if not retention._load_native_time_validator(db):raise RuntimeError('native artifact missing')
- for variant in (('old_merge','candidate','cached_candidate','native') if args.native_library else ('old_merge','candidate','cached_candidate')):
+ guard_build=None
+ if args.guard_indexes:
+  sys.path.insert(0,str(Path(__file__).parent/'app'));import retention_timestamp_guards as guards
+  before=db.execute('PRAGMA page_count').fetchone()[0];started=time.monotonic()
+  db.execute('BEGIN IMMEDIATE');guards.create_indexes(db);db.commit()
+  guard_build={'seconds':time.monotonic()-started,'page_growth_bytes':(db.execute('PRAGMA page_count').fetchone()[0]-before)*db.execute('PRAGMA page_size').fetchone()[0]}
+ variants=['old_merge','candidate','cached_candidate']+(['native'] if args.native_library else [])+(['indexed_guard'] if args.guard_indexes else [])
+ for variant in variants:
   cache_kib=131072 if variant=='cached_candidate' else 2000
   db.execute(f'PRAGMA temp.cache_size=-{cache_kib}')
   for table in ('observations','stream_events'):
    query=(f'SELECT received_at COLLATE BINARY FROM {table} EXCEPT SELECT value COLLATE BINARY FROM temp.retention_valid_times ORDER BY 1' if variant=='old_merge' or table=='stream_events' else 'SELECT DISTINCT received_at COLLATE BINARY FROM observations INDEXED BY observations_market_kind_received WHERE received_at IS NULL OR received_at COLLATE BINARY NOT IN (SELECT value FROM temp.retention_valid_times)')
+   if variant=='indexed_guard':query=f'SELECT 1 FROM main.{table} INDEXED BY {guards.index_name(table)} WHERE {guards.INVALID_SQL} LIMIT 1'
    if variant=='native':query=f'SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1(received_at) LIMIT 1'
    plan=list(db.execute('EXPLAIN QUERY PLAN '+query));times=[]
    for _ in range(3):
-    start=time.monotonic();rows=list(db.execute(query));times.append(time.monotonic()-start)
+    start=time.monotonic()
+    if variant=='indexed_guard':rows=[(1,)] if guards.invalid_exists(db,table) else []
+    else:rows=list(db.execute(query))
+    times.append(time.monotonic()-start)
    results.append({'variant':variant,'temp_cache_kib':cache_kib,'table':table,'seconds':times,'unknown_count':len(rows),'plan':plan})
- value={'generated_only':True,'local_warm_cache_not_qualification':True,'rows':profile,'timestamp_distribution':'day-scale' if args.day_scale_times else 'adjacent-microseconds','results':results}
+ value={'generated_only':True,'local_warm_cache_not_qualification':True,'rows':profile,'guard_build':guard_build,'timestamp_distribution':'day-scale' if args.day_scale_times else 'adjacent-microseconds','results':results}
  print(json.dumps(value))
  db.close()

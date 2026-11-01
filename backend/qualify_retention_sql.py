@@ -168,6 +168,7 @@ def trial(args,number):
                 raise RuntimeError('deployed collector helper differs from qualified target')
             stream,collector,live=deployed(args.deployed_app)
             spec=importlib.util.spec_from_file_location('retention_candidate',args.candidate)
+            sys.path.insert(0,str(args.candidate.parent))
             module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
             db=collector.connect(str(path));stream.initialize(db)
             native=module._load_native_time_validator(db)
@@ -209,6 +210,14 @@ def trial(args,number):
             db.execute('INSERT INTO prediction_context_links VALUES(1)');db.commit()
             result.update(rows=counts,eligible_before_protection=eligible,
                           deployed_save_sha256=hashlib.sha256((args.deployed_app/'streaming.py').read_bytes()).hexdigest())
+            if args.require_indexed:
+                result['stage']='build_timestamp_guards'
+                built=time.monotonic();db.execute('BEGIN IMMEDIATE')
+                module.timestamp_guards.create_indexes(db);db.commit()
+                result['guard_build_seconds']=time.monotonic()-built
+                if any(module.timestamp_guards.invalid_exists(db,t) for t in module.SPECS):
+                    raise RuntimeError('invalid fixture timestamp in indexed guard')
+                result['timestamp_engine']='indexed_invalid_v1'
             config=module.RetentionConfig(True,48,1000)
             result['stage']='plan_retention'
             plan=module.plan_retention(db,evidence,config,now)
@@ -233,6 +242,8 @@ def trial(args,number):
                               lock_seconds=error.seconds,committed_rows=error.committed_rows,
                               phase_seconds=error.phase_seconds)
                 raise
+            if any(result['apply']['datasets'][key]['deleted_rows']!=value for key,value in expected.items()):
+                raise RuntimeError('incomplete generated retention workload')
             if db.execute('SELECT 1 FROM observations WHERE id=1').fetchone() is None:raise RuntimeError('protected reference lost')
             if db.execute('PRAGMA foreign_key_check').fetchone() is not None:raise RuntimeError('fixture foreign key violation')
             result['status']='PASS'
@@ -307,6 +318,7 @@ def supervised_trial(args,number):
         if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
         if args.check_production:command+=['--check-production']
         if args.require_native:command+=['--require-native']
+        if args.require_indexed:command+=['--require-indexed']
         try:
             code,stdout,stderr,timed_out=bounded_process(command)
             try:result=json.loads(report.read_text())
@@ -336,6 +348,7 @@ def main():
     parser.add_argument('--stream-events',type=int,default=1684881)
     parser.add_argument('--check-production',action='store_true')
     parser.add_argument('--require-native',action='store_true',help='Fail closed unless reviewed native artifact is loaded')
+    parser.add_argument('--require-indexed',action='store_true',help='Qualify explicit invalid-timestamp guard indexes, without native artifact')
     parser.add_argument('--trials',type=int,choices=(1,2,3),default=3,
                         help='Bound a diagnostic run; qualification still requires three full passes')
     parser.add_argument('--expected-save-sha256')
@@ -346,6 +359,7 @@ def main():
     args=parser.parse_args()
     if sys.platform!='linux':parser.error('qualification requires Linux; use unit tests on other hosts')
     if args.collector:return actor(args)
+    if args.require_native and args.require_indexed:parser.error('choose one qualification strategy')
     if args.check_production and (args.deployed_app.resolve()!=Path('/opt/tradebot/backend/app')
                                   or not re.fullmatch('[0-9a-f]{64}',args.expected_save_sha256 or '')):
         parser.error('production guard requires actual deployed app and expected helper SHA256')

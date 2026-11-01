@@ -50,7 +50,7 @@ class QualificationHarnessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             args=SimpleNamespace(work_dir=Path(folder),candidate=backend/'app/retention.py',
                 deployed_app=backend/'app',observations=100,stream_events=100,
-                expected_save_sha256=None,check_production=False,require_native=False)
+                expected_save_sha256=None,check_production=False,require_native=False,require_indexed=False)
             with patch.object(module,'bounded_process',side_effect=module.FixtureReapError(12345)):
                 result=module.supervised_trial(args,1)
             self.assertEqual(result['status'],'STOP');self.assertEqual(result['fixture_pid'],12345)
@@ -80,9 +80,11 @@ class QualificationHarnessTests(unittest.TestCase):
         self.assertEqual(len(rows),3)
         one=subprocess.run([sys.executable,str(backend/'qualify_retention_sql.py'),
             '--deployed-app',str(backend/'app'),'--candidate',str(backend/'app/retention.py'),
-            '--observations','100','--stream-events','100','--trials','1'],capture_output=True,text=True,timeout=10)
+            '--observations','100','--stream-events','100','--trials','1','--require-indexed'],capture_output=True,text=True,timeout=10)
         self.assertEqual(one.returncode,0,one.stdout+one.stderr)
         self.assertEqual(len(one.stdout.splitlines()),1)
+        indexed=json.loads(one.stdout);self.assertEqual(indexed['timestamp_engine'],'indexed_invalid_v1')
+        self.assertEqual(indexed['apply']['datasets']['stream_events']['deleted_rows'],99)
         for row in rows:
             self.assertEqual(row['status'],'PASS',row)
             self.assertEqual(row['collector']['saves'],row['collector']['ram_updates'])

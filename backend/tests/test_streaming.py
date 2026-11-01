@@ -164,7 +164,7 @@ class StreamTests(unittest.TestCase):
 class FeatureWorkerTests(unittest.TestCase):
     def test_feature_worker_keeps_event_loop_and_real_collector_save_live(self):
         import threading
-        from streaming import rest_loop
+        from streaming import feature_loop
         entered, release = threading.Event(), threading.Event()
         owner = threading.get_ident()
         worker_threads = []
@@ -186,7 +186,7 @@ class FeatureWorkerTests(unittest.TestCase):
             with patch('streaming.rest_cycle', return_value=[]), \
                  patch('streaming.capture_features', side_effect=slow_capture) as capture, \
                  patch('streaming.pause', side_effect=finish_cycle), patch('builtins.print'):
-                task = asyncio.create_task(rest_loop(path, db, stop, 0))
+                task = asyncio.create_task(feature_loop(path, db, stop, interval=0))
                 try:
                     self.assertTrue(await asyncio.to_thread(entered.wait, 2))
                     self.assertFalse(task.done())

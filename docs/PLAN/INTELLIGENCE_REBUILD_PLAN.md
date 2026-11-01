@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** CAPACITY STOP within I7: fresh October31 production check found collector/feeds stopped at the4096MiB DB+WAL guard. Resolve a reviewed capacity recovery operation first; no guard bypass/increase, retention, VACUUM, manual WAL or DB copies/snapshots. Production remains`d56b4a7`; freshness/rollover and truthful-health fixes are local-only. Full quick/FK audit outstanding; R5/R6 STOP; Phase1.75 unfinished, Phase2 deferred.
+**Next gate:** Implement user-authorized5120MiB bridge to restore collection, then qualify retention writer-lock repair and complete the48h lifecycle. Prior4096-only prohibition is superseded for this approved bridge. Production remains guard-stopped until execution proof. R5/R6 and full quick/FK audit outstanding; I7 OPEN, Phase1.75 unfinished; no DB copies/snapshots, VACUUM, manual WAL or Phase2.
 
 ### October 23, 2026 migration preflight
 
@@ -1252,3 +1252,13 @@ remain required. No production action has been taken in this investigation.
 - [x] **191 backend +40 deployment/control tests PASS**, compile/diff PASS. Existing branch and unrelated edits preserved. See `I7_CAPACITY_STOP_2026-10-31.md`; local`evidence/phase175-baseline/i7-capacity-stop-20261031/`.
 - [ ] **NEXT / blocker:** a reviewed capacity recovery operation under user constraints, before index installation, release or restart. Do not bypass/increase guard, delete/rewrite WAL, run retention/VACUUM, create DB copies/snapshots or replace DB as a workaround. R5/R6 remains STOP. Synthetic index work remains unqualified for production. No source collection resumed.
 - I7 OPEN; freshness/rollover code remains local-only, full quick/FK audit outstanding, paid AI/retention OFF, guard4096, Phase1.75 unfinished; Phase2 deferred.
+
+### October31,2026 — user authorized end-to-end lifecycle implementation
+
+- User approved a temporary **5120MiB** bridge,48h raw retention, controlled production cleanup only after safety gates, and5120 as permanent ceiling only after measured stability. This explicitly supersedes the earlier4096-only restriction for this operation; no further automatic guard increases. No DB copies/snapshots, VACUUM, manual WAL, new infrastructure, paid AI or Phase2.
+- [x] Prepared exact-runtime operator bridge helper and bridge-aware readiness. One4096->5120 config setting, unchanged application`d56b4a7`, API-only restart, >=10GiB disk free / >=512MiB proposed headroom,5min continuous feed/current-market/API observation,10min work +3min recovery,24h review deadline. No retained .env backup or credentials in evidence. **51 deployment/control tests PASS**, compile/diff PASS.
+- [ ] Exact helper CI, then authorized bridge execution and measured restoration. Until execution evidence, production remains guard-stopped at4096; do not claim resumed collection.
+- [ ] Narrow retention SQL/temp-key optimization with all current transaction safety checks; target250ms/max500ms writer transactions,1000row initial batches/100ms handoff; three full Linux generated-fixture trials<=180s each with actual deployed collector ordering,150ms saves/50ms heartbeat, zero errors and maxsave/heartbeat<1s. Limits2GiB fixture disk/512MiB per process; stop on production interference. R5/R6 remain STOP until proof.
+- [ ] Fresh archive/readback and full SQLite quick/FK verification before deletion; R7 archive-backed exact-raw-row recovery manifest and in-memory reconstruction, not a fullDB backup. First production cleanup<=1000rows with identity/protected/FK/collector verification; no broad purge. Maintenance30min +3min recovery.
+- [ ] Qualified index installation and isolated freshness/health release; >=20min,>=3cycles and market boundary,<=30s snapshot age, zero2s API timeouts. No reuse of prior deployment exception.
+- [ ] Retention enabled only in lifecycle after gates, leaving API/ensemble OFF. Role-specific preflight/service change required because existing command forcesOFF. Hourly archive/retention initially; same-cycle verified archives required.24h soak before permanent5120 ceiling / Phase1.75 closeout.

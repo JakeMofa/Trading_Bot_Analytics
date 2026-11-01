@@ -34,6 +34,22 @@ class ReadinessTests(unittest.TestCase):
         self.assertFalse(result['execution_authorized'])
         self.assertEqual(result['database_integrity'],'NOT_CHECKED')
 
+    def test_bridge_requires_unexpired_policy_and_actual_process_value(self):
+        self.snapshot['services']['tradebot-api'].update(guard4096=False,guard_mib=5120)
+        self.snapshot['storage']['db_bytes']=4096*1024**2+1024
+        self.assertIn('GUARD_CHANGED_OR_UNKNOWN',readiness.assess(self.snapshot,self.budget,self.now)['reasons'])
+        policy={'status':'BRIDGE_ACTIVE','revision':readiness.EXPECTED_REVISION,'old_guard_mib':4096,
+                'guard_mib':5120,'applied_at':self.now.isoformat(),
+                'review_due_at':(self.now+timedelta(hours=24)).isoformat()}
+        result=readiness.assess(self.snapshot,self.budget,self.now,policy)
+        self.assertEqual(result['status'],'READY_FOR_OPERATOR_REVIEW')
+        self.assertEqual(result['guard_bytes'],5120*1024**2)
+        self.assertFalse(result['execution_authorized'])
+        result=readiness.assess(self.snapshot,self.budget,self.now+timedelta(hours=24),policy)
+        self.assertIn('INVALID_OR_OVERDUE_BRIDGE_POLICY',result['reasons'])
+        policy['guard_mib']=6144
+        self.assertIn('INVALID_OR_OVERDUE_BRIDGE_POLICY',readiness.assess(self.snapshot,self.budget,self.now,policy)['reasons'])
+
     def test_guard_reached_and_stopped_collector_rejected_despite_health_ok(self):
         self.snapshot['storage']['db_bytes'] = readiness.GUARD_BYTES
         self.snapshot['endpoints']['/health']['collector_running'] = False

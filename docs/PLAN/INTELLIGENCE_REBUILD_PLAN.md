@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Commit timer includes post-release checkpoint work; one reduced generated syscall diagnostic completed. Historical502.686ms STOP remains FAILED; its delay attribution INCONCLUSIVE. Proposed separate occupancy/commit/interference metrics; existing500ms policy unchanged. No unchanged qualification retry or production change. Production deleted0, retention/paidAI OFF; I7/Phase1.75 OPEN; Phase2 deferred. Temporary5120 review2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Decision C: dominant representative delay UNPROVEN. Separate duration/collector diagnostics implemented and exact CI passed; actual occupancy requires offline validated syscall evidence. Representative fixture never started: sustained feed preflight and bounded recovery failed. Stop unchanged qualification trials; review checkpoint-scheduling separation proposal in RETENTION_DIAGNOSTICS_DECISION_2026-11-01.md. Existing500ms gate unchanged; production deleted0, retention/paidAI OFF. I7/Phase1.75 OPEN, Phase2 deferred; temporary5120 review2026-11-02T01:56:47.671426Z unchanged.
 
 ### October 23, 2026 migration preflight
 

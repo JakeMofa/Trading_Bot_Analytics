@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Rollover/health candidatefd90458 exactCI41329044967 PASS; working444ea4b CI41328969110 PASS. Production RELEASE_CONTROL_BLOCKED/NOTATTEMPTED: review separate bounded completequick/FK verification/evidence route before API-only deployment.20min/3cycle/boundary productionacceptance NOTRUN, milestoneOPEN. No retention trials untilpass;500msgate unchanged,deleted0,retention/paidAI OFF. I7/Phase1.75 OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Reviewed bounded full-verification control change prepared/tested; exact CI and isolated candidate qualification pending. Production procedure/budgets/300s concurrent-write evidence reuse UNAPPROVED. No heavy scan/helper install/dispatch before review. Rollover20min/3cycle/boundary acceptance NOTRUN, retention experiments paused,flagsOFF,deleted0,ceiling unchanged. Phase1.75 OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1685,4 +1685,37 @@ Production20min/3cycle/boundary validationNOTRUN, allcandidateproductiontimings
 NOTMEASURED; milestoneOPEN. See [ROLLOVER_HEALTH_RELEASE_2026-11-01.md](ROLLOVER_HEALTH_RELEASE_2026-11-01.md).
 Do not resume retention qualification before thisacceptance passes. Retention/paidAI
 OFF,deleted0,guardunchanged; no backup/manualWAL/index/Phase2. I7/Phase1.75OPEN;
+capreview2026-11-02T01:56:47.671426Z unchanged.
+
+## Bounded complete-verification release controls prepared; production review pending
+
+Prepared a separate guarded verify phase and deploy-verified phase in existing
+manualActions workflow/branch/private-runner/forcedhelper/flock. No normal integrity
+checks removed: legacy deploy still runs fullquick/FK. Newroute requires root0600
+one-use explicitapproval document, exactruntime/release/helper/verifier/smoke/CI
+binding, pinnedfd90458applicationblobs. No general integrity bypass or consumedI7
+exception. Completequick/FK run in one readtransaction/512MiB Linuxchild, with
+boundedtermination/reaping. Source/API/currentmarket/persistence/storage gates
+abort unsafeverification; failure cannot publish usableevidence or checkoutcode.
+
+Proposed(notapproved) policy:1800sverificationwork+10sreap/180srecovery under35min
+verifyjob;300sone-useproofTTL andoriginalreviewexpiry<=3600s;600scodework+180srecovery
+underexisting15mindeployjob. Bind DBpath/device/inode/schema/catalog, serviceidentity
+andprotectedconfig. Concurrent DML after verifiedsnapshot is explicitly part of
+reviewedreusepolicy, not immutable-content proof. Beforecheckoutrecheckallbindings,
+consumeonce; APIonlyrestart, bounded code-onlyrollback evenon interruption/timeout.
+Alloriginalsmokeroutes/secretchecks retained; reviewedmode permits only explicit
+featuremissing/stale reasons while currentmarket/sourcechecks remain mandatory.
+
+246backendPASS(two Linux-only skips);88controlsPASS(three Linux-only skips),18new
+controls. Compile/shell/diffPASS. Isolated controlcandidate/exactCI still required.
+Read-only sudo metadata confirms existing forcedhelper wildcardargument supports
+newvalidated modes; no permission/key/SSH/config/infrastructure changes. No heavy
+prodscan,reviewauthorizationfile,helperinstall,dispatch,apprestart or deletion.
+
+Concrete procedure/policy/template/stopconditions:
+[RELEASE_VERIFICATION_REVIEW.md](../../deploy/lightsail/RELEASE_VERIFICATION_REVIEW.md).
+Production procedure/budgets/evidence reuse remain explicitly UNAPPROVED. Rollover
+acceptance20min/3cycles/boundary NOTRUN; retention/paidAIOFF,productiondataintact,
+ceilingunchanged,phase1.75OPEN. No retentionexperiment,manualWAL,index orPhase2;
 capreview2026-11-02T01:56:47.671426Z unchanged.

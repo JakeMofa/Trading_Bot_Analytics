@@ -187,6 +187,15 @@ def run(*args, user=False, **kwargs):
     return subprocess.run(command, cwd=ROOT, check=True, text=True, capture_output=True, **kwargs).stdout.strip()
 
 
+def reviewed_run(*args, user=False, timeout=30):
+    from release_verification import owned_process
+    command = (['sudo','-u','tradebot','--'] if user else []) + list(args)
+    result = owned_process(command,timeout,cwd=ROOT)
+    if result.returncode:
+        raise subprocess.CalledProcessError(result.returncode,command,output=result.stdout,stderr=result.stderr)
+    return result.stdout.strip()
+
+
 def git(*args):
     return run('git', *args, user=True)
 
@@ -214,7 +223,7 @@ def protected():
             (ROOT / '.env').stat().st_mode & 0o777, (ROOT / '.env').stat().st_uid)
 
 
-def preflight():
+def runtime_preflight():
     # Use the same environment systemd actually supplied; never source or print .env.
     pid = run('systemctl', 'show', 'tradebot-api', '-p', 'MainPID', '--value')
     env = dict(item.split('=', 1) for item in Path('/proc/' + pid + '/environ').read_text().split('\0') if '=' in item)
@@ -226,6 +235,12 @@ def preflight():
     assert shutil.disk_usage(ROOT).free > 2 * 1024**3, 'less than 2 GiB free disk'
     db = ROOT / 'data/btc_intelligence.db'
     assert db.is_file(), 'database missing'
+    return services()
+
+
+def preflight():
+    runtime_preflight()
+    db = ROOT / 'data/btc_intelligence.db'
     with sqlite3.connect(db.as_uri() + '?mode=ro', uri=True, timeout=10) as connection:
         assert connection.execute('PRAGMA quick_check').fetchall() == [('ok',)], 'SQLite quick_check failed'
         assert connection.execute('PRAGMA foreign_key_check').fetchone() is None, 'SQLite foreign-key check failed'
@@ -320,9 +335,9 @@ def deploy(revision, bundle):
 def main():
     # SSH_ORIGINAL_COMMAND is passed as one argument by the forced command entry.
     command = sys.argv[1] if len(sys.argv) == 2 else ''
-    match = re.fullmatch(r'deploy ([0-9a-f]{40})', command)
+    match = re.fullmatch(r'(deploy|verify|deploy-verified) ([0-9a-f]{40})', command)
     if not match:
-        raise SystemExit('Only deploy <full SHA> is allowed')
+        raise SystemExit('Only deploy, verify or deploy-verified <full SHA> is allowed')
     with open('/run/lock/tradebot-deploy.lock', 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         with tempfile.TemporaryDirectory(prefix='tradebot-deploy-') as directory:
@@ -337,7 +352,11 @@ def main():
                         raise SystemExit('bundle exceeds 100 MiB')
                     output.write(chunk)
             bundle.chmod(0o644)
-            deploy(match[1], bundle)
+            if match[1] == 'deploy':
+                deploy(match[2], bundle)
+            else:
+                from release_verification import verify, reviewed_deploy
+                (verify if match[1]=='verify' else reviewed_deploy)(sys.modules[__name__],match[2],bundle)
 
 
 if __name__ == '__main__':

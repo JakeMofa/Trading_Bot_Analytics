@@ -53,10 +53,17 @@ def get(path):
         raise AssertionError(path + ': request failed (' + type(error).__name__ + ')') from None
 
 
-def check(legacy=False):
+def check(legacy=False, rollover_release=False):
     result = {path: get(path) for path in CORE + (() if legacy else PHASE)}
     health = result['/health']
-    assert health['status'] == 'ok', 'live engine degraded'
+    if rollover_release:
+        from release_verification import FEATURE_REASONS, collection_state
+        reasons=set(health.get('diagnostic_reasons',[]))
+        assert health['status'] in ('ok','degraded') and reasons<=FEATURE_REASONS, 'unexpected live degradation'
+        assert health['status']!='degraded' or bool(reasons), 'degraded without reasons'
+        collection_state(result['/state/current'])
+    else:
+        assert health['status'] == 'ok', 'live engine degraded'
     assert health['collector']['running'], 'collector stopped'
     assert health['collector'].get('error') is None, 'collector error'
     state = result['/state/current']
@@ -88,11 +95,12 @@ def check(legacy=False):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--legacy', action='store_true')
+    parser.add_argument('--rollover-release', action='store_true', help='Allow only explicit feature unavailability; require current market/source data')
     parser.add_argument('--attempts', type=int, default=1)
     args = parser.parse_args()
     for attempt in range(args.attempts):
         try:
-            print(json.dumps(check(args.legacy), sort_keys=True))
+            print(json.dumps(check(args.legacy,args.rollover_release), sort_keys=True))
             return
         except Exception as error:
             if attempt + 1 == args.attempts:

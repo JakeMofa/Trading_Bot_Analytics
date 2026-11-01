@@ -12,6 +12,7 @@ parser=argparse.ArgumentParser(description='Compare timestamp guards on generate
 parser.add_argument('--observations',type=int,default=654328)
 parser.add_argument('--stream-events',type=int,default=1896953)
 parser.add_argument('--native-library',type=Path,help='Optional reviewed native artifact, not a database')
+parser.add_argument('--day-scale-times',action='store_true',help='Spread timestamps across day-scale windows, not adjacent microseconds')
 args=parser.parse_args()
 profile={'observations':args.observations,'stream_events':args.stream_events}
 if min(profile.values())<100 or max(profile.values())>3000000:parser.error('row counts must be100..3000000')
@@ -24,7 +25,10 @@ with tempfile.TemporaryDirectory(prefix='generated-timestamp-plan-') as folder:
   old_count=min(40031 if table=='observations' else 196509,n-1)
   recent=base+timedelta(days=3)
   for lo in range(0,n,2000):
-   stamps=[((base if i<old_count else recent)+timedelta(microseconds=i+1)).isoformat(timespec='microseconds') for i in range(lo,min(lo+2000,n))]
+   if args.day_scale_times:
+    stamps=[((base if i<old_count else recent)+timedelta(microseconds=(i if i<old_count else i-old_count)*(12 if i<old_count else 46)*3600*1000000//(old_count if i<old_count else n-old_count))).isoformat(timespec='microseconds') for i in range(lo,min(lo+2000,n))]
+   else:
+    stamps=[((base if i<old_count else recent)+timedelta(microseconds=i+1)).isoformat(timespec='microseconds') for i in range(lo,min(lo+2000,n))]
    if table=='observations':db.executemany('INSERT INTO observations VALUES(?,?,?,?,?)',[(lo+j+1,str((lo+j)%97),str((lo+j)%3),v,'{}') for j,v in enumerate(stamps)])
    else:db.executemany('INSERT INTO stream_events VALUES(?,?,?,?)',[('coinbase',str(lo+j),v,'{}') for j,v in enumerate(stamps)])
    db.executemany('INSERT OR IGNORE INTO retention_valid_times VALUES(?)',[(s,) for s in stamps])
@@ -43,6 +47,6 @@ with tempfile.TemporaryDirectory(prefix='generated-timestamp-plan-') as folder:
    for _ in range(3):
     start=time.monotonic();rows=list(db.execute(query));times.append(time.monotonic()-start)
    results.append({'variant':variant,'temp_cache_kib':cache_kib,'table':table,'seconds':times,'unknown_count':len(rows),'plan':plan})
- value={'generated_only':True,'local_warm_cache_not_qualification':True,'rows':profile,'results':results}
+ value={'generated_only':True,'local_warm_cache_not_qualification':True,'rows':profile,'timestamp_distribution':'day-scale' if args.day_scale_times else 'adjacent-microseconds','results':results}
  print(json.dumps(value))
  db.close()

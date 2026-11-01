@@ -19,7 +19,7 @@ def build(output):
     if output.name!='_retention_time.so' or output.exists() or output.with_suffix('.json').exists():
         raise ValueError('output must be a new _retention_time.so with a new manifest')
     output.parent.mkdir(parents=True,exist_ok=True)
-    flags=['-std=c99','-O2','-Wall','-Wextra','-Werror','-fPIC','-shared']
+    flags=['-std=c99','-O3','-Wall','-Wextra','-Werror','-fPIC','-shared']
     if sys.platform=='darwin':
         includes=next((p for p in (Path('/opt/homebrew/opt/sqlite/include'),Path('/usr/local/opt/sqlite/include')) if (p/'sqlite3ext.h').is_file()),None)
         if includes is None:raise RuntimeError('extension-capable SQLite headers required on macOS build host')

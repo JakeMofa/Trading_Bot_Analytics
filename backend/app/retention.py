@@ -239,7 +239,7 @@ class _PreparedManifests(list):
 
 # The optional binary is built from this reviewed source, never downloaded or
 # compiled by application startup. Its manifest pins both source and binary.
-NATIVE_TIME_SOURCE_SHA256 = "2b39ba8167896c0e370f2c50f944a1fa23147af8d3f27c3c8e43faae81f43495"
+NATIVE_TIME_SOURCE_SHA256 = "52df693629ff13f85b5bffbfb30bf8388f9e20ebb836780632678531c7d23c7a"
 
 
 def _native_library_path():

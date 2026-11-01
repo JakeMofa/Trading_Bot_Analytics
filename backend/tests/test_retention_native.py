@@ -55,6 +55,19 @@ class NativeTimestampTests(unittest.TestCase):
                 self.assertEqual(actual,expected,repr(value))
         db.close()
 
+    def test_cached_calendar_prefix_does_not_certify_fraction_or_zone(self):
+        prefix='2026-10-31T23:59:59'
+        good=prefix+'.123456+00:00'
+        bad=[prefix+suffix for suffix in ('.12345x+00:00','.123456-00:00',
+             '.123456+01:00','.123456+00:01','.123456+00:0x','.12345+00:00','+00:00\x00')]
+        db=self.connection()
+        try:
+            for value in bad:
+                self.assertEqual(db.execute('SELECT retention_raw_time_valid_v1(?)',(good,)).fetchone()[0],1)
+                self.assertEqual(db.execute('SELECT retention_raw_time_valid_v1(?)',(value,)).fetchone()[0],0)
+            self.assertEqual(db.execute('SELECT retention_raw_time_valid_v1(?)',(prefix+'+00:00',)).fetchone()[0],1)
+        finally:db.close()
+
     def test_native_loader_pins_artifact_and_disables_extension_loading(self):
         with self.connection() as db:
             with self.assertRaises(sqlite3.OperationalError):

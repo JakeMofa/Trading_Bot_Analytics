@@ -174,7 +174,7 @@ def trial(args,number):
             result['timestamp_engine']='native_strict_v1' if native else 'portable_merge'
             if args.require_native and not native:raise RuntimeError('reviewed native timestamp artifact required')
             db.execute('CREATE INDEX IF NOT EXISTS stream_events_archive_cursor ON stream_events(received_at,source,event_id)')
-            now=datetime.now(timezone.utc);old=now-timedelta(days=3);recent=now-timedelta(hours=1)
+            now=datetime.now(timezone.utc);old=now-timedelta(days=3);recent=now-timedelta(hours=47)
             raw={'id':'fixture','slug':'fixture','status':'MARKET_STATUS_OPEN',
                  'assetPriceTerms':{'asset':{'symbol':'btc'},'horizon':'15m',
                  'marketType':'ASSET_PRICE_MARKET_TYPE_UP_DOWN',
@@ -192,17 +192,19 @@ def trial(args,number):
             for dataset,count in counts.items():
                 result['stage']='generate_'+dataset
                 old_count=eligible[dataset]
+                def received(i):
+                    base,rank,count,span=(old,i-1,old_count,12*3600) if i<=old_count else (recent,i-old_count-1,counts[dataset]-old_count,46*3600)
+                    return (base+timedelta(microseconds=rank*span*1000000//count)).isoformat(timespec='microseconds')
                 for lo in range(1,count+1,20000):
                     rows=[]
                     for i in range(lo,min(lo+20000,count+1)):
-                        at=((old if i<=old_count else recent)+timedelta(microseconds=i)).isoformat(timespec='microseconds')
+                        at=received(i)
                         rows.append((i,'fixture-'+str(i%97),at,None,('book','bbo','stream_book')[i%3],'{}') if dataset=='observations' else
                                     ('coinbase',str(i),at,at,'100.000001','0.10','buy','{}'))
                     marks='(?,?,?,?,?,?)' if dataset=='observations' else '(?,?,?,?,?,?,?,?)'
                     db.executemany('INSERT INTO '+dataset+' VALUES'+marks,rows);db.commit()
                 evidence.append(manifest(dataset,1,old_count,
-                    (old+timedelta(microseconds=1)).isoformat(timespec='microseconds'),
-                    (old+timedelta(microseconds=old_count)).isoformat(timespec='microseconds')))
+                    received(1),received(old_count)))
             db.execute('CREATE TABLE prediction_context_links(outcome_observation_id INTEGER REFERENCES observations(id))')
             db.execute('INSERT INTO prediction_context_links VALUES(1)');db.commit()
             result.update(rows=counts,eligible_before_protection=eligible,
@@ -210,6 +212,10 @@ def trial(args,number):
             config=module.RetentionConfig(True,48,1000)
             result['stage']='plan_retention'
             plan=module.plan_retention(db,evidence,config,now)
+            expected={'observations':eligible['observations']-1,'stream_events':eligible['stream_events']}
+            if any(plan['datasets'][key]['eligible_rows']!=value for key,value in expected.items()):
+                raise RuntimeError('generated eligibility differs from required full workload')
+            result['expected_eligible_rows']=expected
             result['preparation_seconds']=time.monotonic()-start
             worker=subprocess.Popen([sys.executable,__file__,'--collector',str(path),
                                      '--collector-report',str(report),'--deployed-app',str(args.deployed_app)],

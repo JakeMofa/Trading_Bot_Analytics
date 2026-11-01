@@ -56,6 +56,32 @@ class RecoveryProofTests(unittest.TestCase):
         proof,found=recovery.verify_archive(m,b,set())
         with self.assertRaises(recovery.RecoveryError):recovery.build_manifest('observations',[row],[(proof,found)])
 
+    def test_temp_delete_scope_rejects_mutation_and_unapproved_rows_atomically(self):
+        import sqlite3
+        row={'id':1,'market_id':'m','received_at':STAMP,'source_time':None,'kind':'book','payload':'{}'}
+        other={**row,'id':2}
+        m,b=self.archive('observations',[row,other])
+        proof,found=recovery.verify_archive(m,b,{(1,),(2,)})
+        saved=recovery.build_manifest('observations',[row,other],[(proof,found)])
+        db=sqlite3.connect(':memory:')
+        try:
+            db.execute('CREATE TABLE observations(id INTEGER PRIMARY KEY,market_id,received_at,source_time,kind,payload)')
+            db.execute('CREATE TABLE stream_events(source,event_id,received_at,source_time,price,size,side,payload)')
+            db.executemany('INSERT INTO observations VALUES(?,?,?,?,?,?)',[tuple(r[c] for c in recovery.COLUMNS['observations']) for r in (row,other)])
+            db.execute("INSERT INTO stream_events VALUES('coinbase','1',?,?, '1',NULL,NULL,'{}')",(STAMP,STAMP));db.commit()
+            recovery.install_delete_scope(db,[saved])
+            self.assertEqual(db.execute("SELECT count(*) FROM main.sqlite_schema WHERE name LIKE 'recovery_%'").fetchone()[0],0)
+            db.execute("UPDATE observations SET payload='{ }' WHERE id=2");db.commit()
+            db.execute('BEGIN')
+            with self.assertRaises(sqlite3.IntegrityError):db.execute('DELETE FROM observations')
+            db.rollback()
+            self.assertEqual(db.execute('SELECT count(*) FROM observations').fetchone()[0],2)
+            with self.assertRaises(sqlite3.IntegrityError):db.execute('DELETE FROM stream_events')
+            db.rollback()
+            db.execute('DELETE FROM observations WHERE id=1');db.commit()
+            self.assertEqual(db.execute('SELECT id FROM observations').fetchall(),[(2,)])
+        finally:db.close()
+
     def test_json_string_payload_is_compared_as_a_string(self):
         row={'id':1,'market_id':'m','received_at':STAMP,'source_time':None,'kind':'book','payload':'"{}"'}
         m,b=self.archive('observations',[row]);proof,found=recovery.verify_archive(m,b,{(1,)})

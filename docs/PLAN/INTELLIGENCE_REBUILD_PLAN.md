@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** R5/R6 STOP pending exact CI and three full Linux trials of repaired TEMP bookkeeping. Instrumentation found full pending-table scan per stream identity outside writer; fixed complete primary-key lookup. Latest trial writers passed but total173s workload incomplete.221local backend/51controls pass. No production guards/cleanup; d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
+**Next gate:** R5/R6 PASS for observed Coinbase-ID generated profile: three full Linux trials, maxwriter97.61ms, zero collector/production-guard failures (e0d311e/CI41283537103). Next: exact-CI operator controls, fresh full SQLite audit, authenticated archive readback and R7 exact-row recovery before≤1000-row cleanup. No production guards/cleanup; d56b4a7/5120 bridge review due2026-11-02T01:56:47.671426Z. I7/Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -1392,3 +1392,16 @@ Prepared a pure raw-row recovery verifier: bounded authenticated-readback bytes 
 Incremental reports exposed the precise unbounded operation: outside-writer TEMP bookkeeping deleted by(source,event_id,received_at), omitting the leading stamp of its WITHOUT ROWID primary key. EXPLAIN confirmed a full pending-table scan per identity. Repaired bookkeeping includes canonical stamp plus all three original exact string identity fields; no current eligibility, coverage, cutoff, protected-reference or deletion check changed. Added a per-batch unlocked-bookkeeping timing and checkpoint.
 
 Generated196509-row local comparison: old10removals178.38ms; new1000removals4.76ms. EXPLAIN changes SCAN to SEARCH USING PRIMARY KEY on all four columns. Regression verifies indexed lookup and distinct007/7/70 identities.221local backend/51controls pass (two Linux-only skipped). Exact CI and three full Linux trials required before release/cleanup. The observed10-digit profile remains distinct from adversarial variable-width qualification; no claim that untested shapes are qualified. Production unchanged; full archive/integrity/R7 gates and I7 freshness/rollover remain open.
+
+
+## R5/R6 qualified on existing Linux VM — November 1, 2026
+
+Exact candidate e0d311edcceb4be15811c55f6f8650484d107930, CI41283537103 PASS. Three complete generated-only trials passed: 101.998s / maxwriter87.44ms; 126.860s / maxwriter79.36ms; 77.612s / maxwriter97.61ms. Each deleted40030 observations and196509 streams at refreshed representative cardinality (664603–665010 observations/1936125–1938116 streams). Actual deployed save→RAM order,150ms save attempts,50ms heartbeat,500ms writer/180s total/512MiB-process/2GiB-fixture limits retained. All actor errors0, saves=RAM; maxsave108.52ms/heartbeat156.76ms; production guard failures0. No rows were deleted from production.
+
+The complete TEMP primary-key repair removed the hidden outside-writer repeated scan. Generated benchmark old10removals178.38ms vsnew1000removals4.76ms; full Linux stream-bookkeeping now completes rather than timing out. Qualification applies to the explicit observed10-digit Coinbase key profile. Variable-width adversarial results remain historical failures; unfamiliar production scopes require qualification, never coercion. Generated payloads are synthetic, not a replica of production bytes. First actual cleanup remains a separately supervised≤1000-row trial.
+
+R5 performance and R6 collector coexistence PASS for this tested profile. R0–R4 accepted historical evidence preserved. R7 exact raw-row recovery/archive readback and fresh full production SQLite verification remain PENDING; R8–R17/I7/Phase1.75 remain OPEN. Old board statements requiring snapshots or claiming no optimization authorization are superseded by the user's subsequent implementation plan; no copies/snapshots were made.
+
+Exact-hash generated staging cleanup verified.07:18:46UTC production remained d56b4a7/same PIDs/zero restarts, bothfeeds live, retention/paidAI OFF,guard5120, DB4469121024/WAL18366992 bytes. This is a recorded sample, not an ongoing-health guarantee. Bridge review due2026-11-02T01:56:47.671426Z remains unchanged.
+
+Prepared the next controls: TEMP exact-full-row recovery guard blocks mutation/unapproved deletes transactionally; its indexes avoid repeating the pending-scan mistake. Prepared explicit operator-only read-only quick/FK audit with30min work+3min recovery reserve, independent bounded/reaped SQLite child, partial-stop recovery, restoration of every stopped writer even after a restart failure, unchanged configuration and measured raw receive gaps. Default is plan-only; no audit/service stop/index installation has run.222local backend/57controls PASS (two Linux-only backend skips); require exact new helper CI, hash-pinned export and safe preflight before supervised production maintenance. No consumed I7 exception reuse.

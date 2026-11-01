@@ -158,3 +158,47 @@ def reconstruct_in_memory(manifest):
         if db.execute('PRAGMA foreign_key_check').fetchone() is not None:raise RecoveryError('reconstruction foreign key mismatch')
         return {'reconstructed_rows':len(rows),'raw_columns_exact':True,'full_database_backup':False}
     finally:db.close()
+
+
+def install_delete_scope(db, manifests):
+    """Connection-local full-row guard against post-proof mutation/scope drift.
+
+    Only TEMP objects are created. Every deletion on either raw table must match
+    an original reconstructed row byte-for-byte; absence/changes abort the whole
+    caller transaction. Caller must durably save its verified recovery manifest
+    before using this guard. No production deletion or automatic restore here.
+    """
+    if db.in_transaction:raise RecoveryError('scope installation requires unlocked connection')
+    by_dataset={}
+    for manifest in manifests:
+        if manifest.get('format')!=1 or manifest.get('scope')!='exact_raw_rows_only_not_database_backup':
+            raise RecoveryError('unsupported recovery manifest')
+        dataset=manifest.get('dataset')
+        if dataset not in COLUMNS or dataset in by_dataset:raise RecoveryError('duplicate or unsupported recovery dataset')
+        reconstruct_in_memory(manifest)
+        by_dataset[dataset]=manifest['records']
+    if not 1<=sum(len(rows) for rows in by_dataset.values())<=1000:
+        raise RecoveryError('delete scope must be1..1000 rows across both datasets')
+    db.execute('SAVEPOINT install_recovery_scope')
+    try:
+        for dataset,columns in COLUMNS.items():
+            table='recovery_scope_'+dataset
+            trigger='recovery_guard_'+dataset
+            if db.execute("SELECT 1 FROM sqlite_temp_schema WHERE name IN (?,?)",(table,trigger)).fetchone():
+                raise RecoveryError('recovery scope already installed')
+            # No affinity: preserve exact string/NULL/integer values. BINARY
+            # comparisons ignore any NOCASE declaration on the original table.
+            db.execute(f'CREATE TEMP TABLE {table}('+','.join(columns)+')')
+            rows=by_dataset.get(dataset,[])
+            db.executemany(f'INSERT INTO temp.{table} VALUES('+','.join('?' for _ in columns)+')',
+                           [tuple(row[column] for column in columns) for row in rows])
+            key='id' if dataset=='observations' else 'source,event_id,received_at'
+            db.execute(f'CREATE UNIQUE INDEX temp.{table}_key ON {table}({key})')
+            comparisons=' AND '.join(f'(OLD.{column} COLLATE BINARY IS proof.{column} COLLATE BINARY)' for column in columns)
+            db.execute(f"""CREATE TEMP TRIGGER {trigger} BEFORE DELETE ON main.{dataset}
+                WHEN NOT EXISTS(SELECT 1 FROM {table} AS proof WHERE {comparisons})
+                BEGIN SELECT RAISE(ABORT,'raw recovery scope changed'); END""")
+        db.execute('RELEASE install_recovery_scope')
+    except BaseException:
+        db.execute('ROLLBACK TO install_recovery_scope');db.execute('RELEASE install_recovery_scope')
+        raise

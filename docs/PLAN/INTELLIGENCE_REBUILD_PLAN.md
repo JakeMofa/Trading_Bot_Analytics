@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** I7 source-time lookup performance, snapshot freshness and market rollover. Worker containment `d56b4a7` is DEPLOYED via Actions41159675569; sampled API responsiveness passed, freshness/rollover did not. Full quick/FK audit remains explicitly outstanding after the authorized exact-release exception. Retention R5/R6 remains STOP; Phase1.75 unfinished. OpenAI/retention OFF, guard4096. Stop before Phase2.
+**Next gate:** CAPACITY STOP within I7: fresh October31 production check found collector/feeds stopped at the4096MiB DB+WAL guard. Resolve a reviewed capacity recovery operation first; no guard bypass/increase, retention, VACUUM, manual WAL or DB copies/snapshots. Production remains`d56b4a7`; freshness/rollover and truthful-health fixes are local-only. Full quick/FK audit outstanding; R5/R6 STOP; Phase1.75 unfinished, Phase2 deferred.
 
 ### October 23, 2026 migration preflight
 
@@ -1243,3 +1243,12 @@ remain required. No production action has been taken in this investigation.
 - [x] Synthetic100k/1m rows per price table measured build time, page growth and warm lookup speed; another writer received SQLITE_BUSY during the schema transaction and resumed afterward. This is generated data, no DB copy/snapshot, and is **not production qualification**. Details: `I7_FRESHNESS_LOCAL_2026-10-31.md`; local`evidence/phase175-baseline/i7-freshness-local-20261031/`.
 - [ ] **NOT DEPLOYED.** No production reads/changes in this milestone; last verified runtime remains`d56b4a7`. Qualify current guard headroom, combined index/WAL/build/ongoing storage growth and increased snapshot cadence, bounded writer interruption, abort/recovery and required verification before any production CREATE INDEX or release. Do not deploy scheduler alone expecting fast results; its age gate rejects slow completions. Do not reuse prior consumed release exception.
 - I7 OPEN, full quick/FK audit outstanding, retention R5/R6 STOP, paid AI/retention OFF, guard4096 unchanged; no infrastructure/network changes or Phase2.
+
+### October 31, 2026 — fresh capacity STOP supersedes healthy checkpoint
+
+- [x] Fresh read-only evidence at`2026-11-01T00:32:04.840498+00:00` (2026-10-31T19:32:04.840498-05:00 Chicago): production still`d56b4a7`, clean checkout, original API/ensemble/lifecycle PIDs10915/849/843 active and zero automatic restarts; collector **STOPPED**, feeds stopped since~04:24AM October31 Chicago; storage_guard`limit_reached`. HTTP/SSE/dashboard respond with retained state, not live evidence.
+- [x] DB4278059008 +WAL17431752 = 4096.499214MiB against4096MiB, headroom-523464bytes. Filesystem still48.038GiB free. Header-only five-second SQLite child found0 free pages, auto_vacuum NONE; deleting rows alone must not be assumed to shrink allocated guard usage. No full integrity/FK scan.
+- [x] Implemented local read-only readiness assessment with no execute mode; current result STOP for collector/feed/guard/capacity and unqualified build budget. Prepared health correction: clean collector exit or guard reach now degrades cached-RAM health. **Not deployed.**
+- [x] **191 backend +40 deployment/control tests PASS**, compile/diff PASS. Existing branch and unrelated edits preserved. See `I7_CAPACITY_STOP_2026-10-31.md`; local`evidence/phase175-baseline/i7-capacity-stop-20261031/`.
+- [ ] **NEXT / blocker:** a reviewed capacity recovery operation under user constraints, before index installation, release or restart. Do not bypass/increase guard, delete/rewrite WAL, run retention/VACUUM, create DB copies/snapshots or replace DB as a workaround. R5/R6 remains STOP. Synthetic index work remains unqualified for production. No source collection resumed.
+- I7 OPEN; freshness/rollover code remains local-only, full quick/FK audit outstanding, paid AI/retention OFF, guard4096, Phase1.75 unfinished; Phase2 deferred.

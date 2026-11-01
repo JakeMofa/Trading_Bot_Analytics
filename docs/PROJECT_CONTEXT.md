@@ -71,3 +71,7 @@ The copy-based maintenance proposal was rejected; its runbook is withdrawn and e
 ## Latest verified result — worker deployed, I7 OPEN
 
 Actions41159675569 released`d56b4a7`. More than20min and11 feature cycles showed zero failed sampled API probes; snapshots remained84–204s old and rollover was delayed. Original helper restored; one-use exception/runner cleaned up. Final follow-up streams live, but health degraded pending new-market features. See [production evidence](PLAN/I7_PRODUCTION_VALIDATION_2026-10-30.md) and the official roadmap. No new DB copy/snapshot or retention; full quick/FK audit outstanding.
+
+## Latest October31 production evidence — capacity STOP
+
+The collector and feeds have stopped at the4096MiB guard; responsive HTTP serves cached state. This supersedes the October30 healthy samples. Freshness code and the new health/readiness correction are not deployed. See [capacity STOP and revised plan](PLAN/I7_CAPACITY_STOP_2026-10-31.md) and the authoritative roadmap. No production write/restart or capacity workaround was performed.

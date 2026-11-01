@@ -15,6 +15,24 @@ from live_state import LiveState
 
 
 class FastAPITests(unittest.TestCase):
+    def test_cleanly_stopped_collector_cannot_report_healthy_cached_state(self):
+        from types import SimpleNamespace
+        app = create_app(self.populated_state(), start_collectors=False)
+        with TestClient(app) as client:
+            app.state.collector_task = SimpleNamespace(
+                done=lambda: True, cancelled=lambda: False, exception=lambda: None)
+            body = client.get('/health').json()
+            self.assertFalse(body['collector']['running'])
+            self.assertIsNone(body['collector']['error'])
+            self.assertEqual(body['status'], 'degraded')
+
+    def test_storage_guard_limit_degrades_health_even_with_populated_ram(self):
+        state = self.populated_state()
+        state.update_feed_health('storage_guard', 'limit_reached')
+        app = create_app(state, start_collectors=False)
+        with TestClient(app) as client:
+            self.assertEqual(client.get('/health').json()['status'], 'degraded')
+
     def populated_state(self):
         state = LiveState()
         state.set_market({

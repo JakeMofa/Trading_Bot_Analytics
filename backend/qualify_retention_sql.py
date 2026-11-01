@@ -135,12 +135,17 @@ def write_progress_report(path, result, failure, started):
 def trial(args,number):
     start=time.monotonic();result={'trial':number,'started_at':datetime.now(timezone.utc).isoformat(),'status':'STOP','generated_only':True,
                                  'synthetic_archive_claims_not_cloud_verification':True,
-                                 'trade_id_base':args.trade_id_base}
+                                 'trade_id_base':args.trade_id_base,'batch_size':getattr(args,'batch_size',1000)}
     worker=None;db=None;monitor_stop=threading.Event();failure=[]
     def checkpoint(stage, dataset=None, partial=None):
         result['stage']=stage
         if dataset is not None:result['active_dataset']=dataset
         if partial is not None:result['partial_apply']=partial
+        if stage in ('before_batch','committed_batch'):
+            wal=Path(str(path)+'-wal')
+            samples=result.setdefault('commit_storage_samples',[])
+            samples.append({'stage':stage,'dataset':dataset,'wal_bytes':wal.stat().st_size if wal.exists() else 0})
+            del samples[:-16]
         write_progress_report(args.trial_report,result,failure,start)
     checkpoint('starting')
     def deadline(signum,frame):raise TimeoutError('trial work deadline/resource/production guard')
@@ -190,6 +195,8 @@ def trial(args,number):
             sys.path.insert(0,str(args.candidate.parent))
             module=importlib.util.module_from_spec(spec);sys.modules[spec.name]=module;spec.loader.exec_module(module)
             db=collector.connect(str(path));stream.initialize(db)
+            result['sqlite_settings']={key:db.execute('PRAGMA '+key).fetchone()[0]
+                for key in ('journal_mode','synchronous','wal_autocheckpoint','page_size')}
             native=module._load_native_time_validator(db)
             result['timestamp_engine']='native_strict_v1' if native else 'portable_merge'
             if args.require_native and not native:raise RuntimeError('reviewed native timestamp artifact required')
@@ -239,7 +246,7 @@ def trial(args,number):
                 if any(module.timestamp_guards.invalid_exists(db,t) for t in module.SPECS):
                     raise RuntimeError('invalid fixture timestamp in indexed guard')
                 result['timestamp_engine']='indexed_invalid_v1'
-            config=module.RetentionConfig(True,48,1000)
+            config=module.RetentionConfig(True,48,getattr(args,'batch_size',1000))
             checkpoint('plan_retention')
             plan=module.plan_retention(db,evidence,config,now)
             expected={'observations':eligible['observations']-1,'stream_events':eligible['stream_events']}
@@ -339,7 +346,8 @@ def supervised_trial(args,number):
                  '--deployed-app',str(args.deployed_app),'--work-dir',str(folder),
                  '--observations',str(args.observations),'--stream-events',str(args.stream_events),
                  '--trial-child',str(number),'--trial-report',str(report),
-                 '--trade-id-base',str(getattr(args,'trade_id_base',0))]
+                 '--trade-id-base',str(getattr(args,'trade_id_base',0)),
+                 '--batch-size',str(getattr(args,'batch_size',1000))]
         if args.expected_save_sha256:command+=['--expected-save-sha256',args.expected_save_sha256]
         if args.check_production:command+=['--check-production']
         if args.require_native:command+=['--require-native']
@@ -378,6 +386,8 @@ def main():
     parser.add_argument('--require-indexed',action='store_true',help='Qualify explicit invalid-timestamp guard indexes, without native artifact')
     parser.add_argument('--trials',type=int,choices=(1,2,3),default=3,
                         help='Bound a diagnostic run; qualification still requires three full passes')
+    parser.add_argument('--batch-size',type=int,choices=(250,500,1000),default=1000,
+                        help='Generated trial batch ceiling; never raises the qualified1000-row maximum')
     parser.add_argument('--expected-save-sha256')
     parser.add_argument('--trial-child',type=int,choices=(1,2,3),help=argparse.SUPPRESS)
     parser.add_argument('--trial-report',type=Path,help=argparse.SUPPRESS)

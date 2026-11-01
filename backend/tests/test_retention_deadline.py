@@ -10,6 +10,23 @@ import test_retention as safety
 
 
 class WriterDeadlineTests(unittest.TestCase):
+    def test_case_distinct_malformed_timestamp_cannot_match_validity_cache(self):
+        fixture=safety.RetentionTests(methodName='test_verified_old_observations_are_eligible_and_new_are_kept')
+        fixture.setUp()
+        try:
+            fixture.seed_observations();fixture.archive_all('observations',10)
+            plan=fixture.plan();original=retention._validated_timestamp_cache
+            def prepare(db):
+                cache=original(db)
+                db.execute("UPDATE observations SET received_at=replace(received_at,'T','t') WHERE id=1")
+                db.commit()
+                return cache
+            with patch.object(retention,'_validated_timestamp_cache',side_effect=prepare):
+                with self.assertRaises(retention.RetentionError):
+                    retention.apply_retention(fixture.db,plan,fixture.config,confirm=True)
+            self.assertEqual(fixture.count('observations'),30)
+        finally:fixture.tearDown()
+
     def test_slow_commit_reports_committed_rows_instead_of_claiming_rollback(self):
         fixture=safety.RetentionTests(methodName='test_verified_old_observations_are_eligible_and_new_are_kept')
         fixture.setUp()

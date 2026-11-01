@@ -241,7 +241,9 @@ def _validated_timestamp_cache(db):
     if db.in_transaction:
         raise RetentionError("timestamp preparation requires no active transaction")
     db.execute("DROP TABLE IF EXISTS temp.retention_valid_times")
+    db.execute("DROP TABLE IF EXISTS temp.retention_fresh_valid_times")
     db.execute("CREATE TEMP TABLE retention_valid_times(value TEXT PRIMARY KEY) WITHOUT ROWID")
+    db.execute("CREATE TEMP TABLE retention_fresh_valid_times(value TEXT PRIMARY KEY) WITHOUT ROWID")
     try:
         for table in SPECS:
             cursor = db.execute(f"SELECT DISTINCT received_at FROM {table}")
@@ -259,6 +261,7 @@ def _validated_timestamp_cache(db):
     except BaseException:
         db.rollback()
         db.execute("DROP TABLE IF EXISTS temp.retention_valid_times")
+        db.execute("DROP TABLE IF EXISTS temp.retention_fresh_valid_times")
         raise
     return _TimestampCache()
 
@@ -268,18 +271,24 @@ def _validate_current_timestamps(db, timestamp_cache):
     if not isinstance(timestamp_cache, _TimestampCache):
         raise RetentionError("timestamp cache was not prepared")
     for table in SPECS:
-        cursor = db.execute(f"""SELECT DISTINCT received_at FROM {table} AS raw
-          WHERE NOT EXISTS (SELECT 1 FROM temp.retention_valid_times AS valid
-                            WHERE valid.value=raw.received_at)""")
+        # Ordered set difference lets SQLite merge covering-index streams instead
+        # of performing a fresh B-tree lookup for every known timestamp. Binary
+        # collation is explicit: case-distinct malformed evidence must not match.
+        cursor = db.execute(f"""SELECT received_at COLLATE BINARY FROM {table}
+          EXCEPT SELECT value COLLATE BINARY FROM temp.retention_valid_times ORDER BY 1""")
         try:
             for (value,) in cursor:
                 try:
                     canonical_time(value)
                 except RetentionError:
                     raise RetentionError("unsupported received_at at apply; refusing deletes") from None
-                db.execute("INSERT OR IGNORE INTO temp.retention_valid_times VALUES(?)", (value,))
+                db.execute("INSERT OR IGNORE INTO temp.retention_fresh_valid_times VALUES(?)", (value,))
         finally:
             cursor.close()
+        # Do not mutate an input of the active EXCEPT cursor. Newly validated
+        # strings become reusable only after that fresh statement is exhausted.
+        db.execute("INSERT OR IGNORE INTO temp.retention_valid_times SELECT value FROM temp.retention_fresh_valid_times")
+        db.execute("DELETE FROM temp.retention_fresh_valid_times")
 
 
 def _scope_manifest_ranges(dataset, evidence, approved):
@@ -643,8 +652,11 @@ def apply_retention(db, plan, config, confirm=False):
                 deadline = locked_at + MAX_WRITE_SECONDS
                 db.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
                 try:
+                    operation = "timestamp_revalidation"
                     current = _ValidationSnapshot(db, timestamp_cache, dataset, ranges)
+                    operation = "manifest_coverage"
                     intervals, _ = _usable_intervals(current, dataset, evidence, plan["_bucket"])
+                    operation = "protected_identity_selection"
                     protected = _protected_id(db, dataset)
                     selected = current.select(dataset, intervals, cutoff, protected, pending, config.batch_size)
                     if time.monotonic() >= deadline:
@@ -658,6 +670,7 @@ def apply_retention(db, plan, config, confirm=False):
                         break
                     predicate = "id=?" if dataset == "observations" else "source=? AND event_id=? AND received_at=?"
                     before = db.total_changes
+                    operation = "exact_delete"
                     db.executemany(f"DELETE FROM {dataset} WHERE {predicate}",selected)
                     count = db.total_changes-before
                     if time.monotonic() >= deadline:
@@ -673,7 +686,7 @@ def apply_retention(db, plan, config, confirm=False):
                     db.set_progress_handler(None,0)
                     db.rollback()
                     if isinstance(error,sqlite3.OperationalError) and time.monotonic()>=deadline:
-                        raise RetentionBudgetError("sqlite_progress",time.monotonic()-locked_at) from None
+                        raise RetentionBudgetError(operation+":sqlite_progress",time.monotonic()-locked_at) from None
                     raise
                 finally:
                     db.set_progress_handler(None,0)
@@ -697,7 +710,7 @@ def apply_retention(db, plan, config, confirm=False):
         db.set_progress_handler(None,0)
         if db.in_transaction:
             db.rollback()
-        for name in ("retention_valid_times","retention_pending_observations","retention_pending_stream_events"):
+        for name in ("retention_valid_times","retention_fresh_valid_times","retention_pending_observations","retention_pending_stream_events"):
             db.execute(f"DROP TABLE IF EXISTS temp.{name}")
 
 

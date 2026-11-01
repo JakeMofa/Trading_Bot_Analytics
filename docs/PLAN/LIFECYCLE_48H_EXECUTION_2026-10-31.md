@@ -67,3 +67,16 @@ qualified indexes/freshness release, lifecycle-only enablement and24h soak.
 
 No DB copies/snapshots, VACUUM, manual WAL, new resources/network changes, paid AI or
 Phase2. Local evidence: `/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/`.
+
+## First Linux qualification — STOP
+
+Candidate1c714e4 passed exact CI195backend/51controls. At647089 observations and
+1867728 stream rows, trial1 reached the500ms writer limit (0.500101783s), with
+zero committed fixture deletes. It stopped; trials2/3 were not run. Fixture actor
+completed95saves and95RAM updates, no errors, maxsave431ms/heartbeat452ms. No
+production interference was detected. Generated data was removed by the harness.
+
+A local ordered SQL set-merge candidate now replaces per-value membership probes.
+Binary collation and all current-snapshot checks are retained; the deadline is
+unchanged. This remains R5/R6 STOP until a new exact-CI candidate completes all
+three Linux trials. First-attempt evidence is preserved separately.

@@ -315,3 +315,39 @@ Evidence checkpoint256-commit-stop-84513b0.jsonl in the existing lifecycle evide
 The authorized256-page experiment is complete and FAILED its performance gate. Preserve this result; do not run unchanged follow-up trials or promote the setting to production. Further work needs an evidenced change in the operation causing the overrun, under the same durability and500ms/180s gates.
 
 Post-experiment runtime verification60.447s/13samples PASS: actual service flagsOFF/paid credentials absent, guard5120, applicationd56b4a7, all3services active with0automatic restarts, both feed timestamps advancing and every2sHTTP probe successful. Evidence checkpoint256-recovery-84513b0.jsonl. Generated parent verified empty and removed; no retained generated fixture.
+
+## Commit versus writer-lock measurement: bounded generated diagnostic complete
+
+Continued from084ca92 with one reduced generated-only strace6.8 diagnostic,12000
+observations/12000streams,500-row ceiling, original automatic threshold1000 and
+FULL durability. No repeat batch-size/threshold experiment or production change.
+Exact fixture build: Python3.12.3, SQLite3.45.1 Ubuntu3.45.1-1ubuntu2.8, modified
+sourceID endingccalt1; official matching source archives/checksums and patch series
+inspected. Existing timer begins after BEGIN IMMEDIATE returns and ends after
+commit returns: includes post-release work, excludes acquisition/wait, and is not
+an actual writer-lock metric or strict bound on its entire lifetime.
+
+Trace resolves successful shm byte120 WRITE locks independently of CKPT121,
+reader/DMS and database-file locks.48 retention transactions paired with syscall
+entry/exit bounds and Python commit markers. Slowest commit220.379ms: release
+83.185ms after entry,137.195ms remaining; total WRITE occupancy99.394..99.423ms.
+Lock-held WAL sync58.225ms; post-release204DB writes and116.707msDB sync. Collector
+acquired the SAME byte120 lock before main commit returned. Delay is evidenced
+on both sides in this sample. Tracing overhead is unquantified; reduced scale and
+absence of the historical slow commit's trace prevent attributing its495.384ms.
+Prior502.686ms STOP remains FAILED; no500ms policy change or production retry.
+
+Reduced harness11.798s;65collector saves/RAM,0errors,maxsave137.707ms/heartbeat
+165.329ms; production-guard failures0. Generated work reaped/empty. Post-check
+15:57:34UTC collector running/bothfeeds live; no rollover/soak claim. Private raw
+trace/analysis/source/checksum evidence saved under lifecycle evidence directory
+sqlite-writer-lock-084ca92. Detailed timer/build/source/syscall evidence and limits:
+[SQLITE_WRITER_LOCK_DIAGNOSTIC_2026-11-01.md](SQLITE_WRITER_LOCK_DIAGNOSTIC_2026-11-01.md).
+
+Smallest justified next change proposed: companion lock-occupancy/acquisition-wait,
+commit-call/current-total and collector-interference metrics, preserving existing
+500ms acceptance. No runtime refactor or additional unchanged qualification trial.
+Historical overrun attribution remains INCONCLUSIVE; production deleted0,
+retention/paidAI OFF, no journal/config/service changes. I7/Phase1.75 OPEN;
+freshness/rollover,cleanup/capacity,lifecycle/24h soak pending; Phase2 deferred.
+Temporary5120 review2026-11-02T01:56:47.671426Z unchanged; no extension.

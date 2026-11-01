@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Maintenance128 successor78bcaf0 exact-CI PASS; one workflow41362768630 cancelled queued, no approved runner/no maintenance steps. Originalhelpers restored,unusedauth revoked,interruption0s,headroom295.676MiB. Restore existing approved runner availability before explicit resumption; no auto retry/repeatreserveapproval. RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,flagsOFF,Phase1.75OPEN,cap/deadlineunchanged.
+**Next gate:** RUNNER READY id26 online/idle/self-hosted+tradebot-private on existing operatorMac; candidate78bcaf0/passCI preserved. Fresh headroom289.086MiB/deadline7781s PASS; userauthorizationretained,rootmanifestabsent/revoked recordnotreused. No helpers/newdispatch; cancelledworkflow not retried. RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,flagsOFF,Phase1.75OPEN,cap/deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -2177,3 +2177,28 @@ Retention BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX. Nextprerequisite: restoreavailabil
 ofexistingapprovedprivate execution route; replacementinfra/route requiresreview.
 No repeatedreserveapproval needed; no automaticnewdispatch/qualification. Evidence:
 [ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md](ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md).
+
+## RUNNER READY; no automatic retry or helper preparation
+
+User authorizes restoration of existing approved ephemeral operator-Mac runner,
+no AWS/firewall change. Prior one-job runners removed/unregistered; restored same
+mechanism using officialchecksum-verified osx-arm64v2.338.0 distribution. Token
+runtime-only,neverdisplayed/staged. Registration26 ephemeral; listener--once.
+GitHubconfirms tradebot-private-operator-20261101-234541 ONLINE,IDLE,busyfalse,
+labels self-hosted/macOS/ARM64/tradebot-private. Queue0 before registration,
+workflow41362768630 remainscancelled/no retry. No newpersistentdaemon/architecture.
+
+Preserve deploymentHEAD78bcaf07baac8ba5f26a6c7dd827c35283511f30/passCI41362300963,
+validation41362300987; no rebuild/reservereview. After readiness confirmation,
+23:47:05.997193Z boundedread-onlypreflight: main5031120896/WAL34459712bytes,
+headroom289.085876MiB>=128,free50117754880bytes;7781.362182sbefore unchanged
+reviewdeadline>2590interruption. d56b4a7clean,samePIDs23471/23478/23474 active/
+restarts0,solecollector,privateAPI,flagsOFF,guard5120. Originalhelperhashesmatch.
+
+Userone-useauthorizationretained; noactive/claimedrootmanifest, priorunusedrecord
+revoked. Freshboundauthority needed before any newdispatch, within existing scope;
+no repeatreserveapproval requested. No helperprepared/authoritycreated/dispatch,
+no productionchange, no known-rolloverdiagnosis, scan,cleanup/WAL/DBcopy orsoak.
+YieldRUNNERREADY; laterexecutionstillrequiresfreshsource/persistence/capacity/time.
+RetentionBLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX,I7/Phase1.75OPEN,deadlineunchanged.
+Report: [ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md](ROLLOVER_MAINTENANCE128_OUTCOME_2026-11-01.md).

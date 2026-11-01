@@ -112,6 +112,24 @@ class TimestampGuardTests(unittest.TestCase):
             self.assertFalse(case.db.execute("SELECT name FROM sqlite_temp_master WHERE name LIKE 'retention_%'").fetchall())
         finally:case.tearDown()
 
+    def test_warming_discards_rows_and_mutation_is_rechecked_under_writer(self):
+        from datetime import timedelta
+        from unittest.mock import patch
+        case=safety.RetentionTests(methodName='test_verified_old_observations_are_eligible_and_new_are_kept');case.setUp()
+        try:
+            case.add_event('coinbase','001',safety.NOW-timedelta(days=3));case.archive_all('stream_events',10)
+            case.db.execute('BEGIN IMMEDIATE');guards.create_indexes(case.db);case.db.commit()
+            plan=case.plan();warm=retention._warm_stream_pages;states=[]
+            def changed(db,size):
+                states.append(db.in_transaction);warm(db,size)
+                db.execute("UPDATE stream_events SET received_at='2026-02-30T00:00:00+00:00'");db.commit()
+            with patch.object(retention,'_warm_stream_pages',side_effect=changed):
+                with self.assertRaises(retention.RetentionError):
+                    retention.apply_retention(case.db,plan,retention.RetentionConfig(True,48,1000),confirm=True)
+            self.assertEqual(states,[False]);self.assertEqual(case.count('stream_events'),1)
+            self.assertFalse(case.db.in_transaction)
+        finally:case.tearDown()
+
     def test_full_existing_safety_suite_with_transactionally_maintained_guards(self):
         for name in unittest.defaultTestLoader.getTestCaseNames(safety.RetentionTests):
             with self.subTest(case=name):

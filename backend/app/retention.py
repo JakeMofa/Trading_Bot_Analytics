@@ -419,17 +419,33 @@ def _stream_delete_sql(db):
     return f"DELETE FROM stream_events{hint} WHERE source=? AND event_id=? AND received_at=?"
 
 
+def _warm_stream_pages(db, batch_size):
+    """Read-only page warming hint, NEVER a safety/eligibility decision.
+
+    Values are discarded. Main PK/table pages are read without a writer lock;
+    SQLite refreshes them normally and all authorization checks/selection run
+    again after BEGIN IMMEDIATE. A stale hint can only waste work, never expand
+    the approved deletion scope or authorize a changed row.
+    """
+    if db.in_transaction:raise RetentionError("page warming requires unlocked connection")
+    hints=db.execute("""SELECT source,event_id FROM temp.retention_pending_stream_events
+        ORDER BY stamp,source,event_id,received_at LIMIT ?""",(batch_size,)).fetchall()
+    for source,event_id in hints:
+        db.execute('SELECT received_at FROM stream_events WHERE source=? AND event_id=?',
+                   (source,event_id)).fetchone()
+
+
 def _prepare_pending(db, dataset, identities):
     name = "retention_pending_" + dataset
     db.execute(f"DROP TABLE IF EXISTS temp.{name}")
     if dataset == "observations":
         db.execute(f"CREATE TEMP TABLE {name}(id INTEGER PRIMARY KEY)")
-        db.executemany(f"INSERT INTO temp.{name} VALUES(?)", ((key[0],) for key in identities))
+        db.executemany(f"INSERT INTO temp.{name} VALUES(?)", sorted((key[0],) for key in identities))
     else:
         db.execute(f"""CREATE TEMP TABLE {name}(stamp TEXT,source TEXT,event_id TEXT,received_at TEXT,
           PRIMARY KEY(stamp,source,event_id,received_at)) WITHOUT ROWID""")
         db.executemany(f"INSERT INTO temp.{name} VALUES(?,?,?,?)",
-                       ((canonical_time(key[2]),key[0],key[1],key[2]) for key in identities))
+                       sorted((canonical_time(key[2]),key[0],key[1],key[2]) for key in identities))
     db.commit()
 
 
@@ -754,26 +770,37 @@ def apply_retention(db, plan, config, confirm=False):
     timestamp_cache = _validated_timestamp_cache(db)
     result = {"mode":"apply", "cutoff":cutoff, "datasets":{}}
     original_cache = db.execute('PRAGMA main.cache_size').fetchone()[0]
+    original_temp_cache = db.execute('PRAGMA temp.cache_size').fetchone()[0]
     page_size = db.execute('PRAGMA main.page_size').fetchone()[0]
     cache_bytes = -original_cache*1024 if original_cache<0 else original_cache*page_size
     try:
         # Keep the bounded batch's selected main-index pages resident through
         # DELETE. Connection-local only: never alter collector settings or disk
-        # limits. A larger caller cache is preserved; all exits restore exactly.
-        if cache_bytes<16*1024**2:db.execute('PRAGMA main.cache_size=-16384')
+        # limits. MAIN32MiB + TEMP16MiB targets fit the512MiB worker budget.
+        # Larger caller settings are preserved; all exits restore exactly.
+        if cache_bytes<32*1024**2:db.execute('PRAGMA main.cache_size=-32768')
+        temp_bytes=-original_temp_cache*1024 if original_temp_cache<0 else original_temp_cache*page_size
+        if temp_bytes<16*1024**2:db.execute('PRAGMA temp.cache_size=-16384')
         for dataset, spec in SPECS.items():
             approved = {tuple(key) for key in plan["_approved"][dataset]}
             pending = set(approved)
+            prepare_started=time.monotonic()
             ranges = _scope_manifest_ranges(dataset, evidence, approved)
             _prepare_pending(db, dataset, approved)
+            static_prepare_seconds=time.monotonic()-prepare_started
             deleted = batches = 0
             lock_times = []
             phase_times = []
             observed = {"planned_rows":len(approved), "committed_rows_seen":0,
                         "completed_batches":0, "write_lock_seconds":lock_times,
-                        "phase_seconds":phase_times}
+                        "phase_seconds":phase_times,"static_prepare_seconds":static_prepare_seconds,
+                        "unlocked_warm_seconds":[]}
             result["datasets"][dataset] = observed
             while pending:
+                if dataset == "stream_events":
+                    warm_started=time.monotonic()
+                    try:_warm_stream_pages(db,config.batch_size)
+                    finally:observed["unlocked_warm_seconds"].append(time.monotonic()-warm_started)
                 db.execute("BEGIN IMMEDIATE")
                 locked_at = time.monotonic()
                 deadline = locked_at + MAX_WRITE_SECONDS
@@ -848,6 +875,8 @@ def apply_retention(db, plan, config, confirm=False):
                 "planned_rows":len(approved), "deleted_rows":deleted,
                 "skipped_rows":len(approved)-deleted, "batches":batches,
                 "write_lock_seconds":lock_times, "phase_seconds":phase_times,
+                "static_prepare_seconds":static_prepare_seconds,
+                "unlocked_warm_seconds":observed["unlocked_warm_seconds"],
                 "max_write_lock_seconds":max(lock_times,default=0.0)}
         return result
     except BaseException as error:
@@ -864,6 +893,7 @@ def apply_retention(db, plan, config, confirm=False):
                 db.execute(f"DROP TABLE IF EXISTS temp.{name}")
         finally:
             db.execute(f'PRAGMA main.cache_size={original_cache}')
+            db.execute(f'PRAGMA temp.cache_size={original_temp_cache}')
 
 
 def local_status(db, config, now=None):

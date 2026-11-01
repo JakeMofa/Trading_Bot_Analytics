@@ -48,6 +48,7 @@ class WriterDeadlineTests(unittest.TestCase):
             try:
                 fixture.seed_observations();fixture.archive_all('observations',10);plan=fixture.plan()
                 original=fixture.db.execute('PRAGMA main.cache_size').fetchone()[0]
+                original_temp=fixture.db.execute('PRAGMA temp.cache_size').fetchone()[0]
                 seen=[];select=retention._ValidationSnapshot.select
                 def observe(current,*args,**kwargs):
                     seen.append(current.db.execute('PRAGMA main.cache_size').fetchone()[0])
@@ -57,8 +58,9 @@ class WriterDeadlineTests(unittest.TestCase):
                         with patch.object(retention,'MAX_WRITE_SECONDS',0),self.assertRaises(retention.RetentionBudgetError):
                             retention.apply_retention(fixture.db,plan,fixture.config,confirm=True)
                     else:retention.apply_retention(fixture.db,plan,fixture.config,confirm=True)
-                if not fail:self.assertTrue(seen and all(value==-16384 for value in seen))
+                if not fail:self.assertTrue(seen and all(value==-32768 for value in seen))
                 self.assertEqual(fixture.db.execute('PRAGMA main.cache_size').fetchone()[0],original)
+                self.assertEqual(fixture.db.execute('PRAGMA temp.cache_size').fetchone()[0],original_temp)
             finally:fixture.tearDown()
 
     def test_case_distinct_malformed_timestamp_cannot_match_validity_cache(self):

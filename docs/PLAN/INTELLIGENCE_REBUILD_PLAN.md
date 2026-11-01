@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Reviewed bounded full-verification control change prepared/tested; exact CI and isolated candidate qualification pending. Production procedure/budgets/300s concurrent-write evidence reuse UNAPPROVED. No heavy scan/helper install/dispatch before review. Rollover20min/3cycle/boundary acceptance NOTRUN, retention experiments paused,flagsOFF,deleted0,ceiling unchanged. Phase1.75 OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Controlcandidate2c24dde exactPythonCI41331916958 andvalidation-only41331917043 PASS; workingbde20f5 CI41331790634 PASS. Review concrete productionprocedure/budgets/300s concurrent-write evidence policy before any helper install, heavy scan or dispatch. No production authority created or operation run; rollover20min/3cycle/boundary acceptance NOTRUN. Retentionexperiments paused,flagsOFF,deleted0,ceiling unchanged; Phase1.75 OPEN, capreview2026-11-02T01:56:47.671426Z unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1729,3 +1729,33 @@ failures separately. Only transport startup is polled; onceAPIresponds, collecti
 health is validated once, with source/identityfailure STOP, not a recoverywindow.
 Explicit final work-deadline checks prevent latePASS. No applicationblob/policy
 budget changes, no production actions. Require fresh exact CI onfinalcontrolsource.
+
+### Final bounded-verification controls qualified; await production procedure review
+
+Workingbde20f5197222ddd376ef2d6a703d6fe0ba783a6 exactCI41331790634 PASS.
+Finalcontrolcandidate2c24ddef0b746945caa228c5c7954b6755ebfe70 on existingdeployment
+branch (fd90458->abf288b->2c24dde, noforce/newbranch/worktree). Applicationtree
+byte-identicalfd90458; only7control/workflow/test/procedure paths introduced.
+ExactPythonCI41331916958 PASS169backend/25controls Linux; validationworkflow
+41331917043 waspush-only:validatePASS,verify/deploySKIPPED. Isolatedlocal169/25PASS
+(one Linuxskip); working246backend/89controlsPASS(two/three Linuxskips).
+
+Root-review gate defaults disabled: exactrolloverblob/runtime/release/CI and
+helper/verifier/smoke hashes, approval_confirmed=true explicitlyrequired, private
+one-usereview/evidence. Completequick/FK in consistentreadsnapshot retained; no
+normalchecksremoved/generalbypass/consumedI7exception. Bounded ownedchildtermination
+and readiness, freshsource/currentmarket/boundedpersistence/storage monitors,
+DB/schema/service/config binding, one-useconsumption and APIonly/codeonlyrollback.
+Allsmokeroutes retained; onlyspecific featureunavailability maydegradewithoutfail.
+
+Proposed1800sverification+10sreap/180srecovery,35minverifyjob;300sconcurrent-DML
+snapshot-evidence reuse;600sdeploy+180srecovery in15minjob remain UNAPPROVED FOR
+PRODUCTION. No reviewfilecreated/helperinstalled/heavyscan/workflowdispatch/restart.
+Read-onlysudo compatibility booleans only; no credentials/permission/infrachanges.
+Concrete reviewprocedure/hashes/exactfuturecommands:
+[RELEASE_VERIFICATION_REVIEW.md](../../deploy/lightsail/RELEASE_VERIFICATION_REVIEW.md).
+
+Controlpreparation milestone delivered; productionprocedure review is next.
+Rollover20min/3cycle/boundary validation NOTRUN; do not resume retentionexperiments.
+Retention/paidAIOFF,productiondeleted0,dataintact,ceilingunchanged; no copy/snapshot,
+manualWAL/index/Phase2. I7/Phase1.75OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.

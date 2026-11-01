@@ -160,3 +160,15 @@ Private local test/scope/CI evidence:
 `/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/rollover-health-release-20261101/`.
 No production data or credentials staged. Unrelated AGENTS.md76line and roadmap
 596line edits remain unstaged and excluded from all commits/candidates.
+
+## Subsequent control preparation — not production approval
+
+The separate verification/evidence route is now implemented and tested as control
+candidate2c24ddef0b746945caa228c5c7954b6755ebfe70, with unchangedfd90458application
+blobs. Exact Python CI41331916958 and validation-only workflow41331917043 PASS;
+production verify/deploy jobs SKIPPED. Workingcontrolsourcebde20f5 CI41331790634 PASS.
+The reviewable procedure, proposed budgets/300s evidence policy, root authorization
+requirements, exact helper hashes and future dispatch commands are in
+[RELEASE_VERIFICATION_REVIEW.md](../../deploy/lightsail/RELEASE_VERIFICATION_REVIEW.md).
+No heavy production scan, helper install, authority creation, dispatch, restart or
+20min/3cycle/boundary acceptance has occurred. Procedure approval remains pending.

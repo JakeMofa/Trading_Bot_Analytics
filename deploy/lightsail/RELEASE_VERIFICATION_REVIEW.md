@@ -166,3 +166,43 @@ a failure, not a new recovery/retry window. Startup timing/failure counts are
 recorded separately and are not counted as the subsequent20min acceptance probes.
 The final control qualification includes this readiness regression (19new controls;
 89total working-tree controls, including three platform-specific skips locally).
+
+## Final qualified control candidate — awaiting production review
+
+Candidate **2c24ddef0b746945caa228c5c7954b6755ebfe70** is on the existing
+`codex/lightsail-deployment` branch, retaining fd90458's exact application tree.
+Working source **bde20f5197222ddd376ef2d6a703d6fe0ba783a6** passed
+[CI41331790634](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41331790634).
+Candidate [Python CI41331916958](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41331916958)
+passed169backend/25control tests on Linux, including the real bounded verification
+child. Its [manual-workflow validation41331917043](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41331917043)
+was a **push** event: validate PASS; verify/deploy SKIPPED. No production phase ran.
+Local candidate169backend/25controls PASS(one Linux-only skip); working246backend/
+89controls PASS(two/three Linux-only skips). No source-time/index/dependency or
+application change was introduced by the control candidate.
+
+Exact helper SHA256 values for operator readback after the procedure is approved:
+
+| Installed helper | SHA256 |
+|---|---|
+| deploy.py | 41db48d22d945f03e65892ac18c5314bc9dd326f56b1debcb50ff6e322334321 |
+| release_verification.py | 1160b97691909362bfae97dc0dd3c32bcb2e0f24d83e2e1c18a34fbccaec830b |
+| smoke.py | 59ace5e05a961512590f4932caa1403f4eb84bd9d657b04feb35db64383d7780 |
+
+After review, the operator's review document would use release=the full2c24dde SHA,
+application_ci_run=41331916958 and controls_ci_run=41331917043, independently
+rechecked against GitHub. Keep approval_confirmed=false until approval; expires_at
+must be computed at actual authorization creation, never extended automatically.
+
+These are the future manual commands for steps4/6, **not executed during prep**:
+
+```sh
+gh workflow run deploy-tradebot.yml --ref codex/lightsail-deployment -f revision=2c24ddef0b746945caa228c5c7954b6755ebfe70 -f operation=verify
+# Only after a fresh complete PASS, within TTL and with unchanged identities:
+gh workflow run deploy-tradebot.yml --ref codex/lightsail-deployment -f revision=2c24ddef0b746945caa228c5c7954b6755ebfe70 -f operation=deploy-verified
+```
+
+Production procedure review is still pending. There is no installed review file,
+new helper install, heavy scan, application restart or production acceptance result
+from this milestone. Retention/paidAI stay OFF; original data/ceiling/deadline and
+unrelated working edits are preserved.

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Scoped tracing6d9edc3 exact-CI/tiny PASS; representative NOTPROVEN, preflight STOP expired market2051369 (23:17Z),0trials/0cleanup. Resolve current-market feed precondition before pending qualification; no bypass/recoverywindow/retry. Original clocks/gates unchanged,capacitySTOP separate,93161cf preserved,flagsuntouched,Phase1.75OPEN,deadlineunchanged.
+**Next gate:** Retention qualification BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX; preserve6d9edc3/pass CI, no more VM trials or rollover diagnosis. Review one-use128MiB reserve for existing quiescent schema-free release; NOTAPPROVED/NOTIMPLEMENTED. Physical5120 cap/current512 reserve remain,capacitySTOP,93161cf preserved,flagsOFF,Phase1.75OPEN,deadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -2086,3 +2086,31 @@ qualification; no bypass or auto retry. Detailed evidence:
 [RETENTION_SPLIT_QUALIFICATION_2026-11-01.md](RETENTION_SPLIT_QUALIFICATION_2026-11-01.md).
 Productionunchanged,capacitySTOPseparate,flagsuntouched,93161cf preserved,deadline
 unchanged,I7/Phase1.75OPEN; multi-cycle/real-boundary acceptance NOTPERFORMED.
+
+## Retention BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX; one-use reserve proposal
+
+User directs no more VM qualification or known-rollover diagnosis. Preserve
+6d9edc3e2ba6de31cc3dd8115736314d74c7ece3/pass CI41361239486 and frozen93161cf.
+Retention qualification now BLOCKED_BY_UNDEPLOYED_ROLLOVER_FIX, not pending another
+unchanged trial. Prior failures and incomplete performance evidence unchanged.
+
+Propose FORAPPROVAL ONLY: existing quiescent maintenance route's512MiB physical
+reserve ->128MiB for ONE release of93161cf's pinned schema-free application blobs.
+No global reserve/5120ceiling/accounting change. Complete read-only verification
+with writersstopped has no intendedDB/WAL growth, unlike live pinned-WAL scan.
+Additional budget64MiB WAL/ordinary-close overlap +23.144531MiB live growth
+(20KiB/s,50%margin,790s nonverification/recovery allowance)+32MiB contingency
+=119.144531MiB, rounded128. These are existing planning allowances, not measured
+worst-case burst proof or a mathematically minimal requirement; explicit operational
+risk acceptance needed. No WAL release credited. Last23:05 metadata headroom
+314.656189MiB would exceed128 by186.656189MiB but fails512 by197.343811MiB; stale
+sample cannot clear present preflight. No new production inspection or experiment.
+
+Amendment NOTAPPROVED/NOTIMPLEMENTED; existing controls/current512gate remain binding,
+capacitySTOP. If approved, amend only existing controls, freeze exact successor/helper
+hashes/CI preserving appblobs; no newcontroller. Full checks/quiescence/oneattempt/
+2590s interruption/180s recovery/manualworkflow/code-onlyrollback unchanged. Fresh
+physical check before execution,capdeadline unchanged. No bypass/cleanup/DBcopy/WAL
+operation/production change. Explicit approval required before amendment or production.
+Review: [ROLLOVER_STORAGE_AMENDMENT_REVIEW_2026-11-01.md](ROLLOVER_STORAGE_AMENDMENT_REVIEW_2026-11-01.md).
+FlagsOFF,I7/Phase1.75OPEN; acceptance smokeonly,multi-cycle/boundary NOTPERFORMED.

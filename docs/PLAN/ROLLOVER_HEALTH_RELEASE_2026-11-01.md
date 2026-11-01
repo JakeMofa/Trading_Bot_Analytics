@@ -103,3 +103,60 @@ Retention/paidAI OFF, production data intact, deleted0, storage ceiling unchange
 No backups/copies/snapshots, VACUUM, manual WAL operations, indexes, infrastructure
 change or Phase2. Temporary review deadline2026-11-02T01:56:47.671426Z unchanged.
 I7/Phase1.75 remain OPEN; retention experiments must not resume before this passes.
+
+## Exact qualification and final outcome
+
+- Initial implementation74bfbe6144156c23ba372b41e483187b2752e419:
+  CI41328799829 FAILED new boundary-test polling assertion on Linux. A100ms polling
+  assumption was replaced by explicit subscription-event rendezvous, keeping a
+  bounded test wait and the blocked single worker. Application code unchanged.
+- Corrected working444ea4bcf4783c79f6daf3f9f1cfc01a6b377a4f:
+  [exact CI41328969110](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41328969110)
+  PASS. Local full backend246 PASS(two Linux-only skips), controls70 PASS(two
+  Linux-only skips); Linux CI exercises the skipped-platform cases.
+- Isolated candidatefd904582dd51df09c063db954bfa522e7455e613:
+  [exact CI41329044967](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41329044967)
+  PASS. Exported-tree local backend169/controls6 PASS. Existing deployment branch
+  advanced normally84513b0->fd90458. Local deployment refeaca36c and working checkout
+  retained; previous staged candidate history remains reachable through parent.
+  Only three application files differ from deployed d56b4a7:api.py,streaming.py and
+  newlive_health.py. features.py,collector.py,retention.py,requirements.txt and
+  protecteddeploy.py byte-identical to deployed baseline. New candidate CI runs
+  all its deployment controls; no deployment workflow was dispatched.
+
+Deployment outcome: **NOT ATTEMPTED — RELEASE_CONTROL_BLOCKED**. No helper installed,
+no new full database checks run, no service restart, no rollback needed. Existing
+runtime remains unmodified by this milestone. Production acceptance measurements
+(discovery delay, first-current-book delay, completed cycles, published/rejected
+feature ages,20minute probe statistics, persistence progress, dashboard/SSE and
+service stability) are all **NOT MEASURED FOR CANDIDATE**. Local simulations and CI
+do not substitute for these gates. Milestone remains OPEN, not independently
+validated in production; feature freshness/retention remain unfinished.
+
+Concrete smallest control proposal, for separate review before execution:
+
+1. Supervise fresh complete quick/FK verification in a separate read-only child
+   phase with an explicitly approved work budget (proposed30minutes), bounded
+   termination/reaping and180s recovery reserve. Use one read transaction for
+   consistent evidence. Monitor2s API responsiveness, collector/feed progress and
+   existing physical storage ceiling; abort on collection/storage safety failure.
+   Do not pause/restart unrelated writers under this application instruction.
+2. Bind private root-owned verification evidence to database device/inode,
+   schema_version, old/runtime and candidate SHAs, verifier hash/exact CI and
+   completion time. Proposed maximum300s between verification completion and
+   code checkout; invalidate on identity/schema/revision/safety mismatch.
+3. Only after separate review/approval, revise normal deployment controls to
+   consume that evidence once rather than repeating its full scan in the900s
+   code-deploy job. Keep complete verification mandatory, existing deployment
+   lock, protected flags/configuration/storage guard, API-only restart, bounded
+   smoke/recovery and code-only rollback. No database contents are restored.
+
+This is a concrete review proposal, not an installed control or automatic budget
+extension. It explicitly moves mandatory verification; it does not silently skip
+it. If a live bounded verifier cannot preserve collection, stop and review that
+result instead of authorizing another scan or broad maintenance implicitly.
+
+Private local test/scope/CI evidence:
+`/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/rollover-health-release-20261101/`.
+No production data or credentials staged. Unrelated AGENTS.md76line and roadmap
+596line edits remain unstaged and excluded from all commits/candidates.

@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Rollover/truthful-health implementation tested; exact working/candidate CI and scoped candidate preparation pending. Production release BLOCKED: complete quick/FK verification cannot safely fit900sworkflow with recovery; consumed I7 exception forbidden. Review bounded verification/release compatibility once before production. No deployment/acceptance yet; retention trials deferred,500ms gate unchanged,deleted0,retention/paidAI OFF. I7/Phase1.75 OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
+**Next gate:** Rollover/health candidatefd90458 exactCI41329044967 PASS; working444ea4b CI41328969110 PASS. Production RELEASE_CONTROL_BLOCKED/NOTATTEMPTED: review separate bounded completequick/FK verification/evidence route before API-only deployment.20min/3cycle/boundary productionacceptance NOTRUN, milestoneOPEN. No retention trials untilpass;500msgate unchanged,deleted0,retention/paidAI OFF. I7/Phase1.75 OPEN; capreview2026-11-02T01:56:47.671426Z unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1658,3 +1658,31 @@ explicit old/new subscription events and bounded waits while solefeatureworker
 remainsblocked. No application behavior or production action changed. Require
 newexactCI; do not count failedrevision asPASS. First isolatedrelease export169
 backend/6controls PASS locally; it is unpromoted and superseded by corrected tests.
+
+### Rollover/health exact-CI candidate qualified; deployment not attempted
+
+Working444ea4bcf4783c79f6daf3f9f1cfc01a6b377a4f exactCI41328969110 PASS.
+Initial74bfbe6 CI41328799829 failed a boundary-test polling race; event rendezvous
+corrected it without changing application behavior.246backend/70controls localPASS
+(two Linux-only skips each); exactLinuxCI exercises thoseplatformcases.
+
+Scopedcandidatefd904582dd51df09c063db954bfa522e7455e613 exactCI41329044967 PASS;
+isolated169backend/6controls PASS. Existingdeploymentbranch advanced84513b0->fd90458
+normally, previouscandidatehistory preserved; localdeploymentrefeaca36c/checkout
+unchanged. Onlyapi.py,streaming.py,newlive_health.py applicationdiff vsdeployed
+ d56b4a7; pricequeries,featureversion,indexes,collectorrawformat,retention,dependencies,
+units/config/productionhelper excluded. Historicalfeatureevidence unchanged.
+
+ReleaseoutcomeNOTATTEMPTED/RELEASE_CONTROL_BLOCKED. Fullaudit860.837s historical
+against900sworkflowcannotleave180srecoveryplusdeploy; inlinechecks unbounded.
+Consumedexceptionnotreused. Reviewproposal: separate bounded fullquick/FK child
+phase (proposed30minwork+180srecovery), collection/storage guards, readtransaction,
+exactrelease/runtime/DB/schema binding and proposed300sfreshness; explicitapproved
+one-useevidence consumption bynormalcode-deployjob. No implicitbudgetextension,
+newscans/helperinstall/dispatch/restarts. APIonlyrestart/codeonlyrollback whenapproved.
+
+Production20min/3cycle/boundary validationNOTRUN, allcandidateproductiontimings
+NOTMEASURED; milestoneOPEN. See [ROLLOVER_HEALTH_RELEASE_2026-11-01.md](ROLLOVER_HEALTH_RELEASE_2026-11-01.md).
+Do not resume retention qualification before thisacceptance passes. Retention/paidAI
+OFF,deleted0,guardunchanged; no backup/manualWAL/index/Phase2. I7/Phase1.75OPEN;
+capreview2026-11-02T01:56:47.671426Z unchanged.

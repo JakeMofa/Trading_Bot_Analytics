@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Checkpoint1 PASS:maintenance93161cf exactCI41336249861/validation41336249942 PASS. Checkpoint2 CAPACITY_STOP before productionchanges: mainDB4611.141MiB leaves atmost508.859MiB evenwithoutWAL, below512. Need explicit storage-boundary decision; do not repeat deploymentapproval/attempt. No helper/authority/stop/scan/dispatch; interruption0,flagsOFF. I7/Phase1.75OPEN, capdeadlineunchanged.
+**Next gate:** Rotating-raw assessment NO-GO undercurrentlimits: retainedlegacyDB alreadyfails512MiB reserve before newallocation. MigrationFAIL; steadycapacity/correctness/performance/safetyNOTPROVEN. Checkpoint1STOP, no prototype/trial/workaround. Preserve93161cf/deploymentSTOP; review migrationconstraints separately. FlagsOFF,Phase1.75OPEN,capdeadlineunchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -1898,3 +1898,31 @@ Privateevidence: lifecycle-implementation-20261031/maintenance-93161cf (metadata
 preflight, qualification logs, candidate manifest/checksums; no DB or credentials).
 Productiondeploymenthistory/tagging remains after maintenance milestone, not a
 reason to modify frozen candidate or advance a blocked release.
+
+## Rotating raw generated-feasibility assessment: checkpoint1 capacity STOP, NO-GO
+
+User requests generated feasibility, production unchanged; preserve93161cf rollout
+andcontroller. Header/FK metadata19:13:44UTC shows main4637.539063MiB,WAL32.863342,
+headroom449.597595MiB,freelist0,auto_vacuumNONE. EvenwithoutWAL headroom482.460938
+fails512MiB. Additivemigration retainingexistingDB alreadyfailsreserve by62.402405MiB
+beforeanynewcore/segment/index/WAL/workspace. No allowed productionreclamation or
+capacitychange can be presumed. Checkpoint1 STOP applies; no prototype/Linuxtrial
+or recoverywindow wasrun. MigrationFAIL, allsteady-state/correctness/performance/
+reference/crash/outagefindingsNOTPROVEN; overallNO-GO undercurrentrestrictions.
+
+Capacityformula C+49*(H+I)+boundary/registry+aggregateWAL+working/recovery+512<=5120;
+unknownper-object/core/raw/index allocations explicitlyunmeasured. HistoricalwholeDB
+rates32.28/41.58MiBperhour andprior70.31assumption extrapolate49h1581.79/2037.24/
+3445.31MiB, NOT segmentrates/capacityproof. Archiveoutagegrowth perblockedhour H+I
+pluscore/WAL/work unknown; no safeoutageduration claimed. No dbstatpagewalk or
+historicalpayloadscan. Direct FKcatalog finds prediction_context_links.
+outcome_observation_id->observations.id; JSONmetadata/price references, snapshot
+chains, outcomeavailability, manifest/cursor/localid assumptions requireexplicit
+crosssegment identities/protected evidence strategy. Detailedreaderinventory and
+calculation: [ROTATING_RAW_FEASIBILITY_2026-11-01.md](ROTATING_RAW_FEASIBILITY_2026-11-01.md).
+
+Metadata/arithmeticconsistencyPASS. Productionunchanged,nocopiedDB/delete/scan/
+install/restart/upload/newdependency/infra/Phase2. No unchangedqualificationtrial.
+Frozenrollover/controller preserved. No productionmigrationauthorization inferred.
+DeploymentSTOP,flagsOFF,I7/Phase1.75OPEN,capdeadlineunchanged. Next: separately
+review migrationconstraints; no anotherdesign/parametersearch authorized here.

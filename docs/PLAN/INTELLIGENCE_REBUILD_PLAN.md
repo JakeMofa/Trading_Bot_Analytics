@@ -2598,3 +2598,22 @@ from preceding applicable run; focused workflow/runtime-worker checks pass.
 Successor requires its own exact exported full-suite CI and first integrated
 4000-record qualification. No previous component profile counts as that result.
 Production untouched, capacitySTOP, flagsOFF, no approval/limits/deadline change.
+
+### Integrated qualification resource-accounting successor
+
+f87fc4e exactCI41736469183 PASS: actual exported backend337tests (6root-onlyskips
+covered), root17protocol/32application,112controls; first integrated ApplicationStore
+qualification PASS_SCALED_INTEGRATED.4000new rows committed,4002archived including
+2legacy backlog rows;20real feature/ensemble/history cycles,10publications;0errors;
+maxsave188.317ms,heartbeat305.091ms,feature105.345ms,history33.049ms;46.882s elapsed.
+That run counted named workspace files and parent unlinkedTEMP, not descendant
+unlinkedTEMP. Preserve its measured result/scope; do not call it complete family
+TEMP accounting. Successor includes named files plus unique unlinked inodes over
+bounded Linux process-family descriptors. Workload,170/180s,512MiB/process and2GiB
+limits unchanged; Linux child-TEMP test added (local platform skip, not a pass).
+
+Immutable structured inserts now use ignore-duplicates with readback, so a
+concurrent conflicting insertion cannot be overwritten after the pre-read.
+Focused race test passes and confirms conflicting remote bytes remain intact.
+No production mutation, capacity/flag/authority/deadline change. Successor needs
+its own exact exported CI and qualification; no unchanged retry/matrix authorized.

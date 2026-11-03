@@ -50,3 +50,13 @@ class Tests(unittest.TestCase):
             (root/'existing').write_text('retained')
             with self.assertRaises(ValueError):validate_workspace(root,root/'existing')
         with self.assertRaises(ValueError):validate_workspace('/opt/tradebot','/opt/tradebot/report')
+    @unittest.skipUnless(Path('/proc/self/fd').exists(),'Linux process-family unlinked TEMP descriptor accounting')
+    def test_unlinked_non_database_temp_in_child_counts_toward_workspace(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as f:
+            code="import tempfile,time; f=tempfile.TemporaryFile(dir="+repr(f)+"); f.write(b'x'*65536); f.flush(); print('ready',flush=True); time.sleep(10)"
+            child=subprocess.Popen([sys.executable,'-c',code],stdout=subprocess.PIPE,text=True)
+            try:
+                self.assertEqual(child.stdout.readline().strip(),'ready')
+                self.assertGreaterEqual(workspace_bytes(f),65536)
+            finally:child.kill();child.wait();child.stdout.close()

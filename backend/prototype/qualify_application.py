@@ -24,15 +24,25 @@ def workspace_bytes(root):
             if p.is_file():total+=p.stat().st_size
         except FileNotFoundError:pass
     # SQLite TEMP may be unlinked while still allocated.
-    fdroot=Path('/proc/self/fd')
-    if fdroot.exists():
-        seen=set()
-        for fd in fdroot.iterdir():
+    if Path('/proc/self/fd').exists():
+        pending=[os.getpid()];visited=set();seen=set();prefix=str(Path(root).resolve())+os.sep
+        while pending:
+            pid=pending.pop()
+            if pid in visited:continue
+            visited.add(pid)
+            if len(visited)>32:raise RuntimeError('qualification process-family bound exceeded')
             try:
-                if os.readlink(fd).startswith(str(Path(root).resolve())) and os.readlink(fd).endswith(' (deleted)'):
-                    st=fd.stat();key=(st.st_dev,st.st_ino)
-                    if key not in seen:total+=st.st_size;seen.add(key)
-            except FileNotFoundError:pass
+                descendants=Path(f'/proc/{pid}/task/{pid}/children').read_text().split()
+                pending.extend(int(value) for value in descendants)
+                for fd in Path(f'/proc/{pid}/fd').iterdir():
+                    try:
+                        target=os.readlink(fd)
+                        if target.startswith(prefix) and target.endswith(' (deleted)'):
+                            st=fd.stat();key=(st.st_dev,st.st_ino)
+                            if key not in seen:total+=st.st_size;seen.add(key)
+                    except FileNotFoundError:pass
+            except FileNotFoundError:pass # Exited/reaped child has no allocated open file.
+            except PermissionError:raise RuntimeError('process-family TEMP visibility incomplete') from None
     return total
 
 def lifecycle_process(root,deadline,start,finish,report):
@@ -80,7 +90,7 @@ def profile(candidate,sha,workspace):
         'root':str(root),'errors':[],'rows_requested':4000,'save_max_seconds':None,'heartbeat_max_seconds':None,
         'feature_max_seconds':None,'history_max_seconds':None,'published_age_max_simulated_seconds':None,
         'input_age_max_simulated_seconds':None,'feature_cycles':0,'published_cycles':0,'rejected_publications':0,
-        'max_outstanding_features':1,'max_ingestion_backlog':0,'workspace_peak_bytes':workspace_bytes(workspace)}
+        'max_outstanding_features':1,'max_ingestion_backlog':0,'TEMP_accounting':'named files plus unique unlinked inodes across Linux process family','workspace_peak_bytes':workspace_bytes(workspace)}
     def maximum(key,value):result[key]=max(value,result[key]) if result[key] is not None else value
     def guard():
         result['workspace_peak_bytes']=max(result['workspace_peak_bytes'],workspace_bytes(workspace))
@@ -171,6 +181,7 @@ def profile(candidate,sha,workspace):
         result['pending_rows']=db.execute("SELECT COUNT(*) FROM ab_events WHERE status='pending'").fetchone()[0]
         result['archived_rows']=sum(d['archived'] for c in result['lifecycle']['cycles'] for d in c['archive'].values())
         if result['committed_rows']!=4000 or result['pending_rows'] or result['archived_rows']!=4002:raise Stop('workload identity/completion mismatch')
+        result['sqlite_runtime']=list(db.execute('SELECT sqlite_version(),sqlite_source_id()').fetchone())
         result['allocation_before_retirement']=s.protocol.allocation();result['wal_peak_bytes']=dict(s.protocol.wal_peaks)
         result['generation_files']={r['slot']:{'id':r['id'],'state':r['state']} for r in s.protocol.core.execute("SELECT * FROM generations WHERE state!='retired'")}
         if set(result['generation_files'])!={'A','B'}:raise Stop('both generations not exercised')

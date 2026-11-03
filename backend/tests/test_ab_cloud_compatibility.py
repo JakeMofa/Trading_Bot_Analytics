@@ -47,6 +47,8 @@ class Remote:
             if r.method=='POST':
                 incoming=json.loads(r.content,parse_float=Decimal)
                 for row in incoming:
+                    found=any(all(old[k]==row[k] for k in KEYS[table]) for old in rows)
+                    if found and 'ignore-duplicates' in r.headers.get('Prefer',''):continue
                     rows=[old for old in rows if any(old[k]!=row[k] for k in KEYS[table])]+[row]
                 file.write_text(exact_json(rows))
                 if self.mode=='ambiguous_structured':raise httpx.ReadTimeout('generated committed structured write')
@@ -125,3 +127,16 @@ class Tests(unittest.TestCase):
         self.assertTrue(allowed_update('sync_checkpoints',old,{**old,'rows_synced':2,'last_source_key':'3'}))
         old={**old,'dataset':'archive:stream_events','last_source_key':'["coinbase","2"]'}
         self.assertFalse(allowed_update('sync_checkpoints',old,{**old,'rows_synced':2,'last_source_key':'["coinbase","10"]'}))
+
+    def test_concurrent_immutable_insert_is_not_overwritten(self):
+        from compatible_cloud import exact_json
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            remote,cloud=self.setup_cloud(f);original=remote.handle
+            wanted={'source_id':1,'market_id':'m','version':2};conflict={**wanted,'version':99}
+            def race(request):
+                if request.method=='POST' and request.url.path.endswith('/feature_snapshots'):
+                    Path(f,'feature_snapshots.json').write_text(exact_json([conflict]))
+                return original(request)
+            cloud.cloud.client.close();cloud.cloud.client=httpx.Client(transport=httpx.MockTransport(race));self.addCleanup(cloud.cloud.client.close)
+            with self.assertRaises(ArchiveHold):cloud.upsert('feature_snapshots',[wanted],'source_id')
+            self.assertEqual(json.loads(Path(f,'feature_snapshots.json').read_text())[0]['version'],99)

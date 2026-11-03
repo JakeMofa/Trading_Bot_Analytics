@@ -144,7 +144,7 @@ class CompatibleCloud:
             if needed:
                 try:
                     response=self.cloud.client.post(f'{self.cloud.config.url}/rest/v1/{table}',params={'on_conflict':on_conflict},
-                        headers=self.cloud._headers(**{'Prefer':'resolution=merge-duplicates,return=minimal','Content-Type':'application/json'}),
+                        headers=self.cloud._headers(**{'Prefer':('resolution=merge-duplicates' if table in ('markets','official_outcomes','sync_checkpoints') else 'resolution=ignore-duplicates')+',return=minimal','Content-Type':'application/json'}),
                         content=exact_json(needed).encode(),timeout=remaining())
                     if response.status_code in (401,403):raise ArchiveHold('structured authorization hold')
                     response.raise_for_status()

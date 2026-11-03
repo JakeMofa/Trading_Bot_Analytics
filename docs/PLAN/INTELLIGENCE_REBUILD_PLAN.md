@@ -2376,3 +2376,29 @@ policy/resource/performance-threshold change. Newgeneratedtest verifiescaught
 failure/backpressure/restart completion.17localprototype testsPASS(4Linux-onlyskips).
 Require newexactCI forfinalsource, preservee31qualifiedevidence; noVM/production
 workload or unchangedfailedqualification retry. Consolidatedreport underway.
+
+## A/B generated prototype now reuses real feature/baseline engine
+
+Adds boundedRAMinputprojection usingunchangedfeatures.calculate/forecasts.baseline,
+not anotherformula/version. Matchinggeneratedexpressionindexes select1price/
+metadata candidate perrawgen,coremetadata pin/RESTprice and17candles; avoidswhole
+historymaterialization. ExistinglegacyVersion2querysemantics preserved. Core
+keepscandles/referenceprices,actualsnapshots/predictions/model+abstentiondetails,
+metadataauto-pins and selectedgeneration-qualifiedpriceevidence. Rawintentack and
+metadatareference durability shareonecoretransaction;featurecapture usesworkerowned
+coreconnection. Protectedrecords remainavailableafterrawretirement.
+
+Newgeneratedflat-history comparisonPASS forrealvalues/quality/evidence withfuture
+sourceinputexcluded;realbaseline probabilitynonabstaining,snapshot/predictionand
+bothmetadata/priceFKprotected, restartdurable. Fixed4000rowLinuxCIprofile now
+measuresactualfeaturecycleandpersistsgeneratedforecasts. No productionadapter
+wired/no networkcloudcall; existingSupabaseHTTPmethodcontract/schema reusedagainst
+fakeprivateobjects/manifests. Productioncloudstructured-IDmapping/legacyimport/
+fullscale/dailygrowthremainNOTPROVEN. No featureversion/productionindex changes.
+
+273localbackendtestsPASS(7Linuxskips),112controlsPASS(3skips);finalexactCIrequired.
+Preservee31CI41711635047 and05f invariant/history. No threshold orworkload-size/
+resource amendment; firsttimelineFAILpreserved, no unchangedfailedstressretry.
+No productionmigration/guardchange/deletion/restart/expiredauthorityreuse.
+Consolidated16GiBnormal/21GiBtemporary proposal stillreview-only/NOTPROVEN, not
+old5GiBNO-GO. ProductioncollectorSTOP,flagsOFF,I7/Phase1.75OPEN.

@@ -15,8 +15,10 @@ Run tests with the project's environment:
 
 The fixed profile creates4000generated records,A/B/core and generated archive
 objects. It retains fixtures at the reported private path; do not commit them.
-It uses simulated72h timestamps, not72h elapsed observation. Input projection is
-an indexed bounded cross-generation reader/Decimal mean, not features.calculate.
+It uses simulated72h timestamps, not72h elapsed observation. A bounded RAM projection selects the exact indexed price/metadata candidates
+and17candle rows, then reuses unmodified features.calculate/forecasts.baseline.
+It persists generated snapshots,predictions,model/abstention details and generation
+evidence references in core. This is not a live API/lifecycle adapter.
 Linux CLI preserves512MiB address-space and170s work/180s whole-workload limits;
 all fixture files,archive objects and sidecars count against2GiB. Other platforms
 report RSS and elapsed; they do not establish Linux virtual-memory qualification.
@@ -52,3 +54,19 @@ The proposed16GiB normal/21GiB migration budget is preliminary arithmetic under
 explicit caps/empirical allowances, not a representative capacity qualification.
 No runtime configuration or production migration command is supplied by this
 module. See the authoritative roadmap and the consolidated qualification report.
+
+`feature_inputs.py` selects at most one price/metadata candidate per generation,
+plus the durable metadata pin, core REST price candidate and17completed candles.
+It uses the unchanged feature SQL and matching expression indexes on generated
+files; the RAM projection is query-only before calculation. Core capture is a
+single worker-owned transaction containing the real snapshot,baseline/model/
+abstention details and copied generation-qualified evidence. There is no global
+read transaction across files and no claim that old live SQL is already routed.
+A generated flat-history comparison proves feature/quality/evidence equivalence,
+including future-source exclusion and a source-late event. Existing discovery/
+serial-worker/publication tests still exercise the preserved application code.
+
+Normal production collector/API/lifecycle adapters, legacy structured-table and
+ID/reference migration, existing Supabase structured sync and full-scale shape
+qualification remain explicit promotion gates. Do not load this prototype into
+production merely because its scaled Linux test passes.

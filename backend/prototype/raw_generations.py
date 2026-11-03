@@ -35,11 +35,15 @@ def connect(path,ro=False):
 
 class MemoryArchive:
     """Generated private-object fixture, not a Supabase client or upload."""
-    def __init__(self):self.objects={};self.available=True;self.reads=0
-    def upload_bytes(self,bucket,path,data):
+    def __init__(self):self.objects={};self.manifests={};self.available=True;self.reads=0
+    def upload_bytes(self,bucket,path,data,content_type="application/gzip"):
         if not self.available:raise Stop('archive unavailable')
         if path in self.objects and self.objects[path]!=data:raise Stop('immutable object collision')
         self.objects[path]=data
+    def upsert(self,table,rows,on_conflict):
+        if not self.available:raise Stop('archive metadata unavailable')
+        if table!='raw_archives' or on_conflict!='bucket,object_path':raise Stop('fixture raw manifests only')
+        for row in rows:self.manifests[(row['bucket'],row['object_path'])]=row
     def download_bytes(self,bucket,path):
         if not self.available:raise Stop('archive unavailable')
         self.reads+=1;return self.objects[path]
@@ -65,6 +69,13 @@ CREATE TABLE IF NOT EXISTS markets(id TEXT PRIMARY KEY,metadata TEXT);
 CREATE TABLE IF NOT EXISTS outcomes(market_id TEXT PRIMARY KEY REFERENCES markets(id),known_at TEXT,detail TEXT);
 CREATE TABLE IF NOT EXISTS evidence(id INTEGER PRIMARY KEY REFERENCES events(id),record TEXT NOT NULL,sha256 TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS predictions(id TEXT PRIMARY KEY,market_id TEXT REFERENCES markets(id),as_of TEXT,value TEXT,evidence_id INTEGER REFERENCES evidence(id));
+CREATE TABLE IF NOT EXISTS feature_snapshots(id INTEGER PRIMARY KEY,market_id TEXT REFERENCES markets(id),as_of TEXT,version INTEGER,values_json TEXT,quality_json TEXT,evidence_json TEXT,UNIQUE(market_id,as_of,version));
+CREATE TABLE IF NOT EXISTS prediction_details(id TEXT PRIMARY KEY REFERENCES predictions(id),snapshot_id INTEGER REFERENCES feature_snapshots(id),model_version TEXT,abstain_reason TEXT);
+CREATE TABLE IF NOT EXISTS candles(source TEXT,symbol TEXT,granularity INTEGER,time INTEGER,low TEXT,high TEXT,open TEXT,close TEXT,volume TEXT,first_seen TEXT,PRIMARY KEY(source,symbol,granularity,time));
+CREATE TABLE IF NOT EXISTS reference_prices(id INTEGER PRIMARY KEY,received_at TEXT,source_time TEXT,source TEXT,price TEXT,payload TEXT);
+CREATE INDEX IF NOT EXISTS reference_features_price ON reference_prices(source,julianday(source_time) DESC,id);
+CREATE TABLE IF NOT EXISTS metadata_pins(event_id INTEGER PRIMARY KEY REFERENCES evidence(id),market_id TEXT,received_at TEXT);
+CREATE INDEX IF NOT EXISTS metadata_pins_market ON metadata_pins(market_id,julianday(received_at) DESC,event_id DESC);
 CREATE TABLE IF NOT EXISTS required_evidence(event_id INTEGER PRIMARY KEY REFERENCES events(id));
 CREATE TRIGGER IF NOT EXISTS protect_retired_reference BEFORE INSERT ON required_evidence
 WHEN (SELECT state FROM generations WHERE id=(SELECT gen FROM events WHERE id=NEW.event_id)) IN ('retiring','retired')
@@ -102,6 +113,13 @@ CREATE INDEX IF NOT EXISTS manifests_generation ON manifests(gen,dataset);
             except FileNotFoundError:pass
         for name,size in values.items():
             if name.endswith('-wal'):self.wal_peaks[name]=max(size,self.wal_peaks.get(name,0))
+        if Path('/proc/self/fd').exists():
+            for fd in Path('/proc/self/fd').iterdir():
+                try:
+                    target=os.readlink(fd)
+                    if target.startswith(str(self.root)) and target.endswith(' (deleted)'):
+                        st=fd.stat();values['unlinked:'+str(st.st_dev)+':'+str(st.st_ino)]=st.st_size
+                except FileNotFoundError:pass
         total=sum(values.values());self.peak=max(self.peak,total)
         return {'files':values,'total_bytes':total,'peak_bytes':self.peak}
     def guard(self):
@@ -124,6 +142,8 @@ CREATE INDEX IF NOT EXISTS obs_receipt ON observations(received_at,id);
 CREATE INDEX IF NOT EXISTS obs_market ON observations(market_id,received_at,id);
 CREATE INDEX IF NOT EXISTS stream_receipt ON stream_events(received_at,source,event_id);
 CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at);
+CREATE INDEX IF NOT EXISTS stream_features_price ON stream_events(source,julianday(source_time) DESC,event_id);
+CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,julianday(received_at) DESC,id DESC);
 ''')
         value=db.execute('SELECT id FROM generation').fetchone()
         if value is None:db.execute('INSERT INTO generation VALUES(?)',(gid,));db.commit()
@@ -204,6 +224,9 @@ CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at
         finally:db.close()
         with self.core:
             self.core.execute("UPDATE events SET status='committed',intent=NULL WHERE id=?",(event['id'],))
+            if dataset=='observations' and r['kind']=='metadata':
+                self.pin_record(event['id'],{'generation_id':event['gen'],'dataset':dataset,'row':r})
+                self.core.execute('INSERT OR IGNORE INTO metadata_pins VALUES(?,?,?)',(event['id'],r['market_id'],r['received_at']))
             self.core.execute('UPDATE generations SET newest=MAX(COALESCE(newest,?),?) WHERE id=?',(r['received_at'],r['received_at'],event['gen']))
         self.trip('intent_acknowledged')
     @contextmanager
@@ -235,6 +258,21 @@ CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at
         rows=self.history('stream_events',start,asof,source_cutoff=asof)
         prices=[Decimal(r['price']) for r in rows]
         return {'count':len(prices),'mean':str(sum(prices)/len(prices)) if prices else None,'latest_source':max((r['source_time'] for r in rows),default=None,key=stamp)}
+    def set_market(self,market):
+        if market.get('duration')!=900:raise Stop('15-minute market required')
+        for field in ('start','end','first_seen'):stamp(market[field])
+        with self.core:self.core.execute('INSERT INTO markets VALUES(?,?) ON CONFLICT(id) DO UPDATE SET metadata=excluded.metadata',(market['id'],canonical(market)))
+    def pin_record(self,event_id,record):
+        """Called inside caller core transaction; copied evidence and refs atomic."""
+        event=self.core.execute('SELECT * FROM events WHERE id=?',(event_id,)).fetchone()
+        if not event or event['status']!='committed' or event['gen']!=record['generation_id'] or event['dataset']!=record['dataset']:raise Stop('wrong evidence identity')
+        row={k:record['row'][k] for k in COLUMNS[event['dataset']]}
+        if digest({k:v for k,v in row.items() if k not in ('id','received_at')})!=event['fingerprint']:raise Stop('evidence fingerprint changed')
+        record={'generation_id':event['gen'],'dataset':event['dataset'],'row':row};text=canonical(record);sha=hashlib.sha256(text.encode()).hexdigest()
+        previous=self.core.execute('SELECT sha256 FROM evidence WHERE id=?',(event_id,)).fetchone()
+        if previous and previous[0]!=sha:raise Stop('protected evidence is immutable')
+        self.core.execute('INSERT OR IGNORE INTO evidence VALUES(?,?,?)',(event_id,text,sha))
+        self.core.execute('INSERT OR IGNORE INTO required_evidence VALUES(?)',(event_id,))
     def protect(self,event_id,prediction,market,asof):
         event=self.core.execute('SELECT * FROM events WHERE id=?',(event_id,)).fetchone()
         if not event or event['status']!='committed':raise Stop('unknown evidence identity')
@@ -243,12 +281,10 @@ CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at
             else:raw=db.execute('SELECT * FROM stream_events WHERE source=? AND event_id=?',tuple(event['event_key'].split(':',1))).fetchone()
         if raw is None:raise Stop('evidence unavailable')
         if stamp(raw['received_at'])>stamp(asof) or (raw['source_time'] and stamp(raw['source_time'])>stamp(asof)):raise Stop('future evidence')
-        record={'generation_id':event['gen'],'dataset':event['dataset'],'row':dict(raw)};text=canonical(record)
         with self.core:
             self.core.execute('INSERT OR IGNORE INTO markets VALUES(?,?)',(market,'{}'))
-            self.core.execute('INSERT OR IGNORE INTO evidence VALUES(?,?,?)',(event_id,text,hashlib.sha256(text.encode()).hexdigest()))
+            self.pin_record(event_id,{'generation_id':event['gen'],'dataset':event['dataset'],'row':dict(raw)})
             self.core.execute('INSERT INTO predictions VALUES(?,?,?,?,?)',(prediction,market,iso(asof),'0.5',event_id))
-            self.core.execute('INSERT OR IGNORE INTO required_evidence VALUES(?)',(event_id,))
     def archive_hour(self,cloud,now,limit=1000):
         if not 1<=limit<=1000:raise Stop('archive batch limit')
         boundary=stamp(now).replace(minute=0,second=0,microsecond=0);done=0
@@ -273,10 +309,11 @@ CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at
                 if len(raw)>256*1024**2 or len(compressed)>64*1024**2:raise Stop('archive resource STOP')
                 first,last=rows[0],rows[-1];sha=hashlib.sha256(compressed).hexdigest();path=gen['id']+'/'+dataset+'/'+sha+'.jsonl.gz'
                 meta={'dataset':dataset,'generation_id':gen['id'],'verification':'authenticated_readback_sha256','first_source_key':canonical([first['source'],first['event_id']]) if dataset=='stream_events' else None,'last_source_key':canonical([last['source'],last['event_id']]) if dataset=='stream_events' else None}
-                m={'source':'polymarket' if dataset=='observations' else 'coinbase','bucket':'market-raw','object_path':path,'sha256':sha,'event_count':len(rows),'compressed_bytes':len(compressed),'first_source_id':first.get('id'),'last_source_id':last.get('id'),'started_at':first['received_at'],'ended_at':last['received_at'],'verified_at':iso(now),'metadata':meta}
-                cloud.upload_bytes('market-raw',path,compressed)
+                m={'source':'polymarket' if dataset=='observations' else 'coinbase','bucket':'market-raw','object_path':path,'sha256':sha,'event_count':len(rows),'compressed_bytes':len(compressed),'first_source_id':first.get('id'),'last_source_id':last.get('id'),'started_at':first['received_at'],'ended_at':last['received_at'],'verified_at':iso(now),'metadata':meta,'compression':'gzip','content_type':'application/jsonl','uncompressed_bytes':len(raw),'market_id':None}
+                cloud.upload_bytes('market-raw',path,compressed,'application/gzip')
                 readback=cloud.download_bytes('market-raw',path)
                 proof,found=verify_archive(m,readback,{identity(dataset,r) for r in rows});build_manifest(dataset,rows,[(proof,found)])
+                cloud.upsert('raw_archives',[m],'bucket,object_path')
                 self.trip('archive_readback_verified')
                 with self.core:self.core.execute('INSERT OR IGNORE INTO manifests VALUES(?,?,?,?)',(gen['id'],dataset,path,canonical(m)))
                 done+=len(rows)
@@ -360,7 +397,7 @@ CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at
 class FileArchive(MemoryArchive):
     """Generated objects on disk so archive working space is actually measured."""
     def __init__(self,root):super().__init__();self.root=Path(root);self.root.mkdir(mode=0o700)
-    def upload_bytes(self,bucket,path,data):
+    def upload_bytes(self,bucket,path,data,content_type="application/gzip"):
         if '..' in Path(path).parts or Path(path).is_absolute():raise Stop('bad fixture object path')
         super().upload_bytes(bucket,path,data)
         p=self.root/path;p.parent.mkdir(mode=0o700,parents=True,exist_ok=True)

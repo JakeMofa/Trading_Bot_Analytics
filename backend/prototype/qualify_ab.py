@@ -6,6 +6,7 @@ from decimal import Decimal
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from raw_generations import Store,FileArchive,Stop,Unproven,iso
+from feature_inputs import cycle
 
 
 def event_at(i,rows):
@@ -15,13 +16,20 @@ def event_at(i,rows):
 
 def profile(rows=4000,parent=None):
     if rows!=4000:raise ValueError('one fixed generated workload, not a matrix')
-    started=time.monotonic();root=Path(tempfile.mkdtemp(prefix='generated-ab-',dir=parent))
+    started=time.monotonic();root=Path(tempfile.mkdtemp(prefix='generated-ab-',dir=parent));os.environ['SQLITE_TMPDIR']=str(root.resolve())
     result={'status':'NOT_PROVEN','generated_only':True,'root':str(root),'rows':rows,'platform':sys.platform,
             'workload':'fixed saturation burst across simulated72h boundary; not live REST cadence',
-            'feature_scope':'indexed input projection only; real features.calculate NOT QUALIFIED',
+            'feature_scope':'existing features.calculate + forecasts.baseline on bounded RAM inputs; scaled generated only',
             'errors':[],'save_max_seconds':0.,'heartbeat_max_seconds':0.,'input_query_max_seconds':0.,
-            'sampled_input_age_simulated_seconds':0.,'max_outstanding_features':1,'max_ingestion_backlog':0}
+            'sampled_input_age_simulated_seconds':0.,'feature_cycle_max_seconds':0.,'feature_cycles':0,'nonabstaining_predictions':0,'max_outstanding_features':1,'max_ingestion_backlog':0}
     s=Store(root);cloud=FileArchive(root/'archive-fixtures');T=datetime(2026,1,1,tzinfo=timezone.utc)
+    for market,start in [('before',T+timedelta(hours=71,minutes=45)),('after',T+timedelta(hours=72))]:
+        s.set_market({'id':market,'duration':900,'start':iso(start),'end':iso(start+timedelta(minutes=15)),'first_seen':iso(T)})
+    with s.core:
+        wanted=int((T+timedelta(hours=72)).timestamp())//60*60-60
+        for k in range(18):
+            at=wanted-k*60;price=str(12300+(k%3)*10)
+            s.core.execute('INSERT OR IGNORE INTO candles VALUES(?,?,?,?,?,?,?,?,?,?)',('coinbase','BTC-USD',60,at,price,price,price,price,'1.00000001',iso(datetime.fromtimestamp(at+60,timezone.utc))))
     metrics_lock=None;stop=False;query_tasks=[];pool=ThreadPoolExecutor(max_workers=1)
     try:
         async def run():
@@ -38,18 +46,23 @@ def profile(rows=4000,parent=None):
                     dataset='observations' if i%3==0 else 'stream_events'
                     row=({'market_id':'before' if i<rows//2 else 'after','received_at':iso(at),'source_time':iso(at),'kind':'book','payload':payload} if dataset=='observations' else
                          {'source':'coinbase','event_id':str(i),'received_at':iso(at),'source_time':iso(at),'price':'12345.1234567890123456789','size':'0.00000001','side':'buy','payload':payload})
+                    if dataset=='observations' and i in (0,2001):row.update(kind='metadata',payload='{"assetPriceTerms":{"priceToBeat":{"value":"12340.00000001"}}}')
                     begin=time.monotonic();s.save(dataset,('obs:'+str(i)) if dataset=='observations' else ('coinbase:'+str(i)),row);duration=time.monotonic()-begin
                     result['save_max_seconds']=max(duration,result['save_max_seconds'])
                     if duration>=1:raise Stop('save gate failed; no retry')
                     if dataset=='stream_events' and i%200==1:
                         if query_tasks:await query_tasks.pop()
-                        async def query(asof=at):
+                        async def query(asof=at,market=('before' if i<rows//2 else 'after')):
                             before=time.monotonic();value=await asyncio.get_running_loop().run_in_executor(pool,s.inputs,asof-timedelta(minutes=5),asof)
                             result['input_query_max_seconds']=max(result['input_query_max_seconds'],time.monotonic()-before)
                             if value['mean']!='12345.1234567890123456789':raise Stop('input equivalence failed')
                             age=(asof-datetime.fromisoformat(value['latest_source'])).total_seconds()
                             result['sampled_input_age_simulated_seconds']=max(age,result['sampled_input_age_simulated_seconds'])
                             if age>30:raise Stop('simulated input freshness gate failed')
+                            measured=await asyncio.get_running_loop().run_in_executor(pool,cycle,s,market,asof)
+                            result['feature_cycle_max_seconds']=max(result['feature_cycle_max_seconds'],measured['duration_seconds'])
+                            result['feature_cycles']+=1;result['nonabstaining_predictions']+=measured['prediction'] is not None
+                            if measured['duration_seconds']>30 or measured['result'][1]['price']['age_seconds']>30:raise Stop('real feature component freshness gate failed')
                         query_tasks.append(asyncio.create_task(query()))
                     if i==rows//2:
                         before=time.monotonic();archive_rows+=s.archive_hour(cloud,at+timedelta(seconds=1));archive_seconds+=time.monotonic()-before

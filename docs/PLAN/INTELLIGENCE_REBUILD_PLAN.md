@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Authorized maintenance78bcaf0 IN_PROGRESS workflow41364015738; writers intentionally paused,owned complete-verification child31617 running at23:53:47Z. No PASS/checkout/smoke yet; await bounded controller/recovery,restorehelpers/revokeauthority. No retry/soak; flagsOFF,cleanup0,cap/deadlineunchanged,Phase1.75OPEN.
+**Next gate:** Nov3 STORAGE_STOP: maintenance41364015738 FAILED timeout/no deployment; services recovered but collector stopped at5120.353MiB. Keep stopped. Verifier phase observability tested,exactCI pending. Main alone5077.273MiB permits at most42.727MiB headroom; current128 reserve cannotfit. No newscan/cleanup/restart or expiredauthority reuse; rolloverundeployed,Phase1.75OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -2221,3 +2221,40 @@ Maintenance1800verification/600other/
 10reap/180recovery/2590absoluteinterruption unchanged. This entry isIN_PROGRESS,
 notcompletion; awaitexistingcontrollerresult and restorehelpers/revokeauthority.
 Retention/paidAIOFF,productioncleanup0,capdeadlineunchanged,I7/Phase1.75OPEN.
+
+## November3 recovery checkpoint — verification FAILED; storage STOP
+
+Supersedes stale IN_PROGRESS/maintenance-running current status. Workflow41364015738
+FAILED: retained maintenance report STOP/TimeoutExpired,changedfalse,verification
+1790.105331s,interruption1790.801535s,recoveryfailures[],helperrestorationPASS;
+completed2026-11-02T00:20:21.653232Z. No application checkout/deployment occurred.
+All3services recovered; collector later stopped at5120 physical ceiling. OldAPI
+aggregateok is misleading; active systemd services do not prove live collection.
+
+Fresh essentialread-only19:10:27.748539Z Nov3: runtime d56b4a7,API31763/ensemble31767/
+lifecycle31771 active/restarts0,collectorfalse,guardlimit_reached,lastfeedsNov2
+07:49:38Z. Main5323907072bytes(5077.273438MiB),WAL45171712(43.079102MiB),combined
+5120.352539MiB,headroom-0.352539MiB. Page4096,count1299782,freelist0,auto_vacuumNONE,
+FULL2,schema57. EvenzeroWAL leavesonly42.726563MiB,85.273438shortof128. Deletion
+mayfreepages butcannotbecreditedasphysicalshrink. No recoveryrestart permitted.
+Cap-reviewdeadlinePASSED; claimedauthorityhistorical/consumed,notfreshapproval.
+
+BoundedcloudGET8verifiedmanifestmetadata perrawdataset19:13:22Z: observations
+ranges1..40000 across8objects;stream8exactcursor manifests; allmetadata states
+authenticatedreadback_sha256. No newobjectreadback/proof/deletion authorization;
+localarchivecursor671248 isnotcoverageproof. No historyscan/payloadexposure.
+
+Exacthistoricaltimed-outcheck UNKNOWN: oldparentdiscardedchildtimeoutdiagnostics;
+retainedreporthasneitheractivechecknorcompletedchecks. Rawjoblognotavailable;
+no inferencequickvsFK fromelapsedtime orsequentialorder. Implementednarrowexisting
+verifier instrumentation: atomicprivatebounded8KiB phase start/completion/elapsed
+partial reports;maintenanceparent records active/completedchecks,termination/reap
+outcome evenontimeout/interruption. Completechecks/read-onlybehavior/childownership/
+recovery/budgets unchanged.112controltestsPASS(3Linuxskips),including7newgenerated
+progress tests;93retention safetytestsPASS(2Linuxskips),compile/diffPASS. Require
+exactcommitCI; no newproductionverification. Preserve78bcaf0/6d9edc3/history.
+
+Recoveryprocedure/physicalconstraintreview pending; no reserve/budget/deadline/
+500ms change implemented. No servicechanges,heavyproductionscan,DBcopy/snapshot,
+VACUUM/manualWAL/deletion/capincrease/deploymentretry/stresstrial. Collectionstays
+stopped,retentionOFF,I7/Phase1.75OPEN,rolloverundeployed/featurefreshnessunfinished.

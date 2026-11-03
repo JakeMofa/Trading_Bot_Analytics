@@ -91,6 +91,12 @@ Do not delay live collection until a huge download completes. Backfill is resuma
 
 ## 7. SQLite storage design
 
+November 3, 2026 policy update: the user selected a persistent structured core
+plus A/B raw generations with at least72h local retention and Supabase archiving.
+See [72h A/B policy](RETENTION_72H_AB_POLICY_2026-11-03.md) and the master roadmap
+for sizing/migration gates. This supersedes the single-file target below for the
+future implementation; production has not migrated.
+
 Use one local database with schema migrations and stable keys. Keep source identifiers and duration on every market.
 
 | Table | Purpose |

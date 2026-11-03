@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Nov3 recovery NO-GO: collector stays stopped. Failed maintenance/no deployment reconciled; verifier diagnostics b8f065b exact-CI41702333233 PASS. Main5077.273MiB allows at most42.727MiB headroom evenzeroWAL,85.273MiB shortof128 beforewrites; no physical recovery claim fromfreepages. No scan/delete/restart or policychange approved; deadlinepassed/authorityconsumed,rolloverundeployed,Phase1.75OPEN.
+**Next gate:** User selected72h local raw retention and A/B raw rotation; see RETENTION_72H_AB_POLICY_2026-11-03.md. Size aggregate normal/migration guard from growth/core/index/WAL/recovery evidence, then generated prototype. Prior5GiB planning constraint may be revised; no new numeric runtime limit/migration/delete/restart approved. Production collector remainsstopped,d56b4a7,flagsOFF; rolloverundeployed,I7/Phase1.75OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -2296,3 +2296,19 @@ restoration andfreshauthority. CurrentR<=42.7265625-A necessary,notsufficient.
 PRODUCTIONCHANGED:NO;readonlymetadataonly,noservicechanges/restarts/cleanup/scan/
 DBcopy/snapshot/VACUUM/manualWAL/capincrease/deploymentretry/stresstrial/newarchitecture.
 RetentionOFF,rolloverundeployed/featurefreshnessunfinished,I7/Phase1.75OPEN.
+
+
+## November 3 decision — 72-hour local retention with A/B raw generations
+
+User selected at least72h local raw retention, A/B rotation on the existing VM,
+and continued Supabase archival; separate AWS S3 is not required. This supersedes
+48h as the future retention target, not historical findings or production state.
+[72h A/B policy](RETENTION_72H_AB_POLICY_2026-11-03.md) specifies persistent core,
+two72h raw generations (approximately144h peak raw footprint), verified retirement,
+references/crash safety and aggregate guard sizing. Historical short-window growth
+extrapolates0.757..0.974GiB/day; conservative planning1.648GiB/day, not measured
+24h averages. Planning may revise the former5GiB ceiling; no exact new runtime
+ceiling, guard change, restart, migration or deletion is approved by this record.
+Next milestone: numeric normal/migration budgets and generated prototype under
+this revised design; preserve tested rollover/controller/verifier work. Production
+remainsstopped/d56b4a7,flagsOFF,cleanup0; I7/Phase1.75OPEN. No new branch/worktree.

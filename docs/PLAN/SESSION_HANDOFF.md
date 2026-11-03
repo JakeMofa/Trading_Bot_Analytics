@@ -27,24 +27,25 @@ master roadmap before action.
 
 ## Where we stopped / active work
 
-Phase1.75 / I7 remain OPEN. The user selected at least72hours local raw retention,
-A/B raw generations plus persistent structured core, with existing Supabase
-archives. Selection/policy commit:2470103. This replaces48h as the future target;
-it does not mean retention is enabled or production migrated.
+Phase1.75 / I7 remain OPEN. User selected at least72hours local raw retention,
+A/B raw generations plus persistent structured core,with existing Supabase
+archives. Selection/policy commit2470103 replaces48h as the future target;
+production has not migrated or enabled retention.
 
-At this snapshot the execution worker reports the generated prototype creates
-core.db and uniquely named raw files for A/B. It is testing receipt boundaries,
-crash/restart recovery, references and retirement refusals. Source is restricted
-to private generated directories and not imported by production. These are
-reported implementation activities, NOT passing qualification results.
+Latest qualified generated source02e0143 / CI41715155473 PASS; consolidated report
+98b8356. A/B/core files and4000-row scaled workload passed. Recorded maxsave22ms,
+heartbeat239.3ms,query62.1ms,actualfeature7.6ms across13cycles are scaled results,
+not production guarantees. Process-crash tests passed; power loss not qualified.
+Proposed16GiBnormal/21GiBmigration arithmetic fits recorded filesystem capacity,
+but actual growth/core/WAL/TEMP andlegacy/app/cloud integration remainNOTPROVEN.
 
-Observed uncommitted paths during this handoff:
-- backend/prototype/raw_generations.py
-- backend/tests/test_raw_generations.py
-- .github/workflows/python-tests.yml (worker CI edits)
-
-Do not overwrite, revert, stage or claim those files tested/complete. Check the
-worker's newest commit and evidence before choosing the next incomplete checkpoint.
+Next: complete real legacy/application/cloud compatibility and the
+[mandatory production safety gates](AB72_PRODUCTION_SAFETY_GATES.md),then updated
+exact-CI consolidated migration review. New safety requirements cover default
+holds,bounded idempotent retries,failure injection andpost-write forward recovery.
+No production authority comes from those requirements. Preserve active worker
+ownership andinspectits currentcommits before writing; earlier uncommitted
+prototype paths are now historical and must not be treated as current status.
 
 ## Production: recorded state, not a fresh live audit
 

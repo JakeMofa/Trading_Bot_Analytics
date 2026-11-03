@@ -2463,3 +2463,15 @@ capacity andcross-file recovery,real application/legacy/cloud integration andfau
 injection. Preserve one-attempt/no-production-retry controls. Generated02e0143
 results remainPASS_SCALED;16/21GiB budgets are proposals;productionmigration remains
 held. This milestone adds documentation requirements only,not runtime approval.
+
+### AB72 integration safety checkpoint after905f2bf — November3
+
+Added generated-integration authenticated GET adapter with three-attempt maximum,
+1s/2s bounded backoff, original deadline accounting, Retry-After deferral and
+permanent error holds. No upload/SQLite/maintenance retry added. Seven focused
+MockTransport tests use the actual existing SupabaseHTTP request path. Full local
+backend280tests/7skips and controls112tests/3skips pass; skips not passes.
+See AB72_SAFETY_INTEGRATION_STATUS_2026-11-03.md for each requirement disposition.
+HTTPX inactivity timeout is not hard wall termination: transport/production
+integration stays NOTPROVEN. Legacy/application/cloud/fullscale/failurematrix
+remain open. Production unchanged, collectionSTOP, flagsOFF, migration unauthorized.

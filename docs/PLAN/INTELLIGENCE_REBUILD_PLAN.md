@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** User selected72h local raw retention and A/B raw rotation; see RETENTION_72H_AB_POLICY_2026-11-03.md. Size aggregate normal/migration guard from growth/core/index/WAL/recovery evidence, then generated prototype. Prior5GiB planning constraint may be revised; no new numeric runtime limit/migration/delete/restart approved. Production collector remainsstopped,d56b4a7,flagsOFF; rolloverundeployed,I7/Phase1.75OPEN.
+**Next gate:** Generated72h A/B/core implementation created/exercised; freeze exact Linux CI/root retirement+4000row profile. Preliminary16GiBnormal/21GiBmigration aggregate arithmetic,capacityNOTPROVEN pending production-shape/core/WAL/adapter evidence. No production changes; collectorSTOP,flagsOFF,rolloverundeployed,Phase1.75OPEN. Consolidated review only after qualification; no olddeadline/authority reuse.
 
 ### October 23, 2026 migration preflight
 
@@ -2326,3 +2326,42 @@ production migration is asserted. Next session checks ownership/current Git stat
 before writing, preserves existing work and continues the selected72h policy.
 Production remains the recorded Nov3 storage STOP,d56b4a7; retention/paidAI OFF,
 cleanup0,I7/Phase1.75OPEN. This milestone changes documentation only.
+
+## Selected72h A/B/core generated implementation; exact Linux CI pending
+
+Continues2470103, no architecturechange/newbranch/worktree. Added generated-only
+Store actuallycreatescore.db and immutableUUIDrawfilesforA/B; uniqueactive/live-slot
+indexes,72hreceipt routing,source/Decimal/provenancepreservation,coreintents across
+separateWALcommits,restart/dedup/globalIDs,coreprotectedevidence/predictionFKmapping,
+boundedcross-generation/no-lookaheadreads. Workerownedcoreconnections,onecollector
+rawowner; no queue/fullslotsSTOP. Existing productionfeature/rollover/price/verifier
+work preserved, no liveimport/runtime/flagchange.
+
+Hourlyincremental generated archives reuseexistingexactverify_archive/build_manifest;
+noSupabaseupload. Sealedretirementstreams<=1000rows/object,checkswholecoverage/
+strictnewest>72h/protectedrefs/rootFDdrain beforeunlinkinggeneratedmainonly; ordinary
+SQLiteclose, no manualWAL. Crashbeforeunlink requires freshproof; afterunlinkregistry
+finalizesidempotently. CIaddsrootLinuxgenerateddescriptor/retirement/interference
+andfixed4000rowprofile,metadataartifactonly. No production paths orcredentials.
+
+FirstlocalprofileFAIL dueprofile activationmistiming(Astarted71:59,nominal72event
+not72hafteractivation),noB; failurepreserved. Timelinecorrected/tested,notunchanged
+retry/thresholdtuning. Correctedpre-freezelocal4000records actuallyA/B/core,
+archive4000,6.951842s,maxsave17.392ms/heartbeat125.931ms/inputprojection24.370ms,
+rotation1.747ms,RSS49.87MB;errors0. LocalretirementNOTPROVEN(MacfullFDvisibility),
+noactualunlink. It isscaled/pre-freeze,norealfeaturecycleor72hcontinuouscoverage.
+
+Preliminarynumericproposal16GiBnormal/21GiBmigration:corecap5GiBderivedwholelegacy
+main,144hraw+indexes20KiB/s=9.887695GiB,aggregateWAL130MiB/recovery130MiBempirical
+3-roleallowances;2GiBfilesystemwork/10GiBfreefloor. At20:10:19Zboundedstat-only
+legacy main5323907072/WAL45171712,FSfree49807454208bytes,projectedfree30480471040
+(28.387GiB)>10GiB. NoDBscan/servicechange. Thesecapsarenotmeasuredproduction
+core/rate/burst/WALbounds:capacityNOTPROVEN,notold5GiBNO-GO. Temporaryproposal
+96hpostcutover/review72h,noautoextension,blockedretirementextra slots0/STOP.
+
+Local271backendtestsPASS(7Linuxskips),112controlsPASS(3skips); generatedunit16
+PASS(4Linux-only cases skipped). RequireexactCI(root16inclprofileactualretirement)
+beforequalificationclaim. Consolidatedmigrationproposal/evidencebeingprepared;
+productionadapter/legacy+actualfeatureequivalence/fullscale capacity/verification
+completionremainNOTPROVEN. No prodmigration/delete/restart/guard/deadlinechange,
+retention/paidAIOFF,cleanup0,currentstorageSTOP,I7/Phase1.75OPEN.

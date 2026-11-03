@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Generated72h A/B/core implementation created/exercised; freeze exact Linux CI/root retirement+4000row profile. Preliminary16GiBnormal/21GiBmigration aggregate arithmetic,capacityNOTPROVEN pending production-shape/core/WAL/adapter evidence. No production changes; collectorSTOP,flagsOFF,rolloverundeployed,Phase1.75OPEN. Consolidated review only after qualification; no olddeadline/authority reuse.
+**Next gate:** Working72h A/B/core prototype02e0143 exact-CI41715155473 PASS,actualLinuxretirement/4000rows/realfeaturebaseline PASS_SCALED. Proposed16GiBnormal/21GiBmigration arithmeticfitsFS; productioncapacity/legacy-app-cloudadapter/verificationtiming NOTPROVEN,consolidatedreview notexecute-ready. KeepproductionSTOP/flagsOFF/cleanup0; no migration/guardchange/expiredauthorityreuse,Phase1.75OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -2402,3 +2402,52 @@ resource amendment; firsttimelineFAILpreserved, no unchangedfailedstressretry.
 No productionmigration/guardchange/deletion/restart/expiredauthorityreuse.
 Consolidated16GiBnormal/21GiBtemporary proposal stillreview-only/NOTPROVEN, not
 old5GiBNO-GO. ProductioncollectorSTOP,flagsOFF,I7/Phase1.75OPEN.
+
+## A/B/core working generated qualification complete; production NOT PROVEN
+
+Exactfinalsource02e01436ffab853d4fda20cf0a2be2c3e5628455,
+CI41715155473 PASS:273backend,17Linux-root generated lifecycle/profile,112controls.
+ActualA/B/core files created; streamedfresharchivecoverage/protectedcoreevidence/
+OSFDdrain/actualretirement/newroleUUID/crashrestart/current-writer interference
+ran,notjustdesign. Onependingintent enforced,restartafterrealos_exit exactlyonce.
+Usesunchangedfeatures.calculate/forecasts.baseline withindexedboundedRAMprojection;
+flatgeneratedhistory provesvalues/quality/evidence equivalence andno future-source
+input. Corepersistssnapshots,predictions,abstention/model/evidence identity details.
+Existingrollover/discovery/serialworker/cancellation/publication controls preserved.
+
+Fixed4000rowLinuxprofile PASS_SCALED:18.128395s,RSS43655168bytes,peakworkspace9668381
+bytes,save21.975ms/heartbeat239.292ms/query62.060ms/realfeaturecycle7.617ms,
+rotation9.895ms/retirement119.121ms. Archive4000rows/0.312587s=12796.4fixture rows/s,
+13cycles/13nonabstainingbaselines,errors0,workcomplete. FULL2; raw/core/index/WAL
+sizes inreport/artifact. Simulatedinputage0 isNOTrealmarketfreshness; actuallive
+snapshot/publicationage/API/SSE/RESTintegration/sustained72h NOTPROVEN. RootCIproof
+notrepresentativeLightsailperformance. InitialtimelinemistakeFAIL preserved, not
+relabeled; correctedlocalMacdrainNOTPROVEN preserved. No unchangedfailedstressretry.
+
+Numericreviewproposal16GiBnormal/21GiBtemporarymigration,includingretainedlegacy
+5.000344GiB,corecap5GiB,144hraw+index estimate9.887695GiB,130MiBWAL/130MiBrecovery,
+2GiBFSworking/10GiBactualfreefloor. Stat-only20:10Zfree49807454208bytes projects
+30480471040bytesfree(28.39GiB). Exactformula/testedbudgetcalculator; NOTPROVENfor
+actualcore+ledger+protectedgrowth,rawarrival/bursts,fullWAL/TEMP/verify/recovery.
+Budgetcaps areproposedbounds,notmeasuredproductioncomponentrequirements. Noindependent
+fullA/Ballowances/freepagecredit. Temporaryproposalreview72h/expiry96haftercutover,
+noautoextend,blockedretirementextra slots0/STOP. Newdesignsizingnotold5GiBNO-GO.
+
+Consolidatedreviewcontainsidentity/legacy/structuredSupabaseadapter requirements,
+forward-onlynewwrites+originallegacyreadhistory,service/quiescence/completechecks,
+failure/forwardrecovery/code-vs-data rollback,expiry,smoke andsustainedgates:
+[AB72_QUALIFICATION_AND_MIGRATION_REVIEW_2026-11-03.md](AB72_QUALIFICATION_AND_MIGRATION_REVIEW_2026-11-03.md).
+CP1NOTPROVEN(arithmeticPASS),CP2/3generatedPASS,CP4PASS_SCALED/fullprodNOTPROVEN,
+CP5NOTPROVEN/notproduction-executable untillegacy/app/cloud compatibility and
+representativevolume/verificationtiming qualify. Current2GiB/180s qualification
+limitsunchanged,cannotclaimtheyprove16GiBenvelope; amendmentneedsreviewbefore
+largergeneratedrun. No fabricated newverification budget or executionapproval.
+Onepackage,no fragmentedproduction approvals; do not deployprototype.
+
+PRODUCTIONCHANGED:NO. Onlyoneboundedstat-onlyread forcapacity; no service/config/
+flag/guard/deadlinechange,migration/delete/DBcopy/snapshot/manualWAL/newinfra/firewall/
+paidAI/trading/Phase2. CollectorSTOP,d56b4a7lastverified,retention/paidAIOFF,cleanup0;
+I7/Phase1.75OPEN. Preserve78bcaf0,6d9edc3,verifierdiagnostics/pricework and historical
+failures. Existingdeploymentbranch untouched byprototype. No newbranch/worktree/chat.
+Next:existing-designcompatibility/fullshapequalification,thenONE finalexecution
+approval withprovenbudgets; no productionapprovalrequested fromscaled success.

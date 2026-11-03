@@ -2617,3 +2617,21 @@ concurrent conflicting insertion cannot be overwritten after the pre-read.
 Focused race test passes and confirms conflicting remote bytes remain intact.
 No production mutation, capacity/flag/authority/deadline change. Successor needs
 its own exact exported CI and qualification; no unchanged retry/matrix authorized.
+
+### Exported result review: exact-second rollover defect
+
+cc44c3f exactCI41737929171 PASS: exported backend339/root17protocol/root32app/
+controls112 and integrated4000new/4002archived/0pending/0errors. Measured save28.435ms,
+heartbeat155.619ms,feature161.259ms,history44.103ms,54.500s,wholeworkspace21969852B.
+However20featurecycles produced only10publications. Result review reproduced a
+market-identity defect with a tiny fixture: fractional-zero stored timestamps vs
+an exact-second nonfractional now used lexical comparisons, retaining expired
+market identity at the boundary. Do NOT accept that CI as final rollover proof.
+
+Changed only market identity predicates/order to existing julianday semantics;
+no price query,feature version,index,cadence or acceptance-threshold change.
+Tiny exact-second regression plus existing186s rollover/truthful-health cases pass.
+Integrated qualification now requires publication in BOTH simulated boundary
+markets and final current identity; guard rejections record bounded contexts.
+Successor must pass its own exact exported CI/qualification; prior runs retained
+with actual measured scope, not relabeled final acceptance. Production unchanged.

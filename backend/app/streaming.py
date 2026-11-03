@@ -109,7 +109,7 @@ def polymarket_credentials(env_path=None):
 
 def current_market(db):
     now=utcnow().isoformat()
-    return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN' ORDER BY start DESC LIMIT 1",(now,now)).fetchone()
+    return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?) AND status='MARKET_STATUS_OPEN' ORDER BY julianday(start) DESC LIMIT 1",(now,now)).fetchone()
 
 
 def sync_live_market(db, live_state, now=None):
@@ -117,8 +117,8 @@ def sync_live_market(db, live_state, now=None):
         return None
     now=(now or utcnow()).isoformat()
     row=db.execute('''SELECT id,slug,start,end,target,status FROM markets
-      WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN'
-      ORDER BY start DESC LIMIT 1''',(now,now)).fetchone()
+      WHERE duration=900 AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?) AND status='MARKET_STATUS_OPEN'
+      ORDER BY julianday(start) DESC LIMIT 1''',(now,now)).fetchone()
     if not row:
         live_state.set_market(None)
         return None

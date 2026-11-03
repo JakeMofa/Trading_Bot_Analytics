@@ -89,7 +89,7 @@ def profile(candidate,sha,workspace):
         'workload':'4000 fixed saturation records,512-byte padding,simulated72h boundary; not real venue/network cadence',
         'root':str(root),'errors':[],'rows_requested':4000,'save_max_seconds':None,'heartbeat_max_seconds':None,
         'feature_max_seconds':None,'history_max_seconds':None,'published_age_max_simulated_seconds':None,
-        'input_age_max_simulated_seconds':None,'feature_cycles':0,'published_cycles':0,'rejected_publications':0,
+        'input_age_max_simulated_seconds':None,'feature_cycles':0,'published_cycles':0,'rejected_publications':0,'published_by_market':{},'rejected_contexts':[],
         'max_outstanding_features':1,'max_ingestion_backlog':0,'TEMP_accounting':'named files plus unique unlinked inodes across Linux process family','workspace_peak_bytes':workspace_bytes(workspace)}
     def maximum(key,value):result[key]=max(value,result[key]) if result[key] is not None else value
     def guard():
@@ -140,8 +140,10 @@ def profile(candidate,sha,workspace):
                 maximum('input_age_max_simulated_seconds',age)
                 with patch('live_state.utcnow',return_value=now):published=streaming.publish_feature_cycle(cycle,state,now=now)
                 if published:
-                    result['published_cycles']+=1;maximum('published_age_max_simulated_seconds',(now-datetime.fromisoformat(cycle[2])).total_seconds())
-                else:result['rejected_publications']+=1
+                    result['published_cycles']+=1;market_id=cycle[0][0];result['published_by_market'][market_id]=result['published_by_market'].get(market_id,0)+1;maximum('published_age_max_simulated_seconds',(now-datetime.fromisoformat(cycle[2])).total_seconds())
+                else:
+                    result['rejected_publications']+=1
+                    if len(result['rejected_contexts'])<20:result['rejected_contexts'].append({'snapshot_market':cycle[0][0],'current_market':(state.snapshot(now).get('market') or {}).get('id'),'age_seconds':(now-datetime.fromisoformat(cycle[2])).total_seconds()})
             beat=asyncio.create_task(heartbeat())
             try:
                 for i in range(4000):
@@ -174,6 +176,9 @@ def profile(candidate,sha,workspace):
         asyncio.run(run());pool.shutdown(wait=True);pool=None
         if result['heartbeat_max_seconds'] is None or result['heartbeat_max_seconds']>=1:raise Stop('heartbeat gate')
         if result['feature_cycles']<3 or result['published_cycles']<3:raise Stop('insufficient real feature/publication cycles')
+        if any(result['published_by_market'].get(m,0)<1 for m in ('before','after')):raise Stop('publication not proven in both boundary markets')
+        if (state.market_identity() or (None,))[0]!='after':raise Stop('discovery did not retain current market identity')
+        result['final_market_identity']=list(state.market_identity())
         if result['published_age_max_simulated_seconds']>30:raise Stop('stale publication')
         result['lifecycle']=json.loads(life_report.read_text())
         if result['lifecycle']['status']!='PASS':raise Stop('separate lifecycle incomplete')

@@ -586,3 +586,13 @@ finally:worker.close()
                 with self.assertRaises(Stop):worker.save_observation('m',iso(T),'book',{},iso(T))
                 with self.assertRaises(Stop):s.close()
             finally:worker.close();s.close()
+    def test_exact_second_boundary_with_fractional_storage_follows_new_market(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f);db=s.connection();at=T+timedelta(minutes=15)
+            try:
+                collector.save_market(db,market(at,'next'),iso(at));state=LiveState()
+                with patch.object(streaming,'utcnow',return_value=at):
+                    self.assertEqual(streaming.current_market(db)[0],'next')
+                self.assertEqual(streaming.sync_live_market(db,state,at)[0],'next')
+                self.assertEqual(state.market_identity()[0],'next')
+            finally:db.close();s.close()

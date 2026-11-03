@@ -400,3 +400,63 @@ else:
         # supplies a generated subscription identity, never contacts a venue.
         asyncio.run(run())
         self.assertIn('storage_guard_blocked',degradation_reasons({'feeds':{'storage_guard':{'status':'blocked'}}},{},now=T))
+    def test_process_crash_seals_existing_generation_atomically_at_boundary(self):
+        import subprocess
+        tests=str(Path(__file__).resolve().parent)
+        for phase in ['rotation_planned','rotation_file_created','rotation_published']:
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+                p=Path(f)/'generated-legacy.db';legacy(p)
+                code=f'''import sys,os
+sys.path.insert(0,{tests!r})
+from test_ab_application import *
+s=ApplicationStore({f!r},{str(p)!r},routing=True)
+db=s.connection();db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{{'first':True}},iso(T));db.close()
+s.protocol.fault=lambda name:os._exit(71) if name=={phase!r} else None
+db=s.connection();db.save_observation('m',iso(T+timedelta(hours=72,seconds=3)),'book',{{'second':True}},iso(T))
+'''
+                result=subprocess.run([sys.executable,'-c',code],capture_output=True,timeout=10);self.assertEqual(result.returncode,71,result.stderr.decode())
+                s=ApplicationStore(f,p,routing=True);db=s.connection()
+                try:
+                    self.assertEqual(db.execute("SELECT state FROM ab_generations ORDER BY started").fetchall(),[('sealed',),('active',)])
+                    self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0],3)
+                    self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])
+                finally:db.close();s.close()
+    def test_real_process_retirement_crash_recovery_preserves_core_and_exact_rows(self):
+        import subprocess
+        from raw_generations import FileArchive
+        if sys.platform!='linux' or os.geteuid()!=0:self.skipTest('retirement process exits require Linux root descriptor proof')
+        tests=str(Path(__file__).resolve().parent)
+        for phase in ['retirement_authorized','retirement_normal_close','retirement_file_removed']:
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+                p=Path(f)/'generated-legacy.db';legacy(p)
+                code=f'''import sys,os
+sys.path.insert(0,{tests!r})
+from test_ab_application import *
+from raw_generations import FileArchive
+s=ApplicationStore({f!r},{str(p)!r},routing=True,retirement=True);db=s.connection()
+collector.save_market(db,market(),iso(T+timedelta(seconds=2)))
+features.capture(db,T+timedelta(seconds=3));a=s.protocol.active()['id']
+collector.save_market(db,market(T+timedelta(hours=72,seconds=3),'next'),iso(T+timedelta(hours=72,seconds=3)));db.close()
+cloud=FileArchive(Path({f!r})/'archives');s.protocol.archive_hour(cloud,T+timedelta(hours=145))
+s.protocol.fault=lambda name:os._exit(71) if name=={phase!r} else None
+s.retire(a,cloud,T+timedelta(hours=145))
+'''
+                result=subprocess.run([sys.executable,'-c',code],capture_output=True,timeout=15);self.assertEqual(result.returncode,71,result.stderr.decode())
+                s=ApplicationStore(f,p,routing=True,retirement=True)
+                try:
+                    old=s.protocol.core.execute("SELECT id,state FROM generations WHERE slot='A'").fetchone()
+                    if old['state']!='retired':s.retire(old['id'],FileArchive(Path(f)/'archives'),T+timedelta(hours=145))
+                    self.assertFalse(s.protocol.path(old['id']).exists())
+                    db=s.connection()
+                    try:
+                        self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])
+                        self.assertEqual(db.execute('SELECT COUNT(*) FROM feature_snapshots').fetchone()[0],2)
+                        self.assertEqual(db.execute('SELECT outcome_observation_id FROM prediction_context_links').fetchone()[0],90)
+                        self.assertEqual(db.execute('SELECT COUNT(*) FROM main.observations').fetchone()[0],3)
+                    finally:db.close()
+                finally:s.close()
+    def test_generated_disk_archive_reopens_for_fresh_crash_recovery_readback(self):
+        from raw_generations import FileArchive
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            first=FileArchive(Path(f)/'archives');first.upload_bytes('private','gen/object',b'exact')
+            second=FileArchive(Path(f)/'archives');self.assertEqual(second.download_bytes('private','gen/object'),b'exact')

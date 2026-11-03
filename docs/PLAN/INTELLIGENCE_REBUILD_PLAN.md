@@ -2501,3 +2501,11 @@ aggregate health explicitly. History holds retain the existing unavailable HTTP
 response contract. Focused generated source-stop test asserts the save itself was
 attempted, uses no venue keys/network, and passes. Freeze successor source for
 exact-commit Linux CI; no production enablement or operations authorized.
+
+AB72 matrix completion: real process exits now cover sealing an existing A while
+publishing B, plus Linux-root retirement authorization/normal-close/file-removal
+boundaries. Generated disk archive now safely reopens an existing private fixture
+for fresh recovery readback; focused reopen and seal-process tests pass. This
+corrects a fixture restart limitation, not production archive behavior. Successor
+exact-commit CI must run root application/retirement cases; no source-CI substitution,
+production mutation, migration approval or capacity-policy change.

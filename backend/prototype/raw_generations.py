@@ -404,7 +404,11 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
 
 class FileArchive(MemoryArchive):
     """Generated objects on disk so archive working space is actually measured."""
-    def __init__(self,root):super().__init__();self.root=Path(root);self.root.mkdir(mode=0o700)
+    def __init__(self,root):
+        super().__init__();self.root=Path(root)
+        if self.root.is_symlink() or not self.root.resolve().parent.name.startswith('generated-ab-'):raise Stop('private generated archive root required')
+        self.root.mkdir(mode=0o700,exist_ok=True)
+        if self.root.stat().st_uid!=os.getuid() or self.root.stat().st_mode&0o077:raise Stop('private archive owner/mode required')
     def upload_bytes(self,bucket,path,data,content_type="application/gzip"):
         if '..' in Path(path).parts or Path(path).is_absolute():raise Stop('bad fixture object path')
         super().upload_bytes(bucket,path,data)

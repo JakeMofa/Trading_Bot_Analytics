@@ -1,5 +1,8 @@
 # AB72 safety integration status after 905f2bf
 
+Historical intermediate checkpoint. Current generated integration evidence and
+remaining production gates are in [AB72 integrated compatibility](AB72_INTEGRATED_COMPATIBILITY_2026-11-03.md).
+
 Production remains STOP. No routing/retirement enablement, migration, cloud write,
 service operation or capacity change has occurred. Prototype tests do not grant
 production authority. This is an intermediate implementation checkpoint, not a

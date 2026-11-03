@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** AB72 integrated generated application/legacy/cloud/deadline compatibility candidate awaits exact-commit Linux CI and requirement evidence. Production remains STOP, default routing/retirement OFF, cleanup0; capacity16/21GiB proposals and full-scale/cloud-auth/cutover controls NOTPROVEN. No production migration or Phase1.75 closure authorized.
+**Next gate:** Generated AB72 legacy/application/cloud/deadline compatibility source b39c837 exact-CI41726968944 PASS (311 backend,17 root protocol,24 root application,112 controls; all Linux privilege skips covered). Production volume/capacity, real Supabase auth/RLS, full verification timing and exported cutover release remain NOTPROVEN. Keep production STOP, routing/retirement/paidAI OFF, cleanup0; 16/21GiB proposals unapproved, Phase1.75 OPEN. See AB72_INTEGRATED_COMPATIBILITY_2026-11-03.md.
 
 ### October 23, 2026 migration preflight
 
@@ -2518,3 +2518,38 @@ sidecar. This was a test-boundary mistake, not a pass, with no production impact
 The corrected test never replaces/removes SQLite-managed files. Preserve that
 failure explicitly. Prior138f455 exactCI41726393093 passed; successor needs its own
 exactCI and must not inherit that result. No production operation authorized.
+
+### AB72 integrated compatibility checkpoint — final generated evidence
+
+Frozen source b39c83755608b8065a0099c7d10b3ca8ad0f5800, exact LinuxCI41726968944
+https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41726968944 PASS.
+Backend311tests OK/6privilege skips, all covered by explicit root17protocol +
+24application tests with0skips; deployment/maintenance112tests OK/0skips. Installed
+strace tiny harness and Node dashboard test ran. No packages installed for tracing.
+
+Generated compatibility PASS: legacy original IDs/direct+embedded refs/cloud
+cursors, actual collector/supervisor/REST/serial features/forecasts/LiveState/history/
+ensemble/lifecycle routing, private exact archives/conditional cloud reconciliation,
+hard entire-request child deadline, durable handoff/forward recovery and failure
+matrix. Root actual file retirement and os._exit retirement recovery passed.
+No current failing test waived. Source remains generated-only/default-disabled;
+this is not an exported production release or production migration approval.
+
+Retained development failure: first sidecar test collided with a generated WAL;
+error teardown removed that generated sidecar. This violated the test boundary;
+no production impact. Corrected case uses never-opened fixture paths and passed
+its own successor CI. Prior failures remain failures, including old retention gates.
+
+Current4000row component profile PASS_SCALED: zeroerrors,4000archived,13feature/
+baselinecycles; maxsave23.833ms/heartbeat227.886ms/query68.696ms/feature12.485ms;
+18.317s elapsed. This is protocol/component evidence, not representative full
+ApplicationStore/cloud throughput, real72h observation or production freshness.
+See AB72_INTEGRATED_COMPATIBILITY_2026-11-03.md for every gate disposition/skips.
+
+Production untouched; deployment branch still78bcaf0, no service/cloud mutation,
+DB copy/backup/snapshot, production deletion, capacity/flag/deadline change or
+production attempt. Recorded collectionSTOP persists. Capacity16/21GiB remains
+unapproved/unqualified. Production-volume audit/migration, actual cloud auth/RLS,
+full verification timing and approved cutover/export/recovery remain NOTPROVEN.
+Changed-owner/physicalENOSPC/hardware power-loss faults are not certified. No new
+approval requested; no automatic soak or retry. I7/Phase1.75 remain OPEN.

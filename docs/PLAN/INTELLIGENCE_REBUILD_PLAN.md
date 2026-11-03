@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Resumed AB72 separate-worker/ack-filter/deadline/export candidate awaits exact-commit exported full suites and one integrated ApplicationStore qualification. Preserve b39c837/CI41726968944 completed evidence; no component-profile substitution. Production remains STOP, routing/retirement/paidAI OFF, cleanup0; 16/21GiB proposals and production-volume/cloudRLS/verification/cutover controls NOTPROVEN. Phase1.75 OPEN.
+**Next gate:** Exported AB72 candidate61e0008 exact-CI41738983997 PASS_SCALED_INTEGRATED:340backend/17rootprotocol/33rootapp/112controls,4000newcommits/4002archives,20publications across BOTH simulated markets,0errors. Production readiness NOTPROVEN: real schema/volume/protected audit,cloudRLS,capacity,completeverification timing and guarded live cutover/legacy decommission. Keep productionSTOP/flagsOFF/cleanup0;16/21GiB proposals unapplied;Phase1.75 OPEN. See AB72_EXPORTED_CANDIDATE_RESULT_2026-11-03.md.
 
 ### October 23, 2026 migration preflight
 
@@ -2635,3 +2635,50 @@ Integrated qualification now requires publication in BOTH simulated boundary
 markets and final current identity; guard rejections record bounded contexts.
 Successor must pass its own exact exported CI/qualification; prior runs retained
 with actual measured scope, not relabeled final acceptance. Production unchanged.
+
+### Exported ApplicationStore milestone — completed generated qualification
+
+Frozen exact source61e0008c59696168bdaa043fce6b88e5b22f6d19;
+https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41738983997 PASS.
+Exporter tested selected207source files/2337764bytes; manifestSHA256
+c06c92d1313aa30f2c166fcdc2107782a198a7b41c389cf22d97908bcbf35282.
+Full suites ran on the export; rebuilt manifest matched before integrated trial.
+Linux backend340tests OK/6privilege skips all covered by root17protocol +33app
+OK/0skips; controls112 OK/0skips. Node/strace/descendant-TEMP cases actually ran.
+
+Actual ApplicationStore+real collector/LiveState/serialfeature/baseline/ensemble/
+history+separateLifecycleWorker/SupabaseHTTP MockTransport:4000newcommitted,
+4002archived (4000new+2legacybacklog),0pending,0errors,20completed/published jobs
+(10before+10after simulatedboundary),finalmarketafter. Maxsave240.662ms,
+heartbeat303.473ms,feature102.500ms,history23.384ms;simulatedpubage0.050s/input0.010s;
+40.126s includingprep;RSS53075968B,wholeworkspacepeak22375667B with familyTEMP;
+rotation7.554ms/verifiedgeneratedAretirement122.489ms;endtoend99.69newrows/s.
+All original170/180s,512MiB/process,2GiB limits preserved. Hosted/scaled/simulated,
+not VM/real-network/production freshness/retention split-gate or capacity proof.
+No old500ms failures relabeled; no writer-lock occupancy inferred from save time.
+
+Intermediate880181f CI failed before any job/trial (unsupported workflow context).
+f87fc4e andcc44c3f measurements retained with missingTEMP/boundary evidence scopes.
+Exact-second mixed fractional timestamps retained expired identity; tiny regression
+proved/fixed market predicates using existingjulianday semantics, and the final
+harness requires publication in BOTH markets. No threshold/pricequery/version/index
+or RESTcadence change. Other corrections/failurehistory are retained in the report.
+
+All requested resumed worker/ack-read/deadline/export tasks now implemented/tested.
+See AB72_EXPORTED_CANDIDATE_RESULT_2026-11-03.md for eachcheckpoint,measurements,
+privateevidence,ONEgatedmigrationprocedure,numericproposals+expiry andexactblockers.
+Sessionhandoff and historicalreports point there. Evidence-only docs commit uses
+[skip ci] to avoid rerunning an unchanged workload; qualifiedcode remains61e0008.
+The docs commit is NOT a release candidate and does not inherit deployment CI.
+
+Production untouched/recordedcollectionSTOP;defaultproductionrouting/retirement,
+retention,paidAI remainOFF;cleanup0;deploymentbranch78bcaf0 preserved. No production
+migration/deletion/restart/DBcopy/snapshot/VACUUM/manualWAL/infrastructure/guard/
+authority/deadline change.16/21GiB proposals remainUNAPPROVED/unapplied. Procedure
+NOTEXECUTIONREADY: actualproduction schema/protectedaudit/volume/import and
+capacity/rates/WAL/TEMP/recovery,realSupabaseauth/RLS/concurrency,completeverification
+finish time (old1790s timeout),guardedcutover/oldlegacywriteprevention/decommission
+stillNOTPROVEN. Existing1800verify/600other/10reap/180recovery/2590interruptionlimits
+andexpiredcapdeadline not changed/reused. No production approval requested.
+Productionmulticycle/realboundary/sustained72h/144hacceptance NOTPERFORMED.
+I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.

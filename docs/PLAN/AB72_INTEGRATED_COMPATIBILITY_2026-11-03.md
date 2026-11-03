@@ -1,5 +1,12 @@
 # AB72 integrated compatibility checkpoint — November 3, 2026
 
+**Current result:** exported successor61e0008 / exactCI41738983997 PASS.
+See [final exported candidate evidence and migration gates](AB72_EXPORTED_CANDIDATE_RESULT_2026-11-03.md).
+The b39c837 snapshot below is retained historical evidence; it is not the latest
+worker/export/rollover qualification. Production readiness remains NOT PROVEN.
+
+## Historical b39c837 snapshot
+
 Frozen candidate: `b39c83755608b8065a0099c7d10b3ca8ad0f5800`.
 Exact-commit Linux CI: **PASS**, [run41726968944](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41726968944).
 Result: **PASS for the generated compatibility checkpoint**; production readiness

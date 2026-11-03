@@ -32,23 +32,46 @@ A/B raw generations plus persistent structured core,with existing Supabase
 archives. Selection/policy commit2470103 replaces48h as the future target;
 production has not migrated or enabled retention.
 
-Last completed generated compatibility: b39c837 / exactCI41726968944 PASS;
-evidence report7ffffb5. The current worker/export successor is pending exact CI.
-Do not reset to ecd8a03 or b39c837 and discard its integration changes.
+Latest qualified exported candidate: **61e0008c59696168bdaa043fce6b88e5b22f6d19**,
+[exact CI41738983997 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41738983997).
+See [exported candidate result](AB72_EXPORTED_CANDIDATE_RESULT_2026-11-03.md).
+Do not reset to7ffffb5/ecd8a03 or discard later integration changes.
 
-Resumed work includes separate lifecycle/feature/history worker roles without
-collector ownership/raw-write authority, acknowledgement-filtered raw views,
-verified protected core history after retirement, complete checksum/read/retry
-hard deadlines, exact tracked candidate export and integrated ApplicationStore
-qualification. Full suites will run against exported bytes; a manifest-identical
-export then runs the fixed4000-record workload with the existing170/180s,512MiB,
-2GiB limits. Production-volume capacity/cloudRLS/cutover proof remainsNOTPROVEN.
+All resumed items are implemented/tested on the exact export: separate lifecycle/
+feature/history workers without collector/raw/retirement authority; ack-filtered
+readers and verified protected core history; whole request/checksum/JSON deadlines;
+sensitive-file/Git-blob/mode export validation. Runtime feature dispatch uses the
+restricted worker factory. Exact-second mixed timestamp comparison was corrected;
+new profile requires publication before AND after the simulated market boundary.
 
-Next: consume the successor's exact CI completion evidence once, update the
-[integrated report](AB72_INTEGRATED_COMPATIBILITY_2026-11-03.md) and master roadmap.
-Do not substitute the old component-only profile for full adapter qualification,
-repeat an unchanged failed trial or infer production authority from source CI.
-No production approval request until one reviewed procedure is executable.
+Linux exported backend340tests passed;6privilege skips all covered by root17raw
+and33application tests with0skips. Exported controls112tests passed/0skips. Rebuilt
+manifest matched the tested export exactly. Actual ApplicationStore qualification:
+4000new committed,4002archived (includes2legacy backlog rows),0pending,0errors;
+20real feature/baseline/ensemble/history jobs and20publications (10eachmarket).
+Maximum save240.662ms,heartbeat303.473ms,feature102.500ms,history23.384ms;
+40.126s whole operation;53075968B RSS and22375667B sampled whole workspace.
+Original170/180s,512MiB/process,2GiB limits preserved; preparation/export included;
+Linux process-family unlinked TEMP counted. This is scaled generated hosted-Linux
+proof, not production volume/real cloud or live-boundary/freshness acceptance.
+
+Intermediate880181f CI failed before jobs due workflow context scope; no trial ran.
+f87fc4e/cc44c3f CI passed their recorded tests, but resource/boundary evidence gaps
+were fixed before accepting61e0008. Keep original failures/evidence scope intact.
+The new report preserves all corrections and the earlier sidecar fixture mistake.
+
+Production readiness remains NOTPROVEN: actual schema/protected-reference and
+production-volume audit/import; real private-cloud auth/RLS/concurrency; qualified
+core/rate/burst/WAL/TEMP/recovery capacity; complete verification finish time under
+unchanged limits; guarded live path/cutover/old-legacy write prevention and eventual
+legacy decommission. Proposed16GiBnormal/21GiBmigration remain UNAPPROVED/unapplied,
+review+72h/expiry+96h proposals, no extension of the expired old cap deadline.
+
+Next work must address those exact migration gates. No production approval is
+requested until the ONE consolidated procedure is execution-ready. Source61e0008
+is the frozen qualified candidate; later evidence-only docs commits are not release
+candidates and must not inherit its CI for deployment. No repeated polling,
+unchanged qualification, automatic soak or production retry. I7/Phase1.75 OPEN.
 
 ## Production: recorded state, not a fresh live audit
 

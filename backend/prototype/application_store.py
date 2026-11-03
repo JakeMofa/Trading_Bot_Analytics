@@ -17,7 +17,7 @@ class ApplicationStore:
     def __init__(self,root,legacy,routing=False,retirement=False,fault=None):
         if retirement and not routing:raise Stop('inconsistent AB enablement')
         if not routing:raise Stop('AB application routing disabled by default')
-        self.connections=set();self.connection_lock=threading.RLock()
+        self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
         self.protocol=Store(root,fault=fault,application_namespace=True)
         self.root=self.protocol.root;self.legacy=Path(legacy)
         self.retirement_enabled=retirement;self.hold=None;self.collector_authority=True
@@ -178,12 +178,32 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             if threading.get_ident()!=self.protocol.owner_thread and hasattr(self.protocol._connections,'db'):
                 self.protocol._connections.db.close();del self.protocol._connections.db
             self.protocol.readerlock.release()
-    def connection(self):return ApplicationConnection(self)
-    def reader_connection(self):return ApplicationConnection(self,readonly=True)
+    def connection(self):
+        if self.closed:raise Stop('storage owner closed')
+        return ApplicationConnection(self)
+    def reader_connection(self):
+        if self.closed:raise Stop('storage owner closed')
+        return ApplicationConnection(self,readonly=True)
+    def worker_connection(self,role):
+        with self.connection_lock:
+            if self.closed:raise Stop('storage owner closed')
+            self.worker_opening+=1
+        worker=None
+        try:
+            worker=ApplicationWorker(self.root,self.legacy,routing=True,role=role)
+            db=worker.connection();db.owned_worker=worker;db.owning_store=self
+            with self.connection_lock:self.external_workers.add(worker)
+            return db
+        except BaseException:
+            if worker:worker.close()
+            raise
+        finally:
+            with self.connection_lock:self.worker_opening-=1
     def close(self):
         with self.connection_lock:
-            if self.connections:raise Stop('drain application connections before owner release')
-            self.protocol.close()
+            if self.closed:return
+            if self.connections or self.external_workers or self.worker_opening:raise Stop('drain application connections before owner release')
+            self.protocol.close();self.closed=True
     def retire(self,*args):
         if not self.retirement_enabled:raise Stop('AB retirement disabled by default')
         return self.protocol.retire(*args)
@@ -281,6 +301,10 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
         finally:
             self.stack.close();self.closed=True
             with self.store.connection_lock:self.store.connections.discard(self)
+            worker=getattr(self,'owned_worker',None)
+            if worker:
+                worker.close()
+                with self.owning_store.connection_lock:self.owning_store.external_workers.discard(worker)
     def ab_stop_requested(self):return self.store.hold
     def save_market(self,m,received):
         if not self.store.collector_authority:raise Stop('worker has no collector authority')
@@ -453,7 +477,7 @@ class ApplicationWorker(ApplicationStore):
         if (not path.name.startswith('generated-ab-') or path.stat().st_uid!=__import__('os').getuid()
             or path.stat().st_mode&0o077 or Path('/opt/tradebot') in path.parents):raise Stop('private generated worker required')
         self.root=path;self.legacy=Path(legacy);self.role=role;self.hold=None;self.retirement_enabled=False;self.collector_authority=False
-        self.connections=set();self.connection_lock=threading.RLock()
+        self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
         if self.legacy.is_symlink() or self.legacy.resolve().parent!=self.root:raise Stop('worker legacy allowlist mismatch')
         self.legacy=self.legacy.resolve()
         self.protocol=WorkerProtocol(path)
@@ -465,7 +489,9 @@ class ApplicationWorker(ApplicationStore):
             self.legacy_identity=self._legacy_allocation()
             if canonical(self.legacy_identity)!=binding[1]:raise Stop('worker legacy allocation changed')
         except BaseException:self.protocol.close();raise
-    def connection(self):return ApplicationConnection(self,readonly=self.role=='history')
+    def connection(self):
+        if self.closed:raise Stop('worker closed')
+        return ApplicationConnection(self,readonly=self.role=='history')
     @contextmanager
     def collector_write(self):
         raise Stop('worker cannot acquire raw collector authority')

@@ -11,9 +11,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    defaults:
-      run:
-        working-directory: ${{ runner.temp }}/ab-test-candidate
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       AB_SOURCE_REPOSITORY: ${{ github.workspace }}
@@ -37,12 +34,14 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python backend/build_ab_candidate.py --sha "$GITHUB_SHA" --output "$RUNNER_TEMP/ab-test-candidate"
       - name: Run unit tests
+        working-directory: ${{ runner.temp }}/ab-test-candidate
         env:
           ENABLE_OPENAI_ANALYST: "false"
           ENABLE_SUPABASE_SYNC: "false"
           ENABLE_LOCAL_RETENTION: "false"
         run: python -m unittest discover -s backend/tests -v
       - name: Generated A/B retirement descriptor proof (Linux root, no production)
+        working-directory: ${{ runner.temp }}/ab-test-candidate
         run: |
           sudo -n env PYTHONDONTWRITEBYTECODE=1 AB_REPORT_PATH="$RUNNER_TEMP/ab-generated-report.json" "$(command -v python)" -m unittest discover -s backend/tests -p test_raw_generations.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_application.py -v
@@ -54,9 +53,11 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Run deployment and maintenance controls
+        working-directory: ${{ runner.temp }}/ab-test-candidate
         run: python -m unittest discover -s deploy/lightsail -p 'test_*.py' -v
 
       - name: Verify exported bytes after suites against exact Git objects
+        working-directory: ${{ runner.temp }}/ab-test-candidate
         run: python backend/build_ab_candidate.py --repo "$GITHUB_WORKSPACE" --sha "$GITHUB_SHA" --output "$RUNNER_TEMP/ab-test-candidate" --verify
       - uses: actions/upload-artifact@v4
         with:
@@ -65,6 +66,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
       - name: Build reviewed Linux timestamp validator artifact
+        working-directory: ${{ runner.temp }}/ab-test-candidate
         run: python backend/build_retention_native.py --output "$RUNNER_TEMP/retention-native/_retention_time.so"
       - uses: actions/upload-artifact@v4
         with:

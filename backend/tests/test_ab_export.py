@@ -60,3 +60,9 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as f:
             p=self.fixture(f);(p/MANIFEST).unlink();(p/MANIFEST).symlink_to(p/'backend/source.py')
             with self.assertRaises(ValueError):verify_export(p)
+    def test_workflow_uses_runner_context_only_in_supported_step_scope(self):
+        import re
+        workflow=Path(__file__).resolve().parents[2]/'.github/workflows/python-tests.yml'
+        text=workflow.read_text()
+        self.assertNotRegex(text,r'defaults:\s*\n\s+run:\s*\n\s+working-directory:\s*\$\{\{\s*runner\.')
+        self.assertRegex(text,r'name: Run unit tests\n\s+working-directory: \$\{\{ runner.temp \}\}/ab-test-candidate')

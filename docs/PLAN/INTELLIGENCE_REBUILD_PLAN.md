@@ -2581,3 +2581,20 @@ and2GiB whole-workspace accounting. Candidate qualification pending, not a pass.
 No production mutation/deployment/DB copy/manualWAL/guard/flag/deadline change.
 Collection remains recordedSTOP; proposed16/21GiB ceilings remain unapplied.
 Phase1.75/I7 OPEN; old b39c837/CI41726968944 remains last completed qualification.
+
+### Corrected exported worker candidate
+
+880181f exactCI41735427263 FAIL before execution: jobs=[], no logs/jobs/trial.
+The workflow incorrectly used runner context in job defaults. GitHub's contexts
+reference permits runner at step working-directory, not jobs.defaults.run.
+Moved exported directories to supported step scope; regression test passes.
+No qualification was run or retried under that failed workflow.
+
+Actual feature runtime/qualification now uses restricted worker handles, not a
+collector-capable connection. Owner release waits for worker handles/opening to
+drain. Separate lifecycle/history roles remain without raw/retirement authority.
+Corrected local full backend337tests OK/9platformskips; controls112tests OK/3skips
+from preceding applicable run; focused workflow/runtime-worker checks pass.
+Successor requires its own exact exported full-suite CI and first integrated
+4000-record qualification. No previous component profile counts as that result.
+Production untouched, capacitySTOP, flagsOFF, no approval/limits/deadline change.

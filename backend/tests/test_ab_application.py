@@ -578,3 +578,11 @@ finally:worker.close()
                 with s.protocol.core:s.protocol.core.execute("UPDATE evidence SET sha256='invalid' WHERE id=(SELECT MAX(id) FROM evidence)")
                 with self.assertRaises(sqlite3.OperationalError):db.execute("SELECT * FROM observations WHERE market_id='seed'").fetchall()
             finally:db.close();s.close()
+    def test_runtime_worker_factory_has_no_raw_authority_and_requires_drain(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f);worker=s.worker_connection('feature')
+            try:
+                self.assertFalse(worker.store.collector_authority)
+                with self.assertRaises(Stop):worker.save_observation('m',iso(T),'book',{},iso(T))
+                with self.assertRaises(Stop):s.close()
+            finally:worker.close();s.close()

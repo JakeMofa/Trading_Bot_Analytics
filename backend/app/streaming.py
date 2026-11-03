@@ -515,7 +515,7 @@ async def run_locked(path, seconds, interval, markets_only, max_storage_mb, sock
         tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state,storage_adapter))]
         if not markets_only:
             tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state,storage_adapter.connection if storage_adapter else None)),
-                          asyncio.create_task(feature_loop(path,db,stop,live_state,connection_factory=storage_adapter.connection if storage_adapter else None)),
+                          asyncio.create_task(feature_loop(path,db,stop,live_state,connection_factory=(lambda: storage_adapter.worker_connection('feature')) if storage_adapter else None)),
                           asyncio.create_task(coinbase_stream(db,stop,live_state=live_state))))
         tasks.append(asyncio.create_task(polymarket_stream(
             db,stop,key_id,secret,live_state=live_state)))

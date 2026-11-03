@@ -104,13 +104,13 @@ def profile(candidate,sha,workspace):
         def feature_job(at):
             before=time.monotonic()
             with patch.object(features,'utcnow',return_value=at),patch.object(forecasts,'utcnow',return_value=at),patch.object(ensemble,'utcnow',return_value=at):
-                value=streaming.feature_cycle('unused',s.connection)
-            reader=s.reader_connection()
+                value=streaming.feature_cycle('unused',lambda:s.worker_connection('feature'))
+            reader=s.worker_connection('history')
             try:
                 begin=time.monotonic();chart=dashboard.chart_data(reader,at);query_duration=time.monotonic()-begin
                 if not chart['market'] or not chart['points']:raise Stop('actual history unavailable')
             finally:reader.close()
-            worker=s.connection()
+            worker=s.worker_connection('feature')
             try:
                 if value:ensemble.compute_ensemble_for_snapshot(worker,value[1])
             finally:worker.close()

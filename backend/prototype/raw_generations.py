@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS generations(id TEXT PRIMARY KEY,slot TEXT,state TEXT,
 CREATE UNIQUE INDEX IF NOT EXISTS one_active ON generations(state) WHERE state='active';
 CREATE UNIQUE INDEX IF NOT EXISTS one_live_slot ON generations(slot) WHERE state!='retired';
 CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,dataset TEXT,event_key TEXT,gen TEXT REFERENCES generations(id),fingerprint TEXT,status TEXT,intent TEXT,UNIQUE(dataset,event_key));
+CREATE UNIQUE INDEX IF NOT EXISTS one_pending_intent ON events(status) WHERE status='pending';
 CREATE INDEX IF NOT EXISTS events_generation ON events(gen,dataset,status,id);
 CREATE TABLE IF NOT EXISTS markets(id TEXT PRIMARY KEY,metadata TEXT);
 CREATE TABLE IF NOT EXISTS outcomes(market_id TEXT PRIMARY KEY REFERENCES markets(id),known_at TEXT,detail TEXT);
@@ -172,6 +173,7 @@ CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at
             if prior['fingerprint']!=fp:raise Stop('conflicting duplicate')
             if prior['status']=='pending':self._finish(prior)
             return prior['id']
+        if self.core.execute("SELECT 1 FROM events WHERE status='pending'").fetchone():raise Stop('pending intent must recover before another event')
         active=self.active()
         if active and r['received_at']<active['started']:raise Stop('receipt regression; source lateness is allowed')
         gid=self.rotate(r['received_at'])

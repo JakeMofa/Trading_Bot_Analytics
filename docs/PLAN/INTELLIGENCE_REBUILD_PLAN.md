@@ -2365,3 +2365,14 @@ beforequalificationclaim. Consolidatedmigrationproposal/evidencebeingprepared;
 productionadapter/legacy+actualfeatureequivalence/fullscale capacity/verification
 completionremainNOTPROVEN. No prodmigration/delete/restart/guard/deadlinechange,
 retention/paidAIOFF,cleanup0,currentstorageSTOP,I7/Phase1.75OPEN.
+
+## A/B prototype refinement: explicit one-pending-intent invariant
+
+Prototypee31fd55 exactCI41711635047 PASS includingactualLinuxrootretirement,
+current-writerinterference andfixed4000rowprofile. Finalcrash-contractreview adds
+oneDB-enforced pending-intent constraint andexplicitSTOP: a caller catching an
+interrupted save cannot submit another event untilthatoneintentrecovers. Noqueue,
+policy/resource/performance-threshold change. Newgeneratedtest verifiescaught
+failure/backpressure/restart completion.17localprototype testsPASS(4Linux-onlyskips).
+Require newexactCI forfinalsource, preservee31qualifiedevidence; noVM/production
+workload or unchangedfailedqualification retry. Consolidatedreport underway.

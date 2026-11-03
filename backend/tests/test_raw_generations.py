@@ -212,3 +212,18 @@ class Tests(unittest.TestCase):
                 self.assertLess(worst,1);self.assertFalse(s.path(a).exists())
                 self.assertEqual(len(s.history('stream_events',T+timedelta(hours=72),T+timedelta(hours=74))),100)
             finally:s.close()
+
+    def test_caught_save_failure_cannot_accumulate_pending_backlog(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s=Store(f)
+            def crash(phase):
+                if phase=='intent_committed':raise RuntimeError('generated interruption')
+            s.fault=crash
+            with self.assertRaises(RuntimeError):s.save('observations','one',observation(T))
+            with self.assertRaisesRegex(Stop,'pending intent'):s.save('observations','two',observation(T+timedelta(seconds=1)))
+            self.assertEqual(s.core.execute("SELECT COUNT(*) FROM events WHERE status='pending'").fetchone()[0],1)
+            s.close();s=Store(f)
+            try:
+                s.save('observations','two',observation(T+timedelta(seconds=1)))
+                self.assertEqual(s.core.execute("SELECT COUNT(*) FROM events WHERE status='committed'").fetchone()[0],2)
+            finally:s.close()

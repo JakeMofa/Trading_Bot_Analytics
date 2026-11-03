@@ -3,6 +3,7 @@ import sys,tempfile,json,time,hashlib
 from pathlib import Path
 from types import SimpleNamespace
 import unittest,httpx
+from decimal import Decimal
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'prototype'))
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'app'))
 from cloud_memory import SupabaseHTTP
@@ -32,7 +33,25 @@ class Remote:
                 if not manifest.exists():manifest.write_text(json.dumps(json.loads(r.content)[0]))
                 if self.mode=='ambiguous_manifest':raise httpx.ReadTimeout('fixture committed manifest')
                 return httpx.Response(201)
-        return httpx.Response(204)
+        from compatible_cloud import KEYS,exact_json
+        table=r.url.path.rsplit('/',1)[-1]
+        if table in KEYS:
+            file=self.root/(table+'.json');rows=json.loads(file.read_text(),parse_float=Decimal) if file.exists() else []
+            if r.method=='GET':
+                def matches(row):
+                    for key in KEYS[table]:
+                        expected=json.loads(r.url.params[key][3:])
+                        if row.get(key)!=expected:return False
+                    return True
+                return httpx.Response(200,content=exact_json([row for row in rows if matches(row)]).encode())
+            if r.method=='POST':
+                incoming=json.loads(r.content,parse_float=Decimal)
+                for row in incoming:
+                    rows=[old for old in rows if any(old[k]!=row[k] for k in KEYS[table])]+[row]
+                file.write_text(exact_json(rows))
+                if self.mode=='ambiguous_structured':raise httpx.ReadTimeout('generated committed structured write')
+                return httpx.Response(201)
+        return httpx.Response(404)
 class Tests(unittest.TestCase):
     def setup_cloud(self,f,seconds=5):
         remote=Remote(f);cloud=SupabaseHTTP(SimpleNamespace(url='https://fixture.invalid',secret_key='generated-only'),client=httpx.Client(transport=httpx.MockTransport(remote.handle)))
@@ -76,3 +95,33 @@ class Tests(unittest.TestCase):
                 self.assertEqual(json.loads(Path(f,'manifest').read_text())['sha256'],m['sha256'])
                 self.assertIsNone(cloud_memory.archive_raw_batch(db,cloud,'observations',limit=1))
             finally:db.close();s.close()
+    def test_structured_ambiguity_reconciles_and_conflicts_do_not_replay(self):
+        from decimal import Decimal
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            remote,cloud=self.setup_cloud(f);remote.mode='ambiguous_structured'
+            row={'source_id':123,'market_id':'m','as_of':'2026-01-01T00:00:00+00:00','version':2,'values_json':{'exact':Decimal('12345.1234567890123456789')}}
+            cloud.upsert('feature_snapshots',[row],'source_id')
+            cloud.upsert('feature_snapshots',[row],'source_id')
+            with self.assertRaises(ArchiveHold):cloud.upsert('feature_snapshots',[{**row,'version':3}],'source_id')
+            calls=Path(f,'calls').read_text().splitlines()
+            self.assertEqual(sum(x=='POST /rest/v1/feature_snapshots' for x in calls),1)
+            self.assertIn('12345.1234567890123456789',Path(f,'feature_snapshots.json').read_text())
+    def test_exact_structured_prices_use_original_numeric_text(self):
+        from test_ab_application import legacy,ApplicationStore
+        import cloud_memory
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            path=Path(f)/'generated-legacy.db';legacy(path);s=ApplicationStore(f,path,routing=True);db=s.connection()
+            remote,cloud=self.setup_cloud(f)
+            try:
+                with db:db.execute('UPDATE markets SET target=?',('12345.1234567890123456789',))
+                cloud_memory.sync_structured_once(db,cloud,100)
+                self.assertIn('12345.1234567890123456789',Path(f,'markets.json').read_text())
+            finally:db.close();s.close()
+    def test_equal_timestamp_checkpoint_keeps_binary_source_key_order(self):
+        from compatible_cloud import allowed_update
+        at='2026-01-01T00:00:00+00:00'
+        old={'dataset':'markets','rows_synced':1,'last_source_time':at,'last_source_key':'2'}
+        self.assertFalse(allowed_update('sync_checkpoints',old,{**old,'rows_synced':2,'last_source_key':'10'}))
+        self.assertTrue(allowed_update('sync_checkpoints',old,{**old,'rows_synced':2,'last_source_key':'3'}))
+        old={**old,'dataset':'archive:stream_events','last_source_key':'["coinbase","2"]'}
+        self.assertFalse(allowed_update('sync_checkpoints',old,{**old,'rows_synced':2,'last_source_key':'["coinbase","10"]'}))

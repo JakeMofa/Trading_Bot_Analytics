@@ -207,6 +207,9 @@ db.save_observation('m','2026-01-01T00:00:02+00:00','book',{{'exact':'0.00000001
             s,_=self.setup_store(f);s.retirement_enabled=True;db=s.connection();cloud=Cloud()
             cloud.download_bytes=lambda bucket,path:cloud.objects[bucket,path]
             first=T+timedelta(seconds=2);db.save_observation('m',iso(first),'book',{'exact':'0.00000001'},iso(first));a=s.protocol.active()['id']
+            tick=dict(source='coinbase',event_id='8',received_at=iso(T+timedelta(seconds=3)),source_time=iso(T+timedelta(seconds=3)),price='12345.1234567890123456789',size='0.00000001',side='buy',payload='{"fixture":"protected"}')
+            db.save_stream_event(tick);features.capture(db,T+timedelta(seconds=4))
+            before=features.calculate(db,'m',T+timedelta(seconds=4))
             now=T+timedelta(hours=72,seconds=3);collector.save_market(db,market(now,'next'),iso(now))
             worker=cloud_lifecycle.LifecycleWorker('unused',cloud_lifecycle.LifecycleConfig(),None,lambda:cloud)
             worker._archive_dataset(db,cloud,'observations');worker._archive_dataset(db,cloud,'stream_events')
@@ -216,6 +219,7 @@ db.save_observation('m','2026-01-01T00:00:02+00:00','book',{{'exact':'0.00000001
             s.retire(a,cloud,at);self.assertFalse(s.protocol.path(a).exists())
             db=s.connection()
             try:
+                self.assertEqual(features.calculate(db,'m',T+timedelta(seconds=4)),before)
                 self.assertEqual(db.execute('SELECT outcome_observation_id FROM prediction_context_links').fetchone()[0],90)
                 self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])
             finally:db.close();s.close()
@@ -473,3 +477,104 @@ s.retire(a,cloud,T+timedelta(hours=145))
                 with self.assertRaises(Stop):connect(raw,True)
                 self.assertTrue(side.is_symlink() or side.exists())
                 self.assertEqual(raw.read_bytes(),b'unopened fixture');self.assertEqual(target.read_bytes(),b'preserved')
+    def test_separate_lifecycle_process_uses_core_without_collector_authority(self):
+        import subprocess
+        tests=str(Path(__file__).resolve().parent)
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f)
+            try:
+                code=f'''import sys
+sys.path.insert(0,{tests!r})
+from test_ab_application import *
+from application_store import ApplicationWorker
+from retention import RetentionConfig
+worker=ApplicationWorker({f!r},Path({f!r})/'generated-legacy.db',routing=True,role='lifecycle')
+try:
+ db=worker.connection()
+ try:
+  try:db.save_observation('m',iso(T),'book',{{}},iso(T));raise AssertionError('worker wrote raw')
+  except Stop:pass
+ finally:db.close()
+ lifecycle=cloud_lifecycle.LifecycleWorker('unused',cloud_lifecycle.LifecycleConfig(),RetentionConfig(),lambda:Cloud(),connection_factory=worker.connection)
+ result=lifecycle.run_cycle(force=True)
+ assert result['status']=='ok',result
+finally:worker.close()
+'''
+                result=subprocess.run([sys.executable,'-c',code],capture_output=True,timeout=10)
+                self.assertEqual(result.returncode,0,result.stderr.decode())
+            finally:s.close()
+    def test_raw_commit_without_core_ack_is_not_visible_to_any_application_reader(self):
+        from application_store import ApplicationWorker
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f);db=s.connection()
+            def fail(phase):
+                if phase=='raw_committed':raise OSError('generated commit ambiguity')
+            s.protocol.fault=fail
+            try:
+                with self.assertRaises(OSError):db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{},iso(T))
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0],2)
+                worker=ApplicationWorker(f,Path(f)/'generated-legacy.db',routing=True,role='history');reader=worker.connection()
+                try:self.assertEqual(reader.execute('SELECT COUNT(*) FROM observations').fetchone()[0],2)
+                finally:reader.close();worker.close()
+            finally:db.close();s.close()
+    def test_all_worker_roles_hold_collector_methods_before_any_metadata_write(self):
+        from application_store import ApplicationWorker
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f)
+            try:
+                for role in ['feature','lifecycle','history']:
+                    worker=ApplicationWorker(f,Path(f)/'generated-legacy.db',routing=True,role=role);db=worker.connection()
+                    try:
+                        with self.assertRaises(Stop):collector.save_market(db,market(T,'unauthorized'),iso(T))
+                        self.assertIsNone(db.execute("SELECT id FROM markets WHERE id='unauthorized'").fetchone())
+                        with self.assertRaises(Stop):db.save_observation('m',iso(T),'metadata',market()['raw'],iso(T))
+                    finally:db.close();worker.close()
+            finally:s.close()
+    def test_active_dashboard_chart_uses_native_request_without_raising_row_bound(self):
+        import dashboard
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f);reader=s.reader_connection()
+            try:
+                value=dashboard.chart_data(reader,T+timedelta(seconds=1))
+                self.assertEqual(value['market']['id'],'m');self.assertGreater(len(value['points']),0)
+            finally:reader.close();s.close()
+    def test_quiescent_legacy_committed_wal_rows_and_references_are_visible(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            p=Path(f)/'generated-legacy.db';legacy(p);writer=sqlite3.connect(p)
+            with writer:
+                writer.execute('INSERT INTO observations VALUES(?,?,?,?,?,?)',(91,'m',iso(T),iso(T),'book','{"exact":"0.00000001"}'))
+                writer.execute('CREATE TABLE wal_reference(id INTEGER PRIMARY KEY,raw_id INTEGER REFERENCES observations(id))')
+                writer.execute('INSERT INTO wal_reference VALUES(1,91)')
+            self.assertGreater(Path(str(p)+'-wal').stat().st_size,0)
+            s=ApplicationStore(f,p,routing=True);db=s.connection()
+            try:
+                self.assertEqual(db.execute('SELECT payload FROM observations WHERE id=91').fetchone()[0],'{"exact":"0.00000001"}')
+                self.assertEqual(db.execute('SELECT raw_id FROM wal_reference').fetchone()[0],91)
+                self.assertEqual(db.execute('SELECT id FROM main.observations WHERE id=91').fetchone()[0],91)
+                self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])
+            finally:db.close();s.close();writer.close()
+    def test_transaction_pins_old_generations_then_refreshes_after_commit(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f);db=s.connection()
+            try:
+                db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{'a':1},iso(T))
+                s.protocol.save('observations','new-boundary',{'market_id':'m','received_at':iso(T+timedelta(hours=72,seconds=3)),'source_time':iso(T),'kind':'book','payload':'{"b":2}'})
+                # Existing SQLite transaction keeps its raw leases until commit;
+                # it must not detach an in-use database or abort a valid write.
+                db.db.execute("INSERT INTO runs(received_at,source,success,detail) VALUES('x','test',1,'x')")
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0],3)
+                db.commit()
+                self.assertEqual(db.execute('SELECT COUNT(*) FROM observations').fetchone()[0],4)
+            finally:db.close();s.close()
+    def test_copied_retired_evidence_is_routed_and_corrupt_copy_holds(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+            s,_=self.setup_store(f);db=s.connection()
+            try:
+                at=T+timedelta(seconds=2);collector.save_market(db,market(at,'seed'),iso(at));gid=s.protocol.active()['id']
+                # Inject retired registry state on a retained GENERATED file to
+                # test the view/checksum predicate without any deletion.
+                with s.protocol.core:s.protocol.core.execute("UPDATE generations SET state='retired' WHERE id=?",(gid,))
+                self.assertEqual(db.execute("SELECT COUNT(*) FROM observations WHERE market_id='seed'").fetchone()[0],1)
+                with s.protocol.core:s.protocol.core.execute("UPDATE evidence SET sha256='invalid' WHERE id=(SELECT MAX(id) FROM evidence)")
+                with self.assertRaises(sqlite3.OperationalError):db.execute("SELECT * FROM observations WHERE market_id='seed'").fetchall()
+            finally:db.close();s.close()

@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Generated AB72 legacy/application/cloud/deadline compatibility source b39c837 exact-CI41726968944 PASS (311 backend,17 root protocol,24 root application,112 controls; all Linux privilege skips covered). Production volume/capacity, real Supabase auth/RLS, full verification timing and exported cutover release remain NOTPROVEN. Keep production STOP, routing/retirement/paidAI OFF, cleanup0; 16/21GiB proposals unapproved, Phase1.75 OPEN. See AB72_INTEGRATED_COMPATIBILITY_2026-11-03.md.
+**Next gate:** Resumed AB72 separate-worker/ack-filter/deadline/export candidate awaits exact-commit exported full suites and one integrated ApplicationStore qualification. Preserve b39c837/CI41726968944 completed evidence; no component-profile substitution. Production remains STOP, routing/retirement/paidAI OFF, cleanup0; 16/21GiB proposals and production-volume/cloudRLS/verification/cutover controls NOTPROVEN. Phase1.75 OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -2553,3 +2553,31 @@ unapproved/unqualified. Production-volume audit/migration, actual cloud auth/RLS
 full verification timing and approved cutover/export/recovery remain NOTPROVEN.
 Changed-owner/physicalENOSPC/hardware power-loss faults are not certified. No new
 approval requested; no automatic soak or retry. I7/Phase1.75 remain OPEN.
+
+### AB72 resumed worker/export candidate — November3
+
+Preserved7ffffb5 HEAD/unrelated edits and all pending integration work. Completed
+separate generated lifecycle/feature/history access without collector/raw-write/
+retirement authority, durable-ack-only raw views and checksum-verified protected
+core history after retirement. Quiescent legacy WAL rows/FKs tested. Transaction
+raw leases remain pinned until commit and refresh afterward. Actual active chart
+request is supported without increasing the10000-row result guard.
+
+Cloud checksum/JSON processing is inside the original hard deadline. Structured
+ambiguity reconciles exact identities; original numeric text and binary cursor
+ordering are preserved. Candidate exporter binds selected regular tracked files,
+SHA256/Git blobs/modes and rejects sensitive paths/symlinks before blob reads.
+No untracked files or local data are included.
+
+Local full backend331tests/9platformskips and controls112tests/3skips passed before
+final additional focused cases; new worker,ack,checksum,reconciliation,export,
+WAL,transaction,core-history and deadline/boundary cases pass. Exact-commit Linux
+CI must run full suites on exported bytes, then one manifest-identical integrated
+ApplicationStore4000-record qualification with actual collector/feature/history/
+ensemble and separate LifecycleWorker/SupabaseHTTP MockTransport (no real cloud).
+It retains170s work/180s whole clock including export preparation,512MiB/process
+and2GiB whole-workspace accounting. Candidate qualification pending, not a pass.
+
+No production mutation/deployment/DB copy/manualWAL/guard/flag/deadline change.
+Collection remains recordedSTOP; proposed16/21GiB ceilings remain unapplied.
+Phase1.75/I7 OPEN; old b39c837/CI41726968944 remains last completed qualification.

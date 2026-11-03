@@ -32,20 +32,23 @@ A/B raw generations plus persistent structured core,with existing Supabase
 archives. Selection/policy commit2470103 replaces48h as the future target;
 production has not migrated or enabled retention.
 
-Latest qualified generated source02e0143 / CI41715155473 PASS; consolidated report
-98b8356. A/B/core files and4000-row scaled workload passed. Recorded maxsave22ms,
-heartbeat239.3ms,query62.1ms,actualfeature7.6ms across13cycles are scaled results,
-not production guarantees. Process-crash tests passed; power loss not qualified.
-Proposed16GiBnormal/21GiBmigration arithmetic fits recorded filesystem capacity,
-but actual growth/core/WAL/TEMP andlegacy/app/cloud integration remainNOTPROVEN.
+Last completed generated compatibility: b39c837 / exactCI41726968944 PASS;
+evidence report7ffffb5. The current worker/export successor is pending exact CI.
+Do not reset to ecd8a03 or b39c837 and discard its integration changes.
 
-Next: complete real legacy/application/cloud compatibility and the
-[mandatory production safety gates](AB72_PRODUCTION_SAFETY_GATES.md),then updated
-exact-CI consolidated migration review. New safety requirements cover default
-holds,bounded idempotent retries,failure injection andpost-write forward recovery.
-No production authority comes from those requirements. Preserve active worker
-ownership andinspectits currentcommits before writing; earlier uncommitted
-prototype paths are now historical and must not be treated as current status.
+Resumed work includes separate lifecycle/feature/history worker roles without
+collector ownership/raw-write authority, acknowledgement-filtered raw views,
+verified protected core history after retirement, complete checksum/read/retry
+hard deadlines, exact tracked candidate export and integrated ApplicationStore
+qualification. Full suites will run against exported bytes; a manifest-identical
+export then runs the fixed4000-record workload with the existing170/180s,512MiB,
+2GiB limits. Production-volume capacity/cloudRLS/cutover proof remainsNOTPROVEN.
+
+Next: consume the successor's exact CI completion evidence once, update the
+[integrated report](AB72_INTEGRATED_COMPATIBILITY_2026-11-03.md) and master roadmap.
+Do not substitute the old component-only profile for full adapter qualification,
+repeat an unchanged failed trial or infer production authority from source CI.
+No production approval request until one reviewed procedure is executable.
 
 ## Production: recorded state, not a fresh live audit
 

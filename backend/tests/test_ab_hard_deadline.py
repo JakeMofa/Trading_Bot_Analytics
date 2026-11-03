@@ -32,3 +32,14 @@ class Tests(unittest.TestCase):
             else:
                 with self.assertRaises(ArchiveHold):a.download_bytes('b','p')
             self.check_reaped(a)
+    def test_checksum_response_processing_is_inside_killable_deadline(self):
+        from compatible_cloud import CompatibleCloud
+        from unittest.mock import patch
+        cloud=self.cloud(lambda req:httpx.Response(200,content=b'123'))
+        adapter=CompatibleCloud(cloud,time.monotonic()+.15)
+        def stalled_hash(*args,**kwargs):
+            time.sleep(2);raise AssertionError('processing escaped deadline')
+        before=time.monotonic()
+        with patch('compatible_cloud.hashlib.sha256',side_effect=stalled_hash):
+            with self.assertRaises(ArchiveHold):adapter.verify_object('b','p','irrelevant',3)
+        self.assertLess(time.monotonic()-before,.8)

@@ -20,7 +20,7 @@ class ApplicationStore:
         self.connections=set();self.connection_lock=threading.RLock()
         self.protocol=Store(root,fault=fault,application_namespace=True)
         self.root=self.protocol.root;self.legacy=Path(legacy)
-        self.retirement_enabled=retirement;self.hold=None
+        self.retirement_enabled=retirement;self.hold=None;self.collector_authority=True
         try:
             if self.legacy.is_symlink() or self.legacy.resolve().parent!=self.root or not self.legacy.name.startswith('generated-legacy'):
                 raise Stop('generated legacy allowlist required')
@@ -29,6 +29,9 @@ class ApplicationStore:
             if not self.legacy.is_file():raise Stop('legacy missing')
             self._initialize()
             self.legacy_identity=self._legacy_allocation()
+            core=self.protocol.core.native
+            core.execute('CREATE TABLE IF NOT EXISTS ab_worker_binding(id INTEGER PRIMARY KEY CHECK(id=1),legacy TEXT NOT NULL,allocation TEXT NOT NULL)')
+            with core:core.execute('INSERT OR REPLACE INTO ab_worker_binding VALUES(1,?,?)',(str(self.legacy),canonical(self.legacy_identity)))
         except BaseException:self.protocol.close();raise
     def _legacy_allocation(self):
         return tuple((p.name,p.stat().st_ino,p.stat().st_size,p.stat().st_mtime_ns) for p in
@@ -191,6 +194,10 @@ class ApplicationConnection:
         self.store=store;self.protocol=store.protocol;self.owner=threading.get_ident()
         self.db=connect(store.root/'core.db',ro=readonly);self.db.row_factory=None
         self.db.create_function('ab72_writer_enabled',0,lambda:0 if readonly else 1)
+        def valid_evidence(record,sha):
+            if hashlib.sha256(record.encode()).hexdigest()!=sha:raise ValueError('core evidence checksum mismatch')
+            return 1
+        self.db.create_function('ab72_verified_evidence',2,valid_evidence)
         self.db.execute('PRAGMA query_only=OFF')
         self.stack=ExitStack();self.signature=None
         try:
@@ -208,7 +215,7 @@ class ApplicationConnection:
             self.store.hold='legacy_identity_changed';raise Stop(self.store.hold)
         signature=tuple(r[0] for r in self.db.execute("SELECT id FROM ab_generations WHERE state IN ('active','sealed','retiring') ORDER BY started"))
         if signature==self.signature:return
-        if self.db.in_transaction:raise Stop('generation changed during application transaction')
+        if self.db.in_transaction:return # Keep pinned bindings until commit; refresh next operation.
         for name in RAW:self.db.execute('DROP VIEW IF EXISTS temp.'+name)
         for i in range(len(self.signature or ())):self.db.execute('DETACH DATABASE raw'+str(i))
         if self.signature is not None:self.db.execute('DETACH DATABASE legacy')
@@ -219,9 +226,16 @@ class ApplicationConnection:
             self.db.execute('ATTACH DATABASE ? AS raw'+str(i),(store_uri(self.protocol.path(gid)),))
         obs=['SELECT * FROM main.observations','SELECT * FROM legacy.observations WHERE id NOT IN (SELECT id FROM main.observations)']
         ticks=['SELECT '+','.join(COLUMNS['stream_events'])+' FROM legacy.stream_events']
+        # After retirement, copied protected records remain real historical inputs.
+        # Active/sealed records come from raw views, so identities never duplicate.
+        for dataset,target in (('observations',obs),('stream_events',ticks)):
+            fields=','.join("json_extract(p.record,'$.row."+column+"') AS "+column for column in COLUMNS[dataset])
+            clause=" AND e.id NOT IN (SELECT id FROM main.observations)" if dataset=='observations' else ''
+            target.append("SELECT "+fields+" FROM main.ab_evidence p JOIN main.ab_events e ON e.id=p.id JOIN main.ab_generations g ON g.id=e.gen WHERE g.state='retired' AND e.status='committed' AND e.dataset='"+dataset+"' AND ab72_verified_evidence(p.record,p.sha256)=1"+clause)
         for i in range(len(signature)):
-            obs.append('SELECT * FROM raw'+str(i)+'.observations WHERE id NOT IN (SELECT id FROM main.observations)')
-            ticks.append('SELECT '+','.join(COLUMNS['stream_events'])+' FROM raw'+str(i)+'.stream_events')
+            gid=signature[i] # validated Store.path UUID, never an SQL parameter/input fragment
+            obs.append('SELECT r.* FROM raw'+str(i)+".observations r JOIN main.ab_events e ON e.id=r.id AND e.dataset='observations' AND e.status='committed' AND e.gen='"+gid+"' WHERE r.id NOT IN (SELECT id FROM main.observations)")
+            ticks.append('SELECT '+','.join('r.'+k for k in COLUMNS['stream_events'])+' FROM raw'+str(i)+".stream_events r JOIN main.ab_events e ON e.event_key=r.source||':'||r.event_id AND e.dataset='stream_events' AND e.status='committed' AND e.gen='"+gid+"'")
         self.db.execute('CREATE TEMP VIEW observations AS '+' UNION ALL '.join(obs))
         self.db.execute('CREATE TEMP VIEW stream_events AS '+' UNION ALL '.join(ticks))
         self.signature=signature
@@ -239,11 +253,13 @@ class ApplicationConnection:
         if re.search(r'\b(CREATE TABLE IF NOT EXISTS (observations|stream_events))\b',sql,re.I):raise Stop('raw schema initialization belongs to adapter')
         return self.db.executescript(sql)
     def chart_ticks(self,limit):
-        if not 1<=limit<=10000:raise Stop('bounded chart query required')
-        return self.execute("""SELECT t.received_at,t.source_time,t.price FROM stream_events t
+        if not 1<=limit<=12000:raise Stop('unsupported chart request bound')
+        rows=self.execute("""SELECT t.received_at,t.source_time,t.price FROM stream_events t
 LEFT JOIN ab_legacy_stream_ids l ON l.source=t.source AND l.event_id=t.event_id
 LEFT JOIN ab_events e ON e.dataset='stream_events' AND e.event_key=t.source||':'||t.event_id
-WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT ?""",(limit,)).fetchall()
+WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT ?""",(min(limit,10001),)).fetchall()
+        if len(rows)>10000:raise Stop('chart exceeds unchanged10000-row resource bound')
+        return rows
     def latest_tick_event(self):
         row=self.execute("""SELECT COALESCE(e.id,l.id),t.price,t.source_time,t.received_at FROM stream_events t
 LEFT JOIN ab_legacy_stream_ids l ON l.source=t.source AND l.event_id=t.event_id
@@ -254,7 +270,7 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
     def set_progress_handler(self,*args):return self.db.set_progress_handler(*args)
     def commit(self):self.db.commit()
     def rollback(self):self.db.rollback()
-    def __enter__(self):self._check();return self
+    def __enter__(self):self._refresh();return self
     def __exit__(self,kind,value,tb):
         if kind:self.db.rollback()
         else:self.db.commit()
@@ -267,6 +283,7 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
             with self.store.connection_lock:self.store.connections.discard(self)
     def ab_stop_requested(self):return self.store.hold
     def save_market(self,m,received):
+        if not self.store.collector_authority:raise Stop('worker has no collector authority')
         if self.store.hold:raise Stop(self.store.hold)
         # Durable metadata first; a raw failure leaves missing evidence, never a
         # successful publication. The caller cannot roll back a committed raw save.
@@ -277,6 +294,7 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
         return self.save_observation(m['id'],received,'metadata',m['raw'],m['raw'].get('updatedAt'))
     def save_observation(self,market_id,received,kind,payload,source_time=None):
         self._check()
+        if not self.store.collector_authority:raise Stop('worker has no collector authority')
         if self.store.hold:raise Stop(self.store.hold)
         if self.db.in_transaction:raise Stop('raw handoff requires clean application transaction')
         raw=dict(market_id=market_id,received_at=received,kind=kind,payload=json.dumps(payload),source_time=source_time)
@@ -290,6 +308,7 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
         self._refresh();return eid
     def save_stream_event(self,row):
         self._check()
+        if not self.store.collector_authority:raise Stop('worker has no collector authority')
         if self.store.hold:raise Stop(self.store.hold)
         if self.db.in_transaction:raise Stop('raw handoff requires clean application transaction')
         key=row['source']+':'+row['event_id']
@@ -330,6 +349,20 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
     def raw_archive_caught_up(self,dataset):
         return not self.raw_archive_rows(dataset,1)
     def feature_cycle_ready(self):self.protocol.trip('feature_cycle_committed')
+    def map_cloud_row(self,table,row,mapped):
+        result=dict(mapped)
+        fields={'markets':('target','final'),'official_outcomes':('final',),
+                'candles':('low','high','open','close','volume')}.get(table,())
+        for field in fields:
+            value=row.get(field)
+            result[field]=Decimal(str(value)) if value not in (None,'') else None
+            if result[field] is not None and not result[field].is_finite():raise Stop('invalid exact cloud numeric')
+        for field in ('raw_json','values_json','quality_json','evidence_json','categories_json','assumptions_json'):
+            if field in result and field in row:result[field]=json.loads(row[field],parse_float=Decimal)
+        if table=='official_outcomes':result['source_json']=json.loads(row['raw_json'],parse_float=Decimal)
+        if table=='predictions':
+            result['extra_json']={**result['extra_json'],'source_exact':{k:row.get(k) for k in ('probability_up','probability_down','seconds_remaining')}}
+        return result
     def ab_retention_hold(self):return 'AB row cleanup prohibited; generation retirement requires drained operator phase'
     def _row_generation(self,dataset,row):
         if dataset=='observations':
@@ -393,3 +426,48 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
         return rows[:end]
 
 def store_uri(path):return Path(path).resolve().as_uri()+'?mode=ro'
+
+
+class WorkerProtocol:
+    """Existing lifecycle/feature/history process handle: no raw-owner methods."""
+    path=Store.path
+    reader=Store.reader
+    allocation=Store.allocation
+    guard=Store.guard
+    def __init__(self,root):
+        self.root=Path(root).resolve();self.ceiling=2*1024**3;self.core_ceiling=self.ceiling
+        self.leases={};self.readerlock=threading.RLock();self.wal_peaks={};self.peak=0
+        from protocol_namespace import ProtocolConnection
+        self.core=ProtocolConnection(connect(self.root/'core.db',ro=True))
+    def trip(self,phase):pass # Worker has no transition/fault operator capability.
+    def close(self):self.core.close()
+
+class ApplicationWorker(ApplicationStore):
+    """Explicit generated worker role, never obtains/releases collector authority."""
+    def __init__(self,root,legacy,routing=False,role=None):
+        if not routing:raise Stop('AB worker routing disabled by default')
+        if role not in ('lifecycle','feature','history'):raise Stop('explicit worker role required')
+        path=Path(root)
+        if path.is_symlink():raise Stop('worker root symlink')
+        path=path.resolve()
+        if (not path.name.startswith('generated-ab-') or path.stat().st_uid!=__import__('os').getuid()
+            or path.stat().st_mode&0o077 or Path('/opt/tradebot') in path.parents):raise Stop('private generated worker required')
+        self.root=path;self.legacy=Path(legacy);self.role=role;self.hold=None;self.retirement_enabled=False;self.collector_authority=False
+        self.connections=set();self.connection_lock=threading.RLock()
+        if self.legacy.is_symlink() or self.legacy.resolve().parent!=self.root:raise Stop('worker legacy allowlist mismatch')
+        self.legacy=self.legacy.resolve()
+        self.protocol=WorkerProtocol(path)
+        try:
+            core=self.protocol.core.native
+            if not core.execute("SELECT 1 FROM ab_migration_state WHERE id=1 AND status='complete'").fetchone():raise Stop('worker migration incomplete')
+            binding=core.execute('SELECT legacy,allocation FROM ab_worker_binding WHERE id=1').fetchone()
+            if not binding or binding[0]!=str(self.legacy):raise Stop('worker legacy identity mismatch')
+            self.legacy_identity=self._legacy_allocation()
+            if canonical(self.legacy_identity)!=binding[1]:raise Stop('worker legacy allocation changed')
+        except BaseException:self.protocol.close();raise
+    def connection(self):return ApplicationConnection(self,readonly=self.role=='history')
+    @contextmanager
+    def collector_write(self):
+        raise Stop('worker cannot acquire raw collector authority')
+        yield
+    def retire(self,*args):raise Stop('worker retirement disabled; drained operator phase required')

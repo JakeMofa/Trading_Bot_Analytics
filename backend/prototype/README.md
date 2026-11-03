@@ -120,3 +120,37 @@ Focused application/migration/cloud/deadline cases:
 
 Linux root CI additionally exercises actual retirement after application handles
 drain. No fixture test supplies production authority or clears capacity STOP.
+
+## Exported integrated qualification
+
+`ApplicationWorker(..., routing=False, role=...)` opens the existing separate
+lifecycle/feature/history role without acquiring collector ownership. It cannot
+save raw data, change market metadata through collector methods or retire files.
+Worker startup requires a completed migration and the original legacy binding.
+Application raw views expose only core-acknowledged records; pending raw commits
+remain invisible until recovery acknowledges them. A transaction keeps its pinned
+raw bindings and refreshes after commit, so rotation does not detach active reads.
+
+`backend/build_ab_candidate.py` exports only selected tracked regular source files
+from an exact commit. Database/env/credential paths and symlinks are rejected before
+blob reads; untracked edits/data are excluded. SHA256, Git blob identity, file set
+and modes are checked against the exact commit. This source export is neither a
+new worktree nor a production operator bundle. CI runs the full suites on it,
+then rebuilds the identical manifest before integrated qualification.
+
+The fixed `run_application_qualification.py` supervisor encloses one generated
+`qualify_application.py` workload:4000records across a simulated72h boundary,
+actual ApplicationStore collector/LiveState/feature/baseline/ensemble/chart paths,
+a fresh separate LifecycleWorker and SupabaseHTTP with private file-backed
+MockTransport objects. No actual cloud/venue traffic occurs. Both network and
+checksum/JSON response processing are inside the original hard deadline.
+Structured duplicates/ambiguous writes reconcile exact remote state before any
+acknowledgement; numeric raw/core provenance survives via exact JSON number text.
+
+The qualification keeps the existing170s work/180s whole-operation envelope,
+512MiB Linux per-process AS and2GiB whole workspace. Preparation is included;
+exported source, all legacy/core/A/B/WAL/SHM, generated cloud objects, TEMP and
+report allowance are counted. One serial feature worker and no ingestion queue
+are retained. It is a scaled hosted-Linux result, never16/21GiB production proof.
+The hard supervisor kills/reaps the process family on timeout. No production
+routing, retirement or changed storage policy is enabled by these tools.

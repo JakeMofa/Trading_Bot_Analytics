@@ -22,7 +22,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Nov3 STORAGE_STOP: maintenance41364015738 FAILED timeout/no deployment; services recovered but collector stopped at5120.353MiB. Keep stopped. Verifier phase observability tested,exactCI pending. Main alone5077.273MiB permits at most42.727MiB headroom; current128 reserve cannotfit. No newscan/cleanup/restart or expiredauthority reuse; rolloverundeployed,Phase1.75OPEN.
+**Next gate:** Nov3 recovery NO-GO: collector stays stopped. Failed maintenance/no deployment reconciled; verifier diagnostics b8f065b exact-CI41702333233 PASS. Main5077.273MiB allows at most42.727MiB headroom evenzeroWAL,85.273MiB shortof128 beforewrites; no physical recovery claim fromfreepages. No scan/delete/restart or policychange approved; deadlinepassed/authorityconsumed,rolloverundeployed,Phase1.75OPEN.
 
 ### October 23, 2026 migration preflight
 
@@ -2258,3 +2258,41 @@ Recoveryprocedure/physicalconstraintreview pending; no reserve/budget/deadline/
 500ms change implemented. No servicechanges,heavyproductionscan,DBcopy/snapshot,
 VACUUM/manualWAL/deletion/capincrease/deploymentretry/stresstrial. Collectionstays
 stopped,retentionOFF,I7/Phase1.75OPEN,rolloverundeployed/featurefreshnessunfinished.
+
+## November3 recovery decision complete: physical prerequisite NO-GO
+
+Checkpoints1/2PASS: stale maintenance-running replaced with failed41364015738/
+STOPTimeoutExpired/no deployment/recoveredservices,then storageguardstop. Exact
+historicalcheckphase UNKNOWN(oldparentno partial phase). Diagnostic source
+b8f065b7202f3f10b6bfb3b1ce1e5213496314f3 exactCI41702333233 PASS:253backend/112controls,
+including7newgeneratedphase/timeout/interruption/invalid/atomic/reaping cases.
+Partialreportsprivate<=8KiB,whitelisted;completechecks/read-only/ownership/recovery
+and original1800/600/10/180/2590policies unchanged. No helperinstalled/scanexecuted.
+
+Essentialbounded19:10Nov3metadata main5077.2734375MiB,WAL43.0791015625MiB,
+combined5120.3525390625/headroom-0.3525390625MiB,freelist0/auto_vacuumNONE. Services
+active butcollectorNOTRUNNING; sourcefeedsstoppedNov2 07:49Z,oldaggregateokmisleading.
+Claimedauthorityconsumedhistorical; reviewdeadlinepassed,noextension. Bounded8cloud
+manifests/dataset establish limiteddeclaredcoverage only,notfreshrowreadback/proof.
+
+Checkpoint3BLOCKED with preciseimpossibility: EVENzeroWAL/unchangedmain permits
+only42.7265625MiB physicalheadroom; prior128reserve(inapplicableexpiredrollover
+approval)short85.2734375MiB BEFORE batchWAL/recovery. Normal512short469.2734375.
+Removinglivegrowthfromoldallowances still64WAL+32contingency=96>42.727. Exactscope
+WAL/TEMP bound unproven; rowcount/cachesize nothardgrowthbounds. Freeingrows/pages
+cannotbecreditedasphysicalshrink; ampleFSdoesnotoverridecap. Currentobserved43.079MiB
+WALpeak aloneexceedsoptimistic42.727headroom. No invented16/32reserve orblind60min
+verification request. Existinglive-health-onlyoperator andauto-writer-restore
+controller also cannot be silently repurposed for collection-stopped recovery.
+
+One decision:KEEP COLLECTION STOPPED;no productionapprovalready undercurrent
+boundaries. Detailed requiredorder/proofs/protectedidentity/FK/reusablevsphysical
+checks/failurebehavior and exactcodehashes:
+[STORAGE_RECOVERY_DECISION_2026-11-03.md](STORAGE_RECOVERY_DECISION_2026-11-03.md).
+No productionoperations requested; any futurefeasible policy mustconsolidate
+reserve+provenworkingbounds,verificationbudget/absoluteofflinewindow,stoppedhealth/
+restoration andfreshauthority. CurrentR<=42.7265625-A necessary,notsufficient.
+
+PRODUCTIONCHANGED:NO;readonlymetadataonly,noservicechanges/restarts/cleanup/scan/
+DBcopy/snapshot/VACUUM/manualWAL/capincrease/deploymentretry/stresstrial/newarchitecture.
+RetentionOFF,rolloverundeployed/featurefreshnessunfinished,I7/Phase1.75OPEN.

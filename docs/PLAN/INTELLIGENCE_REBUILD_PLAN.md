@@ -20,6 +20,8 @@
 
 ## Current position
 
+**Session resume:** Read [SESSION_HANDOFF.md](SESSION_HANDOFF.md) for ownership, recorded production STOP and the active generated A/B/core checkpoint; it indexes this roadmap and does not replace it.
+
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
 **Next gate:** User selected72h local raw retention and A/B raw rotation; see RETENTION_72H_AB_POLICY_2026-11-03.md. Size aggregate normal/migration guard from growth/core/index/WAL/recovery evidence, then generated prototype. Prior5GiB planning constraint may be revised; no new numeric runtime limit/migration/delete/restart approved. Production collector remainsstopped,d56b4a7,flagsOFF; rolloverundeployed,I7/Phase1.75OPEN.
@@ -2312,3 +2314,15 @@ ceiling, guard change, restart, migration or deletion is approved by this record
 Next milestone: numeric normal/migration budgets and generated prototype under
 this revised design; preserve tested rollover/controller/verifier work. Production
 remainsstopped/d56b4a7,flagsOFF,cleanup0; I7/Phase1.75OPEN. No new branch/worktree.
+
+
+### November 3 session continuity — A/B/core work in progress
+
+Added [session handoff](SESSION_HANDOFF.md) as a compact restart index. Execution
+chat01a197ce-eabd-75b0-a991-d76b33c5a96b is active; it reports generated core/A/B
+creation and is testing boundary/crash/reference/retirement behavior. Prototype
+source/tests/CI edits are uncommitted at this snapshot; no qualification PASS or
+production migration is asserted. Next session checks ownership/current Git state
+before writing, preserves existing work and continues the selected72h policy.
+Production remains the recorded Nov3 storage STOP,d56b4a7; retention/paidAI OFF,
+cleanup0,I7/Phase1.75OPEN. This milestone changes documentation only.

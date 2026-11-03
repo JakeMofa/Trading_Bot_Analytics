@@ -27,6 +27,12 @@ def iso(value):return stamp(value).isoformat(timespec='microseconds')
 def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
 def digest(value):return hashlib.sha256(canonical(value).encode()).hexdigest()
 def connect(path,ro=False):
+    path=Path(path)
+    for component in (path,Path(str(path)+'-wal'),Path(str(path)+'-shm')):
+        if component.is_symlink():raise Stop('SQLite component symlink forbidden')
+        if component.exists() and component.stat().st_uid!=os.getuid():raise Stop('unexpected SQLite component owner')
+    if any(p.name not in (path.name+'-wal',path.name+'-shm') for p in path.parent.glob(path.name+'-*')):
+        raise Stop('unknown SQLite sidecar: verification required')
     db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=.1) if ro else sqlite3.connect(path,timeout=5)
     db.row_factory=sqlite3.Row;db.execute('PRAGMA foreign_keys=ON')
     if ro:db.execute('PRAGMA query_only=ON')

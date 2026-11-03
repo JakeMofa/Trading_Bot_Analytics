@@ -460,3 +460,16 @@ s.retire(a,cloud,T+timedelta(hours=145))
         with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
             first=FileArchive(Path(f)/'archives');first.upload_bytes('private','gen/object',b'exact')
             second=FileArchive(Path(f)/'archives');self.assertEqual(second.download_bytes('private','gen/object'),b'exact')
+    def test_unknown_sqlite_sidecars_and_component_symlinks_hold_without_removal(self):
+        from raw_generations import connect
+        for suffix in ['-journal','-unknown','-wal','-shm']:
+            with self.subTest(suffix=suffix),tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
+                # Never opened by SQLite. No actual WAL/SHM is moved or removed.
+                raw=Path(f)/'never-opened.db';raw.write_bytes(b'unopened fixture')
+                target=Path(f)/'generated-target';target.write_bytes(b'preserved')
+                side=Path(str(raw)+suffix)
+                if suffix in ('-wal','-shm'):side.symlink_to(target)
+                else:side.write_bytes(b'unverified')
+                with self.assertRaises(Stop):connect(raw,True)
+                self.assertTrue(side.is_symlink() or side.exists())
+                self.assertEqual(raw.read_bytes(),b'unopened fixture');self.assertEqual(target.read_bytes(),b'preserved')

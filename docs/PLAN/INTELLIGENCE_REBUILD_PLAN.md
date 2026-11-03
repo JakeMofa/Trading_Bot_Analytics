@@ -2509,3 +2509,12 @@ for fresh recovery readback; focused reopen and seal-process tests pass. This
 corrects a fixture restart limitation, not production archive behavior. Successor
 exact-commit CI must run root application/retirement cases; no source-CI substitution,
 production mutation, migration approval or capacity-policy change.
+
+AB72 sidecar matrix audit: prototype opens now reject unknown SQLite sidecars,
+component symlinks and unexpected component owners before SQLite opens the path.
+Focused test passes using never-opened fixture paths. First test version failed
+on an existing generated-WAL collision; its error teardown removed that generated
+sidecar. This was a test-boundary mistake, not a pass, with no production impact.
+The corrected test never replaces/removes SQLite-managed files. Preserve that
+failure explicitly. Prior138f455 exactCI41726393093 passed; successor needs its own
+exactCI and must not inherit that result. No production operation authorized.

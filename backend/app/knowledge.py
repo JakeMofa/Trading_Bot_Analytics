@@ -78,6 +78,8 @@ def link_eligible_context(db, prediction_id, news_query=None, news_limit=5,
               VALUES(?,'news',?,'fts5_eligible_headline_v1',?,?)''',
               (prediction_id,event['id'],news_query,linked_at)).rowcount
         for case in cases:
+            if hasattr(db, 'protect_observation'):
+                db.protect_observation(case['outcome_observation_id'])
             inserted_cases += db.execute('''INSERT OR IGNORE INTO prediction_context_links
               (prediction_id,kind,prior_market_id,prior_snapshot_id,
                outcome_observation_id,observed_outcome,method,distance,linked_at)

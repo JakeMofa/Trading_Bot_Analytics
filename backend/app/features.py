@@ -149,6 +149,8 @@ def capture(db, as_of=None):
         return None
     values, quality, evidence = result
     with db:
+        if hasattr(db, 'protect_feature_inputs'):
+            db.protect_feature_inputs(evidence)
         db.execute('''INSERT INTO feature_snapshots(market_id,as_of,version,values_json,quality_json,evidence_json)
           VALUES(?,?,?,?,?,?) ON CONFLICT(market_id,as_of,version) DO NOTHING''',
           (row[0], as_of.isoformat(), VERSION, json.dumps(values), json.dumps(quality), json.dumps(evidence)))

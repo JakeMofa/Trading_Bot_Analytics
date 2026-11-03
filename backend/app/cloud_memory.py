@@ -557,6 +557,8 @@ def _stream_cursor_key(row):
 
 
 def _raw_batch_rows(db, dataset, limit):
+    if hasattr(db, 'raw_archive_rows'):
+        return db.raw_archive_rows(dataset, limit)
     checkpoint_name = f"archive:{dataset}"
     last_id, last_time, last_key, _ = _checkpoint(db, checkpoint_name)
     if dataset == "observations":
@@ -629,8 +631,10 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
     if not rows:
         return None
 
-    raw, compressed, digest = build_archive(dataset, rows)
-    source, object_path = archive_batch_object_path(dataset, rows)
+    raw, compressed, digest = (db.build_archive(dataset, rows) if hasattr(db, "build_archive")
+                               else build_archive(dataset, rows))
+    source, object_path = (db.archive_batch_object_path(dataset, rows) if hasattr(db, "archive_batch_object_path")
+                           else archive_batch_object_path(dataset, rows))
     cloud.upload_bytes(bucket, object_path, compressed, "application/gzip")
     verification = cloud.verify_object(
         bucket, object_path, digest, len(compressed)
@@ -669,7 +673,12 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
             "last_source_key": last_source_key,
         },
     }
+    if hasattr(db, "archive_manifest_metadata"):
+        manifest["metadata"].update(db.archive_manifest_metadata(dataset, rows))
     cloud.upsert("raw_archives", [manifest], "bucket,object_path")
+    if hasattr(db, "commit_verified_archive"):
+        db.commit_verified_archive(cloud, dataset, rows, manifest)
+        return manifest
     _save_checkpoint(
         db,
         checkpoint_name,
@@ -729,7 +738,8 @@ def archive_raw_window(db, cloud, dataset, start, end, bucket=RAW_BUCKET):
     rows = _archive_rows(db, dataset, start, end)
     if not rows:
         return None
-    raw, compressed, digest = build_archive(dataset, rows)
+    raw, compressed, digest = (db.build_archive(dataset, rows) if hasattr(db, "build_archive")
+                               else build_archive(dataset, rows))
     source, object_path = archive_object_path(dataset, start, end)
     cloud.upload_bytes(bucket, object_path, compressed, "application/gzip")
     verification = cloud.verify_object(

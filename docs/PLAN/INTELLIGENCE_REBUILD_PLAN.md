@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Working72h A/B/core prototype02e0143 exact-CI41715155473 PASS,actualLinuxretirement/4000rows/realfeaturebaseline PASS_SCALED. Proposed16GiBnormal/21GiBmigration arithmeticfitsFS; productioncapacity/legacy-app-cloudadapter/verificationtiming NOTPROVEN,consolidatedreview notexecute-ready. KeepproductionSTOP/flagsOFF/cleanup0; no migration/guardchange/expiredauthorityreuse,Phase1.75OPEN.
+**Next gate:** AB72 integrated generated application/legacy/cloud/deadline compatibility candidate awaits exact-commit Linux CI and requirement evidence. Production remains STOP, default routing/retirement OFF, cleanup0; capacity16/21GiB proposals and full-scale/cloud-auth/cutover controls NOTPROVEN. No production migration or Phase1.75 closure authorized.
 
 ### October 23, 2026 migration preflight
 
@@ -2475,3 +2475,22 @@ See AB72_SAFETY_INTEGRATION_STATUS_2026-11-03.md for each requirement dispositio
 HTTPX inactivity timeout is not hard wall termination: transport/production
 integration stays NOTPROVEN. Legacy/application/cloud/fullscale/failurematrix
 remain open. Production unchanged, collectionSTOP, flagsOFF, migration unauthorized.
+
+### AB72 integrated compatibility candidate after905f2bf/ecd8a03 — November3
+
+Generated-only application adapter now retains legacy raw read-only and migrates
+real structured schemas/IDs/direct FK/embedded evidence/cloud cursors into core,
+with namespaced protocol tables. Optional actual collector/feature/history and
+lifecycle seams/default holds, forward-only write guards and exact archive schema/
+checkpoint compatibility are implemented. Hard child supervision covers original
+request+retries+body+backoff; conditional upload/manifest ambiguity reconciles
+without another write. Generated failure matrix includes actual SQLiteFULL,
+permissions, reference/identity holds, concurrency, supervisor drain and process
+exits at migration/raw/feature/archive transitions. Source candidate CI pending.
+Local final full suite305backend/8skips and112controls/3skips passed; an additional
+embedded-reference safety test passed after that run; exact CI must qualify the
+complete final tree. Linux root app retirement is unproven locally, never a pass.
+Production untouched, collection remains recordedSTOP; both production gates,
+retention and paidAI remainOFF. Capacity16/21GiB remains unapproved/unqualified.
+Representative volume, actual cloudRLS/auth and production cutover/verification
+controls remainNOTPROVEN; passing generated integration cannot authorize migration.

@@ -22,11 +22,11 @@ def _readonly(db_path):
     return sqlite3.connect(Path(db_path).resolve().as_uri() + '?mode=ro', uri=True, timeout=0.2)
 
 
-def _saved_dashboard(db_path, chart=False):
+def _saved_dashboard(db_path, chart=False, connection_factory=None):
     # Reuse the existing bounded history/context queries, never start the legacy server/relay.
     from dashboard import open_readonly, status, chart_data
     try:
-        with closing(open_readonly(db_path)) as db:
+        with closing(connection_factory() if connection_factory else open_readonly(db_path)) as db:
             db.execute('PRAGMA busy_timeout=200')
             deadline = time.monotonic() + 1
             db.set_progress_handler(lambda: int(time.monotonic() > deadline), 10000)
@@ -141,7 +141,7 @@ def _read_prediction_history(db_path, limit):
         db.close()
 
 
-def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None):
+def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None, read_connection_factory=None):
     state = live_state or LiveState()
     resolved_db_path = db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db')
 
@@ -219,11 +219,11 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
 
     @app.get('/history/context')
     async def historical_context():
-        return await asyncio.to_thread(_saved_dashboard, resolved_db_path)
+        return await asyncio.to_thread(_saved_dashboard, resolved_db_path, False, read_connection_factory)
 
     @app.get('/history/coinbase-chart')
     async def historical_chart():
-        return await asyncio.to_thread(_saved_dashboard, resolved_db_path, True)
+        return await asyncio.to_thread(_saved_dashboard, resolved_db_path, True, read_connection_factory)
 
     @app.get('/system/history')
     async def system_history(limit: int = Query(default=288, ge=1, le=288)):

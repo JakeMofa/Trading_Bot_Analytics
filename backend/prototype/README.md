@@ -70,3 +70,53 @@ Normal production collector/API/lifecycle adapters, legacy structured-table and
 ID/reference migration, existing Supabase structured sync and full-scale shape
 qualification remain explicit promotion gates. Do not load this prototype into
 production merely because its scaled Linux test passes.
+
+## Generated application compatibility adapter
+
+`application_store.ApplicationStore(root, legacy, routing=False, retirement=False)`
+is a separate generated qualification layout. Both gates default disabled; there
+is no production path or environment bypass. It namespaces registry tables under
+`ab_`, retains legacy raw read-only and migrates structured rows/protected evidence
+into the real application schema in core. Original observation/snapshot/prediction
+IDs and cloud cursors remain unchanged. New global IDs reserve all legacy IDs;
+legacy composite stream identities have durable sequence mappings. Existing
+un-namespaced prototype fixture cores are not an in-place migration source.
+
+`connection()` belongs to its caller; `reader_connection()` is query-only. Raw
+saves use durable intent routing, not inserts into UNION views. REST and WS saves
+serialize under the existing Store lock, with no new thread/service/queue and a
+bounded0.5s contention hold; SQLite still uses5s busy timeout without retries.
+Readers pin generation handles until close. A critical raw failure latches a
+runtime hold; full slots stop the supervisor without automatic save retries.
+Actual collector/streaming/feature/forecast/ensemble/history/lifecycle functions
+have explicit optional adapter seams; their default monolithic path remains.
+The AB layout has a marker and write guards requiring an adapter connection;
+older direct SQLite writers fail. Recovery after committed new writes is forward.
+
+Migration tests are deliberately bounded to10000total legacy rows,128MiB audited
+row encodings and1MiB/row. They stream the audit and copy structured rows only;
+no database copy, raw A->B transfer or production migration is provided. The
+known external-content news FTS index is rebuilt from preserved news rows.
+Unknown evidence schemas, missing raw references and unknown virtual tables hold.
+These generated limits cannot qualify the existing production legacy volume.
+
+`compatible_cloud.CompatibleCloud` exercises existing SupabaseHTTP wire/schema
+and checkpoint functions with original phase deadlines. Private GETs retry at
+most3times; conditional uploads never overwrite, and ambiguous writes reconcile
+remote identity without another POST. Raw manifest/checkpoint evidence is committed
+locally only after object readback and remote confirmation. Real RLS/authentication
+is NOT certified by MockTransport fixtures. `HardArchiveReads` encloses the whole
+logical request/body/backoff in a child, kills and reaps on deadline, bounds output
+and rejects multithreaded callers. It requires a separate single-thread lifecycle
+process (the existing lifecycle process model); it is not a collector GET helper.
+Kernel child-reaping time and physical power-loss behavior are not hard-real-time
+or hardware qualifications.
+
+Focused application/migration/cloud/deadline cases:
+
+```
+.venv/bin/python -m unittest discover -s backend/tests -p 'test_ab_*.py' -v
+```
+
+Linux root CI additionally exercises actual retirement after application handles
+drain. No fixture test supplies production authority or clears capacity STOP.

@@ -1,0 +1,395 @@
+"""Generated-only actual application adapter. No production enablement route.
+
+Legacy raw remains read-only. Structured tables keep original schemas/IDs in
+core; protocol bookkeeping lives in ab_* tables. TEMP raw views span pinned
+legacy/A/B plus protected core observations. Every caller owns its connection.
+"""
+from contextlib import ExitStack,contextmanager
+from pathlib import Path
+import hashlib,json,re,sqlite3,threading,gzip
+from decimal import Decimal
+from raw_generations import Store,Stop,connect,canonical,COLUMNS,iso,digest
+import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
+
+RAW={'observations','stream_events'}
+MAX_ROWS=10000
+class ApplicationStore:
+    def __init__(self,root,legacy,routing=False,retirement=False,fault=None):
+        if retirement and not routing:raise Stop('inconsistent AB enablement')
+        if not routing:raise Stop('AB application routing disabled by default')
+        self.connections=set();self.connection_lock=threading.RLock()
+        self.protocol=Store(root,fault=fault,application_namespace=True)
+        self.root=self.protocol.root;self.legacy=Path(legacy)
+        self.retirement_enabled=retirement;self.hold=None
+        try:
+            if self.legacy.is_symlink() or self.legacy.resolve().parent!=self.root or not self.legacy.name.startswith('generated-legacy'):
+                raise Stop('generated legacy allowlist required')
+            self.legacy=self.legacy.resolve()
+            if any(Path(str(self.legacy)+suffix).is_symlink() for suffix in ('-wal','-shm')):raise Stop('legacy sidecar symlink forbidden')
+            if not self.legacy.is_file():raise Stop('legacy missing')
+            self._initialize()
+            self.legacy_identity=self._legacy_allocation()
+        except BaseException:self.protocol.close();raise
+    def _legacy_allocation(self):
+        return tuple((p.name,p.stat().st_ino,p.stat().st_size,p.stat().st_mtime_ns) for p in
+                     (self.legacy,Path(str(self.legacy)+'-wal')) if p.exists())
+    def _initialize(self):
+        core=self.protocol.core.native
+        core.create_function('ab72_writer_enabled',0,lambda:1)
+        core.executescript('''CREATE TABLE IF NOT EXISTS ab_migration_state(id INTEGER PRIMARY KEY CHECK(id=1),identity TEXT NOT NULL,status TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ab_legacy_audit(dataset TEXT,key TEXT,fingerprint TEXT,PRIMARY KEY(dataset,key));
+CREATE TABLE IF NOT EXISTS ab_legacy_stream_ids(source TEXT,event_id TEXT,id INTEGER UNIQUE,PRIMARY KEY(source,event_id));
+CREATE TABLE IF NOT EXISTS ab_legacy_stream_pins(source TEXT,event_id TEXT,record TEXT NOT NULL,PRIMARY KEY(source,event_id));
+CREATE TABLE IF NOT EXISTS ab_legacy_pins(id INTEGER PRIMARY KEY,fingerprint TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ab_application_marker(id INTEGER PRIMARY KEY CHECK(id=1),layout TEXT NOT NULL);
+INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
+        legacy=connect(self.legacy,True)
+        try:
+            # Identity binds content metadata at quiescent migration; raw rows are
+            # audited by exact fingerprint below. No byte copy or backup.
+            schema=legacy.execute("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").fetchall()
+            for row in schema:
+                if row['sql'] is None:raise Stop('unsupported legacy schema')
+                if 'VIRTUAL TABLE' in row['sql'].upper() and not (row['name']=='news_events_fts' and 'USING fts5' in row['sql']):raise Stop('unsupported legacy virtual schema')
+            shadows={r[1] for r in legacy.execute('PRAGMA table_list') if r[2]=='shadow'}
+            if any(r['name'].startswith('news_events_fts') and r['name']!='news_events_fts' and r['name'] not in shadows for r in schema):raise Stop('unexpected FTS-prefixed table')
+            schema=[r for r in schema if r['name']!='news_events_fts' and r['name'] not in shadows]
+
+            count=sum(legacy.execute('SELECT COUNT(*) FROM "'+r['name']+'"').fetchone()[0] for r in schema)
+            if count>MAX_ROWS:raise Stop('generated migration qualification bound exceeded')
+            audit=hashlib.sha256(canonical({'path':str(self.legacy),'schema':[tuple(r) for r in schema]}).encode());audited_bytes=0
+            for table in schema:
+                audit.update(table['name'].encode()+b'\0')
+                for row in legacy.execute('SELECT * FROM "'+table['name']+'" ORDER BY rowid'):
+                    encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
+                    if len(encoded)>1024**2 or audited_bytes>128*1024**2:raise Stop('generated migration audit byte bound exceeded')
+                    audit.update(len(encoded).to_bytes(8,'big'));audit.update(encoded)
+            identity=audit.hexdigest()
+            prior=core.execute('SELECT identity,status FROM ab_migration_state WHERE id=1').fetchone()
+            if prior and prior[0]!=identity:raise Stop('legacy identity changed')
+            if prior and prior[1]=='complete':
+                streaming.initialize(core);features.initialize(core);forecasts.initialize(core)
+                self._news(core)
+                cloud_memory.initialize_local_sync(core);cloud_lifecycle.initialize_lifecycle_state(core)
+                self._write_guards(core);core.commit()
+                return
+            # One core transaction: incomplete imports never become routed state.
+            core.execute('BEGIN IMMEDIATE')
+            core.execute('PRAGMA defer_foreign_keys=ON')
+            try:
+                for row in schema:
+                    if row['name']=='stream_events':continue
+                    if not re.fullmatch('[A-Za-z_][A-Za-z_0-9]*',row['name']) or row['name'].startswith('ab_'):raise Stop('unsupported legacy table')
+                    core.execute(row['sql'].replace('CREATE TABLE ','CREATE TABLE IF NOT EXISTS ',1))
+                # Preserve every structured row and only explicitly protected raw
+                # observations in core. Legacy keeps the complete raw history.
+                protected=set();protected_stream=set()
+                for table in schema:
+                    for fk in legacy.execute('PRAGMA foreign_key_list("'+table['name']+'")'):
+                        if fk['table']=='observations':
+                            if fk['to']!='id' or not re.fullmatch('[A-Za-z_][A-Za-z_0-9]*',fk['from']):raise Stop('unsupported observation FK')
+                            protected.update(r[0] for r in legacy.execute('SELECT "'+fk['from']+'" FROM "'+table['name']+'" WHERE "'+fk['from']+'" IS NOT NULL'))
+
+                if any(r['name']=='prediction_context_links' for r in schema):
+                    protected.update(r[0] for r in legacy.execute('SELECT outcome_observation_id FROM prediction_context_links WHERE outcome_observation_id IS NOT NULL'))
+                if any(r['name']=='feature_snapshots' for r in schema):
+                    for row in legacy.execute('SELECT evidence_json FROM feature_snapshots'):
+                        evidence=json.loads(row[0]);key=evidence.get('metadata_observation_id')
+                        if not isinstance(key,int) or isinstance(key,bool) or key<=0:raise Stop('unknown embedded metadata reference')
+                        protected.add(key)
+                        if set(evidence)-{'metadata_observation_id','metadata_received_at','price','latest_completed_candle_time','candle_inputs'}:raise Stop('unsupported embedded evidence schema')
+                        price=evidence.get('price') or {};source=price.get('source');input_id=price.get('input_id')
+                        if source=='coinbase_stream':protected_stream.add(('coinbase',str(input_id)))
+                        elif source=='coinbase_rest':
+                            if not legacy.execute('SELECT 1 FROM reference_prices WHERE id=?',(input_id,)).fetchone():raise Stop('missing embedded REST price reference')
+                        elif source is not None or input_id is not None:raise Stop('unknown embedded price reference')
+                for row in schema:
+                    name=row['name']
+                    if name in RAW:continue
+                    for row in legacy.execute('SELECT * FROM "'+name+'"'):
+                        self.protocol.guard()
+                        core.execute('INSERT INTO "'+name+'" VALUES('+','.join('?' for _ in row)+')',tuple(row))
+                    self.protocol.trip('migration_structured:'+name)
+                for name in RAW:
+                    exists=any(r['name']==name for r in schema)
+                    if not exists:raise Stop('legacy raw schema missing')
+                    for row in legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM '+name):
+                        raw=dict(row);key=str(raw['id']) if name=='observations' else canonical([raw['source'],raw['event_id']])
+                        core.execute('INSERT INTO ab_legacy_audit VALUES(?,?,?)',(name,key,digest(raw)))
+                        if name=='stream_events' and (raw['source'],raw['event_id']) in protected_stream:
+                            core.execute('INSERT INTO ab_legacy_stream_pins VALUES(?,?,?)',(raw['source'],raw['event_id'],canonical(raw)))
+                        if name=='observations' and raw['id'] in protected:
+                            core.execute('INSERT INTO observations VALUES(?,?,?,?,?,?)',tuple(raw[k] for k in COLUMNS[name]))
+                            core.execute('INSERT INTO ab_legacy_pins VALUES(?,?)',(raw['id'],digest(raw)))
+                if protected_stream-{tuple(r) for r in core.execute('SELECT source,event_id FROM ab_legacy_stream_pins')}:raise Stop('missing legacy protected stream')
+                for obj in legacy.execute("SELECT type,name,sql FROM sqlite_master WHERE type IN ('index','trigger') AND sql IS NOT NULL"):
+                    if obj['name'].startswith('news_events_fts'):continue
+                    # Raw indexes stay in retained legacy; new raw generations own theirs.
+                    if re.search(r'\bON\s+(observations|stream_events)\b',obj['sql'],re.I):continue
+                    core.execute(obj['sql'])
+                missing=protected-{r[0] for r in core.execute('SELECT id FROM observations')}
+                if missing:raise Stop('missing legacy protected observation')
+                # Reserve above ALL legacy observation IDs, not only copied pins.
+                maximum=legacy.execute('SELECT COALESCE(MAX(id),0) FROM observations').fetchone()[0]
+                for row in legacy.execute('SELECT source,event_id FROM stream_events ORDER BY rowid'):
+                    maximum+=1;core.execute('INSERT INTO ab_legacy_stream_ids VALUES(?,?,?)',(row['source'],row['event_id'],maximum))
+                core.execute("INSERT OR REPLACE INTO sqlite_sequence(name,seq) VALUES('ab_events',?)",(maximum,))
+                if core.execute('PRAGMA foreign_key_check').fetchall():raise Stop('legacy foreign key audit failed')
+                self._write_guards(core)
+                core.execute('INSERT OR REPLACE INTO ab_migration_state VALUES(1,?,?)',(identity,'complete'))
+                self.protocol.trip('migration_before_commit');core.commit();self.protocol.trip('migration_committed')
+            except BaseException:core.rollback();raise
+        finally:legacy.close()
+        # Only the production's real schema initializers, no synthetic tables.
+        streaming.initialize(core);features.initialize(core);forecasts.initialize(core)
+        self._news(core)
+        cloud_memory.initialize_local_sync(core);cloud_lifecycle.initialize_lifecycle_state(core)
+        self._write_guards(core);core.commit()
+    def _write_guards(self,core):
+        for row in core.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT GLOB 'ab_*'").fetchall():
+            name=row[0]
+            if name.startswith('news_events_fts'):continue
+            if not re.fullmatch('[A-Za-z_][A-Za-z_0-9]*',name):raise Stop('unsupported guarded table')
+            for operation in ('INSERT','UPDATE','DELETE'):
+                core.execute(f"""CREATE TRIGGER IF NOT EXISTS ab_guard_{name}_{operation} BEFORE {operation} ON "{name}" WHEN ab72_writer_enabled()!=1 BEGIN SELECT RAISE(ABORT,'AB72 forward adapter required'); END""")
+    def _news(self,core):
+        if core.execute("SELECT 1 FROM sqlite_master WHERE name='news_events'").fetchone():
+            import news
+            news.initialize(core)
+            with core:core.execute("INSERT INTO news_events_fts(news_events_fts) VALUES('rebuild')")
+    @contextmanager
+    def collector_write(self):
+        # Existing Store lock, no writer thread/service/queue. REST and WS calls
+        # remain synchronous durable saves on their own connections. A contending
+        # caller waits at most 0.5s; never retries or accumulates queued records.
+        if self.hold:raise Stop(self.hold)
+        if not self.protocol.readerlock.acquire(timeout=.5):
+            self.hold='collector_contention_hold';raise Stop(self.hold)
+        previous=getattr(self.protocol._application_writer,'authorized',False)
+        self.protocol._application_writer.authorized=True
+        try:yield
+        except BaseException:
+            self.hold='durable_raw_save_failed';raise
+        finally:
+            self.protocol._application_writer.authorized=previous
+            if threading.get_ident()!=self.protocol.owner_thread and hasattr(self.protocol._connections,'db'):
+                self.protocol._connections.db.close();del self.protocol._connections.db
+            self.protocol.readerlock.release()
+    def connection(self):return ApplicationConnection(self)
+    def reader_connection(self):return ApplicationConnection(self,readonly=True)
+    def close(self):
+        with self.connection_lock:
+            if self.connections:raise Stop('drain application connections before owner release')
+            self.protocol.close()
+    def retire(self,*args):
+        if not self.retirement_enabled:raise Stop('AB retirement disabled by default')
+        return self.protocol.retire(*args)
+
+class ApplicationConnection:
+    def __init__(self,store,readonly=False):
+        self.readonly=readonly;self.closed=False
+        self.store=store;self.protocol=store.protocol;self.owner=threading.get_ident()
+        self.db=connect(store.root/'core.db',ro=readonly);self.db.row_factory=None
+        self.db.create_function('ab72_writer_enabled',0,lambda:0 if readonly else 1)
+        self.db.execute('PRAGMA query_only=OFF')
+        self.stack=ExitStack();self.signature=None
+        try:
+            self._refresh()
+            if readonly:self.db.execute('PRAGMA query_only=ON')
+            with store.connection_lock:store.connections.add(self)
+        except BaseException:
+            self.db.close();self.stack.close();raise
+    def _check(self):
+        if self.closed:raise Stop('application connection closed')
+        if self.owner!=threading.get_ident():raise Stop('connection belongs to worker')
+    def _refresh(self):
+        self._check()
+        if self.store._legacy_allocation()!=self.store.legacy_identity:
+            self.store.hold='legacy_identity_changed';raise Stop(self.store.hold)
+        signature=tuple(r[0] for r in self.db.execute("SELECT id FROM ab_generations WHERE state IN ('active','sealed','retiring') ORDER BY started"))
+        if signature==self.signature:return
+        if self.db.in_transaction:raise Stop('generation changed during application transaction')
+        for name in RAW:self.db.execute('DROP VIEW IF EXISTS temp.'+name)
+        for i in range(len(self.signature or ())):self.db.execute('DETACH DATABASE raw'+str(i))
+        if self.signature is not None:self.db.execute('DETACH DATABASE legacy')
+        self.stack.close();self.stack=ExitStack()
+        self.db.execute('ATTACH DATABASE ? AS legacy',(store_uri(self.store.legacy),))
+        for i,gid in enumerate(signature):
+            self.stack.enter_context(self.protocol.reader(gid))
+            self.db.execute('ATTACH DATABASE ? AS raw'+str(i),(store_uri(self.protocol.path(gid)),))
+        obs=['SELECT * FROM main.observations','SELECT * FROM legacy.observations WHERE id NOT IN (SELECT id FROM main.observations)']
+        ticks=['SELECT '+','.join(COLUMNS['stream_events'])+' FROM legacy.stream_events']
+        for i in range(len(signature)):
+            obs.append('SELECT * FROM raw'+str(i)+'.observations WHERE id NOT IN (SELECT id FROM main.observations)')
+            ticks.append('SELECT '+','.join(COLUMNS['stream_events'])+' FROM raw'+str(i)+'.stream_events')
+        self.db.execute('CREATE TEMP VIEW observations AS '+' UNION ALL '.join(obs))
+        self.db.execute('CREATE TEMP VIEW stream_events AS '+' UNION ALL '.join(ticks))
+        self.signature=signature
+    def execute(self,sql,args=()):
+        self._refresh()
+        if re.match(r'\s*(INSERT|UPDATE|DELETE|REPLACE)\b',sql,re.I):
+            if self.store.hold and not re.search(r'\b(runs|feed_health|cloud_lifecycle_state)\b',sql,re.I):raise Stop(self.store.hold)
+            self.protocol.guard()
+        if re.match(r'\s*(INSERT|UPDATE|DELETE|REPLACE)\b',sql,re.I) and re.search(r'\b(observations|stream_events)\b',sql,re.I):
+            raise Stop('raw SQL writes require durable routing hook')
+        return self.db.execute(sql,args)
+    def executescript(self,sql):
+        # Application initializers contain no raw DML; raw index creation is
+        # handled by raw_archive_rows below rather than indexes on UNION views.
+        if re.search(r'\b(CREATE TABLE IF NOT EXISTS (observations|stream_events))\b',sql,re.I):raise Stop('raw schema initialization belongs to adapter')
+        return self.db.executescript(sql)
+    def chart_ticks(self,limit):
+        if not 1<=limit<=10000:raise Stop('bounded chart query required')
+        return self.execute("""SELECT t.received_at,t.source_time,t.price FROM stream_events t
+LEFT JOIN ab_legacy_stream_ids l ON l.source=t.source AND l.event_id=t.event_id
+LEFT JOIN ab_events e ON e.dataset='stream_events' AND e.event_key=t.source||':'||t.event_id
+WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT ?""",(limit,)).fetchall()
+    def latest_tick_event(self):
+        row=self.execute("""SELECT COALESCE(e.id,l.id),t.price,t.source_time,t.received_at FROM stream_events t
+LEFT JOIN ab_legacy_stream_ids l ON l.source=t.source AND l.event_id=t.event_id
+LEFT JOIN ab_events e ON e.dataset='stream_events' AND e.event_key=t.source||':'||t.event_id
+WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone()
+        if row and row[0] is None:raise Stop('stream identity unknown')
+        return dict(zip(('sequence','price_usd','source_time','received_at'),row)) if row else None
+    def set_progress_handler(self,*args):return self.db.set_progress_handler(*args)
+    def commit(self):self.db.commit()
+    def rollback(self):self.db.rollback()
+    def __enter__(self):self._check();return self
+    def __exit__(self,kind,value,tb):
+        if kind:self.db.rollback()
+        else:self.db.commit()
+    def close(self):
+        if self.closed:return
+        self._check()
+        try:self.db.close()
+        finally:
+            self.stack.close();self.closed=True
+            with self.store.connection_lock:self.store.connections.discard(self)
+    def ab_stop_requested(self):return self.store.hold
+    def save_market(self,m,received):
+        if self.store.hold:raise Stop(self.store.hold)
+        # Durable metadata first; a raw failure leaves missing evidence, never a
+        # successful publication. The caller cannot roll back a committed raw save.
+        try:
+            with self.db:collector.save_market_record(self.db,m,received)
+        except BaseException:
+            self.store.hold='structured_metadata_save_failed';raise
+        return self.save_observation(m['id'],received,'metadata',m['raw'],m['raw'].get('updatedAt'))
+    def save_observation(self,market_id,received,kind,payload,source_time=None):
+        self._check()
+        if self.store.hold:raise Stop(self.store.hold)
+        if self.db.in_transaction:raise Stop('raw handoff requires clean application transaction')
+        raw=dict(market_id=market_id,received_at=received,kind=kind,payload=json.dumps(payload),source_time=source_time)
+        identity={k:v for k,v in raw.items() if k!='payload'};identity['received_at']=iso(received)
+        old=self.db.execute('SELECT id,payload FROM legacy.observations WHERE market_id=? AND kind=? AND received_at IN (?,?) AND source_time IS ? ORDER BY id LIMIT 2',(market_id,kind,received,iso(received),source_time)).fetchall()
+        if old:
+            if any(r[1]!=raw['payload'] for r in old):raise Stop('legacy observation identity conflict')
+            return old[0][0]
+        key='observation:'+digest(identity)
+        with self.store.collector_write():eid=self.protocol.save('observations',key,raw)
+        self._refresh();return eid
+    def save_stream_event(self,row):
+        self._check()
+        if self.store.hold:raise Stop(self.store.hold)
+        if self.db.in_transaction:raise Stop('raw handoff requires clean application transaction')
+        key=row['source']+':'+row['event_id']
+        legacy=self.db.execute('SELECT '+','.join(COLUMNS['stream_events'])+' FROM legacy.stream_events WHERE source=? AND event_id=?',(row['source'],row['event_id'])).fetchone()
+        if legacy:
+            old=dict(zip(COLUMNS['stream_events'],legacy))
+            if any(old[k]!=row[k] for k in row if k!='received_at'):raise Stop('legacy duplicate conflict')
+            return False
+        with self.store.collector_write():
+            prior=self.protocol.core.execute('SELECT id FROM events WHERE dataset=? AND event_key=?',('stream_events',key)).fetchone()
+            self.protocol.save('stream_events',key,row)
+        self._refresh();return prior is None
+    def protect_observation(self,event_id):
+        row=self.db.execute('SELECT * FROM observations WHERE id=?',(event_id,)).fetchone()
+        if not row:raise Stop('protected observation missing')
+        raw=dict(zip(COLUMNS['observations'],row))
+        prior=self.db.execute('SELECT * FROM main.observations WHERE id=?',(event_id,)).fetchone()
+        if prior and tuple(prior)!=tuple(row):raise Stop('protected identity conflict')
+        self.db.execute('INSERT OR IGNORE INTO main.observations VALUES(?,?,?,?,?,?)',row)
+        event=self.db.execute('SELECT gen FROM ab_events WHERE id=? AND dataset=? AND status=?',(event_id,'observations','committed')).fetchone()
+        if event:
+            record=canonical({'generation_id':event[0],'dataset':'observations','row':raw})
+            self.db.execute('INSERT OR IGNORE INTO ab_evidence VALUES(?,?,?)',(event_id,record,hashlib.sha256(record.encode()).hexdigest()))
+            self.db.execute('INSERT OR IGNORE INTO ab_required_evidence VALUES(?)',(event_id,))
+    def protect_feature_inputs(self,evidence):
+        self.protocol.guard()
+        self.protect_observation(evidence['metadata_observation_id'])
+        price=evidence.get('price') or {}
+        if price.get('source')=='coinbase_stream':
+            key='coinbase:'+str(price['input_id'])
+            event=self.db.execute("SELECT id,gen FROM ab_events WHERE dataset='stream_events' AND event_key=? AND status='committed'",(key,)).fetchone()
+            if event:
+                row=self.db.execute('SELECT * FROM stream_events WHERE source=? AND event_id=?',('coinbase',str(price['input_id']))).fetchone()
+                record=canonical({'generation_id':event[1],'dataset':'stream_events','row':dict(zip(COLUMNS['stream_events'],row))})
+                self.db.execute('INSERT OR IGNORE INTO ab_evidence VALUES(?,?,?)',(event[0],record,hashlib.sha256(record.encode()).hexdigest()))
+                self.db.execute('INSERT OR IGNORE INTO ab_required_evidence VALUES(?)',(event[0],))
+        self.protocol.trip('feature_evidence_ready')
+    def raw_archive_caught_up(self,dataset):
+        return not self.raw_archive_rows(dataset,1)
+    def feature_cycle_ready(self):self.protocol.trip('feature_cycle_committed')
+    def ab_retention_hold(self):return 'AB row cleanup prohibited; generation retirement requires drained operator phase'
+    def _row_generation(self,dataset,row):
+        if dataset=='observations':
+            event=self.db.execute("SELECT gen FROM ab_events WHERE dataset='observations' AND id=? AND status='committed'",(row['id'],)).fetchone()
+        else:
+            event=self.db.execute("SELECT gen FROM ab_events WHERE dataset='stream_events' AND event_key=? AND status='committed'",(row['source']+':'+row['event_id'],)).fetchone()
+        return event[0] if event else 'legacy'
+    def archive_batch_object_path(self,dataset,rows):
+        source,path=cloud_memory.archive_batch_object_path(dataset,rows)
+        gid=self._row_generation(dataset,rows[0])
+        return source, (gid+'/'+path if gid!='legacy' else path)
+    def archive_manifest_metadata(self,dataset,rows):
+        ids={self._row_generation(dataset,r) for r in rows}
+        if len(ids)!=1:raise Stop('archive must not span generations')
+        return {'generation_id':ids.pop(),'dataset':dataset}
+    def commit_verified_archive(self,cloud,dataset,rows,manifest):
+        if self.db.in_transaction:raise Stop('archive cannot run in writer transaction')
+        self.protocol.trip('archive_remote_verified')
+        name='archive:'+dataset;last=rows[-1]
+        key=None if dataset=='observations' else cloud_memory._stream_cursor_key(last)
+        source_id=last.get('source_id')
+        cloud_memory._cloud_checkpoint(cloud,name,source_id=source_id,source_time=last['received_at'],source_key=key,
+            rows_synced=cloud_memory._checkpoint(self,name)[3]+len(rows),status='verified',detail=manifest['object_path'])
+        with self:
+            self.record_archive_manifest(dataset,rows,manifest)
+            self.protocol.trip('archive_before_local_commit')
+            cloud_memory._save_checkpoint(self,name,source_id=source_id,source_time=last['received_at'],source_key=key,
+                rows_added=len(rows),status='verified',detail=manifest['object_path'])
+        self.protocol.trip('archive_checkpoint_committed')
+    def record_archive_manifest(self,dataset,rows,manifest):
+        gid=self.archive_manifest_metadata(dataset,rows)['generation_id']
+        if gid!='legacy':
+            self.db.execute('INSERT OR IGNORE INTO ab_manifests VALUES(?,?,?,?)',(gid,dataset,manifest['object_path'],canonical(manifest)))
+    def build_archive(self,dataset,rows):
+        lines=[]
+        for row in rows:
+            value=dict(row);payload=value.pop('payload')
+            json.loads(payload,parse_float=Decimal)
+            text=canonical(value)
+            lines.append('{"dataset":'+json.dumps(dataset)+',"row":'+text[:-1]+',"payload":'+payload+'}}')
+        raw=('\n'.join(lines)+'\n').encode();compressed=gzip.compress(raw,mtime=0)
+        return raw,compressed,hashlib.sha256(compressed).hexdigest()
+    def raw_archive_rows(self,dataset,limit):
+        # Reuse exact existing cursor semantics; avoid CREATE INDEX on temp view.
+        if dataset=='observations':
+            last=cloud_memory._checkpoint(self,'archive:observations')[0] or 0
+            cursor=self.execute('SELECT id AS source_id,id,market_id,received_at,source_time,kind,payload FROM observations WHERE id>? ORDER BY id LIMIT ?',(last,limit))
+        elif dataset=='stream_events':
+            _,at,key,_=cloud_memory._checkpoint(self,'archive:stream_events')
+            if at and key:
+                source,event=json.loads(key)
+                cursor=self.execute('SELECT * FROM stream_events WHERE (received_at,source,event_id)>(?,?,?) ORDER BY received_at,source,event_id LIMIT ?',(at,source,event,limit))
+            else:cursor=self.execute('SELECT * FROM stream_events ORDER BY received_at,source,event_id LIMIT ?',(limit,))
+        else:raise Stop('unknown raw archive dataset')
+        rows=cloud_memory._dict_rows(cursor)
+        if not rows:return rows
+        first=self._row_generation(dataset,rows[0]);end=0
+        for row in rows:
+            if self._row_generation(dataset,row)!=first:break
+            end+=1
+        return rows[:end]
+
+def store_uri(path):return Path(path).resolve().as_uri()+'?mode=ro'

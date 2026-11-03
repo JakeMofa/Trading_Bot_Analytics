@@ -49,12 +49,14 @@ class MemoryArchive:
         self.reads+=1;return self.objects[path]
 
 class Store:
-    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None):
+    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False):
         if Path(root).is_symlink():raise Stop('generated root symlink forbidden')
+        self.application_namespace=application_namespace;self._application_writer=threading.local()
         self.root=Path(root).resolve();self.ceiling=ceiling;self.core_ceiling=core_ceiling or ceiling
         if (not self.root.name.startswith('generated-ab-') or self.root.stat().st_uid!=os.getuid()
             or self.root.stat().st_mode&0o077 or Path('/opt/tradebot') in self.root.parents):raise Stop('private generated fixture required')
         self.fault=fault or (lambda phase:None);self._connections=threading.local();self.owner_thread=threading.get_ident();self.worker_count=0;self.wal_peaks={};self.peak=0;self.leases={};self.readerlock=threading.RLock();self.last_rotation_seconds=0
+        if (self.root/'owner.lock').is_symlink():raise Stop('owner lock symlink forbidden')
         self.lock=(self.root/'owner.lock').open('a+');fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if (self.root/'core.db').is_symlink():raise Stop('symlink forbidden')
         self.core=connect(self.root/'core.db')
@@ -89,10 +91,14 @@ CREATE INDEX IF NOT EXISTS manifests_generation ON manifests(gen,dataset);
         except BaseException:self.core.close();self.lock.close();raise
     @property
     def core(self):
-        if not hasattr(self._connections,'db'):self._connections.db=connect(self.root/'core.db')
+        if not hasattr(self._connections,'db'):self.core=connect(self.root/'core.db')
         return self._connections.db
     @core.setter
-    def core(self,value):self._connections.db=value
+    def core(self,value):
+        if self.application_namespace:
+            from protocol_namespace import ProtocolConnection
+            value=ProtocolConnection(value)
+        self._connections.db=value
     @contextmanager
     def worker_session(self):
         if threading.get_ident()==self.owner_thread:raise Stop('worker must own its connection')
@@ -162,9 +168,11 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 if any(Path(str(self.path(row['id']))+x).exists() for x in ('-wal','-shm')):raise Stop('orphan sidecars')
                 with self.core:self.core.execute("UPDATE generations SET state='retired' WHERE id=?",(row['id'],))
             # A surviving file requires fresh archive/drain verification. No unlink on startup.
+    def _owns_writer(self):
+        return threading.get_ident()==self.owner_thread or (self.application_namespace and getattr(self._application_writer,'authorized',False))
     def active(self):return self.core.execute("SELECT * FROM generations WHERE state='active'").fetchone()
     def rotate(self,receipt):
-        if threading.get_ident()!=self.owner_thread:raise Stop('collector owns handoff')
+        if not self._owns_writer():raise Stop('collector owns handoff')
         at=iso(receipt);old=self.active()
         if old and stamp(at)<stamp(old['started'])+timedelta(hours=HOURS):return old['id']
         begun=time.monotonic();self.guard()
@@ -178,7 +186,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
         self.trip('rotation_published');self.last_rotation_seconds=time.monotonic()-begun
         return gid
     def save(self,dataset,key,row):
-        if threading.get_ident()!=self.owner_thread:raise Stop('exactly one raw writer')
+        if not self._owns_writer():raise Stop('exactly one raw writer')
         if dataset not in COLUMNS:raise Stop('unsupported raw dataset')
         if not isinstance(key,str) or not 1<=len(key)<=512:raise Stop('event identity required')
         self.guard();r=dict(row);r['received_at']=iso(r['received_at'])

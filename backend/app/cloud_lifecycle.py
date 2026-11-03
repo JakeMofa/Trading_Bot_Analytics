@@ -265,7 +265,8 @@ def read_lifecycle_status(db_path):
 class LifecycleWorker:
     def __init__(self, db_path, config, retention, cloud_factory,
                  bucket=RAW_BUCKET, structured_batch_size=DEFAULT_BATCH_SIZE,
-                 now_fn=None, monotonic=None, should_stop=None):
+                 now_fn=None, monotonic=None, should_stop=None, connection_factory=None):
+        self.connection_factory = connection_factory
         self.db_path = str(db_path)
         self.config = config
         self.retention = retention
@@ -324,11 +325,15 @@ class LifecycleWorker:
                 break
             archived += manifest["event_count"]
             if manifest["event_count"] < self.config.raw_batch_size:
+                if hasattr(db, "raw_archive_caught_up") and not db.raw_archive_caught_up(dataset):
+                    continue
                 caught_up = True
                 break
         return archived, caught_up
 
     def _retention(self, db, cloud):
+        if hasattr(db, "ab_retention_hold"):
+            raise LifecycleError(db.ab_retention_hold())
         manifests = fetch_verified_manifests(cloud, self.bucket)
         plan = plan_retention(db, manifests, self.retention, self.now_fn(), self.bucket)
         result = apply_retention(db, plan, self.retention, confirm=True)
@@ -336,7 +341,7 @@ class LifecycleWorker:
 
     def run_cycle(self, force=False):
         """Run every due stage once. Returns a sanitized result dict."""
-        db = open_lifecycle_db(self.db_path)
+        db = self.connection_factory() if self.connection_factory else open_lifecycle_db(self.db_path)
         result = {"structured": None, "archive": {}, "retention": None, "errors": []}
         try:
             initialize_local_sync(db)
@@ -434,7 +439,7 @@ class LifecycleWorker:
     def run_forever(self, stop, poll_seconds=1.0, on_cycle=None):
         """Loop until `stop` (threading.Event) is set; each stage keeps its own cadence."""
         self.continuous = True
-        db = open_lifecycle_db(self.db_path)
+        db = self.connection_factory() if self.connection_factory else open_lifecycle_db(self.db_path)
         try:
             initialize_lifecycle_state(db)
             self._record(db, worker_status="running", worker_pid=os.getpid(),
@@ -453,7 +458,7 @@ class LifecycleWorker:
                 waits = [value - self.monotonic() for value in self._next_due.values()]
                 stop.wait(max(poll_seconds, min(min(waits), 30.0)))
         finally:
-            db = open_lifecycle_db(self.db_path)
+            db = self.connection_factory() if self.connection_factory else open_lifecycle_db(self.db_path)
             try:
                 initialize_lifecycle_state(db)
                 self._record(db, worker_status="stopped", worker_pid=None)

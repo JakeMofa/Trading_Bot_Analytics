@@ -380,3 +380,23 @@ else:
                 with old:old.execute('UPDATE feature_snapshots SET evidence_json=?',(json.dumps(evidence),))
                 old.close()
                 with self.assertRaises(Stop):ApplicationStore(f,p,routing=True)
+    def test_failed_routed_polymarket_save_stops_stream_and_storage_hold_degrades(self):
+        import asyncio
+        from live_health import degradation_reasons
+        class WS:
+            async def __aenter__(self):return self
+            async def __aexit__(self,*args):pass
+            async def send(self,msg):pass
+            async def recv(self):return json.dumps({'marketData':{'marketSlug':'m','transactTime':iso(T)}})
+        class DB:
+            def ab_stop_requested(self):return 'durable_raw_save_failed'
+        async def run():
+            stop=asyncio.Event()
+            with patch.object(streaming,'current_market',return_value=('m','m')),patch.object(streaming,'auth_headers',return_value={}),patch.object(streaming,'save_polymarket',side_effect=Stop('generated')) as saved,patch.object(streaming,'health'):
+                await asyncio.wait_for(streaming.polymarket_stream(DB(),stop,'generated','generated',connector=lambda *a,**kw:WS()),.2)
+                self.assertTrue(saved.called)
+            self.assertTrue(stop.is_set())
+        # Actual current_market query result is inspected below; this mock only
+        # supplies a generated subscription identity, never contacts a venue.
+        asyncio.run(run())
+        self.assertIn('storage_guard_blocked',degradation_reasons({'feeds':{'storage_guard':{'status':'blocked'}}},{},now=T))

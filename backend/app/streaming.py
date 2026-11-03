@@ -329,6 +329,8 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect, live
                             last_saved=last_data
                             health(db,'polymarket_stream','live',data=True,live_state=live_state); attempt=0
         except Exception as exc:
+            if hasattr(db, 'ab_stop_requested') and db.ab_stop_requested():
+                health(db,'polymarket_stream','blocked',db.ab_stop_requested(),live_state=live_state);stop.set();return
             health(db,'polymarket_stream','disconnected',type(exc).__name__,reconnect=True,live_state=live_state)
             await pause(stop,reconnect_delay(attempt)); attempt+=1
     health(db,'polymarket_stream','stopped',live_state=live_state)
@@ -400,6 +402,7 @@ async def rest_loop(path, db, stop, interval, live_state=None, connection_factor
             messages=(await asyncio.to_thread(rest_cycle,path,refresh,connection_factory) if connection_factory
                       else await asyncio.to_thread(rest_cycle,path,refresh))
             if hasattr(db, 'ab_stop_requested') and db.ab_stop_requested():
+                health(db,'storage_guard','blocked',db.ab_stop_requested(),live_state=live_state)
                 health(db,'rest_supervisor','blocked',db.ab_stop_requested(),live_state=live_state);stop.set();return
             sync_live_market(db,live_state)
             if refresh:

@@ -35,7 +35,7 @@ def _saved_dashboard(db_path, chart=False, connection_factory=None):
             saved = status(db)
             return {key: saved[key] for key in (
                 'evaluation', 'news', 'news_last_seen', 'outcomes', 'evidence')}
-    except (OSError, sqlite3.Error, ValueError, TypeError, KeyError):
+    except (OSError, sqlite3.Error, ValueError, TypeError, KeyError, RuntimeError):
         return {'status': 'unavailable', 'points': [], 'market': None} if chart else {'status': 'unavailable'}
 
 

@@ -2494,3 +2494,10 @@ Production untouched, collection remains recordedSTOP; both production gates,
 retention and paidAI remainOFF. Capacity16/21GiB remains unapproved/unqualified.
 Representative volume, actual cloudRLS/auth and production cutover/verification
 controls remainNOTPROVEN; passing generated integration cannot authorize migration.
+
+AB72 compatibility candidate follow-up: routed Polymarket save failures now stop
+that source immediately without reconnecting; latched REST storage holds degrade
+aggregate health explicitly. History holds retain the existing unavailable HTTP
+response contract. Focused generated source-stop test asserts the save itself was
+attempted, uses no venue keys/network, and passes. Freeze successor source for
+exact-commit Linux CI; no production enablement or operations authorized.

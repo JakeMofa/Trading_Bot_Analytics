@@ -67,7 +67,7 @@ when generating; these character counts alone do not certify byte allocation.
 |Raw payload target|10,969,000,000; fixed counts times largest fixed shape|
 |Raw index allowance|10,969,000,000;100%payload hypothesis, NOT measured upper bound|
 |Persistent identity ledger allowance|6,615,040,000;512B/event hypothesis, NOT measured production slope|
-|Other structured/protected evidence|2,147,483,648; explicit hypothesis/cap, not omitted|
+|Legacy audit/ID maps and other structured/protected evidence|2,147,483,648; explicit hypothesis/cap, not omitted|
 |Aggregate WAL|1,073,741,824; proposed measurement cap, not production qualification|
 |Archive/TEMP|2,147,483,648; filesystem working term|
 |Recovery|1,073,741,824; separate reserve including >=512MiB physical headroom|
@@ -122,6 +122,10 @@ body, credentials or private raw payload entered reports. Initial read filtered 
 source='observations' returned no rows: deployed source is provider identity (latest
 coinbase), dataset is in metadata; adapter already preserves that distinction.
 
+All eight inspected tables have RLS enabled; service_role catalog SELECT/INSERT/UPDATE
+grants are present. These catalog grants do not identify or authenticate the runtime
+key and do not prove HTTPwrite/concurrent behavior. No grants or policies changed.
+
 Read: PASS for inspected metadata/schema/cursors. Fresh runtime private-object
 HTTPread: NOTPROVEN. Write/RLS/concurrent conditional insert/ambiguous write:
 NOTPROVEN; no real cloud mutations performed. Existing MockTransport cases remain
@@ -138,6 +142,12 @@ One operation in the existing project/bucket using exact namespace
 -720000000001 through-720000000008. Preflight GET each exact identity: if any exists,
 STOP without overwrite or automatic retry under another prefix. Never advance a
 real archive/checkpoint cursor or update existing production records.
+
+Exact eight-row maximum:2markets,1snapshot,1prediction,2rawmanifests,1isolated
+checkpoint and1news event. Initial creation must be conditional insert-only even
+for mutable tables: no merge-upsert may overwrite a hidden pre-existing identity.
+An existing or unreadable conflicting identity is STOP. Later same-identity probes
+are confined to proven test-owned records with exact evidence reconciliation.
 
 At most2objects,65536bytes/object; at most8synthetic structured/manifest/checkpoint
 rows,16384encoded bytes/row; at most60HTTPattempts and180seconds across preparation,
@@ -167,7 +177,11 @@ code rollback/restart is incompatible with committed A/B writes. Added a default
 off **generated_transition** rehearsal capability: rejects non-private/non-generated
 roots and production paths before preflight; starts the original envelope before
 preparation; uses512MiBreserve, never the consumed128MiBexception; records transition
-intent BEFORE a potentially committing call. Any failure after intent preserves
+intent BEFORE a potentially committing call. The rehearsal binding additionally covers main/WAL device,inode,length,allocated
+bytes andmtime, not schema/inode alone. A same-schema data mutation after successful
+verification is tested to STOP before transition. This metadata binding still
+requires complete quiescence and full checks; it is not a full content hash.
+Any failure after intent preserves
 files, stops roles, requires forward recovery and never checks out old code or
 restarts an unaware writer. Earlier failures also preserve the stopped state.
 Normal pinned rollover route/default behavior and existing numeric limits unchanged.
@@ -204,7 +218,9 @@ Collection is already stopped; no time accounting can turn this outage into a
 newly approved2590s deployment. A larger verification/maintenance envelope requires
 review with measured evidence, not silent exclusion of preparation or old outage.
 
-The actual importer still refuses >10000total legacy rows/128MiBencoded audit and
+The importer now rejects over-bound input after at most10001row visits instead of
+COUNT(*) scanning arbitrary raw history; a >10000-row generated legacy test proves
+the bound without a full count. It still refuses >10000total legacy rows/128MiBencoded audit and
 production paths. Exact structured counts alone exceed10000. This is an explicit
 technical prerequisite, not an invitation to remove a check. A bounded streaming
 import/audit under the reviewed resource policy and production old-writer guard

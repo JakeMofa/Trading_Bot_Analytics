@@ -2702,3 +2702,16 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   arithmetic not policy. Currentstreaming/productionguard/cloud/fullverify gates
   remain explicit. No production approval requested. See consolidated readiness
   reportAB72_PRODUCTION_READINESS_2026-11-03.md for prerequisites and evidence.
+
+### November3 — readiness binding and bounded migration preflight correction
+
+- Before successorfreeze, added data-allocation binding in generated operator
+  rehearsal: main/WALdevice,inode,length,allocation,mtime plus schemaidentity.
+  Same-schema post-verification rowmutation STOPs before transition.
+- Generated importer bound now visits at most10001rows and rejects, rather than
+  COUNT(*) over arbitrary rawhistory. Original10000rows/128MiBaudit limits remain.
+- Local application34tests PASS/2Linuxroot-only skips; new transition6tests PASS;
+  controls120tests PASS/3Macplatform skips. Exact successor exportedLinuxCI still
+  required;af3d8cb is intermediate preparation, not final migration authorization.
+- No productionmutation,limitincrease,largeprofile or livecloudwrite. Consolidated
+  readiness report retains resource/cloud/verification/liveguard prerequisites.

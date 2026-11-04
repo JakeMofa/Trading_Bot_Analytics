@@ -6,6 +6,7 @@ HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
 sys.path.insert(0,str(HERE));sys.path.insert(0,str(ROOT/'backend/tests'))
 import maintenance_controller as controller
 import release_verification as verifier
+from ab72_metadata import verification_binding
 from test_ab_application import legacy,T,iso
 from application_store import ApplicationStore
 import collector
@@ -26,7 +27,7 @@ class GeneratedHost:
     def start(self,u,b):self.action('start:'+u)
     def require_quiescence(self,b):self.action('quiescence')
     def allocation(self,b):return {'headroom_mib':512}
-    def identity(self,b):return verifier._identity(self.path)
+    def identity(self,b):return verification_binding(self.path)
     def verify(self,reap,b):
         self.action('verify')
         return verifier.check_database(self.path,min(b,10))
@@ -88,3 +89,20 @@ class Tests(unittest.TestCase):
             host.preflight=slow;report=controller.run(host,lambda:host.t,generated_transition=True)
             self.assertEqual(report['status'],'STOP');self.assertNotIn('transition',host.actions)
             self.assertGreater(report['other_seconds'],600)
+
+    def test_same_schema_data_change_invalidates_verification_binding(self):
+        import sqlite3
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            host=GeneratedHost(root);original=host.verify
+            def changed(reap,b):
+                result=original(reap,b)
+                db=sqlite3.connect(host.path)
+                try:
+                    db.execute("UPDATE observations SET payload='changed' WHERE id=90");db.commit()
+                finally:db.close()
+                return result
+            host.verify=changed
+            report=controller.run(host,lambda:host.t,generated_transition=True)
+            self.assertEqual(report['status'],'STOP')
+            self.assertEqual(report['reason'],'verification binding changed')
+            self.assertNotIn('transition',host.actions)

@@ -596,3 +596,21 @@ finally:worker.close()
                 self.assertEqual(streaming.sync_live_market(db,state,at)[0],'next')
                 self.assertEqual(state.market_identity()[0],'next')
             finally:db.close();s.close()
+
+    def test_large_legacy_rejected_by_bounded_probe_not_full_count_scan(self):
+        from application_store import MAX_ROWS
+        import application_store
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            path=Path(root)/'generated-legacy.db';legacy(path)
+            native=sqlite3.connect(path)
+            native.execute('CREATE TABLE generated_probe(id INTEGER PRIMARY KEY)')
+            native.executemany('INSERT INTO generated_probe VALUES(?)',((i,) for i in range(MAX_ROWS+1)))
+            native.commit();native.close();queries=[]
+            original=application_store.connect
+            def tracked(*args,**kwargs):
+                db=original(*args,**kwargs);db.set_trace_callback(queries.append);return db
+            with patch.object(application_store,'connect',side_effect=tracked):
+                with self.assertRaisesRegex(Stop,'generated migration qualification bound exceeded'):
+                    ApplicationStore(root,path,routing=True)
+            self.assertFalse(any('COUNT(*)' in q.upper() for q in queries))
+            self.assertTrue(any('SELECT 1 FROM "generated_probe" LIMIT' in q for q in queries))

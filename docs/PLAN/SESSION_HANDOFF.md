@@ -87,6 +87,8 @@ Existing maintenance controller now has generated-only transition rehearsal,
 never production enablement: failed/ambiguous migration preserves stopped state
 and durable new rows, no old-code rollback/restart. Default route unchanged;
 512MiBrehearsalreserve/no128MiBexception; preflight included in originalenvelope.
+Binding includes main/WALallocation/mtime; same-schema datachange blocks transition.
+Importer over-bound preflight visits at most10001rows, never a full rawCOUNTscan.
 Generated real ApplicationStore/verifier/control tests and bounded metadata tests
 added. Exact successorCI/results are recorded in readiness completion addendum.
 

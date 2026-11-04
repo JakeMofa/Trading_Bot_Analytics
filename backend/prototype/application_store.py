@@ -58,8 +58,15 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             if any(r['name'].startswith('news_events_fts') and r['name']!='news_events_fts' and r['name'] not in shadows for r in schema):raise Stop('unexpected FTS-prefixed table')
             schema=[r for r in schema if r['name']!='news_events_fts' and r['name'] not in shadows]
 
-            count=sum(legacy.execute('SELECT COUNT(*) FROM "'+r['name']+'"').fetchone()[0] for r in schema)
-            if count>MAX_ROWS:raise Stop('generated migration qualification bound exceeded')
+            # Reject over-bound legacy input after at most MAX_ROWS+1 row
+            # visits, rather than COUNT(*) scanning an arbitrary raw history.
+            # This does not raise the generated migration allowance.
+            count=0
+            for table in schema:
+                quoted=table['name'].replace('"','""')
+                for _ in legacy.execute('SELECT 1 FROM "'+quoted+'" LIMIT ?', (MAX_ROWS-count+1,)):
+                    count+=1
+                    if count>MAX_ROWS:raise Stop('generated migration qualification bound exceeded')
             audit=hashlib.sha256(canonical({'path':str(self.legacy),'schema':[tuple(r) for r in schema]}).encode());audited_bytes=0
             for table in schema:
                 audit.update(table['name'].encode()+b'\0')

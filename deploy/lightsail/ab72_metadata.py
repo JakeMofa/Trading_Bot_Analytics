@@ -34,6 +34,23 @@ def inspect(path,seconds=3):
             'filesystem_free_bytes':os.statvfs(path.parent).f_bavail*os.statvfs(path.parent).f_frsize}
     finally:db.close()
 
+def verification_binding(path):
+    """Quiescent identity, not a substitute for full checks or FD visibility.
+
+    Bind main/WAL inode, length, allocation and mtime as well as schema identity.
+    SHM lock-byte changes from readers are not data changes. Capture after closing
+    the identity reader; no immutable mode, checkpoint or payload scan.
+    """
+    from release_verification import _identity
+    path=Path(path);identity=_identity(path);files={}
+    for suffix in ('','-wal'):
+        p=Path(str(path)+suffix)
+        if p.is_symlink():raise ValueError('binding sidecar symlink')
+        if p.exists():
+            st=p.stat();files[suffix or 'main']=(st.st_dev,st.st_ino,st.st_size,st.st_blocks*512,st.st_mtime_ns)
+    return {'schema_identity':identity,'files':files}
+
+
 if __name__=='__main__':
     import argparse
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('path');args=parser.parse_args()

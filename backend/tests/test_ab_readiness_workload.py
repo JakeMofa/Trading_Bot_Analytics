@@ -14,3 +14,5 @@ class Tests(unittest.TestCase):
         p=plan();self.assertGreater(p['parts_bytes']['core_ledger_assumed'],6*GIB)
         self.assertEqual(p['spec']['requested_workspace_bytes'],40*GIB)
         self.assertEqual(p['spec']['requested_wall_seconds'],172800)
+        self.assertEqual(p['spec']['max_processes'],3)
+        self.assertEqual(p['spec']['required_host_available_memory_bytes'],2*GIB)

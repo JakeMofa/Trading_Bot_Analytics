@@ -16,7 +16,7 @@ SPEC={
  'TEMP_archive_allowance_bytes':2*GIB,'recovery_allowance_bytes':GIB,
  'requested_workspace_bytes':40*GIB,'filesystem_free_floor_bytes':10*GIB,
  'requested_wall_seconds':48*3600,'per_process_as_bytes':512*1024**2,
- 'max_processes':2,'required_host_available_memory_bytes':1536*1024**2,
+ 'max_processes':3,'required_host_available_memory_bytes':2048*1024**2,
  'core_feature_snapshot_target':18289,'prediction_target':27743,
  'legacy_markets_target':1826,'direct_reference_rows_target':20,'direct_reference_observation_targets':8,
  'embedded_reference_cardinality':'UNKNOWN_DO_NOT_FABRICATE',

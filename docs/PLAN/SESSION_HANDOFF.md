@@ -93,7 +93,7 @@ Generated real ApplicationStore/verifier/control tests and bounded metadata test
 added. Exact successorCI/results are recorded in readiness completion addendum.
 
 Unexecuted stress specification needs proposed40GiBworkspace/48hdeadline plus10GiB
-free floor,>=1.5GiBavailableRAM,512MiB/process,max2processes/oneCPU. Neither measured
+free floor,>=2GiBavailableRAM,512MiB/process,max3processes/oneCPU. Neither measured
 host meets prerequisites. Current2GiB/170/180s limits unchanged. No fixed production
 ceilings derived:16/21unqualified;stress arithmetic31/36also unqualified. No expired
 authority/deadline reused. Remaining streaming importer currently stops at10000rows,

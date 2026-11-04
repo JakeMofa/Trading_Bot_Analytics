@@ -75,9 +75,14 @@ when generating; these character counts alone do not certify byte allocation.
 
 Proposed **generated-only** workspace ceiling40GiB (42,949,672,960bytes), with10GiB
 additional actual filesystem-free floor; total required free space before start
-50GiB (53,687,091,200bytes). Keep512MiB AS/process, at most2processes, one serial
-feature worker, one collector; require >=1.5GiB available host RAM and one CPU core
-maximum. Proposed one48-hour absolute wall deadline includes export, preparation,
+50GiB (53,687,091,200bytes). Keep512MiB AS/process, at most3processes, one serial
+feature worker, one collector; require >=2GiB available host RAM and one CPU core
+maximum. The three-process family includes collector/feature parent, lifecycle
+worker and its hard cloud-request child. Ignoring that descendant would understate
+memory demand. VM total RAM is itself below the proposed available-memory floor;
+stopping services alone cannot qualify that VM. Mac full Linux FD/platform proof
+is unavailable even if its free-space deficit is independently resolved.
+Proposed one48-hour absolute wall deadline includes export, preparation,
 all requests/readback/recovery/report; no clock reset, automatic retry or soak.
 Original99.69rows/s small-workload throughput extrapolates about36hours for12.92M
 new events before extra large-fixture preparation; it cannot promise48h completion.
@@ -87,7 +92,7 @@ fails. A profile timing out is NOTPROVEN, not permission to enlarge it again.
 These limits are proposals only. Current2GiB/512MiB/170s-work/180s-total harness
 limits were not changed, nor was a large trial launched. Existing VM lacks the
 50GiB free-space prerequisite by3,880,255,488bytes and available-memory prerequisite
-by250864KiB. Operator Mac had33,883,201,536bytes available (df sample), also below
+by775152KiB. Operator Mac had33,883,201,536bytes available (df sample), also below
 50GiB by19,803,889,664bytes. Neither recorded host currently qualifies. No deletion,
 resource provisioning, service stop or filesystem expansion was used to make room.
 Before executing an amended profile, an existing approved host must meet these
@@ -252,7 +257,7 @@ REMAINING GATES: resource host,full-volume streaming/import/evidence audit,runti
 complete verification timing,guarded live path/old-writer isolation and exact releaseCI.
 APPROVAL NEEDED: **no production migration approval requested**. One proposed prerequisite
 package is40GiB/48hgenerated-only qualification on an existing host with>=50GiBfree,
->=1.5GiBavailable RAM,512MiB/process,max2processes/oneCPU,plus the narrowly bounded
+>=2GiBavailable RAM,512MiB/process,max3processes/oneCPU,plus the narrowly bounded
 synthetic cloud operation above. Neither current host meets the storage prerequisites;
 no dispatch even if policy is approved until they freshly pass. No existing files
 may be deleted to make room without separate authorization. No new infrastructure.

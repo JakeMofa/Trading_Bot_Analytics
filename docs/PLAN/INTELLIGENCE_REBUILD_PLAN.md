@@ -2715,3 +2715,13 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   required;af3d8cb is intermediate preparation, not final migration authorization.
 - No productionmutation,limitincrease,largeprofile or livecloudwrite. Consolidated
   readiness report retains resource/cloud/verification/liveguard prerequisites.
+
+### November3 — prerequisite resource family correction before final freeze
+
+- Proposed generated resource package counts collector/feature parent,lifecycle
+  worker AND hard-request child:3processes at unchanged512MiB AS each; require
+  2GiBavailablehostRAM including512MiBhostreserve, not2processes/1.5GiB.
+- ExistingVM totalRAM is below that available-memory floor; service stops cannot
+  qualify it. ExistingMac also lacks fullLinuxFD/platformproof and50GiBfree.
+-40GiB/48h generatedworkspace policy and syntheticcloud test remain proposals,
+  not execution permission. Existing qualificationlimits and production unchanged.

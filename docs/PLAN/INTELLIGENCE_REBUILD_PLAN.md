@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Exported AB72 candidate61e0008 exact-CI41738983997 PASS_SCALED_INTEGRATED:340backend/17rootprotocol/33rootapp/112controls,4000newcommits/4002archives,20publications across BOTH simulated markets,0errors. Production readiness NOTPROVEN: real schema/volume/protected audit,cloudRLS,capacity,completeverification timing and guarded live cutover/legacy decommission. Keep productionSTOP/flagsOFF/cleanup0;16/21GiB proposals unapplied;Phase1.75 OPEN. See AB72_EXPORTED_CANDIDATE_RESULT_2026-11-03.md.
+**Next gate:** Production readiness NOTPROVEN after528e798; frozen61e0008/CI41738983997 remains scaled baseline. Generated forward-recovery controls and bounded deployed metadata prepared. Representative resource host, streaming/import audit, real cloud permission/concurrency, full verification budget and guarded live cutover still held. No production change or numeric ceiling approval. See AB72_PRODUCTION_READINESS_2026-11-03.md.
 
 ### October 23, 2026 migration preflight
 
@@ -2682,3 +2682,23 @@ stillNOTPROVEN. Existing1800verify/600other/10reap/180recovery/2590interruptionl
 andexpiredcapdeadline not changed/reused. No production approval requested.
 Productionmulticycle/realboundary/sustained72h/144hacceptance NOTPERFORMED.
 I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
+
+### November3 — production-readiness preparation after528e798
+
+- Frozen61e0008/CI41738983997 PASS_SCALED_INTEGRATED preserved. No unchanged
+  representative trial, architecture restart or production migration.
+- Fresh bounded metadata using existing pinnedSSH route:5323907072Bmain,
+  45178880BallocatedWAL,49806835712Bfree,1826markets,18289snapshots,27743predictions,
+  20directlinks/8targets. Raw count/embeddedreference audit still NOTPROVEN.
+- Deployed Supabase read-only schema/conflictkeys/cursors/privatebucket compatible
+  within inspected scope; runtime privateHTTP/write/concurrency NOTPROVEN.
+- Existing maintenancecontroller generated-only transition mode now preserves
+  stopped state/commits and recoversforward; productionpath rejected, defaultmode
+  unchanged. Full quick/FK actual generatedadapter checks; metadata/privacy cases.
+- Fixed stress proposal and quantified host deficits prepared;40GiBworkspace/48h
+  plus10GiBfree and1.5GiBavailableRAM proposed ONLY. Neither currenthost qualifies.
+  Current2GiB/170/180s/512MiB limits not changed; no largefixture launched.
+- Production ceilings notderived: old16/21unqualified, stronger31/36stress-only
+  arithmetic not policy. Currentstreaming/productionguard/cloud/fullverify gates
+  remain explicit. No production approval requested. See consolidated readiness
+  reportAB72_PRODUCTION_READINESS_2026-11-03.md for prerequisites and evidence.

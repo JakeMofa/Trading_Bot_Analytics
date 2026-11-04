@@ -73,6 +73,31 @@ is the frozen qualified candidate; later evidence-only docs commits are not rele
 candidates and must not inherit its CI for deployment. No repeated polling,
 unchanged qualification, automatic soak or production retry. I7/Phase1.75 OPEN.
 
+## Successor readiness preparation after528e798
+
+See [production readiness](AB72_PRODUCTION_READINESS_2026-11-03.md). Fresh bounded
+Nov4UTC/Nov3local metadata confirms legacy5323907072B main/45178880B allocatedWAL,
+49806835712B filesystemfree;1826markets/18289snapshots/27743predictions/20links to8
+observations. Raw/embedded-reference cardinalities remain unqualified. Existing
+pinned SSH trust/key reused; no credential read/display or production changes.
+Supabase connector metadata matches schema/keys/cursors/private market-raw bucket;
+runtime HTTPread/write/concurrency still NOTPROVEN.
+
+Existing maintenance controller now has generated-only transition rehearsal,
+never production enablement: failed/ambiguous migration preserves stopped state
+and durable new rows, no old-code rollback/restart. Default route unchanged;
+512MiBrehearsalreserve/no128MiBexception; preflight included in originalenvelope.
+Generated real ApplicationStore/verifier/control tests and bounded metadata tests
+added. Exact successorCI/results are recorded in readiness completion addendum.
+
+Unexecuted stress specification needs proposed40GiBworkspace/48hdeadline plus10GiB
+free floor,>=1.5GiBavailableRAM,512MiB/process,max2processes/oneCPU. Neither measured
+host meets prerequisites. Current2GiB/170/180s limits unchanged. No fixed production
+ceilings derived:16/21unqualified;stress arithmetic31/36also unqualified. No expired
+authority/deadline reused. Remaining streaming importer currently stops at10000rows,
+128MiBaudit; actual production old-writer OS isolation/cutover route still missing.
+No migration approval requested; one consolidated prerequisite package in report.
+
 ## Production: recorded state, not a fresh live audit
 
 Bounded Nov3 checks recorded:

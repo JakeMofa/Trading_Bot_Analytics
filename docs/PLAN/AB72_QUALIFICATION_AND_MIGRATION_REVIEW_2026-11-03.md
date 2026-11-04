@@ -1,5 +1,10 @@
 # 72-hour A/B/core generated qualification and consolidated release review
 
+Current production-readiness evidence and the consolidated prerequisite package:
+[AB72_PRODUCTION_READINESS_2026-11-03.md](AB72_PRODUCTION_READINESS_2026-11-03.md).
+Frozen61e0008/CI41738983997 remains the completed scaled baseline. No production
+ceiling, resource amendment or migration approval follows from these reports.
+
 This implements selected policy2470103. It supersedes the old5GiB-only planning
 NO-GO; it does not change production. **Overall production qualification: NOT PROVEN.**
 The deliverable includes working generated files/code/tests, not just a design.

@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Production readiness NOTPROVEN after528e798; frozen61e0008/CI41738983997 remains scaled baseline. Generated forward-recovery controls and bounded deployed metadata prepared. Representative resource host, streaming/import audit, real cloud permission/concurrency, full verification budget and guarded live cutover still held. No production change or numeric ceiling approval. See AB72_PRODUCTION_READINESS_2026-11-03.md.
+**Next gate:** Readiness successor835e507 exactCI41745773184 INPROGRESS at singlecheck, not PASS; frozen61e0008/CI41738983997 scaled baseline preserved. Resource-host/cloud/streaming-audit/fullverify/liveguard gates NOTPROVEN; production held, no policy amendment or authority extension. See AB72_PRODUCTION_READINESS_2026-11-03.md; completion notification or one check onresume, no polling.
 
 ### October 23, 2026 migration preflight
 
@@ -2725,3 +2725,23 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   qualify it. ExistingMac also lacks fullLinuxFD/platformproof and50GiBfree.
 -40GiB/48h generatedworkspace policy and syntheticcloud test remain proposals,
   not execution permission. Existing qualificationlimits and production unchanged.
+
+### November3 — consolidated readiness handoff, no production authority
+
+- Frozen readiness successor835e5075183231a9f5f4d8541b4f33f85c14eb8d pushed.
+  ExactCI41745773184 INPROGRESS at single check, not PASS. Await completion or
+  one statuscheck onresume; no backgroundpoller/soak. Later documentation HEAD
+  is not releasecandidate and cannot inherit sourceCI.
+- Frozen61e0008/CI41738983997 scaledintegrated acceptance preserved. New controls,
+  boundedschema/dataallocation binding and bounded10001row importpreflight tested.
+  Local340backend+2workload,34application and120controls PASS with explicit platform
+  skips requiring exactLinuxCI; expected successorfullbackend343 not claimed yet.
+- Consolidatedreport includes freshmetadata, actualschema/conflictkeys/privatebucket
+  andcatalogprivileges; metadata grants do not certify runtime HTTP/writeconcurrency.
+- Resourceproposal40GiBworkspace/48h oneattempt +10GiBfreefloor,3processes at512MiB AS,
+  >=2GiBavailableRAM/oneCPU. Neithercurrenthost passes. No increasedfixture or
+  cloudsyntheticwrite executed. No16/21or31/36GiBproductionpolicy adopted.
+- ProductionreadinessNOTPROVEN. Streamingvolume/importaudit,actualcloud,
+  completeverificationfinish andproductionlegacywriterOSguard/livebindings remain.
+  No productionapproval requested; one prerequisite reviewpackage only. Existing
+  deadlineexpired unchanged; collectionstopped/retentionOFF/paidAIOFF/cleanup0.

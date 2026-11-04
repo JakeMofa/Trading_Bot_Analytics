@@ -264,3 +264,54 @@ may be deleted to make room without separate authorization. No new infrastructur
 NEXT ACTION: review that prerequisite package/host availability, then finish the
 streaming/live-guard implementations and qualify their exact successor. Do not ask
 for production enablement while those preceding gates remain unproven.
+
+
+## Qualification and safe fixture cleanup
+
+No40GiB/48h profile has run. Proposed one-use qualification authority would expire
+at the original48h wall deadline; no unchanged retry, clock reset or background
+process survives it. Export/fixture creation, cloud phases, all descendants,
+verification, report and owned-child reaping must fit that one deadline. Existing
+170/180s harness still controls current tests; approving a proposal does not bypass
+its executable guards or make a larger runner qualified.
+
+Count ordinary/unlinked TEMP and all descendants, every retained legacy/staged/
+core/A/B/allWAL file, report/source export and generated mock cloud in that workspace.
+Do not stop unrelated processes or treat unused internal pages as physical credit.
+On timeout/failure kill/reap only the owned family and preserve the bounded evidence.
+Cleanup may remove only the single private generated workspace after all its SQLite
+handles/descendants are proved closed; no individual WAL/SHM operation, unrelated
+path, production DB or source export substitution. If closure/ownership proof fails,
+retain it and report the residual allocation instead of retrying cleanup. Never
+remove private real-cloud historical objects; synthetic cleanup requires its own
+exact permission and scope as specified above.
+
+Local validation: original full backend340tests PASS with10platform/privilege skips;
+new workload2tests PASS; changed application34tests PASS with2Linux-root skips;
+full controls120tests PASS with3Linux skips. Local skips are NOTpasses: Linux root
+retirement/FD/process-family accounting, installed-strace and process-group child
+supervision require the exact exported LinuxCI; the relevant six retirement cases
+must run in its root17protocol/34application steps. Full new backend count expected
+343, not claimed before CI completes. No unchanged representative-volume trial
+was run; CI's fixed small profile is only successor export regression coverage.
+
+Sensitive data stayed private: evidence directory contains only metadata JSON and
+sanitized test logs, no database, credentials or raw payload bodies:
+`/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/ab72-readiness-835e507/`.
+
+
+## Frozen readiness successor / CI handoff
+
+Exact readiness successor: **835e5075183231a9f5f4d8541b4f33f85c14eb8d**.
+[Exact CI41745773184](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41745773184)
+was **IN_PROGRESS at the single status check**, not claimed PASS. It runs full
+exported suites, root platform cases and the actual exported ApplicationStore
+regression profile. Use its completion notification or one status check when
+resuming; no polling/background watcher was started. No migration or increased
+resource trial may infer success from the previous61e0008CI or a running job.
+
+Intermediate af3d8cb/e47f221 prepared controls before the binding/process-family
+corrections; their CI is not the final835e507qualification. Preserve the original
+61e0008scaled acceptance. A later evidence-only documentation HEAD is not a release
+candidate and cannot inherit835e507CI. This checkpoint's production-readiness result
+remains NOTPROVEN even if the small exact-export regression passes.

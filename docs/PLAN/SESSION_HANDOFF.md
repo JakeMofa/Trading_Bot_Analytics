@@ -75,7 +75,10 @@ unchanged qualification, automatic soak or production retry. I7/Phase1.75 OPEN.
 
 ## Successor readiness preparation after528e798
 
-See [production readiness](AB72_PRODUCTION_READINESS_2026-11-03.md). Fresh bounded
+See [production readiness](AB72_PRODUCTION_READINESS_2026-11-03.md). Readiness successor
+835e5075183231a9f5f4d8541b4f33f85c14eb8d, exactCI41745773184 INPROGRESS at the
+single status check (not PASS). Resume via completion notification or one check,
+no polling. Later evidence-only docs HEAD is not a release candidate. Fresh bounded
 Nov4UTC/Nov3local metadata confirms legacy5323907072B main/45178880B allocatedWAL,
 49806835712B filesystemfree;1826markets/18289snapshots/27743predictions/20links to8
 observations. Raw/embedded-reference cardinalities remain unqualified. Existing

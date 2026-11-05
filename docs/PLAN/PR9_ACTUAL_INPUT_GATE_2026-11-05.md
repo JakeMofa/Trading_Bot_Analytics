@@ -46,8 +46,8 @@ confirmed observations INTEGER PRIMARY KEY(rowid=?) and stream composite PK
 |5|1|2026-10-01T00:17:05.317989+00:00|36|
 
 This check completed in0.41986s and stopped after five examples. It is NOT a complete
-missing-reference census. No raw-history scan or payload was returned. No further
-production reads were made after establishing this activation blocker. The source
+missing-reference census. No raw-history scan or payload was returned. The initial five-example check was followed only by the explicitly bounded
+reference/available-source coverage diagnostics below; no production write occurred. The source
 cannot pass the required exact protected-input gate, irrespective of storage size.
 
 ## Implemented offline preparation
@@ -136,3 +136,36 @@ Exact source23aa5d2398ac499b37807dff24b27fc17653b79b /CI42094968368 PASS fixes
 the795ESRCH failure. Later actual-input preparation needs its own exactCI. Four
 focused census/ledger/whole-row-budget testsPASS; the extra case explicitly proves
 selected inputs cannot bypass the row budget and source bytes remain unchanged.
+
+## Final exact CI and recoverability evidence
+
+Frozen cff60e40e69cfa86599fb082c3bce5b3c041757b /[CI42097085311 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42097085311).
+Known-count/shared-reference profile125422auditedrows/65697614B,49.546sconstructor/
+3.067srestart/56.128stotal,205860864Bpeak,45531136BRSS. Fresh4000committed/archived,
+0pending/errors,20cycles,save52.106ms/heartbeat271.185ms,22887503Bpeak,55.497s.
+This qualifies generated behavior, not the missing real input set or its full fanout.
+
+A complete bounded metadata identity census (7.034s) found6755missing of18268required
+metadata IDs. A bounded stream-reference census(5.981s) found6493missing of17924.
+The EXISTING local data/backups/pre_retention_phase1_75.db contains ALL13248missing
+rows. No database copy was created. Read-only selected point checks(2.454s) matched
+metadata market/receipt time/kind and stream time/exactprice,0mismatches. Serialized
+selected bodies:26297384metadataB+4571422streamB=30868806B;selecteddigest
+`ee2a7f4b4b05135369f7adb01ba92465299fa083bc603c32b4a057911e5364e9`.
+That digest binds this selected-set ordering, not an approved full backup/archive.
+Source authenticity/complete selected evidence, source binding and recovery-capsule
+verification are still required; matching IDs and provenance are not independent
+archive verification. No production repair, new recovery artifact or cloud mutation.
+
+Fresh read-only allocation:main5323907072B,WALmax(length,allocation)45178880B,
+SHM98304B,total5369184256B;filesystemavailable49796276224B. Storage arithmetic
+proposals remain unapplied and cannot repair absent inputs. Numeric admission
+limits and existing2590/180/10 budgets above remain distinct from production proof.
+
+One concrete review decision: whether this existing historical source may be used
+as recovery authority for the13248exact selected rows, after independent source/
+selected-body verification, preserving legacy unchanged and importing only into
+the staged new core. If that source is not accepted, an approved verified archive
+source is required. This is NOT a request to dispatch production or restore data.
+Do not claim an executable production cutover until that evidence route, sufficient
+row/byte budget and matching manual control scope are implemented and qualified.

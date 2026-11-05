@@ -6,31 +6,32 @@ production authorization.
 
 ## Resume here
 
-PR9 current actual-input gate is FAIL, not merely insufficient free disk. Read
-PR9_ACTUAL_INPUT_GATE_2026-11-05.md. Strict pinned SSH used existing operator key;
-read-only evidence found125410structured rows in7tables,58812candles/18692reference
-prices,18268metadata/17924streamrefs =>161602+required audit identities. Snapshots
-1–5 require ABSENT metadata observations25,28,30,33,36. Indexed check0.41986s.
-STOP production/cutover;do not synthesize/delete/relabel evidence. Exact originals
-must be recovered from verified archives,or historical-unavailable policy reviewed.
-No recovery/mutation/cloudwrite was performed;no full missing-reference census yet.
+Frozen candidate cff60e40e69cfa86599fb082c3bce5b3c041757b exactLinuxCI42097085311
+PASS both exported jobs/root/control/manifests,actual-count fixture andfresh4000.
+795failedESRCH cleanup;23aa5d2/CI42094968368PASS fixed it without visibility bypass.
 
-79527a7 /CI42089343842 FAILED on process-exit ESRCH during fixturecleanup. Fixed
-23aa5d2398ac499b37807dff24b27fc17653b79b /CI42094968368 PASS. Existing96933e0
-joint rotation/latency and fresh4000 evidence remains valid for its scaled scope.
-New e42d783 preparation adds bounded early-ref census,selected-row audit accounting,
-explicit150000-row generated scope within original128MiB/170swork/180stotal/2GiB/
-512MiBprocess; defaults unchanged. Actual161602+scope stilldoesnotfit and missing
-bodies are a separate hardFAIL. Actual-count/shared-reference freshprofilePASS local
-24.066s/235360256Bpeak/52740096BRSS;not actualfanoutqualification. New100000-event
-ledger cap+existing512MiB core guard bound growth;8GiBaggregate/2GiBnewlayout/
-64MiBslots/512MiBrecovery/10GiBfloor remain UNAPPLIED production proposals.
-Latest successor adds explicit row-budget fault regression(4focusedPASS);require
-its exact Linux CI once,not repeated polling. No failed source activation route is
-made executable. Existing manual control scope remainsBLOCKED;preserve2590s
-interruption/180srecovery/10sreap,writerfence,initialretirementOFF,forwardrecovery
-onlyafterack. PR9DRAFT;I7/Phase1.75OPEN;RedisDEFERRED. Preserve AGENTS.md/+596
-roadmap edits and local data/secrets. No productionmutation/restart/guardchange.
+Actual-input gateFAIL:6755metadata+6493stream rows absent from production legacy.
+Bounded complete identity checks found ALL13248in EXISTING local pre-retention file;
+no DB copy created. Selected point checks matched metadata market/receipt/kind and
+stream time/exactprice,0mismatches;30868806B serialized bodies. This is recoverability
+evidence,not approved source/archive authority. No actual recovery/capsule/migration
+was performed. Review exact source authority/selected-body verification and capsule
+bootstrap before any legacy-only or new production cutover route can proceed.
+Read PR9_ACTUAL_INPUT_GATE_2026-11-05.md for source digest,counts and next decision.
+
+Actual7tables125410rows;18268metadata/17924streamrefs =>161602+auditidentities.
+Explicit150000-row generated scope within128MiB/170swork/180stotal/2GiB/512MiBprocess
+is stillinsufficient,not a production guard change. Default10000/60000 unchanged.
+Selected raw rows now consume the same audit budget. New100000-event ledger stop
+bounds growth;512MiBcore remains independent. Known-count/shared-ref125422profile
+PASS56.128s/205860864Bpeak;NOT actualfanoutproof. Fresh4000/4000,0pending/errors,
+20cycles,save52.106ms/heartbeat271.185ms,22887503Bpeak/55.497s. Rotation/latency reused.
+
+Fresh allocatedlegacy5369184256B;FSavailable49796276224B.8GiBaggregate/2GiBnewlayout/
+64MiBslots/512MiBrecovery/10GiBfloor remainunapplied proposals. Oldmanualroutecannot
+accept failed source. Preserve2590sinterruption/180srecovery/10sreap,initialretirement
+OFF,writerfence,forwardrecoveryafterack. PR9DRAFT;I7/Phase1.75OPEN;RedisDEFERRED.
+Preserve AGENTS.md/+596roadmap edits and localdata/secrets. Production unchanged.
 
 ## Read first and establish ownership
 

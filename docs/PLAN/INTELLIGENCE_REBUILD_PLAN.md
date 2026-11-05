@@ -53,14 +53,17 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** PR9 layout2 validation and joint generated B→A→B→A qualification.
-Frozen f172907/CI42005134684 passed fresh4000; successor adds full ack receipts,
-startup/reference validation, sealed-handoff priority and measured HTTP/SSE/feature/
-history concurrency. Require exact Linux/root/exported CI for this source. Review
-PR9_QUALIFICATION_REVIEW_2026-11-05.md for six-part status and concrete STOP cutover.
-Temporary fresh-B8GiB proposal is not continuous operating acceptance; Redis is
-deferred. Production remains held; path/control/verification/capacity gates, I7,
-legacy retirement, research replay and sustained lifecycle stay open.
+**Next gate:** PR9 actual-input recovery authority and complete selected-input qualification.
+Frozen cff60e4 /CI42097085311 PASS exported/Linux/root qualification. The real legacy
+source FAILS protected-input checks:6755metadata+6493stream rows absent. All13248
+are present with matching checked provenance in the existing local pre-retention
+source;that is not yet approved/independently verified recovery authority. No copies
+or production recovery were made. Read PR9_ACTUAL_INPUT_GATE_2026-11-05.md.
+150000-row generated scope still falls below161602+required actual identities.
+Numeric finite admission proposals are not sufficient-runway or cutover approval.
+PR9 remainsDRAFT;legacy-only activation and new manual cutover scope remainSTOP.
+I7,cloud recovery/visibility,continuous capacity,raw replay and sustained acceptance
+remain OPEN. Redis deferred;production collection/retention/paidAI unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -3608,3 +3611,32 @@ fix qualifies protected-identity successor after795failure. e42d783 adds actual-
 accounting/scope/ledger preparation;final regression explicitly proves selected raw
 inputs consume SAME row budget and activation preserves source on overflow(4PASS).
 The live absent-protected-metadata failure remains a releaseSTOP;CI cannot erase it.
+
+### Final exact candidatecff60e4 /CI42097085311 PASS;actual input authority gate remains
+
+Frozen cff60e40e69cfa86599fb082c3bce5b3c041757b exactLinuxCI42097085311 PASS both
+exported jobs/root/control/manifests. Actual-count/shared-reference profile125422
+auditedrows/65697614serializedB,constructor49.546s/restart3.067s,total56.128s,
+205860864Bpeak/RSS45531136B. Still NOT actual reference fanout. Fresh4000committed/
+archived,0pending/errors,20cycles;save52.106ms/heartbeat271.185ms,22887503Bpeak,
+55.497s,RSS56102912B. Source rowcap150000 remains below161602+requiredidentities.
+
+Complete bounded metadata census7.034s:6755of18268requiredIDs absent. Stream
+reference census5.981s:6493of17924absent. Existing local pre-retention file (read
+only;NO copy created) contains ALL13248missingrows. Selected point verification
+2.454s matched metadata market/receipt time/kind and stream source time/exactprice,
+0mismatches. Canonical selected bodies30868806B(26297384metadata+4571422stream);
+selecteddigest ee2a7f4b4b05135369f7adb01ba92465299fa083bc603c32b4a057911e5364e9.
+No production restore/recovery artifact/cloudwrite was made. Matching references
+is not independent archive/source-authority verification;do not silently bless a
+historical backup or weaken the missing-input requirement. Need review of this
+exact recovery source and a verified selected-row recovery capsule/core bootstrap
+route before release controls can accept this database. Currentlegacy-only route
+FAILS intentionally;new production dispatch is NOT execution-ready.
+
+Fresh read-only stat:retainedDB/WAL/SHM accounted5369184256B;FSavailable49796276224B.
+Unapplied8GiB/2GiBnewlayout/512MiBcore/64MiBslots/512MiBrecovery/10GiBfloor and
+100000-event ledger cap are finite admission proposals,not sufficient-runway proof.
+All I7/cloudrecovery/visibility/sustained/replay/deferredRAG gaps remain OPEN.
+PR9DRAFT,productionunchanged. Exactcutoverapproval is not requested while source
+authority/input verification fails. Existingmanualcontrol2590/180/10 budgets stay.

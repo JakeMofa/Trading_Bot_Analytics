@@ -53,7 +53,7 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The generated full application A → B handoff passed on Linux at 6bbc659 (CI 41963620712). Qualify the small instrumented capacity sample and separately scoped network throughput before proposing production storage ceilings.
+**Next gate:** The approved small VM capacity sample passed at 4f77aca. Idle collector-loop rotation passed at b44f310 (CI 41987961035). Review the exact two-object Supabase throughput scope before further cloud writes; keep full-window sizing and production cutover gated.
 The live archive probe passed at `08ce0d9` and scaled Linux rotation and outage
 measurements were recorded at `e58e3b5`. Representative capacity remains blocked
 by the 2 GiB workspace and 180-second envelope. Obtain a representative fixture
@@ -3048,3 +3048,42 @@ ceiling open.
   observed file bytes including packaged code, below 64 MiB. No budget
   credit comes from reusable pages. No production DB was opened or copied
   by the capacity harness and no real cloud object was created or removed.
+
+### November 5 — collector scheduler and throughput review
+
+- Checkpoint 1 PASS and checkpoint 2 PASS are recorded in the preceding VM
+  sample entry. Sample source 4f77aca uses the frozen standalone bundle
+  listed there. Later capacity-harness maintenance adds a nonzero failure
+  exit code, tested with an offline injected preflight failure. It does
+  not authorize another VM sample.
+- Checkpoint 3 PASS for the generated adapter integration. Exact candidate
+  b44f31073cf191fc9657fe3f438e83c73e725f28,
+  [CI 41987961035](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41987961035).
+  The prior gap was rotation only at the next raw write. The collector event
+  loop now polls the adapter's real age/size rule once per second, including
+  idle buffers. The normal collector entrypoint test proves registration.
+  Root Linux tests prove early A → B, clean restart retaining B's original
+  clock, B → fresh A at 72h, acknowledged-row preservation, safe full-slot
+  hold, and recovery at all three timer-switch transition boundaries.
+  Existing process-exit tests still cover the underlying durable protocol.
+- All exported suites passed:348backend tests,18root protocol tests,
+  38root application tests and120controls. Root steps covered the relevant
+  privilege skips. The exact exported integrated regression committed4000,
+  archived4002, completed20featurecycles and reported0errors. The preceding
+  full handoff evidence at6bbc659 remains applicable.
+- The production API does not instantiate the A/B adapter yet. The reviewed
+  cutover must supply it and bind the separate archive service. The timer
+  change qualifies automatic sealing/rotation when the adapter is selected;
+  the prior generated archive/readers test supplies its handoff safety
+  evidence. It does not install a production archive wake or migration route.
+- Checkpoint 4 READY FOR SCOPE REVIEW. Two exact generated gzip objects
+  passed checksum, row and identity verification locally. Sizes623236 and
+  623307bytes,1024records each, zero structured writes. Proposed one180s
+  run,12HTTPattempts,two create-onlyPOSTs and8MiBaggregate body budget.
+  Preserve both objects; no cloud cleanup authority requested.
+  [Exact keys, checksums, identity binding and measurements](AB72_THROUGHPUT_REVIEW_2026-11-05.md).
+- After measured WAN throughput is available, compute seal completion from
+  upload plus authenticated readback, final verification recheck, CPU and
+  reader drain. B's growth follows the measured physical growth during
+  that interval. Full72hour and outage-runway estimates remain
+  extrapolations and the production ceiling stays open.

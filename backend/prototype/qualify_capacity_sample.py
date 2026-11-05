@@ -222,4 +222,4 @@ def run():
 
 
 if __name__=='__main__':
-    run()
+    raise SystemExit(0 if run()['result']=='PASS' else 1)

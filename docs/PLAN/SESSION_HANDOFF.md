@@ -13,9 +13,10 @@ cursors are independent of legacy backlog. Legacy retirement remains held. See
 FRESH_B_RECOVERY_REVIEW_2026-11-05.md and newest master-roadmap entry.
 
 Four focused generated fresh tests passed; full366 backend/120controls passed
-with15/3 Mac skips. Exact candidate Linux CI must prove unprivileged app reading
-root-owned fenced legacy, before/after-ack forward recovery and4000-event fresh
-ApplicationStore qualification. Do not substitute old full-import results.
+with15/3 Mac skips. ba7873c exactCI42004431809 passed unprivileged app reading
+root-owned fenced legacy, before/after-ack forward recovery but its4000-event artifact was full-import because sudo stripped the mode env.
+Successor passes explicit --startup-mode fresh-b and asserts report scope. Require
+its exact fresh profile CI; do not substitute old full-import results.
 Proposed8GiB aggregate,2GiB new-layout/512MiB core,512MiB recovery/10GiB floor and
 2MiB trigger are recovery-only and UNAPPLIED. A proposed targeted new-core+legacy-
 input verification scope requires explicit review; full legacy checks/retirement

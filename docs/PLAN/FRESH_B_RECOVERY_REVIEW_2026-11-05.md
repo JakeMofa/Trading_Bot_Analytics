@@ -170,3 +170,16 @@ writes and proven old compatibility. After any new acknowledgement keep the fenc
 and preserve core/B/intents, stop unsafe collection and recover forward. Never
 restore DB contents. Retain legacy until its own complete archive/reference/drain
 checks and separate retirement approval pass. I7/Phase1.75 remain open.
+
+
+## Exact Linux result and scope correction
+
+ba7873c5a5b793dbdeb87d45ac31e7472442e353 /CI42004431809 PASS:366backend/11privilege
+skips covered by root18raw/38application/8runtime/2cutover;120controls. Fresh-mode
+functional tests and unprivileged old/new UID fence/forward recovery passed.
+Fresh fence→recovery1.184s before-ack/0.736s after-ack, new core quick/FK1.011/1.560ms;
+small fresh startup/function/rotation81ms and4,390,912B sampled aggregate allocation.
+The4000-event artifact, however, said full-import/4002archived: sudo stripped the
+mode environment variable. Do not call that fresh-B qualification. Successor uses
+explicit CLI mode plus a report assertion fresh-b/4000/legacyHELD. Its exact CI is
+required; no unchanged retry or production command was run.

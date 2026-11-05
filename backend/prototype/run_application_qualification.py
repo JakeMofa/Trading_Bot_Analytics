@@ -22,8 +22,9 @@ def supervise(command,report,seconds=180):
         child.wait();raise
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--sha',required=True);parser.add_argument('--workspace',required=True);parser.add_argument('--report',required=True)
+    parser.add_argument('--startup-mode',choices=('full-import','fresh-b'),default='full-import')
     a=parser.parse_args()
     from qualify_application import validate_workspace
     validate_workspace(a.workspace,a.report)
-    command=[sys.executable,str(Path(__file__).with_name('qualify_application.py')),'--sha',a.sha,'--workspace',a.workspace,'--report',a.report]
+    command=[sys.executable,str(Path(__file__).with_name('qualify_application.py')),'--sha',a.sha,'--workspace',a.workspace,'--report',a.report,'--startup-mode',a.startup_mode]
     raise SystemExit(supervise(command,a.report))

@@ -97,7 +97,6 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       AB_SOURCE_REPOSITORY: ${{ github.workspace }}
-      AB_QUALIFICATION_MODE: "fresh-b"
       ENABLE_OPENAI_ANALYST: "false"
       ENABLE_SUPABASE_SYNC: "false"
       ENABLE_LOCAL_RETENTION: "false"
@@ -122,7 +121,9 @@ jobs:
           cmp "$RUNNER_TEMP/ab-tested-manifest/AB_CANDIDATE_MANIFEST.json" "$RUNNER_TEMP/ab-integration-workspace/candidate/AB_CANDIDATE_MANIFEST.json"
       - name: One bounded integrated ApplicationStore qualification (generated only)
         run: |
-          sudo -n env PYTHONDONTWRITEBYTECODE=1 AB_PROFILE_STARTED="$AB_PROFILE_STARTED" AB_SOURCE_REPOSITORY="$GITHUB_WORKSPACE" "$(command -v python)" "$RUNNER_TEMP/ab-integration-workspace/candidate/backend/prototype/run_application_qualification.py" --sha "$GITHUB_SHA" --workspace "$RUNNER_TEMP/ab-integration-workspace" --report "$RUNNER_TEMP/ab-integration-workspace/integrated-report.json"
+          sudo -n env PYTHONDONTWRITEBYTECODE=1 AB_PROFILE_STARTED="$AB_PROFILE_STARTED" AB_SOURCE_REPOSITORY="$GITHUB_WORKSPACE" "$(command -v python)" "$RUNNER_TEMP/ab-integration-workspace/candidate/backend/prototype/run_application_qualification.py" --sha "$GITHUB_SHA" --workspace "$RUNNER_TEMP/ab-integration-workspace" --report "$RUNNER_TEMP/ab-integration-workspace/integrated-report.json" --startup-mode fresh-b
+      - name: Require the requested fresh-B qualification scope
+        run: python -c 'import json,os; r=json.load(open(os.environ["RUNNER_TEMP"]+"/ab-integration-workspace/integrated-report.json")); assert r["startup_mode"]=="fresh-b" and r["archived_rows"]==4000 and r["legacy_retirement"]=="HELD"'
       - name: Verify candidate after integrated qualification
         if: always()
         run: |

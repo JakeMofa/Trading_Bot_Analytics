@@ -68,7 +68,7 @@ def lifecycle_process(root,deadline,start,finish,report):
         if worker:worker.close()
         Path(report).write_text(json.dumps(result));
 
-def profile(candidate,sha,workspace):
+def profile(candidate,sha,workspace,startup_mode='full-import'):
     from build_ab_candidate import verify_export
     from application_store import ApplicationStore,ApplicationWorker
     from generated_cloud import GeneratedRemote
@@ -83,7 +83,8 @@ def profile(candidate,sha,workspace):
     import collector,streaming,features,forecasts,dashboard,ensemble
     from live_state import LiveState
     verify_export(candidate,sha,repo=os.environ.get('AB_SOURCE_REPOSITORY'))
-    fresh_b=os.environ.get('AB_QUALIFICATION_MODE')=='fresh-b'
+    if startup_mode not in ('full-import','fresh-b'):raise ValueError('explicit qualification mode required')
+    fresh_b=startup_mode=='fresh-b'
     root=Path(tempfile.mkdtemp(prefix='generated-ab-',dir=workspace));os.environ['SQLITE_TMPDIR']=str(root)
     deadline=BOOT+170;result={'status':'NOT_PROVEN','source_sha':sha,'generated_only':True,
         'path':'ApplicationStore + real collector/feature/forecast/history/ensemble + separate LifecycleWorker + SupabaseHTTP MockTransport',
@@ -230,13 +231,14 @@ def profile(candidate,sha,workspace):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--sha',required=True);parser.add_argument('--workspace',required=True);parser.add_argument('--report',required=True)
+    parser.add_argument('--startup-mode',choices=('full-import','fresh-b'),default='full-import')
     args=parser.parse_args();validate_workspace(args.workspace,args.report)
     import math
     if not math.isfinite(BOOT) or BOOT>time.monotonic() or time.monotonic()-BOOT>=170:parser.error('original work budget already expired')
     if sys.platform=='linux':resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
     signal.signal(signal.SIGALRM,lambda *a:(_ for _ in ()).throw(TimeoutError('original170s work deadline')));signal.alarm(max(1,int(170-(time.monotonic()-BOOT))))
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-    r=profile(Path(__file__).resolve().parents[2],args.sha,Path(args.workspace));signal.alarm(0)
+    r=profile(Path(__file__).resolve().parents[2],args.sha,Path(args.workspace),args.startup_mode);signal.alarm(0)
     r['workspace_peak_bytes']+=len(json.dumps(r).encode())+4096
     if r['workspace_peak_bytes']>2*1024**3:r['status']='FAIL';r['errors'].append('report-inclusive workspace gate')
     Path(args.report).write_text(json.dumps(r,indent=2)+'\n');print(json.dumps({k:r.get(k) for k in ('status','committed_rows','archived_rows','save_max_seconds','heartbeat_max_seconds','feature_cycles','elapsed_seconds','errors')}),flush=True)

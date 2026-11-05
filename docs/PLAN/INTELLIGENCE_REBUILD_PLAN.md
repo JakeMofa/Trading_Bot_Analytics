@@ -3393,3 +3393,25 @@ verification or invent a dispatch command that the existing controls cannot acce
 Production untouched; guard/flags/old authority/deadline unchanged. PR9 remains
 DRAFT and all eight-area/replay/RAG/I7/sustained acceptance obligations stay reconciled
 in PHASE175_RECONCILIATION_2026-11-05.md. I7/Phase1.75 remain open.
+
+### Fresh-B exact Linux result and qualification-mode correction
+
+ba7873c5a5b793dbdeb87d45ac31e7472442e353 /exactCI42004431809 PASS exported366backend
+(11privilege skips all covered by root18raw/38application/8runtime/2cutover),120controls.
+Fresh API/history/prediction/archive/guard tests PASS on Linux. Fresh permission test
+actually ran old and new UID unprivileged: root-owned nonwritable legacy held under
+sticky root parent; fence→recovery1.184s before-ack /0.736s after-ack, core quick/FK
+1.011/1.560ms. Fresh small functional/rotation test81ms,4,390,912B sampled allocation.
+No production operation occurred.
+
+Artifact review caught that sudo dropped AB_QUALIFICATION_MODE: the4000-event report
+explicitly said **full-import**,4002archives. That scaled profile remains PASS for
+full-import only; it is NOT fresh-B qualification. Corrected the supervisor and
+child to pass an explicit `--startup-mode fresh-b` argument and added a CI report
+scope assertion (fresh-b/4000new archives/legacyHELD), plus a regression checking
+privilege-boundary propagation. This is a changed scope diagnostic, not an unchanged
+retry. Exact successor CI must qualify fresh4000; no prior metrics substituted.
+
+Production dispatch still STOP at unreviewed verification scope and unmatched manual
+controller/path bindings. Proposed8GiB recovery-only envelope is unapplied. Legacy
+retirement and I7/Phase1.75 remain open; no expiry/authority extension.

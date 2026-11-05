@@ -53,7 +53,7 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Qualify the automatic handoff above with a representative fixture.
+**Next gate:** The generated full application A → B handoff passed on Linux at 6bbc659 (CI 41963620712). Qualify the small instrumented capacity sample and separately scoped network throughput before proposing production storage ceilings.
 The live archive probe passed at `08ce0d9` and scaled Linux rotation and outage
 measurements were recorded at `e58e3b5`. Representative capacity remains blocked
 by the 2 GiB workspace and 180-second envelope. Obtain a representative fixture
@@ -2948,3 +2948,68 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   The existing 180-second authorization does not cover that run.
   Production archive/readback rates, reader-drain distribution, outage
   runway and effective size-trigger window remain unqualified.
+
+### November 4 — generated full application handoff PASS
+
+Exact candidate `6bbc6590b8d50e9caa0dcb2c309b97f9480dbde6`,
+[Linux CI 41963620712](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41963620712).
+
+| Check | Result |
+|---|---|
+| Early switch and durable saves | PASS. The 256 KiB trigger sealed A and activated fresh B after one simulated second. The real Coinbase save path wrote three distinct, core-acknowledged B ticks, verified through a new reader. |
+| Dashboard | PASS. The real status route switched from A to the exact B generation ID and retained it after retirement. The dashboard contract rendered the B buffer label. |
+| Deterministic predictions | PASS. Three published baseline cycles for market m before, during and after the handoff, with fresh zero-age price inputs on the simulated clock. |
+| Archive and retirement | PASS. The generated lifecycle worker woke on the fixture seal signal and verified archive data while B wrote. Retirement reverified exact coverage. Linux OS descriptor inspection held A while a separate history connection was open and allowed removal after it closed. |
+| Protected data | PASS. All three snapshots retained their metadata and price references, outcome observation 90 remained linked, and foreign-key verification was clean. |
+
+The focused run sampled 2,348,936 bytes across generated files. The exact
+candidate also passed the bounded 4,000-write integrated regression and
+archived 4,002 records including the legacy fixture backlog. The focused
+fixture uses scoped collector connections and a generated seal wake and
+mock transport. Production lifecycle scheduling, WAN throughput and rollout
+remain separate qualification. Prior Linux crash recovery, scaled outage and
+live Supabase byte-verification evidence continue to apply within their scopes.
+
+### November 4 — minimum capacity measurement scope
+
+Use the supplied VM sample of 46.38 GiB available disk and 1.25 GiB available
+RAM. The prior 40 GiB fixture with a 10 GiB free-space floor is short by
+3.62 GiB of disk. The 2 GiB available-memory prerequisite is short by 0.75 GiB.
+These gaps apply to the full-window stress proposal.
+
+The smallest evidenced sizing sample uses the existing 2 MiB main-plus-WAL
+trigger and observed payload shapes. Run one normal handoff and one outage
+case serially on the same Linux host. The earlier profile filled A with
+1,710 events and generated about 0.75 MiB of compressed archive data. In
+the outage case, run B to its size trigger with A held. In the normal case,
+keep collecting while A archives and verifies. Instrument disk samples for
+each DB, WAL and SHM, and for the archive and temporary working files.
+Measure B's growth, per-object bytes and elapsed upload and readback, and
+seal, verification, reader closure and removal timestamps separately.
+
+Proposed small sample bounds are 64 MiB of total workspace, the existing
+170-second work / 180-second deadline, and one CPU. The workspace plus
+10 GiB free floor needs 10.0625 GiB at start, leaving about 36.32 GiB against the
+supplied reading. For a three-process harness, bound collector/feature to
+512 MiB AS and lifecycle/request child to 256 MiB AS each, plus 128 MiB
+host headroom. The proposed memory preflight is 1.125 GiB available, leaving
+0.125 GiB at the sampled reading. Those per-process sublimits and actual
+free resources must pass preflight. The 64 MiB budget bounds the probe
+and does not predict production workspace use.
+
+The small sample directly measures generated overlap peak, a short-burst
+archive/readback rate, reader hold and drain, and safe stop at the sampled
+size trigger. Local transport can establish the disk and logic checks.
+Real network throughput needs a separately approved synthetic upload scope.
+The earlier 197-byte live probe supplies access and byte-verification evidence.
+
+Extrapolate a preliminary window as the smaller of 72 hours and the usable
+buffer bytes divided by observed raw-plus-index growth per hour. Estimate
+outage runway from B's remaining usable bytes and time at failure, whichever
+expires first. For normal overlap add sealed A, B growth over archive and
+reader drain, core, WAL/SHM, working files and recovery reserve. For blocked
+retirement budget both occupied slots and preserve A. For cutover add the
+recorded retained legacy allocation as a separate term. Scaling these samples
+to production needs sustained ingest and WAN measurements, core/evidence growth
+and WAL peaks, and a bounded reader-drain distribution. Keep the production
+ceiling open.

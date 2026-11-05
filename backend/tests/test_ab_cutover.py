@@ -32,7 +32,8 @@ if mode=='before':
     def fault(at):
         if at=='migration_before_commit':raise RuntimeError('before first acknowledgement')
     try:ApplicationStore(root,legacy,routing=True,fault=fault)
-    except RuntimeError:
+    except RuntimeError as error:
+        assert str(error)=='before first acknowledgement',str(error)
         print('before-ack-hold',flush=True)
         raise SystemExit(71)
     raise AssertionError('injected migration failure missed')
@@ -87,6 +88,12 @@ class CutoverTests(unittest.TestCase):
                                       preexec_fn=demote,capture_output=True,text=True,timeout=10)
                 self.assertNotEqual(denied.returncode,0)
                 self.assertIn('readonly',denied.stderr.lower())
+                # Ordinary last-close cleanup after the failed old-UID reader;
+                # no checkpoint pragma or sidecar removal. Refuse changed data.
+                ordinary=sqlite3.connect(path)
+                ordinary.execute('SELECT count(*) FROM sqlite_master').fetchone()
+                ordinary.close()
+                self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)
                 started=time.monotonic()
                 result=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),mode],
                                       capture_output=True,text=True,timeout=15)

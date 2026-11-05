@@ -3220,3 +3220,13 @@ AB72_ENTRYPOINT_CUTOVER_REVIEW_2026-11-05.md records entrypoint/failure mapping,
 reused capacity/cloud evidence, concrete cutover/recovery steps and exact blockers.
 It is a STOP procedure, not an execution-ready production request. No source-volume,
 capacity, deployment-control or retirement-privilege bypass has been introduced.
+
+
+### November 5 — cutover fault assertion review
+
+Review of the Linux-only rehearsal found that broad RuntimeError handling could
+mistake an ownership STOP for the injected pre-commit crash. It now requires the
+exact injected fault. After the denied old-UID probe, ordinary SQLite read/close
+performs normal last-close cleanup before the new owner audit; no manual checkpoint
+or sidecar removal. Main-byte equality is required. This is a changed regression,
+not an unchanged qualification retry. Exact successor Linux evidence is pending.

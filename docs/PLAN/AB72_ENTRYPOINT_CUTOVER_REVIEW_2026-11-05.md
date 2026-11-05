@@ -161,3 +161,8 @@ exceptions or production indexes. Review found and fixed the reader check/unlink
 race and protected body revalidation gap; the generated old/new UID conflict was
 not resolved by relaxing ownership guards. Full deployment-scope security and
 production-volume review remains a merge gate rather than an asserted PASS.
+
+Review also tightened the pre-commit crash assertion: an arbitrary RuntimeError
+(including ownership STOP) cannot satisfy it. Ordinary SQLite read/close after the
+denied old UID performs normal cleanup before the new-owner audit, and unchanged
+legacy bytes are required. No manual WAL operation was introduced.

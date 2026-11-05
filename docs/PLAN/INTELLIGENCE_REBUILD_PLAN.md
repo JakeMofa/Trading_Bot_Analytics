@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The scoped live archive probe passed at 2fb74af. Prepare a separately scoped representative storage and outage qualification before choosing production ceilings or rehearsing cutover.
+**Next gate:** Scaled Linux rotation and outage measurements passed at 08ce0d9. Representative production capacity remains blocked by the 2 GiB workspace and 180-second envelope. Obtain an approved representative fixture scope and eligible Linux host before selecting a production ceiling or rehearsing cutover.
 
 ### October 23, 2026 migration preflight
 
@@ -2870,3 +2870,47 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
 - Next measure representative rotation overlap and outage runway in a
   separately scoped qualification. Production cutover and cleanup require
   their own approval.
+
+### November 4 — scaled rotation and outage capacity at 08ce0d9
+
+- One bounded Linux run used exact exported source 08ce0d9, a local
+  FileArchive transport, and generated stream/book payload lengths from
+  readiness_workload.py. The mix was one observation per 18 events. The
+  simulated receipt clock advanced at 20 KiB/s of payload. Each slot used
+  a 2 MiB main-plus-WAL trigger. The container had no external network,
+  one CPU, 512 MiB memory/AS, 256 MiB writable tmpfs and the original
+  170-second work / 180-second process limits. The live archive probe
+  remains evidence of runtime access and exact byte readback.
+- **Measured normal rotation.** A sealed after 1,710 acknowledgements
+  at 2,097,152 main-file bytes, about 32.50 KiB per simulated second
+  of gross raw file allocation. The effective active window was 63.013
+  simulated seconds. B acknowledged 91 rows during the archive worker
+  interval. Seal to verified removal was 0.764 wall seconds with Linux
+  descriptor drainage. Sampled aggregate peak was 8,039,382 bytes across
+  raw files, core, SQLite sidecars and archive working files. FileArchive
+  wrote 781,446 compressed bytes in 1.523 ms and read 1,562,892 bytes in
+  1.383 ms including final verification readback. These are local
+  transport timings, not Supabase throughput or isolated reader-drain time.
+- **Measured outage behavior.** A remained sealed and byte-for-byte intact
+  after the injected archive failure. B acknowledged 1,667 rows over
+  61.395 simulated seconds of runway. Its next size-triggered switch
+  stopped with both slots retained, before a new pending intent. Peak was
+  9,768,928 bytes. This exercises the occupied-slot guard, not a claim
+  that every possible append stops before a production physical ceiling.
+- **Illustrative cutover arithmetic.** Adding the recorded 5,369,085,952-byte
+  retained legacy allocation and the proposed 1 GiB recovery reserve
+  gives 6,450,867,158 bytes for normal and 6,452,596,704 for outage.
+  These totals use tiny fixture peaks and are not proposed limits.
+- **Representative capacity BLOCKED.** At the historical planning input
+  20 KiB/s, one 72-hour payload window alone is 5,308,416,000 bytes,
+  3,160,932,352 bytes above the approved 2 GiB workspace. Two full slots
+  alone exceed it by 8,469,348,352 bytes before indexes, core, WAL and
+  working files. The previously modeled stress fixture calls for 40 GiB
+  workspace plus 10 GiB free floor, at least 2 GiB available Linux host RAM
+  with at most three processes at 512 MiB each, and a proposed 48-hour
+  deadline. These are qualification proposals, not measured requirements
+  or approved limits. The operator filesystem sample was 33,961,353,216
+  bytes free, 19,725,737,984 below the proposed 50 GiB start floor.
+  The existing 180-second authorization does not cover that run.
+  Production archive/readback rates, reader-drain distribution, outage
+  runway and effective size-trigger window remain unqualified.

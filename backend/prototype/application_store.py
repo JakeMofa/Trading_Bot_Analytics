@@ -211,6 +211,15 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             if self.closed:return
             if self.connections or self.external_workers or self.worker_opening:raise Stop('drain application connections before owner release')
             self.protocol.close();self.closed=True
+    def rotation_tick(self, now):
+        """Collector-loop timer. Recovery completes before this is called."""
+        if not self.collector_authority:
+            raise Stop('worker cannot schedule rotation')
+        if self.hold:
+            raise Stop(self.hold)
+        with self.collector_write():
+            return self.protocol.rotate(now)
+
     def retire(self,*args):
         if not self.retirement_enabled:raise Stop('AB retirement disabled by default')
         return self.protocol.retire(*args)

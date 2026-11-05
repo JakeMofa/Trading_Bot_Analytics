@@ -369,6 +369,19 @@ async def storage_guard_loop(path, db, stop, max_storage_mb, live_state=None, st
     health(db, 'storage_guard', 'stopped',live_state=live_state)
 
 
+async def buffer_rotation_loop(storage_adapter, db, stop, live_state=None):
+    """Check idle buffer age and physical size on the collector's event loop."""
+    while not stop.is_set():
+        try:
+            storage_adapter.rotation_tick(utcnow())
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            health(db, 'storage_guard', 'limit_reached',
+                   'Buffer rotation held: '+type(error).__name__, live_state=live_state)
+            stop.set()
+            return
+        await pause(stop, 1)
+
+
 def feature_cycle(path, connection_factory=None):
     """Run one feature/forecast cycle on a connection owned by this worker.
 
@@ -513,6 +526,8 @@ async def run_locked(path, seconds, interval, markets_only, max_storage_mb, sock
         server = await control_server(socket_path, stop)
         timer=loop.call_later(seconds,stop.set) if seconds else None
         tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state,storage_adapter))]
+        if storage_adapter:
+            tasks.append(asyncio.create_task(buffer_rotation_loop(storage_adapter,db,stop,live_state)))
         if not markets_only:
             tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state,storage_adapter.connection if storage_adapter else None)),
                           asyncio.create_task(feature_loop(path,db,stop,live_state,connection_factory=(lambda: storage_adapter.worker_connection('feature')) if storage_adapter else None)),

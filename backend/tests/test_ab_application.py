@@ -746,3 +746,106 @@ finally:worker.close()
                                   'protected_references':'PASS','sampled_file_peak_bytes':store.protocol.allocation()['peak_bytes']}))
             finally:
                 store.close()
+
+    def test_collector_scheduler_rotates_idle_buffer_and_recovers_reused_slot(self):
+        import asyncio
+        from contextlib import closing
+        from raw_generations import FileArchive
+
+        async def one_tick(store, at):
+            stop = asyncio.Event()
+            async def pause_once(event, seconds):
+                self.assertEqual(seconds,1)
+                event.set()
+            with closing(store.connection()) as db, patch.object(streaming,'utcnow',return_value=at), patch.object(streaming,'pause',side_effect=pause_once):
+                await streaming.buffer_rotation_loop(store,db,stop)
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            path = Path(root)/'generated-legacy.db'
+            legacy(path)
+            store = ApplicationStore(root,path,routing=True,retirement=True,generation_bytes=128*1024)
+            try:
+                with closing(store.connection()) as db:
+                    db.save_observation('m',iso(T),'book',{'padding':'x'*(128*1024)},iso(T))
+                a = store.protocol.active()['id']
+                # No additional raw receipt is needed to trigger the size handoff.
+                asyncio.run(one_tick(store,T+timedelta(seconds=1)))
+                b = store.protocol.active()['id']
+                self.assertNotEqual(a,b)
+                self.assertEqual(store.protocol.active()['slot'],'B')
+                with closing(store.connection()) as db:
+                    db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{'B':True},iso(T))
+                archive = FileArchive(Path(root)/'archives')
+                store.protocol.archive_hour(archive,T+timedelta(hours=1))
+                if sys.platform!='linux' or os.geteuid()!=0:
+                    self.skipTest('real retirement and slot reuse need Linux root')
+                store.retire(a,archive,T+timedelta(hours=1))
+                store.close()
+                store = ApplicationStore(root,path,routing=True,retirement=True,generation_bytes=128*1024)
+                self.assertEqual(store.protocol.active()['id'],b)
+                # Restart resumes B's original activation clock, not a new 72h.
+                asyncio.run(one_tick(store,T+timedelta(hours=72,seconds=1)))
+                reused = store.protocol.active()
+                self.assertEqual(reused['slot'],'A')
+                self.assertNotIn(reused['id'],(a,b))
+                self.assertEqual(store.protocol.core.execute("SELECT count(*) FROM generations WHERE state='active'").fetchone()[0],1)
+                with closing(store.connection()) as db:
+                    saved = db.save_observation('m',iso(T+timedelta(hours=72,seconds=2)),'book',{'A2':True},iso(T))
+                    self.assertEqual(db.execute("SELECT status FROM ab_events WHERE id=?",(saved,)).fetchone()[0],'committed')
+                    self.assertTrue(db.execute("SELECT id FROM observations WHERE payload LIKE '%B%'").fetchone())
+                # Both occupied roles cause a visible stop, without another raw intent.
+                asyncio.run(one_tick(store,T+timedelta(hours=144,seconds=1)))
+                self.assertEqual(store.hold,'durable_raw_save_failed')
+            finally:
+                store.close()
+
+    def test_normal_collector_entrypoint_schedules_idle_rotation(self):
+        import asyncio
+        from contextlib import closing
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            path = Path(root)/'generated-legacy.db'
+            legacy(path)
+            store = ApplicationStore(root,path,routing=True,generation_bytes=128*1024)
+            try:
+                with closing(store.connection()) as db:
+                    db.save_observation('m',iso(T),'book',{'padding':'x'*(128*1024)},iso(T))
+                a = store.protocol.active()['id']
+                async def idle(*args,**kwargs):
+                    stop = next(arg for arg in args if isinstance(arg,asyncio.Event))
+                    await stop.wait()
+                with patch.object(streaming,'polymarket_credentials',return_value=(None,None)),                      patch.object(streaming,'utcnow',return_value=T+timedelta(seconds=1)),                      patch.object(streaming,'rest_loop',side_effect=idle),                      patch.object(streaming,'feature_loop',side_effect=idle),                      patch.object(streaming,'coinbase_stream',side_effect=idle),                      patch.object(streaming,'polymarket_stream',side_effect=idle):
+                    asyncio.run(streaming.run_locked(str(path),.03,30,False,2048,
+                        Path(root)/'control.sock',install_signal_handlers=False,storage_adapter=store))
+                self.assertNotEqual(store.protocol.active()['id'],a)
+                self.assertEqual(store.protocol.active()['slot'],'B')
+            finally:
+                store.close()
+
+    def test_timer_switch_crash_recovery_preserves_prior_acknowledgement(self):
+        from contextlib import closing
+        for phase in ('rotation_planned','rotation_file_created','rotation_published'):
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+                path = Path(root)/'generated-legacy.db'
+                legacy(path)
+                store = ApplicationStore(root,path,routing=True,generation_bytes=128*1024)
+                with closing(store.connection()) as db:
+                    eid = db.save_observation('m',iso(T),'book',{'padding':'x'*(128*1024)},iso(T))
+                a = store.protocol.active()['id']
+                def crash(at):
+                    if at==phase:
+                        raise RuntimeError('timer interruption')
+                store.protocol.fault = crash
+                try:
+                    with self.assertRaisesRegex(RuntimeError,'timer interruption'):
+                        store.rotation_tick(T+timedelta(seconds=1))
+                finally:
+                    store.close()
+                recovered = ApplicationStore(root,path,routing=True,generation_bytes=128*1024)
+                try:
+                    self.assertEqual(recovered.protocol.active()['slot'],'B')
+                    self.assertNotEqual(recovered.protocol.active()['id'],a)
+                    with closing(recovered.connection()) as db:
+                        self.assertEqual(db.execute('SELECT status FROM ab_events WHERE id=?',(eid,)).fetchone(),('committed',))
+                        self.assertEqual(db.execute('SELECT id FROM observations WHERE id=?',(eid,)).fetchone(),(eid,))
+                        self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])
+                finally:
+                    recovered.close()

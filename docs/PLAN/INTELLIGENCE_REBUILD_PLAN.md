@@ -3568,3 +3568,15 @@ ledgerhorizon/expiry, reviewedtargetedverification/capacity and testedmanualscop
 permissionbindings needed. Preserve2590s interruption/180srecovery/10sreap, initial
 retirementOFF,forwardrecoveryafterack. No executableoldworkflow substitution.
 No productionmutation/cloudwrite/guardchange;I7/Phase1.75OPEN.RedisDEFERRED.
+
+###79527a7 exact CI failure diagnosed: descriptor process-exit race
+
+CI42089343842 FAILED integrated profile at cleanup/accounting with Linux ESRCH
+(ProcessLookupError) on /proc/2970/fd/26. It is not a protected-evidence mismatch;
+20featurecycles completed,save60.592ms/heartbeat268.659ms before the failed gate.
+Exited-process ESRCH is now treated like ENOENT in descriptor accounting/cleanup;
+permission-denied and unknown visibility still fail closed. Focused8 testsPASS
+(1Linux-onlyskip); injected ESRCH and PermissionError distinguish both outcomes.
+Successor exact CI required;795 remainsFAILED. Production untouched.
+Actual-input inventory read stopped at SSH trusted-host-pin check; no host key
+was accepted implicitly and no production query/mutation ran. Offline work continues.

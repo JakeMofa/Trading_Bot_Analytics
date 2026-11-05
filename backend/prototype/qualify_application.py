@@ -22,7 +22,7 @@ def workspace_bytes(root):
     for p in Path(root).rglob('*'):
         try:
             if p.is_file():total+=p.stat().st_size
-        except FileNotFoundError:pass
+        except (FileNotFoundError,ProcessLookupError):pass
     # SQLite TEMP may be unlinked while still allocated.
     if Path('/proc/self/fd').exists():
         pending=[os.getpid()];visited=set();seen=set();prefix=str(Path(root).resolve())+os.sep
@@ -40,8 +40,8 @@ def workspace_bytes(root):
                         if target.startswith(prefix) and target.endswith(' (deleted)'):
                             st=fd.stat();key=(st.st_dev,st.st_ino)
                             if key not in seen:total+=st.st_size;seen.add(key)
-                    except FileNotFoundError:pass
-            except FileNotFoundError:pass # Exited/reaped child has no allocated open file.
+                    except (FileNotFoundError,ProcessLookupError):pass
+            except (FileNotFoundError,ProcessLookupError):pass # Exited/reaped child has no allocated open file.
             except PermissionError:raise RuntimeError('process-family TEMP visibility incomplete') from None
     return total
 
@@ -54,9 +54,9 @@ def fixture_owners(root):
         try:
             for fd in (process/'fd').iterdir():
                 try:target=os.readlink(fd)
-                except FileNotFoundError:continue
+                except (FileNotFoundError,ProcessLookupError):continue
                 if target.startswith(prefix):owners.append((int(process.name),fd.name))
-        except FileNotFoundError:continue
+        except (FileNotFoundError,ProcessLookupError):continue
         except PermissionError:raise RuntimeError('fixture cleanup descriptor visibility incomplete') from None
     return owners
 

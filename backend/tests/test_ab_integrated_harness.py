@@ -68,3 +68,15 @@ class Tests(unittest.TestCase):
         self.assertIn('--startup-mode fresh-b',command)
         self.assertIn('r["startup_mode"]=="fresh-b"',text)
         self.assertNotIn('AB_QUALIFICATION_MODE',text)
+
+    def test_cleanup_disappeared_process_is_not_unknown_visibility(self):
+        from unittest.mock import patch
+        from qualify_application import fixture_owners
+        with tempfile.TemporaryDirectory() as root,patch('qualify_application.sys.platform','linux'),patch('qualify_application.os.geteuid',return_value=0),patch('qualify_application.Path.iterdir') as listing:
+            listing.side_effect=[[Path('/proc/123')],[Path('/proc/123/fd/9')]]
+            with patch('qualify_application.os.readlink',side_effect=ProcessLookupError()):
+                self.assertEqual(fixture_owners(root),[])
+        with tempfile.TemporaryDirectory() as root,patch('qualify_application.sys.platform','linux'),patch('qualify_application.os.geteuid',return_value=0),patch('qualify_application.Path.iterdir') as listing:
+            listing.side_effect=[[Path('/proc/123')],[Path('/proc/123/fd/9')]]
+            with patch('qualify_application.os.readlink',side_effect=PermissionError()):
+                with self.assertRaisesRegex(RuntimeError,'visibility incomplete'):fixture_owners(root)

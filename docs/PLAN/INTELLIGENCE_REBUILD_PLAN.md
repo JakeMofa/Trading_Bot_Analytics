@@ -3602,3 +3602,9 @@ Smallestnextaction: review exact-archive recovery of missing metadata and comple
 missing-reference census;unavailable originals require explicit policy review.
 Do not implement a production route that accepts this failed source. PR9DRAFT;
 I7/Phase1.75OPEN;old verified rotation/latency evidence preserved;RedisDEFERRED.
+
+23aa5d2398ac499b37807dff24b27fc17653b79b exactCI42094968368 PASS: exited-descriptor
+fix qualifies protected-identity successor after795failure. e42d783 adds actual-input
+accounting/scope/ledger preparation;final regression explicitly proves selected raw
+inputs consume SAME row budget and activation preserves source on overflow(4PASS).
+The live absent-protected-metadata failure remains a releaseSTOP;CI cannot erase it.

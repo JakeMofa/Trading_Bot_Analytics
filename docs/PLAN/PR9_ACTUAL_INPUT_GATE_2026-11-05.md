@@ -131,3 +131,8 @@ capacity/sustained operation,raw replay and deferred knowledge/RAG remain explic
 open as reconciled. Redis deferred. No migration,deletion,copy/snapshot,VACUUM,
 manual WAL operation,restart,production guard change,cloud write,infrastructure,
 paid AI orPhase2 occurred. No new expired authority or cap extension is implied.
+
+Exact source23aa5d2398ac499b37807dff24b27fc17653b79b /CI42094968368 PASS fixes
+the795ESRCH failure. Later actual-input preparation needs its own exactCI. Four
+focused census/ledger/whole-row-budget testsPASS; the extra case explicitly proves
+selected inputs cannot bypass the row budget and source bytes remain unchanged.

@@ -35,3 +35,16 @@ class ScopeTests(unittest.TestCase):
                 self.assertEqual(store.protocol.core.execute("SELECT count(*) FROM events WHERE status='committed'").fetchone()[0],2)
                 self.assertEqual(store.protocol.core.execute("SELECT count(*) FROM events WHERE status='pending'").fetchone()[0],0)
             finally:store.close()
+
+    def test_selected_raw_rows_consume_the_same_audit_row_budget(self):
+        from test_ab_application import ApplicationStore,Stop
+        from migration_budget import MigrationBudget
+        import time,hashlib
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            path=Path(root)/'generated-legacy.db';legacy(path)
+            count=sum(inventory(path)['structured_counts'].values())
+            before=hashlib.sha256(path.read_bytes()).hexdigest()
+            with self.assertRaisesRegex(Stop,'targeted legacy input row bound'):
+                ApplicationStore(root,path,routing=True,fresh_b=True,
+                    migration_budget=MigrationBudget(row_limit=count,deadline=time.monotonic()+10))
+            self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)

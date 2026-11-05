@@ -248,3 +248,15 @@ fresh-B route, but complete selected-input correctness is mandatory. Only after
 that package is supported can existing manual controls be pinned/tested for the
 new layout and reviewed as one concrete cutover authorization. Current old route
 must continue refusing it; no fabricated executable dispatch or bypass is supplied.
+
+## Selected recovery follow-up
+
+User-approved historical source verification and isolated staging PASS for all
+13248missing rows. [Exact manifest/procedure and qualifications](SELECTED_RECOVERY_REVIEW_2026-11-05.md).
+Runtime source/runner bytes qualified on actual selected data at b8786e0 are
+identical in1547a43. ExactCI42121991450 for1547a43 passed392exported backendtests
+(13privilege skips),includingall9recoverycases,butFAILED the unchanged raw4000
+profile heartbeat1165.206ms(<1s gate). Remainingroot/control/integratedgates did
+not complete. CauseNOTPROVEN;no unchanged retry or threshold change. Recovery data
+correctness PASS does not clear the exactrelease gate or fullbootstrap/capacity/
+manualscope/source-use approval. Productionrepair/cutover NOT PERFORMED.

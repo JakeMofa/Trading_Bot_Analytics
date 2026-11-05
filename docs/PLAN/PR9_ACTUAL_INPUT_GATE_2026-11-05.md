@@ -1,5 +1,13 @@
 # PR9 actual-input gate — November 5
 
+**Current follow-up:** The user approved independent read-only verification and
+isolated selected staging. That work PASSes for all13248rows; see
+[exact selected recovery review](SELECTED_RECOVERY_REVIEW_2026-11-05.md).
+Candidate1547a43 exactCI42121991450 remainsFAIL on an existing raw-profile heartbeat
+gate. Production legacy is unchanged and still lacks the rows. The earlier
+candidate-verification approval question below is historical and superseded; no
+repeat approval is requested. Production source-use/cutover remains separate.
+
 Production remains stopped and unchanged. This report supersedes the assumption
 that passing known-count fixtures made the real legacy source activation-ready.
 No missing evidence is synthesized, dropped or silently reclassified.

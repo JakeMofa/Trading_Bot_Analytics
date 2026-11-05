@@ -10,7 +10,7 @@ Current selected-recovery candidate1547a433590eb6b41c3d93f6018d9d033cb5f21c.
 ExactCI42121991450 FAIL existingraw4000heartbeat1165.206ms(<1srequired),save727.764ms.
 Do not rerun unchanged or raise gate;causeNOTPROVEN. Raw/profilecode unchanged
 fromqualifiedcff60e4/CI42097085311. LatestCIexportedbackend392PASS/13root-skips,
-all9selectedrecoverytestsPASSlLinux;rootraw18/1failure;laterrootapplication/runtime/
+all9selectedrecoverytestsPASS on Linux;rootraw18/1failure;laterrootapplication/runtime/
 cutover/joint,controls/import/integratedNOTCOMPLETED. Localcontrols120PASS only.
 
 User approved historical candidate read-only verification +isolated stagingONLY.

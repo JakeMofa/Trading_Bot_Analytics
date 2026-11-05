@@ -56,7 +56,7 @@ and positions in persistent storage.
 **Next gate:** Full-core selected recovery integration and the exact-CI heartbeat failure.
 Candidate1547a43 /CI42121991450 FAILED raw4000heartbeat1165ms vs<1s. No retry or
 policy change;cause unproven. Exactexport backend392PASS/13privilegeskips,all9new
-selectedrecoverycasesPASSlLinux. User-approved historicalsource verification and
+selectedrecoverycasesPASS on Linux. User-approved historicalsource verification and
 isolated13248-rowstagePASS:0conflicts/unverifiable,retry0changes. Read
 SELECTED_RECOVERY_REVIEW_2026-11-05.md forexactmanifest/procedure and limits.
 Production legacy remains missing13248inputs;no repair/cutover authorized. Full

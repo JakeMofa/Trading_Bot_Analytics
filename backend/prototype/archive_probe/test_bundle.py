@@ -27,7 +27,12 @@ class Endpoint(BaseHTTPRequestHandler):
             self.send_error(403)
             return
         if self.server.body is None:
-            self.send_error(404)
+            if self.server.absence_error is not None:
+                self.send_response(400)
+                self.end_headers()
+                self.wfile.write(json.dumps(self.server.absence_error).encode())
+            else:
+                self.send_error(404)
             return
         self.send_response(200)
         self.end_headers()
@@ -41,7 +46,7 @@ class Endpoint(BaseHTTPRequestHandler):
             self.send_error(409)
             return
         self.server.body = self.rfile.read(size)
-        self.send_response(201)
+        self.send_response(self.server.upload_status)
         self.end_headers()
 
 
@@ -50,6 +55,8 @@ class BundleTests(unittest.TestCase):
         self.server = ThreadingHTTPServer(('127.0.0.1', 0), Endpoint)
         self.server.body = None
         self.server.corrupt = False
+        self.server.absence_error = None
+        self.server.upload_status = 201
         self.server.requests = []
         worker = threading.Thread(target=self.server.serve_forever, daemon=True)
         worker.start()
@@ -117,6 +124,25 @@ class BundleTests(unittest.TestCase):
         status, report = self.run_probe()
         self.assertEqual((status,report['result'],report['attempts']), (1,'FAIL',3))
         self.assertEqual(report['reason'],'RecoveryError')
+
+    def test_observed_wrapped_absence_allows_create_only_upload(self):
+        self.server.absence_error = dict(code='NoSuchKey', error='not_found', statusCode='404')
+        status, report = self.run_probe()
+        self.assertEqual((status, report['result'], report['attempts']), (0, 'PASS', 3))
+        self.assertEqual(report['absence_response'], 'HTTP 400 / NoSuchKey / 404')
+
+    def test_unexpected_400_stops_before_upload(self):
+        self.server.absence_error = dict(code='AccessDenied', error='not_found', statusCode='404')
+        status, report = self.run_probe()
+        self.assertEqual((status, report['result'], report['attempts']), (1, 'FAIL', 1))
+        self.assertIsNone(self.server.body)
+
+    def test_ambiguous_post_reconciles_without_reupload(self):
+        self.server.upload_status = 503
+        status, report = self.run_probe()
+        self.assertEqual((status, report['result'], report['attempts']), (0, 'PASS', 3))
+        self.assertEqual(report['upload_response'], 'ambiguous HTTP 503')
+        self.assertEqual([verb for verb, _ in self.server.requests], ['GET', 'POST', 'GET'])
 
     def test_existing_object_stops_before_upload(self):
         self.server.body = b'existing'

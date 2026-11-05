@@ -10,7 +10,7 @@ import pwd
 import signal
 import subprocess
 import sys
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import (
     HTTPRedirectHandler, ProxyHandler, Request, build_opener,
@@ -161,8 +161,26 @@ def main(args, report):
                     require(len(payload) <= MAX_BYTES, 'readback exceeds approved size')
                     return payload
         except HTTPError as error:
-            error.close()
-            require(error.code in expected_status, f'{method} HTTP {error.code}')
+            with error:
+                if method == 'GET' and expected_status == {404} and error.code == 400:
+                    raw_error = error.read(4097)
+                    try:
+                        details = json.loads(raw_error) if len(raw_error) <= 4096 else None
+                    except (ValueError, UnicodeError):
+                        details = None
+                    if (isinstance(details, dict) and details.get('code') == 'NoSuchKey'
+                            and details.get('error') == 'not_found'
+                            and details.get('statusCode') in (404, '404')):
+                        report['absence_response'] = 'HTTP 400 / NoSuchKey / 404'
+                        return None
+                if method == 'POST' and 500 <= error.code < 600:
+                    report['upload_response'] = f'ambiguous HTTP {error.code}'
+                    return None
+                require(error.code in expected_status, f'{method} HTTP {error.code}')
+        except (URLError, TimeoutError, ConnectionError):
+            if method != 'POST':
+                raise
+            report['upload_response'] = 'ambiguous transport failure'
 
     get_path = f'authenticated/{BUCKET}/{key}'
     report['stage'] = 'isolated object absence'

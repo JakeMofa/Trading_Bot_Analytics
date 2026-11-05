@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The self-contained archive probe passed isolated Linux loopback qualification. Review a fresh one-run live command bound to the archive runtime identity. Live archive, storage sizing and cutover remain gated.
+**Next gate:** The live GET 400 was reproduced as Storage NoSuchKey with embedded 404. The corrected bundle passed eight offline Linux tests. Review the checksum and exact command in AB72_ARCHIVE_PROBE_REVIEW_2026-11-04.md for fresh one-run approval. Storage and cutover remain gated.
 
 ### October 23, 2026 migration preflight
 
@@ -2849,3 +2849,7 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   zero structured row writes. Live process binding and Supabase remain
   untested in this offline checkpoint. Review the live command before
   a fresh one-run approval.
+
+### November 4 — archive absence diagnostic
+
+- Matched the failed GET in Storage logs and reproduced HTTP 400 / NoSuchKey / 404 with one read-only request. Zero writes. Exact diagnostic, Linux tests, bundle checksum and proposed command are in [archive probe review](AB72_ARCHIVE_PROBE_REVIEW_2026-11-04.md).

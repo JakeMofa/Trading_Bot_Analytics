@@ -86,3 +86,25 @@ class Tests(unittest.TestCase):
                 verify(s,r,hashlib.sha256(s.read_bytes()).hexdigest(),'0'*64,time.monotonic()+10)
             with closing(sqlite3.connect(s)) as db,db:db.execute('DELETE FROM observations WHERE id=90')
             with self.assertRaisesRegex(RecoveryHold,'foreign key'):self.verified(s,r)
+
+    def test_export_launcher_cannot_import_checkout(self):
+        import shutil,subprocess,os
+        with tempfile.TemporaryDirectory(prefix='generated-ab-recovery-') as folder,tempfile.TemporaryDirectory() as empty:
+            root=Path(folder);s,r=self.fixture(root);bundle=root/'export';prototype=bundle/'backend/prototype';prototype.mkdir(parents=True)
+            backend=Path(__file__).resolve().parents[1]
+            for name in ('run_selected_recovery','selected_recovery','raw_generations','application_validation','run_application_qualification'):
+                shutil.copyfile(backend/'prototype'/(name+'.py'),prototype/(name+'.py'))
+            app=bundle/'backend/app';app.mkdir()
+            for module in (backend/'app').glob('*.py'):shutil.copyfile(module,app/module.name)
+            shutil.copyfile(backend/'build_ab_candidate.py',bundle/'backend/build_ab_candidate.py')
+            manifest={'source_sha':'0'*40,'files':{}}
+            for f in bundle.rglob('*.py'):
+                manifest['files'][str(f.relative_to(bundle))]={'mode':'100644','bytes':f.stat().st_size,'sha256':hashlib.sha256(f.read_bytes()).hexdigest()}
+            (bundle/'AB_CANDIDATE_MANIFEST.json').write_text(json.dumps(manifest))
+            stage_root=root/'generated-ab-recovery-isolated';stage_root.mkdir(mode=0o700)
+            report=stage_root/'qualification-report.json'
+            args=[sys.executable,str(prototype/'run_selected_recovery.py'),'--source',str(s),'--dependencies',str(r),'--source-hash',hashlib.sha256(s.read_bytes()).hexdigest(),'--dependency-hash',hashlib.sha256(r.read_bytes()).hexdigest(),'--root',str(stage_root),'--report',str(report),'--sha','0'*40]
+            env=dict(os.environ,PYTHONPATH='',PYTHONDONTWRITEBYTECODE='1')
+            result=subprocess.run(args,cwd=empty,env=env,capture_output=True,text=True,timeout=15)
+            self.assertEqual(result.returncode,0,result.stdout+result.stderr)
+            self.assertEqual(json.loads(report.read_text())['retry_stage']['changed_rows'],0)

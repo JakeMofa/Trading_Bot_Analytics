@@ -19,6 +19,7 @@ def qualify(args):
     export=Path(__file__).resolve().parents[2];manifest=export/'AB_CANDIDATE_MANIFEST.json'
     code_bytes=0
     if manifest.exists():
+        sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
         from build_ab_candidate import verify_export
         m=verify_export(export,args.sha,repo=args.repo)
         result['source_sha']=m['source_sha'];code_bytes=sum(max((export/f).stat().st_size,(export/f).stat().st_blocks*512) for f in m['files'])+manifest.stat().st_size

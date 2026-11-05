@@ -3661,3 +3661,11 @@ after supportingmarketDDL hardening. ExactLinuxCI and one actual-data exported
 qualification stillrequired. Whole170swork/180stotal/2GiB includes existing source,
 dependencies/export/staging;512MiB Linuxprocess. No copies of source/database;the
 selected-row stagedcore is the explicitly authorized recovery artifact.
+
+66c9c09 first exported actual recovery launch FAILED before verify/stage: missing
+build_ab_candidate import path. No selected data staged. Added bundled backend
+path plus clean-directory/PYTHONPATH-empty subprocess qualification proving exporter
+and actual runtime dependencies are shipped.8focused testsPASS. The first minimal
+clean test exposed its own omitted app modules; copying source app modules only
+fixed the test package;no dependencies installed or candidate checkout import used.
+Corrected exact candidate/export/CI required before actual selected-stage result.

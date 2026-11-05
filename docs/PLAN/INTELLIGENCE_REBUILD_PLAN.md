@@ -3640,3 +3640,24 @@ Unapplied8GiB/2GiBnewlayout/512MiBcore/64MiBslots/512MiBrecovery/10GiBfloor and
 All I7/cloudrecovery/visibility/sustained/replay/deferredRAG gaps remain OPEN.
 PR9DRAFT,productionunchanged. Exactcutoverapproval is not requested while source
 authority/input verification fails. Existingmanualcontrol2590/180/10 budgets stay.
+
+### Approved independent historical-source verification and selected staging
+
+User authorized read-only candidate-source verification and isolated selected-row
+staging only. No production repair/cutover authority. Independent source:1983184896B,
+SHA256 a7edbb886d71d4690d608d915a975fe43c1ff9d194cb1c7dd54fdbbfa90787a6,
+user_version0,fullintegrity_check ok/zeroFKviolations,schemaidentity
+a88b290dd84c4718226dbffcd9ee7c962860d26a4437f4f07c927be90aed852b,2.910s.
+Fresh stopped-legacy dependency manifest binds6755metadata+6493streamrows,6776
+snapshot/6745predictionreferences and legacyfileidentity;checksum
+8e8473f444983419d60e2004ca2e7c41d89657f6767fe691d36e8e1a5003eb61.
+
+New default-off verifier/stager pins source/dependency hashes,complete integrity/FK,
+rawschema/PKs,exactbodies/decimals/time/market/target/reference checks;transactional
+selected-stage/app-compatible pinmaps and actual supporting-market schema. Full
+application bootstrap/production routing remains disabled/unproven. Seven generated
+faulttestsPASS;local390backend/120controlsPASS(17/3platformskips),followed by7PASS
+after supportingmarketDDL hardening. ExactLinuxCI and one actual-data exported
+qualification stillrequired. Whole170swork/180stotal/2GiB includes existing source,
+dependencies/export/staging;512MiB Linuxprocess. No copies of source/database;the
+selected-row stagedcore is the explicitly authorized recovery artifact.

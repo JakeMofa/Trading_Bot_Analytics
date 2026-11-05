@@ -110,3 +110,26 @@ class ValidationTests(unittest.TestCase):
                 db.create_function('ab72_writer_enabled',0,lambda:1)
                 with self.assertRaises(sqlite3.OperationalError):db.execute("UPDATE ab_events SET status='pending'")
                 self.assertEqual(db.execute("SELECT count(*) FROM ab_events WHERE status='committed'").fetchone()[0],1)
+
+    def test_required_evidence_and_generation_binding_are_checked_at_startup(self):
+        for fault in ('missing','generation'):
+            with self.subTest(fault=fault),tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+                path=Path(root)/'generated-legacy.db';legacy(path)
+                store=ApplicationStore(root,path,routing=True,fresh_b=True)
+                with closing(store.connection()) as db:
+                    eid=db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{},iso(T))
+                gid=store.protocol.active()['id']
+                with store.protocol.reader(gid) as raw:
+                    row=dict(raw.execute('SELECT * FROM observations WHERE id=?',(eid,)).fetchone())
+                with store.protocol.core:store.protocol.pin_record(eid,dict(generation_id=gid,dataset='observations',row=row))
+                raw_path=store.protocol.path(gid);store.close()
+                with closing(sqlite3.connect(Path(root)/'core.db')) as db,db:
+                    db.create_function('ab72_writer_enabled',0,lambda:1);db.create_function('ab72_layout_version',0,lambda:2)
+                    if fault=='missing':db.execute('DELETE FROM ab_evidence WHERE id=?',(eid,))
+                    else:
+                        body=json.loads(db.execute('SELECT record FROM ab_evidence WHERE id=?',(eid,)).fetchone()[0]);body['generation_id']='wrong-generation'
+                        text=json.dumps(body,sort_keys=True,separators=(',',':'))
+                        db.execute('UPDATE ab_evidence SET record=?,sha256=? WHERE id=?',(text,hashlib.sha256(text.encode()).hexdigest(),eid))
+                with self.assertRaisesRegex((Stop,ValueError),'protected evidence'):
+                    ApplicationStore(root,path,routing=True,fresh_b=True)
+                self.assertTrue(raw_path.exists());self.assertTrue(path.exists())

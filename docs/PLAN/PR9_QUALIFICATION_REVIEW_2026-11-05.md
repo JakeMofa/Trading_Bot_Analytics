@@ -196,3 +196,14 @@ day, asserts quote acceptance, HTTP identities/advancing values, coherent simula
 feed ages, and measures every HTTP GET. No application health rule or gate was
 relaxed. Full successor4000 qualification was skipped after this failure; it is not
 a pass. Corrected exact Linux CI remains required.
+
+### Protected evidence identity review follow-up
+
+Startup now rejects missing required evidence and evidence whose generation, dataset
+or row identity differs from its committed event, even when the altered body has a
+valid self-checksum. Generated missing-proof/recomputed-hash faults preserve legacy
+and raw files and block activation. Focused7 PASS; full local backend377 PASS with17
+platform skips, controls120 PASS with3 platform skips. These skips require Linux/root
+evidence; local descriptor timing is not production retirement proof. Source changes
+require their own exact Linux/export CI;96933e0 joint CI was running at review.
+Production and unapplied recovery/continuous budgets remain unchanged.

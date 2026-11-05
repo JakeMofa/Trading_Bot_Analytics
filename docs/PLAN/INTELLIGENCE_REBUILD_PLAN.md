@@ -3531,3 +3531,14 @@ This is a changed fixture, not an unchanged qualification retry. The earlier fai
 run remains failed, and full4000 successor qualification did not run after that gate.
 Source/layout/receipt safeguards are unchanged from792e3db; exact corrected Linux
 CI must pass all stages before qualification is claimed. Production unchanged.
+
+### Protected evidence identity review follow-up
+
+Startup now rejects missing required evidence and evidence whose generation, dataset
+or row identity differs from its committed event, even when the altered body has a
+valid self-checksum. Generated missing-proof/recomputed-hash faults preserve legacy
+and raw files and block activation. Focused7 PASS; full local backend377 PASS with17
+platform skips, controls120 PASS with3 platform skips. These skips require Linux/root
+evidence; local descriptor timing is not production retirement proof. Source changes
+require their own exact Linux/export CI;96933e0 joint CI was running at review.
+Production and unapplied recovery/continuous budgets remain unchanged.

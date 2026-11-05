@@ -77,10 +77,18 @@ def protected_core(db,legacy,columns,budget):
         budget.check();original=legacy.execute('SELECT '+','.join(columns['stream_events'])+' FROM stream_events WHERE source=? AND event_id=?',(source,event)).fetchone()
         if original is None or json.loads(record)!=dict(original):raise ValueError('protected legacy price differs')
         row_check('stream_events',dict(original))
+    if db.execute('SELECT 1 FROM ab_required_evidence r LEFT JOIN ab_evidence p ON p.id=r.event_id WHERE p.id IS NULL LIMIT 1').fetchone():
+        raise ValueError('required protected evidence missing')
     for event_id,record,sha in db.execute('SELECT id,record,sha256 FROM ab_evidence'):
         budget.check()
         if hashlib.sha256(record.encode()).hexdigest()!=sha:raise ValueError('protected core evidence checksum')
         evidence=json.loads(record)
+        event=db.execute('SELECT dataset,gen,status,event_key FROM ab_events WHERE id=?',(event_id,)).fetchone()
+        if not event or event['status']!='committed' or event['dataset']!=evidence.get('dataset') or event['gen']!=evidence.get('generation_id'):
+            raise ValueError('protected evidence identity differs')
+        row=evidence['row']
+        if (event['dataset']=='observations' and row.get('id')!=event_id) or (event['dataset']=='stream_events' and event['event_key']!=str(row.get('source'))+':'+str(row.get('event_id'))):
+            raise ValueError('protected evidence row identity differs')
         receipt=db.execute('SELECT sha256 FROM ab_raw_receipts WHERE id=?',(event_id,)).fetchone()
         if not receipt or fingerprint(evidence['row'])!=receipt[0]:raise ValueError('protected body differs from acknowledgement')
         row_check(evidence['dataset'],evidence['row'])

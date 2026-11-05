@@ -6,27 +6,31 @@ production authorization.
 
 ## Resume here
 
-PR9 fresh-B recovery is the current candidate, continued from7b5e327 (exact
-CI41998043241 PASS). Retain legacy raw in place; fresh-B bootstrap imports/audits
-structured history and point-copies protected/current bodies only. New B archive
-cursors are independent of legacy backlog. Legacy retirement remains held. See
-FRESH_B_RECOVERY_REVIEW_2026-11-05.md and newest master-roadmap entry.
+PR9 six-part qualification is active. f1729071e054e184504c3909f062a4a170cfe3a0 /
+CI42005134684 PASS fresh4000/4000archive/0pending/errors/20publications;121ms save/
+306ms heartbeat. Do not repeat or substitute earlier full-import results.
 
-Four focused generated fresh tests passed; full366 backend/120controls passed
-with15/3 Mac skips. ba7873c exactCI42004431809 passed unprivileged app reading
-root-owned fenced legacy, before/after-ack forward recovery but its4000-event artifact was full-import because sudo stripped the mode env.
-Successor passes explicit --startup-mode fresh-b and asserts report scope. Require
-its exact fresh profile CI; do not substitute old full-import results.
-Proposed8GiB aggregate,2GiB new-layout/512MiB core,512MiB recovery/10GiB floor and
-2MiB trigger are recovery-only and UNAPPLIED. A proposed targeted new-core+legacy-
-input verification scope requires explicit review; full legacy checks/retirement
-stay held. Existing narrow manual controls/path guards still STOP production;
-no nonworking command is to be dispatched or old authority reused.
+Successor layout2 adds full-column atomic acknowledgement hashes, fail-closed
+startup/core/reference checks, raw read/archive/retirement receipt verification,
+version-aware old-adapter fence and joint HTTP/SSE/collector/scheduler/features/
+isolated lifecycle B→A→B→A fixture with reused-slot crash tests. New Linux/root
+CI is required. Local376 backend/120controls passed,17/3platform skips, plus focused
+fault regressions. Mac joint diagnostic remains NOT PROVEN at Linux FD check.
+Sealed-handoff priority fixes observed cold structured/moving-active catchup STOP;
+active backlog is not falsely marked caught up. No gate was raised.
+
+See newest master entry and PR9_QUALIFICATION_REVIEW_2026-11-05.md. Generation
+trigger2MiB is a test/early trigger, not a permanent local window.8GiB aggregate,
+2GiB new layout/512MiB core/64MiB slot/512MiB reserve/10GiB floor are UNAPPLIED
+recovery proposals. Receipt ledger/core growth, restart audit, continuous archive/
+retirement timing and actual source scope need evidence. Initial retirementOFF
+is finite then safe STOP. Redis is deferred. Production control/path/verification
+scope still blocks cutover; preserve2590s interruption/recovery reserve and no-copy
+forward recovery. No approval or deadline extension is implicit.
 
 Preserve unrelated AGENTS.md and596-line roadmap edits. No new branch/worktree,
 production mutation/cleanup/restart/WAL operation/copy/infrastructure/cloud write.
-Full Phase1.75 eight-area +replay/deferredRAG reconciliation remains in
-PHASE175_RECONCILIATION_2026-11-05.md; I7 and sustained acceptance remain open.
+All eight-area/replay/deferredRAG/I7/sustained reconciliation remains in force.
 
 ## Read first and establish ownership
 

@@ -142,6 +142,31 @@ class RuntimeTests(unittest.TestCase):
                 if worker:worker.storage_runtime.close()
                 owner.close()
 
+    def test_new_handoff_defers_structured_once_without_advancing_its_deadline(self):
+        import run_cloud_lifecycle
+        from generated_cloud import GeneratedRemote
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            path=Path(root)/'generated-legacy.db';legacy(path)
+            owner=ApplicationStore(root,path,routing=True,generation_bytes=128*1024)
+            worker=None
+            try:
+                with closing(owner.connection()) as db:
+                    db.save_observation('m',iso(T),'book',{'padding':'x'*(128*1024)},iso(T))
+                owner.rotation_tick(T+timedelta(seconds=1))
+                remote=GeneratedRemote(Path(root)/'cloud')
+                with patch.dict(os.environ,environment(root),clear=True),patch.object(run_cloud_lifecycle,'SupabaseHTTP',side_effect=lambda config:remote.client(time.monotonic()+30).cloud):
+                    worker=run_cloud_lifecycle.build_worker(path)
+                    due=worker._next_due['structured']
+                    with patch.object(worker,'_structured',return_value=0) as sync:
+                        result=worker.run_cycle(force=True)
+                        self.assertEqual(result['structured_deferred_reason'],'new_sealed_generation_handoff')
+                        sync.assert_not_called();self.assertEqual(worker._next_due['structured'],due)
+                        worker.run_cycle(force=True);sync.assert_called_once()
+            finally:
+                if worker:worker.storage_runtime.close()
+                owner.close()
+
     def test_duplicate_lifecycle_startup_has_one_lock_owner(self):
         from cloud_lifecycle import lifecycle_lock,LifecycleLockError
         with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:

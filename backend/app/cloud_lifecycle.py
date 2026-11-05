@@ -323,13 +323,13 @@ class LifecycleWorker:
             manifest = archive_raw_batch(
                 db, cloud, dataset, limit=self.config.raw_batch_size, bucket=self.bucket)
             if manifest is None:
-                caught_up = True
+                caught_up = not (hasattr(db,'raw_archive_has_backlog') and db.raw_archive_has_backlog(dataset))
                 break
             archived += manifest["event_count"]
             if manifest["event_count"] < self.config.raw_batch_size:
                 if hasattr(db, "raw_archive_caught_up") and not db.raw_archive_caught_up(dataset):
                     continue
-                caught_up = True
+                caught_up = not (hasattr(db,'raw_archive_has_backlog') and db.raw_archive_has_backlog(dataset))
                 break
         return archived, caught_up
 
@@ -355,6 +355,12 @@ class LifecycleWorker:
             handoff_due = bool(token) and token != self._handoff_token
             run_archive = force or handoff_due or now >= self._next_due["archive"]
             run_retention = force or now >= self._next_due["retention"]
+            if handoff_due and run_structured:
+                # One new seal/drain transition gets archive priority. Keep
+                # structured sync due; a stable held reader must not starve it.
+                run_structured = False
+                result['structured_deferred_reason'] = 'new_sealed_generation_handoff'
+
             if not any((run_structured, run_archive, run_retention)):
                 result["status"] = "idle"
                 if token and self.after_archive:
@@ -386,6 +392,8 @@ class LifecycleWorker:
                         result["errors"].append("structured")
                         self._fail(db, "structured", exc)
                 if run_archive:
+                    begin_archive=getattr(db,'begin_archive_cycle',None)
+                    if begin_archive:result['archive_scope']=begin_archive(sealed_only=handoff_due)
                     archive_ran_this_cycle = True
                     archive_ok_this_cycle = True
                     for dataset in RAW_DATASETS:

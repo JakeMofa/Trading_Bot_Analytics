@@ -122,6 +122,13 @@ class FreshBTests(unittest.TestCase):
                     self.assertEqual(worker.protocol.ceiling,8*1024**3)
                     self.assertEqual(worker.protocol.core_ceiling,512*1024**2)
                     self.assertEqual(worker.protocol.fresh_layout_limit,2*1024**3)
+                    self.assertEqual(worker.protocol.fresh_slot_limit,64*1024**2)
+                    with closing(store.connection()) as owner_db:
+                        owner_db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{},iso(T))
+                    gid=store.protocol.active()['id']
+                    slot={'files':{'raw-'+gid+'.db':64*1024**2},'total_bytes':64*1024**2,'peak_bytes':0}
+                    with patch.object(worker.protocol,'allocation',return_value=slot):
+                        with self.assertRaisesRegex(Stop,'per-slot allocation'):worker.protocol.guard()
                     # Retained legacy counts against aggregate, and is excluded
                     # only from the additional independent new-layout quota.
                     fake={'files':{'legacy-external/main':5369184256,'raw.db':2*1024**3},

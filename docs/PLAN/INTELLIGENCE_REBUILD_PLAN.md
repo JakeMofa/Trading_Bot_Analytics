@@ -53,14 +53,14 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** PR9 fresh-B recovery candidate: retain sealed legacy in place;
-copy structured/protected/current inputs only and collect/archive new B independently.
-Full raw import is not a prerequisite for this route. Require exact fresh-mode
-Linux CI, review the recovery-only8GiB aggregate/targeted verification proposal,
-then qualify existing manual controls/permission bindings before a production
-command or dispatch. No production change is authorized. See latest November5
-entry and FRESH_B_RECOVERY_REVIEW_2026-11-05.md. I7, legacy retirement, research
-replay and sustained A/B lifecycle stay open; knowledge/RAG explicitly deferred.
+**Next gate:** PR9 layout2 validation and joint generated B→A→B→A qualification.
+Frozen f172907/CI42005134684 passed fresh4000; successor adds full ack receipts,
+startup/reference validation, sealed-handoff priority and measured HTTP/SSE/feature/
+history concurrency. Require exact Linux/root/exported CI for this source. Review
+PR9_QUALIFICATION_REVIEW_2026-11-05.md for six-part status and concrete STOP cutover.
+Temporary fresh-B8GiB proposal is not continuous operating acceptance; Redis is
+deferred. Production remains held; path/control/verification/capacity gates, I7,
+legacy retirement, research replay and sustained lifecycle stay open.
 
 ### October 23, 2026 migration preflight
 
@@ -3441,3 +3441,75 @@ retry. Exact successor CI must qualify fresh4000; no prior metrics substituted.
 Production dispatch still STOP at unreviewed verification scope and unmatched manual
 controller/path bindings. Proposed8GiB recovery-only envelope is unapplied. Legacy
 retirement and I7/Phase1.75 remain open; no expiry/authority extension.
+
+## November 5 — PR9 fail-closed validation and joint qualification candidate
+
+Reused f1729071e054e184504c3909f062a4a170cfe3a0 exactCI42005134684 PASS, confirmed
+fresh-b/4000committed+archived/0pending/errors/20publications. Baseline max save120.775ms,
+heartbeat305.908ms,feature95.297ms,history25.666ms;49.653s;22,285,660B sampled workspace.
+This is not repeated handoff or production-scale acceptance. Candidate completion
+is governed by [six-part qualification/cutover review](PR9_QUALIFICATION_REVIEW_2026-11-05.md).
+
+Completed source safeguards: bounded startup schema/user/layout/feature versions,
+core quick/FK and logical verification before reactivation; decimal/timestamp/JSON/
+source/protected metadata+price comparisons. Atomic full-column raw acknowledgement
+SHA receipts include original receive time and payload TEXT. New raw recovery,
+application reads, fresh chart/archive and final retirement check those receipts;
+derived source keys/UUID/PK/row counts are checked. Missing/malformed/conflicting/
+corrupt data holds the affected activation/retirement and preserves files. Layout2
+is explicit; older prototype cores without receipts hold, not reset/migrate silently.
+Format-aware core write guards also fence older A/B adapters before registry mutation.
+No production A/B core has been created. Exact legacy monolithic import stays supported.
+
+Six focused corruption regressions PASS, plus existing conflict/cloud/quota/crash
+coverage retained. Added real-process reused-slot exits before/after preparing-file/
+active publication and full acknowledged/archive/reference recovery checks. Local
+full376backend PASS/17 Mac/platform skips,120controls PASS/3skips, followed by focused
+schema/reference guards. Exact Linux/root/export CI must qualify final source.
+
+Joint generated fixture now covers B0→A1→B2→A3 (includes requested A→B→A), actual
+collector save/discovery functions, real1s size scheduler, serial feature loop,
+real loopback FastAPI/HTTP/SSE/history and isolated lifecycle CLI-builder process
+with SupabaseHTTP MockTransport. SSE includes current generation and changes on
+rotation without requiring a price event. Measures save/ack interval/heartbeat,
+API/SSE/current-price/feature/history and sealed allocation. Synthetic transport,
+simulated market boundary/feature wakeups and deliberate input pauses are explicit;
+no real venue cadence/window claim. Linux global FD proof is mandatory, not Mac-mocked.
+
+Review found a safe both-slots STOP under cold structured work and moving-active
+archive catchup. New sealed/drain token gets one urgent sealed-only archive cycle;
+structured work remains due, stable reader holds cannot starve it indefinitely.
+Active backlog remains explicitly not caught up; archive_scope=sealed_generations.
+No threshold, durability, deadline or storage gate was raised to erase the failure.
+Harness thread-ownership/hard-request isolation errors were corrected with a fresh
+lifecycle process; Mac diagnostic then correctly stopped at unavailable Linux FD proof.
+
+Qualification cleanup scope corrected: previous elapsed times did not cover fixture
+TREE deletion. New actual cleanup follows ordinary closes/owned-child drain and
+complete descriptor check inside original180s process-family supervisor; unknown
+visibility/open owners retain fixture and fail. Records core logical growth/event,
+normal-close main size, receipt count and actual cleanup; no physical-free-page credit.
+
+Operating limits stay separate: recovery-only8GiB aggregate proposal (unapplied),
+retained legacy5,369,184,256B +2GiB shared new-layout quota+512MiB reserve,512MiBcore,
+64MiB per-slot admission stop,2MiB TEST/early rotation trigger,10GiB FS floor; one
+bounded transaction can cross admission thresholds. Initial retirementOFF means
+finite two-slot collection then STOP. Continuous lifecycle requires a separately
+qualified NEW-generation retirement gate, measured archive/drain<WAL+raw fill time,
+core/receipt growth horizon and restart audit time.2MiB is not a72h local-window or
+per-slot physical bound; under saturated small writes/WAL it can fill much faster
+than the extrapolated63–102s/slot from earlier raw/index slopes. No permanent16/21GiB
+ceiling, cap expiry extension or continuous acceptance is claimed.
+
+Redis recorded DEFERRED for later evaluation against measured price/history query
+bottlenecks; no Redis/cache/dependency/service/writer coordinator added. PR9 remains
+DRAFT. Concrete STOP procedure preserves existing manual workflow/2590s interruption/
+180s recovery/10s reap, exact source/data/config/UID/expiry bindings, nonroot legacy
+fence, core/selected-input verification and forward recovery after any new ack.
+Production path/control scope and targeted-verification policy remain unresolved;
+no nonworking production dispatch command is presented as executable. Full actual
+structured/selected cardinality (including candle history), per-slot/aggregate/WAL/
+core growth, actual verification budget, cloud recovery, I7 and sustained evidence
+remain explicit gates. All eight-area/replay/deferredRAG/48h→72h obligations remain
+reconciled. No production mutation, cleanup, copy/snapshot/VACUUM/manualWAL/restart/
+guard change/cloud write/infrastructure/paidAI/Phase2 occurred.

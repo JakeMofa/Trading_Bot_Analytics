@@ -3,7 +3,7 @@
 One serial caller; SQLite FULL. Independent file commits are recovered through
 core intents, never treated as an atomic attached-database WAL transaction.
 """
-from contextlib import contextmanager
+from contextlib import contextmanager,closing
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 import fcntl,gzip,hashlib,io,json,os
@@ -61,10 +61,11 @@ class MemoryArchive:
         self.reads+=1;return self.objects[path]
 
 class Store:
-    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False, generation_bytes=None, initial_slot="A"):
+    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False, generation_bytes=None, initial_slot="A", recovery_deadline=None):
         if generation_bytes is not None and (type(generation_bytes) is not int or not 0 < generation_bytes < ceiling):
             raise Stop('generation size threshold must be positive and below aggregate ceiling')
         if initial_slot not in ("A","B"):raise Stop("invalid initial slot")
+        self.recovery_deadline=recovery_deadline or time.monotonic()+170
         self.initial_slot=initial_slot
         self.generation_bytes = generation_bytes
         if Path(root).is_symlink():raise Stop('generated root symlink forbidden')
@@ -87,6 +88,7 @@ CREATE TABLE IF NOT EXISTS generations(id TEXT PRIMARY KEY,slot TEXT,state TEXT,
 CREATE UNIQUE INDEX IF NOT EXISTS one_active ON generations(state) WHERE state='active';
 CREATE UNIQUE INDEX IF NOT EXISTS one_live_slot ON generations(slot) WHERE state!='retired';
 CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,dataset TEXT,event_key TEXT,gen TEXT REFERENCES generations(id),fingerprint TEXT,status TEXT,intent TEXT,UNIQUE(dataset,event_key));
+CREATE TABLE IF NOT EXISTS raw_receipts(id INTEGER PRIMARY KEY REFERENCES events(id),sha256 TEXT NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS one_pending_intent ON events(status) WHERE status='pending';
 CREATE INDEX IF NOT EXISTS events_generation ON events(gen,dataset,status,id);
 CREATE TABLE IF NOT EXISTS markets(id TEXT PRIMARY KEY,metadata TEXT);
@@ -168,6 +170,9 @@ BEGIN SELECT RAISE(ABORT,'protected evidence required while draining'); END;""")
         a=self.allocation();c=sum(v for n,v in a['files'].items() if n.startswith('core.db'))
         if a['total_bytes']>=self.ceiling or c>=self.core_ceiling:raise Stop('aggregate/core physical guard STOP')
         if getattr(self,'fresh_layout_limit',None):
+            for (gid,) in self.core.execute("SELECT id FROM generations WHERE state!='retired'"):
+                used=sum(v for n,v in a['files'].items() if n.startswith('raw-'+gid+'.db'))
+                if used>=getattr(self,'fresh_slot_limit',64*1024**2):raise Stop('fresh per-slot allocation STOP')
             retained=sum(v for n,v in a['files'].items() if n.startswith('legacy-external/') or n in self.retained_legacy_names)
             if a['total_bytes']-retained>=self.fresh_layout_limit:raise Stop('fresh layout quota STOP')
             if self.ceiling-a['total_bytes']<512*1024**2:raise Stop('fresh-B recovery headroom STOP')
@@ -181,27 +186,35 @@ BEGIN SELECT RAISE(ABORT,'protected evidence required while draining'); END;""")
     def _create(self,gid):
         p=self.path(gid)
         if p.is_symlink():raise Stop('raw symlink')
-        db=connect(p)
-        db.executescript('''
-CREATE TABLE IF NOT EXISTS generation(id TEXT PRIMARY KEY);
-CREATE TABLE IF NOT EXISTS observations(id INTEGER PRIMARY KEY,market_id TEXT NOT NULL,received_at TEXT NOT NULL,source_time TEXT,kind TEXT NOT NULL,payload TEXT NOT NULL);
-CREATE TABLE IF NOT EXISTS stream_events(source TEXT NOT NULL,event_id TEXT NOT NULL,received_at TEXT NOT NULL,source_time TEXT NOT NULL,price TEXT NOT NULL,size TEXT,side TEXT,payload TEXT NOT NULL,source_key TEXT NOT NULL,PRIMARY KEY(source,event_id));
-CREATE INDEX IF NOT EXISTS obs_receipt ON observations(received_at,id);
-CREATE INDEX IF NOT EXISTS obs_market ON observations(market_id,received_at,id);
-CREATE INDEX IF NOT EXISTS stream_receipt ON stream_events(received_at,source,event_id);
-CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at);
-CREATE INDEX IF NOT EXISTS stream_features_price ON stream_events(source,julianday(source_time) DESC,event_id);
-CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,julianday(received_at) DESC,id DESC);
-''')
-        value=db.execute('SELECT id FROM generation').fetchone()
-        if value is None:db.execute('INSERT INTO generation VALUES(?)',(gid,));db.commit()
-        elif value[0]!=gid:raise Stop('wrong generation identity')
-        db.close()
+        with closing(connect(p)) as db:
+            db.executescript('''
+    CREATE TABLE IF NOT EXISTS generation(id TEXT PRIMARY KEY);
+    CREATE TABLE IF NOT EXISTS observations(id INTEGER PRIMARY KEY,market_id TEXT NOT NULL,received_at TEXT NOT NULL,source_time TEXT,kind TEXT NOT NULL,payload TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS stream_events(source TEXT NOT NULL,event_id TEXT NOT NULL,received_at TEXT NOT NULL,source_time TEXT NOT NULL,price TEXT NOT NULL,size TEXT,side TEXT,payload TEXT NOT NULL,source_key TEXT NOT NULL,PRIMARY KEY(source,event_id));
+    CREATE INDEX IF NOT EXISTS obs_receipt ON observations(received_at,id);
+    CREATE INDEX IF NOT EXISTS obs_market ON observations(market_id,received_at,id);
+    CREATE INDEX IF NOT EXISTS stream_receipt ON stream_events(received_at,source,event_id);
+    CREATE INDEX IF NOT EXISTS stream_source ON stream_events(source_key,received_at);
+    CREATE INDEX IF NOT EXISTS stream_features_price ON stream_events(source,julianday(source_time) DESC,event_id);
+    CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,julianday(received_at) DESC,id DESC);
+    ''')
+            from application_validation import header
+            header(db,{'observations':COLUMNS['observations'],'stream_events':COLUMNS['stream_events']+('source_key',),'generation':('id',)},exact=True)
+            identities=db.execute('SELECT id FROM generation LIMIT 2').fetchall()
+            if len(identities)>1:raise Stop('ambiguous generation identity')
+            value=identities[0] if identities else None
+            if value is None:db.execute('INSERT INTO generation VALUES(?)',(gid,));db.commit()
+            elif value[0]!=gid:raise Stop('wrong generation identity')
     def _publish(self,row):
         with self.core:
             self.core.execute("UPDATE generations SET state='sealed',sealed_at=? WHERE state='active'",(row['started'],))
             self.core.execute("UPDATE generations SET state='active' WHERE id=?",(row['id'],))
     def recover(self):
+        states=self.core.execute("SELECT slot,state,count(*) FROM generations GROUP BY slot,state").fetchall()
+        live=[(slot,state,n) for slot,state,n in states if state!='retired']
+        if any(slot not in ('A','B') or state not in ('preparing','active','sealed','draining','retiring','retired') for slot,state,n in states):raise Stop('invalid generation registry state')
+        if sum(n for slot,state,n in live)>2 or any(sum(n for s,state,n in live if s==slot)>1 for slot in ('A','B')):raise Stop('ambiguous live generation slots')
+        if sum(n for slot,state,n in live if state=='active')>1 or sum(n for slot,state,n in live if state=='preparing')>1:raise Stop('ambiguous generation activation')
         for row in self.core.execute("SELECT * FROM generations WHERE state='preparing'").fetchall():
             self._create(row['id']);self._publish(row)
         for row in self.core.execute("SELECT * FROM events WHERE status='pending' ORDER BY id").fetchall():self._finish(row)
@@ -210,6 +223,33 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 if any(Path(str(self.path(row['id']))+x).exists() for x in ('-wal','-shm')):raise Stop('orphan sidecars')
                 with self.core:self.core.execute("UPDATE generations SET state='retired' WHERE id=?",(row['id'],))
             # A surviving file requires fresh archive/drain verification. No unlink on startup.
+        # Verify every acknowledged row in the two owned raw files before
+        # accepting more writes. Legacy is deliberately outside this audit.
+        from application_validation import header,row_check
+        end=self.recovery_deadline
+        checked=0
+        for generation in self.core.execute("SELECT id FROM generations WHERE state!='retired'").fetchall():
+            raw=connect(self.path(generation[0]),True)
+            try:
+                raw.set_progress_handler(lambda:int(time.monotonic()>=end),1000)
+                header(raw,{'observations':COLUMNS['observations'],'stream_events':COLUMNS['stream_events']+('source_key',),'generation':('id',)},exact=True)
+                ids=raw.execute('SELECT id FROM generation LIMIT 2').fetchall()
+                if len(ids)!=1 or ids[0][0]!=generation[0]:raise Stop('wrong raw identity')
+                if [tuple(r) for r in raw.execute('PRAGMA quick_check')]!=[('ok',)]:raise Stop('raw quick_check failed')
+                for dataset in COLUMNS:
+                    expected=0
+                    for event in self.core.execute("SELECT e.id,e.event_key,h.sha256 FROM events e LEFT JOIN raw_receipts h ON h.id=e.id WHERE e.gen=? AND e.dataset=? AND e.status='committed'",(generation[0],dataset)):
+                        checked+=1;expected+=1
+                        if time.monotonic()>=end:raise Stop('bounded acknowledged recovery audit')
+                        where='id=?' if dataset=='observations' else 'source=? AND event_id=?'
+                        key=(event[0],) if dataset=='observations' else tuple(event[1].split(':',1))
+                        fields=COLUMNS[dataset]+(('source_key',) if dataset=='stream_events' else ())
+                        row=raw.execute('SELECT '+','.join(fields)+' FROM '+dataset+' WHERE '+where,key).fetchone()
+                        if row is None or digest({c:row[c] for c in COLUMNS[dataset]})!=event[2]:raise Stop('acknowledged raw missing/corrupted')
+                        row_check(dataset,dict(row))
+                    if raw.execute('SELECT count(*) FROM '+dataset).fetchone()[0]!=expected:raise Stop('raw/acknowledgement count mismatch')
+            finally:raw.close()
+
     def _owns_writer(self):
         return threading.get_ident()==self.owner_thread or (self.application_namespace and getattr(self._application_writer,'authorized',False))
     def active(self):return self.core.execute("SELECT * FROM generations WHERE state='active'").fetchone()
@@ -289,6 +329,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             self.allocation();self.trip('raw_committed')
         finally:db.close()
         with self.core:
+            self.core.execute('INSERT OR REPLACE INTO raw_receipts VALUES(?,?)',(event['id'],digest({c:r[c] for c in cols})))
             self.core.execute("UPDATE events SET status='committed',intent=NULL WHERE id=?",(event['id'],))
             if dataset=='observations' and r['kind']=='metadata':
                 self.pin_record(event['id'],{'generation_id':event['gen'],'dataset':dataset,'row':r})
@@ -320,9 +361,13 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 if not state or state[0] not in allowed:
                     raise Stop('generation unavailable for new readers')
                 db=connect(self.path(gid),True)
-                if db.execute('SELECT id FROM generation').fetchone()[0]!=gid:
-                    db.close()
-                    raise Stop('wrong raw identity')
+                try:
+                    from application_validation import header
+                    header(db,{'observations':COLUMNS['observations'],'stream_events':COLUMNS['stream_events']+('source_key',),'generation':('id',)},exact=True)
+                    identities=db.execute('SELECT id FROM generation LIMIT 2').fetchall()
+                    if len(identities)!=1 or identities[0][0]!=gid:raise Stop('wrong raw identity')
+                except BaseException:
+                    db.close();raise
                 self.leases[gid]=self.leases.get(gid,0)+1
             try:
                 yield db
@@ -437,6 +482,16 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             except FileNotFoundError:continue
             except PermissionError:raise Unproven('descriptor visibility incomplete')
         return False
+    def verify_ack_row(self,gid,dataset,row):
+        fields={c:row[c] for c in COLUMNS[dataset]}
+        if dataset=='observations':
+            proof=self.core.execute("SELECT h.sha256 FROM events e LEFT JOIN raw_receipts h ON h.id=e.id WHERE e.id=? AND e.gen=? AND e.dataset='observations' AND e.status='committed'",(row['id'],gid)).fetchone()
+        else:
+            proof=self.core.execute("SELECT h.sha256 FROM events e LEFT JOIN raw_receipts h ON h.id=e.id WHERE e.event_key=? AND e.gen=? AND e.dataset='stream_events' AND e.status='committed'",(row['source']+':'+row['event_id'],gid)).fetchone()
+        if not proof or proof[0]!=digest(fields):raise Stop('acknowledged row proof differs')
+        from application_validation import row_check
+        row_check(dataset,dict(row))
+
     def verify_protected(self,gid):
         references=self.core.execute("""
 SELECT e.id,e.dataset,e.event_key,p.record,p.sha256
@@ -487,6 +542,7 @@ LEFT JOIN evidence p ON p.id=e.id WHERE e.gen=? LIMIT 10001
                     marker='?' if dataset=='observations' else '(?,?,?)'
                     rows=[dict(r) for r in db.execute('SELECT * FROM '+dataset+' WHERE '+key+'>='+marker+' AND '+key+'<='+marker+' ORDER BY '+('id' if dataset=='observations' else 'received_at,source,event_id')+' LIMIT 1001',(*lo,*hi))]
                 if len(rows)>1000 or len(rows)!=m['event_count']:raise Stop('archive/local scope count mismatch')
+                for row in rows:self.verify_ack_row(gid,dataset,row)
                 requested={identity(dataset,r) for r in rows}
                 proof,found=verify_archive(m,cloud.download_bytes('market-raw',m['object_path']),requested)
                 if rows:build_manifest(dataset,rows,[(proof,found)])
@@ -537,7 +593,8 @@ LEFT JOIN evidence p ON p.id=e.id WHERE e.gen=? LIMIT 10001
         if self.path(gid).exists():
             db=connect(self.path(gid))
             try:
-                if db.execute('SELECT id FROM generation').fetchone()[0]!=gid:raise Stop('wrong close identity')
+                identities=db.execute('SELECT id FROM generation LIMIT 2').fetchall()
+                if len(identities)!=1 or identities[0][0]!=gid:raise Stop('wrong close identity')
             finally:db.close()
             self.trip('retirement_normal_close')
         if self._owners(gid):raise Stop('handle opened before unlink')

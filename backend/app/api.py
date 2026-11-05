@@ -340,7 +340,10 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
             last_token = object()
             while True:
                 snapshot = live_snapshot()
-                token = snapshot.get('updated_at')
+                if read_connection_factory:
+                    try:snapshot['active_buffer'] = await asyncio.to_thread(_active_buffer,read_connection_factory)
+                    except (OSError,sqlite3.Error,RuntimeError):snapshot['active_buffer'] = None
+                token = (snapshot.get('updated_at'),(snapshot.get('active_buffer') or {}).get('generation_id'))
                 if token != last_token:
                     yield f"data: {json.dumps(snapshot, separators=(',', ':'))}\n\n"
                     last_token = token

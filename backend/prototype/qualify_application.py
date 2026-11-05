@@ -5,7 +5,7 @@
 """
 import time
 BOOT=float(__import__('os').environ.get('AB_PROFILE_STARTED',time.monotonic()))
-import argparse,json,os,resource,signal,sys,tempfile
+import argparse,json,os,resource,signal,sys,tempfile,shutil
 from pathlib import Path
 
 def validate_workspace(workspace,report):
@@ -44,6 +44,21 @@ def workspace_bytes(root):
             except FileNotFoundError:pass # Exited/reaped child has no allocated open file.
             except PermissionError:raise RuntimeError('process-family TEMP visibility incomplete') from None
     return total
+
+def fixture_owners(root):
+    if sys.platform!='linux' or os.geteuid()!=0:raise RuntimeError('fixture cleanup descriptor visibility unavailable')
+    prefix=str(Path(root).resolve())+os.sep;owners=[];end=time.monotonic()+5
+    for process in Path('/proc').iterdir():
+        if time.monotonic()>=end:raise RuntimeError('fixture cleanup probe deadline')
+        if not process.name.isdigit():continue
+        try:
+            for fd in (process/'fd').iterdir():
+                try:target=os.readlink(fd)
+                except FileNotFoundError:continue
+                if target.startswith(prefix):owners.append((int(process.name),fd.name))
+        except FileNotFoundError:continue
+        except PermissionError:raise RuntimeError('fixture cleanup descriptor visibility incomplete') from None
+    return owners
 
 def lifecycle_process(root,deadline,start,finish,report):
     # Fresh spawn: no inherited SQLite connections, collector lock or threads.
@@ -111,6 +126,7 @@ def profile(candidate,sha,workspace,startup_mode='full-import'):
             for k in range(18):
                 at=wanted-k*60;p=str(12300+(k%3)*10)
                 db.execute('INSERT OR IGNORE INTO candles VALUES(?,?,?,?,?,?,?,?,?,?)',('coinbase','BTC-USD',60,at,p,p,p,p,'1.00000001',iso(datetime.fromtimestamp(at+60,timezone.utc))))
+        result['core_logical_initial_bytes']=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
         result['preparation_seconds']=time.monotonic()-BOOT
         ctx=multiprocessing.get_context('spawn');start=ctx.Event();finish=ctx.Event();life_report=root/'lifecycle-result.json'
         life=ctx.Process(target=lifecycle_process,args=(str(root),deadline,start,finish,str(life_report)));life.start()
@@ -190,6 +206,10 @@ def profile(candidate,sha,workspace,startup_mode='full-import'):
         result['pending_rows']=db.execute("SELECT COUNT(*) FROM ab_events WHERE status='pending'").fetchone()[0]
         result['archived_rows']=sum(d['archived'] for c in result['lifecycle']['cycles'] for d in c['archive'].values())
         if result['committed_rows']!=4000 or result['pending_rows'] or result['archived_rows']!=(4000 if fresh_b else 4002):raise Stop('workload identity/completion mismatch')
+        result['core_logical_final_bytes']=db.execute('PRAGMA page_count').fetchone()[0]*db.execute('PRAGMA page_size').fetchone()[0]
+        result['core_logical_growth_bytes_per_committed_event']=(result['core_logical_final_bytes']-result['core_logical_initial_bytes'])/result['committed_rows']
+        result['ack_receipt_count']=db.execute('SELECT count(*) FROM ab_raw_receipts').fetchone()[0]
+        if result['ack_receipt_count']!=4000:raise Stop('missing exact acknowledgement receipts')
         result['sqlite_runtime']=list(db.execute('SELECT sqlite_version(),sqlite_source_id()').fetchone())
         result['allocation_before_retirement']=s.protocol.allocation();result['wal_peak_bytes']=dict(s.protocol.wal_peaks)
         result['generation_files']={r['slot']:{'id':r['id'],'state':r['state']} for r in s.protocol.core.execute("SELECT * FROM generations WHERE state!='retired'")}
@@ -222,6 +242,20 @@ def profile(candidate,sha,workspace,startup_mode='full-import'):
         if pool:pool.shutdown(wait=True)
         if db:db.close()
         if s:s.close()
+        result['workspace_peak_bytes']=max(result['workspace_peak_bytes'],workspace_bytes(workspace))
+        result['core_main_bytes_after_normal_close']=(root/'core.db').stat().st_size if (root/'core.db').exists() else None
+        # All managed connections/children were drained above. Remove only this
+        # generated fixture, with ordinary SQLite closes and no manual WAL work.
+        cleanup=time.monotonic()
+        try:
+            owners=fixture_owners(root)
+            if owners:raise RuntimeError('generated fixture still has open owners')
+            shutil.rmtree(root)
+            result['fixture_cleanup_complete']=not root.exists()
+        except RuntimeError as error:
+            result['fixture_cleanup_complete']=False;result['retained_generated_fixture']=str(root)
+            result['status']='FAIL';result['errors'].append(str(error))
+        result['fixture_cleanup_seconds']=time.monotonic()-cleanup
         result['elapsed_seconds']=time.monotonic()-BOOT
         rss=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss;result['rss_bytes']=rss if sys.platform=='darwin' else rss*1024
         result['workspace_peak_bytes']=max(result['workspace_peak_bytes'],workspace_bytes(workspace))

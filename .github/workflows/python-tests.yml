@@ -47,12 +47,21 @@ jobs:
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_application.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_runtime.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_cutover.py -v
+          sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" backend/prototype/run_joint_qualification.py --report "$RUNNER_TEMP/ab-joint-report.json"
+          sudo -n chmod 0644 "$RUNNER_TEMP/ab-joint-report.json"
           sudo -n chmod 0644 "$RUNNER_TEMP/ab-generated-report.json"
       - uses: actions/upload-artifact@v4
         with:
           name: generated-ab-report-${{ github.sha }}
           path: ${{ runner.temp }}/ab-generated-report.json
           if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ab-joint-report-${{ github.sha }}
+          path: ${{ runner.temp }}/ab-joint-report.json
+          if-no-files-found: warn
           retention-days: 7
       - name: Run deployment and maintenance controls
         working-directory: ${{ runner.temp }}/ab-test-candidate

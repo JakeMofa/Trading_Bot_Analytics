@@ -64,12 +64,12 @@ class Tests(unittest.TestCase):
                 s.save('observations','two',observation(T+timedelta(hours=1)));self.assertEqual(s.archive_hour(cloud,T+timedelta(hours=2)),1)
                 self.assertEqual(len(cloud.objects),2)
             finally:s.close()
-    def test_refuse_corrupt_missing_young_active_readers_and_unprotected_evidence(self):
+    def test_refuse_corrupt_missing_active_readers_and_unprotected_evidence(self):
         with tempfile.TemporaryDirectory(prefix='generated-ab-') as f:
             s,a,oid=self.setup_two(f);cloud=MemoryArchive()
             try:
                 with self.assertRaises(Stop):s.retire(s.active()['id'],cloud,T+timedelta(days=10))
-                with self.assertRaisesRegex(Stop,'strict72'):s.retire(a,cloud,T+timedelta(hours=72))
+                with self.assertRaisesRegex(Stop,'coverage'):s.retire(a,cloud,T+timedelta(hours=72))
                 with self.assertRaisesRegex(Stop,'coverage'):s.retire(a,cloud,T+timedelta(hours=145))
                 s.archive_hour(cloud,T+timedelta(hours=145))
                 with s.reader(a):
@@ -227,3 +227,98 @@ class Tests(unittest.TestCase):
                 s.save('observations','two',observation(T+timedelta(seconds=1)))
                 self.assertEqual(s.core.execute("SELECT COUNT(*) FROM events WHERE status='committed'").fetchone()[0],2)
             finally:s.close()
+
+    def test_early_buffer_switch_archive_failure_then_safe_retirement(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Event
+        from time import monotonic
+        from unittest.mock import patch
+        from contextlib import nullcontext
+        from raw_generations import FileArchive
+        from feature_inputs import project
+
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as folder:
+            entered, resume = Event(), Event()
+
+            class PausedArchive(FileArchive):
+                def download_bytes(self, bucket, path):
+                    if self.available and not entered.is_set():
+                        entered.set()
+                        if not resume.wait(5):
+                            raise Stop('fixture readback deadline')
+                    return super().download_bytes(bucket, path)
+
+            cloud = PausedArchive(Path(folder)/'working-archive')
+            store = Store(folder, generation_bytes=128*1024)
+            try:
+                store.set_market(dict(id='m',duration=900,start=iso(T),end=iso(T+timedelta(minutes=15)),first_seen=iso(T)))
+                tick = store.save('stream_events','coinbase:1',ticker(T))
+                large = observation(T)
+                large['payload'] = json.dumps({'padding':'x'*(128*1024)})
+                evidence = store.save('observations','first',large)
+                store.protect(evidence,'prediction','m',T)
+                a = store.active()['id']
+                now = T+timedelta(seconds=1)
+                sealed_at = []
+                def record_seal(phase):
+                    if phase == 'rotation_published':
+                        sealed_at.append(monotonic())
+                store.fault = record_seal
+                store.save('observations','switch',observation(now))
+                b = store.active()['id']
+                self.assertNotEqual(a,b)
+                self.assertEqual(store.active()['slot'],'B')
+                self.assertEqual(store.core.execute('SELECT sealed_at FROM generations WHERE id=?',(a,)).fetchone()[0],iso(now))
+
+                def finish():
+                    with store.worker_session():
+                        store.finish_sealed(a,cloud,now)
+
+                cloud.available = False
+                with ThreadPoolExecutor(max_workers=1) as worker:
+                    with self.assertRaisesRegex(Stop,'archive unavailable'):
+                        worker.submit(finish).result(timeout=5)
+                    self.assertTrue(store.path(a).exists())
+                    self.assertEqual(store.core.execute('SELECT count(*) FROM manifests WHERE gen=?',(a,)).fetchone()[0],0)
+                    cloud.available = True
+                    full_os_drain = sys.platform=='linux' and os.geteuid()==0
+                    # Portable fixture exercises actual unlink and managed leases.
+                    # Linux root runs the same test with the real descriptor proof.
+                    drain = nullcontext() if full_os_drain else patch.object(store,'_owners',return_value=False)
+                    with drain:
+                        with store.reader(a):
+                            future = worker.submit(finish)
+                            try:
+                                self.assertTrue(entered.wait(5))
+                                for i in range(3):
+                                    eid = store.save('observations',f'while-{i}',observation(now))
+                                    row = store.core.execute('SELECT gen,status FROM events WHERE id=?',(eid,)).fetchone()
+                                    self.assertEqual(tuple(row),(b,'committed'))
+                                self.assertFalse(future.done())
+                            finally:
+                                resume.set()
+                            with self.assertRaisesRegex(Stop,'reader lease'):
+                                future.result(timeout=5)
+                            self.assertTrue(store.path(a).exists())
+                        worker.submit(finish).result(timeout=5)
+                        elapsed = monotonic()-sealed_at[0]
+
+                self.assertFalse(store.path(a).exists())
+                self.assertTrue(store.path(b).exists())
+                self.assertEqual(store.active()['id'],b)
+                after = store.save('observations','after',observation(now))
+                self.assertEqual(store.core.execute('SELECT status FROM events WHERE id=?',(after,)).fetchone()[0],'committed')
+                with store.reader(b) as raw:
+                    self.assertEqual(raw.execute('SELECT count(*) FROM observations').fetchone()[0],5)
+                self.assertEqual({r[0] for r in store.core.execute('SELECT event_id FROM required_evidence')},{tick,evidence})
+                db, refs, prices = project(store,'m',now)
+                try:
+                    self.assertEqual(prices[0]['price'],ticker(T)['price'])
+                    self.assertEqual(refs[('stream_events','1')],a)
+                finally:
+                    db.close()
+                print(json.dumps({'peak_sampled_file_bytes':store.peak,
+                                  'seal_to_safe_retirement_seconds':elapsed,
+                                  'full_os_descriptor_proof':full_os_drain}))
+            finally:
+                store.close()

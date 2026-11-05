@@ -9,17 +9,14 @@ production authorization.
 - Start from the current working branch and preserve local edits. Commit
   e9fb614 records the latest policy decision. Check Git for later work before
   editing. Confirm ownership with the user if another session is active.
-- **Next coding checkpoint.** Apply the corrected retirement rule to the
-  generated A/B prototype. Exercise one handoff with B accepting and
-  acknowledging writes while sealed A is archived, verified, and retired.
-  Preserve prediction inputs and protected evidence and drain A's readers
-  before removing the file. Test the early size trigger and verify that a
-  failed archive keeps A available. Use generated data and the existing
-  test transport.
-- Record peak aggregate disk usage during that overlap and the time from
-  sealing to safe retirement. Use those measurements to reassess the prior
-  40 GiB / 48-hour proposal. Qualify the changed path and report the result
-  once, with the exact commit and any remaining gap.
+- The focused generated test passed early size rotation, failed-archive
+  preservation, B acknowledgements during A readback, managed reader drain
+  and A removal. Peak sampled file length was 1,110,818 bytes. Seal to
+  retirement took 0.026 seconds with the macOS OS-descriptor probe substituted.
+- Next qualify Linux descriptor proof and application lifecycle wake/drain
+  scheduling. Size ordinary overlap from one sealed buffer plus concurrent
+  growth. Budget two occupied slots separately for blocked retirement.
+  The prior 40 GiB / 48-hour proposal needs representative evidence.
 - The scaled baseline at 61e0008 covered the earlier policy. Production
   collection is held on the legacy database. Migration and production
   retirement require the reviewed cutover procedure and explicit approval.

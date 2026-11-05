@@ -55,7 +55,10 @@ class MemoryArchive:
         self.reads+=1;return self.objects[path]
 
 class Store:
-    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False):
+    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False, generation_bytes=None):
+        if generation_bytes is not None and (type(generation_bytes) is not int or not 0 < generation_bytes < ceiling):
+            raise Stop('generation size threshold must be positive and below aggregate ceiling')
+        self.generation_bytes = generation_bytes
         if Path(root).is_symlink():raise Stop('generated root symlink forbidden')
         self.application_namespace=application_namespace;self._application_writer=threading.local()
         self.root=Path(root).resolve();self.ceiling=ceiling;self.core_ceiling=core_ceiling or ceiling
@@ -180,7 +183,18 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
     def rotate(self,receipt):
         if not self._owns_writer():raise Stop('collector owns handoff')
         at=iso(receipt);old=self.active()
-        if old and stamp(at)<stamp(old['started'])+timedelta(hours=HOURS):return old['id']
+        if old and stamp(at)<stamp(old['started'])+timedelta(hours=HOURS):
+            if self.generation_bytes is None:
+                return old['id']
+            raw_path = self.path(old['id'])
+            wal_path = Path(str(raw_path)+'-wal')
+            size = raw_path.stat().st_size
+            try:
+                size += wal_path.stat().st_size
+            except FileNotFoundError:
+                pass
+            if size < self.generation_bytes:
+                return old['id']
         begun=time.monotonic();self.guard()
         occupied={r[0] for r in self.core.execute("SELECT slot FROM generations WHERE state!='retired'")}
         slot=next((x for x in ('A','B') if x not in occupied),None)
@@ -299,19 +313,24 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             self.core.execute('INSERT OR IGNORE INTO markets VALUES(?,?)',(market,'{}'))
             self.pin_record(event_id,{'generation_id':event['gen'],'dataset':event['dataset'],'row':dict(raw)})
             self.core.execute('INSERT INTO predictions VALUES(?,?,?,?,?)',(prediction,market,iso(asof),'0.5',event_id))
-    def archive_hour(self,cloud,now,limit=1000):
+    def archive_hour(self,cloud,now,limit=1000,*,sealed_generation=None):
         if not 1<=limit<=1000:raise Stop('archive batch limit')
         boundary=stamp(now).replace(minute=0,second=0,microsecond=0);done=0
         for gen in self.core.execute("SELECT * FROM generations WHERE state IN ('active','sealed')").fetchall():
+            if sealed_generation is not None and (gen['id'] != sealed_generation or gen['state'] != 'sealed'):
+                continue
+            cutoff = iso(boundary)
+            if gen['state'] == 'sealed' and gen['newest']:
+                cutoff = iso(stamp(gen['newest']) + timedelta(microseconds=1))
             for dataset in COLUMNS:
                 manifests=[json.loads(r[0]) for r in self.core.execute('SELECT metadata FROM manifests WHERE gen=? AND dataset=?',(gen['id'],dataset))]
                 with self.reader(gen['id']) as db:
                     if dataset=='observations':
                         lo=max((m['last_source_id'] for m in manifests),default=0)
-                        rows=[dict(r) for r in db.execute('SELECT * FROM observations WHERE id>? AND received_at<? ORDER BY id LIMIT ?',(lo,iso(boundary),limit))]
+                        rows=[dict(r) for r in db.execute('SELECT * FROM observations WHERE id>? AND received_at<? ORDER BY id LIMIT ?',(lo,cutoff,limit))]
                     else:
                         last=max(((m['ended_at'],*json.loads(m['metadata']['last_source_key'])) for m in manifests),default=('', '', ''))
-                        rows=[dict(r) for r in db.execute('SELECT * FROM stream_events WHERE (received_at,source,event_id)>(?,?,?) AND received_at<? ORDER BY received_at,source,event_id LIMIT ?',(*last,iso(boundary),limit))]
+                        rows=[dict(r) for r in db.execute('SELECT * FROM stream_events WHERE (received_at,source,event_id)>(?,?,?) AND received_at<? ORDER BY received_at,source,event_id LIMIT ?',(*last,cutoff,limit))]
                 if not rows:continue
                 # Embed validated original JSON text without float conversion.
                 lines=[]
@@ -332,6 +351,11 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 with self.core:self.core.execute('INSERT OR IGNORE INTO manifests VALUES(?,?,?,?)',(gen['id'],dataset,path,canonical(m)))
                 done+=len(rows)
         self.guard();return done
+    def finish_sealed(self,gid,cloud,now,limit=1000):
+        """Background step. A partial batch or failed proof keeps the file."""
+        self.archive_hour(cloud,now,limit,sealed_generation=gid)
+        self.retire(gid,cloud,now)
+
     def _owners(self,gid):
         identities=set()
         for suffix in ('','-wal','-shm'):
@@ -351,7 +375,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
     def retire(self,gid,cloud,now):
         gen=self.core.execute('SELECT * FROM generations WHERE id=?',(gid,)).fetchone()
         if not gen or gen['state'] not in ('sealed','retiring'):raise Stop('not a sealed generation')
-        if gen['newest'] and stamp(now)-stamp(gen['newest'])<=timedelta(hours=72):raise Stop('strict72h retention not passed')
+        if stamp(now)<stamp(gen['sealed_at']):raise Stop('retirement time precedes seal')
         if self.leases.get(gid):raise Stop('reader lease open')
         # Stream <=1000 local rows/object. Do not materialize a full generation.
         for dataset in COLUMNS:
@@ -378,11 +402,23 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 if rows:build_manifest(dataset,rows,[(proof,found)])
                 covered+=len(rows)
             if covered!=expected_count:raise Stop('archive coverage incomplete')
+        from features import price_query
+        cutoff=iso(now)
+        with self.reader(gid) as db:
+            price=db.execute(price_query('stream_events','event_id'),(cutoff,cutoff)).fetchone()
+            live_price=None if price is None else db.execute(
+                'SELECT '+','.join(COLUMNS['stream_events'])+' FROM stream_events WHERE source=? AND event_id=?',
+                ('coinbase',price[0])).fetchone()
         with self.readerlock:
             self.core.execute('BEGIN IMMEDIATE')
             try:
                 current=self.core.execute('SELECT state FROM generations WHERE id=?',(gid,)).fetchone()
                 if current[0] not in ('sealed','retiring'):raise Stop('generation changed')
+                if live_price is not None:
+                    event=self.core.execute("SELECT id FROM events WHERE gen=? AND dataset='stream_events' AND event_key=?",
+                                            (gid,'coinbase:'+live_price['event_id'])).fetchone()
+                    if event is None:raise Stop('live price identity unavailable')
+                    self.pin_record(event[0],{'generation_id':gid,'dataset':'stream_events','row':dict(live_price)})
                 for row in self.core.execute('SELECT e.id FROM events e JOIN required_evidence r ON e.id=r.event_id WHERE e.gen=?',(gid,)):
                     evidence=self.core.execute('SELECT record,sha256 FROM evidence WHERE id=?',tuple(row)).fetchone()
                     if not evidence or hashlib.sha256(evidence[0].encode()).hexdigest()!=evidence[1]:raise Stop('protected evidence unavailable')
@@ -404,6 +440,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             self.trip('retirement_normal_close')
         if self._owners(gid):raise Stop('handle opened before unlink')
         if any(Path(str(self.path(gid))+suffix).exists() for suffix in ('-wal','-shm')):raise Stop('sidecars remain; no manual WAL deletion')
+        self.allocation()
         if self.path(gid).exists():self.path(gid).unlink()
         self.trip('retirement_file_removed')
         with self.core:self.core.execute("UPDATE generations SET state='retired' WHERE id=?",(gid,))

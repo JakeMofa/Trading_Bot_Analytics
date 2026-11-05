@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** November 4 policy correction. Rotate A/B by 72 hours or an earlier size threshold. While B collects, archive and verify sealed A in Supabase, preserve needed inputs and protected evidence, drain readers and retire A. Update prototype retirement tests and measure overlap before revising capacity. Prior 40 GiB / 48-hour proposal needs reassessment. Production remains held on the legacy layout. Phase 1.75 and I7 are open.
+**Next gate:** The generated early A/B switch passed the focused archive and retirement test. Qualify complete Linux descriptor drainage and application lifecycle scheduling, then measure sustained archive overlap before proposing production ceilings. Production remains held on the legacy layout. Phase 1.75 and I7 are open.
 
 ### October 23, 2026 migration preflight
 
@@ -2745,3 +2745,25 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   completeverificationfinish andproductionlegacywriterOSguard/livebindings remain.
   No productionapproval requested; one prerequisite reviewpackage only. Existing
   deadlineexpired unchanged; collectionstopped/retentionOFF/paidAIOFF/cleanup0.
+
+### November 4 — early A/B switch and verified retirement
+
+- Generated 128 KiB threshold switched from A to B one simulated second after
+  activation. A failed archive left A and its manifest state intact. B durably
+  acknowledged three writes during the successful readback pause and another
+  after removal. An open reader prevented removal. The current price input and
+  existing prediction evidence survived in core.
+- Peak sampled aggregate file length was 1,110,818 bytes across A, B, core,
+  sidecars and generated archive working files. The elapsed time from sealing
+  through the injected failure, successful verification, reader drain and
+  removal was 0.026 seconds. The macOS fixture substituted the OS descriptor
+  probe and exercised real managed reader leases and file removal.
+- Budget steady-state overlap as one sealed buffer plus B's growth during
+  archive, verification and reader drain. Keep a separate blocked-retirement
+  envelope for two occupied slots and bounded ingestion stop. Add retained
+  legacy allocation, core and evidence growth, WAL, working files and recovery
+  headroom for cutover. The small fixture does not size these production terms
+  or qualify the prior 40 GiB / 48-hour workload proposal.
+- Production review still needs an application lifecycle wake/drain path and
+  Linux descriptor proof. Measure overlap under representative archive latency
+  and arrival rates before selecting ceilings or requesting migration approval.

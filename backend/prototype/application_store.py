@@ -14,11 +14,11 @@ import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
 RAW={'observations','stream_events'}
 MAX_ROWS=10000
 class ApplicationStore:
-    def __init__(self,root,legacy,routing=False,retirement=False,fault=None):
+    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None):
         if retirement and not routing:raise Stop('inconsistent AB enablement')
         if not routing:raise Stop('AB application routing disabled by default')
         self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
-        self.protocol=Store(root,fault=fault,application_namespace=True)
+        self.protocol=Store(root,fault=fault,application_namespace=True,generation_bytes=generation_bytes)
         self.root=self.protocol.root;self.legacy=Path(legacy)
         self.retirement_enabled=retirement;self.hold=None;self.collector_authority=True
         try:

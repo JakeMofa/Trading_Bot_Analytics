@@ -3,7 +3,7 @@
 No whole-generation materialization. Same price/metadata query semantics as the
 existing feature version; matching indexes live only in generated raw/core DBs.
 """
-import json,sqlite3,time
+import hashlib,json,sqlite3,time
 from pathlib import Path
 from datetime import timedelta
 from raw_generations import connect,iso,stamp,Stop,canonical,COLUMNS
@@ -33,6 +33,23 @@ CREATE TABLE candles(source TEXT,symbol TEXT,granularity INTEGER,time INTEGER,lo
                 if price:
                     full=raw.execute('SELECT '+','.join(COLUMNS['stream_events'])+' FROM stream_events WHERE source=? AND event_id=?',('coinbase',price[0])).fetchone()
                     stream_rows.append(dict(full));refs[('stream_events',price[0])]=gen['id']
+        # The current price may still belong to the buffer just retired.
+        price_pin=registry.execute("""
+SELECT p.record,p.sha256 FROM evidence p
+JOIN events e ON e.id=p.id JOIN generations g ON g.id=e.gen
+WHERE e.dataset='stream_events' AND g.state='retired'
+  AND json_extract(p.record,'$.row.source')='coinbase'
+  AND julianday(json_extract(p.record,'$.row.source_time'))<=julianday(?)
+  AND julianday(json_extract(p.record,'$.row.received_at'))<=julianday(?)
+ORDER BY julianday(json_extract(p.record,'$.row.source_time')) DESC,
+         json_extract(p.record,'$.row.event_id') ASC LIMIT 1
+""",(cutoff,cutoff)).fetchone()
+        if price_pin:
+            if hashlib.sha256(price_pin[0].encode()).hexdigest()!=price_pin[1]:
+                raise Stop('protected price checksum mismatch')
+            record=json.loads(price_pin[0])
+            stream_rows.append(record['row'])
+            refs[('stream_events',record['row']['event_id'])]=record['generation_id']
         # Metadata required by current markets survives raw retirement in core.
         pin=registry.execute('''SELECT e.record FROM metadata_pins p JOIN evidence e ON e.id=p.event_id
 WHERE p.market_id=? AND julianday(p.received_at)<=julianday(?) ORDER BY julianday(p.received_at) DESC,p.event_id DESC LIMIT 1''',(market_id,cutoff)).fetchone()

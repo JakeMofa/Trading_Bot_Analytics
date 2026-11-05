@@ -3013,3 +3013,38 @@ recorded retained legacy allocation as a separate term. Scaling these samples
 to production needs sustained ingest and WAN measurements, core/evidence growth
 and WAL peaks, and a bounded reader-drain distribution. Keep the production
 ceiling open.
+
+### November 5 — refreshed VM and approved serial capacity sample PASS
+
+- Preflight at 07:26:02 UTC showed 49,801,564,160 bytes free and
+  1,317,836 KiB available RAM. Revision d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a.
+  API, ensemble and lifecycle active with zero recorded restarts, retention
+  and paid AI false and no AI key configured. Collector remained stopped
+  at its legacy storage guard.
+- One normal and one outage case ran serially from the standalone generated
+  bundle SHA-256 2764daa0f08ac0245c8e687ca22d1c51ca66de42cad7e9f4eca637a246305cb7.
+  It contains dd22009 protocol/verifier code and the committed capacity
+  harness. Linux isolated imports passed before execution. The whole
+  collector/archive process used a 256 MiB AS cap, below the proposed
+  per-worker limits. Workspace cap was 64 MiB, floor 10 GiB, RAM
+  prerequisite 1.125 GiB and outer deadline 180 seconds. Production health
+  and service identities were checked about every two seconds during work.
+- Normal case sampled 7,895,974 file bytes, with 13 B acknowledgements,
+  0.1285 seconds reader close/retirement drain and 0.4215 seconds seal to
+  retirement. Local archive wrote 781,446 bytes in 0.01962 seconds and
+  read 1,562,892 bytes in 0.001101 seconds including retirement readback.
+  This measures local transport. WAN throughput remains a separate gate.
+- Outage case sampled 9,764,856 bytes. A's digest remained unchanged.
+  B acknowledged 1,667 rows over 61.395 simulated seconds before the
+  occupied-slot guard stopped another write with zero pending intents.
+  A's active window was 63.013 simulated seconds at the 2 MiB trigger
+  and the assumed 20 KiB/s payload clock.
+- Both cases, preparation and generated cleanup took 74.197 seconds.
+  Peak collector/archive process RSS was 41,590,784 bytes. Short-lived
+  systemctl health-check child RSS was not separately measured. File peaks
+  are sampled lengths, not continuous physical-allocation high-water proof.
+  The code zip was outside the case directory. Adding its 139807
+  measured bytes to the larger protocol sample gives 9904663
+  observed file bytes including packaged code, below 64 MiB. No budget
+  credit comes from reusable pages. No production DB was opened or copied
+  by the capacity harness and no real cloud object was created or removed.

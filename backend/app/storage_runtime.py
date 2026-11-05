@@ -29,7 +29,11 @@ def configured_runtime(environ=None):
         raise RuntimeError('invalid A/B generation threshold') from None
     if not 0 < size < 2*1024**3:
         raise RuntimeError('A/B threshold exceeds qualified resource envelope')
-    return StorageRuntime(root,legacy,size,enabled(env.get('ENABLE_AB_RETIREMENT','false')))
+    mode=env.get('AB_STARTUP_MODE','full-import')
+    if mode not in ('full-import','fresh-b'):raise RuntimeError('unsupported A/B startup mode')
+    ceiling=int(env.get('MAX_LOCAL_STORAGE_MB','2048'))*1024**2 if mode=='fresh-b' else 2*1024**3
+    if not 2*1024**3<=ceiling<=8*1024**3:raise RuntimeError('unsupported fresh-B aggregate budget')
+    return StorageRuntime(root,legacy,size,enabled(env.get('ENABLE_AB_RETIREMENT','false')),fresh_b=mode=='fresh-b',aggregate_bytes=ceiling)
 
 
 def adapter_modules():
@@ -41,10 +45,12 @@ def adapter_modules():
 
 
 class StorageRuntime:
-    def __init__(self,root,legacy,threshold,retirement=False):
+    def __init__(self,root,legacy,threshold,retirement=False,fresh_b=False,aggregate_bytes=2*1024**3):
         self.root = Path(root)
         self.legacy = Path(legacy)
         self.threshold = threshold
+        self.aggregate_bytes = aggregate_bytes
+        self.fresh_b = fresh_b
         self.retirement = retirement
         self.handle = None
 
@@ -58,7 +64,7 @@ class StorageRuntime:
         collector, worker = adapter_modules()
         if role == 'collector':
             self.handle = collector(self.root,self.legacy,routing=True,
-                                    retirement=self.retirement,generation_bytes=self.threshold)
+                                    retirement=self.retirement,generation_bytes=self.threshold,fresh_b=self.fresh_b,aggregate_bytes=self.aggregate_bytes)
         else:
             self.handle = worker(self.root,self.legacy,routing=True,role=role)
         return self.handle

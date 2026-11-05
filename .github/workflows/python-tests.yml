@@ -97,6 +97,7 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: "1"
       AB_SOURCE_REPOSITORY: ${{ github.workspace }}
+      AB_QUALIFICATION_MODE: "fresh-b"
       ENABLE_OPENAI_ANALYST: "false"
       ENABLE_SUPABASE_SYNC: "false"
       ENABLE_LOCAL_RETENTION: "false"

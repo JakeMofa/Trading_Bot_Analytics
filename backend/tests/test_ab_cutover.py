@@ -21,6 +21,7 @@ import sys,os,json,sqlite3
 sys.path.insert(0,sys.argv[1])
 from test_ab_application import ApplicationStore,collector,iso,T,timedelta
 root,legacy,mode=sys.argv[2:5]
+fresh_b=os.environ.get('AB_TEST_FRESH_B')=='true'
 if mode=='legacy':
     db=collector.connect(legacy)
     try:
@@ -31,16 +32,17 @@ if mode=='legacy':
 if mode=='before':
     def fault(at):
         if at=='migration_before_commit':raise RuntimeError('before first acknowledgement')
-    try:ApplicationStore(root,legacy,routing=True,fault=fault)
+    try:ApplicationStore(root,legacy,routing=True,fault=fault,fresh_b=fresh_b)
     except RuntimeError as error:
         assert str(error)=='before first acknowledgement',str(error)
         print('before-ack-hold',flush=True)
         raise SystemExit(71)
     raise AssertionError('injected migration failure missed')
-s=ApplicationStore(root,legacy,routing=True)
+s=ApplicationStore(root,legacy,routing=True,fresh_b=fresh_b)
 db=s.connection()
 if mode=='after':
     first=db.save_observation('m',iso(T+timedelta(seconds=2)),'book',{'new':1},iso(T))
+    if fresh_b:assert db.active_buffer()['slot']=='B'
     print(json.dumps({'acknowledged':first}),flush=True)
     s.protocol.fault=lambda at:os._exit(72) if at=='raw_committed' else None
     db.save_observation('m',iso(T+timedelta(seconds=3)),'book',{'new':2},iso(T))
@@ -57,6 +59,12 @@ else:
 @unittest.skipUnless(sys.platform=='linux' and os.geteuid()==0,'Linux root UID fence')
 class CutoverTests(unittest.TestCase):
     def test_before_and_after_acknowledgement_recovery(self):
+        self.exercise(False)
+
+    def test_fresh_b_fence_and_forward_recovery(self):
+        self.exercise(True)
+
+    def exercise(self,fresh_b):
         account=pwd.getpwnam('nobody')
         def demote():
             os.setgroups([])
@@ -83,9 +91,10 @@ class CutoverTests(unittest.TestCase):
                 # Root-owned read-only main prevents that UID opening a writer.
                 path.chmod(0o444)
                 root=parent/'generated-ab-new';root.mkdir(mode=0o700)
+                if fresh_b:os.chown(root,account.pw_uid,account.pw_gid)
                 before=hashlib.sha256(path.read_bytes()).hexdigest()
                 denied=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),'legacy'],
-                                      preexec_fn=demote,capture_output=True,text=True,timeout=10)
+                                      env=dict(os.environ,AB_TEST_FRESH_B=str(fresh_b).lower()),preexec_fn=demote,capture_output=True,text=True,timeout=10)
                 self.assertNotEqual(denied.returncode,0)
                 self.assertIn('readonly',denied.stderr.lower())
                 # Ordinary last-close cleanup after the failed old-UID reader;
@@ -96,7 +105,8 @@ class CutoverTests(unittest.TestCase):
                 self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)
                 started=time.monotonic()
                 result=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),mode],
-                                      capture_output=True,text=True,timeout=15)
+                                      env=dict(os.environ,AB_TEST_FRESH_B=str(fresh_b).lower()),
+                                      preexec_fn=demote if fresh_b else None,capture_output=True,text=True,timeout=15)
                 self.assertEqual(result.returncode,71 if mode=='before' else 72,result.stdout+result.stderr)
                 self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)
                 if mode=='before':
@@ -113,12 +123,13 @@ class CutoverTests(unittest.TestCase):
                             os.chown(component,account.pw_uid,account.pw_gid)
                             component.chmod(0o600)
                     legacy_result=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),'legacy'],
-                                                 preexec_fn=demote,capture_output=True,text=True,timeout=10)
+                                                 env=dict(os.environ,AB_TEST_FRESH_B=str(fresh_b).lower()),preexec_fn=demote,capture_output=True,text=True,timeout=10)
                     self.assertEqual(legacy_result.returncode,0,legacy_result.stderr)
                 else:
                     self.assertIn('acknowledged',result.stdout)
                     recovered=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),'recover'],
-                                             capture_output=True,text=True,timeout=15)
+                                             env=dict(os.environ,AB_TEST_FRESH_B=str(fresh_b).lower()),
+                                      preexec_fn=demote if fresh_b else None,capture_output=True,text=True,timeout=15)
                     self.assertEqual(recovered.returncode,0,recovered.stdout+recovered.stderr)
                     self.assertIn('forward-recovered',recovered.stdout)
                     self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)
@@ -126,6 +137,6 @@ class CutoverTests(unittest.TestCase):
                 with sqlite3.connect(root/'core.db') as audit:
                     self.assertEqual(audit.execute('PRAGMA quick_check').fetchall(),[('ok',)])
                     self.assertEqual(audit.execute('PRAGMA foreign_key_check').fetchall(),[])
-                print(json.dumps({'generated_cutover':mode,'fence_through_recovery_seconds':time.monotonic()-started,
+                print(json.dumps({'generated_cutover':mode,'fresh_b':fresh_b,'fence_through_recovery_seconds':time.monotonic()-started,
                                   'core_quick_and_fk_seconds':time.monotonic()-check_started,
                                   'scale':'small generated legacy; not production budget'}))

@@ -83,6 +83,7 @@ def profile(candidate,sha,workspace):
     import collector,streaming,features,forecasts,dashboard,ensemble
     from live_state import LiveState
     verify_export(candidate,sha,repo=os.environ.get('AB_SOURCE_REPOSITORY'))
+    fresh_b=os.environ.get('AB_QUALIFICATION_MODE')=='fresh-b'
     root=Path(tempfile.mkdtemp(prefix='generated-ab-',dir=workspace));os.environ['SQLITE_TMPDIR']=str(root)
     deadline=BOOT+170;result={'status':'NOT_PROVEN','source_sha':sha,'generated_only':True,
         'path':'ApplicationStore + real collector/feature/forecast/history/ensemble + separate LifecycleWorker + SupabaseHTTP MockTransport',
@@ -98,7 +99,9 @@ def profile(candidate,sha,workspace):
         if time.monotonic()>=deadline:raise TimeoutError('original work deadline exhausted')
     s=None;db=None;life=None;pool=None;finish=None
     try:
-        legacy(root/'generated-legacy.db');s=ApplicationStore(root,root/'generated-legacy.db',routing=True,retirement=False)
+        legacy(root/'generated-legacy.db');s=ApplicationStore(root,root/'generated-legacy.db',routing=True,retirement=False,fresh_b=fresh_b)
+        result['startup_mode']='fresh-b' if fresh_b else 'full-import'
+        result['legacy_retirement']='HELD'
         # Count exported source and reports against the original workspace budget.
         source_bytes=workspace_bytes(candidate);s.protocol.ceiling=2*1024**3-source_bytes-1024**2
         db=s.connection();state=LiveState()
@@ -185,7 +188,7 @@ def profile(candidate,sha,workspace):
         result['committed_rows']=db.execute("SELECT COUNT(*) FROM ab_events WHERE status='committed'").fetchone()[0]
         result['pending_rows']=db.execute("SELECT COUNT(*) FROM ab_events WHERE status='pending'").fetchone()[0]
         result['archived_rows']=sum(d['archived'] for c in result['lifecycle']['cycles'] for d in c['archive'].values())
-        if result['committed_rows']!=4000 or result['pending_rows'] or result['archived_rows']!=4002:raise Stop('workload identity/completion mismatch')
+        if result['committed_rows']!=4000 or result['pending_rows'] or result['archived_rows']!=(4000 if fresh_b else 4002):raise Stop('workload identity/completion mismatch')
         result['sqlite_runtime']=list(db.execute('SELECT sqlite_version(),sqlite_source_id()').fetchone())
         result['allocation_before_retirement']=s.protocol.allocation();result['wal_peak_bytes']=dict(s.protocol.wal_peaks)
         result['generation_files']={r['slot']:{'id':r['id'],'state':r['state']} for r in s.protocol.core.execute("SELECT * FROM generations WHERE state!='retired'")}
@@ -193,7 +196,7 @@ def profile(candidate,sha,workspace):
         result['rotation_seconds']=s.protocol.last_rotation_seconds
         # No app handle may remain when retirement starts; production gate stays off.
         db.close();db=None
-        old=result['generation_files']['A']['id'];cloud=GeneratedRemote(root/'cloud-fixture').client(deadline)
+        old=next(g['id'] for g in result['generation_files'].values() if g['state']=='sealed');cloud=GeneratedRemote(root/'cloud-fixture').client(deadline)
         begin=time.monotonic()
         try:
             # Explicit generated qualification only; never toggles production flags.

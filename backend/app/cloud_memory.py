@@ -563,7 +563,8 @@ def _stream_cursor_key(row):
 def _raw_batch_rows(db, dataset, limit):
     if hasattr(db, 'raw_archive_rows'):
         return db.raw_archive_rows(dataset, limit)
-    checkpoint_name = f"archive:{dataset}"
+    checkpoint_name = (db.archive_checkpoint_name(dataset) if hasattr(db,"archive_checkpoint_name")
+                       else f"archive:{dataset}")
     last_id, last_time, last_key, _ = _checkpoint(db, checkpoint_name)
     if dataset == "observations":
         cursor = db.execute(
@@ -630,7 +631,8 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
     if not 1 <= limit <= 50000:
         raise ValueError("raw archive batch limit must be 1..50000")
     initialize_local_sync(db)
-    checkpoint_name = f"archive:{dataset}"
+    checkpoint_name = (db.archive_checkpoint_name(dataset) if hasattr(db,"archive_checkpoint_name")
+                       else f"archive:{dataset}")
     rows = _raw_batch_rows(db, dataset, limit)
     if not rows:
         return None
@@ -724,7 +726,7 @@ def archive_raw_backfill(db, cloud, dataset, max_batches=24, batch_size=5000,
         if manifest["event_count"] < batch_size:
             break
     last_id, last_time, _, rows_synced = _checkpoint(
-        db, f"archive:{dataset}"
+        db, (db.archive_checkpoint_name(dataset) if hasattr(db,"archive_checkpoint_name") else f"archive:{dataset}")
     )
     return {
         "dataset": dataset,

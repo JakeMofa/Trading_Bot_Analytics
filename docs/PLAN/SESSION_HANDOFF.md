@@ -6,26 +6,26 @@ production authorization.
 
 ## Resume here
 
-November5: PR #9 is the current integration milestone and remains DRAFT.
-Exact46f51e5f6501ee03e4021d725659aff2b53e84b5 / CI41995105891 PASS: exported
-backend357, root raw18/application38/runtime8/cutover1, controls120 and integrated
-4000 committed/0pending/errors,20publications, save669ms/heartbeat749ms.
-Production remains held on the legacy DB; no authority is renewed.
+PR9 fresh-B recovery is the current candidate, continued from7b5e327 (exact
+CI41998043241 PASS). Retain legacy raw in place; fresh-B bootstrap imports/audits
+structured history and point-copies protected/current bodies only. New B archive
+cursors are independent of legacy backlog. Legacy retirement remains held. See
+FRESH_B_RECOVERY_REVIEW_2026-11-05.md and newest master-roadmap entry.
 
-Read the latest master-roadmap reconciliation and
-PHASE175_RECONCILIATION_2026-11-05.md for all eight areas, historical raw replay,
-deferred knowledge/RAG and48h→72h-or-size policy mapping. Old failures remain failures.
-Successor explicit generated known-structured-count import is pending exact CI.
-Default migration row/byte/path holds and production routing/retirement remain.
-Full retained legacy5,369,184,256B exceeds current2GiB fixture by3,221,700,608B
-before core/WAL/recovery; full raw/protected shape is not known. Do not claim a
-production ceiling/verification budget or adapt/dispatch a new controller before
-those ordered gates pass. No bigger fixture is authorized by a small count pass.
+Four focused generated fresh tests passed; full366 backend/120controls passed
+with15/3 Mac skips. Exact candidate Linux CI must prove unprivileged app reading
+root-owned fenced legacy, before/after-ack forward recovery and4000-event fresh
+ApplicationStore qualification. Do not substitute old full-import results.
+Proposed8GiB aggregate,2GiB new-layout/512MiB core,512MiB recovery/10GiB floor and
+2MiB trigger are recovery-only and UNAPPLIED. A proposed targeted new-core+legacy-
+input verification scope requires explicit review; full legacy checks/retirement
+stay held. Existing narrow manual controls/path guards still STOP production;
+no nonworking command is to be dispatched or old authority reused.
 
-Preserve unrelated AGENTS.md and596-line roadmap edits, local data and secrets.
-Reuse existing branches; no repeated CI polling/cloud probe/production scan.
-Continue importer→capacity/verification→existing manual control qualification;
-cutover/guard/retirement approvals remain separate. I7 and Phase1.75 stay open.
+Preserve unrelated AGENTS.md and596-line roadmap edits. No new branch/worktree,
+production mutation/cleanup/restart/WAL operation/copy/infrastructure/cloud write.
+Full Phase1.75 eight-area +replay/deferredRAG reconciliation remains in
+PHASE175_RECONCILIATION_2026-11-05.md; I7 and sustained acceptance remain open.
 
 ## Read first and establish ownership
 

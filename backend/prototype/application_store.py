@@ -7,6 +7,7 @@ legacy/A/B plus protected core observations. Every caller owns its connection.
 from contextlib import ExitStack,contextmanager
 from pathlib import Path
 import hashlib,json,re,sqlite3,threading,gzip,time
+from datetime import datetime,timezone
 from migration_budget import MigrationBudget
 from decimal import Decimal
 from raw_generations import Store,Stop,connect,canonical,COLUMNS,iso,digest
@@ -15,15 +16,17 @@ import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
 RAW={'observations','stream_events'}
 MAX_ROWS=10000
 class ApplicationStore:
-    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None,migration_budget=None):
+    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None,migration_budget=None,fresh_b=False,aggregate_bytes=2*1024**3):
         if retirement and not routing:raise Stop('inconsistent AB enablement')
         if not routing:raise Stop('AB application routing disabled by default')
-        self.migration_budget=migration_budget or MigrationBudget(deadline=time.monotonic()+170)
+        self.fresh_b=bool(fresh_b)
+        if type(aggregate_bytes) is not int or not 2*1024**3<=aggregate_bytes<=8*1024**3 or (not fresh_b and aggregate_bytes!=2*1024**3):raise Stop('unsupported generated aggregate budget')
+        self.migration_budget=migration_budget or MigrationBudget(row_limit=60000 if fresh_b else 10000,deadline=time.monotonic()+170)
         if not isinstance(self.migration_budget,MigrationBudget):raise Stop('explicit migration budget required')
         self.migration_budget.check()
         self.import_metrics={}
         self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
-        self.protocol=Store(root,fault=fault,application_namespace=True,generation_bytes=generation_bytes)
+        self.protocol=Store(root,ceiling=aggregate_bytes,core_ceiling=512*1024**2 if fresh_b else None,fault=fault,application_namespace=True,generation_bytes=generation_bytes,initial_slot="B" if fresh_b else "A")
         self.root=self.protocol.root;self.legacy=Path(legacy)
         self.retirement_enabled=retirement;self.hold=None;self.collector_authority=True
         try:
@@ -31,6 +34,7 @@ class ApplicationStore:
                 raise Stop('generated legacy allowlist required')
             self.legacy=self.legacy.resolve()
             self._bind_external_legacy()
+            self._fresh_limits(aggregate_bytes)
             self.protocol.guard()
             if any(Path(str(self.legacy)+suffix).is_symlink() for suffix in ('-wal','-shm')):raise Stop('legacy sidecar symlink forbidden')
             if not self.legacy.is_file():raise Stop('legacy missing')
@@ -40,6 +44,17 @@ class ApplicationStore:
             core.execute('CREATE TABLE IF NOT EXISTS ab_worker_binding(id INTEGER PRIMARY KEY CHECK(id=1),legacy TEXT NOT NULL,allocation TEXT NOT NULL)')
             with core:core.execute('INSERT OR REPLACE INTO ab_worker_binding VALUES(1,?,?)',(str(self.legacy),canonical(self.legacy_identity)))
         except BaseException:self.protocol.close();raise
+    def _fresh_limits(self,aggregate_bytes):
+        if not self.fresh_b:return
+        core=self.protocol.core.native
+        core.execute('CREATE TABLE IF NOT EXISTS ab_fresh_limits(id INTEGER PRIMARY KEY CHECK(id=1),aggregate_bytes INTEGER NOT NULL)')
+        row=core.execute('SELECT aggregate_bytes FROM ab_fresh_limits WHERE id=1').fetchone()
+        if row and row[0]!=aggregate_bytes:raise Stop('fresh-B guard binding changed')
+        with core:core.execute('INSERT OR IGNORE INTO ab_fresh_limits VALUES(1,?)',(aggregate_bytes,))
+        self.protocol.physical_accounting=True
+        self.protocol.fresh_layout_limit=2*1024**3
+        self.protocol.retained_legacy_names={self.legacy.name,self.legacy.name+'-wal',self.legacy.name+'-shm'}
+
     def _legacy_parents(self):
         parents = {self.root}
         if self.root.parent.name.startswith('generated-ab-'):
@@ -53,7 +68,7 @@ class ApplicationStore:
                 Path(str(self.legacy)+suffix) for suffix in ('','-wal','-shm'))
 
     def _legacy_allocation(self):
-        return tuple((p.name,p.stat().st_ino,p.stat().st_size,p.stat().st_mtime_ns) for p in
+        return tuple((p.name,p.stat().st_ino,p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_uid,p.stat().st_mode&0o7777,p.stat().st_dev) for p in
                      (self.legacy,Path(str(self.legacy)+'-wal')) if p.exists())
     def _initialize(self):
         core=self.protocol.core.native
@@ -65,7 +80,12 @@ CREATE TABLE IF NOT EXISTS ab_legacy_stream_pins(source TEXT,event_id TEXT,recor
 CREATE TABLE IF NOT EXISTS ab_legacy_pins(id INTEGER PRIMARY KEY,fingerprint TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ab_application_marker(id INTEGER PRIMARY KEY CHECK(id=1),layout TEXT NOT NULL);
 INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
-        legacy=connect(self.legacy,True)
+        core.execute('CREATE TABLE IF NOT EXISTS ab_bootstrap_mode(id INTEGER PRIMARY KEY CHECK(id=1),mode TEXT NOT NULL)')
+        mode='fresh-b' if self.fresh_b else 'full-import'
+        prior_mode=core.execute('SELECT mode FROM ab_bootstrap_mode WHERE id=1').fetchone()
+        if prior_mode and prior_mode[0]!=mode:raise Stop('bootstrap mode changed; forward recovery required')
+        with core:core.execute('INSERT OR IGNORE INTO ab_bootstrap_mode VALUES(1,?)',(mode,))
+        legacy=connect(self.legacy,True,sealed_legacy=self.fresh_b)
         budget=self.migration_budget
         begun=time.monotonic()
         legacy.set_progress_handler(lambda:int(budget.expired()),1000)
@@ -89,23 +109,26 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             # visits, rather than COUNT(*) scanning an arbitrary raw history.
             # The default bound stays 10000. An explicit generated scope may
             # select more rows without raising byte/workspace/process limits.
+            audited_schema=[t for t in schema if not self.fresh_b or t['name'] not in RAW]
             count=0
-            for table in schema:
+            for table in audited_schema:
                 quoted=table['name'].replace('"','""')
                 for _ in legacy.execute('SELECT 1 FROM "'+quoted+'" LIMIT ?', (budget.row_limit-count+1,)):
                     count+=1
                     budget.check()
                     if count>budget.row_limit:raise Stop('generated migration qualification bound exceeded')
             audit=hashlib.sha256(canonical({'path':str(self.legacy),'schema':[tuple(r) for r in schema]}).encode());audited_bytes=0
-            for table in schema:
+            for table in audited_schema:
                 audit.update(table['name'].encode()+b'\0')
                 for row in legacy.execute('SELECT * FROM "'+table['name']+'" ORDER BY rowid'):
                     budget.check()
                     encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
                     if len(encoded)>1024**2 or audited_bytes>budget.byte_limit:raise Stop('generated migration audit byte bound exceeded')
                     audit.update(len(encoded).to_bytes(8,'big'));audit.update(encoded)
+            if self.fresh_b:audit.update(canonical({'mode':'fresh-b','sealed_legacy_binding':[r for r in source_binding if r[0]==self.legacy.name or r[2]>0]}).encode())
             identity=audit.hexdigest()
-            self.import_metrics.update(rows=count,audited_bytes=audited_bytes,identity=identity)
+            self.import_metrics.update(rows=count,audited_bytes=audited_bytes,identity=identity,
+                raw_audit='targeted protected/current inputs only' if self.fresh_b else 'complete')
             if self._legacy_allocation()!=source_binding:raise Stop('legacy changed during migration')
             prior=core.execute('SELECT identity,status FROM ab_migration_state WHERE id=1').fetchone()
             if prior and prior[0]!=identity:raise Stop('legacy identity changed')
@@ -145,6 +168,17 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                         elif source=='coinbase_rest':
                             if not legacy.execute('SELECT 1 FROM reference_prices WHERE id=?',(input_id,)).fetchone():raise Stop('missing embedded REST price reference')
                         elif source is not None or input_id is not None:raise Stop('unknown embedded price reference')
+                if self.fresh_b:
+                    # Preserve the last recorded current-price input and latest
+                    # metadata for known open markets; no global raw scan.
+                    latest=legacy.execute("SELECT source,event_id FROM stream_events NOT INDEXED WHERE source='coinbase' ORDER BY rowid DESC LIMIT 1").fetchone()
+                    if latest:protected_stream.add(tuple(latest))
+                    now=datetime.now(timezone.utc).isoformat()
+                    active=legacy.execute("SELECT id FROM markets WHERE duration=900 AND status='MARKET_STATUS_OPEN' AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?) ORDER BY start DESC LIMIT 33",(now,now)).fetchall()
+                    if len(active)>32:raise Stop('current market pin scope exceeded')
+                    for market in active:
+                        meta=legacy.execute("SELECT id FROM observations WHERE market_id=? AND kind='metadata' ORDER BY id DESC LIMIT 1",(market[0],)).fetchone()
+                        if meta:protected.add(meta[0])
                 for row in schema:
                     name=row['name']
                     if name in RAW:continue
@@ -156,7 +190,19 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                 for name in RAW:
                     exists=any(r['name']==name for r in schema)
                     if not exists:raise Stop('legacy raw schema missing')
-                    for row in legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM '+name):
+                    if self.fresh_b:
+                        if name=='observations':
+                            selected=(legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM observations WHERE id=?',(key,)).fetchone() for key in sorted(protected))
+                        else:
+                            selected=(legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM stream_events WHERE source=? AND event_id=?',key).fetchone() for key in sorted(protected_stream))
+                    else:selected=legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM '+name)
+                    for row in selected:
+                        budget.check()
+                        if row is None:raise Stop('missing protected legacy input')
+                        if self.fresh_b:
+                            encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
+                            if len(encoded)>1024**2 or audited_bytes>budget.byte_limit:raise Stop('targeted legacy input byte bound exceeded')
+                            self.protocol.guard()
                         raw=dict(row);key=str(raw['id']) if name=='observations' else canonical([raw['source'],raw['event_id']])
                         core.execute('INSERT INTO ab_legacy_audit VALUES(?,?,?)',(name,key,digest(raw)))
                         if name=='stream_events' and (raw['source'],raw['event_id']) in protected_stream:
@@ -174,8 +220,13 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                 if missing:raise Stop('missing legacy protected observation')
                 # Reserve above ALL legacy observation IDs, not only copied pins.
                 maximum=legacy.execute('SELECT COALESCE(MAX(id),0) FROM observations').fetchone()[0]
-                for row in legacy.execute('SELECT source,event_id FROM stream_events ORDER BY rowid'):
-                    maximum+=1;core.execute('INSERT INTO ab_legacy_stream_ids VALUES(?,?,?)',(row['source'],row['event_id'],maximum))
+                if self.fresh_b:
+                    # A sealed-file rowid is only a display-order offset, never
+                    # an archive/source identity. No full stream mapping needed.
+                    maximum+=legacy.execute('SELECT COALESCE(MAX(rowid),0) FROM stream_events').fetchone()[0]
+                else:
+                    for row in legacy.execute('SELECT source,event_id FROM stream_events ORDER BY rowid'):
+                        maximum+=1;core.execute('INSERT INTO ab_legacy_stream_ids VALUES(?,?,?)',(row['source'],row['event_id'],maximum))
                 core.execute("INSERT OR REPLACE INTO sqlite_sequence(name,seq) VALUES('ab_events',?)",(maximum,))
                 if core.execute('PRAGMA foreign_key_check').fetchall():raise Stop('legacy foreign key audit failed')
                 self._write_guards(core)
@@ -360,10 +411,28 @@ class ApplicationConnection:
         return self.db.executescript(sql)
     def active_buffer(self):
         row = self.execute("SELECT slot,id,started FROM ab_generations WHERE state='active'").fetchone()
-        return dict(zip(('slot','generation_id','started_at'),row)) if row else None
+        result=dict(zip(('slot','generation_id','started_at'),row)) if row else None
+        if result and self.store.fresh_b:
+            result['legacy_history']='sealed_retirement_held'
+            result['archive_checkpoint_prefix']='archive:ab72:'
+            result['legacy_full_verification']='NOT_PERFORMED_BY_FRESH_BOOTSTRAP'
+        return result
+
+    def _fresh_ticks(self,limit):
+        self._refresh()
+        offset=self.db.execute('SELECT COALESCE(MAX(id),0) FROM legacy.observations').fetchone()[0]
+        rows=self.db.execute("SELECT rowid+?,received_at,source_time,price FROM legacy.stream_events NOT INDEXED WHERE source='coinbase' ORDER BY rowid DESC LIMIT ?",(offset,limit)).fetchall()
+        for alias in self.raw_attached:
+            rows.extend(self.db.execute("SELECT e.id,r.received_at,r.source_time,r.price FROM "+alias+".stream_events r JOIN main.ab_events e ON e.event_key=r.source||':'||r.event_id AND e.dataset='stream_events' AND e.status='committed' WHERE r.source='coinbase' ORDER BY e.id DESC LIMIT ?",(limit,)).fetchall())
+        rows.sort(key=lambda row:row[0],reverse=True)
+        return rows[:limit]
 
     def chart_ticks(self,limit):
         if not 1<=limit<=12000:raise Stop('unsupported chart request bound')
+        if self.store.fresh_b:
+            rows=self._fresh_ticks(min(limit,10001))
+            if len(rows)>10000:raise Stop('chart exceeds unchanged10000-row resource bound')
+            return [r[1:] for r in rows]
         rows=self.execute("""SELECT t.received_at,t.source_time,t.price FROM stream_events t
 LEFT JOIN ab_legacy_stream_ids l ON l.source=t.source AND l.event_id=t.event_id
 LEFT JOIN ab_events e ON e.dataset='stream_events' AND e.event_key=t.source||':'||t.event_id
@@ -371,6 +440,10 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT ?""",(min(limi
         if len(rows)>10000:raise Stop('chart exceeds unchanged10000-row resource bound')
         return rows
     def latest_tick_event(self):
+        if self.store.fresh_b:
+            rows=self._fresh_ticks(1)
+            row=rows[0] if rows else None
+            return dict(zip(('sequence','received_at','source_time','price_usd'),row)) if row else None
         row=self.execute("""SELECT COALESCE(e.id,l.id),t.price,t.source_time,t.received_at FROM stream_events t
 LEFT JOIN ab_legacy_stream_ids l ON l.source=t.source AND l.event_id=t.event_id
 LEFT JOIN ab_events e ON e.dataset='stream_events' AND e.event_key=t.source||':'||t.event_id
@@ -459,6 +532,14 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
                 record=canonical({'generation_id':event[1],'dataset':'stream_events','row':dict(zip(COLUMNS['stream_events'],row))})
                 self.db.execute('INSERT OR IGNORE INTO ab_evidence VALUES(?,?,?)',(event[0],record,hashlib.sha256(record.encode()).hexdigest()))
                 self.db.execute('INSERT OR IGNORE INTO ab_required_evidence VALUES(?)',(event[0],))
+            elif self.store.fresh_b:
+                old=self.db.execute('SELECT '+','.join(COLUMNS['stream_events'])+' FROM legacy.stream_events WHERE source=? AND event_id=?',('coinbase',str(price['input_id']))).fetchone()
+                if old is None:raise Stop('protected legacy price missing')
+                raw=dict(zip(COLUMNS['stream_events'],old));record=canonical(raw)
+                existing=self.db.execute('SELECT record FROM ab_legacy_stream_pins WHERE source=? AND event_id=?',('coinbase',str(price['input_id']))).fetchone()
+                if existing and existing[0]!=record:raise Stop('protected legacy price conflict')
+                self.db.execute('INSERT OR IGNORE INTO ab_legacy_stream_pins VALUES(?,?,?)',('coinbase',str(price['input_id']),record))
+                self.db.execute('INSERT OR IGNORE INTO ab_legacy_audit VALUES(?,?,?)',('stream_events',canonical(['coinbase',str(price['input_id'])]),digest(raw)))
         self.protocol.trip('feature_evidence_ready')
     def archive_handoff_token(self):
         return tuple(self.db.execute(
@@ -500,7 +581,7 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
     def commit_verified_archive(self,cloud,dataset,rows,manifest):
         if self.db.in_transaction:raise Stop('archive cannot run in writer transaction')
         self.protocol.trip('archive_remote_verified')
-        name='archive:'+dataset;last=rows[-1]
+        name=self.archive_checkpoint_name(dataset);last=rows[-1]
         key=None if dataset=='observations' else cloud_memory._stream_cursor_key(last)
         source_id=last.get('source_id')
         cloud_memory._cloud_checkpoint(cloud,name,source_id=source_id,source_time=last['received_at'],source_key=key,
@@ -524,7 +605,31 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
             lines.append('{"dataset":'+json.dumps(dataset)+',"row":'+text[:-1]+',"payload":'+payload+'}}')
         raw=('\n'.join(lines)+'\n').encode();compressed=gzip.compress(raw,mtime=0)
         return raw,compressed,hashlib.sha256(compressed).hexdigest()
+    def archive_checkpoint_name(self,dataset):
+        return ('archive:ab72:' if self.store.fresh_b else 'archive:')+dataset
+
     def raw_archive_rows(self,dataset,limit):
+        if self.store.fresh_b:
+            self._refresh()
+            if dataset not in RAW:raise Stop('unknown raw archive dataset')
+            checkpoint=cloud_memory._checkpoint(self,self.archive_checkpoint_name(dataset))
+            # Query raw attachments directly: legacy backlog never gates B.
+            rows=[]
+            for alias in self.raw_attached:
+                if dataset=='observations':
+                    query='SELECT r.id AS source_id,r.* FROM '+alias+".observations r JOIN main.ab_events e ON e.id=r.id AND e.dataset='observations' AND e.status='committed' WHERE r.id>? ORDER BY r.id LIMIT ?"
+                    params=(checkpoint[0] or 0,limit)
+                else:
+                    at=checkpoint[1] or '';key=json.loads(checkpoint[2]) if checkpoint[2] else ['','']
+                    query='SELECT r.* FROM '+alias+".stream_events r JOIN main.ab_events e ON e.event_key=r.source||':'||r.event_id AND e.dataset='stream_events' AND e.status='committed' WHERE (r.received_at,r.source,r.event_id)>(?,?,?) ORDER BY r.received_at,r.source,r.event_id LIMIT ?"
+                    params=(at,*key,limit)
+                rows.extend(cloud_memory._dict_rows(self.db.execute(query,params)))
+            rows.sort(key=(lambda r:r['id']) if dataset=='observations' else (lambda r:(r['received_at'],r['source'],r['event_id'])))
+            rows=rows[:limit]
+            if rows:
+                gid=self._row_generation(dataset,rows[0]);rows=[r for r in rows if self._row_generation(dataset,r)==gid]
+            return rows
+
         # Reuse exact existing cursor semantics; avoid CREATE INDEX on temp view.
         if dataset=='observations':
             last=cloud_memory._checkpoint(self,'archive:observations')[0] or 0
@@ -581,6 +686,15 @@ class ApplicationWorker(ApplicationStore):
         try:
             core=self.protocol.core.native
             if not core.execute("SELECT 1 FROM ab_migration_state WHERE id=1 AND status='complete'").fetchone():raise Stop('worker migration incomplete')
+            mode=core.execute('SELECT mode FROM ab_bootstrap_mode WHERE id=1').fetchone()
+            self.fresh_b=bool(mode and mode[0]=='fresh-b')
+            if self.fresh_b:
+                self.protocol.ceiling=core.execute('SELECT aggregate_bytes FROM ab_fresh_limits WHERE id=1').fetchone()[0]
+                if not 2*1024**3<=self.protocol.ceiling<=8*1024**3:raise Stop('unsupported stored fresh-B budget')
+                self.protocol.core_ceiling=512*1024**2
+                self.protocol.physical_accounting=True
+                self.protocol.fresh_layout_limit=2*1024**3
+                self.protocol.retained_legacy_names={self.legacy.name,self.legacy.name+'-wal',self.legacy.name+'-shm'}
             binding=core.execute('SELECT legacy,allocation FROM ab_worker_binding WHERE id=1').fetchone()
             if not binding or binding[0]!=str(self.legacy):raise Stop('worker legacy identity mismatch')
             self.legacy_identity=self._legacy_allocation()

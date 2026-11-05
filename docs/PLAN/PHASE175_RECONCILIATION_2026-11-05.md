@@ -153,3 +153,15 @@ rows and validates FTS rebuilding; its source count and measured timing/bytes
 come from that new Linux artifact. The local47907-row figures above precede that
 addition and final deadline/source-binding checks, and are not substituted for it.
 Local final backend361 tests PASS/14 Mac skips; controls120 PASS/3 Mac skips.
+
+
+## Selected fresh-B recovery successor
+
+See FRESH_B_RECOVERY_REVIEW_2026-11-05.md and the newest master entry. The full-raw-
+import resource prerequisite above is superseded only for retained-legacy fresh-B
+recovery: structured/protected/current core import plus untouched sealed legacy
+reads and independent new B archives. Full legacy retirement and its complete
+archive/reference/integrity obligations are still open, not waived. The recovery-
+only8GiB/targeted-verification proposal is unapplied and existing manual/path
+controls still STOP production. Other eight-area/replay/deferredRAG/I7/sustained
+requirements and historical failures retain their dispositions.

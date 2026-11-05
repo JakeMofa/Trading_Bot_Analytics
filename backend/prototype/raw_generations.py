@@ -26,11 +26,17 @@ def stamp(value):
 def iso(value):return stamp(value).isoformat(timespec='microseconds')
 def canonical(value):return json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
 def digest(value):return hashlib.sha256(canonical(value).encode()).hexdigest()
-def connect(path,ro=False):
+def connect(path,ro=False,sealed_legacy=False):
     path=Path(path)
+    sealed=False
+    if sealed_legacy and ro and not path.is_symlink() and path.is_file():
+        main=path.stat();parent=path.parent.stat()
+        sealed=main.st_uid==0 and not main.st_mode&0o222 and parent.st_uid==0 and bool(parent.st_mode&0o1000)
     for component in (path,Path(str(path)+'-wal'),Path(str(path)+'-shm')):
         if component.is_symlink():raise Stop('SQLite component symlink forbidden')
-        if component.exists() and component.stat().st_uid!=os.getuid():raise Stop('unexpected SQLite component owner')
+        if component.exists() and component.stat().st_uid!=os.getuid():
+            owned=component.stat()
+            if not (sealed and owned.st_uid==0 and not owned.st_mode&0o022):raise Stop('unexpected SQLite component owner')
     if any(p.name not in (path.name+'-wal',path.name+'-shm') for p in path.parent.glob(path.name+'-*')):
         raise Stop('unknown SQLite sidecar: verification required')
     db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=.1) if ro else sqlite3.connect(path,timeout=5)
@@ -55,9 +61,11 @@ class MemoryArchive:
         self.reads+=1;return self.objects[path]
 
 class Store:
-    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False, generation_bytes=None):
+    def __init__(self,root,ceiling=2*1024**3,core_ceiling=None,fault=None,application_namespace=False, generation_bytes=None, initial_slot="A"):
         if generation_bytes is not None and (type(generation_bytes) is not int or not 0 < generation_bytes < ceiling):
             raise Stop('generation size threshold must be positive and below aggregate ceiling')
+        if initial_slot not in ("A","B"):raise Stop("invalid initial slot")
+        self.initial_slot=initial_slot
         self.generation_bytes = generation_bytes
         if Path(root).is_symlink():raise Stop('generated root symlink forbidden')
         self.application_namespace=application_namespace;self._application_writer=threading.local()
@@ -132,15 +140,17 @@ BEGIN SELECT RAISE(ABORT,'protected evidence required while draining'); END;""")
     def trip(self,name):self.fault(name)
     def allocation(self):
         values={}
+        def accounted(st):
+            return max(st.st_size,st.st_blocks*512) if getattr(self,'physical_accounting',False) else st.st_size
         for p in self.root.rglob('*'):
             try:
-                if p.is_file() and p.name!='owner.lock':values[str(p.relative_to(self.root))]=p.stat().st_size
+                if p.is_file() and p.name!='owner.lock':values[str(p.relative_to(self.root))]=accounted(p.stat())
             except FileNotFoundError:pass
         for path in getattr(self,'external_files',()):
             if path.is_symlink():
                 raise Stop('external legacy component symlink')
             try:
-                values['legacy-external/'+path.name]=path.stat().st_size
+                values['legacy-external/'+path.name]=accounted(path.stat())
             except FileNotFoundError:
                 pass
         for name,size in values.items():
@@ -150,13 +160,19 @@ BEGIN SELECT RAISE(ABORT,'protected evidence required while draining'); END;""")
                 try:
                     target=os.readlink(fd)
                     if target.startswith(str(self.root)) and target.endswith(' (deleted)'):
-                        st=fd.stat();values['unlinked:'+str(st.st_dev)+':'+str(st.st_ino)]=st.st_size
+                        st=fd.stat();values['unlinked:'+str(st.st_dev)+':'+str(st.st_ino)]=accounted(st)
                 except FileNotFoundError:pass
         total=sum(values.values());self.peak=max(self.peak,total)
         return {'files':values,'total_bytes':total,'peak_bytes':self.peak}
     def guard(self):
         a=self.allocation();c=sum(v for n,v in a['files'].items() if n.startswith('core.db'))
         if a['total_bytes']>=self.ceiling or c>=self.core_ceiling:raise Stop('aggregate/core physical guard STOP')
+        if getattr(self,'fresh_layout_limit',None):
+            retained=sum(v for n,v in a['files'].items() if n.startswith('legacy-external/') or n in self.retained_legacy_names)
+            if a['total_bytes']-retained>=self.fresh_layout_limit:raise Stop('fresh layout quota STOP')
+            if self.ceiling-a['total_bytes']<512*1024**2:raise Stop('fresh-B recovery headroom STOP')
+            fs=os.statvfs(self.root)
+            if fs.f_bavail*fs.f_frsize<10*1024**3:raise Stop('fresh-B filesystem floor STOP')
     def path(self,gid):
         if not re.fullmatch('[0-9a-f]{32}',gid):raise Stop('invalid generation identity')
         p=self.root/('raw-'+gid+'.db')
@@ -214,7 +230,8 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 return old['id']
         begun=time.monotonic();self.guard()
         occupied={r[0] for r in self.core.execute("SELECT slot FROM generations WHERE state!='retired'")}
-        slot=next((x for x in ('A','B') if x not in occupied),None)
+        order=(getattr(self,'initial_slot','A'), 'B' if getattr(self,'initial_slot','A')=='A' else 'A')
+        slot=next((x for x in order if x not in occupied),None)
         if slot is None:raise Stop('both slots retained: bounded ingestion STOP, no backlog')
         gid=uuid.uuid4().hex
         with self.core:self.core.execute('INSERT INTO generations VALUES(?,?,?,?,?,?)',(gid,slot,'preparing',at,None,None))

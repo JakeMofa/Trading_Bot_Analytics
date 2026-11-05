@@ -53,14 +53,14 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Draft PR #9 is the current integration milestone. Exact source
-`46f51e5f6501ee03e4021d725659aff2b53e84b5` / CI41995105891 PASS. Successor known-
-structured-cardinality importer qualification is being frozen; full legacy-volume
-qualification remains BLOCKED by the unchanged2GiB workspace, before deriving
-capacity/verification budgets and adapting the manual controls. See the latest
-November5 reconciliation and PHASE175_RECONCILIATION_2026-11-05.md. Production
-collection is held; I7, research replay and sustained A/B lifecycle remain open.
-Knowledge/RAG tables remain explicitly deferred, not completed.
+**Next gate:** PR9 fresh-B recovery candidate: retain sealed legacy in place;
+copy structured/protected/current inputs only and collect/archive new B independently.
+Full raw import is not a prerequisite for this route. Require exact fresh-mode
+Linux CI, review the recovery-only8GiB aggregate/targeted verification proposal,
+then qualify existing manual controls/permission bindings before a production
+command or dispatch. No production change is authorized. See latest November5
+entry and FRESH_B_RECOVERY_REVIEW_2026-11-05.md. I7, legacy retirement, research
+replay and sustained A/B lifecycle stay open; knowledge/RAG explicitly deferred.
 
 ### October 23, 2026 migration preflight
 
@@ -3327,3 +3327,69 @@ rows and validates FTS rebuilding; its source count and measured timing/bytes
 come from that new Linux artifact. The local47907-row figures above precede that
 addition and final deadline/source-binding checks, and are not substituted for it.
 Local final backend361 tests PASS/14 Mac skips; controls120 PASS/3 Mac skips.
+
+## November 5 — retained sealed legacy + fresh-B recovery route
+
+User requested avoiding a full legacy import. Existing UNION reads were compatible,
+but startup audited/mapped all legacy raw and used shared raw cursors. Added explicit
+fresh-B mode: copy/audit structured history, point-select exact protected/current
+inputs into core, retain legacy raw in place, start B with fresh UUID, preserve
+single collector and B→A72h-or-size scheduling. New B-only incremental archive
+cursors `archive:ab72:{observations,stream_events}` cannot be blocked by legacy
+backlog and never advance legacy archive cursors. Legacy is never an eligible raw
+registry generation; its retirement remains held. Active-buffer status states
+sealed retirement hold and that full legacy verification was not performed by this
+bootstrap. Missing/stale source data is not made fresh by copying it.
+
+[Fresh-B recovery review](FRESH_B_RECOVERY_REVIEW_2026-11-05.md) records the exact
+compatibility changes, finite guard proposal, startup configuration, verification
+policy decision and remaining operator-control prerequisites. The former full-raw-
+import prerequisite is superseded ONLY for this retained-legacy recovery path;
+legacy full archive/reference/integrity checks remain required before retirement.
+No full-import failure is relabeled or full legacy cloud coverage assumed.
+
+New tests: generated20000 unrelated legacy raw rows remain in place; real runtime/
+API/dashboard B, cross-legacy+B history, durable saves/current deterministic forecast,
+protected outcome/price/metadata preservation, duplicate collector rejection,
+independent B archive readback/checkpoint, failed readback holds, restart/mode/guard
+binding and72h B→A UUID reuse. Four focused tests PASS locally. Tiny startup/function/
+rotation ~0.048..0.052s, sampled aggregate allocated4,390,912B. Local full366 backend
+PASS/15 Mac skips and120controls PASS/3 skips; later focused safety changes passed.
+Exact Linux source/export CI must qualify the complete final candidate. CI's existing
+4000-event ApplicationStore profile now explicitly exercises fresh B (4000new archive
+rows, not4002includinglegacy), same limits and no substituted prior metrics.
+
+Fresh Linux UID test uses unprivileged old AND new application UID against a
+root-owned nonwritable legacy file under a root-owned sticky parent. The special
+reader allowance is read-only/sealed legacy only; ordinary ownership/symlink checks
+remain. Main/WAL binding adds UID/mode/device. This avoids requiring a root API and
+preserves the old writer fence; before/after-ack crashes must recover forward in CI.
+
+Required **proposal**, not applied: aggregate8GiB /MAX_LOCAL_STORAGE_MB8192, charged
+for retained legacy5,369,184,256B +independent2GiB new-layout quota +512MiB recovery
+=8,053,538,816B rounded up to8,589,934,592B. Additional core+sidecars cap512MiB,
+filesystem floor10GiB, existing2MiB generation trigger. Fresh counters charge max
+length/allocated blocks, including all sidecars/unlinked working files. Owner and
+workers share bound guards; changing a guard on reopen is refused.8GiB is finite
+recovery-only (proposed24h authority), not a permanent72h cap or measured worst-
+case production peak. RetirementOFF means both new slots eventually fill and STOP.
+No automatic extension/third slot, reduction of reserves, or legacy decommission.
+
+Verified previous candidate7b5e327bd02cc81983e15a7332b3171111ff0dd5 /exactCI41998043241
+PASS (once). Known structured fixture47935rows/54,715,760audit bytes; full-import
+constructor25.264s/verification0.578s/restart0.556s/whole28.083s, allocated164,331,520B,
+RSS46,358,528B. It does not prove new fresh-mode/full physical raw volume. Reuse as
+structured compatibility evidence, not a second trial or a fresh host reading.
+
+**Production command remains STOP, not a request to dispatch a nonworking template.**
+Current exact pinned manual controller scope/baseline and generated-only production
+path holds still reject the integration. Before an executable command can be
+approved, review the recovery-only8GiB envelope and the explicit proposed check
+scope (complete new core/B +exact targeted legacy bodies/binding, full legacy checks
+pending/retirement held), then bind/test that route in the EXISTING manual host/
+workflow with non-root UID fence, exact source/data/CI/expiry and forward recovery.
+No new controller/service is proposed. Do not silently skip old complete-legacy
+verification or invent a dispatch command that the existing controls cannot accept.
+Production untouched; guard/flags/old authority/deadline unchanged. PR9 remains
+DRAFT and all eight-area/replay/RAG/I7/sustained acceptance obligations stay reconciled
+in PHASE175_RECONCILIATION_2026-11-05.md. I7/Phase1.75 remain open.

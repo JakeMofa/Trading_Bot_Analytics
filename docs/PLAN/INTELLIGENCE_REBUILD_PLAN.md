@@ -3580,3 +3580,25 @@ permission-denied and unknown visibility still fail closed. Focused8 testsPASS
 Successor exact CI required;795 remainsFAILED. Production untouched.
 Actual-input inventory read stopped at SSH trusted-host-pin check; no host key
 was accepted implicitly and no production query/mutation ran. Offline work continues.
+
+### PR9 actual source gate: missing protected metadata, not a storage-only blocker
+
+Pinned strict SSH/read-only evidence: seven structured tables125410rows/71927188
+bodybytes;58812candles/18692referenceprices;18268distinctmetadata/17924streamrefs
+=>at least161602selectedauditrows. Indexed reference check0.41986s found snapshots
+1–5 reference ABSENT observations25,28,30,33,36. STOP;no repair/reclassification or
+productionmutation. Actual input qualificationFAIL;budget and manual cutover remain
+NOTPROVEN/BLOCKED. See PR9_ACTUAL_INPUT_GATE_2026-11-05.md for all exact evidence,
+bounded diagnostic failures, numeric finite admission proposals and recovery gate.
+
+Offline: census fails early on missing evidence;selected raw rows now count in audit;
+explicit150000-row generated scope within unchanged128MiB/170swork/180stotal/2GiB/
+512MiBprocess (defaults unchanged) is still BELOW real161602+ scope,not a pass.
+Actual-count/shared-reference fresh-B profile125412rowsPASS24.066s,235360256Bpeak/
+52740096BRSS;actualfanoutNOTPROVEN. New100000-event ledger cap stops growth,core
+512MiB remains independent;all production flags/limits unchanged. Local382backend/
+120controlsPASS with17/3platformskips;focusednewchecksPASS. ExactLinuxCI required.
+Smallestnextaction: review exact-archive recovery of missing metadata and complete
+missing-reference census;unavailable originals require explicit policy review.
+Do not implement a production route that accepts this failed source. PR9DRAFT;
+I7/Phase1.75OPEN;old verified rotation/latency evidence preserved;RedisDEFERRED.

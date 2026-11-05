@@ -13,8 +13,8 @@ class MigrationBudget:
     def __post_init__(self):
         # Additional rows are allowed only through an explicit generated test
         # argument. Byte/process/workspace limits are not enlarged.
-        if type(self.row_limit) is not int or not 0 < self.row_limit <= 100000:
-            raise ValueError('generated migration row scope exceeds 100000')
+        if type(self.row_limit) is not int or not 0 < self.row_limit <= 150000:
+            raise ValueError('generated migration row scope exceeds 150000')
         if type(self.byte_limit) is not int or not 0 < self.byte_limit <= 128*1024**2:
             raise ValueError('generated migration byte scope exceeds 128MiB')
         now=time.monotonic()

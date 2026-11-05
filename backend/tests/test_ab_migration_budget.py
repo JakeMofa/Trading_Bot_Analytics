@@ -12,7 +12,7 @@ class BudgetTests(unittest.TestCase):
         b=MigrationBudget(deadline=time.monotonic()+10)
         self.assertEqual(b.row_limit,10000)
         self.assertEqual(MigrationBudget(row_limit=60000,deadline=time.monotonic()+10).byte_limit,128*1024**2)
-        for args in ({'row_limit':100001},{'byte_limit':128*1024**2+1},{'row_limit':True}):
+        for args in ({'row_limit':150001},{'byte_limit':128*1024**2+1},{'row_limit':True}):
             with self.subTest(args=args),self.assertRaises(ValueError):MigrationBudget(deadline=time.monotonic()+10,**args)
         with self.assertRaises(ValueError):MigrationBudget(deadline=time.monotonic()+171)
         with self.assertRaises(ValueError):MigrationBudget(deadline=time.monotonic()-1)

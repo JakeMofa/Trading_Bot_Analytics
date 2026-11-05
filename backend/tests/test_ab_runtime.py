@@ -44,6 +44,19 @@ class RuntimeTests(unittest.TestCase):
         with self.assertRaises(Exception):
             runtime.open('collector')
 
+    def test_explicit_candle_scope_survives_runtime_restart_without_default_increase(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            legacy(Path(root)/'generated-legacy.db')
+            env=environment(root);env.update(AB_STARTUP_MODE='fresh-b',AB_MIGRATION_ROWS='150000')
+            for _ in range(2):
+                runtime=configured_runtime(env)
+                try:
+                    runtime.open('collector');self.assertEqual(runtime.handle.migration_budget.row_limit,150000)
+                finally:runtime.close()
+            self.assertEqual(configured_runtime(environment(root)).migration_rows,10000)
+            env['AB_MIGRATION_ROWS']='150001'
+            with self.assertRaisesRegex(RuntimeError,'audit envelope'):configured_runtime(env)
+
     def test_real_api_startup_selects_adapter_and_routes_history_and_dashboard(self):
         from api import create_app
         from fastapi.testclient import TestClient

@@ -21,7 +21,7 @@ from application_store import ApplicationStore
 from migration_budget import MigrationBudget
 from datetime import timedelta
 
-TABLES={'markets':1826,'feature_snapshots':18289,'predictions':27743,'prediction_context_links':20,'news_events':28}
+TABLES={'markets':1826,'feature_snapshots':18289,'predictions':27743,'prediction_context_links':20,'news_events':28,'candles':58812,'reference_prices':18692}
 
 
 def digest_table(db,table):
@@ -35,8 +35,8 @@ def digest_table(db,table):
 def qualify():
     if sys.platform=='linux':resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
     root=Path(tempfile.mkdtemp(prefix='generated-ab-import-',dir=os.environ.get('AB_IMPORT_WORKSPACE')))
-    result={'status':'FAIL','scope':'known structured counts only; raw volume and embedded-reference distribution NOT PROVEN',
-            'limits':{'workspace_bytes':2*1024**3,'audit_bytes':128*1024**2,'rows':60000,
+    result={'status':'FAIL','scope':'known structured counts only; recorded candle count included; actual live volume and embedded-reference distribution NOT PROVEN',
+            'limits':{'workspace_bytes':2*1024**3,'audit_bytes':128*1024**2,'rows':150000,
                       'work_seconds':170,'total_seconds':180,'linux_address_space_bytes':512*1024**2},
             'source_sha':os.environ.get('AB_IMPORT_SOURCE_SHA'),'counts':TABLES}
     owner=None
@@ -70,6 +70,17 @@ def qualify():
                          'model_version':'generated-'+str((i-1)//TABLES['feature_snapshots'])}
                     db.execute('INSERT INTO predictions VALUES('+','.join('?' for _ in cols)+')',[row[c] for c in cols])
                     if i%1000==0:guard()
+                existing_prices=db.execute('SELECT count(*) FROM reference_prices').fetchone()[0]
+                for i in range(1,TABLES['reference_prices']-existing_prices+1):
+                    db.execute('INSERT INTO reference_prices(source,received_at,source_time,price,payload) VALUES(?,?,?,?,?)',
+                        ('coinbase',iso(T+timedelta(microseconds=i)),iso(T),'12340.00000001','{}'))
+                    if i%1000==0:guard()
+                existing=db.execute('SELECT count(*) FROM candles').fetchone()[0]
+                earliest=db.execute('SELECT min(time) FROM candles').fetchone()[0]
+                for i in range(1,TABLES['candles']-existing+1):
+                    db.execute('INSERT INTO candles VALUES(?,?,?,?,?,?,?,?,?,?)',
+                        ('coinbase','BTC-USD',60,earliest-i*60,'12340.00000001','12340.00000001','12340.00000001','12340.00000001','1.00000001',iso(T)))
+                    if i%1000==0:guard()
                 for i in range(1,29):
                     db.execute('INSERT INTO news_events VALUES(?,?,?,?,?,?,?,?,?,?)',
                         (i,'generated-only',str(i),'https://fixture.invalid/'+str(i),
@@ -88,8 +99,8 @@ def qualify():
         # Default still rejects this count. Explicit generated scope changes rows
         # only; original byte, RAM, workspace and whole-operation limits remain.
         begin=time.monotonic()
-        owner=ApplicationStore(root,path,routing=True,
-            migration_budget=MigrationBudget(row_limit=60000,deadline=BOOT+170))
+        owner=ApplicationStore(root,path,routing=True,fresh_b=True,
+            migration_budget=MigrationBudget(row_limit=150000,deadline=BOOT+170))
         result['constructor_seconds']=time.monotonic()-begin
         result['import_metrics']=owner.import_metrics
         # Count/sample while the core WAL is still allocated, before last close.
@@ -116,8 +127,8 @@ def qualify():
         result['quick_fk_and_exact_structured_verification_seconds']=time.monotonic()-checks
         guard();owner.close();owner=None
         restart=time.monotonic()
-        owner=ApplicationStore(root,path,routing=True,
-            migration_budget=MigrationBudget(row_limit=60000,deadline=BOOT+170))
+        owner=ApplicationStore(root,path,routing=True,fresh_b=True,
+            migration_budget=MigrationBudget(row_limit=150000,deadline=BOOT+170))
         result['restart_audit_seconds']=time.monotonic()-restart
         guard();result['status']='PASS_KNOWN_STRUCTURED_COUNTS_ONLY'
     except Exception as error:

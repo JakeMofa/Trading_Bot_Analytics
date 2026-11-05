@@ -297,6 +297,9 @@ BEGIN SELECT RAISE(ABORT,'protected evidence required while draining'); END;""")
             if prior['fingerprint']!=fp:raise Stop('conflicting duplicate')
             if prior['status']=='pending':self._finish(prior)
             return prior['id']
+        if getattr(self,'fresh_event_limit',None):
+            span=self.core.execute('SELECT COALESCE(MAX(id)-MIN(id)+1,0) FROM events').fetchone()[0]
+            if span>=self.fresh_event_limit:raise Stop('fresh persistent event ledger limit STOP')
         if self.core.execute("SELECT 1 FROM events WHERE status='pending'").fetchone():raise Stop('pending intent must recover before another event')
         active=self.active()
         if active and r['received_at']<active['started']:raise Stop('receipt regression; source lateness is allowed')

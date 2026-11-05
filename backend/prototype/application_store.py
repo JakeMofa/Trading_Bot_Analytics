@@ -85,6 +85,7 @@ class ApplicationStore:
         self.protocol.physical_accounting=True
         self.protocol.fresh_layout_limit=2*1024**3
         self.protocol.fresh_slot_limit=64*1024**2
+        self.protocol.fresh_event_limit=100000
         self.protocol.retained_legacy_names={self.legacy.name,self.legacy.name+'-wal',self.legacy.name+'-shm'}
 
     def _legacy_parents(self):
@@ -236,6 +237,8 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                         budget.check()
                         if row is None:raise Stop('missing protected legacy input')
                         if self.fresh_b:
+                            count+=1
+                            if count>budget.row_limit:raise Stop('targeted legacy input row bound exceeded')
                             encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
                             if len(encoded)>1024**2 or audited_bytes>budget.byte_limit:raise Stop('targeted legacy input byte bound exceeded')
                             self.protocol.guard()
@@ -246,6 +249,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                         if name=='observations' and raw['id'] in protected:
                             core.execute('INSERT INTO observations VALUES(?,?,?,?,?,?)',tuple(raw[k] for k in COLUMNS[name]))
                             core.execute('INSERT INTO ab_legacy_pins VALUES(?,?)',(raw['id'],digest(raw)))
+                self.import_metrics.update(rows=count,audited_bytes=audited_bytes)
                 if protected_stream-{tuple(r) for r in core.execute('SELECT source,event_id FROM ab_legacy_stream_pins')}:raise Stop('missing legacy protected stream')
                 for obj in legacy.execute("SELECT type,name,sql FROM sqlite_master WHERE type IN ('index','trigger') AND sql IS NOT NULL"):
                     if obj['name'].startswith('news_events_fts'):continue
@@ -772,6 +776,7 @@ class ApplicationWorker(ApplicationStore):
                 self.protocol.physical_accounting=True
                 self.protocol.fresh_layout_limit=2*1024**3
                 self.protocol.fresh_slot_limit=64*1024**2
+                self.protocol.fresh_event_limit=100000
                 self.protocol.retained_legacy_names={self.legacy.name,self.legacy.name+'-wal',self.legacy.name+'-shm'}
             binding=core.execute('SELECT legacy,allocation FROM ab_worker_binding WHERE id=1').fetchone()
             if not binding or binding[0]!=str(self.legacy):raise Stop('worker legacy identity mismatch')

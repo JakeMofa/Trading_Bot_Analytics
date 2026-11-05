@@ -3669,3 +3669,26 @@ and actual runtime dependencies are shipped.8focused testsPASS. The first minima
 clean test exposed its own omitted app modules; copying source app modules only
 fixed the test package;no dependencies installed or candidate checkout import used.
 Corrected exact candidate/export/CI required before actual selected-stage result.
+
+### Selected recovery PASS in isolated stage;production authority unchanged
+
+Exact-export b8786e001c5c3f8757838e4d0c523c72cc3ca1a5 verified/staged all13248rows:
+6755metadata/6493stream,0conflicts/unverifiable,6776snapshot/6745predictionproofs,
+369real supportingmarkets. Fullsource/stageintegrity andFKPASS,FULLsync2,retry0
+changes.5.596s,RSS102940672B,peak2142367108B INCLUDING existing1983184896Bsource/
+export/dependencies/allstagefiles:only5116540B below2GiB. Mac actualdata PASS,not
+Linuxactual-volume proof;512MiB Linux AS capnotapplied onMac. Selected manifest
+canonicalSHA cce959118eb774d8131a8bd60876bcd2f3f16c1a8d90c086621dfe6c1dd1c208;
+fileSHA9577e6f53d2150f107eb7fd6914a0dc93ab7d806d52f04a230347332765ff07b. Private
+reviewartifacts /private/tmp/generated-ab-recovery-s1r_pa53/;not staged ingit.
+Futurestream13248rows/32552271B/SHA01f3ce94b62f3f91690b33e5aa4721de6ac6c22635d91b7c71dea7c0e689061c
+computedwithout writing/transferring streambody. No production repair/cutover.
+
+See SELECTED_RECOVERY_REVIEW_2026-11-05.md forexactsource/dependency/selection hashes,
+qualificationlimits and concrete STOP productionprocedure. FullAppStore bootstrap/
+streamconsumer,actual161602+scope/bytebudget,manualworkflowbindings andnumeric
+productionlimits remain unqualified. NinegeneratedfaulttestsPASS includingactual
+process exits before/after commit;priorlocal390backend/120controlsPASS(17/3skips).
+FinalLinuxCIrequired;toolsbyteidentical to b8786e0,only extra faulttest/docs follow.
+Userapprovedcandidateverification/stagingonly;no production useapproval requested
+whilefullbootstrap/controlgates fail. All I7/Phase1.75/replay/RAG gaps remain OPEN.

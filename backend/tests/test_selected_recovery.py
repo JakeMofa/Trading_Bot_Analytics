@@ -108,3 +108,26 @@ class Tests(unittest.TestCase):
             result=subprocess.run(args,cwd=empty,env=env,capture_output=True,text=True,timeout=15)
             self.assertEqual(result.returncode,0,result.stdout+result.stderr)
             self.assertEqual(json.loads(report.read_text())['retry_stage']['changed_rows'],0)
+
+    def test_process_exit_before_and_after_commit_preserves_exact_acknowledged_rows(self):
+        import subprocess,os
+        for phase in ('before','after'):
+            with self.subTest(phase=phase),tempfile.TemporaryDirectory(prefix='generated-ab-recovery-') as folder:
+                root=Path(folder);s,r=self.fixture(root)
+                code="""import hashlib,os,sys,time
+from pathlib import Path
+from selected_recovery import verify,stage
+root=Path(sys.argv[1]);s=root/'generated-legacy-source.db';r=root/'dependencies.json'
+v=verify(s,r,hashlib.sha256(s.read_bytes()).hexdigest(),hashlib.sha256(r.read_bytes()).hexdigest(),time.monotonic()+10)
+def crash(boundary):
+ if (sys.argv[2]=='before' and boundary==0) or (sys.argv[2]=='after' and boundary=='after_commit'):os._exit(93)
+stage(root,v,time.monotonic()+10,fault=crash)
+"""
+                env=dict(os.environ,PYTHONPATH=str(Path(__file__).resolve().parents[1]/'prototype'),PYTHONDONTWRITEBYTECODE='1')
+                result=subprocess.run([sys.executable,'-c',code,str(root),phase],env=env,capture_output=True,text=True,timeout=15)
+                self.assertEqual(result.returncode,93,result.stderr)
+                with closing(sqlite3.connect(root/'staged-core.db')) as db:
+                    self.assertEqual(db.execute('SELECT count(*) FROM recovery_records').fetchone()[0],0 if phase=='before' else 2)
+                retry=stage(root,self.verified(s,r),time.monotonic()+10)
+                self.assertEqual(retry['records'],2)
+                self.assertEqual(retry['changed_rows']==0,phase=='after')

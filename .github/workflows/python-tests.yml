@@ -58,6 +58,19 @@ jobs:
         working-directory: ${{ runner.temp }}/ab-test-candidate
         run: python -m unittest discover -s deploy/lightsail -p 'test_*.py' -v
 
+      - name: One bounded known-structured-cardinality import (not full legacy volume)
+        working-directory: ${{ runner.temp }}/ab-test-candidate
+        env:
+          AB_IMPORT_SOURCE_SHA: ${{ github.sha }}
+        run: python backend/prototype/run_legacy_import_qualification.py --report "$RUNNER_TEMP/ab-import-report.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ab-import-report-${{ github.sha }}
+          path: ${{ runner.temp }}/ab-import-report.json
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Verify exported bytes after suites against exact Git objects
         working-directory: ${{ runner.temp }}/ab-test-candidate
         run: python backend/build_ab_candidate.py --repo "$GITHUB_WORKSPACE" --sha "$GITHUB_SHA" --output "$RUNNER_TEMP/ab-test-candidate" --verify

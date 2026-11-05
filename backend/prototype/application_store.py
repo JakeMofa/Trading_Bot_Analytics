@@ -6,7 +6,8 @@ legacy/A/B plus protected core observations. Every caller owns its connection.
 """
 from contextlib import ExitStack,contextmanager
 from pathlib import Path
-import hashlib,json,re,sqlite3,threading,gzip
+import hashlib,json,re,sqlite3,threading,gzip,time
+from migration_budget import MigrationBudget
 from decimal import Decimal
 from raw_generations import Store,Stop,connect,canonical,COLUMNS,iso,digest
 import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
@@ -14,9 +15,13 @@ import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
 RAW={'observations','stream_events'}
 MAX_ROWS=10000
 class ApplicationStore:
-    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None):
+    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None,migration_budget=None):
         if retirement and not routing:raise Stop('inconsistent AB enablement')
         if not routing:raise Stop('AB application routing disabled by default')
+        self.migration_budget=migration_budget or MigrationBudget(deadline=time.monotonic()+170)
+        if not isinstance(self.migration_budget,MigrationBudget):raise Stop('explicit migration budget required')
+        self.migration_budget.check()
+        self.import_metrics={}
         self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
         self.protocol=Store(root,fault=fault,application_namespace=True,generation_bytes=generation_bytes)
         self.root=self.protocol.root;self.legacy=Path(legacy)
@@ -61,10 +66,18 @@ CREATE TABLE IF NOT EXISTS ab_legacy_pins(id INTEGER PRIMARY KEY,fingerprint TEX
 CREATE TABLE IF NOT EXISTS ab_application_marker(id INTEGER PRIMARY KEY CHECK(id=1),layout TEXT NOT NULL);
 INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
         legacy=connect(self.legacy,True)
+        budget=self.migration_budget
+        begun=time.monotonic()
+        legacy.set_progress_handler(lambda:int(budget.expired()),1000)
+        core.set_progress_handler(lambda:int(budget.expired()),1000)
         try:
+            # One stable source snapshot across schema, exact audit and copy.
+            # Production still requires the separately qualified OS writer fence.
+            legacy.execute('BEGIN')
             # Identity binds content metadata at quiescent migration; raw rows are
             # audited by exact fingerprint below. No byte copy or backup.
             schema=legacy.execute("SELECT name,sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").fetchall()
+            source_binding=self._legacy_allocation()
             for row in schema:
                 if row['sql'] is None:raise Stop('unsupported legacy schema')
                 if 'VIRTUAL TABLE' in row['sql'].upper() and not (row['name']=='news_events_fts' and 'USING fts5' in row['sql']):raise Stop('unsupported legacy virtual schema')
@@ -72,23 +85,28 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             if any(r['name'].startswith('news_events_fts') and r['name']!='news_events_fts' and r['name'] not in shadows for r in schema):raise Stop('unexpected FTS-prefixed table')
             schema=[r for r in schema if r['name']!='news_events_fts' and r['name'] not in shadows]
 
-            # Reject over-bound legacy input after at most MAX_ROWS+1 row
+            # Reject over-bound legacy input after at most row_limit+1 row
             # visits, rather than COUNT(*) scanning an arbitrary raw history.
-            # This does not raise the generated migration allowance.
+            # The default bound stays 10000. An explicit generated scope may
+            # select more rows without raising byte/workspace/process limits.
             count=0
             for table in schema:
                 quoted=table['name'].replace('"','""')
-                for _ in legacy.execute('SELECT 1 FROM "'+quoted+'" LIMIT ?', (MAX_ROWS-count+1,)):
+                for _ in legacy.execute('SELECT 1 FROM "'+quoted+'" LIMIT ?', (budget.row_limit-count+1,)):
                     count+=1
-                    if count>MAX_ROWS:raise Stop('generated migration qualification bound exceeded')
+                    budget.check()
+                    if count>budget.row_limit:raise Stop('generated migration qualification bound exceeded')
             audit=hashlib.sha256(canonical({'path':str(self.legacy),'schema':[tuple(r) for r in schema]}).encode());audited_bytes=0
             for table in schema:
                 audit.update(table['name'].encode()+b'\0')
                 for row in legacy.execute('SELECT * FROM "'+table['name']+'" ORDER BY rowid'):
+                    budget.check()
                     encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
-                    if len(encoded)>1024**2 or audited_bytes>128*1024**2:raise Stop('generated migration audit byte bound exceeded')
+                    if len(encoded)>1024**2 or audited_bytes>budget.byte_limit:raise Stop('generated migration audit byte bound exceeded')
                     audit.update(len(encoded).to_bytes(8,'big'));audit.update(encoded)
             identity=audit.hexdigest()
+            self.import_metrics.update(rows=count,audited_bytes=audited_bytes,identity=identity)
+            if self._legacy_allocation()!=source_binding:raise Stop('legacy changed during migration')
             prior=core.execute('SELECT identity,status FROM ab_migration_state WHERE id=1').fetchone()
             if prior and prior[0]!=identity:raise Stop('legacy identity changed')
             if prior and prior[1]=='complete':
@@ -131,6 +149,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                     name=row['name']
                     if name in RAW:continue
                     for row in legacy.execute('SELECT * FROM "'+name+'"'):
+                        budget.check()
                         self.protocol.guard()
                         core.execute('INSERT INTO "'+name+'" VALUES('+','.join('?' for _ in row)+')',tuple(row))
                     self.protocol.trip('migration_structured:'+name)
@@ -161,14 +180,22 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                 if core.execute('PRAGMA foreign_key_check').fetchall():raise Stop('legacy foreign key audit failed')
                 self._write_guards(core)
                 core.execute('INSERT OR REPLACE INTO ab_migration_state VALUES(1,?,?)',(identity,'complete'))
-                self.protocol.trip('migration_before_commit');core.commit();self.protocol.trip('migration_committed')
+                self.protocol.trip('migration_before_commit')
+                budget.check()
+                if self._legacy_allocation()!=source_binding:raise Stop('legacy changed during migration')
+                core.commit();self.protocol.trip('migration_committed')
             except BaseException:core.rollback();raise
-        finally:legacy.close()
+        finally:
+            legacy.set_progress_handler(None,0)
+            core.set_progress_handler(None,0)
+            legacy.close()
+            self.import_metrics['audit_and_import_seconds']=time.monotonic()-begun
         # Only the production's real schema initializers, no synthetic tables.
         streaming.initialize(core);features.initialize(core);forecasts.initialize(core)
         self._news(core)
         cloud_memory.initialize_local_sync(core);cloud_lifecycle.initialize_lifecycle_state(core)
         self._write_guards(core);core.commit()
+        budget.check()
     def _write_guards(self,core):
         for row in core.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT GLOB 'ab_*'").fetchall():
             name=row[0]

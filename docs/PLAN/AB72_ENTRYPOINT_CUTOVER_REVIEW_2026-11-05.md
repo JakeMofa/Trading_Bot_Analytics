@@ -166,3 +166,17 @@ Review also tightened the pre-commit crash assertion: an arbitrary RuntimeError
 (including ownership STOP) cannot satisfy it. Ordinary SQLite read/close after the
 denied old UID performs normal cleanup before the new-owner audit, and unchanged
 legacy bytes are required. No manual WAL operation was introduced.
+
+
+## Successor reconciliation (November5)
+
+Frozen46f51e5f6501ee03e4021d725659aff2b53e84b5 passed exact CI41995105891,
+including the corrected root UID-fence/cutover tests, all root safeguards and
+exported integrated4000-event profile. The earlier pending/FAIL statements above
+are historical snapshots, not the current exact baseline result. Current PR #9
+remains draft due full-volume/capacity/verification/manual-route gates, not due
+the corrected small UID rehearsal. See PHASE175_RECONCILIATION_2026-11-05.md for
+all eight areas, old48h cleanup replacement, replay and deferred RAG obligations.
+The next known-structured-count importer candidate adds explicit generated row
+scope and original-deadline/source-snapshot binding without changing production
+path/flags/byte/resource ceilings; it is not a full5.0GiB legacy qualification.

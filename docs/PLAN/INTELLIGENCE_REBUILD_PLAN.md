@@ -53,12 +53,14 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The approved two-object Supabase throughput run passed from d1ba17e. Complete production adapter/lifecycle binding, bounded full legacy migration and writer fencing, capacity qualification and rehearsed exact-release cutover before requesting production approval.
-The live archive probe passed at `08ce0d9` and scaled Linux rotation and outage
-measurements were recorded at `e58e3b5`. Representative capacity remains blocked
-by the 2 GiB workspace and 180-second envelope. Obtain a representative fixture
-scope and eligible Linux host before selecting a production ceiling or rehearsing
-cutover.
+**Next gate:** Draft PR #9 is the current integration milestone. Exact source
+`46f51e5f6501ee03e4021d725659aff2b53e84b5` / CI41995105891 PASS. Successor known-
+structured-cardinality importer qualification is being frozen; full legacy-volume
+qualification remains BLOCKED by the unchanged2GiB workspace, before deriving
+capacity/verification budgets and adapting the manual controls. See the latest
+November5 reconciliation and PHASE175_RECONCILIATION_2026-11-05.md. Production
+collection is held; I7, research replay and sustained A/B lifecycle remain open.
+Knowledge/RAG tables remain explicitly deferred, not completed.
 
 ### October 23, 2026 migration preflight
 
@@ -3230,3 +3232,98 @@ exact injected fault. After the denied old-UID probe, ordinary SQLite read/close
 performs normal last-close cleanup before the new owner audit; no manual checkpoint
 or sidecar removal. Main-byte equality is required. This is a changed regression,
 not an unchanged qualification retry. Exact successor Linux evidence is pending.
+
+## November 5 — PR9 exact CI and complete Phase1.75 reconciliation
+
+Current integration milestone is **draft PR9**, working→existing deployment branch:
+https://github.com/JakeMofa/Trading_Bot_Analytics/pull/9 . Frozen tested source
+46f51e5f6501ee03e4021d725659aff2b53e84b5 exactCI41995105891 PASS (checked once):
+Linux exported357 backend/10privilege skips, all covered by root18raw/38application/
+8runtime/1cutover cases;120controls/zero skips; exact manifest check PASS.
+Integrated4000 committed/4002archived/0pending/0errors;20 feature/publication cycles
+(10each simulated market). Max save669.047ms/heartbeat749.106ms/feature206.834ms/
+history24.237ms;22,162,054B sampled whole workspace/54,063,104B parent RSS/73.465s.
+Generated fence/recovery0.8166s before-ack/0.8581s after-ack; this small root-new-UID
+fixture does not authorize production root execution or qualify full verification.
+
+Authoritative reconciliation below covers all eight integration/operational areas,
+plus historical raw replay and deferred knowledge/RAG. Detailed P1.75.1–11 and
+R0–R17 mapping, evidence and next actions:
+[PHASE175_RECONCILIATION_2026-11-05.md](PHASE175_RECONCILIATION_2026-11-05.md).
+“Satisfied” is limited to the named evidence, never an implicit production PASS.
+
+| Area | Reconciled status / evidence | Next action |
+|---|---|---|
+|1. Actual application collector/LiveState/feature/baseline/ensemble/history/dashboard routing|Satisfied generated exact46f51e5; still open live production paths/volume|Qualify legacy import and reviewed deployment; current-market feed/persistence/prediction/dashboard smoke|
+|2. Legacy identity/reference/evidence/cursor migration|Satisfied small schemas and generated before/after-ack fence; still open full recorded volume|Successor known-count import test, then supported full raw-volume/protected-fanout qualification|
+|3. Automatic72h-or-size A/B rotation/archive/readback/drain/retirement|Satisfied scaled Linux timer/A→B→A/freshUUID/ack/crash/reader safety;08ce0d9/ec5f396 private byte access|Representative overlap/outage and actual new lifecycle manifest/checkpoint behavior; separate production retirement approval|
+|4. Aggregate capacity, save/heartbeat/feature/query latency and throughput|Still open production ceiling/horizon; e58e3b5 VM normal/outage,46f51e5 scaled and ec5f396 throughput retained|Measure legacy+core+A/B+allWAL/SHM/TEMP/archive/recovery and burst/core growth; qualify finite outage runway; no16/21GiB adoption|
+|5. Full verification/cloud recovery/hard deadlines|Satisfied scoped request/body/checksum deadlines and synthetic private readback; still open full recovery and verification timing|Complete source/reference/quick/FK/readback/recovery qualification; identify old1790.105s timeout check, no unchanged30min retry|
+|6. Manual deployment scope, permission fence and forward recovery|Satisfied existing-route120controls and generated UID fence; still open full A/B controller/release|After earlier volume/capacity gates, adapt/test existing manual workflow/helpers for exact export/data/UID bindings and bounded interruption/recovery; retirementOFF initially|
+|7. I7 independent discovery/market rollover/truthful health/fresh predictions|Satisfied source186s feature/boundary/replayed timestamp/stale/wrong-market guards; still open independent live acceptance and slow feature speed|Approved release, bounded smoke, then separately reviewed real-boundary/current-input freshness acceptance; unavailable slow features not freshness success|
+|8. Operational visibility, outage/restart/recovery and sustained operation|Satisfied scoped API/cloud/dashboard telemetry/visible holds; still open live integrated visibility/multiple-cycle/storage stability|Validate active/sealed/backlog/drain/guard reasons and finite-outage recovery; reviewed sustained observation, no automatic soak/repeated restarts|
+|Historical raw replay tooling P1.75.11|Still open, not superseded; bounded archive/reconstruction primitives exist, complete research replay does not|Generation-aware authenticated bounded replay, exact provenance/event ordering/no-lookahead/missing coverage and deterministic research tests|
+|Knowledge/RAG tables|Still open, explicitly deferred to when RAG begins; not a cutover blocker|Hosted document/chunk/version/provenance/access schema and retrieval tests in its authorized phase; bucket/localFTS is not completion; paidAI/Phase2 remain deferred|
+
+Original P1.75.1/.2 schema/client, .3 structured sync, .4/.5 archive format/private
+verification and .6 telemetry retain historical PASS for their original scopes.
+P1.75.7/.8 original backfills remain satisfied historical scopes, not complete
+coverage of all subsequently collected legacy data. New-layout actual-volume/cloud/
+live telemetry gates stay open. P1.75.10 new24h/sustained tuning remains OPEN.
+Private backup/knowledge bucket existence is not recovery or RAG implementation.
+
+**48h row deletion reconciliation:** November3 selected layout / November4 policy
+clarification supersede old48h row expiry and the extra72h sealed wait.72h is the
+maximum ACTIVE buffer age; size may switch sooner and reduce the local window.
+Sealing starts archive completion/verification/drain immediately. Retire whole
+sealed file only after exact authenticated coverage, protected/current inputs safe
+in core, readers/handles drained; never overwrite a held slot. R5/R6 old row-delete
+three-trial qualification and R8 row-delete application are superseded mechanisms
+for this new layout, NOT retroactive passes. Preserve502.686ms and every old failure
+under its original policy. Generated split gates do not change production controls.
+R0–R4 historical correctness/baseline evidence retained; R7 recovery/full verification,
+R9 post-retirement safety, R10 live health, R11 restart, R12 release, R13 automatic
+lifecycle/R14 repeated cycles, R15 storage/R16 guard/R17 completion remain open new-
+layout obligations. Backups/snapshots as a method are superseded by the no-copy
+restriction; archive recovery/provenance/data preservation remain required.
+FULL durability, exact identities, references, safe STOPs, no cloud hot-path writes,
+bounded retries/ambiguous-write reconciliation and explicit approval gates survive.
+
+**Importer successor:** explicit generated MigrationBudget retains defaults10000
+rows/128MiB; known-count qualification explicitly60000rows with unchanged128MiB,
+2GiB workspace/512MiB Linux-process/170s-work/180s-total, including preparation and
+cleanup. One stable legacy snapshot covers audit/copy; deadline or changed main/WAL
+binding before commit blocks complete publication. Larger row scope is not exposed
+in production configuration. Local known-count fixture47907rows/54,710,364audit bytes
+preserved1826markets/18289snapshots/27743predictions/20links/eight outcome bodies.
+Exact structured hashes/core quick/FK/history passed; import8.624s,verify0.505s,
+restart0.489s,total10.848s, sampled allocated161,271,808B/logical161,078,240B/RSS54,427,648B.
+These development measurements precede final deadline/source-binding hardening;
+exact successor Linux test is required. Initial Row-vs-tuple quick-check assertion
+failed and was corrected; it was not evidence of SQLite corruption. No unchanged
+large trial or production scan occurred.
+
+**Ordered next gate BLOCKED at full volume:** retained legacy main+WAL+SHM is
+5,369,184,256B. Current2,147,483,648B workspace is short3,221,700,608B **before** new
+core/maps/indexes/WAL/working/recovery. Unknown full raw/evidence distribution stops
+deriving a credible production ceiling or full verification time. Need an explicitly
+supported larger generated envelope and eligible host with those additional terms,
+not a sparse-file/repeated-tiny-fixture substitute. Old40GiB+10GiBfloor/2GiBRAM
+proposal exceeds last VM46.38GiB/~1.257GiB by~3.62GiBdisk/~0.743GiBRAM; no run/
+infrastructure/guard change. Per requested order, no new A/B deployment-controller
+route is enabled or claimed qualified before importer/capacity/budget gates pass.
+
+Path to Phase1.75 completion: exact successor CI/full PR review → supported full-
+volume importer → aggregate normal/outage/migration capacity and complete verification
+budget → tested existing manual controls → separately approved cutover/ceilings,
+retirementOFF+bounded smoke → separately approved retirement/recovery/visibility →
+independent I7 real freshness/rollover and reviewed sustained automatic lifecycle/
+storage evidence; research replay remains required and RAG explicitly deferred.
+Production remains held; no migration/deletion/restart/guard/manualWAL/copy/VACUUM/
+cloud mutation/infrastructure/paidAI/Phase2. No expiry or consumed authority renewed.
+
+The exact successor known-count profile additionally includes28 generated news
+rows and validates FTS rebuilding; its source count and measured timing/bytes
+come from that new Linux artifact. The local47907-row figures above precede that
+addition and final deadline/source-binding checks, and are not substituted for it.
+Local final backend361 tests PASS/14 Mac skips; controls120 PASS/3 Mac skips.

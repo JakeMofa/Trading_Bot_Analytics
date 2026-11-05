@@ -6,22 +6,26 @@ production authorization.
 
 ## Resume here
 
-November 5 integration is in progress on the existing working branch, continued
-from ec5f396. See the newest dated master-roadmap entry. The API, ensemble and
-lifecycle entrypoints now select the default-off adapter; generated-only path and
-volume holds still prevent production migration. Retirement remains a separate
-flag and requires archive verification, exact protected core evidence, cross-process
-reader leases and Linux descriptor proof. Do not reset or repeat live cloud probes.
+November5: PR #9 is the current integration milestone and remains DRAFT.
+Exact46f51e5f6501ee03e4021d725659aff2b53e84b5 / CI41995105891 PASS: exported
+backend357, root raw18/application38/runtime8/cutover1, controls120 and integrated
+4000 committed/0pending/errors,20publications, save669ms/heartbeat749ms.
+Production remains held on the legacy DB; no authority is renewed.
 
-Source6361660 failed exact CI41994499331 only at the new generated UID fence:
-backend and root raw/application/runtime passed. Corrected separate old/new UID
-fixture is being frozen for successor exact Linux/exported CI. Local backend357 tests
-passed with14 platform skips; controls120 passed with3 skips. New Linux-only
-cutover/descriptor cases are not qualified until CI passes. Preserve the unrelated
-AGENTS.md and596-line roadmap changes. Production remains stopped at its guard.
-No production authority is renewed by this handoff. Intended PR base remains the
-existing codex/lightsail-deployment branch. Actual-volume import, aggregate capacity,
-verification budget and deployment-control route remain blocking release gates.
+Read the latest master-roadmap reconciliation and
+PHASE175_RECONCILIATION_2026-11-05.md for all eight areas, historical raw replay,
+deferred knowledge/RAG and48h→72h-or-size policy mapping. Old failures remain failures.
+Successor explicit generated known-structured-count import is pending exact CI.
+Default migration row/byte/path holds and production routing/retirement remain.
+Full retained legacy5,369,184,256B exceeds current2GiB fixture by3,221,700,608B
+before core/WAL/recovery; full raw/protected shape is not known. Do not claim a
+production ceiling/verification budget or adapt/dispatch a new controller before
+those ordered gates pass. No bigger fixture is authorized by a small count pass.
+
+Preserve unrelated AGENTS.md and596-line roadmap edits, local data and secrets.
+Reuse existing branches; no repeated CI polling/cloud probe/production scan.
+Continue importer→capacity/verification→existing manual control qualification;
+cutover/guard/retirement approvals remain separate. I7 and Phase1.75 stay open.
 
 ## Read first and establish ownership
 

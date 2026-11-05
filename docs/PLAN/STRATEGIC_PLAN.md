@@ -92,7 +92,9 @@ Do not delay live collection until a huge download completes. Backfill is resuma
 ## 7. SQLite storage design
 
 November 3, 2026 policy update: the user selected a persistent structured core
-plus A/B raw generations with at least72h local retention and Supabase archiving.
+plus A/B raw generations that rotate by 72 hours or an earlier size threshold.
+Sealed generations become eligible for retirement after verified Supabase archival,
+evidence preservation and reader drainage.
 See [72h A/B policy](RETENTION_72H_AB_POLICY_2026-11-03.md) and the master roadmap
 for sizing/migration gates. This supersedes the single-file target below for the
 future implementation; production has not migrated.

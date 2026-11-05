@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Readiness successor835e507 exactCI41745773184 INPROGRESS at singlecheck, not PASS; frozen61e0008/CI41738983997 scaled baseline preserved. Resource-host/cloud/streaming-audit/fullverify/liveguard gates NOTPROVEN; production held, no policy amendment or authority extension. See AB72_PRODUCTION_READINESS_2026-11-03.md; completion notification or one check onresume, no polling.
+**Next gate:** November 4 policy correction. Rotate A/B by 72 hours or an earlier size threshold. While B collects, archive and verify sealed A in Supabase, preserve needed inputs and protected evidence, drain readers and retire A. Update prototype retirement tests and measure overlap before revising capacity. Prior 40 GiB / 48-hour proposal needs reassessment. Production remains held on the legacy layout. Phase 1.75 and I7 are open.
 
 ### October 23, 2026 migration preflight
 

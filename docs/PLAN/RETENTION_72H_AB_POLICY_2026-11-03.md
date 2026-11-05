@@ -1,37 +1,30 @@
-# 72-hour local retention and A/B raw-storage policy
+# A/B raw-storage rotation and Supabase archive policy
 
-Decision recorded November 3, 2026 from the user's request. This is the selected
-replacement storage design and retention target, not a deployed implementation.
-INTELLIGENCE_REBUILD_PLAN.md remains the authoritative roadmap. Historical48h
-reports remain unchanged. No production setting, service, schema or data changed.
+The November 4 clarification supersedes the November 3 minimum local retention
+rule. The master roadmap records the current checkpoint.
 
-## Selected layout and retention
+## Selected layout and retirement
 
-- Retain at least72hours of successfully collected raw data locally, measured by
-  original local receipt time in UTC. This supersedes the initial48hour target
-  for the future implementation; it does not backfill missing collection.
-- Use two rotating raw generations A/B on the existing VM, plus a persistent
-  structured core. A/B are raw-storage roles, not two interchangeable copies of
-  the entire application database. Markets, predictions, outcomes, archive
-  manifests and required protected evidence remain durable across rotations.
-- A raw generation accepts new events for72hours from activation. Route events
-  by receipt time; preserve source timestamps, exact decimals and provenance.
-  Switch new writes to the other prepared generation; do not copy the old DB.
-- Readers must span both generations when their lookback crosses the boundary.
-  Source-time queries need matching indexes; RAM state is not complete durable
-  history. Preserve the tested independent discovery/feature scheduling fixes.
-- Do not retire a sealed generation until its newest receipt is strictly older
-  than72hours, its applicable Supabase archives are freshly verified, all reader
-  handles are drained and every protected reference/evidence dependency is safe.
-  Thus two72hour generations require capacity for approximately144hours of raw
-  data, not merely72. Boundary delay, late writes and blocked retirement add to
-  the demand. Exact72hour instants do not justify early deletion.
+- Each active raw generation collects for up to 72 hours from activation.
+  Switch earlier if its measured size threshold is reached. Prepare the next
+  generation with enough aggregate headroom to complete the handoff.
+- When A seals, route new writes to B. The lifecycle worker finishes uploading
+  A to the existing private Supabase archive and verifies the sealed contents.
+  Retire A once exact archive coverage and protected evidence are verified and
+  readers have drained. The 72-hour clock governs rotation. Retirement depends
+  on those safety checks and can follow immediately.
+- Apply the same sequence in reverse. Use fresh generation IDs for reused roles.
+  Keep markets, outcomes, predictions and protected evidence in the persistent
+  structured core.
+- Keep the local inputs needed for live calculations available across the switch
+  and retirement. Pin any still-needed raw data or retain the necessary inputs
+  in core. Supabase holds older raw history for retrieval outside live calculations.
 - A/B are generation roles with unique generation IDs. Never overwrite a retained
   or unverified file. If the next role is not safely reusable, preserve data,
   report the blocker and stop ingestion before exhausting its explicit budget.
   Two slots cannot guarantee continuous collection through an arbitrary outage.
 - Archive incrementally in the existing lifecycle service, initially hourly;
-  finish and verify sealed generations without waiting another72hours to upload.
+  finish and verify sealed generations after handoff.
   Retain Supabase PostgreSQL for structured history and private Supabase Storage
   for raw archives. Do not introduce separate AWS S3 infrastructure.
 
@@ -42,7 +35,7 @@ across80.154464s on October26. Main+WAL physical growth9402.65B/s; estimated log
 page growth12110B/s; prior conservative planning input20KiB/s. Whole-database
 rates include other tables and cannot establish raw-generation/index/core rates.
 
-| Basis | GiB/day |72hours GiB|144hours GiB|
+| Basis | GiB/day | One 72-hour generation (GiB) | Two full generations (GiB) |
 |---|---:|---:|---:|
 |Observed short-window physical rate|0.757|2.270|4.540|
 |Estimated short-window logical rate|0.974|2.923|5.847|
@@ -64,8 +57,9 @@ The expired5120MiB bridge is not automatically extended or promoted permanent.
   all active/sealed/staged raw DBs and every associated WAL. Report SHM and archive/
   TEMP files separately in the filesystem working budget. Never apply a full
   allowance independently to A and B or hide retained legacy storage.
-- Size steady state as core+indexes +144h raw/index generation demand + bounded
-  boundary/blocked-retirement allowance + aggregate peak WAL + recovery reserve.
+- Size steady state from core and indexes, one sealed generation, new writes
+  during measured archive/verification/reader-drain overlap, peak WAL and recovery.
+  Budget for blocked retirement separately. Both slots can fill during an outage.
   For migration, add every retained legacy/staging allocation and measured peak
   transition working demand; do not assume old data is removed or compacted.
 - Use the larger of the20KiB/s historical planning input and measured active-load
@@ -84,10 +78,11 @@ The expired5120MiB bridge is not automatically extended or promoted permanent.
   approval for that concrete production procedure before changing runtime.
   No automatic increase/extension. Budget alerts warn early; hard guards remain.
 
-At the20KiB/s planning input, A/B raw growth alone is about9.89GiB before core,
-new indexes, WAL and reserve. Therefore neither5GiB nor an unmeasured6GiB/8GiB
-replacement is established sufficient. This is a budget calculation, not a claim
-that the current database produces1.65GiB every day or that a final ceiling is set.
+At the historical 20 KiB/s planning rate, one 72-hour generation represents about
+4.94 GiB and two full generations about 9.89 GiB. The latter is a blocked-retirement
+scenario to budget for or stop safely before reaching. Measure archive turnaround
+and concurrent growth before proposing aggregate ceilings. Prior sizing and large
+test proposals require review under this policy.
 
 ## Integrity, handoff and prediction requirements
 
@@ -121,7 +116,7 @@ that the current database produces1.65GiB every day or that a final ceiling is s
    code/data recovery, guard expiry and complete-verification requirements.
    No production migration or deletion is authorized by this policy document.
 5. Restore collection only after safe transition; validate rollover, prediction
-   freshness and verified72h retirement. No automatic monitoring/soak is started.
+   freshness and verified retirement after handoff. No automatic monitoring/soak is started.
    Required sustained-lifecycle evidence remains outstanding before phase closure.
 
 Current recorded production remainsd56b4a7; collector stopped at5120MiB guard,

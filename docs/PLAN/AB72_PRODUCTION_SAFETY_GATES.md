@@ -67,7 +67,7 @@ legacy/app/cloud compatibility and representative production capacity remain ope
 - Archive outside writer transactions in bounded chunks. Preserve existing private
   Supabase download/checksum/size/count/identity verification and immutable evidence.
   MemoryArchive passing tests does not certify real authentication,API/schema/RLS.
-- Before retirement prove strict72h newest-receipt age,sealed/nonactive state,
+- Before retirement prove sealed/nonactive state under the current rotation policy,
   complete exact archive coverage,fresh object readback,protected evidence in core,
   identity mapping and drained readers/FDs. Unknown visibility or new references
   block retirement. Never unlink active DB files or separately delete WAL/SHM.

@@ -25,6 +25,16 @@ master roadmap before action.
    Planning remains in the originating chat. A new session must take over rather
    than run a second concurrent implementation/production operation.
 
+## November 4 policy clarification
+
+A/B are collection buffers. Switch the active generation by 72 hours or sooner
+at its size threshold. While B collects, archive and verify sealed A in the
+existing Supabase bucket. Retire A after preserving needed inputs and protected
+evidence and draining readers. Repeat in reverse. This supersedes the extra
+72-hour local age gate and older sizing/test proposals below. Existing generated
+results remain evidence for the policy they exercised. The worker's next task
+is updating the retirement predicate, regression tests and overlap budget.
+
 ## Where we stopped / active work
 
 Phase1.75 / I7 remain OPEN. User selected at least72hours local raw retention,

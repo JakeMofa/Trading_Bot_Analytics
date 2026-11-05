@@ -874,6 +874,15 @@ Replace arbitrary hand-weighted ensemble logic with weights learned from forward
 
 # Phase 14 — Scale Only If Needed
 
+November 5, 2026 user clarification — defer Redis or another query cache until
+after the current A/B integration and regression testing. Use measured query and
+dashboard latency to identify a specific benefit before selecting a cache.
+
+- [ ] Evaluate caching only for evidenced bottlenecks. Define bounded memory,
+  expiry, market/generation invalidation, restart behavior and database fallback.
+  Test rotation and market boundaries so cached results preserve source age,
+  provenance and truthful stale/unavailable states.
+
 Do not add infrastructure because it sounds sophisticated.
 
 Only upgrade when measured need appears:

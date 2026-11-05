@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Linux generated rotation and recovery passed at 1a48805 (CI 41953150879). Live private archive qualification is BLOCKED pending approval of the exact synthetic scope and binding to the intended runtime identity. Storage sizing and cutover rehearsal follow that gate.
+**Next gate:** Live archive qualification is BLOCKED. The authorized synthetic attempt stopped during runtime binding with ModuleNotFoundError and zero HTTP attempts. Prepare a self-contained verifier for a separately approved run. Storage sizing and cutover rehearsal remain gated.
 
 ### October 23, 2026 migration preflight
 
@@ -2812,3 +2812,19 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
    recovery above is generated protocol evidence. The ordered cutover gate
    still requires legacy writer fencing, one new writer, forward recovery
    after acknowledgement, and exact-release workflow qualification.
+
+### November 4 — authorized synthetic archive probe BLOCKED
+
+- Source checkpoint 259be01 and Linux baseline 1a48805 (CI 41953150879).
+  The single authorized probe stopped during archive runtime identity binding.
+  Systemd unit, process UID, working directory and command checks passed.
+  The host-side import raised ModuleNotFoundError before the enabled project
+  and bucket binding could be reported. The probe assumed the legacy checkout
+  shipped the candidate retention_recovery verifier, which is absent from
+  the recorded legacy revision d56b4a7.
+- Zero HTTP attempts, zero uploads and zero synthetic rows written. No cleanup
+  is needed. The authorized attempt ended at the first blocker.
+- Next action is to prepare and validate a self-contained candidate verifier
+  that runs with the checked lifecycle process identity and its configuration.
+  Any new live attempt requires a fresh one-run approval. Disk sizing and
+  outage runway follow successful archive qualification.

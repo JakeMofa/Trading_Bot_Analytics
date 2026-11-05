@@ -7,6 +7,35 @@
 
 ---
 
+## First priority — automatic A/B handoff
+
+The next Phase 1.75 milestone is to qualify the full handoff under representative
+load. Generated Linux rotation and outage checks passed, and the live synthetic
+probe verified upload and readback in the private Supabase bucket.
+
+- [ ] At 72 hours or the measured size threshold, whichever comes first, seal A
+  and have the sole collector durably acknowledge new writes to B. Repeat in
+  reverse with a fresh generation ID when B rotates.
+- [ ] Verify the dashboard reports B as active and follows fresh persisted data.
+  Deterministic calculations must follow the same active generation and preserve
+  the inputs needed across the boundary using sealed A or the persistent core.
+  Keep the current market, prediction history, and protected evidence available.
+- [ ] While B collects, verify the lifecycle worker finishes A's archive in the
+  existing private Supabase bucket and checks authenticated readback against the
+  exact sealed contents. Free A only after coverage and protected inputs are
+  verified and readers have closed. Retirement can follow immediately.
+- [ ] Measure normal peak disk use with sealed A, B's growth during verification,
+  core, SQLite sidecars, and archive working files. Budget separately for an
+  archive outage and for the retained legacy database and recovery reserve
+  during cutover. Verify that a blocked archive preserves A and that B stops
+  safely if neither slot can be reused within the storage budget.
+
+Keep paid AI off for this rollout. When enabled later, AI should use the same
+application data layer for the current market and inputs, with prior reasoning
+and positions in persistent storage.
+
+---
+
 ## How to read this plan
 
 - `[x]` = completed
@@ -24,7 +53,12 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Scaled Linux rotation and outage measurements passed at 08ce0d9. Representative production capacity remains blocked by the 2 GiB workspace and 180-second envelope. Obtain an approved representative fixture scope and eligible Linux host before selecting a production ceiling or rehearsing cutover.
+**Next gate:** Qualify the automatic handoff above with a representative fixture.
+The live archive probe passed at `08ce0d9` and scaled Linux rotation and outage
+measurements were recorded at `e58e3b5`. Representative capacity remains blocked
+by the 2 GiB workspace and 180-second envelope. Obtain a representative fixture
+scope and eligible Linux host before selecting a production ceiling or rehearsing
+cutover.
 
 ### October 23, 2026 migration preflight
 

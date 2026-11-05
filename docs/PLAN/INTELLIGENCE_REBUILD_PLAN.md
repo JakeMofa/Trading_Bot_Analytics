@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Live archive qualification is BLOCKED. The authorized synthetic attempt stopped during runtime binding with ModuleNotFoundError and zero HTTP attempts. Prepare a self-contained verifier for a separately approved run. Storage sizing and cutover rehearsal remain gated.
+**Next gate:** The self-contained archive probe passed isolated Linux loopback qualification. Review a fresh one-run live command bound to the archive runtime identity. Live archive, storage sizing and cutover remain gated.
 
 ### October 23, 2026 migration preflight
 
@@ -2828,3 +2828,24 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
   that runs with the checked lifecycle process identity and its configuration.
   Any new live attempt requires a fresh one-run approval. Disk sizing and
   outage runway follow successful archive qualification.
+
+### November 4 — self-contained archive verifier offline qualification
+
+- Built a deterministic zipapp containing the candidate archive verifier and
+  its retention and timestamp guard dependencies. Uses Python standard
+  library HTTP and requires bundled import origins. Live mode binds the
+  systemd lifecycle PID, start time, command, working directory and UID,
+  checks the enabled project and bucket, and drops to the lifecycle user.
+- Five tests passed in a Linux container with no external network, a read-only
+  filesystem and only the bundle and test runner mounted. Probe subprocesses
+  used Python -IS, an empty environment and a temporary working directory.
+  Each omitted module and each project, bucket, UID or command mismatch
+  produced zero endpoint requests. Loopback also proved exact authenticated
+  readback, no overwrite of an existing object and a hold on corrupt readback.
+- Bundle SHA-256
+  e5be6cf656a2ce761667fb5b3d817aeadd5b53f83ff08b242e57257efd89cfc1.
+  Original prefix and limits apply. The probe uses at most three HTTP
+  attempts, one object at most 64 KiB, two embedded synthetic records and
+  zero structured row writes. Live process binding and Supabase remain
+  untested in this offline checkpoint. Review the live command before
+  a fresh one-run approval.

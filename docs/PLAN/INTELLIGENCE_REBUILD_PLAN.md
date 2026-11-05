@@ -3513,3 +3513,21 @@ core growth, actual verification budget, cloud recovery, I7 and sustained eviden
 remain explicit gates. All eight-area/replay/deferredRAG/48h→72h obligations remain
 reconciled. No production mutation, cleanup, copy/snapshot/VACUUM/manualWAL/restart/
 guard change/cloud write/infrastructure/paidAI/Phase2 occurred.
+
+### Joint CI792e3db: truthful-health fixture failure; corrected market timeline
+
+792e3db6d8d7b54965af3571e0f193f7371261e1 /CI42087680062 FAILED at the joint HTTP
+health assertion. Exported validation/backend and root18raw/38application/9runtime/
+2cutover passed; reused-slot crash recovery also passed. The joint first handoff/
+reader drain/archive/retirement completed, then health correctly returned degraded
+for missing Polymarket quote. The fixture accidentally overlapped new m0 and legacy
+m in the identical15m interval; current-market selection retained legacy m and RAM
+correctly rejected m0 quotes. No application health criterion was relaxed.
+
+Corrected fixture starts new m0 a day AFTER legacy m, asserts quote acceptance and
+HTTP market/quote identities/advancing price, and uses one coherent simulated clock
+for public feed-age reporting. HTTP maxima/count/timeouts now cover every GET.
+This is a changed fixture, not an unchanged qualification retry. The earlier failed
+run remains failed, and full4000 successor qualification did not run after that gate.
+Source/layout/receipt safeguards are unchanged from792e3db; exact corrected Linux
+CI must pass all stages before qualification is claimed. Production unchanged.

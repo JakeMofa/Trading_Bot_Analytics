@@ -21,7 +21,7 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from test_ab_application import legacy,market,ApplicationStore,iso,Stop
 from test_ab_runtime import environment
-import collector,streaming,features,forecasts,dashboard,live_state,live_health
+import collector,streaming,features,forecasts,dashboard,live_state,live_health,system_monitoring
 from generated_cloud import GeneratedRemote
 import httpx
 import uvicorn
@@ -86,7 +86,7 @@ class CompleteHandoff(unittest.TestCase):
         with guarded_fixture() as root:
             root=Path(root);path=root/'generated-legacy.db';legacy(path)
             store=ApplicationStore(root,path,routing=True,fresh_b=True,generation_bytes=2*1024**2)
-            state=live_state.LiveState();clock=[datetime(2026,1,1,tzinfo=timezone.utc)+timedelta(seconds=2)]
+            state=live_state.LiveState();clock=[datetime(2026,1,2,tzinfo=timezone.utc)+timedelta(seconds=2)]
             class Clock(datetime):
                 @classmethod
                 def now(cls,tz=None):return clock[0] if tz else clock[0].replace(tzinfo=None)
@@ -118,6 +118,7 @@ class CompleteHandoff(unittest.TestCase):
                 with ExitStack() as stack:
                     for module in (collector,streaming,features,forecasts,live_state):stack.enter_context(patch.object(module,'utcnow',side_effect=lambda:clock[0]))
                     stack.enter_context(patch.object(live_health,'datetime',Clock));stack.enter_context(patch.object(dashboard,'datetime',Clock))
+                    stack.enter_context(patch.object(system_monitoring,'datetime',Clock))
                     stack.enter_context(patch.object(streaming,'feature_cycle',side_effect=measured_feature))
                     stack.enter_context(patch.object(features,'_price',side_effect=measured_price))
                     stack.enter_context(patch.object(streaming,'publish_feature_cycle',side_effect=publish))
@@ -172,7 +173,7 @@ class CompleteHandoff(unittest.TestCase):
                                 book={'marketData':{'marketSlug':current[0]['slug'],'transactTime':iso(at),
                                       'stats':{'lastPriceSample':{'longPx':{'value':'0.51'},'shortPx':{'value':'0.49'}}}}}
                                 if not streaming.save_polymarket(main_db,book):raise Stop('new book not acknowledged')
-                                state.update_polymarket(book,iso(at))
+                                self.assertTrue(state.update_polymarket(book,iso(at)),'RAM rejected synthetic current-market quote')
                                 for source in ('coinbase_stream','polymarket_stream'):streaming.health(main_db,source,'live',data=True,live_state=state)
                                 maximum('save_max_seconds',time.monotonic()-before)
                                 done=time.monotonic()
@@ -206,14 +207,31 @@ class CompleteHandoff(unittest.TestCase):
                             app.state.collector_task=producer
                             async with httpx.AsyncClient(base_url='http://127.0.0.1:'+str(port),timeout=2) as client:
                                 event_task=asyncio.create_task(sse(client))
+                                prices=[]
+                                async def measured_get(path):
+                                    before=time.monotonic()
+                                    try:return await client.get(path)
+                                    except httpx.TimeoutException:
+                                        metrics['http_timeouts']=metrics.get('http_timeouts',0)+1
+                                        raise
+                                    finally:
+                                        maximum('api_max_seconds',time.monotonic()-before)
+                                        metrics['http_requests']=metrics.get('http_requests',0)+1
                                 async def probe():
-                                    before=time.monotonic();response=await client.get('/system/status');maximum('api_max_seconds',time.monotonic()-before)
+                                    before=time.monotonic();response=await measured_get('/system/status');maximum('api_max_seconds',time.monotonic()-before)
                                     self.assertEqual(response.status_code,200)
                                     self.assertEqual(response.json()['active_buffer']['generation_id'],store.protocol.active()['id'])
-                                    before=time.monotonic();history=await client.get('/history/predictions');maximum('history_max_seconds',time.monotonic()-before)
+                                    self.assertEqual(response.json()['feeds']['coinbase']['status'],'live')
+                                    self.assertEqual(response.json()['feeds']['polymarket']['status'],'live')
+                                    current_state=(await measured_get('/state/current')).json()
+                                    self.assertEqual(current_state['market']['id'],current[0]['id'])
+                                    prices.append(current_state['coinbase']['price_usd'])
+                                    self.assertEqual(current_state['polymarket']['slug'],current[0]['slug'])
+                                    before=time.monotonic();history=await measured_get('/history/predictions');maximum('history_max_seconds',time.monotonic()-before)
                                     self.assertEqual(history.status_code,200);self.assertTrue(history.json()['items'])
                                 try:
                                     await until(lambda:len(published)>=1);await probe()
+                                    metrics['first_phase_baseline']={key:metrics[key] for key in ('save_max_seconds','api_max_seconds','current_price_max_seconds','feature_max_seconds','history_max_seconds')}
                                     metrics['phases'].append({'slot':store.protocol.active()['slot'],'id':store.protocol.active()['id'],'market':current[0]['id']})
                                     for phase in range(1,4):
                                         feed_on.clear();old=store.protocol.active()['id'];hold=store.worker_connection('history');history_hold[0]=hold
@@ -226,9 +244,9 @@ class CompleteHandoff(unittest.TestCase):
                                         maximum('sealed_main_wal_peak_bytes',raw.stat().st_size+Path(str(raw)+'-wal').stat().st_size)
                                         change=time.monotonic();await until(lambda:store.protocol.active()['id']!=old)
                                         if phase==2:
-                                            clock[0]=datetime(2026,1,1,tzinfo=timezone.utc)+timedelta(minutes=15,seconds=2)
+                                            clock[0]=datetime(2026,1,2,tzinfo=timezone.utc)+timedelta(minutes=15,seconds=2)
                                             current[0]=market(clock[0]-timedelta(seconds=2),'m1');discover();candles()
-                                            self.assertEqual((await client.get('/health')).json()['status'],'degraded')
+                                            self.assertEqual((await measured_get('/health')).json()['status'],'degraded')
                                         else:clock[0]+=timedelta(seconds=1)
                                         feed_on.set();before_count=len(acknowledgements)
                                         archive=asyncio.create_task(lifecycle_run(True))
@@ -249,17 +267,21 @@ class CompleteHandoff(unittest.TestCase):
                                         metrics.setdefault('scheduler_request_to_sse_max_seconds',0.)
                                         maximum('scheduler_request_to_sse_max_seconds',observed-change)
                                         await probe()
-                                        health=(await client.get('/health')).json();self.assertEqual(health['status'],'ok',health)
+                                        health=(await measured_get('/health')).json();self.assertEqual(health['status'],'ok',health)
                                         metrics['phases'].append({'slot':store.protocol.active()['slot'],'id':gid,'market':current[0]['id']})
                                     self.assertEqual([p['slot'] for p in metrics['phases']],['B','A','B','A'])
                                     self.assertEqual(len({p['id'] for p in metrics['phases']}),4)
+                                    self.assertGreater(max(prices),min(prices),'HTTP values did not advance')
+                                    metrics['http_price_values_advanced']=True
                                     self.assertEqual(main_db.execute('PRAGMA foreign_key_check').fetchall(),[])
                                     self.assertEqual(main_db.execute("SELECT count(*) FROM ab_events WHERE status='pending'").fetchone()[0],0)
                                     for key in acknowledgements:
                                         self.assertEqual(main_db.execute("SELECT count(*) FROM ab_events WHERE event_key=? AND status='committed'",('coinbase:'+key,)).fetchone()[0],1)
                                     feed_on.clear()
                                     clock[0]+=timedelta(seconds=31)
-                                    self.assertEqual((await client.get('/health')).json()['status'],'degraded')
+                                    self.assertEqual((await measured_get('/health')).json()['status'],'degraded')
+                                    if event_task.done():event_task.result()
+                                    metrics['http_timeouts']=metrics.get('http_timeouts',0)
                                     metrics['acknowledged_ticks']=len(acknowledgements)
                                 finally:
                                     event_task.cancel();await asyncio.gather(event_task,return_exceptions=True)

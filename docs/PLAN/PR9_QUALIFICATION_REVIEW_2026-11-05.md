@@ -184,3 +184,15 @@ backup/copy/snapshot, VACUUM/manual WAL action, guard increase, cloud write,
 infrastructure change, paid AI or Phase2 occurred. I7 freshness/rollover, actual
 cloud recovery, operational visibility and sustained-operation acceptance remain
 open until independent evidence satisfies them.
+
+
+## First exact candidate result
+
+792e3db6d8d7b54965af3571e0f193f7371261e1 /CI42087680062 FAILED the joint health
+assertion. Root18raw/38application/9runtime/2cutover and reused-slot crash case passed.
+New fixture m0 overlapped the legacy m interval, so RAM correctly rejected its
+wrong-market quote and health stayed degraded. Corrected fixture uses a subsequent
+day, asserts quote acceptance, HTTP identities/advancing values, coherent simulated
+feed ages, and measures every HTTP GET. No application health rule or gate was
+relaxed. Full successor4000 qualification was skipped after this failure; it is not
+a pass. Corrected exact Linux CI remains required.

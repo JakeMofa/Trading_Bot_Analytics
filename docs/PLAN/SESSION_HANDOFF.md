@@ -13,8 +13,9 @@ CI42005134684 PASS fresh4000/4000archive/0pending/errors/20publications;121ms sa
 Successor layout2 adds full-column atomic acknowledgement hashes, fail-closed
 startup/core/reference checks, raw read/archive/retirement receipt verification,
 version-aware old-adapter fence and joint HTTP/SSE/collector/scheduler/features/
-isolated lifecycle B→A→B→A fixture with reused-slot crash tests. New Linux/root
-CI is required. Local376 backend/120controls passed,17/3platform skips, plus focused
+isolated lifecycle B→A→B→A fixture with reused-slot crash tests. 792e3db /CI42087680062 FAILED joint health: fixture m0 shared legacy m
+interval; RAM correctly rejected wrong-market quotes. Timeline/HTTP identity and
+quote-acceptance assertions corrected. New exact Linux/root CI is required. Local376 backend/120controls passed,17/3platform skips, plus focused
 fault regressions. Mac joint diagnostic remains NOT PROVEN at Linux FD check.
 Sealed-handoff priority fixes observed cold structured/moving-active catchup STOP;
 active backlog is not falsely marked caught up. No gate was raised.

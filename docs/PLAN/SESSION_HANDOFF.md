@@ -1,9 +1,30 @@
 # Tradebot session handoff
 
-Recorded November 3, 2026. This file is a compact restart index and evidence
-snapshot, not another roadmap or new production authorization. Update it when
-ownership/checkpoint changes; stale entries must be reconciled with Git and the
-master roadmap before action.
+Updated November 4, 2026. Use this entry point when resuming in Codex, Claude,
+or another coding session. The master roadmap governs project status and
+production authorization.
+
+## Resume here
+
+- Start from the current working branch and preserve local edits. Commit
+  e9fb614 records the latest policy decision. Check Git for later work before
+  editing. Confirm ownership with the user if another session is active.
+- **Next coding checkpoint.** Apply the corrected retirement rule to the
+  generated A/B prototype. Exercise one handoff with B accepting and
+  acknowledging writes while sealed A is archived, verified, and retired.
+  Preserve prediction inputs and protected evidence and drain A's readers
+  before removing the file. Test the early size trigger and verify that a
+  failed archive keeps A available. Use generated data and the existing
+  test transport.
+- Record peak aggregate disk usage during that overlap and the time from
+  sealing to safe retirement. Use those measurements to reassess the prior
+  40 GiB / 48-hour proposal. Qualify the changed path and report the result
+  once, with the exact commit and any remaining gap.
+- The scaled baseline at 61e0008 covered the earlier policy. Production
+  collection is held on the legacy database. Migration and production
+  retirement require the reviewed cutover procedure and explicit approval.
+- Pinned SSH to tradebot-analytics-01 succeeded November 4 from the Wi-Fi
+  address then in use. Check access again only when needed for authorized VM work.
 
 ## Read first and establish ownership
 
@@ -20,8 +41,7 @@ master roadmap before action.
    Preserve all unrelated/uncommitted work. Do not create a branch/worktree.
 6. Check the current execution owner before writing or operating production.
    Execution chat: [Test256-page checkpoint threshold](codex://threads/01a197ce-eabd-75b0-a991-d76b33c5a96b).
-   It is actively working as of this snapshot. The title is historical: its task
-   is now the72h A/B/core prototype, NOT another checkpoint-threshold experiment.
+   The title is historical. Check current ownership before resuming the A/B work.
    Planning remains in the originating chat. A new session must take over rather
    than run a second concurrent implementation/production operation.
 
@@ -37,10 +57,8 @@ is updating the retirement predicate, regression tests and overlap budget.
 
 ## Where we stopped / active work
 
-Phase1.75 / I7 remain OPEN. User selected at least72hours local raw retention,
-A/B raw generations plus persistent structured core,with existing Supabase
-archives. Selection/policy commit2470103 replaces48h as the future target;
-production has not migrated or enabled retention.
+Phase 1.75 and I7 remain open. The November 4 policy governs rotation and
+retirement. Production collection is held on the legacy SQLite database.
 
 Latest qualified exported candidate: **61e0008c59696168bdaa043fce6b88e5b22f6d19**,
 [exact CI41738983997 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41738983997).

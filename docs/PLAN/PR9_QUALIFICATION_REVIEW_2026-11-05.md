@@ -207,3 +207,44 @@ platform skips, controls120 PASS with3 platform skips. These skips require Linux
 evidence; local descriptor timing is not production retirement proof. Source changes
 require their own exact Linux/export CI;96933e0 joint CI was running at review.
 Production and unapplied recovery/continuous budgets remain unchanged.
+
+## Consolidated Linux result — corrected joint source96933e0
+
+96933e099c7648dd996ad197e47ea8f85c09d519 /[CI42088519393 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42088519393)
+passed both exact-export jobs and manifest revalidation. Successor79527a7 adds only
+the protected-evidence identity checks/fault regression documented above; its own
+exact CI is required before replacing this qualified source.
+
+| Check | Evidence / result |
+|---|---|
+|Schema/ack/corruption|PASS generated exported suites; protected/core/raw checksum and source/identity faults fail closed. Successor identity fault requires successor CI|
+|Repeated actual application handoff|PASS generated B0→A1→B2→A3 with four distinct UUIDs,25 acknowledged ticks,59 HTTP requests,0 timeouts/errors,advancing price,one feature worker;3 archive/readback/held-reader retirements|
+|Crash/forward recovery|PASS root boundary/reused-slot tests, no lost acknowledged records; real machine power loss NOT PROVEN|
+|Concurrent latency|PASS existing generated gates: max save27.601ms,heartbeat126.567ms,API74.608ms,SSE163.838ms,price lookup0.929ms,feature29.318ms,history47.132ms; scheduler request→SSE916.407ms;ack interval926.237ms includes deliberate source pauses|
+|Fresh4000 workload|PASS4000 committed/archived/receipts,0pending/errors,20publications/one worker;save77.795ms,heartbeat256.458ms,feature495.372ms,history197.571ms;53.150s including actual fixture cleanup|
+|Known structured scope|PASS47935 audited rows/54,715,760B,1826markets/18289snapshots/27743predictions/20links/28news;constructor29.149s,restart2.735s,34.115s total;does NOT prove actual candle/raw/protected fanout|
+|Operating limits/production controls|NOT PROVEN: no continuous horizon/actual selected scope or production permission/path/control qualification. PR remains draft; concrete STOP procedure above applies|
+
+Joint sampled physical peak10,420,224B (sealed main+WAL peak2,521,184B),7.446s
+fixture/9.939s whole supervised suite; Linux reader/FD proof ran. Fresh4000 whole
+workspace peak22,630,293B,RSS54,435,840B,core WAL4,165,632B,each raw WAL~4.15MB.
+Core logical growth389,120→2,330,624B =485.376B/committed event,normal-close main
+2,334,720B. Ledger growth is retained after raw retirement and is NOT free-space
+credit. Known-structured fixture allocated peak164,548,608B,RSS46,436,352B.
+
+Joint first-phase versus concurrent maxima: API45.028→74.608ms,price0.639→0.929ms,
+save15.701→27.601ms,history45.033→47.132ms,feature29.318→29.318ms. In the separate
+4000 profile, save/heartbeat improve versus f172907121/306ms; feature/history maxima
+rise95/26→495/198ms. Distinct CI hosts/scheduling and new startup/read validation
+make causal attribution unavailable; both remain below documented freshness/history
+budgets. These are bounded generated results, not latency guarantees or evidence
+for real market cadence. Do not substitute simulated clock for real-boundary I7.
+
+The smallest remaining prerequisite is a bounded exact production structured/
+selected-input inventory (including candles/protected fanout), plus a finite core
+ledger horizon, to qualify the targeted verification/capacity package. No production
+scan is performed by this result. Full raw import is unnecessary for the selected
+fresh-B route, but complete selected-input correctness is mandatory. Only after
+that package is supported can existing manual controls be pinned/tested for the
+new layout and reviewed as one concrete cutover authorization. Current old route
+must continue refusing it; no fabricated executable dispatch or bypass is supplied.

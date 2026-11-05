@@ -6,32 +6,28 @@ production authorization.
 
 ## Resume here
 
-PR9 six-part qualification is active. f1729071e054e184504c3909f062a4a170cfe3a0 /
-CI42005134684 PASS fresh4000/4000archive/0pending/errors/20publications;121ms save/
-306ms heartbeat. Do not repeat or substitute earlier full-import results.
+PR9 six-part generated qualification:96933e099c7648dd996ad197e47ea8f85c09d519 /
+CI42088519393 PASS exact exported/Linux/root suites, joint B→A→B→A and fresh4000.
+Joint25acknowledgedticks/3retirements/59HTTPrequests/0timeouts,onefeatureworker;
+fresh4000committed/archived/receipts,0pending/errors,20publications,peak22,630,293B.
+Core growth485.376B/event is retained, not reusable physical capacity.
 
-Successor layout2 adds full-column atomic acknowledgement hashes, fail-closed
-startup/core/reference checks, raw read/archive/retirement receipt verification,
-version-aware old-adapter fence and joint HTTP/SSE/collector/scheduler/features/
-isolated lifecycle B→A→B→A fixture with reused-slot crash tests. 792e3db /CI42087680062 FAILED joint health: fixture m0 shared legacy m
-interval; RAM correctly rejected wrong-market quotes. Timeline/HTTP identity and
-quote-acceptance assertions corrected. New exact Linux/root CI is required. Local376 backend/120controls passed,17/3platform skips, plus focused
-fault regressions. Mac joint diagnostic remains NOT PROVEN at Linux FD check.
-Sealed-handoff priority fixes observed cold structured/moving-active catchup STOP;
-active backlog is not falsely marked caught up. No gate was raised.
+Current code79527a79f40154ab589d446119be5cd60da65ad9 adds missing-proof and exact
+protected generation/dataset/row checks;7focused/377backend/120controls localPASS,
+17/3platformskips. ExactCI42089343842 in_progress at one status check. Do not poll
+repeatedly/retry unchanged or call successor qualified before exact Linux PASS.
+The792e3db fixture health failure remainsFAILED;969 fixed overlapping market dates,
+not application health rules. See PR9_QUALIFICATION_REVIEW_2026-11-05.md and newest
+master entry for complete six-part results and concrete STOP cutover sequence.
 
-See newest master entry and PR9_QUALIFICATION_REVIEW_2026-11-05.md. Generation
-trigger2MiB is a test/early trigger, not a permanent local window.8GiB aggregate,
-2GiB new layout/512MiB core/64MiB slot/512MiB reserve/10GiB floor are UNAPPLIED
-recovery proposals. Receipt ledger/core growth, restart audit, continuous archive/
-retirement timing and actual source scope need evidence. Initial retirementOFF
-is finite then safe STOP. Redis is deferred. Production control/path/verification
-scope still blocks cutover; preserve2590s interruption/recovery reserve and no-copy
-forward recovery. No approval or deadline extension is implicit.
-
-Preserve unrelated AGENTS.md and596-line roadmap edits. No new branch/worktree,
-production mutation/cleanup/restart/WAL operation/copy/infrastructure/cloud write.
-All eight-area/replay/deferredRAG/I7/sustained reconciliation remains in force.
+Operating/cutover gates stillNOTPROVEN: actual selected input/candle/fanout bounds,
+finite core horizon and continuous capacity, reviewed targeted verification scope,
+existing manual route/path/permission bindings.8GiB recovery proposal and continuous
+limits remain UNAPPLIED;2MiB testtrigger is not72h minimum/physicalslotcap. Initial
+retirementOFF permits finite collection thenSTOP. Preserve2590s interruption/180s
+recovery/10sreap and forward recovery after newack. Production unchanged/held;PR9
+DRAFT,I7/Phase1.75OPEN,RedisDEFERRED. No newcloudwrite or expired authority reuse.
+Preserve unrelated AGENTS.md/+596roadmap edits and all local data/secrets.
 
 ## Read first and establish ownership
 

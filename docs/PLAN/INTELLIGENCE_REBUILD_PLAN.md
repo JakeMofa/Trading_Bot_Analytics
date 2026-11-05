@@ -3542,3 +3542,29 @@ platform skips, controls120 PASS with3 platform skips. These skips require Linux
 evidence; local descriptor timing is not production retirement proof. Source changes
 require their own exact Linux/export CI;96933e0 joint CI was running at review.
 Production and unapplied recovery/continuous budgets remain unchanged.
+
+### PR9 consolidated generated checkpoint —96933e0 PASS;79527a7 exact CI pending
+
+Corrected source96933e099c7648dd996ad197e47ea8f85c09d519 /CI42088519393 PASS all
+exported/Linux/root/control/known-count and integrated jobs. Joint B→A→B→A passed
+with4 UUIDs,25acknowledged ticks,3readback/reader-hold retirements,59HTTPrequests,
+0timeouts/errors,onefeatureworker. Maxsave27.601ms/heartbeat126.567ms/API74.608ms/
+SSE163.838ms/price0.929ms/feature29.318ms/history47.132ms;sampledpeak10,420,224B.
+Exact fresh4000:4000committed/archived/receipts,0pending/errors,20publications;
+save77.795ms/heartbeat256.458ms/feature495.372ms/history197.571ms,peak22,630,293B,
+53.150s including fixturetreecleanup. Corelogicalgrowth485.376B/event persists
+afterrawretirement;not a capacity credit. Known-count47935rows fixturePASS,
+164,548,608Bpeak,34.115stotal,restart2.735s;actualcandles/protectedfanoutunproven.
+
+Successor79527a79f40154ab589d446119be5cd60da65ad9 binds protected evidence to exact
+committedgeneration/dataset/row and rejects missingrequiredproof. Local377backend/
+120controlsPASS(17/3platformskips),7focusedfaulttestsPASS. ExactCI42089343842 was
+in_progress at the one check; no repeated polling/retry. Do not call795 qualified
+until its Linux/export jobs pass. PR9 remainsDRAFT. Six-part report records schema/
+handoff/crash/concurrency generatedPASS,operatinglimits/productioncontrolsNOTPROVEN.
+Full diff166files/+23811/-208 includes historicalwork,not a narrow3file release.
+Concrete cutover remainsSTOP: actualstructured/selectedscopeinclcandles, finitecore
+ledgerhorizon/expiry, reviewedtargetedverification/capacity and testedmanualscope/
+permissionbindings needed. Preserve2590s interruption/180srecovery/10sreap, initial
+retirementOFF,forwardrecoveryafterack. No executableoldworkflow substitution.
+No productionmutation/cloudwrite/guardchange;I7/Phase1.75OPEN.RedisDEFERRED.

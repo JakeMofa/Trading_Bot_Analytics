@@ -13,7 +13,9 @@ volume holds still prevent production migration. Retirement remains a separate
 flag and requires archive verification, exact protected core evidence, cross-process
 reader leases and Linux descriptor proof. Do not reset or repeat live cloud probes.
 
-Current source is being frozen for exact Linux/exported CI. Local backend357 tests
+Source6361660 failed exact CI41994499331 only at the new generated UID fence:
+backend and root raw/application/runtime passed. Corrected separate old/new UID
+fixture is being frozen for successor exact Linux/exported CI. Local backend357 tests
 passed with14 platform skips; controls120 passed with3 skips. New Linux-only
 cutover/descriptor cases are not qualified until CI passes. Preserve the unrelated
 AGENTS.md and596-line roadmap changes. Production remains stopped at its guard.

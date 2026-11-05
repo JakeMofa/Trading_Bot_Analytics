@@ -28,14 +28,6 @@ if mode=='legacy':
         print('legacy-write',flush=True)
     finally:db.close()
     raise SystemExit(0)
-try:
-    db=collector.connect(legacy)
-    try:
-        collector.save_observation(db,'m',iso(T+timedelta(seconds=10)),'book',{'old':True},iso(T))
-    finally:db.close()
-except sqlite3.OperationalError as e:
-    assert 'readonly' in str(e).lower(),type(e).__name__
-else:raise AssertionError('legacy writer fence failed')
 if mode=='before':
     def fault(at):
         if at=='migration_before_commit':raise RuntimeError('before first acknowledgement')
@@ -90,11 +82,14 @@ class CutoverTests(unittest.TestCase):
                 # Root-owned read-only main prevents that UID opening a writer.
                 path.chmod(0o444)
                 root=parent/'generated-ab-new';root.mkdir(mode=0o700)
-                os.chown(root,account.pw_uid,account.pw_gid)
                 before=hashlib.sha256(path.read_bytes()).hexdigest()
+                denied=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),'legacy'],
+                                      preexec_fn=demote,capture_output=True,text=True,timeout=10)
+                self.assertNotEqual(denied.returncode,0)
+                self.assertIn('readonly',denied.stderr.lower())
                 started=time.monotonic()
                 result=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),mode],
-                                      preexec_fn=demote,capture_output=True,text=True,timeout=15)
+                                      capture_output=True,text=True,timeout=15)
                 self.assertEqual(result.returncode,71 if mode=='before' else 72,result.stdout+result.stderr)
                 self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)
                 if mode=='before':
@@ -105,15 +100,18 @@ class CutoverTests(unittest.TestCase):
                     finally:db.close()
                     # Generated operator permission restoration is permitted only
                     # before new acknowledgements. No database contents restored.
-                    os.chown(path,account.pw_uid,account.pw_gid)
-                    path.chmod(0o600)
+                    for suffix in ('','-wal','-shm'):
+                        component=Path(str(path)+suffix)
+                        if component.exists():
+                            os.chown(component,account.pw_uid,account.pw_gid)
+                            component.chmod(0o600)
                     legacy_result=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),'legacy'],
                                                  preexec_fn=demote,capture_output=True,text=True,timeout=10)
                     self.assertEqual(legacy_result.returncode,0,legacy_result.stderr)
                 else:
                     self.assertIn('acknowledged',result.stdout)
                     recovered=subprocess.run([sys.executable,'-c',CHILD,child_tests,str(root),str(path),'recover'],
-                                             preexec_fn=demote,capture_output=True,text=True,timeout=15)
+                                             capture_output=True,text=True,timeout=15)
                     self.assertEqual(recovered.returncode,0,recovered.stdout+recovered.stderr)
                     self.assertIn('forward-recovered',recovered.stdout)
                     self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)

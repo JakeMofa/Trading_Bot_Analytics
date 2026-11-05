@@ -3202,3 +3202,21 @@ application-only manual deploy route cannot ship this scope. No production ceili
 16/21 GiB proposal, route, retention flag or retirement flag has been approved here.
 Next: freeze this source, exact Linux CI, review existing-branch PR and record the
 measured result/procedure without presenting those blockers as execution-ready.
+
+
+### November 5 — first exact Linux result and corrected cutover fixture
+
+Source636166091cac236c881777d7af68382fbc4c0cd9 CI41994499331 FAILED in
+Linux generated cutover UID test. Exported backend passed; root raw18/application38/
+runtime8 passed, including actual lifecycle drainage. Controls and integrated job
+were skipped after the failure, not passed. The test incorrectly assigned old and
+new writers the same UID despite a deliberately differently-owned legacy file;
+connect correctly refused. Corrected rehearsal separates fenced old unprivileged
+UID from root new-operator UID and restores sidecar ownership only before any new
+acknowledgement. Production ownership checks remain unchanged. This does not
+qualify running production as root. Successor exact CI remains required.
+
+AB72_ENTRYPOINT_CUTOVER_REVIEW_2026-11-05.md records entrypoint/failure mapping,
+reused capacity/cloud evidence, concrete cutover/recovery steps and exact blockers.
+It is a STOP procedure, not an execution-ready production request. No source-volume,
+capacity, deployment-control or retirement-privilege bypass has been introduced.

@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The generated early A/B switch passed the focused archive and retirement test. Qualify complete Linux descriptor drainage and application lifecycle scheduling, then measure sustained archive overlap before proposing production ceilings. Production remains held on the legacy layout. Phase 1.75 and I7 are open.
+**Next gate:** Linux generated rotation and recovery passed at 1a48805 (CI 41953150879). Live private archive qualification is BLOCKED pending approval of the exact synthetic scope and binding to the intended runtime identity. Storage sizing and cutover rehearsal follow that gate.
 
 ### October 23, 2026 migration preflight
 
@@ -2767,3 +2767,48 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
 - Production review still needs an application lifecycle wake/drain path and
   Linux descriptor proof. Measure overlap under representative archive latency
   and arrival rates before selecting ceilings or requesting migration approval.
+
+### November 4 — ordered qualification at 1a48805
+
+1. **PASS — Linux generated rotation and retirement.** Exact source
+   `1a48805260135a493adf445161079c0e3229f22e`,
+   [CI 41953150879](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41953150879).
+   The root run passed 18 protocol and 34 application tests. The 128 KiB
+   early A → B switch and simulated 72-hour switches exercised a single active
+   writer, durable acknowledgements and fresh IDs on B → A reuse. Real
+   descriptor checks held retirement for unmanaged readers. Managed leases,
+   missing or corrupt archives, and missing protected evidence also held
+   retirement. Process exits at preparing, file creation and publish recovered
+   the sealed/active pair and the previously acknowledged observation.
+   Exit after raw commit replayed the core acknowledgement exactly once.
+   Exits at retirement authorization, normal close and file removal recovered
+   protected evidence and valid foreign keys. This proves the tested recovery
+   protocol across separate WAL databases, not cross-file WAL atomicity.
+   The focused Linux fixture sampled 1,238,538 bytes across raw/core/sidecars
+   and archive files, with 80.9 ms seal to removal. The separate generated
+   integrated regression sampled 22,038,513 workspace bytes and committed
+   4,000 new records with 4,002 archived, including legacy backlog.
+2. **BLOCKED — real archive.** Prepared one scoped probe using the existing
+   Supabase HTTP client and CompatibleCloud wrapper, private market-raw bucket,
+   and the exact ab72-readiness/2026-11-03-v1/ namespace and synthetic identities
+   in AB72_PRODUCTION_READINESS_2026-11-03.md. Use generation/dataset/digest
+   object keys, conditional creation and an authenticated GET on the same
+   runtime identity. Compare SHA-256, compressed length, parsed row count,
+   generation and first/last source identities. Replay identical bytes and
+   reject a conflicting duplicate, then recheck the original object. Inject
+   a post-send timeout, denied request and corrupted readback at the client
+   boundary. Reconcile ambiguous POST by GET only, and verify failures keep A
+   sealed and two occupied slots stop ingestion at the safe boundary. Cap the
+   run at 180 seconds and 60 HTTP attempts, two 64 KiB objects and eight
+   isolated rows, with at most three attempts for classified transient GETs
+   and no blind write retries. Cleanup requires explicit exact-scope authority.
+   Next action is approval of these synthetic mutations and a verified binding
+   to the intended runtime identity. Historical catalog grants and generated
+   transport results do not supply that live proof.
+3. **BLOCKED — representative storage limits.** Stopped at checkpoint 2.
+   Generated peaks above do not establish archive throughput, outage runway,
+   local window, or a production ceiling.
+4. **BLOCKED — release rehearsal.** Stopped at checkpoint 2. The tested crash
+   recovery above is generated protocol evidence. The ordered cutover gate
+   still requires legacy writer fencing, one new writer, forward recovery
+   after acknowledgement, and exact-release workflow qualification.

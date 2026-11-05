@@ -883,6 +883,23 @@ dashboard latency to identify a specific benefit before selecting a cache.
   Test rotation and market boundaries so cached results preserve source age,
   provenance and truthful stale/unavailable states.
 
+Deferred query-performance evaluation after the current A/B testing milestone:
+
+1. Measure current-price, feature, history and dashboard latency, including worst
+   delays, query completion time and feature/input age during rotation/archive.
+2. Inspect expensive queries with EXPLAIN QUERY PLAN. Evaluate bounded time/market
+   filters, selected columns, deterministic limits and matching indexes. Verify
+   equivalent timestamp ties, exact decimals, provenance and missing/stale states.
+3. Evaluate incremental rolling calculations, existing LiveState RAM reads and
+   reuse of repeated results. Route historical reads to relevant generations
+   while preserving cross-boundary completeness and correctness.
+4. Consider Redis or another shared cache for remaining measured repeated reads.
+   Compare hit rate, expiry/invalidation correctness and aggregate memory demand
+   on the 2 GiB VM before selecting an implementation.
+
+This records future evaluation. Current I7 query/freshness requirements remain
+part of Phase 1.75 acceptance and require evidence independently of API latency.
+
 Do not add infrastructure because it sounds sophisticated.
 
 Only upgrade when measured need appears:

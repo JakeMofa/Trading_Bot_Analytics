@@ -24,7 +24,7 @@
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The live GET 400 was reproduced as Storage NoSuchKey with embedded 404. The corrected bundle passed eight offline Linux tests. Review the checksum and exact command in AB72_ARCHIVE_PROBE_REVIEW_2026-11-04.md for fresh one-run approval. Storage and cutover remain gated.
+**Next gate:** The scoped live archive probe passed at 2fb74af. Prepare a separately scoped representative storage and outage qualification before choosing production ceilings or rehearsing cutover.
 
 ### October 23, 2026 migration preflight
 
@@ -2853,3 +2853,20 @@ I7/Phase1.75 OPEN;noPhase2. Preserve unrelatedAGENTS+76/roadmap+596 edits.
 ### November 4 — archive absence diagnostic
 
 - Matched the failed GET in Storage logs and reproduced HTTP 400 / NoSuchKey / 404 with one read-only request. Zero writes. Exact diagnostic, Linux tests, bundle checksum and proposed command are in [archive probe review](AB72_ARCHIVE_PROBE_REVIEW_2026-11-04.md).
+
+### November 4 — scoped live archive probe PASS
+
+- The approved one-run command from 2fb74af checked the bundle SHA-256
+  3ea35c10ebec4bf47eaad305c14d13ea3581b4e6b1f0bb485e969b1d2729bbe5
+  and bound to lifecycle PID 31771, the intended project and private
+  market-raw bucket before upload. Preflight confirmed HTTP 400 / NoSuchKey
+  / embedded 404. Create-only upload and authenticated exact readback
+  completed in three HTTP attempts under the 180-second deadline.
+- Readback matched 197 bytes, two synthetic records, both identity boundaries
+  and SHA-256 a57a281ddb38b00918901d2d253d01898bd2dd83afcdaaefd0998462b47dba1e.
+  The single object remains under
+  ab72-readiness/2026-11-03-v1/72000000000000000000000000000001/stream_events/
+  with that SHA-256 as its .jsonl.gz filename. Zero structured rows written.
+- Next measure representative rotation overlap and outage runway in a
+  separately scoped qualification. Production cutover and cleanup require
+  their own approval.

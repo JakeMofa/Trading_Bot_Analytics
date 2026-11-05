@@ -186,13 +186,16 @@ class Tests(unittest.TestCase):
     def test_one_fixed_scaled_linux_profile(self):
         script=Path(__file__).resolve().parents[1]/'prototype/qualify_ab.py'
         result=subprocess.run([sys.executable,str(script)],text=True,capture_output=True,timeout=180)
+        report=json.loads(result.stdout)
+        path=os.getenv('AB_REPORT_PATH')
+        if path:
+            Path(path).write_text(json.dumps(report));Path(path).chmod(0o644)
+        self.assertLess(len(result.stdout.encode()),256*1024,'diagnostic output bound')
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
-        report=json.loads(result.stdout);self.assertEqual(report['status'],'PASS_SCALED',result.stdout)
+        self.assertEqual(report['status'],'PASS_SCALED',result.stdout)
         self.assertTrue(report['workload_complete']);self.assertEqual(report['rows'],4000)
         self.assertEqual(set(report['generation_files']),{'A','B'})
         self.assertEqual(report['errors'],[])
-        path=os.getenv('AB_REPORT_PATH')
-        if path:Path(path).write_text(json.dumps(report))
 
     @unittest.skipUnless(sys.platform=='linux' and os.geteuid()==0,'Linux root drain and retirement interference')
     def test_retiring_previous_generation_while_current_writer_advances(self):

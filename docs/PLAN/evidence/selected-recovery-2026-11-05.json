@@ -1,0 +1,43 @@
+{
+  "allocation_coverage": "sampled named inputs/export/stage; anonymous TEMP NOT PROVEN",
+  "dependency_sha256": "8e8473f444983419d60e2004ca2e7c41d89657f6767fe691d36e8e1a5003eb61",
+  "exact_private_manifest_file_sha256": "9577e6f53d2150f107eb7fd6914a0dc93ab7d806d52f04a230347332765ff07b",
+  "excluded": [
+    "machine paths",
+    "device/inode bindings",
+    "per-row identities",
+    "raw bodies",
+    "dependency rows"
+  ],
+  "format": "AB72_SANITIZED_RECOVERY_ATTESTATION_V1",
+  "historical_origin_attestation": "NOT_PROVEN",
+  "manifest_sha256": "cce959118eb774d8131a8bd60876bcd2f3f16c1a8d90c086621dfe6c1dd1c208",
+  "observations": 6755,
+  "prediction_dependencies": 6745,
+  "production_authorized": false,
+  "qualification_report_sha256": "d799613058bea9d594b7423df07e7e949630e0d50685cf0668ea1bdd9f6b1ccf",
+  "selected_serialized_bytes": 30868806,
+  "selection_sha256": "6c9ee8583c58a2dac0ba804b962d6cd467b483e73b77478331056d99d7ef4a55",
+  "snapshot_dependencies": 6776,
+  "source_schema_sha256": "a88b290dd84c4718226dbffcd9ee7c962860d26a4437f4f07c927be90aed852b",
+  "source_sha256": "a7edbb886d71d4690d608d915a975fe43c1ff9d194cb1c7dd54fdbbfa90787a6",
+  "stage": {
+    "aggregate_peak_bytes": 2142367108,
+    "elapsed_seconds": 5.5956675419874955,
+    "linux_memory_limit_applied": false,
+    "rss_bytes": 102940672,
+    "status": "PASS_ISOLATED_SELECTED_RECOVERY"
+  },
+  "stream_events": 6493,
+  "supporting_markets": 369,
+  "verified_checks": [
+    "source integrity",
+    "source foreign keys",
+    "legacy schema/primary identities",
+    "selected row provenance",
+    "protected reference consistency",
+    "staged integrity/foreign keys",
+    "FULL durability",
+    "zero-change retry"
+  ]
+}

@@ -51,10 +51,11 @@ jobs:
           sudo -n chmod 0644 "$RUNNER_TEMP/ab-joint-report.json"
           sudo -n chmod 0644 "$RUNNER_TEMP/ab-generated-report.json"
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: generated-ab-report-${{ github.sha }}
           path: ${{ runner.temp }}/ab-generated-report.json
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()

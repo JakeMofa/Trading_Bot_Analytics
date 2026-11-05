@@ -3715,3 +3715,24 @@ productionprocedure with STOP before source-use/fullbootstrap/manualscopeapprova
 No repair/deployment/capchange/newauthority requested. Nexttechnicalgate:bound the
 heartbeatstallcausebefore another qualification;continuefullcapsule/coreconsumer
 preparationunderseparatereviewedfull-scopebudgets. Productionunchanged;PR9DRAFT.
+
+### Heartbeat evidence-first correction and durable recovery attestation
+
+Historical1547/CI42121991450FAIL unchanged. Setup precedes oldheartbeat;syncsave/
+archiveblock mainloop. Original maxima cannot locate the1.165s window orapportion
+CI/IO/contention. MatchedCPython3.12.16source+virtualclockscheduler reproduce1.2s
+heartbeat from four0.4s units withsleep(0),noOS contention. Explicit handoff only
+to ALREADY-DUE heartbeat reduces virtualmax0.4s with0pacing delay,samework/1sgate.
+New boundedphase/ordinal/threadCPU/schedstat/pressure diagnostics retainworstwindows
+andcounteroverhead;failureJSON persistedbeforeassertion/uploadalways. No production
+instrumentation,SQLitepolicy/thread/batch/resource/gatechange. Threefocusedtiming
+checksPASS;local396backend/120controlsPASS(17/3skips),thenfocusedcounterhardening.
+Changed4000Linuxprofile inexactCI is required;no unchangedretry/matrix launched.
+
+Exactrecoverymanifest9577e6f53d2150f107eb7fd6914a0dc93ab7d806d52f04a230347332765ff07b
+preserved/fsynced inprivateignoreddata/recovery-evidence/selected-2026-11-05-v1/
+withdependencies/reports/index. NO databasecopies. Sanitizedtrackedattestation
+docs/PLAN/evidence/selected-recovery-2026-11-05.json bindsprivatehashes andactual
+verifiedreport,redacts paths/inodes/per-rowIDs/bodies. Source-use/productionauthority
+unchanged. See HEARTBEAT_DIAGNOSIS_2026-11-05.md. Fullbootstrap/controlqualification
+continues onlyafter exactCI passes;allunrelated edits preserved.

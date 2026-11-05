@@ -53,7 +53,7 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** The approved small VM capacity sample passed at 4f77aca. Idle collector-loop rotation passed at b44f310 (CI 41987961035). Review the exact two-object Supabase throughput scope before further cloud writes; keep full-window sizing and production cutover gated.
+**Next gate:** The approved two-object Supabase throughput run passed from d1ba17e. Complete production adapter/lifecycle binding, bounded full legacy migration and writer fencing, capacity qualification and rehearsed exact-release cutover before requesting production approval.
 The live archive probe passed at `08ce0d9` and scaled Linux rotation and outage
 measurements were recorded at `e58e3b5`. Representative capacity remains blocked
 by the 2 GiB workspace and 180-second envelope. Obtain a representative fixture
@@ -3087,3 +3087,80 @@ ceiling open.
   reader drain. B's growth follows the measured physical growth during
   that interval. Full72hour and outage-runway estimates remain
   extrapolations and the production ceiling stays open.
+
+### November 5 — approved two-object Supabase throughput PASS
+
+- Used the exact d1ba17e keys, hashes and existing generated payload bytes.
+  Executed bundle SHA-256
+  51add9239c48cf8a952389af0fd1e8070a1ddc54987b9363d7bd7fc98ec1e8b3.
+  Before each write phase, the bundle bound to the intended enabled lifecycle
+  identity, PID31771, project xttdqeimdujweijxcuro and private market-raw bucket.
+  Both POSTs were create-only and returned200. Both authenticated readbacks
+  matched exact approved bytes, checksums,1024records each and identity boundaries.
+
+| Object checksum | Bytes | Upload seconds | Authenticated body-read seconds | Verification seconds | Verified-readback seconds |
+|---|---:|---:|---:|---:|---:|
+|28c0282877c75f69fe999b140a056b1778f3f68c17f09b913e945c2c10465c8e|623236|0.735852|0.597421|0.050744|0.648165|
+|b306398efaa4dcca11516325ac5fea1844da2e24fa2858a47c58650ded7845df|623307|0.711105|0.863325|0.048882|0.912207|
+
+- Six Supabase attempts plus three local HTTPhealth checks, nine total.
+  Upload body1,246,543bytes, Supabase response bodies1,247,197bytes,
+  local health bodies10,140bytes, aggregate2,503,880bytes. Zero errors,
+  zero structured rows. Probe operation4.401seconds; bundle staging,
+  interpreter startup and SSH were additionally enclosed by the original
+  180-second outer timeout. No HTTPretry was needed.
+- API/ensemble/lifecycle were active before and after with identical
+  PIDs31763/31767/31771 and zero recorded restarts. Collector enabled but
+  runningfalse, errornull, storage guardlimit_reached before and after.
+  Both exact object keys from AB72_THROUGHPUT_REVIEW_2026-11-05.md remain
+  under the throughput subprefix. The earlier197byte object is also retained.
+- Measured response-header arrival was0.362/0.489seconds on the GETs.
+  First body-byte arrival was not separately instrumented. Rates include
+  TLS/request latency; two small fresh-key reads do not establish a sustained
+  WAN rate or a cold/cache distribution. Verification timed decompression,
+  row parsing, identity validation and checksum proof.
+- Slower observed upload846,958B/s (0.808MiB/s) and download721,984B/s
+  (0.689MiB/s). For an extrapolation use the slower verification slope
+  0.050744seconds/623236bytes. The earlier generated2MiB buffer produced
+  781446compressed bytes. Its projected upload + initial verified readback
+  + final verified retirement recheck + observed0.1285second close/removal
+  allowance is about3.34seconds. At the assumed20KiB/s growth this adds
+  about68,466bytes to B; using the generated gross raw/index slope of
+  32.50KiB/s adds about111,262bytes. Core/WAL growth remains additional.
+- A full72hour buffer at the20KiB/s planning input is5,308,416,000raw bytes.
+  Reusing the small fixture's compression ratio gives1,978,035,188compressed
+  bytes and about8,137seconds (135.6minutes) for the same projected path.
+  B's added raw/index demand would be about159MiB at20KiB/s or258MiB at
+  the generated32.50KiB/s slope. These are full-window extrapolations.
+  The first-GET absence latency, manifest/checkpoint calls, larger-object
+  throughput, burst rate, core/evidence growth, WAL peaks, and long-lived
+  readers still need allowances or measurements. The observed0.1285seconds
+  includes final local verification/removal and is not a worst-case reader
+  lease bound. No production storage ceiling is established.
+
+Remaining integration and cutover gates:
+
+- The production API must select the A/B adapter and read factories, rather
+  than its current legacy connections. Bind the real lifecycle/ensemble
+  processes to core and generations, trigger sealed processing, and drain
+  old raw handles automatically. Production retirement stays disabled at
+  initial startup pending its own recorded enablement gate.
+- Implement and qualify the bounded production-volume legacy import/audit.
+  Current generated migration limits10000rows/128MiB cannot certify the
+  actual legacy volume. Preserve exact IDs, embedded references and cloud
+  cursors and fence the unaware legacy writer at the OS/service level.
+- Qualify aggregate capacity including retained legacy, core, both roles,
+  WAL/SHM, archive/TEMP and recovery. Bound outages by the active slot's
+  remaining size and age, hold sealed data on missing proof, and stop safely
+  when neither role is reusable. Sustained-load and full-window estimates
+  remain extrapolations.
+- Rehearse forward recovery after the first new acknowledgement, complete
+  quick/FK verification within a reviewed absolute envelope, and bind exact
+  release/export/CI, helper, configuration and database identities to the
+  existing manual workflow. Existing2590sinterruption/180srecovery limits
+  have not been proven sufficient for complete import and verification.
+  Obtain the separately reviewed cutover approval and run its bounded
+  API/feed/persistence/dashboard smoke before further production acceptance.
+
+Private evidence contains sanitized result/provenance JSON only at
+/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/ab72-throughput-d1ba17e/.

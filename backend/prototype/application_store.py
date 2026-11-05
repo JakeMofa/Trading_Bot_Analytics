@@ -279,6 +279,10 @@ class ApplicationConnection:
         # handled by raw_archive_rows below rather than indexes on UNION views.
         if re.search(r'\b(CREATE TABLE IF NOT EXISTS (observations|stream_events))\b',sql,re.I):raise Stop('raw schema initialization belongs to adapter')
         return self.db.executescript(sql)
+    def active_buffer(self):
+        row = self.execute("SELECT slot,id,started FROM ab_generations WHERE state='active'").fetchone()
+        return dict(zip(('slot','generation_id','started_at'),row)) if row else None
+
     def chart_ticks(self,limit):
         if not 1<=limit<=12000:raise Stop('unsupported chart request bound')
         rows=self.execute("""SELECT t.received_at,t.source_time,t.price FROM stream_events t

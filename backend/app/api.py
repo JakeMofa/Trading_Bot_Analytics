@@ -39,6 +39,12 @@ def _saved_dashboard(db_path, chart=False, connection_factory=None):
         return {'status': 'unavailable', 'points': [], 'market': None} if chart else {'status': 'unavailable'}
 
 
+def _active_buffer(connection_factory):
+    with closing(connection_factory()) as db:
+        read_buffer = getattr(db, 'active_buffer', None)
+        return read_buffer() if read_buffer else None
+
+
 def _collector_status(task):
     if task is None:
         return {'enabled': False, 'running': False, 'error': None}
@@ -253,6 +259,11 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                        'openai_enabled': _env_enabled('ENABLE_OPENAI_ANALYST'),
                        'retention_enabled': _env_enabled('ENABLE_LOCAL_RETENTION'),
                        'cloud': await asyncio.to_thread(_read_cloud_status, resolved_db_path)})
+        if read_connection_factory:
+            try:
+                result['active_buffer'] = await asyncio.to_thread(_active_buffer, read_connection_factory)
+            except (OSError, sqlite3.Error, RuntimeError):
+                result['active_buffer'] = None
         return result
 
     @app.get('/state/current')

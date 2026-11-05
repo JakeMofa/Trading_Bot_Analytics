@@ -730,6 +730,10 @@
         pair(view, 'API', status.api);
         pair(view, 'Live engine health', status.live_engine_status);
         pair(view, 'Collector', status.collector.running ? 'Running' : status.collector.enabled ? 'Stopped' : 'Disabled');
+        if ('active_buffer' in status) {
+          const buffer = status.active_buffer;
+          pair(view, 'Active raw buffer', buffer ? buffer.slot + ' · ' + buffer.generation_id : 'Unavailable');
+        }
         pair(view, 'Host telemetry', host.status + ' · '+localTime(host.captured_at));
         pair(view, 'Host uptime', seconds(host.uptime_seconds));
         pair(view, 'CPU (last 1-second sample)', host.cpu_percent == null ? 'Unavailable' : host.cpu_percent + '%');

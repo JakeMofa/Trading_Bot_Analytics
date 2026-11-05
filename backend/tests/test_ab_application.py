@@ -614,3 +614,135 @@ finally:worker.close()
                     ApplicationStore(root,path,routing=True)
             self.assertFalse(any('COUNT(*)' in q.upper() for q in queries))
             self.assertTrue(any('SELECT 1 FROM "generated_probe" LIMIT' in q for q in queries))
+
+    def test_early_application_handoff_with_lifecycle_and_dashboard(self):
+        if sys.platform != 'linux' or os.geteuid() != 0:
+            self.skipTest('actual retirement needs Linux root descriptor proof')
+        from concurrent.futures import ThreadPoolExecutor
+        from contextlib import closing
+        from fastapi.testclient import TestClient
+        from api import create_app
+        from retention import RetentionConfig
+
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as folder:
+            path = Path(folder)/'generated-legacy.db'
+            legacy(path)
+            store = ApplicationStore(folder, path, routing=True, retirement=True,
+                                     generation_bytes=256*1024)
+            state = LiveState()
+            wake, reading, resume, held, drained = (threading.Event() for _ in range(5))
+            t = T+timedelta(seconds=2)
+
+            def tick(event, at):
+                msg = dict(type='ticker', product_id='BTC-USD', trade_id=event, time=iso(at),
+                           price='12342.000000000000001', last_size='0.00000001', side='buy')
+                with closing(store.connection()) as db, patch.object(streaming,'utcnow',return_value=at):
+                    self.assertTrue(streaming.save_coinbase(db,msg))
+                state.update_coinbase_ticker(msg,received_at=iso(at))
+
+            def predict(at):
+                with patch.object(features,'utcnow',return_value=at), patch.object(forecasts,'utcnow',return_value=at):
+                    cycle = streaming.feature_cycle('unused',lambda:store.worker_connection('feature'))
+                self.assertEqual(cycle[0][0],'m')
+                self.assertEqual(cycle[0][2]['price']['status'],'fresh')
+                self.assertEqual(cycle[0][2]['price']['age_seconds'],0)
+                self.assertIsNotNone(cycle[3]['probability_up'])
+                self.assertTrue(streaming.publish_feature_cycle(cycle,state,now=at))
+                return cycle[1]
+
+            try:
+                state.set_market(market())
+                with closing(store.connection()) as db:
+                    collector.save_market(db,market(),iso(t))
+                tick(101,t)
+                a = store.protocol.active()['id']
+                first_snapshot = predict(t)
+
+                class PausedCloud(Cloud):
+                    def verify_object(self,bucket,key,sha,size):
+                        result = super().verify_object(bucket,key,sha,size)
+                        if key.startswith(a+'/') and not reading.is_set():
+                            reading.set()
+                            if not resume.wait(8):
+                                raise TimeoutError('fixture readback barrier')
+                        return result
+
+                    def download_bytes(self,bucket,key):
+                        return self.objects[bucket,key]
+
+                cloud = PausedCloud()
+
+                def archive_and_retire():
+                    if not wake.wait(8):
+                        raise TimeoutError('fixture seal wake')
+                    lifecycle = cloud_lifecycle.LifecycleWorker(
+                        'unused',cloud_lifecycle.LifecycleConfig(raw_batch_size=1000),
+                        RetentionConfig(),lambda:cloud,
+                        connection_factory=lambda:store.worker_connection('lifecycle'))
+                    result = lifecycle.run_cycle(force=True)
+                    self.assertEqual(result['status'],'ok',result)
+                    with store.protocol.worker_session():
+                        with self.assertRaisesRegex(Stop,'handles open'):
+                            store.retire(a,cloud,t+timedelta(seconds=4))
+                        held.set()
+                        if not drained.wait(8):
+                            raise TimeoutError('fixture reader drain')
+                        store.retire(a,cloud,t+timedelta(seconds=4))
+                    return result
+
+                app = create_app(state,db_path=str(Path(folder)/'core.db'),start_collectors=False,
+                                 read_connection_factory=store.reader_connection)
+                with TestClient(app) as client:
+                    self.assertEqual(client.get('/system/status').json()['active_buffer']['slot'],'A')
+                    self.assertIn('Active raw buffer',client.get('/dashboard').text)
+                    with closing(store.connection()) as db:
+                        db.save_observation('m',iso(t),'book',{'padding':'x'*(256*1024)},iso(t))
+                    self.assertEqual(store.protocol.active()['id'],a)
+                    with ThreadPoolExecutor(max_workers=1) as pool:
+                        future = pool.submit(archive_and_retire)
+                        try:
+                            def notify(phase):
+                                if phase=='rotation_published':
+                                    wake.set()
+                            store.protocol.fault = notify
+                            tick(102,t+timedelta(seconds=1))
+                            b = store.protocol.active()['id']
+                            self.assertNotEqual(a,b)
+                            self.assertTrue(reading.wait(8))
+                            with closing(store.worker_connection('history')) as reader:
+                                self.assertIn(a,reader.signature)
+                                tick(103,t+timedelta(seconds=2))
+                                second_snapshot = predict(t+timedelta(seconds=2))
+                                self.assertEqual(client.get('/system/status').json()['active_buffer']['generation_id'],b)
+                                self.assertEqual(client.get('/system/status').json()['active_buffer']['slot'],'B')
+                                resume.set()
+                                if not held.wait(8):
+                                    future.result(timeout=1)
+                                    self.fail("retirement did not report the open reader")
+                                self.assertTrue(store.protocol.path(a).exists())
+                            drained.set()
+                            future.result(timeout=8)
+                        finally:
+                            wake.set();resume.set();drained.set()
+                    self.assertFalse(store.protocol.path(a).exists())
+                    tick(104,t+timedelta(seconds=3))
+                    third_snapshot = predict(t+timedelta(seconds=3))
+                    self.assertEqual(client.get('/system/status').json()['active_buffer']['generation_id'],b)
+                with closing(store.reader_connection()) as reader:
+                    for event in ('102','103','104'):
+                        self.assertEqual(reader.execute(
+                            "SELECT gen,status FROM ab_events WHERE event_key=?",('coinbase:'+event,)
+                        ).fetchone(),(b,'committed'))
+                        self.assertEqual(reader.execute('SELECT event_id FROM stream_events WHERE event_id=?',(event,)).fetchone(),(event,))
+                    for sid in (first_snapshot,second_snapshot,third_snapshot):
+                        evidence = json.loads(reader.execute('SELECT evidence_json FROM feature_snapshots WHERE id=?',(sid,)).fetchone()[0])
+                        self.assertTrue(reader.execute('SELECT id FROM observations WHERE id=?',(evidence['metadata_observation_id'],)).fetchone())
+                        self.assertTrue(reader.execute('SELECT event_id FROM stream_events WHERE event_id=?',(evidence['price']['input_id'],)).fetchone())
+                    self.assertEqual(reader.execute('SELECT outcome_observation_id FROM prediction_context_links WHERE id=1').fetchone(),(90,))
+                    self.assertEqual(reader.execute('PRAGMA foreign_key_check').fetchall(),[])
+                print(json.dumps({'application_handoff':'PASS','durable_b_writes':3,
+                                  'dashboard_active':'B','fresh_prediction_cycles':3,
+                                  'archive_readback':'PASS','reader_hold_and_release':'PASS',
+                                  'protected_references':'PASS','sampled_file_peak_bytes':store.protocol.allocation()['peak_bytes']}))
+            finally:
+                store.close()

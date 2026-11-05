@@ -75,7 +75,8 @@ identities hold and preserve the files. No INSERT OR REPLACE repairs a conflict.
 Actual Mac qualification5.596s including verification/staging/retry;verification
 3.776s,stage1.045s,retry0.657s;RSS102940672B. Accounted peak2142367108B includes
 existing1.983GBsource,dependency manifest,entire exact export,source sidecars and
-all stage/working files. Only5116540B(4.88MiB) below original2GiB envelope. No capacity
+named stage/working files. Anonymous SQLite TEMP was not independently measured
+on Mac;complete TEMP/resource highwater is NOT PROVEN. Only5116540B(4.88MiB) below original2GiB envelope. No capacity
 credit for reusable pages. This is a narrow selected-stage fit,not full migration
 capacity.170swork/180s absolute supervisor retained. Mac does NOT apply Linux
 512MiB address-space limit;actual-data Linux/VM qualification NOT PERFORMED.
@@ -87,7 +88,14 @@ reader,transaction rollback andpostcommit failure. Additional actual process exi
 before/after commit prove SQLite normal recovery preserves acknowledged selected
 rows and idempotent retry. Physical power loss/real ENOSPC filesystem NOT PROVEN.
 Local full390backend/120controlsPASS(17/3platformskips) preceded final packaging/
-process-fault additions;final focused9PASS. Exact Linux CI for final source required.
+process-fault additions;final focused9PASS. Exact1547a43/CI42121991450 exported
+backend392PASS/13privilege skips,all9selected testsPASS onLinux. CI overallFAILED
+in the existing raw4000 profile:save727.764ms/heartbeat1165.206ms,unchanged<1s gate.
+Source raw/profile files are byteidentical to qualifiedcff60e4;the delay's cause is
+NOT PROVEN. Rootraw18ran with1failure;laterroot/control/import/integrated gates
+were NOT COMPLETED. No unchanged retry or policy change. Priorpasses remain scoped
+evidence,not a replacement for this failed exact run. Actual13248-row qualification
+usedb8786e0;verifier/runner bytes are identical in1547a43.
 
 ## Production procedure for review — STOP, not execution authority
 
@@ -141,3 +149,11 @@ I7 real-boundary/freshness,cloud recovery/operational visibility,continuous72h-o
 capacity,retirement enablement andsustained operation remain open. Historical raw
 replay anddeferred knowledge/RAG remain as reconciled. Redis deferred. Phase1.75
 NOT complete. Production remained untouched throughout this checkpoint.
+
+## Remaining exact-CI gate
+
+[CI42121991450](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42121991450)
+remains FAIL. A bounded diagnostic must establish where the heartbeat stall occurs
+before another qualification attempt. No cause is inferred from aggregate save/
+heartbeat maxima alone. This is separate from selected-row correctness and does
+not authorize a threshold increase,new architecture or production change.

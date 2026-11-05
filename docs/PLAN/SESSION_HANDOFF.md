@@ -6,32 +6,33 @@ production authorization.
 
 ## Resume here
 
-Frozen candidate cff60e40e69cfa86599fb082c3bce5b3c041757b exactLinuxCI42097085311
-PASS both exported jobs/root/control/manifests,actual-count fixture andfresh4000.
-795failedESRCH cleanup;23aa5d2/CI42094968368PASS fixed it without visibility bypass.
+Current selected-recovery candidate1547a433590eb6b41c3d93f6018d9d033cb5f21c.
+ExactCI42121991450 FAIL existingraw4000heartbeat1165.206ms(<1srequired),save727.764ms.
+Do not rerun unchanged or raise gate;causeNOTPROVEN. Raw/profilecode unchanged
+fromqualifiedcff60e4/CI42097085311. LatestCIexportedbackend392PASS/13root-skips,
+all9selectedrecoverytestsPASSlLinux;rootraw18/1failure;laterrootapplication/runtime/
+cutover/joint,controls/import/integratedNOTCOMPLETED. Localcontrols120PASS only.
 
-Actual-input gateFAIL:6755metadata+6493stream rows absent from production legacy.
-Bounded complete identity checks found ALL13248in EXISTING local pre-retention file;
-no DB copy created. Selected point checks matched metadata market/receipt/kind and
-stream time/exactprice,0mismatches;30868806B serialized bodies. This is recoverability
-evidence,not approved source/archive authority. No actual recovery/capsule/migration
-was performed. Review exact source authority/selected-body verification and capsule
-bootstrap before any legacy-only or new production cutover route can proceed.
-Read PR9_ACTUAL_INPUT_GATE_2026-11-05.md for source digest,counts and next decision.
+User approved historical candidate read-only verification +isolated stagingONLY.
+Source1983184896B/SHAa7edbb886d71d4690d608d915a975fe43c1ff9d194cb1c7dd54fdbbfa90787a6:
+fullintegrityok/zeroFK/user_version0. Actual13248rows(6755metadata/6493stream)verified
+andstagedPASS,0conflicts/unverifiable,6776snapshot/6745predictionrefs,369realmarkets,
+FULLsync2,retry0changes. Toolsactualrunb8786e0byteidentical in1547a43.5.596s,
+RSS102940672B,named-filepeak2142367108B inclsource/export/deps/stage:4.88MiBmargin.
+ActualLinuxvolume/anonymousTEMPpeakNOTPROVEN;not fullApplicationStorebootstrap.
+Privateexactmanifest/stage/report/streamspec at /private/tmp/generated-ab-recovery-s1r_pa53/.
+ManifestfileSHA9577e6f53d2150f107eb7fd6914a0dc93ab7d806d52f04a230347332765ff07b.
+SeeSELECTED_RECOVERY_REVIEW_2026-11-05.md forcanonicalhashes,limitations andconcrete
+STOP productionprocedure. No source DBcopy orproductionrepair/transfer/cutover.
 
-Actual7tables125410rows;18268metadata/17924streamrefs =>161602+auditidentities.
-Explicit150000-row generated scope within128MiB/170swork/180stotal/2GiB/512MiBprocess
-is stillinsufficient,not a production guard change. Default10000/60000 unchanged.
-Selected raw rows now consume the same audit budget. New100000-event ledger stop
-bounds growth;512MiBcore remains independent. Known-count/shared-ref125422profile
-PASS56.128s/205860864Bpeak;NOT actualfanoutproof. Fresh4000/4000,0pending/errors,
-20cycles,save52.106ms/heartbeat271.185ms,22887503Bpeak/55.497s. Rotation/latency reused.
-
-Fresh allocatedlegacy5369184256B;FSavailable49796276224B.8GiBaggregate/2GiBnewlayout/
-64MiBslots/512MiBrecovery/10GiBfloor remainunapplied proposals. Oldmanualroutecannot
-accept failed source. Preserve2590sinterruption/180srecovery/10sreap,initialretirement
-OFF,writerfence,forwardrecoveryafterack. PR9DRAFT;I7/Phase1.75OPEN;RedisDEFERRED.
-Preserve AGENTS.md/+596roadmap edits and localdata/secrets. Production unchanged.
+Nexteligibleofflinework:diagnoseCIheartbeatstallbeforequalification;implement/
+qualifyfullnewcore/capsuleconsumer withcurrentstructuredmarkets,exactrecoveredpins,
+restart/history/features/lifecycle and reviewed161602+row/logicalbytebudget. Existing
+150000/128MiBsupport insufficient/unproven;production8GiBproposal/manualscope held.
+Preserve2590/180/10 interruption/recovery/reap,initialretirementOFF,singlecollector,
+legacyfence,forwardrecoveryafterack. Historicalsourceverificationapproval doesnot
+approve source-use/deployment/guardchanges. PR9DRAFT;I7/Phase1.75OPEN;RedisDEFERRED.
+Preserve unrelated AGENTS.md/+596roadmap and all localdata/secrets.
 
 ## Read first and establish ownership
 

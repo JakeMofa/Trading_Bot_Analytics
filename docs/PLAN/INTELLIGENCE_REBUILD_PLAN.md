@@ -53,17 +53,17 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** PR9 actual-input recovery authority and complete selected-input qualification.
-Frozen cff60e4 /CI42097085311 PASS exported/Linux/root qualification. The real legacy
-source FAILS protected-input checks:6755metadata+6493stream rows absent. All13248
-are present with matching checked provenance in the existing local pre-retention
-source;that is not yet approved/independently verified recovery authority. No copies
-or production recovery were made. Read PR9_ACTUAL_INPUT_GATE_2026-11-05.md.
-150000-row generated scope still falls below161602+required actual identities.
-Numeric finite admission proposals are not sufficient-runway or cutover approval.
-PR9 remainsDRAFT;legacy-only activation and new manual cutover scope remainSTOP.
-I7,cloud recovery/visibility,continuous capacity,raw replay and sustained acceptance
-remain OPEN. Redis deferred;production collection/retention/paidAI unchanged.
+**Next gate:** Full-core selected recovery integration and the exact-CI heartbeat failure.
+Candidate1547a43 /CI42121991450 FAILED raw4000heartbeat1165ms vs<1s. No retry or
+policy change;cause unproven. Exactexport backend392PASS/13privilegeskips,all9new
+selectedrecoverycasesPASSlLinux. User-approved historicalsource verification and
+isolated13248-rowstagePASS:0conflicts/unverifiable,retry0changes. Read
+SELECTED_RECOVERY_REVIEW_2026-11-05.md forexactmanifest/procedure and limits.
+Production legacy remains missing13248inputs;no repair/cutover authorized. Full
+ApplicationStore capsule consumer,161602+scope/byte budget and existingmanualroute
+bindings remain open. CurrentCI did not complete laterroot/control/integratedgates.
+PR9DRAFT;I7/Phase1.75,replay/cloudrecovery/visibility/capacity/sustained gates OPEN.
+Redis deferred;production collection/retention/paidAI/storagelimits unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -3692,3 +3692,26 @@ process exits before/after commit;priorlocal390backend/120controlsPASS(17/3skips
 FinalLinuxCIrequired;toolsbyteidentical to b8786e0,only extra faulttest/docs follow.
 Userapprovedcandidateverification/stagingonly;no production useapproval requested
 whilefullbootstrap/controlgates fail. All I7/Phase1.75/replay/RAG gaps remain OPEN.
+
+### Selected recovery final checkpoint: dataPASS;exactreleaseCI latencyFAIL
+
+Frozen1547a433590eb6b41c3d93f6018d9d033cb5f21c /CI42121991450 FAILED existing
+raw4000 profile:save727.764ms/heartbeat1165.206ms vsunchanged<1sgate,4000archived,
+43.474s. No unchanged retry/gate relaxation. raw_generations/qualify_ab/test_raw
+modulesbyteidentical to cff60e4;stallcauseNOTPROVEN,not blamed onhostornewrecovery.
+Exactexport backend392PASS/13rootprivilegeskips;all9selectedrecoverytestsPASS on
+Linux,includingcleanbundle andbefore/aftercommitprocess exits. Rootraw18ran with
+1latencyfailure;remainingrootapplication/runtime/cutover/joint,controls/knowncount/
+fullintegratedjobsdidNOTcomplete. Priorpassingrotation/latencyevidence retained,
+not used to relabel this failure. Local120controlsPASS;currentCIcontrolsNOTRUN.
+
+Actual13248-rowstagePASS used b8786e0tools;verifier/runnerblobsexactlyidentical in
+1547a43. Complete source/stageintegrity/FK,allprovenance/refs/exactdecimals/IDs,
+0conflicts/unverifiable,retry0changes remain scopedPASS. Aggregate2142367108B
+is samplednamed-file accounting inclsource/exports/deps/stage;anonymousTEMPpeak
+andactualLinuxvolume remainNOTPROVEN. Only4.88MiBobservedmargin,nofullcapacitypass.
+See SELECTED_RECOVERY_REVIEW_2026-11-05.md forexactprivate manifest andproposed
+productionprocedure with STOP before source-use/fullbootstrap/manualscopeapproval.
+No repair/deployment/capchange/newauthority requested. Nexttechnicalgate:bound the
+heartbeatstallcausebefore another qualification;continuefullcapsule/coreconsumer
+preparationunderseparatereviewedfull-scopebudgets. Productionunchanged;PR9DRAFT.

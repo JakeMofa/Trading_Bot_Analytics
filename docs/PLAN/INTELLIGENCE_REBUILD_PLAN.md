@@ -3736,3 +3736,22 @@ docs/PLAN/evidence/selected-recovery-2026-11-05.json bindsprivatehashes andactua
 verifiedreport,redacts paths/inodes/per-rowIDs/bodies. Source-use/productionauthority
 unchanged. See HEARTBEAT_DIAGNOSIS_2026-11-05.md. Fullbootstrap/controlqualification
 continues onlyafter exactCI passes;allunrelated edits preserved.
+
+###8bb945a exactCI42126289598 PASS;first gate cleared without changing1s policy
+
+Changedrawprofile4000committed/4000archived,PASS_SCALED,save63.442ms/heartbeat
+101.381ms,14.309s,setup12.303ms;heartbeatstarts12.691ms beforefirstsave.269due
+timerhandoffs,totalwait17.159ms;4031timedcalls,counteroverhead37.101ms(~0.26%).
+Worstwindowmainoverlap101.117/101.381ms,threadCPU98.186ms,chieflyresidualarchive
+94.033ms/92.746msCPU;tracecomplete/nottruncated. Currentwindowdominatedbysync
+applicationcompute,notfixture_setup. Kernel schedstatsdisabled:ownrunqueuewait
+UNKNOWN. Cgroupquota-throttlecounts0,butIOpressureexistsandcountersmayincludeothers.
+Historical1.165s windowstillunattributed;oldFAILnotrelabeled. No performancegain
+claimacrossdifferentCIhosts. NewexactCIcompletepassedallrequiredjobs.
+
+Sanitizeddurabletiming evidence docs/PLAN/evidence/heartbeat-8bb945a.json;exact
+privaterecoverymanifestnowpersistentdata/recovery-evidence/selected-2026-11-05-v1/
+(original9577SHAunchanged),withsanitizedgitattestation. NoDBfilescopied. Proceeding
+fullgeneratedbootstrap/capsule-consumer/controlqualification underexisting physical/
+RAM/time/safetycaps;productionunchanged. Newowned-FD allocationmeasurement and
+selectedcapsuleinputcodebeingprepared;notyetqualified/committed.

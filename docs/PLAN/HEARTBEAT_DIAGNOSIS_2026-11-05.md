@@ -80,3 +80,20 @@ report. It contains hashes/counts/proven outcomes,no machine paths,device/inode
 bindings,per-row identities,dependencies orraw bodies. Both exact private evidence
 and sanitized git evidence bind the original approved selection;sanitization does
 not change or replace the original manifest. Production authorization staysfalse.
+
+## Changed qualification result
+
+8bb945a13cbb4ec819c3c79262c7972849abe143 /[CI42126289598 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42126289598).
+4000committed/4000archived,save63.442ms,heartbeat101.381ms,14.309s.269overdue
+handoffs waited17.159ms total;timing overhead37.101ms/4031calls(~0.26%). Worst
+window101.381ms iscovered by101.117ms synchronous main-thread work,98.186ms thread
+CPU;its94.033ms residual archive used92.746ms CPU. Mainwindow coveragecomplete,
+nottruncated. This current observed maximum is application compute/blocking. It
+is not the missing historical window. Kernel schedstats disabled makes own runnable
+wait UNKNOWN;cgroup IO pressure exists andscope mayinclude otherprocesses. No
+claim that historical host contention was absent or that the timer change explains
+all cross-host elapsed-time differences. Old failure remains FAIL.
+
+[Sanitized timing artifact](evidence/heartbeat-8bb945a.json) preserves the changed
+run's phase overlap/metrics. Complete required exact-CI jobs passed;fullbootstrap
+and controlqualification may proceed. Production remains unchanged.

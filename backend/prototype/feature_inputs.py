@@ -25,7 +25,7 @@ CREATE TABLE stream_events(source TEXT,event_id TEXT,received_at TEXT,source_tim
 CREATE TABLE reference_prices(id INTEGER,received_at TEXT,source_time TEXT,source TEXT,price TEXT,payload TEXT);
 CREATE TABLE candles(source TEXT,symbol TEXT,granularity INTEGER,time INTEGER,low TEXT,high TEXT,open TEXT,close TEXT,volume TEXT,first_seen TEXT);''')
         db.execute('INSERT INTO markets VALUES(?,?,?,?,?)',tuple(market[k] for k in ('id','start','end','duration','first_seen')))
-        for gen in registry.execute("SELECT id FROM generations WHERE state IN ('active','sealed','retiring')").fetchall():
+        for gen in registry.execute("SELECT id FROM generations WHERE state IN ('active','sealed')").fetchall():
             with store.reader(gen['id']) as raw:
                 meta=raw.execute(META_SQL,(market_id,cutoff)).fetchone()
                 if meta:obs_rows.append(dict(meta));refs[('observations',meta['id'])]=gen['id']
@@ -37,7 +37,7 @@ CREATE TABLE candles(source TEXT,symbol TEXT,granularity INTEGER,time INTEGER,lo
         price_pin=registry.execute("""
 SELECT p.record,p.sha256 FROM evidence p
 JOIN events e ON e.id=p.id JOIN generations g ON g.id=e.gen
-WHERE e.dataset='stream_events' AND g.state='retired'
+WHERE e.dataset='stream_events' AND g.state IN ('draining','retiring','retired')
   AND json_extract(p.record,'$.row.source')='coinbase'
   AND julianday(json_extract(p.record,'$.row.source_time'))<=julianday(?)
   AND julianday(json_extract(p.record,'$.row.received_at'))<=julianday(?)

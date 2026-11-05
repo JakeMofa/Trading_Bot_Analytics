@@ -148,8 +148,14 @@ def _read_prediction_history(db_path, limit):
 
 
 def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None, read_connection_factory=None):
+    from storage_runtime import configured_runtime
+    runtime = configured_runtime()
+    if runtime and read_connection_factory:
+        raise RuntimeError('conflicting A/B read connection factory')
     state = live_state or LiveState()
-    resolved_db_path = db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db')
+    resolved_db_path = runtime.database if runtime else (db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db'))
+    if runtime:
+        read_connection_factory = runtime.read_connection
 
     resolved_telemetry = telemetry_path or os.getenv('SYSTEM_TELEMETRY_PATH') or str(Path(resolved_db_path).parent / 'cloud-soak.jsonl')
 
@@ -167,6 +173,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     @asynccontextmanager
     async def lifespan(app):
         task = None
+        adapter = runtime.open('collector' if start_collectors else 'history') if runtime else None
         if start_collectors:
             interval = max(15, int(os.getenv('REST_INTERVAL_SECONDS', '30')))
             max_storage = max(
@@ -178,7 +185,8 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                     interval=interval,
                     max_storage_mb=max_storage,
                     live_state=state,
-                    install_signal_handlers=False),
+                    install_signal_handlers=False,
+                    **({'storage_adapter':adapter} if adapter else {})),
                 name='btc-intelligence-collectors')
         app.state.collector_task = task
         try:
@@ -187,6 +195,8 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
             if task and not task.done():
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
+            if runtime:
+                runtime.close()
 
     app = FastAPI(
         title='BTC Intelligence API',

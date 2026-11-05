@@ -265,8 +265,10 @@ def read_lifecycle_status(db_path):
 class LifecycleWorker:
     def __init__(self, db_path, config, retention, cloud_factory,
                  bucket=RAW_BUCKET, structured_batch_size=DEFAULT_BATCH_SIZE,
-                 now_fn=None, monotonic=None, should_stop=None, connection_factory=None):
+                 now_fn=None, monotonic=None, should_stop=None, connection_factory=None, after_archive=None):
         self.connection_factory = connection_factory
+        self.after_archive = after_archive
+        self._handoff_token = None
         self.db_path = str(db_path)
         self.config = config
         self.retention = retention
@@ -348,10 +350,15 @@ class LifecycleWorker:
             initialize_lifecycle_state(db)
             now = self.monotonic()
             run_structured = force or now >= self._next_due["structured"]
-            run_archive = force or now >= self._next_due["archive"]
+            token_reader = getattr(db,'archive_handoff_token',None)
+            token = token_reader() if token_reader else ()
+            handoff_due = bool(token) and token != self._handoff_token
+            run_archive = force or handoff_due or now >= self._next_due["archive"]
             run_retention = force or now >= self._next_due["retention"]
             if not any((run_structured, run_archive, run_retention)):
                 result["status"] = "idle"
+                if token and self.after_archive:
+                    result["archive"] = {"handoff_retry": True}
                 return result
 
             started = _now()
@@ -359,7 +366,8 @@ class LifecycleWorker:
             if run_structured:
                 self._next_due["structured"] = now + self.config.structured_interval
             if run_archive:
-                self._next_due["archive"] = now + self.config.raw_archive_interval
+                self._next_due["archive"] = now + (min(self.config.raw_archive_interval,30) if token else self.config.raw_archive_interval)
+                self._handoff_token = token
             if run_retention:
                 self._next_due["retention"] = now + self.config.retention_interval
 
@@ -411,6 +419,13 @@ class LifecycleWorker:
             return result
         finally:
             db.close()
+            if self.after_archive and result.get('archive') and not result['errors']:
+                try:
+                    result['generation_retirement'] = self.after_archive()
+                except Exception as error:
+                    result['generation_retirement'] = {'status':'held','reason':type(error).__name__}
+                    result['status'] = 'degraded'
+                    result['errors'].append('generation_retirement')
 
     def _run_retention_stage(self, db, cloud, result,
                              archive_ran_this_cycle, archive_ok_this_cycle):

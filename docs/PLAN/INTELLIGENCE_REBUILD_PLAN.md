@@ -3164,3 +3164,41 @@ Remaining integration and cutover gates:
 
 Private evidence contains sanitized result/provenance JSON only at
 /Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/lifecycle-implementation-20261031/ab72-throughput-d1ba17e/.
+
+## November 5 — real entrypoint integration candidate (CI pending)
+
+Continued from ec5f396 on the existing working branch; intended PR base is
+origin/codex/lightsail-deployment (78bcaf07baac8ba5f26a6c7dd827c35283511f30).
+No existing PR was found. Production was not accessed or changed by this milestone.
+
+Implemented default-off A/B routing in API collector/read/dashboard, ensemble
+feature and lifecycle entrypoints. Existing independent discovery/serial feature
+scheduling is preserved. Sealed generations wake incremental lifecycle archiving;
+retirement is separately disabled by default. Durable draining plus cross-process
+shared/exclusive reader leases permits idle connection refresh without removing a
+reader's file. Exact protected body/checksum is checked against sealed raw twice,
+including under the final core write transaction. Missing OS descriptor visibility
+still holds retirement. External retained generated legacy files and sidecars enter
+the aggregate accounting. Bounded inputs reject records beyond the 1 MiB envelope.
+
+New generated tests exercise actual API startup, lifecycle wire adapter and seal
+wake-up, default retirement hold, Linux descriptor drainage, duplicate lifecycle
+ownership, process reader leases, restart from draining and changed protected body.
+Linux-only cutover test fences an unprivileged legacy writer by ownership/mode,
+injects migration failure before acknowledgement and raw-commit exit after a new
+acknowledgement, and requires forward recovery with unchanged legacy bytes/FKs.
+These are generated permission tests, not approval for production permission changes.
+
+Local backend357 tests PASS (14 skips), controls120 PASS (3 skips), focused runtime
+8 PASS (1 skip). Linux root/exported/integrated exact-commit CI remains mandatory;
+Mac skips are not passes. A final read-only API ownership adjustment and Linux-only
+timing instrumentation are included for CI verification. Existing production-scale
+and hardware power-loss limits remain NOT PROVEN.
+
+Release blockers remain explicit: actual legacy volume exceeds the unchanged
+10000-row/128 MiB import audit and generated-only path guards; production capacity,
+full verification time and retirement privilege are not qualified. The old pinned
+application-only manual deploy route cannot ship this scope. No production ceiling,
+16/21 GiB proposal, route, retention flag or retirement flag has been approved here.
+Next: freeze this source, exact Linux CI, review existing-branch PR and record the
+measured result/procedure without presenting those blockers as execution-ready.

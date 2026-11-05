@@ -22,9 +22,11 @@ class ApplicationStore:
         self.root=self.protocol.root;self.legacy=Path(legacy)
         self.retirement_enabled=retirement;self.hold=None;self.collector_authority=True
         try:
-            if self.legacy.is_symlink() or self.legacy.resolve().parent!=self.root or not self.legacy.name.startswith('generated-legacy'):
+            if self.legacy.is_symlink() or self.legacy.resolve().parent not in self._legacy_parents() or not self.legacy.name.startswith('generated-legacy'):
                 raise Stop('generated legacy allowlist required')
             self.legacy=self.legacy.resolve()
+            self._bind_external_legacy()
+            self.protocol.guard()
             if any(Path(str(self.legacy)+suffix).is_symlink() for suffix in ('-wal','-shm')):raise Stop('legacy sidecar symlink forbidden')
             if not self.legacy.is_file():raise Stop('legacy missing')
             self._initialize()
@@ -33,6 +35,18 @@ class ApplicationStore:
             core.execute('CREATE TABLE IF NOT EXISTS ab_worker_binding(id INTEGER PRIMARY KEY CHECK(id=1),legacy TEXT NOT NULL,allocation TEXT NOT NULL)')
             with core:core.execute('INSERT OR REPLACE INTO ab_worker_binding VALUES(1,?,?)',(str(self.legacy),canonical(self.legacy_identity)))
         except BaseException:self.protocol.close();raise
+    def _legacy_parents(self):
+        parents = {self.root}
+        if self.root.parent.name.startswith('generated-ab-'):
+            parents.add(self.root.parent)
+        return parents
+
+    def _bind_external_legacy(self):
+        self.protocol.external_files = ()
+        if self.legacy.parent != self.root:
+            self.protocol.external_files = tuple(
+                Path(str(self.legacy)+suffix) for suffix in ('','-wal','-shm'))
+
     def _legacy_allocation(self):
         return tuple((p.name,p.stat().st_ino,p.stat().st_size,p.stat().st_mtime_ns) for p in
                      (self.legacy,Path(str(self.legacy)+'-wal')) if p.exists())
@@ -218,7 +232,19 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
         if self.hold:
             raise Stop(self.hold)
         with self.collector_write():
-            return self.protocol.rotate(now)
+            generation = self.protocol.rotate(now)
+        # Only the owning thread may detach a connection. An active transaction
+        # retains its snapshot and lease until its caller commits or closes it.
+        with self.connection_lock:
+            connections = tuple(self.connections)
+        for connection in connections:
+            if connection.owner == threading.get_ident() and not connection.db.in_transaction:
+                try:
+                    connection._refresh()
+                except sqlite3.OperationalError:
+                    # A live cursor may still pin an attachment. Keep its lease.
+                    continue
+        return generation
 
     def retire(self,*args):
         if not self.retirement_enabled:raise Stop('AB retirement disabled by default')
@@ -236,6 +262,7 @@ class ApplicationConnection:
         self.db.create_function('ab72_verified_evidence',2,valid_evidence)
         self.db.execute('PRAGMA query_only=OFF')
         self.stack=ExitStack();self.signature=None
+        self.raw_attached=[];self.legacy_attached=False;self.views_ready=False
         try:
             self._refresh()
             if readonly:self.db.execute('PRAGMA query_only=ON')
@@ -249,17 +276,32 @@ class ApplicationConnection:
         self._check()
         if self.store._legacy_allocation()!=self.store.legacy_identity:
             self.store.hold='legacy_identity_changed';raise Stop(self.store.hold)
-        signature=tuple(r[0] for r in self.db.execute("SELECT id FROM ab_generations WHERE state IN ('active','sealed','retiring') ORDER BY started"))
-        if signature==self.signature:return
+        signature=tuple(r[0] for r in self.db.execute("SELECT id FROM ab_generations WHERE state IN ('active','sealed') ORDER BY started"))
+        if signature==self.signature and self.views_ready:return
         if self.db.in_transaction:return # Keep pinned bindings until commit; refresh next operation.
+        self.db.execute('PRAGMA query_only=OFF')
+        try:
+            self._bind_generations(signature)
+        finally:
+            if self.readonly:
+                self.db.execute('PRAGMA query_only=ON')
+
+    def _bind_generations(self,signature):
+        self.views_ready=False
         for name in RAW:self.db.execute('DROP VIEW IF EXISTS temp.'+name)
-        for i in range(len(self.signature or ())):self.db.execute('DETACH DATABASE raw'+str(i))
-        if self.signature is not None:self.db.execute('DETACH DATABASE legacy')
+        for alias in tuple(self.raw_attached):
+            self.db.execute('DETACH DATABASE '+alias)
+            self.raw_attached.remove(alias)
+        if self.legacy_attached:
+            self.db.execute('DETACH DATABASE legacy')
+            self.legacy_attached=False
         self.stack.close();self.stack=ExitStack()
         self.db.execute('ATTACH DATABASE ? AS legacy',(store_uri(self.store.legacy),))
+        self.legacy_attached=True
         for i,gid in enumerate(signature):
             self.stack.enter_context(self.protocol.reader(gid))
             self.db.execute('ATTACH DATABASE ? AS raw'+str(i),(store_uri(self.protocol.path(gid)),))
+            self.raw_attached.append('raw'+str(i))
         obs=['SELECT * FROM main.observations','SELECT * FROM legacy.observations WHERE id NOT IN (SELECT id FROM main.observations)']
         ticks=['SELECT '+','.join(COLUMNS['stream_events'])+' FROM legacy.stream_events']
         # After retirement, copied protected records remain real historical inputs.
@@ -267,7 +309,7 @@ class ApplicationConnection:
         for dataset,target in (('observations',obs),('stream_events',ticks)):
             fields=','.join("json_extract(p.record,'$.row."+column+"') AS "+column for column in COLUMNS[dataset])
             clause=" AND e.id NOT IN (SELECT id FROM main.observations)" if dataset=='observations' else ''
-            target.append("SELECT "+fields+" FROM main.ab_evidence p JOIN main.ab_events e ON e.id=p.id JOIN main.ab_generations g ON g.id=e.gen WHERE g.state='retired' AND e.status='committed' AND e.dataset='"+dataset+"' AND ab72_verified_evidence(p.record,p.sha256)=1"+clause)
+            target.append("SELECT "+fields+" FROM main.ab_evidence p JOIN main.ab_events e ON e.id=p.id JOIN main.ab_generations g ON g.id=e.gen WHERE g.state IN ('draining','retiring','retired') AND e.status='committed' AND e.dataset='"+dataset+"' AND ab72_verified_evidence(p.record,p.sha256)=1"+clause)
         for i in range(len(signature)):
             gid=signature[i] # validated Store.path UUID, never an SQL parameter/input fragment
             obs.append('SELECT r.* FROM raw'+str(i)+".observations r JOIN main.ab_events e ON e.id=r.id AND e.dataset='observations' AND e.status='committed' AND e.gen='"+gid+"' WHERE r.id NOT IN (SELECT id FROM main.observations)")
@@ -275,6 +317,7 @@ class ApplicationConnection:
         self.db.execute('CREATE TEMP VIEW observations AS '+' UNION ALL '.join(obs))
         self.db.execute('CREATE TEMP VIEW stream_events AS '+' UNION ALL '.join(ticks))
         self.signature=signature
+        self.views_ready=True
     def execute(self,sql,args=()):
         self._refresh()
         if re.match(r'\s*(INSERT|UPDATE|DELETE|REPLACE)\b',sql,re.I):
@@ -390,6 +433,11 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
                 self.db.execute('INSERT OR IGNORE INTO ab_evidence VALUES(?,?,?)',(event[0],record,hashlib.sha256(record.encode()).hexdigest()))
                 self.db.execute('INSERT OR IGNORE INTO ab_required_evidence VALUES(?)',(event[0],))
         self.protocol.trip('feature_evidence_ready')
+    def archive_handoff_token(self):
+        return tuple(self.db.execute(
+            "SELECT id,state FROM ab_generations WHERE state IN ('sealed','draining','retiring') ORDER BY started"
+        ).fetchall())
+
     def raw_archive_caught_up(self,dataset):
         return not self.raw_archive_rows(dataset,1)
     def feature_cycle_ready(self):self.protocol.trip('feature_cycle_committed')
@@ -476,6 +524,7 @@ class WorkerProtocol:
     """Existing lifecycle/feature/history process handle: no raw-owner methods."""
     path=Store.path
     reader=Store.reader
+    generation_lease=Store.generation_lease
     allocation=Store.allocation
     guard=Store.guard
     def __init__(self,root):
@@ -498,9 +547,10 @@ class ApplicationWorker(ApplicationStore):
             or path.stat().st_mode&0o077 or Path('/opt/tradebot') in path.parents):raise Stop('private generated worker required')
         self.root=path;self.legacy=Path(legacy);self.role=role;self.hold=None;self.retirement_enabled=False;self.collector_authority=False
         self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
-        if self.legacy.is_symlink() or self.legacy.resolve().parent!=self.root:raise Stop('worker legacy allowlist mismatch')
+        if self.legacy.is_symlink() or self.legacy.resolve().parent not in self._legacy_parents():raise Stop('worker legacy allowlist mismatch')
         self.legacy=self.legacy.resolve()
         self.protocol=WorkerProtocol(path)
+        self._bind_external_legacy()
         try:
             core=self.protocol.core.native
             if not core.execute("SELECT 1 FROM ab_migration_state WHERE id=1 AND status='complete'").fetchone():raise Stop('worker migration incomplete')
@@ -517,3 +567,29 @@ class ApplicationWorker(ApplicationStore):
         raise Stop('worker cannot acquire raw collector authority')
         yield
     def retire(self,*args):raise Stop('worker retirement disabled; drained operator phase required')
+
+
+class RetirementProtocol(WorkerProtocol):
+    """Verified lifecycle retirement only. No raw-save or rotation methods."""
+    retire=Store.retire
+    _remove=Store._remove
+    _owners=Store._owners
+    pin_record=Store.pin_record
+    verify_protected=Store.verify_protected
+
+    def __init__(self,root,legacy=None):
+        # Reuse the worker's root, ownership and migration validation.
+        worker=ApplicationWorker(root,legacy or Path(root)/'generated-legacy.db',routing=True,role='lifecycle')
+        try:
+            self.__dict__.update(worker.protocol.__dict__)
+        finally:
+            worker.close()
+        from protocol_namespace import ProtocolConnection
+        self.core=ProtocolConnection(connect(self.root/'core.db'))
+        for row in self.core.execute("SELECT id FROM generations WHERE state='retiring'").fetchall():
+            if not self.path(row[0]).exists():
+                if any(Path(str(self.path(row[0]))+suffix).exists() for suffix in ('-wal','-shm')):
+                    self.close()
+                    raise Stop('orphan retirement sidecars')
+                with self.core:
+                    self.core.execute("UPDATE generations SET state='retired' WHERE id=?",(row[0],))

@@ -66,7 +66,12 @@ class Store:
             or self.root.stat().st_mode&0o077 or Path('/opt/tradebot') in self.root.parents):raise Stop('private generated fixture required')
         self.fault=fault or (lambda phase:None);self._connections=threading.local();self.owner_thread=threading.get_ident();self.worker_count=0;self.wal_peaks={};self.peak=0;self.leases={};self.readerlock=threading.RLock();self.last_rotation_seconds=0
         if (self.root/'owner.lock').is_symlink():raise Stop('owner lock symlink forbidden')
-        self.lock=(self.root/'owner.lock').open('a+');fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        self.lock=(self.root/'owner.lock').open('a+')
+        try:
+            fcntl.flock(self.lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        except BaseException:
+            self.lock.close()
+            raise
         if (self.root/'core.db').is_symlink():raise Stop('symlink forbidden')
         self.core=connect(self.root/'core.db')
         self.core.executescript('''
@@ -95,6 +100,11 @@ BEGIN SELECT RAISE(ABORT,'protected evidence required'); END;
 CREATE TABLE IF NOT EXISTS manifests(gen TEXT REFERENCES generations(id),dataset TEXT,path TEXT PRIMARY KEY,metadata TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS manifests_generation ON manifests(gen,dataset);
 ''')
+        self.core.executescript("""CREATE TRIGGER IF NOT EXISTS protect_draining_reference
+BEFORE INSERT ON required_evidence
+WHEN (SELECT state FROM generations WHERE id=(SELECT gen FROM events WHERE id=NEW.event_id))='draining'
+ AND NOT EXISTS(SELECT 1 FROM evidence WHERE id=NEW.event_id)
+BEGIN SELECT RAISE(ABORT,'protected evidence required while draining'); END;""")
         self.core.commit()
         try:self.recover();self.guard()
         except BaseException:self.core.close();self.lock.close();raise
@@ -126,6 +136,13 @@ CREATE INDEX IF NOT EXISTS manifests_generation ON manifests(gen,dataset);
             try:
                 if p.is_file() and p.name!='owner.lock':values[str(p.relative_to(self.root))]=p.stat().st_size
             except FileNotFoundError:pass
+        for path in getattr(self,'external_files',()):
+            if path.is_symlink():
+                raise Stop('external legacy component symlink')
+            try:
+                values['legacy-external/'+path.name]=path.stat().st_size
+            except FileNotFoundError:
+                pass
         for name,size in values.items():
             if name.endswith('-wal'):self.wal_peaks[name]=max(size,self.wal_peaks.get(name,0))
         if Path('/proc/self/fd').exists():
@@ -214,6 +231,8 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
         if set(r)-set(COLUMNS[dataset]):raise Stop('unsupported raw fields')
         if dataset=='stream_events' and (not isinstance(r['price'],str) or not Decimal(r['price']).is_finite()):raise Stop('exact decimal text required')
         if r.get('source_time') is not None:stamp(r['source_time'])
+        if not isinstance(r['payload'],str) or len(r['payload'].encode())>1024**2:
+            raise Stop('raw payload exceeds qualified 1MiB input bound')
         json.loads(r['payload'],parse_float=Decimal) # original text is retained
         fp=digest({k:v for k,v in r.items() if k not in ('received_at','id')})
         prior=self.core.execute('SELECT * FROM events WHERE dataset=? AND event_key=?',(dataset,key)).fetchone()
@@ -226,6 +245,8 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
         if active and r['received_at']<active['started']:raise Stop('receipt regression; source lateness is allowed')
         gid=self.rotate(r['received_at'])
         intent=canonical(r)
+        if len(intent.encode()) > 1024**2:
+            raise Stop('raw record exceeds qualified 1MiB input bound')
         with self.core:
             if dataset=='observations':self.core.execute('INSERT OR IGNORE INTO markets VALUES(?,?)',(r['market_id'],'{}'))
             cur=self.core.execute('INSERT INTO events(dataset,event_key,gen,fingerprint,status,intent) VALUES(?,?,?,?,?,?)',(dataset,key,gid,fp,'pending',intent));eid=cur.lastrowid
@@ -258,14 +279,41 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             self.core.execute('UPDATE generations SET newest=MAX(COALESCE(newest,?),?) WHERE id=?',(r['received_at'],r['received_at'],event['gen']))
         self.trip('intent_acknowledged')
     @contextmanager
-    def reader(self,gid):
-        with self.readerlock:
-            db=connect(self.path(gid),True)
-            if db.execute('SELECT id FROM generation').fetchone()[0]!=gid:db.close();raise Stop('wrong raw identity')
-            self.leases[gid]=self.leases.get(gid,0)+1
-        try:yield db
+    def generation_lease(self, gid, exclusive=False):
+        # This file is independent of SQLite. Readers hold a shared lease for
+        # their entire attachment lifetime, including across process boundaries.
+        lock = self.root / ('lease-'+self.path(gid).stem+'.lock')
+        fd = os.open(lock, os.O_CREAT | os.O_RDONLY | os.O_NOFOLLOW, 0o600)
+        try:
+            mode = fcntl.LOCK_EX if exclusive else fcntl.LOCK_SH
+            try:
+                fcntl.flock(fd, mode | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise Stop('raw reader leases open or retirement in progress') from None
+            yield
         finally:
-            with self.readerlock:db.close();self.leases[gid]-=1
+            os.close(fd)
+
+    @contextmanager
+    def reader(self, gid, allow_draining=False):
+        with self.generation_lease(gid):
+            with self.readerlock:
+                state = self.core.execute('SELECT state FROM generations WHERE id=?',(gid,)).fetchone()
+                allowed = ('active','sealed','draining','retiring') if allow_draining else ('active','sealed')
+                if not state or state[0] not in allowed:
+                    raise Stop('generation unavailable for new readers')
+                db=connect(self.path(gid),True)
+                if db.execute('SELECT id FROM generation').fetchone()[0]!=gid:
+                    db.close()
+                    raise Stop('wrong raw identity')
+                self.leases[gid]=self.leases.get(gid,0)+1
+            try:
+                yield db
+            finally:
+                with self.readerlock:
+                    db.close()
+                    self.leases[gid]-=1
+
     def history(self,dataset,start,end,market=None,source_cutoff=None,limit=10000):
         if not 1<=limit<=10000:raise Stop('bounded history required')
         result=[]
@@ -304,7 +352,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
     def protect(self,event_id,prediction,market,asof):
         event=self.core.execute('SELECT * FROM events WHERE id=?',(event_id,)).fetchone()
         if not event or event['status']!='committed':raise Stop('unknown evidence identity')
-        with self.reader(event['gen']) as db:
+        with self.reader(event['gen'],allow_draining=True) as db:
             if event['dataset']=='observations':raw=db.execute('SELECT * FROM observations WHERE id=?',(event_id,)).fetchone()
             else:raw=db.execute('SELECT * FROM stream_events WHERE source=? AND event_id=?',tuple(event['event_key'].split(':',1))).fetchone()
         if raw is None:raise Stop('evidence unavailable')
@@ -372,14 +420,39 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             except FileNotFoundError:continue
             except PermissionError:raise Unproven('descriptor visibility incomplete')
         return False
+    def verify_protected(self,gid):
+        references=self.core.execute("""
+SELECT e.id,e.dataset,e.event_key,p.record,p.sha256
+FROM required_evidence r JOIN events e ON e.id=r.event_id
+LEFT JOIN evidence p ON p.id=e.id WHERE e.gen=? LIMIT 10001
+""",(gid,)).fetchall()
+        if len(references)>10000:
+            raise Stop('protected reference verification bound')
+        raw=connect(self.path(gid),True)
+        try:
+            for event_id,dataset,key,text,checksum in references:
+                if not text or hashlib.sha256(text.encode()).hexdigest()!=checksum:
+                    raise Stop('protected evidence unavailable')
+                fields=','.join(COLUMNS[dataset])
+                if dataset=='observations':
+                    row=raw.execute('SELECT '+fields+' FROM observations WHERE id=?',(event_id,)).fetchone()
+                else:
+                    row=raw.execute('SELECT '+fields+' FROM stream_events WHERE source=? AND event_id=?',
+                                    tuple(key.split(':',1))).fetchone()
+                expected={'generation_id':gid,'dataset':dataset,'row':dict(row) if row else None}
+                if json.loads(text)!=expected:
+                    raise Stop('protected evidence differs from sealed raw')
+        finally:
+            raw.close()
+
     def retire(self,gid,cloud,now):
         gen=self.core.execute('SELECT * FROM generations WHERE id=?',(gid,)).fetchone()
-        if not gen or gen['state'] not in ('sealed','retiring'):raise Stop('not a sealed generation')
+        if not gen or gen['state'] not in ('sealed','draining','retiring'):raise Stop('not a sealed generation')
         if stamp(now)<stamp(gen['sealed_at']):raise Stop('retirement time precedes seal')
         if self.leases.get(gid):raise Stop('reader lease open')
         # Stream <=1000 local rows/object. Do not materialize a full generation.
         for dataset in COLUMNS:
-            with self.reader(gid) as db:expected_count=db.execute('SELECT COUNT(*) FROM '+dataset).fetchone()[0]
+            with self.reader(gid,allow_draining=True) as db:expected_count=db.execute('SELECT COUNT(*) FROM '+dataset).fetchone()[0]
             ledger_count=self.core.execute("SELECT COUNT(*) FROM events WHERE gen=? AND dataset=? AND status='committed'",(gid,dataset)).fetchone()[0]
             if ledger_count!=expected_count:raise Stop('registry/raw row count mismatch')
             entries=self.core.execute('SELECT metadata FROM manifests WHERE gen=? AND dataset=? LIMIT 10001',(gid,dataset)).fetchall()
@@ -392,7 +465,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
                 lo,hi=_manifest_interval(dataset,m,'market-raw')
                 if previous is not None and lo<=previous:raise Stop('overlapping archive identities')
                 previous=hi
-                with self.reader(gid) as db:
+                with self.reader(gid,allow_draining=True) as db:
                     key='id' if dataset=='observations' else '(received_at,source,event_id)'
                     marker='?' if dataset=='observations' else '(?,?,?)'
                     rows=[dict(r) for r in db.execute('SELECT * FROM '+dataset+' WHERE '+key+'>='+marker+' AND '+key+'<='+marker+' ORDER BY '+('id' if dataset=='observations' else 'received_at,source,event_id')+' LIMIT 1001',(*lo,*hi))]
@@ -404,7 +477,7 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             if covered!=expected_count:raise Stop('archive coverage incomplete')
         from features import price_query
         cutoff=iso(now)
-        with self.reader(gid) as db:
+        with self.reader(gid,allow_draining=True) as db:
             price=db.execute(price_query('stream_events','event_id'),(cutoff,cutoff)).fetchone()
             live_price=None if price is None else db.execute(
                 'SELECT '+','.join(COLUMNS['stream_events'])+' FROM stream_events WHERE source=? AND event_id=?',
@@ -413,20 +486,32 @@ CREATE INDEX IF NOT EXISTS obs_features_metadata ON observations(market_id,kind,
             self.core.execute('BEGIN IMMEDIATE')
             try:
                 current=self.core.execute('SELECT state FROM generations WHERE id=?',(gid,)).fetchone()
-                if current[0] not in ('sealed','retiring'):raise Stop('generation changed')
+                if current[0] not in ('sealed','draining','retiring'):raise Stop('generation changed')
                 if live_price is not None:
                     event=self.core.execute("SELECT id FROM events WHERE gen=? AND dataset='stream_events' AND event_key=?",
                                             (gid,'coinbase:'+live_price['event_id'])).fetchone()
                     if event is None:raise Stop('live price identity unavailable')
                     self.pin_record(event[0],{'generation_id':gid,'dataset':'stream_events','row':dict(live_price)})
-                for row in self.core.execute('SELECT e.id FROM events e JOIN required_evidence r ON e.id=r.event_id WHERE e.gen=?',(gid,)):
-                    evidence=self.core.execute('SELECT record,sha256 FROM evidence WHERE id=?',tuple(row)).fetchone()
-                    if not evidence or hashlib.sha256(evidence[0].encode()).hexdigest()!=evidence[1]:raise Stop('protected evidence unavailable')
-                    if json.loads(evidence[0])['generation_id']!=gid:raise Stop('protected generation mismatch')
-                if self.leases.get(gid) or self._owners(gid):raise Stop('raw database handles open')
-                self.core.execute("UPDATE generations SET state='retiring' WHERE id=?",(gid,));self.core.commit()
+                self.verify_protected(gid)
+                self.core.execute("UPDATE generations SET state='draining' WHERE id=?",(gid,))
+                self.core.commit()
             except BaseException:self.core.rollback();raise
-            self.trip('retirement_authorized');self._remove(gid)
+            self.trip('retirement_draining')
+            if self.leases.get(gid):
+                raise Stop('reader lease open')
+            with self.generation_lease(gid,exclusive=True):
+                self.core.execute('BEGIN IMMEDIATE')
+                try:
+                    self.verify_protected(gid)
+                    if self._owners(gid):
+                        raise Stop('raw database handles open')
+                    self.core.execute("UPDATE generations SET state='retiring' WHERE id=?",(gid,))
+                    self.core.commit()
+                except BaseException:
+                    self.core.rollback()
+                    raise
+                self.trip('retirement_authorized')
+                self._remove(gid)
     def _remove(self,gid):
         if self.leases.get(gid) or self._owners(gid):raise Stop('retirement drain not proven')
         # Read-only readers can leave empty sidecars. An ordinary metadata

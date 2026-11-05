@@ -682,7 +682,7 @@ finally:worker.close()
                     result = lifecycle.run_cycle(force=True)
                     self.assertEqual(result['status'],'ok',result)
                     with store.protocol.worker_session():
-                        with self.assertRaisesRegex(Stop,'handles open'):
+                        with self.assertRaisesRegex(Stop,'(reader leases|handles) open'):
                             store.retire(a,cloud,t+timedelta(seconds=4))
                         held.set()
                         if not drained.wait(8):

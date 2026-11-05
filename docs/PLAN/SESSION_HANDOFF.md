@@ -6,22 +6,20 @@ production authorization.
 
 ## Resume here
 
-- Start from the current working branch and preserve local edits. Commit
-  e9fb614 records the latest policy decision. Check Git for later work before
-  editing. Confirm ownership with the user if another session is active.
-- The focused generated test passed early size rotation, failed-archive
-  preservation, B acknowledgements during A readback, managed reader drain
-  and A removal. Peak sampled file length was 1,110,818 bytes. Seal to
-  retirement took 0.026 seconds with the macOS OS-descriptor probe substituted.
-- Next qualify Linux descriptor proof and application lifecycle wake/drain
-  scheduling. Size ordinary overlap from one sealed buffer plus concurrent
-  growth. Budget two occupied slots separately for blocked retirement.
-  The prior 40 GiB / 48-hour proposal needs representative evidence.
-- The scaled baseline at 61e0008 covered the earlier policy. Production
-  collection is held on the legacy database. Migration and production
-  retirement require the reviewed cutover procedure and explicit approval.
-- Pinned SSH to tradebot-analytics-01 succeeded November 4 from the Wi-Fi
-  address then in use. Check access again only when needed for authorized VM work.
+November 5 integration is in progress on the existing working branch, continued
+from ec5f396. See the newest dated master-roadmap entry. The API, ensemble and
+lifecycle entrypoints now select the default-off adapter; generated-only path and
+volume holds still prevent production migration. Retirement remains a separate
+flag and requires archive verification, exact protected core evidence, cross-process
+reader leases and Linux descriptor proof. Do not reset or repeat live cloud probes.
+
+Current source is being frozen for exact Linux/exported CI. Local backend357 tests
+passed with14 platform skips; controls120 passed with3 skips. New Linux-only
+cutover/descriptor cases are not qualified until CI passes. Preserve the unrelated
+AGENTS.md and596-line roadmap changes. Production remains stopped at its guard.
+No production authority is renewed by this handoff. Intended PR base remains the
+existing codex/lightsail-deployment branch. Actual-volume import, aggregate capacity,
+verification budget and deployment-control route remain blocking release gates.
 
 ## Read first and establish ownership
 

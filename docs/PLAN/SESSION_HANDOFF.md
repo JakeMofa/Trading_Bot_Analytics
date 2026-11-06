@@ -6,25 +6,30 @@ production authorization.
 
 ## Resume here
 
-Frozen generated candidate f7820026e78528dd1c1f4413dc2a62740b2711a7,exact Linux
-CI42135084876 PASS. Read PR9_FULL_BOOTSTRAP_2026-11-05.md for consolidated results.
-413backend/13privilegeskips all root-covered,121controls/0skips. Full225777-input
-ApplicationStore bootstrap112.185s,peak1022881792B/RSS134221824B,all17tables exact,
-13248selected inputs,legacy unchanged,newack229700 preserved across restart.
-Integrated4000committed/archived,20publications,save134.675ms/heartbeat293.014ms;
-root recovered-input B→A→B→A actualHTTP/SSE/scheduler/feature/lifecycle PASS.
-Exact private manifest/report/capsule durable under ignored data/recovery-evidence;
-sanitzed attestations committed. Historical source origin attestation NOTPROVEN.
-Prior1547heartbeat FAIL and53d8582 cleanup-visibility FAIL remain failures.
-Core layout3 explicit recovery consumer and finite250krows/256MiBlogical quota
-qualified GENERATED;default production holds and all physical/time/RAM limits kept.
-Next: resolve production post-quiescent binding/full verification policy,actual
-independent-service/raw-volume allocation andmanual identity/root/expiry scope;
-9deployment-base merge conflicts need review. No executable production command
-or fresh approval request until technical prerequisites pass. Oldauthorityexpired.
-No production transfer/repair/restart/migration/deletion/guard change. Initial
-retirement andpaidAI OFF;PR9DRAFT,I7/Phase1.75OPEN,RedisDEFERRED.
-Preserve unrelated AGENTS.md/596-line roadmap edits;no newbranch/worktree.
+Frozen source4bc3699f05ad86708c5833d99f57c2acb1910764,pushCI42144544730 PASS.
+Read PR9_CUTOVER_READINESS_2026-11-05.md: one decision NO-GO production,with
+executable read-only capacity review and gated cutover procedure. Merge864d0b6
+joins deployment78bcaf0,all9conflicts resolved/preserved;PR9 nowmergeable/stillDRAFT.
+418backend/13privilege skips all rootcovered,122controls;full225777-input bootstrap
+155.459s/1022951424Bpeak/134606848BRSS;new ackforward recovered,legacy unchanged.
+Integrated4000committed/archived/0pending/errors,20publications,save66.569ms/
+heartbeat286.664ms;recovered-inputjoint B→A→B→A PASS. Reuse allqualified f782002
+and original selected13248-row recovery/provenance/private durable manifest evidence.
+Independent-service PID/start/UID/allregularFD/unlinkedTEMP observer PASS Linux;
+bounded VM metadata0.069s:legacy+FD5369188352B,free46.38GiB,RAM1.28GiB.
+No SQLite open,heavy scan,newVMworkload,service/permission/guard/authority change.
+Productiond56b4a7 unchanged,collectionheldnormal5120MiB STOP. 8GiBquota arithmetic
+fits butwrite-overrun/peak/runway remain NOTPROVEN. Oldmaintenance route requires
+current feeds andphysical<5120MiB,oldscope/expiry;cannotdeployrecovery. Actual
+productionpath/fence/manual/runtimeguard qualification is pendingselected policy.
+Next needed decision: activationverification policy,fulllegacybounded strategy OR
+proposed completecore/B+exactprotectedinputs withunverifiedlegacyrawunavailable
+andretirementheld. No productionapproval isrequested beforetechnicalreadiness.
+Do notrerun old1790scheck unchanged/ignorebindingmismatch/promote/dispatch oldroute.
+Private exact evidenceignoreddata/recovery-evidence;sourceoriginattestationUNKNOWN.
+Allhistorical failuresstayFAIL. I7/Phase1.75/replay/RAG/sustained/visibility/cloud
+recovery/fullcapacity OPEN,RedisDEFERRED,retirement/paidAI OFF. No newbranch/worktree;
+preserve unrelatedAGENTS.md/+596roadmap and all localdata/secrets.
 
 ## Read first and establish ownership
 

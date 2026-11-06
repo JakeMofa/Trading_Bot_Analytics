@@ -1,0 +1,68 @@
+{
+  "conflict_resolutions": [
+    {
+      "merge_blob_sha": "9b6ba0c54c1d0a58cf9d4af89303483e6e556198",
+      "path": ".github/workflows/python-tests.yml",
+      "preserved_blob_sha": "9b6ba0c54c1d0a58cf9d4af89303483e6e556198"
+    },
+    {
+      "merge_blob_sha": "d985fdcdc3547c8654d3773542949267952e799b",
+      "path": "backend/app/live_health.py",
+      "preserved_blob_sha": "d985fdcdc3547c8654d3773542949267952e799b"
+    },
+    {
+      "merge_blob_sha": "c5dc6d05af900261173c30cf1699488d987dc99c",
+      "path": "backend/app/streaming.py",
+      "preserved_blob_sha": "c5dc6d05af900261173c30cf1699488d987dc99c"
+    },
+    {
+      "merge_blob_sha": "82df93eb7fba607474dd874b3ada8371ce026b08",
+      "path": "deploy/lightsail/RELEASE_VERIFICATION_REVIEW.md",
+      "preserved_blob_sha": "82df93eb7fba607474dd874b3ada8371ce026b08"
+    },
+    {
+      "merge_blob_sha": "588299b3aa22242503293cfc8c5689629f035c23",
+      "path": "deploy/lightsail/maintenance_controller.py",
+      "preserved_blob_sha": "588299b3aa22242503293cfc8c5689629f035c23"
+    },
+    {
+      "merge_blob_sha": "7ca880893ebea546532bf838657b16951fce3d13",
+      "path": "deploy/lightsail/maintenance_host.py",
+      "preserved_blob_sha": "7ca880893ebea546532bf838657b16951fce3d13"
+    },
+    {
+      "merge_blob_sha": "a99b8ca13a37b086963828325a23bea7873fecf4",
+      "path": "deploy/lightsail/release_verification.py",
+      "preserved_blob_sha": "a99b8ca13a37b086963828325a23bea7873fecf4"
+    },
+    {
+      "merge_blob_sha": "f2dd75bf484b5a683e8a4eb1f3712b407e56eea0",
+      "path": "docs/PLAN/I7_FEATURE_STALL_2026-10-30.md",
+      "preserved_blob_sha": "f2dd75bf484b5a683e8a4eb1f3712b407e56eea0"
+    },
+    {
+      "merge_blob_sha": "b05f2590f3c81e25715d3f1a71f7bafec75ec6b8",
+      "path": "docs/PLAN/ROLLOVER_HEALTH_RELEASE_2026-11-01.md",
+      "preserved_blob_sha": "b05f2590f3c81e25715d3f1a71f7bafec75ec6b8"
+    }
+  ],
+  "deployment_rollover_test_added": {
+    "blob": "d7c6bc9fe1c7aad8c2d2fa6fe8d5d3c350ca0281",
+    "focused_tests_passed": 4,
+    "path": "backend/tests/test_rollover_publication.py"
+  },
+  "format": "AB72_RELEASE_MERGE_REVIEW_V1",
+  "merge_sha": "864d0b620a73c7b8eb676ddc6a331149589a34ba",
+  "parents": [
+    "d1017fed77347e8a362ef2ccca9ec42227db3996",
+    "78bcaf07baac8ba5f26a6c7dd827c35283511f30"
+  ],
+  "production_deployed": false,
+  "unchanged_qualified_runtime_blobs": {
+    "backend/prototype/application_store.py": "8c11ebe39694febffc3b274222f96f3468978a59",
+    "backend/prototype/raw_generations.py": "8e36b23eee8e6a9cba8d82fcfbccdeef1a2df760",
+    "backend/prototype/recovery_capsule.py": "b44659de0a8f221e5c3acb5b36883f1584284447",
+    "deploy/lightsail/maintenance_controller.py": "588299b3aa22242503293cfc8c5689629f035c23",
+    "deploy/lightsail/maintenance_host.py": "7ca880893ebea546532bf838657b16951fce3d13"
+  }
+}

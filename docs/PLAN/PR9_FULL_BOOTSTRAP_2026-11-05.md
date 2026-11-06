@@ -1,5 +1,11 @@
 # Selected recovery full application bootstrap — November 5
 
+Current release review: [cutover decision and procedure](PR9_CUTOVER_READINESS_2026-11-05.md).
+Source4bc3699/pushCI42144544730 PASS;deployment conflicts resolved;production
+NO-GO pending recovery verification policy and matching controls/aggregate peak
+qualification. Earlier scoped evidence and unfinished Phase1.75 gates below remain.
+
+
 Heartbeat source8bb945a / exact Linux CI42126289598 PASS is preserved. The
 historical1547a43 heartbeat failure remains FAIL; its individual host scheduling
 and disk contributions cannot be recovered from its missing timeline.

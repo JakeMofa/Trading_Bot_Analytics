@@ -1,0 +1,91 @@
+{
+  "ab-import-report": {
+    "after_ack_restart_seconds": 7.624455895999972,
+    "allocation_scope": "owned Linux process family",
+    "constructor_seconds": 115.33713325299999,
+    "elapsed_including_cleanup_seconds": 155.459387672,
+    "import_metrics": {
+      "audit_and_import_seconds": 109.27358008800002,
+      "audited_bytes": 179671813,
+      "identity": "ba8f6f9bd8be9e0d8e40841f1e462ff1ae3426604e0b74414567c7f1c2046426",
+      "raw_audit": "targeted protected/current inputs only",
+      "rows": 225777
+    },
+    "legacy_unchanged": true,
+    "limits": {
+      "audit_bytes": 268435456,
+      "linux_address_space_bytes": 536870912,
+      "rows": 250000,
+      "total_seconds": 180,
+      "work_seconds": 170,
+      "workspace_bytes": 2147483648
+    },
+    "logical_admission": {
+      "byte_limit": 268435456,
+      "logical_bytes": 168200760,
+      "row_limit": 250000,
+      "rows": 207852
+    },
+    "prediction_dependencies": 6745,
+    "preparation_seconds": 22.905649557000004,
+    "restart_audit_seconds": 7.660759242999973,
+    "rss_bytes": 134606848,
+    "sampled_allocated_peak_bytes": 1022951424,
+    "selected_rows": 13248,
+    "snapshot_dependencies": 6776,
+    "source_sha": "4bc3699f05ad86708c5833d99f57c2acb1910764",
+    "status": "PASS_GENERATED_FULL_BOOTSTRAP",
+    "unlinked_temp_peak_bytes": 0
+  },
+  "ab-joint-report": {
+    "ack_interval_max_seconds": 0.8944701080000073,
+    "api_max_seconds": 0.08355209999996305,
+    "current_price_max_seconds": 0.002068690999976752,
+    "elapsed_seconds": 7.716893313000014,
+    "errors": [],
+    "feature_max_seconds": 0.05049318800001856,
+    "heartbeat_max_seconds": 0.1348254010000005,
+    "historical_feature_equivalence": true,
+    "history_max_seconds": 0.06539727500000936,
+    "http_timeouts": 0,
+    "maximum_feature_workers": 1,
+    "real_venue_cadence": false,
+    "recovered_legacy_inputs": 2,
+    "retirement_readbacks_and_reader_hold": 3,
+    "save_max_seconds": 0.04471236299997372,
+    "simulated_clock": true,
+    "source_sha": "4bc3699f05ad86708c5833d99f57c2acb1910764",
+    "sse_max_seconds": 0.1807980579999935,
+    "status": "PASS_GENERATED_JOINT"
+  },
+  "ci_conclusion": "success",
+  "ci_event": "push",
+  "ci_jobs": {
+    "integrated-qualification": "success",
+    "test": "success"
+  },
+  "ci_run": 42144544730,
+  "integrated-report": {
+    "archived_rows": 4000,
+    "committed_rows": 4000,
+    "elapsed_seconds": 54.783850486000006,
+    "errors": [],
+    "feature_cycles": 20,
+    "feature_max_seconds": 0.5589789410000066,
+    "fixture_cleanup_complete": true,
+    "heartbeat_max_seconds": 0.28666357299999845,
+    "history_max_seconds": 0.21719216799999685,
+    "pending_rows": 0,
+    "preparation_seconds": 1.4014976389999987,
+    "published_cycles": 20,
+    "rss_bytes": 55861248,
+    "save_max_seconds": 0.06656879199999821,
+    "source_sha": "4bc3699f05ad86708c5833d99f57c2acb1910764",
+    "status": "PASS_SCALED_INTEGRATED",
+    "workload_complete": true,
+    "workspace_peak_bytes": 22992080
+  },
+  "production_deployed": false,
+  "readiness": "NO_GO",
+  "source_sha": "4bc3699f05ad86708c5833d99f57c2acb1910764"
+}

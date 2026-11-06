@@ -53,20 +53,22 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Production cutover-control and aggregate-allocation qualification.
-Frozen generated candidate f7820026e78528dd1c1f4413dc2a62740b2711a7 /CI42135084876 PASS.
-Heartbeat<1s,full225777-input ApplicationStore recovery bootstrap,root repeated
-rotation/application paths and selected-recovery forward controls PASS generated.
-13 backend privilege skips all covered by dedicated root suites;controls121PASS.
-See PR9_FULL_BOOTSTRAP_2026-11-05.md for exact evidence and explicit limitations.
-Private exact recovery manifest/capsule durable under ignored data/recovery-evidence;
-sanitized release attestations committed. Production legacy still lacks13248inputs;
-no repair/transfer/cutover approved. Existing manual route/expiry,post-quiescent
-binding,complete legacy verification and independent-service/full raw allocation
-remain NOT PROVEN;9deployment-base conflicts. Proposed production ceiling unchanged.
-PR9 DRAFT;I7/Phase1.75,freshness/cloud recovery/visibility/capacity/sustained/replay
-and knowledge/RAG gaps OPEN. Redis deferred;production collection/retention/paidAI
-and all running storage limits unchanged.
+**Next gate:** NO-GO production recovery policy and matching controls.
+Frozen source4bc3699f05ad86708c5833d99f57c2acb1910764/pushCI42144544730 PASS;PR9
+conflict-free after merging deployment78bcaf0,stillDRAFT.418backend/13privilegeskips
+all root-covered,122controls/0skips;bootstrap/full recovery/workload/handoff PASS.
+Independent-service PID/start/UID FD/TEMP sampler PASS Linux and bounded VMstat.
+SeePR9_CUTOVER_READINESS_2026-11-05.md for one readiness decision,gated procedure,
+exact evidence and executable read-only review. Productiond56b4a7 unchanged;
+normal5120MiB STOP remains;8GiB proposal only arithmetically fits,notpeak-qualified.
+Full legacy verification within1800/2590s remains unproven;old route also demands
+fresh collection before recovery and refuses current storage-held state. Choose
+reviewed activation verification policy before production adapter/fence/manual/
+runtime-overrun qualification. No stale identity,old scope/expiry or exception reuse.
+Private exact recovery evidence durable;source origin attestation NOTPROVEN.
+No executable production dispatch or cutover approval request. I7/Phase1.75,
+continuous capacity/cloud recovery/visibility/sustained/replay/RAG remain OPEN;
+Redis deferred;production collection/retention/paidAI/storage limits unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -3819,3 +3821,20 @@ claimedwithinunchanged1800/2590s;policy decision needed beforeproduction adapter
 manual/fence scope andruntimeaggregate qualification. SeePR9_CUTOVER_READINESS_2026-11-05.md
 for executable read-only review and gated procedure. No heavy scan/helper/deploy,
 permission/guard/expiry change or production cutover. PR9DRAFT,I7/Phase1.75OPEN.
+
+
+### November 5 — PR9 source release qualification PASS;production NO-GO
+
+4bc3699f05ad86708c5833d99f57c2acb1910764/pushCI42144544730 PASS exact source,
+not syntheticPRmerge9b31c566.418backend/13privilegeskips all rootcovered;122controls.
+Bootstrap155.459s/1022951424Bpeak/134606848BRSS,225777inputs,legacy unchanged;
+integrated4000committed/archived,0pending/errors,20publications,save66.569ms/
+heartbeat286.664ms;repeatedjoint handoffPASS.9conflictsresolved,PR9mergeable/draft.
+BoundservicePID/start/UID descriptor/TEMP proofPASSLinux;VMreadonlysample
+5369188352Bretained/openFDs,46.38GiBfree,1.28GiBRAM.8GiBarithmeticmargin511.54MiB
+is notruntimeoverrun/runwayproof;normalguardSTOPunchanged. NO-GO untilactivation
+verification policy chosen andmatchingproductionpath/fence/manual/aggregateguard
+qualification. Oldfullcheck1790stimeoutunknownphase;oldpreflightfreshfeed/ceiling
+cannotpassstorage-heldstate. SeePR9_CUTOVER_READINESS_2026-11-05.md forexecutable
+review,gatedprocedure andsupportedlimits. No heavy scan/newVMtrial/deploy/mutation.
+I7/Phase1.75OPEN;capacity/expiryproposal unapplied;no approvalrequestprematurely.

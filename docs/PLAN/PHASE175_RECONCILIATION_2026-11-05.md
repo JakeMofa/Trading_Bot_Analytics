@@ -1,5 +1,11 @@
 # Phase 1.75 requirement reconciliation — November 5, 2026
 
+Current release review: [cutover decision and procedure](PR9_CUTOVER_READINESS_2026-11-05.md).
+Source4bc3699/pushCI42144544730 PASS;deployment conflicts resolved;production
+NO-GO pending recovery verification policy and matching controls/aggregate peak
+qualification. Earlier scoped evidence and unfinished Phase1.75 gates below remain.
+
+
 Current checkpoint: **f782002 / exact CI42135084876 PASS generated**. The
 [full bootstrap result](PR9_FULL_BOOTSTRAP_2026-11-05.md) supersedes earlier
 partial-table/scope estimates below:17structured tables,225777audited inputs,

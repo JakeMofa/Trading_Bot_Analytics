@@ -146,3 +146,64 @@ explicitly,not placeholder success. No production approval request is made while
 these technical prerequisites remain unresolved. PR9 stays DRAFT,I7/Phase1.75OPEN;
 continuous cloud recovery/visibility/sustained-operation/raw replay/deferredRAG and
 independent live freshness/boundary gates remain open. Redis remains deferred.
+
+## Additional confirmed manual-route dependency
+
+Current `maintenance_host.Host.preflight()` requires physical main+WAL<5120MiB,
+collector.running=true and `collection_state()` with current market/quote/source
+ages[-5,30]s before claiming authority. The measured main+WAL already exceeds the
+physical5120MiB ceiling;the starting state is storage-held. Reusing that route
+cannot reach verification even if its old expiry were refreshed. Recovery scope
+must explicitly accept only the evidenced STORAGE_STOP starting state,without
+claiming healthy feeds before restart,and retain mandatory fresh-feed/persistence
+post-smoke checks. This is part of the reviewed fresh-B scope,not an implemented
+healthy-preflight bypass. All other error states still HOLD.
+
+The PID/start-time binding and visibility limits follow the Linux kernel
+[/proc documentation](https://www.kernel.org/doc/html/latest/filesystems/proc.html),
+including its warning that numeric PIDs can be reused. Identity is checked before
+and after the sampled walk;the test proves changed identity and exited-owner holds.
+No atomic-all-FD or kernel-enforced peak claim is made.
+
+## Frozen source and exact Linux result
+
+**4bc3699f05ad86708c5833d99f57c2acb1910764 — [push CI42144544730 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42144544730).**
+Both test/integrated jobs passed;418backend tests/13privilege skips,all13covered in
+root raw18/application38/runtime10/cutover2/joint2 with0root skips;122controls/0skips.
+Independent sibling-worker TEMP/PID-reuse/exit test PASS on Linux. Exact export
+manifest revalidated after suites and integrated workload. GitHub PR9 mergeable=true,
+still draft;production deployment branch remains78bcaf0. This is exact SOURCE push
+CI,not promotion,dispatch or passing deployment-branch HEAD authorization.
+A separate PR-event run42144550357 used synthetic merge9b31c566;it is NOT substituted
+for exact4bc3699 evidence. No job rerun or new VM workload was dispatched.
+
+| Release check | Result |
+|---|---|
+|9deployment conflicts|PASS merge864d0b6,required behavior retained;4deployment rollover regressions added;GitHub conflict-free|
+|Core application/recovery|PASS generated/full recorded fanout155.459s including preparation/cleanup;225777inputs;legacy unchanged;new acknowledgement survives restart;peak1022951424B,RSS134606848B|
+|4000event workload|PASS4000committed/archived,0pending/errors,20publications,save66.569ms,heartbeat286.664ms,54.784s|
+|Actual API/SSE/scheduler/feature/lifecycle handoff|PASS generated repeated B→A→B→A,one feature worker,3readback/reader holds,0HTTPtimeouts;save44.712ms,heartbeat134.825ms,API83.552ms,SSE180.798ms,price2.069ms,history65.397ms,ackinterval894.470ms|
+|Independent-service descriptor measurement|PASS Linux proof and bounded read-only VM sample;not normal-runtime aggregate guard/peak qualification|
+|Actual storage-limit qualification|NOT PROVEN:8GiB arithmetic fits,write/working-file overshoot and live runway remain unqualified;no guard approval|
+|Post-quiescent binding|BLOCKED:must freshly revalidate exact approved catalog after last-close/fence;cannot reuse pre-fence physical identity|
+|Complete legacy verification|BLOCKED:prior1790s timeout/active check unknown,no demonstrated1800/2590s fit,no new scan|
+|Production runtime/manual scope|NOT IMPLEMENTED for recovery pending selected policy:generated path holds,old baseline/expiry/ceiling/live-feed initial preflight reject current state|
+|Production cutover|NO-GO;no promotion,installation,permission/storage change,restart or dispatch|
+
+[Exact sanitized Linux results](evidence/release-exact-4bc3699.json) and
+[merge blob preservation](evidence/release-merge-preservation-2026-11-05.json).
+All earlier failures retain their original status. The larger full-bootstrap time
+versus f782002 is not attributed to host contention or the sampler without timing
+proof;it passes the unchanged deadline and is not a new production-size claim.
+
+**One next decision for preparation:** choose the activation verification policy.
+Retaining full legacy verification needs a demonstrably bounded strategy;the
+minimal alternative is full verification of new core/B and exact recovered/
+protected inputs,with unrelated legacy raw unavailable to live calculation/raw-
+history routes until verified,legacy data retained and retirementOFF. Required
+legacy structured/prediction history remains preserved in verified core. The
+starting-state exception must be limited to evidenced storage STOP,with genuine
+fresh feeds/persistence mandatory after startup. This policy is proposed only.
+After that decision,finish the matching production path/fence/manual and aggregate
+runtime-overrun qualification and present one execution-ready approval package.
+No production-cutover approval is requested on this NO-GO packet.

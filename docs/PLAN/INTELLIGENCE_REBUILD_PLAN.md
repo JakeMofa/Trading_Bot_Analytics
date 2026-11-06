@@ -53,47 +53,22 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Qualify continuous A/B scale and the production cutover controls.
-Planning-session reconciliation on November 5 verified repository HEAD
-`101921ee00d3e89a50d02c61569bd808ed268cec` and exact Linux
-[CI 42161689378 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42161689378).
-The resumable-verification work and corrected OFF-first joint handoff have a
-passing successor after two retained CI failures. This is generated qualification,
-with production scale and final retirement verification still open.
-
-The target is continuous 72-hour-or-size A/B rotation with incremental Supabase
-archiving, verified retirement and automatic dashboard/prediction handoff. The
-latest capacity proposal is 24 GiB aggregate, including two provisional 5 GiB slots,
-retained legacy, core/WAL, working/TEMP and recovery allowances. It is unapplied
-and unqualified at full size. The older 8 GiB recovery proposal with 64 MiB slots,
-2 MiB rotation trigger and retirement OFF provides only finite runway.
-
-Next execution must inspect the passing successor's artifacts, reconcile final
-fresh-readback limits with multi-GiB retirement, qualify finite ledger/core/audit
-growth and aggregate overshoot, then finish legacy verification policy and tested
-post-quiescent source/fence/manual cutover bindings. Reuse the passing bootstrap,
-selected-row recovery, cloud probes and generated workload evidence. PR #9 stays
-draft. Latest recorded production remains legacy d56b4a7 at its 5120 MiB guard,
-collection held, retention and paid AI OFF. No fresh production measurement was
-performed by this planning reconciliation. I7 freshness/rollover, cloud recovery,
-visibility, replay and sustained-operation acceptance remain open; Redis is deferred.
-
-**Prior qualified baseline and unresolved production controls:**
-Frozen source4bc3699f05ad86708c5833d99f57c2acb1910764/pushCI42144544730 PASS;PR9
-conflict-free after merging deployment78bcaf0,stillDRAFT.418backend/13privilegeskips
-all root-covered,122controls/0skips;bootstrap/full recovery/workload/handoff PASS.
-Independent-service PID/start/UID FD/TEMP sampler PASS Linux and bounded VMstat.
-SeePR9_CUTOVER_READINESS_2026-11-05.md for one readiness decision,gated procedure,
-exact evidence and executable read-only review. Productiond56b4a7 unchanged;
-normal5120MiB STOP remains;8GiB proposal only arithmetically fits,notpeak-qualified.
-Full legacy verification within1800/2590s remains unproven;old route also demands
-fresh collection before recovery and refuses current storage-held state. Choose
-reviewed activation verification policy before production adapter/fence/manual/
-runtime-overrun qualification. No stale identity,old scope/expiry or exception reuse.
-Private exact recovery evidence durable;source origin attestation NOTPROVEN.
-No executable production dispatch or cutover approval request. I7/Phase1.75,
-continuous capacity/cloud recovery/visibility/sustained/replay/RAG remain OPEN;
-Redis deferred;production collection/retention/paidAI/storage limits unchanged.
+**Next gate:** Continuous A/B production scale and control qualification.
+Frozen101921ee00d3e89a50d02c61569bd808ed268cec/pushCI42161684724 PASS for bounded
+resumable verification/OFF→archive→enable→B/A/B/A regression.428backend/14privilege
+skips all rootcovered;123controls. Prior4bc3699 bootstrap/recovery evidence reused.
+SeePR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md for one consolidated checkpoint,
+measured/proposed/applied settings and conditional release sequence. Cached checks
+never authorize unlink;final fresh archive checks/protected evidence/drain remain.
+5GiB/slot and24GiB aggregate remainPROPOSED/NOTPROVEN;fullfresh-tail budget,ledger/
+core/audit bounds and2GiBfixturecap preventscale.8GiB/64MiB/2MiB/OFF isfinite recovery,
+notcontinuousrelease. Pending-seal/idle progression is tested,not real WAN cadence.
+Legacy full quick/FK verification retains1800/2590s gates;per-table progress tested,
+production completionNOTPERFORMED. Productionallowlist/fence/post-quiescentbinding/
+manualscope andfullaggregatepeak still open;oldroute/expirycannotbe reused.
+PR9 conflict-free/DRAFT;productiond56b4a7/storageSTOP unchanged;no approvalrequest
+beforeexecutionreadiness. I7/Phase1.75/cloudrecovery/visibility/sustained/replay/RAG
+remainOPEN;RedisDEFERRED,paidAI/productionretirementOFF. No capdeadlineextension.
 
 ### October 23, 2026 migration preflight
 
@@ -3902,3 +3877,20 @@ restoresnormal post-archive lifecycle cycles instead offorcingstructured sync pe
 attempt,surfacesproducer failures,andadds sanitized first-save-error metadata.
 No holdclear/readerbypass/retry/gatechange.8focusedtestsPASSlocal/1rootskip.
 Failed477/be6 evidence preserved;productionunchanged;exactsuccessorCIrequired.
+
+
+### November 5 — consolidated resumable-verification checkpoint PASS
+
+101921ee00d3e89a50d02c61569bd808ed268cec/pushCI42161684724 PASS exactsource/export.
+428backend/14privilegeskips allrootcovered,123controls/0skips.8incremental fault/
+resume testsPASSroot;actualOFF→archive→enable(no collectorrestart)→B/A/B/A PASS,
+3/1/1progresscycles,29ticks,0HTTPtimeouts,save110.821ms/heartbeat151.566ms.
+Fullbootstrap109.084s/1023041536Bpeak/134516736BRSS,legacyunchanged;4000committed/
+archived,0pending/errors,20publications,save58.982ms/heartbeat329.957ms. Priorfailures
+be6/477stayFAIL. Per-tableFKprogress complete-policy checksPASSgenerated;no prodscan.
+Cacheddiagnostic receiptsNEVERauthorizeunlink;fresh final remote/body/reference/drain
+checks remain.5GiBtarget/one24GiBaggregatePROPOSED NOTAPPLIED,21.500446GiBassigned
+incllegacy/WAL/core/work/TEMP/recovery,above2GiBfixturelimitby19.500446GiB. Fullsize
+fresh-tail/core/ledger/guard/controls andlegacyverification remainNO-GO. See
+PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md andsanitizedexactevidence. No production
+change/approval/soak/capexpiryextension;PR9DRAFT,I7/Phase1.75OPEN.

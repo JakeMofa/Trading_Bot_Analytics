@@ -6,51 +6,33 @@ production authorization.
 
 ## Resume here
 
-Latest repository source is `101921ee00d3e89a50d02c61569bd808ed268cec`.
-Exact Linux CI42161689378 completed successfully, checked once by the planning
-session. Read PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md and the master roadmap's
-Current position before using older entries below. The usage-limit interruption
-was followed by committed resumable-verification work and two failed joint runs;
-101921e is their passing successor. Inspect its artifacts before carrying forward
-individual acceptance claims. Preserve all existing edits, including AGENTS.md
-and the unrelated roadmap additions; do not reset to an earlier candidate.
-
-Continuous A/B remains the goal. Two 5 GiB slots and a 24 GiB aggregate budget
-are provisional, unapplied and unqualified at full scale. The 8 GiB/64 MiB slots/
-2 MiB trigger/retirement-OFF recovery proposal is finite runway only. Resume with
-multi-GiB final fresh verification, ledger/core/audit growth, aggregate overrun,
-legacy verification policy and post-quiescent source/fence/manual cutover controls.
-PR9 remains draft and production NO-GO. Latest recorded production is d56b4a7,
-5120 MiB guard, collection held, retention/paid AI OFF. This status update made
-no fresh production measurements or production changes. I7, cloud recovery,
-visibility, replay and sustained acceptance stay open. Redis evaluation is deferred.
-
-### Prior baseline and production blockers
-
-Frozen source4bc3699f05ad86708c5833d99f57c2acb1910764,pushCI42144544730 PASS.
-Read PR9_CUTOVER_READINESS_2026-11-05.md: one decision NO-GO production,with
-executable read-only capacity review and gated cutover procedure. Merge864d0b6
-joins deployment78bcaf0,all9conflicts resolved/preserved;PR9 nowmergeable/stillDRAFT.
-418backend/13privilege skips all rootcovered,122controls;full225777-input bootstrap
-155.459s/1022951424Bpeak/134606848BRSS;new ackforward recovered,legacy unchanged.
-Integrated4000committed/archived/0pending/errors,20publications,save66.569ms/
-heartbeat286.664ms;recovered-inputjoint B→A→B→A PASS. Reuse allqualified f782002
-and original selected13248-row recovery/provenance/private durable manifest evidence.
-Independent-service PID/start/UID/allregularFD/unlinkedTEMP observer PASS Linux;
-bounded VM metadata0.069s:legacy+FD5369188352B,free46.38GiB,RAM1.28GiB.
-No SQLite open,heavy scan,newVMworkload,service/permission/guard/authority change.
-Productiond56b4a7 unchanged,collectionheldnormal5120MiB STOP. 8GiBquota arithmetic
-fits butwrite-overrun/peak/runway remain NOTPROVEN. Oldmaintenance route requires
-current feeds andphysical<5120MiB,oldscope/expiry;cannotdeployrecovery. Actual
-productionpath/fence/manual/runtimeguard qualification is pendingselected policy.
-Next needed decision: activationverification policy,fulllegacybounded strategy OR
-proposed completecore/B+exactprotectedinputs withunverifiedlegacyrawunavailable
-andretirementheld. No productionapproval isrequested beforetechnicalreadiness.
-Do notrerun old1790scheck unchanged/ignorebindingmismatch/promote/dispatch oldroute.
-Private exact evidenceignoreddata/recovery-evidence;sourceoriginattestationUNKNOWN.
-Allhistorical failuresstayFAIL. I7/Phase1.75/replay/RAG/sustained/visibility/cloud
-recovery/fullcapacity OPEN,RedisDEFERRED,retirement/paidAI OFF. No newbranch/worktree;
-preserve unrelatedAGENTS.md/+596roadmap and all localdata/secrets.
+Frozen101921ee00d3e89a50d02c61569bd808ed268cec/pushCI42161684724 PASS. Read
+PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md for consolidated bounded checkpoint.
+428backend/14privilegeskips rootcovered,123controls/0skips,8incrementaltestsPASSroot.
+ActualOFF→archive→enable(no collectorrestart)→B/A/B/A PASS,3/1/1progresscycles,
+29ackticks,0HTTPtimeouts,onefeatureworker,3reader-held verifiedretirements.
+Full225777-input bootstrap109.084s/1023041536Bpeak/RSS134516736B,legacyunchanged;
+integrated4000committed/archived/0pending/errors,20pubs,save58.982ms/heartbeat329.957ms.
+Opt-in persisted progress bindsraw/catalog/ledger/code,invalidateschanged/expired
+proof,NEVER bypassesfinalfresh authenticatedreadback/protectedinputs/drain. Final
+catalog notfitting8objects/original30s correctlyHOLDS;5GiBscaleNOTPROVEN.
+Default0opt-in flag/retirementOFF/generated-only paths remain. Legacyfullquick/FK
+checks preserved;durableactiveFKtable progress/failure/timeout/reaping tested.
+ProductionverificationNOTPERFORMED,historical1790sphaseUNKNOWN. No newprodscan.
+be6e121/CI42159636989 and4774946/CI42160233749 stayFAIL;normalcycle/stagebarrier
+fixespassed;sanitizedfirstsavefailure metadata nowretained(no holdclear/retryincrease).
+Resumecontinuouscapacity/controlplan:24GiB ONEaggregateproposal incl2x5GiBslots
+(WAL/SHMincluded),core4GiB,working1GiB,TEMP0.5GiB,recovery1GiB,legacy5.000446GiB.
+21.500446GiBassigned,2.499554GiBmargin. AllPROPOSED,notimplemented/qualified/applied.
+Existing8GiB/64MiB/2MiB/OFF isfinite only;100kledger/corelogical/physical/reference
+bounds stopscale. Approved2GiBfixturecannotprove5GiBslot;no largefixture wasrun.
+Completelegacyverification andactualproductionpath/fence/identity/manual/aggregate
+controls stillopen. Oldscope/expiry notusable. Conditionalprocedure forreview only;
+no execution-readycutoverapproval requested. Productiond56b4a7 unchanged/collection
+heldnormal5120MiBSTOP,retirement/paidAIOFF. No VM/cloudwrite/restart/install/deletion/
+manualWAL/guardincrease. Privateexactselectedrecoveryevidence durableandpreserved.
+PR9 conflict-free/DRAFT,I7/Phase1.75/freshness/cloudrecovery/visibility/sustained/
+replay/RAGOPEN,RedisDEFERRED. PreserveAGENTS.md/+596roadmap/localdata,secrets.
 
 ## Read first and establish ownership
 

@@ -1,5 +1,10 @@
 # Phase 1.75 requirement reconciliation — November 5, 2026
 
+Current checkpoint: [continuous A/B verification result](PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md).
+101921e/pushCI42161684724 PASS bounded generated progress/enablement/repeated
+handoff and complete FK-table progress.5GiB target remains provisional;8GiB
+recovery profile is not continuous capacity. Production release remains NO-GO.
+
 Current release review: [cutover decision and procedure](PR9_CUTOVER_READINESS_2026-11-05.md).
 Source4bc3699/pushCI42144544730 PASS;deployment conflicts resolved;production
 NO-GO pending recovery verification policy and matching controls/aggregate peak

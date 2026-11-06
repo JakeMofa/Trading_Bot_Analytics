@@ -1,5 +1,10 @@
 # PR9 cutover-readiness decision and gated procedure
 
+Current checkpoint: [continuous A/B verification result](PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md).
+101921e/pushCI42161684724 PASS bounded generated progress/enablement/repeated
+handoff and complete FK-table progress.5GiB target remains provisional;8GiB
+recovery profile is not continuous capacity. Production release remains NO-GO.
+
 **Decision: NO-GO for production.** This is release preparation, not authorization.
 Production remains on d56b4a7,legacy collection held at its existing storage guard;
 API/ensemble/lifecycle services were active at the bounded metadata sample. No

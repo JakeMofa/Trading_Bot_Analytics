@@ -1,0 +1,10 @@
+{
+  "B_growth_floor_bytes_at_assumed_33280_Bps": 297207619.46192443,
+  "additional_floor_seconds": 2346.9765749866247,
+  "baseline_readback_passes": 2,
+  "final_tail_currently_supported": false,
+  "opt_in_progress_plus_final_readback_passes": 3,
+  "opt_in_total_floor_seconds": 8930.517411716479,
+  "scope": "EXTRAPOLATION_NOT_QUALIFICATION",
+  "source_sha": "101921ee00d3e89a50d02c61569bd808ed268cec"
+}

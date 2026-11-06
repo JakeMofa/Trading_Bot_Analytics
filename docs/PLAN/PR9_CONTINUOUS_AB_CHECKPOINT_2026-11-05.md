@@ -93,6 +93,9 @@ continuous5GiB design or silently promote its guards after startup.
 
 All numbers below are planning allowances, not new runtime settings. Main/WAL/SHM
 share each slot/core allowance; WAL is not omitted or counted twice.
+Here5GiB means the entire physical slot,not5GiB of main-file payload plus an
+uncharged WAL. If5GiB main-file capacity is required,this proposal does not meet
+that requirement;an additional measured WAL allowance would be necessary.
 
 | Term | GiB |
 |---|---:|
@@ -223,3 +226,62 @@ The current worker already prioritizes new seal/drain tokens, caps pending-seal
 archive spacing at30s and invokes after_archive on idle handoff cycles. Thus the
 hourly default does not by itself establish the small-slot outage runway. Force-
 cycle test results still cannot qualify normal live cadence or5GiB completion.
+
+## Consolidated exact-source result: PASS for the bounded checkpoint
+
+Frozen **101921ee00d3e89a50d02c61569bd808ed268cec**, [push Linux CI42161684724 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42161684724).
+Both test/integrated jobs passed. Exported backend428tests/14privilege skips all
+covered by root raw18/application38/runtime10/incremental8/cutover2/joint2;
+zero root skips. Controls123PASS/0skips include complete per-table FK progress,
+late-table failure,timeout/interruption and owned reaping. Exact manifest rechecked
+against frozen Git objects after suites and integrated qualification.
+
+| Checkpoint | Disposition and exact evidence |
+|---|---|
+|Resumable bounded progress|PASS generated: persists across actor restart/cycles; other-slot writes continue; changed file/manifest/receipt/expired proof blocks reuse; no whole-generation materialization|
+|Changed remote content after cached check|PASS fault regression: final fresh authenticated readback detects corruption, preserves raw and invalidates progress; cache alone never permits deletion|
+|Operation bounds|PASS generated: bounded object budget, original cloud deadline, expired/NaN/infinite/malformed boundary refusal, SQL cooperative expiry and pre-unlink check; whole fixture180s hard supervisor retained|
+|OFF→archive→enable→repeat|PASS actual generated application path: archive/readback while OFF; enable without collector restart; B→A→B→A; progress completion3,1,1lifecycle cycles;29acknowledged ticks;one feature worker;3reader-held verified retirements|
+|Dashboard/prediction continuity|PASS generated/simulated clock: active generation follows collector via HTTP/SSE;fresh values advance;historical inputs equivalent;expired/stale states truthful;62HTTP requests/0timeouts|
+|Concurrent latency|PASS unchanged gates: save110.821ms,heartbeat151.566ms,API74.024ms,SSE196.039ms,price1.882ms,feature27.661ms,history49.099ms,ackinterval884.527ms|
+|Whole joint run|7.473s actual case;9.384s whole root suite;sampled protocol peak11145216B. Small generated local transport,not WAN/real cadence/full-scale proof|
+|Full recorded-fanout bootstrap|PASS109.084s inclpreparation/cleanup,225777inputs;legacy unchanged,new acknowledgement/restart preserved;sampled peak1023041536B,RSS134516736B|
+|4000-event exported ApplicationStore|PASS4000committed/4000archived,0pending/errors,20publications;save58.982ms,heartbeat329.957ms,55.753s;workspace23057141B,RSS57102336B|
+|Existing cutover/recovery controls|PASS generated root UID fence/forward recovery and123controls. Production path/manual scope/post-fence binding still not implemented for this release|
+|Legacy production verification|NOT PERFORMED: full quick/FK requirement preserved;new durable table diagnostics qualified;historical timeout cause/completion budget still unproven|
+|5GiB slots /24GiB budget|PROPOSED/NOT PROVEN: existing slot/core/ledger/audit limits and final fresh-tail budget correctly hold;no larger fixture/guard/deadline approval inferred|
+
+[Sanitized exact artifacts](evidence/resumable-verification-101921e.json). Both
+be6e121/42159636989 and4774946/42160233749 remain FAIL. The passing successor
+restored representative normal scheduling and the owner-thread stage refresh;
+it does not retrospectively prove the swallowed error's original cause. Its new
+sanitized diagnostic makes any future first admission/SQLite failure observable.
+No producer hold was cleared and no extra retries or timeouts were introduced.
+
+### Cadence and transfer correction for the proposed scale
+
+Existing pending seal/drain tokens already prioritize archive and cap that stage's
+spacing at30s;idle handoff cycles can resume verification using the original cloud
+budget. The hourly base cadence alone therefore cannot calculate live outage
+runway. The5.35h model above is explicitly an assumed60s scenario,not measured
+scheduler cadence. The corrected joint regression uses normal scheduling for
+progress after the initial archive,not force-sync on every verification attempt.
+
+The calculator's109.73minute two-read estimate is the BASELINE path (initial
+readback + final recheck). Selecting the new progress preparation adds at least
+one additional download/verification pass: for1600401408B this contributes about
+2347s, making a roughly148.8minute lower bound and roughly283MiB B growth at the
+assumed32.5KiB/s. Retries/invalidation,metadata/checkpoint latency and reader tails
+remain additional. Neither estimate overcomes the8-object/30s final fresh-tail
+HOLD or qualifies a5GiB generation. Public Supabase access policies distinguish
+INSERT from UPDATE/DELETE;create-only client requests are not a server immutability
+guarantee. See [official Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
+
+**Release disposition:** bounded generated checkpoint PASS; production continuous
+release NO-GO. Do not enable the24GiB/5GiB planning profile or ship retirement OFF
+as continuous operation. First qualify scalable final verification plus core/
+ledger/admission/aggregate controls under a separately reviewed larger fixture;
+complete the unchanged legacy verification gate and matching production control
+scope. The conditional procedure above remains for review,not execution-ready
+production approval. No new VM/cloud scan,retirement,guard change,service restart,
+helper installation or production operation occurred. I7/Phase1.75 stayOPEN.

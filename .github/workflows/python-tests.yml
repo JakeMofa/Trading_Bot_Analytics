@@ -72,7 +72,9 @@ jobs:
         working-directory: ${{ runner.temp }}/ab-test-candidate
         env:
           AB_IMPORT_SOURCE_SHA: ${{ github.sha }}
-        run: python backend/prototype/run_legacy_import_qualification.py --report "$RUNNER_TEMP/ab-import-report.json"
+        run: |
+          sudo -n env PYTHONDONTWRITEBYTECODE=1 AB_SOURCE_REPOSITORY="$GITHUB_WORKSPACE" AB_IMPORT_SOURCE_SHA="$AB_IMPORT_SOURCE_SHA" "$(command -v python)" backend/prototype/run_legacy_import_qualification.py --report "$RUNNER_TEMP/ab-import-report.json"
+          sudo -n chmod 0644 "$RUNNER_TEMP/ab-import-report.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

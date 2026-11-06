@@ -90,3 +90,22 @@ No transfer, production repair, restart, migration, retirement or cloud write.
 I7 fresh inputs/live rollover, cloud recovery, visibility, real-boundary/sustained
 operation, historical raw replay and deferred knowledge/RAG remain OPEN; Redis
 DEFERRED. PR9 remains DRAFT and Phase1.75 OPEN.
+
+## Exact Linux53d8582 failed cleanup prerequisite
+
+[CI42134362083](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42134362083):
+backend/root joint/control steps passed. Full bootstrap completed constructor,
+exact structured/reference readback, both restarts and new229700 acknowledgement,
+legacy unchanged, but final generated cleanup proof raised RuntimeError because
+`fixture_owners` explicitly requires Linux root and workflow ran unprivileged.
+Overall FAIL, not a bootstrap qualification PASS. Total155.732s,preparation23.029s,
+constructor115.528s,restarts7.690/7.691s,peak1022902272B,RSS134549504B. No1s gate
+or host/time/resource change. Owned family sampling worked; anonymous TEMP peak0
+in this run is not evidence that other workloads never use temporary files.
+
+Smallest fix: launch this generated-only qualification with the existing Linux
+sudo mechanism already used by root descriptor/joint proofs, preserving exact
+source bindings; fail before fixture allocation when Linux root visibility is
+unavailable. Two focused preflight tests PASS. Successor exact CI required, no
+unchanged retry. Nine existing merge conflicts against deployment78bcaf0 remain
+an additional PR readiness gate; no merge or production change attempted.

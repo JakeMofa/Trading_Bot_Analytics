@@ -10,7 +10,9 @@ Heartbeat candidate8bb945a exactCI42126289598 PASS; docs64f6018. Preserve old154
 heartbeat FAIL. New selected recovery full ApplicationStore bootstrap candidate
 is being frozen: see PR9_FULL_BOOTSTRAP_2026-11-05.md for current evidence/STOPs.
 Local225777-input bootstrap PASS81.828s/1079271424B disk/178372608B RSS; exact
-Linux/export still required. Explicit generated250k/256MiB logical admission,
+Linux53d8582/CI42134362083 FAIL only at final root-required cleanup proof;
+bootstrap/new-ack/restart completed. Successor corrects generated-only sudo route
+and fails early if Linux visibility missing; exact successor CI still required. Explicit generated250k/256MiB logical admission,
 original physical/time/RAM caps unchanged. Core layout3, explicit pinned capsule,
 worker history/protected reads, bounded logical growth, owned-FD TEMP accounting.
 Private exact manifest/capsule under ignored data/recovery-evidence/selected-2026-11-05-v1;

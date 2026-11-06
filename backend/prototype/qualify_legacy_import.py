@@ -103,7 +103,7 @@ def qualify():
                 from qualify_application import fixture_owners
                 if fixture_owners(root):raise RuntimeError('full bootstrap fixture handles remain')
             shutil.rmtree(root)
-        except Exception as error:result.update(status='FAIL',cleanup_error_type=type(error).__name__,retained_generated_workspace=str(root))
+        except Exception as error:result.update(status='FAIL',cleanup_error_type=type(error).__name__,cleanup_error=str(error),retained_generated_workspace=str(root))
         result['elapsed_including_cleanup_seconds']=time.monotonic()-BOOT
         result['rss_bytes']=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*(1 if sys.platform=='darwin' else 1024)
         if result['elapsed_including_cleanup_seconds']>180:result['status']='FAIL'

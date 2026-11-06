@@ -3772,3 +3772,14 @@ attestation committed; owned Linux family/unlinked TEMP measurement implemented.
 Production independent-service allocation, post-quiescent binding, complete legacy
 verification and manual scope/identity controls remain NOT PROVEN. No production
 command is approved/executable; production held,PR9DRAFT,I7/Phase1.75OPEN.
+
+
+### November 5 — full bootstrap Linux cleanup prerequisite correction
+
+53d8582/CI42134362083 FAIL: full225777-input bootstrap/reference readback/new-ack
+restart completed; final cleanup proof required Linux root but CI launched ordinary
+user.155.732s,peak1022902272B,RSS134549504B; failure preserved in sanitized evidence.
+Successor uses existing generated-only sudo descriptor mechanism; early preflight
+holds before allocation if visibility missing. Focused2PASS. No gate/limits change.
+Exact successor CI required. PR9 stillDRAFT;9deployment-base conflicts; manual
+production controls/verification/identity/allocation approvals remain held.

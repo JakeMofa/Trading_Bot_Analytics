@@ -10,12 +10,17 @@ import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from run_application_qualification import supervise
 
+def require_descriptor_visibility():
+    if sys.platform=='linux' and os.geteuid()!=0:
+        raise RuntimeError('generated fixture cleanup requires Linux root descriptor visibility before preparation')
+
 
 def main():
     started=time.monotonic()
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--report',required=True)
     args=parser.parse_args()
+    require_descriptor_visibility()
     report=Path(args.report)
     if (not report.name.startswith('ab-import-') or report.exists() or report.is_symlink()
         or Path('/opt/tradebot') in report.resolve().parents):

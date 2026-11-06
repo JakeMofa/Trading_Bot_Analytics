@@ -9,6 +9,42 @@
 
 ## First priority — automatic A/B handoff
 
+### Agreed layout and history continuity — November 5 clarification
+
+The user accepts the split local layout with history continuity as a requirement.
+Legacy currently combines raw feeds and structured history in one SQLite file.
+The target has three main SQLite files: raw A, raw B and persistent core. During
+transition, the retained legacy file makes four main files, plus SQLite sidecars.
+A and B share a raw schema; core preserves markets, outcomes, predictions,
+features, protected evidence and recovery/coordination records across rotation.
+The application adapter routes collector writes and dashboard/calculation reads.
+
+The selected raw-slot target is 5 GiB each, rotating at 72 hours or the qualified
+size threshold, whichever comes first. Additional 3 GiB per slot is a contingency
+idea requiring qualification and a separate capacity decision. Aggregate budgets
+must include core, WAL, working files, recovery reserve and retained legacy. The
+24 GiB aggregate remains a proposal; applied production limits are separate.
+
+- [ ] Prove required historical inputs and protected references remain accessible
+  to calculations and dashboard/history readers during migration and rotation.
+  Preserve exact values, original source times, identities and provenance.
+- [ ] Retain legacy until structured history is safely preserved, required raw
+  archives are verified by authenticated readback, dependent references resolve,
+  and all legacy readers have drained. Qualify and separately approve its final
+  retirement. Legacy retirement is an intended migration outcome, not completed
+  work or authority to delete the current production file.
+- [ ] Keep structured long-term history queryable through existing Supabase
+  Postgres and archived raw evidence retrievable from private Supabase Storage.
+  Test representative historical reads before and after local retirement; expose
+  unavailable history explicitly rather than substituting current or invented data.
+- [ ] When AI is enabled later, provide selected current and historical evidence
+  through the application retrieval layer, including prior reasoning and actual
+  position records when available. Verify that retrieval across archive/local
+  boundaries preserves provenance and freshness. Paid AI remains deferred;
+  retrieval contracts can be tested without paid calls.
+
+### Current qualification work
+
 The next Phase 1.75 milestone is to qualify the full handoff under representative
 load. Generated Linux rotation and outage checks passed, and the live synthetic
 probe verified upload and readback in the private Supabase bucket.

@@ -1,5 +1,16 @@
 # PR9 six-part qualification and cutover review — November 5
 
+Current checkpoint: **f782002 / exact CI42135084876 PASS generated**. The
+[full bootstrap result](PR9_FULL_BOOTSTRAP_2026-11-05.md) supersedes earlier
+partial-table/scope estimates below:17structured tables,225777audited inputs,
+explicit250k/256MiBlogical qualification;original host/time/physical caps unchanged.
+Recovery selected13248 verified inputs now consumed by actual ApplicationStore;
+finite core admission and owned Linux FD/TEMP measurement implemented. Production
+full-volume/independent-service allocation,post-quiescent binding,complete legacy
+verification and manual identity/expiry scope remain OPEN,as do9merge conflicts.
+All historical failures/evidence retain original scope. PR9DRAFT,I7/Phase1.75OPEN.
+
+
 Production remains held. This is qualification/release preparation, not deployment,
 retirement enablement, a guard change or Phase1.75 completion. Redis is deferred:
 evaluate it later against measured current-price/history bottlenecks; no Redis

@@ -41,7 +41,14 @@ Actual qualification used exact-export tools from
 verification/staging due missing exporter import path. That failure is preserved.
 The fix has a clean-directory,PYTHONPATH-empty subprocess package regression.
 
-Private artifacts retained at `/private/tmp/generated-ab-recovery-s1r_pa53/`:
+Durable private exact manifest/report/specification/dependency/capsule files are
+fsynced under ignored `data/recovery-evidence/selected-2026-11-05-v1/` (0700/0600).
+The [sanitized release attestation](evidence/selected-recovery-2026-11-05.json)
+binds their original hashes without exposing protected bodies or machine identities.
+Only the generated staged SQLite file remains at its original temporary location
+`/private/tmp/generated-ab-recovery-s1r_pa53/`; it was not copied.
+
+Original qualification artifacts:
 
 - `recovery-manifest.json`:13248per-record dataset/key/SHA256 entries,source/dependency
   bindings,schema,369supporting-market hashes and protected reference set checksum.
@@ -49,7 +56,7 @@ Private artifacts retained at `/private/tmp/generated-ab-recovery-s1r_pa53/`:
   maps,369real supporting market rows and dependency proof. Runtime activationOFF.
 - `qualification-report.json`:whole-operation/resource and idempotence measurements.
 - `recovery-stream-spec.json`:future canonical JSONL stream specification and checksum;
-  no stream payload file was created or transferred.
+  later exported/read back locally as selected-rows.jsonl; no production transfer.
 
 Manifest internal canonical SHA256:
 `cce959118eb774d8131a8bd60876bcd2f3f16c1a8d90c086621dfe6c1dd1c208`.
@@ -57,7 +64,7 @@ Manifest file SHA256:
 `9577e6f53d2150f107eb7fd6914a0dc93ab7d806d52f04a230347332765ff07b`.
 Sorted selected catalog SHA256:
 `6c9ee8583c58a2dac0ba804b962d6cd467b483e73b77478331056d99d7ef4a55`.
-Selected canonical row bodies30868806B. Future13248-row canonical JSONL stream:
+Selected canonical row bodies30868806B. Exact13248-row canonical JSONL stream, now durably materialized and verified:
 32552271B,SHA256
 `01f3ce94b62f3f91690b33e5aa4721de6ac6c22635d91b7c71dea7c0e689061c`.
 Order isSQLite ORDER BY dataset,key(BINARY),one canonical object(dataset,key,row,

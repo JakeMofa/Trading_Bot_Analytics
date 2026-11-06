@@ -53,17 +53,20 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** Full-core selected recovery integration and the exact-CI heartbeat failure.
-Candidate1547a43 /CI42121991450 FAILED raw4000heartbeat1165ms vs<1s. No retry or
-policy change;cause unproven. Exactexport backend392PASS/13privilegeskips,all9new
-selectedrecoverycasesPASS on Linux. User-approved historicalsource verification and
-isolated13248-rowstagePASS:0conflicts/unverifiable,retry0changes. Read
-SELECTED_RECOVERY_REVIEW_2026-11-05.md forexactmanifest/procedure and limits.
-Production legacy remains missing13248inputs;no repair/cutover authorized. Full
-ApplicationStore capsule consumer,161602+scope/byte budget and existingmanualroute
-bindings remain open. CurrentCI did not complete laterroot/control/integratedgates.
-PR9DRAFT;I7/Phase1.75,replay/cloudrecovery/visibility/capacity/sustained gates OPEN.
-Redis deferred;production collection/retention/paidAI/storagelimits unchanged.
+**Next gate:** Production cutover-control and aggregate-allocation qualification.
+Frozen generated candidate f7820026e78528dd1c1f4413dc2a62740b2711a7 /CI42135084876 PASS.
+Heartbeat<1s,full225777-input ApplicationStore recovery bootstrap,root repeated
+rotation/application paths and selected-recovery forward controls PASS generated.
+13 backend privilege skips all covered by dedicated root suites;controls121PASS.
+See PR9_FULL_BOOTSTRAP_2026-11-05.md for exact evidence and explicit limitations.
+Private exact recovery manifest/capsule durable under ignored data/recovery-evidence;
+sanitized release attestations committed. Production legacy still lacks13248inputs;
+no repair/transfer/cutover approved. Existing manual route/expiry,post-quiescent
+binding,complete legacy verification and independent-service/full raw allocation
+remain NOT PROVEN;9deployment-base conflicts. Proposed production ceiling unchanged.
+PR9 DRAFT;I7/Phase1.75,freshness/cloud recovery/visibility/capacity/sustained/replay
+and knowledge/RAG gaps OPEN. Redis deferred;production collection/retention/paidAI
+and all running storage limits unchanged.
 
 ### October 23, 2026 migration preflight
 
@@ -3783,3 +3786,21 @@ Successor uses existing generated-only sudo descriptor mechanism; early prefligh
 holds before allocation if visibility missing. Focused2PASS. No gate/limits change.
 Exact successor CI required. PR9 stillDRAFT;9deployment-base conflicts; manual
 production controls/verification/identity/allocation approvals remain held.
+
+
+### November 5 — frozen selected-recovery full application checkpoint PASS
+
+f7820026e78528dd1c1f4413dc2a62740b2711a7/CI42135084876 PASS exact Linux/export.
+Backend413/13privilegeskips all root-covered;controls121/0skips;root descriptor/
+UID/crash/reused-slot/joint proof PASS. Full225777-input bootstrap112.185s,peak
+1022881792B,RSS134221824B,all17structured exact/13248selected/legacy unchanged/
+newack forward recovered. Integrated4000committed+archived/0pending/errors,20
+publications,save134.675ms/heartbeat293.014ms,36.964s. Jointrecovered-input
+B→A→B→A PASS,save165.5ms/API192.8ms/SSE254.6ms;ackinterval1177.1ms includes
+intentionalfixturepauses,individualgapcause/livecadenceNOTPROVEN.
+See PR9_FULL_BOOTSTRAP_2026-11-05.md and sanitized evidence. Private exactmanifest
+andcapsule durable;source historicalorigin attestation stillNOTPROVEN. Finite
+corelogicalquota250k/256MiB qualifiedgenerated only;physical/host/time gates unchanged.
+Production manualscope/expiry/post-quiescentbinding/fullverification/independent
+service allocation/fullrawcapacity and9mergeconflicts remain open. No approval
+request before technical readiness;no production change. PR9DRAFT,I7/Phase1.75OPEN.

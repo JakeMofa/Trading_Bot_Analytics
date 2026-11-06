@@ -6,22 +6,25 @@ production authorization.
 
 ## Resume here
 
-Heartbeat candidate8bb945a exactCI42126289598 PASS; docs64f6018. Preserve old1547
-heartbeat FAIL. New selected recovery full ApplicationStore bootstrap candidate
-is being frozen: see PR9_FULL_BOOTSTRAP_2026-11-05.md for current evidence/STOPs.
-Local225777-input bootstrap PASS81.828s/1079271424B disk/178372608B RSS; exact
-Linux53d8582/CI42134362083 FAIL only at final root-required cleanup proof;
-bootstrap/new-ack/restart completed. Successor corrects generated-only sudo route
-and fails early if Linux visibility missing; exact successor CI still required. Explicit generated250k/256MiB logical admission,
-original physical/time/RAM caps unchanged. Core layout3, explicit pinned capsule,
-worker history/protected reads, bounded logical growth, owned-FD TEMP accounting.
-Private exact manifest/capsule under ignored data/recovery-evidence/selected-2026-11-05-v1;
-committed sanitized attestation preserves hashes, no raw/protected data.
-Next: exact Linux qualification; resolve post-quiescent binding and full legacy
-verification scope before production manual adapter/identity/root authorization.
-Independent systemd process allocation and full raw-volume budget remain open.
-PR9 DRAFT, production STOP, retirement/paidAI OFF, I7/Phase1.75 OPEN.
-Preserve unrelated AGENTS.md and596-line roadmap changes. No new branch/worktree.
+Frozen generated candidate f7820026e78528dd1c1f4413dc2a62740b2711a7,exact Linux
+CI42135084876 PASS. Read PR9_FULL_BOOTSTRAP_2026-11-05.md for consolidated results.
+413backend/13privilegeskips all root-covered,121controls/0skips. Full225777-input
+ApplicationStore bootstrap112.185s,peak1022881792B/RSS134221824B,all17tables exact,
+13248selected inputs,legacy unchanged,newack229700 preserved across restart.
+Integrated4000committed/archived,20publications,save134.675ms/heartbeat293.014ms;
+root recovered-input B→A→B→A actualHTTP/SSE/scheduler/feature/lifecycle PASS.
+Exact private manifest/report/capsule durable under ignored data/recovery-evidence;
+sanitzed attestations committed. Historical source origin attestation NOTPROVEN.
+Prior1547heartbeat FAIL and53d8582 cleanup-visibility FAIL remain failures.
+Core layout3 explicit recovery consumer and finite250krows/256MiBlogical quota
+qualified GENERATED;default production holds and all physical/time/RAM limits kept.
+Next: resolve production post-quiescent binding/full verification policy,actual
+independent-service/raw-volume allocation andmanual identity/root/expiry scope;
+9deployment-base merge conflicts need review. No executable production command
+or fresh approval request until technical prerequisites pass. Oldauthorityexpired.
+No production transfer/repair/restart/migration/deletion/guard change. Initial
+retirement andpaidAI OFF;PR9DRAFT,I7/Phase1.75OPEN,RedisDEFERRED.
+Preserve unrelated AGENTS.md/596-line roadmap edits;no newbranch/worktree.
 
 ## Read first and establish ownership
 

@@ -1,5 +1,16 @@
 # Phase 1.75 requirement reconciliation — November 5, 2026
 
+Current checkpoint: **f782002 / exact CI42135084876 PASS generated**. The
+[full bootstrap result](PR9_FULL_BOOTSTRAP_2026-11-05.md) supersedes earlier
+partial-table/scope estimates below:17structured tables,225777audited inputs,
+explicit250k/256MiBlogical qualification;original host/time/physical caps unchanged.
+Recovery selected13248 verified inputs now consumed by actual ApplicationStore;
+finite core admission and owned Linux FD/TEMP measurement implemented. Production
+full-volume/independent-service allocation,post-quiescent binding,complete legacy
+verification and manual identity/expiry scope remain OPEN,as do9merge conflicts.
+All historical failures/evidence retain original scope. PR9DRAFT,I7/Phase1.75OPEN.
+
+
 PR #9 is the **current integration milestone**, not the production release or
 Phase1.75 completion. Working/deployment branches remain unchanged. This dated
 reconciliation governs interpretation of older checked boxes; it preserves their

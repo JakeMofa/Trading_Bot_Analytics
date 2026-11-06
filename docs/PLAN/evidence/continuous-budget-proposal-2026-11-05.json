@@ -1,0 +1,65 @@
+{
+  "aggregate_bytes": 25769803776,
+  "core_bytes_include_WAL_and_SHM": true,
+  "current_blockers": [
+    "64MiB per-slot and 2GiB new-layout limits",
+    "100000-event lifetime ledger admission",
+    "512MiB physical core and 250000-row/256MiB logical core audit",
+    "10000 protected-reference and per-dataset manifest limits",
+    "normal-runtime aggregate service accounting and write overrun not qualified",
+    "fresh final readback must fit <=8 objects and original 30-second operation; cached checks alone cannot retire",
+    "5GiB target unqualified within approved 2GiB generated workspace"
+  ],
+  "extrapolations_not_qualification": {
+    "B_growth_during_transfer_floor_bytes": 219100239.04636952,
+    "B_growth_during_verification_scheduling_floor_bytes": 640972800.0,
+    "active_window_at_trigger_seconds": 129055.5076923077,
+    "archive_compressed_bytes": 1600401408.0,
+    "assumed_physical_ingest_bytes_per_second": 33280.0,
+    "excludes": [
+      "manifest/checkpoint API latency",
+      "structured backlog",
+      "outages/retries",
+      "core growth",
+      "reader drain tail",
+      "burst/WAL growth"
+    ],
+    "object_count_at_small_probe_size": 2568,
+    "second_readback_floor_with_8_objects_per_60s_cycle_seconds": 19260,
+    "upload_readback_recheck_and_cpu_floor_seconds": 6583.540836729853
+  },
+  "filesystem_free_floor_bytes": 10737418240,
+  "full_profile_runtime_supported": false,
+  "maximum_active_age_seconds": 259200,
+  "parts_bytes": {
+    "A_main_WAL_SHM": 5368709120,
+    "B_main_WAL_SHM": 5368709120,
+    "archive_working_and_capsule": 1073741824,
+    "core_main_WAL_SHM": 4294967296,
+    "recovery_reserve": 1073741824,
+    "retained_legacy_and_observed_fds": 5369188352,
+    "verification_TEMP": 536870912
+  },
+  "parts_total_bytes": 23085928448,
+  "production_authorized": false,
+  "qualification_resource_gap": {
+    "approved_workspace_bytes": 2147483648,
+    "minimum_RAM_for_full_fixture": "NOT_MEASURED",
+    "proposed_full_envelope_bytes": 23085928448,
+    "total_runtime_for_full_fixture": "NOT_MEASURED",
+    "workspace_shortfall_bytes": 20938444800
+  },
+  "slot_bytes_include_WAL_and_SHM": true,
+  "status": "PROPOSAL_NOT_AUTHORITY",
+  "temporary_recovery": {
+    "ledger_hours_at_assumed_6_7_events_per_second": 4.1459369817578775,
+    "measured_outage_after_seal_simulated_seconds": 61.395,
+    "not_required_for_staged_core_recovery": true,
+    "production_runway_seconds": null,
+    "retirement_enabled": false,
+    "slot_cap_bytes": 67108864,
+    "trigger_bytes": 2097152
+  },
+  "trigger_bytes": 4294967296,
+  "unassigned_margin_bytes": 2683875328
+}

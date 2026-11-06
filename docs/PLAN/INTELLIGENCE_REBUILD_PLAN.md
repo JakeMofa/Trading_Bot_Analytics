@@ -3838,3 +3838,22 @@ qualification. Oldfullcheck1790stimeoutunknownphase;oldpreflightfreshfeed/ceilin
 cannotpassstorage-heldstate. SeePR9_CUTOVER_READINESS_2026-11-05.md forexecutable
 review,gatedprocedure andsupportedlimits. No heavy scan/newVMtrial/deploy/mutation.
 I7/Phase1.75OPEN;capacity/expiryproposal unapplied;no approvalrequestprematurely.
+
+
+### November 5 — interrupted resumable-verification checkpoint candidate
+
+Preserve4bc3699/CI42144544730 baseline. Opt-in bounded per-generation verification
+progress now persists across lifecycle actors/cycles,invalidates changed file/ledger/
+manifest/validator/expired proof,and NEVER bypasses final fresh authenticated readback.
+Late remote corruption blocks retirement;final tail exceeding object/time budget
+remainsHOLD. OFF→archive→enable→B/A/B/A actual joint regression prepared for rootCI.
+Wholelegacy quick_check+all declaring FKtables stillrequired;durable table progress
+added,8focusedcontrolsPASS. Local incremental7tests/1rootskip;wholebackend425PASS
+prior finaldeadline/corruption additions;controls123PASS/3platformskips. ExactCIpending.
+5GiBslots provisional;one24GiB proposed aggregate includes2x5GiBslots,WAL/core4GiB,
+working1GiB,TEMP0.5GiB,recovery1GiB,retained5.000446GiB (21.500446assigned).
+Current8GiB/64MiB/2MiB/OFF isfinite,notcontinuous5GiB;ledger/core/audit/final-fresh
+readback limits explicitly blockscale. Fullenvelopeexceedsapproved2GiBfixtureby
+19.500446GiB;no newVM/cloud/fullsizeworkload or productionchange. See
+PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md for coherent conditional release sequence,
+measured vs proposed vs applied settings and remaining gates. PR9DRAFT,Phase1.75OPEN.

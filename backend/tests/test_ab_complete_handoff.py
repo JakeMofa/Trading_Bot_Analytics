@@ -45,7 +45,7 @@ def lifecycle_child(root,connection,deadline):
             if request.method=='GET' and '/storage/' in request.url.path:time.sleep(.06)
             return super().handle(request)
     remote=SlowRemote(Path(root)/'cloud')
-    env=environment(root,True);env['AB_STARTUP_MODE']='fresh-b'
+    env=environment(root,False);env['AB_STARTUP_MODE']='fresh-b';env['AB_RETIRE_VERIFY_OBJECTS']='8'
     worker=None
     try:
         with patch.dict(os.environ,env,clear=True),patch.object(run_cloud_lifecycle,'SupabaseHTTP',side_effect=lambda config:remote.client(time.monotonic()+30).cloud):
@@ -55,6 +55,9 @@ def lifecycle_child(root,connection,deadline):
                 if not connection.poll(max(0,deadline-time.monotonic())):raise TimeoutError('original lifecycle deadline')
                 command=connection.recv()
                 if command=='close':return
+                if command=='enable-retirement':
+                    worker.storage_runtime.retirement=True
+                    connection.send({'retirement_enabled':True});continue
                 connection.send(worker.run_cycle(force=command=='force'))
     except BaseException as error:
         try:connection.send({'status':'FAIL','error_type':type(error).__name__})
@@ -262,10 +265,19 @@ class CompleteHandoff(unittest.TestCase):
                                         result=await archive
                                         if producer.done():producer.result()
                                         self.assertEqual(result['status'],'ok',result)
-                                        self.assertEqual(result['generation_retirement']['status'],'held',result)
+                                        self.assertEqual(result['generation_retirement']['status'],'disabled' if phase==1 else 'held',result)
                                         self.assertTrue(raw.exists());self.assertGreater(len(acknowledgements),before_count)
+                                        if phase==1:
+                                            metrics['archive_completed_while_retirement_disabled']=True
+                                            lifecycle_pipe.send('enable-retirement')
+                                            self.assertEqual(await asyncio.to_thread(lifecycle_pipe.recv),{'retirement_enabled':True})
+                                            metrics['retirement_enabled_without_collector_restart']=True
                                         hold.close();store.rotation_tick(clock[0])
-                                        result=await lifecycle_run()
+                                        for verification_attempt in range(8):
+                                            result=await lifecycle_run(True)
+                                            self.assertEqual(result['status'],'ok',result)
+                                            if result['generation_retirement']['status']=='ok':break
+                                        metrics.setdefault('incremental_verification_cycles',[]).append(verification_attempt+1)
                                         self.assertEqual(result['generation_retirement']['status'],'ok',result)
                                         self.assertFalse(raw.exists());metrics['retirement_readbacks_and_reader_hold']+=1
                                         feature_wake.set();await until(lambda:len(published)>=phase+1)

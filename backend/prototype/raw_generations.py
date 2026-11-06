@@ -589,6 +589,7 @@ LEFT JOIN evidence p ON p.id=e.id WHERE e.gen=? LIMIT 10001
                 self.trip('retirement_authorized')
                 self._remove(gid)
     def _remove(self,gid):
+        if getattr(self,'retirement_guard',None):self.retirement_guard()
         if self.leases.get(gid) or self._owners(gid):raise Stop('retirement drain not proven')
         # Read-only readers can leave empty sidecars. An ordinary metadata
         # connection/close lets SQLite perform its normal last-close cleanup.
@@ -603,7 +604,9 @@ LEFT JOIN evidence p ON p.id=e.id WHERE e.gen=? LIMIT 10001
         if self._owners(gid):raise Stop('handle opened before unlink')
         if any(Path(str(self.path(gid))+suffix).exists() for suffix in ('-wal','-shm')):raise Stop('sidecars remain; no manual WAL deletion')
         self.allocation()
-        if self.path(gid).exists():self.path(gid).unlink()
+        if self.path(gid).exists():
+            if getattr(self,'retirement_guard',None):self.retirement_guard()
+            self.path(gid).unlink()
         self.trip('retirement_file_removed')
         with self.core:self.core.execute("UPDATE generations SET state='retired' WHERE id=?",(gid,))
 

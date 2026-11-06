@@ -42,7 +42,12 @@ def configured_runtime(environ=None):
     recovery={k:env.get(k) for k in recovery_keys}
     if any(recovery.values()) and (mode!='fresh-b' or not all(recovery.values())):raise RuntimeError('complete explicit fresh-B recovery binding required')
     recovery=recovery if any(recovery.values()) else None
-    return StorageRuntime(root,legacy,size,enabled(env.get('ENABLE_AB_RETIREMENT','false')),fresh_b=mode=='fresh-b',aggregate_bytes=ceiling,migration_rows=rows,migration_bytes=audit_bytes,recovery_files=recovery)
+    try:
+        verify_objects=int(env.get('AB_RETIRE_VERIFY_OBJECTS','0'))
+        verify_age=int(env.get('AB_RETIRE_VERIFY_MAX_AGE','300'))
+    except (TypeError,ValueError):raise RuntimeError('invalid retirement verification policy') from None
+    if not 0<=verify_objects<=8 or not 1<=verify_age<=21600:raise RuntimeError('retirement verification policy out of bounds')
+    return StorageRuntime(root,legacy,size,enabled(env.get('ENABLE_AB_RETIREMENT','false')),fresh_b=mode=='fresh-b',aggregate_bytes=ceiling,migration_rows=rows,migration_bytes=audit_bytes,recovery_files=recovery,verify_objects=verify_objects,verify_age=verify_age)
 
 
 def adapter_modules():
@@ -54,7 +59,7 @@ def adapter_modules():
 
 
 class StorageRuntime:
-    def __init__(self,root,legacy,threshold,retirement=False,fresh_b=False,aggregate_bytes=2*1024**3,migration_rows=None,migration_bytes=128*1024**2,recovery_files=None):
+    def __init__(self,root,legacy,threshold,retirement=False,fresh_b=False,aggregate_bytes=2*1024**3,migration_rows=None,migration_bytes=128*1024**2,recovery_files=None,verify_objects=0,verify_age=300):
         self.root = Path(root)
         self.legacy = Path(legacy)
         self.threshold = threshold
@@ -63,6 +68,7 @@ class StorageRuntime:
         self.migration_rows = migration_rows or (60000 if fresh_b else 10000)
         self.fresh_b = fresh_b
         self.retirement = retirement
+        self.verify_objects,self.verify_age=verify_objects,verify_age
         self.handle = None
 
     @property
@@ -112,6 +118,7 @@ class StorageRuntime:
         from raw_generations import Stop
         actor = RetirementProtocol(self.root,self.legacy)
         outcomes = {}
+        progress={}
         try:
             pending = actor.core.execute(
                 "SELECT id FROM generations WHERE state IN ('sealed','draining','retiring') ORDER BY started"
@@ -120,13 +127,18 @@ class StorageRuntime:
                 raise RuntimeError('generation registry exceeds two slots')
             for (gid,) in pending:
                 try:
-                    actor.retire(gid,cloud,now)
-                    outcomes[gid] = 'retired'
+                    if self.verify_objects:
+                        from incremental_retirement import step
+                        progress[gid]=step(actor,gid,cloud,now,max_objects=self.verify_objects,max_age=self.verify_age)
+                        outcomes[gid]=progress[gid]['status']
+                    else:
+                        actor.retire(gid,cloud,now)
+                        outcomes[gid] = 'retired'
                 except Stop as error:
                     # Holds are finite, visible, and revisited by the next
                     # lifecycle poll. Verification exceptions propagate.
                     outcomes[gid] = str(error)
             return {'status':'held' if any(value!='retired' for value in outcomes.values()) else 'ok',
-                    'generations':outcomes}
+                    'generations':outcomes, 'verification_progress':progress}
         finally:
             actor.close()

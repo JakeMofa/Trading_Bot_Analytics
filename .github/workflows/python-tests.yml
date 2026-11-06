@@ -46,6 +46,7 @@ jobs:
           sudo -n env PYTHONDONTWRITEBYTECODE=1 AB_REPORT_PATH="$RUNNER_TEMP/ab-generated-report.json" "$(command -v python)" -m unittest discover -s backend/tests -p test_raw_generations.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_application.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_runtime.py -v
+          sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_incremental_retirement.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_cutover.py -v
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" backend/prototype/run_joint_qualification.py --report "$RUNNER_TEMP/ab-joint-report.json"
           sudo -n chmod 0644 "$RUNNER_TEMP/ab-joint-report.json"

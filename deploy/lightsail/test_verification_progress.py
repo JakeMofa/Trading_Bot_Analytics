@@ -8,6 +8,19 @@ import release_verification as v
 import maintenance_host as h
 
 class ProgressTests(unittest.TestCase):
+    def test_all_declaring_tables_are_checked_and_failure_names_exact_table(self):
+        with tempfile.TemporaryDirectory() as folder:
+            p=self.fixture(folder);report=Path(folder)/'progress.json'
+            with sqlite3.connect(p) as db:
+                db.executescript('CREATE TABLE z(id REFERENCES p(id));CREATE TABLE no_fk(x);INSERT INTO z VALUES(8);')
+                self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchone()[0],'z')
+            with self.assertRaises(v.Stop):v.check_database(p,3,report)
+            partial=v.read_verification_progress(report,os.getpid())
+            self.assertEqual(partial['active_table'],'z');self.assertEqual(partial['foreign_key_tables_completed'],1)
+            with sqlite3.connect(p) as db:db.execute('DELETE FROM z')
+            self.assertEqual(v.check_database(p,3,report)['status'],'PASS')
+            self.assertEqual(v.read_verification_progress(report,os.getpid())['foreign_key_tables_completed'],2)
+
     def fixture(self,folder,broken=False):
         p=Path(folder)/'generated.db'
         with sqlite3.connect(p) as db:
@@ -35,7 +48,7 @@ class ProgressTests(unittest.TestCase):
                     def __init__(self,*a,**kw):self.db=connect(*a,**kw)
                     def __getattr__(self,name):return getattr(self.db,name)
                     def execute(self,sql,*a):
-                        if sql=='PRAGMA '+failed:raise TimeoutError('generated-only controlled deadline')
+                        if sql.startswith('PRAGMA '+failed):raise TimeoutError('generated-only controlled deadline')
                         return self.db.execute(sql,*a)
                 with patch.object(v.sqlite3,'connect',Connection),self.assertRaises(TimeoutError):v.check_database(p,3,report)
                 d=v.read_verification_progress(report,os.getpid())
@@ -58,7 +71,7 @@ class ProgressTests(unittest.TestCase):
                 def __init__(self,*a,**kw):self.db=connect(*a,**kw)
                 def __getattr__(self,n):return getattr(self.db,n)
                 def execute(self,sql,*a):
-                    if sql=='PRAGMA foreign_key_check':raise KeyboardInterrupt()
+                    if sql.startswith('PRAGMA foreign_key_check'):raise KeyboardInterrupt()
                     return self.db.execute(sql,*a)
             with patch.object(v.sqlite3,'connect',Connection),self.assertRaises(KeyboardInterrupt):v.check_database(p,3,report)
             d=v.read_verification_progress(report,os.getpid());self.assertEqual(d['error_type'],'KeyboardInterrupt');self.assertEqual(d['active_check'],'foreign_key_check');self.assertEqual(len(d['checks']),1)

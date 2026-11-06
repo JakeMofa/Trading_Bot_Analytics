@@ -165,6 +165,10 @@ def read_verification_progress(path,pid):
         # Return only bounded metadata; arbitrary JSON fields are never logged.
         out={k:value[k] for k in ('format','pid','status','active_check','elapsed_seconds') if k in value}
         out['checks']=[{k:c[k] for k in ('check','status','seconds')} for c in checks]
+        table=value.get('active_table')
+        if table is None or (isinstance(table,str) and re.fullmatch('[A-Za-z_][A-Za-z_0-9]{0,127}',table)):out['active_table']=table
+        count=value.get('foreign_key_tables_completed')
+        if type(count) is int and 0<=count<=256:out['foreign_key_tables_completed']=count
         error=value.get('error_type')
         if isinstance(error,str) and re.fullmatch('[A-Za-z][A-Za-z0-9_]{0,63}',error):out['error_type']=error
         return out
@@ -188,10 +192,24 @@ def check_database(path, seconds, progress=None):
         for name in ('quick_check','foreign_key_check'):
             state['active_check']=name;publish()
             require(time.monotonic()-started<seconds,'verification deadline')
-            at=time.monotonic();cursor=db.execute('PRAGMA '+name)
-            first=cursor.fetchone()
-            valid=(first==('ok',) and cursor.fetchone() is None) if name=='quick_check' else first is None
-            require(valid,name+' failed')
+            at=time.monotonic()
+            if name=='quick_check':
+                cursor=db.execute('PRAGMA quick_check');first=cursor.fetchone()
+                require(first==('ok',) and cursor.fetchone() is None,'quick_check failed')
+            else:
+                # Same complete FK scope, with a durable boundary per declaring
+                # table. Never substitute sampled rows or table-local integrity.
+                tables=db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name LIMIT 257").fetchall()
+                require(len(tables)<=256,'foreign key schema bound')
+                state['foreign_key_tables_completed']=0
+                for (table,) in tables:
+                    require(re.fullmatch('[A-Za-z_][A-Za-z_0-9]{0,127}',table),'unsupported table identity')
+                    if not db.execute('PRAGMA foreign_key_list("'+table+'")').fetchone():continue
+                    state['active_table']=table;publish()
+                    require(time.monotonic()-started<seconds,'verification deadline')
+                    require(db.execute('PRAGMA foreign_key_check("'+table+'")').fetchone() is None,'foreign_key_check failed')
+                    state['foreign_key_tables_completed']+=1;publish()
+                state['active_table']=None
             checks.append({'check':name,'status':'PASS','seconds':time.monotonic()-at})
             state['active_check']=None;publish()
         require(time.monotonic()-started<seconds,'verification deadline')

@@ -350,7 +350,15 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
         previous=getattr(self.protocol._application_writer,'authorized',False)
         self.protocol._application_writer.authorized=True
         try:yield
-        except BaseException:
+        except BaseException as error:
+            known={'both slots retained: bounded ingestion STOP, no backlog',
+                   'fresh persistent event ledger limit STOP','aggregate/core physical guard STOP',
+                   'fresh per-slot allocation STOP','fresh layout quota STOP',
+                   'raw reader leases open or retirement in progress','pending intent must recover before another event'}
+            self.last_save_failure={'type':type(error).__name__,
+                'sqlite_code':getattr(error,'sqlite_errorcode',None),
+                'sqlite_name':getattr(error,'sqlite_errorname',None),
+                'reason':str(error) if str(error) in known else None}
             self.hold='durable_raw_save_failed';raise
         finally:
             self.protocol._application_writer.authorized=previous

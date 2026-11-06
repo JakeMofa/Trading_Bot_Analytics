@@ -3867,3 +3867,13 @@ retirement causeddraining. Existinglease correctly blockedunlink. Successor call
 existingrotation_tickafterheldtransition;unchanged8attempt/170s/180s/gates. Added
 failclosed malformeddeadline rejection. No unchangedretry/prodchange;failedrun
 andNOTCOMPLETEDlatergates preserved in evidence/incremental-be6e121-failure.json.
+
+
+### November 5 — retain original save failure;normal lifecycle progress cycles
+
+4774946/CI42160233749 FAIL joint withdurable_raw_save_failed hold;7incremental
+root testsPASS. Underlyingproducer exceptionnotretained,causeNOTPROVEN. Successor
+restoresnormal post-archive lifecycle cycles instead offorcingstructured sync per
+attempt,surfacesproducer failures,andadds sanitized first-save-error metadata.
+No holdclear/readerbypass/retry/gatechange.8focusedtestsPASSlocal/1rootskip.
+Failed477/be6 evidence preserved;productionunchanged;exactsuccessorCIrequired.

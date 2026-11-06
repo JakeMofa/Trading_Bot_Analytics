@@ -204,3 +204,22 @@ and no reader safety rule was bypassed. Deadline validation additionally rejects
 NaN/infinite/malformed boundaries rather than ignoring them. Focused7tests pass
 locally; successor exact Linux CI required. Later import/integrated gates in the
 failed run were NOT COMPLETED.
+
+## Second Linux result and targeted diagnostic correction
+
+4774946/CI42160233749 FAIL. All7incremental tests again PASS as root. The joint
+fixture surfaced a collector durable_raw_save_failed hold;the underlying error
+was swallowed by its task cleanup,so the first stage-barrier explanation is NOT
+established as the full cause. No hold is cleared or reader check relaxed.
+The new regression had forced structured synchronization on every verification
+attempt;the original path used normal lifecycle scheduling after the initial
+archive. Successor restores normal cycles,allows their explicit idle state,
+surfaces producer failures and preserves sanitized first failure type/SQLite code/
+whitelisted admission reason. The object/retry/time/resource gates stay unchanged.
+A focused admission-failure diagnostic test passes;incremental suite8tests locally
+passes with1root-only skip. Both failed CIs remain FAIL and later gates unexecuted.
+
+The current worker already prioritizes new seal/drain tokens, caps pending-seal
+archive spacing at30s and invokes after_archive on idle handoff cycles. Thus the
+hourly default does not by itself establish the small-slot outage runway. Force-
+cycle test results still cannot qualify normal live cadence or5GiB completion.

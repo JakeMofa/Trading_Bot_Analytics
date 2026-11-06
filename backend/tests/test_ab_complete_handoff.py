@@ -274,9 +274,10 @@ class CompleteHandoff(unittest.TestCase):
                                             metrics['retirement_enabled_without_collector_restart']=True
                                         hold.close();store.rotation_tick(clock[0])
                                         for verification_attempt in range(8):
-                                            result=await lifecycle_run(True)
-                                            self.assertEqual(result['status'],'ok',result)
-                                            if result['generation_retirement']['status']=='ok':break
+                                            result=await lifecycle_run()
+                                            if producer.done():producer.result()
+                                            self.assertIn(result['status'],('ok','idle'),result)
+                                            if result.get('generation_retirement',{}).get('status')=='ok':break
                                             # OFF-first activation can enter draining only
                                             # now; run the real owner-thread refresh after
                                             # that transition, not only before it.
@@ -316,7 +317,14 @@ class CompleteHandoff(unittest.TestCase):
                         self.assertLess(metrics['save_max_seconds'],1);self.assertLess(metrics['heartbeat_max_seconds'],1)
                         self.assertLess(metrics['api_max_seconds'],2);self.assertLess(metrics['sse_max_seconds'],2)
                         self.assertLess(metrics['history_max_seconds'],1);self.assertLess(metrics['feature_max_seconds'],30)
-                    asyncio.run(scenario())
+                    try:asyncio.run(scenario())
+                    except BaseException as error:
+                        metrics.update(status='FAIL',failure_type=type(error).__name__,
+                            collector_failure=getattr(store,'last_save_failure',None),
+                            sqlite_code=getattr(error,'sqlite_errorcode',None))
+                        if os.environ.get('AB_JOINT_REPORT_PATH'):
+                            with open(os.environ['AB_JOINT_REPORT_PATH'],'x') as report:json.dump(metrics,report,sort_keys=True)
+                        raise
                     metrics['allocation']=store.protocol.allocation();self.assertLess(metrics['allocation']['total_bytes'],2*1024**3)
             finally:
                 if history_hold[0]:history_hold[0].close()

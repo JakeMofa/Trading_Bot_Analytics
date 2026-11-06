@@ -1,0 +1,12 @@
+{
+  "ci_run": 42160233749,
+  "correction": "use normal lifecycle cycles after initial archive instead of repeatedly forcing structured sync; surface producer errors and persist sanitized failure metadata",
+  "failed_gate": "joint OFF-first application handoff",
+  "later_import_and_integrated_jobs": "NOT_COMPLETED",
+  "observed": "collector durable_raw_save_failed hold surfaced during attachment refresh",
+  "root_incremental_tests_passed": 7,
+  "source_sha": "47749464330c3cc14d48296db262d19023ecae7b",
+  "status": "FAIL",
+  "unchanged_limits": true,
+  "underlying_cause": "NOT_PROVEN: original collector exception not retained"
+}

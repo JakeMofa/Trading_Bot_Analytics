@@ -16,6 +16,17 @@ class Remote(MemoryArchive):
         return super().download_bytes(*args)
 
 class Tests(unittest.TestCase):
+    def test_save_hold_keeps_sanitized_underlying_admission_reason(self):
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            store,path,gid,remote,now=self.fixture(root)
+            try:
+                store.protocol.fresh_event_limit=1
+                with closing(store.connection()) as db,self.assertRaises(Stop):db.save_observation('m',iso(now),'book',{},iso(now))
+                self.assertEqual(store.hold,'durable_raw_save_failed')
+                self.assertEqual(store.last_save_failure['reason'],'fresh persistent event ledger limit STOP')
+                self.assertIsNone(store.last_save_failure['sqlite_code'])
+            finally:store.close()
+
     def test_expired_whole_operation_does_not_start_or_retire(self):
         with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
             store,path,gid,remote,now=self.fixture(root);actor=RetirementProtocol(root,path)

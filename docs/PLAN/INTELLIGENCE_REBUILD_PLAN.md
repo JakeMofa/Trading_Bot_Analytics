@@ -3857,3 +3857,13 @@ readback limits explicitly blockscale. Fullenvelopeexceedsapproved2GiBfixtureby
 19.500446GiB;no newVM/cloud/fullsizeworkload or productionchange. See
 PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md for coherent conditional release sequence,
 measured vs proposed vs applied settings and remaining gates. PR9DRAFT,Phase1.75OPEN.
+
+
+### November 5 — OFF-first joint regression stage-boundary correction
+
+be6e121/CI42159636989 FAIL joint handoff:all7newincrementaltestsPASSasroot;
+fixture neededrealowner-thread attachment refresh after (notonlybefore) enabling
+retirement causeddraining. Existinglease correctly blockedunlink. Successor calls
+existingrotation_tickafterheldtransition;unchanged8attempt/170s/180s/gates. Added
+failclosed malformeddeadline rejection. No unchangedretry/prodchange;failedrun
+andNOTCOMPLETEDlatergates preserved in evidence/incremental-be6e121-failure.json.

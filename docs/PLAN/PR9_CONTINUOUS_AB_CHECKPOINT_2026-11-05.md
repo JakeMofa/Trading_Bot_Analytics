@@ -190,3 +190,17 @@ as applied settings. The latest interrupted task's bounded-resume and failure
 regressions are a distinct generated checkpoint; the5GiB target stays provisional.
 I7/Phase1.75,real freshness/boundary,cloud recovery/visibility/sustained operation,
 raw replay and deferred knowledge/RAG stay open. Redis stays deferred.
+
+## First exact Linux run: failed stage barrier, preserved as FAIL
+
+be6e121 /CI42159636989: all7incremental tests passed as Linux root, including
+real retirement after enablement. The repeated application handoff failed because
+OFF-first startup did not enter draining until the first enabled retirement call.
+The fixture refreshed its collector attachment before that call,then issued8fast
+retirement attempts without another owner-thread refresh. Its own shared lease
+correctly blocked unlink. The fix calls the existing rotation_tick after a held
+transition,using the real collector detach path. No retries/timeouts were increased
+and no reader safety rule was bypassed. Deadline validation additionally rejects
+NaN/infinite/malformed boundaries rather than ignoring them. Focused7tests pass
+locally; successor exact Linux CI required. Later import/integrated gates in the
+failed run were NOT COMPLETED.

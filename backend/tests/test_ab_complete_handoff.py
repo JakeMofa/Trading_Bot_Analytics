@@ -277,6 +277,10 @@ class CompleteHandoff(unittest.TestCase):
                                             result=await lifecycle_run(True)
                                             self.assertEqual(result['status'],'ok',result)
                                             if result['generation_retirement']['status']=='ok':break
+                                            # OFF-first activation can enter draining only
+                                            # now; run the real owner-thread refresh after
+                                            # that transition, not only before it.
+                                            store.rotation_tick(clock[0])
                                         metrics.setdefault('incremental_verification_cycles',[]).append(verification_attempt+1)
                                         self.assertEqual(result['generation_retirement']['status'],'ok',result)
                                         self.assertFalse(raw.exists());metrics['retirement_readbacks_and_reader_hold']+=1

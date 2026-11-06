@@ -59,7 +59,9 @@ class VerifiedSession:
 
 
 def step(actor,gid,cloud,now,*,max_objects=1,max_age=300,finalize=True,deadline=None):
-    end=min(time.monotonic()+30,getattr(cloud,'deadline',float('inf')),deadline if deadline is not None else float('inf'))
+    supplied=[value for value in (getattr(cloud,'deadline',None),deadline) if value is not None]
+    if any(type(value) not in (int,float) or not math.isfinite(value) for value in supplied):raise Stop('invalid verification operation deadline')
+    end=min([time.monotonic()+30,*supplied])
     if not math.isfinite(end) or time.monotonic()>=end:raise Stop('original verification operation deadline')
     def guard():
         if time.monotonic()>=end:raise Stop('original verification operation deadline')

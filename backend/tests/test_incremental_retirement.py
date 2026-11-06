@@ -21,6 +21,8 @@ class Tests(unittest.TestCase):
             store,path,gid,remote,now=self.fixture(root);actor=RetirementProtocol(root,path)
             try:
                 with self.assertRaisesRegex(Stop,'operation deadline'):step(actor,gid,remote,now,deadline=time.monotonic()-1)
+                for bad in (float('nan'),float('inf'),'invalid',True):
+                    with self.assertRaisesRegex(Stop,'operation deadline'):step(actor,gid,remote,now,deadline=bad)
                 self.assertEqual(remote.reads,0);self.assertTrue(store.protocol.path(gid).exists())
             finally:actor.close();store.close()
 

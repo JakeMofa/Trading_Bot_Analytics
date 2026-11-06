@@ -12,11 +12,12 @@ class MigrationBudget:
 
     def __post_init__(self):
         # Additional rows are allowed only through an explicit generated test
-        # argument. Byte/process/workspace limits are not enlarged.
-        if type(self.row_limit) is not int or not 0 < self.row_limit <= 150000:
-            raise ValueError('generated migration row scope exceeds 150000')
-        if type(self.byte_limit) is not int or not 0 < self.byte_limit <= 128*1024**2:
-            raise ValueError('generated migration byte scope exceeds 128MiB')
+        # argument. This logical scope is not a production policy. Physical workspace,
+        # process memory and original operation deadline are unchanged.
+        if type(self.row_limit) is not int or not 0 < self.row_limit <= 250000:
+            raise ValueError('generated migration row scope exceeds 250000')
+        if type(self.byte_limit) is not int or not 0 < self.byte_limit <= 256*1024**2:
+            raise ValueError('generated migration byte scope exceeds 256MiB')
         now=time.monotonic()
         if not math.isfinite(self.deadline) or not now < self.deadline <= now+170:
             raise ValueError('original generated migration deadline required (maximum 170s remaining)')

@@ -6,33 +6,20 @@ production authorization.
 
 ## Resume here
 
-Current selected-recovery candidate1547a433590eb6b41c3d93f6018d9d033cb5f21c.
-ExactCI42121991450 FAIL existingraw4000heartbeat1165.206ms(<1srequired),save727.764ms.
-Do not rerun unchanged or raise gate;causeNOTPROVEN. Raw/profilecode unchanged
-fromqualifiedcff60e4/CI42097085311. LatestCIexportedbackend392PASS/13root-skips,
-all9selectedrecoverytestsPASS on Linux;rootraw18/1failure;laterrootapplication/runtime/
-cutover/joint,controls/import/integratedNOTCOMPLETED. Localcontrols120PASS only.
-
-User approved historical candidate read-only verification +isolated stagingONLY.
-Source1983184896B/SHAa7edbb886d71d4690d608d915a975fe43c1ff9d194cb1c7dd54fdbbfa90787a6:
-fullintegrityok/zeroFK/user_version0. Actual13248rows(6755metadata/6493stream)verified
-andstagedPASS,0conflicts/unverifiable,6776snapshot/6745predictionrefs,369realmarkets,
-FULLsync2,retry0changes. Toolsactualrunb8786e0byteidentical in1547a43.5.596s,
-RSS102940672B,named-filepeak2142367108B inclsource/export/deps/stage:4.88MiBmargin.
-ActualLinuxvolume/anonymousTEMPpeakNOTPROVEN;not fullApplicationStorebootstrap.
-Privateexactmanifest/stage/report/streamspec at /private/tmp/generated-ab-recovery-s1r_pa53/.
-ManifestfileSHA9577e6f53d2150f107eb7fd6914a0dc93ab7d806d52f04a230347332765ff07b.
-SeeSELECTED_RECOVERY_REVIEW_2026-11-05.md forcanonicalhashes,limitations andconcrete
-STOP productionprocedure. No source DBcopy orproductionrepair/transfer/cutover.
-
-Nexteligibleofflinework:diagnoseCIheartbeatstallbeforequalification;implement/
-qualifyfullnewcore/capsuleconsumer withcurrentstructuredmarkets,exactrecoveredpins,
-restart/history/features/lifecycle and reviewed161602+row/logicalbytebudget. Existing
-150000/128MiBsupport insufficient/unproven;production8GiBproposal/manualscope held.
-Preserve2590/180/10 interruption/recovery/reap,initialretirementOFF,singlecollector,
-legacyfence,forwardrecoveryafterack. Historicalsourceverificationapproval doesnot
-approve source-use/deployment/guardchanges. PR9DRAFT;I7/Phase1.75OPEN;RedisDEFERRED.
-Preserve unrelated AGENTS.md/+596roadmap and all localdata/secrets.
+Heartbeat candidate8bb945a exactCI42126289598 PASS; docs64f6018. Preserve old1547
+heartbeat FAIL. New selected recovery full ApplicationStore bootstrap candidate
+is being frozen: see PR9_FULL_BOOTSTRAP_2026-11-05.md for current evidence/STOPs.
+Local225777-input bootstrap PASS81.828s/1079271424B disk/178372608B RSS; exact
+Linux/export still required. Explicit generated250k/256MiB logical admission,
+original physical/time/RAM caps unchanged. Core layout3, explicit pinned capsule,
+worker history/protected reads, bounded logical growth, owned-FD TEMP accounting.
+Private exact manifest/capsule under ignored data/recovery-evidence/selected-2026-11-05-v1;
+committed sanitized attestation preserves hashes, no raw/protected data.
+Next: exact Linux qualification; resolve post-quiescent binding and full legacy
+verification scope before production manual adapter/identity/root authorization.
+Independent systemd process allocation and full raw-volume budget remain open.
+PR9 DRAFT, production STOP, retirement/paidAI OFF, I7/Phase1.75 OPEN.
+Preserve unrelated AGENTS.md and596-line roadmap changes. No new branch/worktree.
 
 ## Read first and establish ownership
 

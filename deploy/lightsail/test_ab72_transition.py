@@ -1,5 +1,6 @@
 """Existing controller + actual generated adapter; no production enablement."""
 import importlib.util,sys,tempfile,unittest
+from contextlib import closing
 from pathlib import Path
 from datetime import timedelta
 HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
@@ -49,6 +50,44 @@ class GeneratedHost:
     def save(self,r):self.report=r
 
 class Tests(unittest.TestCase):
+    def test_selected_recovery_fresh_b_forward_control_path(self):
+        from test_recovery_bootstrap import Tests as RecoveryFixture
+        from allocation_measurement import measure
+        class RecoveryHost(GeneratedHost):
+            def __init__(self,root,fail):
+                self.generated_root=Path(root);self.fail=fail;self.actions=[];self.t=0;self.store=None
+                self.path,self.capsule,_,_,_=RecoveryFixture().fixture(self.generated_root,live_name='generated-legacy.db')
+                self.work=self.generated_root/'generated-ab-core';self.work.mkdir(mode=0o700)
+            def checkout_release(self,b):
+                self.action('transition')
+                self.store=ApplicationStore(self.work,self.path,routing=True,fresh_b=True,recovery=self.capsule)
+                with closing(self.store.connection()) as db:
+                    self.ack=db.save_observation('m',iso(T+timedelta(seconds=3)),'book',{'exact':'0.00000000000001'},iso(T))
+                self.store.close();self.store=None
+                self.action('after_commit')
+            def smoke(self,b):
+                self.action('smoke')
+                store=ApplicationStore(self.work,self.path,routing=True,fresh_b=True,recovery=self.capsule)
+                try:
+                    with closing(store.worker_connection('history')) as db:
+                        if db.execute('SELECT count(*) FROM predictions').fetchone()[0]!=1:raise RuntimeError('history discontinuity')
+                    if store.protocol.active()['slot']!='B':raise RuntimeError('wrong active buffer')
+                finally:store.close()
+                return {'status':'PASS','scope':'generated functional checks; no real venue/boundary'}
+        for fail in (None,'after_commit','smoke'):
+            with self.subTest(fail=fail),tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+                host=RecoveryHost(root,fail);binding=host.identity(1)
+                report=controller.run(host,lambda:host.t,generated_transition=True)
+                self.assertEqual(report['status'],'GENERATED_TRANSITION_SMOKE_TESTED' if fail is None else 'STOP',report)
+                self.assertEqual(host.identity(1),binding)
+                store=ApplicationStore(host.work,host.path,routing=True,fresh_b=True,recovery=host.capsule)
+                try:
+                    self.assertEqual(store.protocol.core.native.execute("SELECT count(*) FROM ab_events WHERE id=? AND status='committed'",(host.ack,)).fetchone()[0],1)
+                    self.assertFalse(store.retirement_enabled)
+                finally:store.close()
+                self.assertGreater(measure(root)['sampled_total_bytes'],0)
+                if fail:self.assertFalse(any(a.startswith('start:') for a in host.actions[host.actions.index('reap'):]))
+
     def test_actual_adapter_transition_and_forward_failure_preserve_commits(self):
         for fail in (None,'after_commit','smoke'):
             with self.subTest(fail=fail),tempfile.TemporaryDirectory(prefix='generated-ab-') as root:

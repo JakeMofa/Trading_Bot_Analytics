@@ -9,9 +9,18 @@ import tempfile
 import unittest
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from test_ab_application import legacy,ApplicationStore,Stop,T,iso,timedelta
+from application_validation import LAYOUT_VERSION,logical_size
 
 
 class ValidationTests(unittest.TestCase):
+    def test_historical_epoch_is_schema_specific(self):
+        from application_validation import row_check
+        row_check('historical_market_prices',{'source_time':1760000000})
+        for value in (True,'1760000000',float('nan'),10**30):
+            with self.assertRaises((ValueError,OverflowError,OSError)):
+                row_check('historical_market_prices',{'source_time':value})
+        with self.assertRaises(ValueError):row_check('stream_events',{'source_time':1760000000})
+
     def test_malformed_missing_and_unknown_legacy_inputs_block_activation(self):
         faults=(
             ("UPDATE markets SET target='NaN'",'decimal'),
@@ -79,7 +88,7 @@ class ValidationTests(unittest.TestCase):
                 path=Path(root)/'generated-legacy.db';legacy(path)
                 store=ApplicationStore(root,path,routing=True,fresh_b=True);store.close()
                 with closing(sqlite3.connect(Path(root)/'core.db')) as db,db:
-                    db.create_function('ab72_writer_enabled',0,lambda:1);db.create_function('ab72_layout_version',0,lambda:2);db.execute(sql)
+                    db.create_function('ab72_writer_enabled',0,lambda:1);db.create_function('ab72_layout_version',0,lambda:LAYOUT_VERSION);db.create_function('ab72_logical_size',-1,logical_size);db.execute(sql)
                 with self.assertRaises((Stop,ValueError)):
                     ApplicationStore(root,path,routing=True,fresh_b=True)
                 self.assertTrue(path.exists());self.assertTrue((Path(root)/'core.db').exists())
@@ -124,7 +133,7 @@ class ValidationTests(unittest.TestCase):
                 with store.protocol.core:store.protocol.pin_record(eid,dict(generation_id=gid,dataset='observations',row=row))
                 raw_path=store.protocol.path(gid);store.close()
                 with closing(sqlite3.connect(Path(root)/'core.db')) as db,db:
-                    db.create_function('ab72_writer_enabled',0,lambda:1);db.create_function('ab72_layout_version',0,lambda:2)
+                    db.create_function('ab72_writer_enabled',0,lambda:1);db.create_function('ab72_layout_version',0,lambda:LAYOUT_VERSION)
                     if fault=='missing':db.execute('DELETE FROM ab_evidence WHERE id=?',(eid,))
                     else:
                         body=json.loads(db.execute('SELECT record FROM ab_evidence WHERE id=?',(eid,)).fetchone()[0]);body['generation_id']='wrong-generation'

@@ -9,7 +9,7 @@ from pathlib import Path
 import hashlib,json,re,sqlite3,threading,gzip,time
 from datetime import datetime,timezone
 from migration_budget import MigrationBudget
-from application_validation import row_check,header,protected_core,LAYOUT_VERSION
+from application_validation import row_check,header,protected_core,LAYOUT_VERSION,logical_size
 from decimal import Decimal
 from raw_generations import Store,Stop,connect,canonical,COLUMNS,iso,digest
 import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
@@ -17,10 +17,14 @@ import collector,streaming,features,forecasts,cloud_memory,cloud_lifecycle
 RAW={'observations','stream_events'}
 MAX_ROWS=10000
 class ApplicationStore:
-    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None,migration_budget=None,fresh_b=False,aggregate_bytes=2*1024**3):
+    def __init__(self,root,legacy,routing=False,retirement=False,fault=None,generation_bytes=None,migration_budget=None,fresh_b=False,aggregate_bytes=2*1024**3,recovery=None,measurement=None):
         if retirement and not routing:raise Stop('inconsistent AB enablement')
         if not routing:raise Stop('AB application routing disabled by default')
         self.fresh_b=bool(fresh_b)
+        self.recovery=recovery
+        if recovery is not None:
+            from recovery_capsule import RecoveryCapsule
+            if not fresh_b or not isinstance(recovery,RecoveryCapsule):raise Stop('explicit verified fresh-B recovery capsule required')
         if type(aggregate_bytes) is not int or not 2*1024**3<=aggregate_bytes<=8*1024**3 or (not fresh_b and aggregate_bytes!=2*1024**3):raise Stop('unsupported generated aggregate budget')
         self.migration_budget=migration_budget or MigrationBudget(row_limit=60000 if fresh_b else 10000,deadline=time.monotonic()+170)
         if not isinstance(self.migration_budget,MigrationBudget):raise Stop('explicit migration budget required')
@@ -28,12 +32,18 @@ class ApplicationStore:
         self.import_metrics={}
         self.connections=set();self.connection_lock=threading.RLock();self.external_workers=set();self.worker_opening=0;self.closed=False
         self.protocol=Store(root,ceiling=aggregate_bytes,core_ceiling=512*1024**2 if fresh_b else None,fault=fault,application_namespace=True,generation_bytes=generation_bytes,initial_slot="B" if fresh_b else "A",recovery_deadline=self.migration_budget.deadline)
+        if measurement is not None:
+            if not callable(measurement):self.protocol.close();raise Stop('invalid qualification measurement callback')
+            original_guard=self.protocol.guard
+            def measured_guard():measurement();return original_guard()
+            self.protocol.guard=measured_guard
         self.root=self.protocol.root;self.legacy=Path(legacy)
         self.retirement_enabled=retirement;self.hold=None;self.collector_authority=True
         try:
             if self.legacy.is_symlink() or self.legacy.resolve().parent not in self._legacy_parents() or not self.legacy.name.startswith('generated-legacy'):
                 raise Stop('generated legacy allowlist required')
             self.legacy=self.legacy.resolve()
+            if self.recovery:self.recovery.assert_legacy(self.legacy)
             self._bind_external_legacy()
             self._fresh_limits(aggregate_bytes)
             self.protocol.guard()
@@ -54,6 +64,11 @@ class ApplicationStore:
         core=self.protocol.core.native;budget=self.migration_budget
         core.set_progress_handler(lambda:int(budget.expired()),1000)
         try:
+            core.execute('BEGIN IMMEDIATE')
+            table=core.execute("SELECT 1 FROM sqlite_master WHERE name='ab_recovery_binding'").fetchone()
+            binding=core.execute('SELECT proof FROM ab_recovery_binding WHERE id=1').fetchone() if table else None
+            expected=canonical(self.recovery.proof) if self.recovery else None
+            if (binding[0] if binding else None)!=expected:raise Stop('recovery proof binding missing/changed')
             if core.execute('PRAGMA user_version').fetchone()[0]!=0:raise Stop('unsupported core user_version')
             version=core.execute("SELECT 1 FROM sqlite_master WHERE name='ab_layout_version'").fetchone()
             if version:
@@ -70,10 +85,16 @@ class ApplicationStore:
                     if count>budget.row_limit or size>budget.byte_limit:raise Stop('core logical verification bound')
                     row_check(name,dict(row))
             with closing(connect(self.legacy,True,sealed_legacy=self.fresh_b)) as original:
-                protected_core(core,original,COLUMNS,budget)
+                protected_core(core,original,COLUMNS,budget,self.recovery.lookup if self.recovery else None)
             core.execute('CREATE TABLE IF NOT EXISTS ab_layout_version(id INTEGER PRIMARY KEY CHECK(id=1),version INTEGER NOT NULL)')
-            with core:core.execute('INSERT OR IGNORE INTO ab_layout_version VALUES(1,?)',(LAYOUT_VERSION,))
-        finally:core.set_progress_handler(None,0)
+            core.execute('INSERT OR IGNORE INTO ab_layout_version VALUES(1,?)',(LAYOUT_VERSION,))
+            if self.fresh_b:
+                from core_budget import install
+                self.core_logical_metrics=install(core,tables,count,size,budget.row_limit,budget.byte_limit)
+            self._write_guards(core);budget.check();core.commit()
+        finally:
+            core.set_progress_handler(None,0)
+            if core.in_transaction:core.rollback()
 
     def _fresh_limits(self,aggregate_bytes):
         if not self.fresh_b:return
@@ -87,6 +108,12 @@ class ApplicationStore:
         self.protocol.fresh_slot_limit=64*1024**2
         self.protocol.fresh_event_limit=100000
         self.protocol.retained_legacy_names={self.legacy.name,self.legacy.name+'-wal',self.legacy.name+'-shm'}
+
+    def _legacy_input(self,db,dataset,key):
+        fields=','.join(COLUMNS[dataset])
+        if dataset=='observations':row=db.execute('SELECT '+fields+' FROM observations WHERE id=?',(key,)).fetchone();proof_key=str(key)
+        else:row=db.execute('SELECT '+fields+' FROM stream_events WHERE source=? AND event_id=?',key).fetchone();proof_key=key[1]
+        return self.recovery.lookup(dataset,proof_key,row) if self.recovery else row
 
     def _legacy_parents(self):
         parents = {self.root}
@@ -111,6 +138,7 @@ CREATE TABLE IF NOT EXISTS ab_legacy_audit(dataset TEXT,key TEXT,fingerprint TEX
 CREATE TABLE IF NOT EXISTS ab_legacy_stream_ids(source TEXT,event_id TEXT,id INTEGER UNIQUE,PRIMARY KEY(source,event_id));
 CREATE TABLE IF NOT EXISTS ab_legacy_stream_pins(source TEXT,event_id TEXT,record TEXT NOT NULL,PRIMARY KEY(source,event_id));
 CREATE TABLE IF NOT EXISTS ab_legacy_pins(id INTEGER PRIMARY KEY,fingerprint TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS ab_recovery_binding(id INTEGER PRIMARY KEY CHECK(id=1),proof TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS ab_application_marker(id INTEGER PRIMARY KEY CHECK(id=1),layout TEXT NOT NULL);
 INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
         core.execute('CREATE TABLE IF NOT EXISTS ab_bootstrap_mode(id INTEGER PRIMARY KEY CHECK(id=1),mode TEXT NOT NULL)')
@@ -161,6 +189,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                     encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
                     if len(encoded)>1024**2 or audited_bytes>budget.byte_limit:raise Stop('generated migration audit byte bound exceeded')
                     audit.update(len(encoded).to_bytes(8,'big'));audit.update(encoded)
+            if self.recovery:audit.update(canonical(self.recovery.proof).encode())
             if self.fresh_b:audit.update(canonical({'mode':'fresh-b','sealed_legacy_binding':[r for r in source_binding if r[0]==self.legacy.name or r[2]>0]}).encode())
             identity=audit.hexdigest()
             self.import_metrics.update(rows=count,audited_bytes=audited_bytes,identity=identity,
@@ -178,6 +207,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             core.execute('BEGIN IMMEDIATE')
             core.execute('PRAGMA defer_foreign_keys=ON')
             try:
+                if self.recovery:core.execute('INSERT INTO ab_recovery_binding VALUES(1,?)',(canonical(self.recovery.proof),))
                 for row in schema:
                     if row['name']=='stream_events':continue
                     if not re.fullmatch('[A-Za-z_][A-Za-z_0-9]*',row['name']) or row['name'].startswith('ab_'):raise Stop('unsupported legacy table')
@@ -229,9 +259,9 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                     if not exists:raise Stop('legacy raw schema missing')
                     if self.fresh_b:
                         if name=='observations':
-                            selected=(legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM observations WHERE id=?',(key,)).fetchone() for key in sorted(protected))
+                            selected=(self._legacy_input(legacy,name,key) for key in sorted(protected))
                         else:
-                            selected=(legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM stream_events WHERE source=? AND event_id=?',key).fetchone() for key in sorted(protected_stream))
+                            selected=(self._legacy_input(legacy,name,key) for key in sorted(protected_stream))
                     else:selected=legacy.execute('SELECT '+','.join(COLUMNS[name])+' FROM '+name)
                     for row in selected:
                         budget.check()
@@ -239,7 +269,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                         if self.fresh_b:
                             count+=1
                             if count>budget.row_limit:raise Stop('targeted legacy input row bound exceeded')
-                            encoded=canonical(tuple(row)).encode();audited_bytes+=len(encoded)
+                            encoded=canonical(tuple(row[k] for k in COLUMNS[name])).encode();audited_bytes+=len(encoded)
                             if len(encoded)>1024**2 or audited_bytes>budget.byte_limit:raise Stop('targeted legacy input byte bound exceeded')
                             self.protocol.guard()
                         raw=dict(row);row_check(name,raw);key=str(raw['id']) if name=='observations' else canonical([raw['source'],raw['event_id']])
@@ -259,7 +289,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                 missing=protected-{r[0] for r in core.execute('SELECT id FROM observations')}
                 if missing:raise Stop('missing legacy protected observation')
                 # Reserve above ALL legacy observation IDs, not only copied pins.
-                maximum=legacy.execute('SELECT COALESCE(MAX(id),0) FROM observations').fetchone()[0]
+                maximum=max(legacy.execute('SELECT COALESCE(MAX(id),0) FROM observations').fetchone()[0],core.execute('SELECT COALESCE(MAX(id),0) FROM observations').fetchone()[0])
                 if self.fresh_b:
                     # A sealed-file rowid is only a display-order offset, never
                     # an archive/source identity. No full stream mapping needed.
@@ -269,6 +299,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
                         maximum+=1;core.execute('INSERT INTO ab_legacy_stream_ids VALUES(?,?,?)',(row['source'],row['event_id'],maximum))
                 core.execute("INSERT OR REPLACE INTO sqlite_sequence(name,seq) VALUES('ab_events',?)",(maximum,))
                 if core.execute('PRAGMA foreign_key_check').fetchall():raise Stop('legacy foreign key audit failed')
+                if self.recovery:protected_core(core,legacy,COLUMNS,budget,self.recovery.lookup)
                 self._write_guards(core)
                 core.execute('INSERT OR REPLACE INTO ab_migration_state VALUES(1,?,?)',(identity,'complete'))
                 self.protocol.trip('migration_before_commit')
@@ -301,7 +332,7 @@ INSERT OR IGNORE INTO ab_application_marker VALUES(1,'AB72_FORWARD_ONLY');''')
             if name.startswith('news_events_fts'):continue
             if not re.fullmatch('[A-Za-z_][A-Za-z_0-9]*',name):raise Stop('unsupported version-guarded table')
             for operation in ('INSERT','UPDATE','DELETE'):
-                core.execute(f"CREATE TRIGGER IF NOT EXISTS ab_v2_{name}_{operation} BEFORE {operation} ON \"{name}\" WHEN ab72_layout_version()!=2 BEGIN SELECT RAISE(ABORT,'AB72 layout2 writer required'); END")
+                core.execute(f"CREATE TRIGGER IF NOT EXISTS ab_v{LAYOUT_VERSION}_{name}_{operation} BEFORE {operation} ON \"{name}\" WHEN ab72_layout_version()!={LAYOUT_VERSION} BEGIN SELECT RAISE(ABORT,'AB72 current-layout writer required'); END")
 
     def _news(self,core):
         if core.execute("SELECT 1 FROM sqlite_master WHERE name='news_events'").fetchone():
@@ -384,6 +415,7 @@ class ApplicationConnection:
         self.db=connect(store.root/'core.db',ro=readonly);self.db.row_factory=None
         self.db.create_function('ab72_writer_enabled',0,lambda:0 if readonly else 1)
         self.db.create_function('ab72_layout_version',0,lambda:LAYOUT_VERSION)
+        self.db.create_function('ab72_logical_size',-1,logical_size)
         def valid_evidence(record,sha):
             if hashlib.sha256(record.encode()).hexdigest()!=sha:raise ValueError('core evidence checksum mismatch')
             return 1
@@ -395,6 +427,7 @@ class ApplicationConnection:
             if actual!=expected:raise ValueError('acknowledged raw fingerprint mismatch')
             return 1
         self.db.create_function('ab72_verified_raw',-1,valid_raw)
+        self.db.create_function('ab72_legacy_stream_key',2,lambda source,event:canonical([source,event]),deterministic=True)
         self.db.execute('PRAGMA query_only=OFF')
         self.stack=ExitStack();self.signature=None
         self.raw_attached=[];self.legacy_attached=False;self.views_ready=False
@@ -437,8 +470,13 @@ class ApplicationConnection:
             self.stack.enter_context(self.protocol.reader(gid))
             self.db.execute('ATTACH DATABASE ? AS raw'+str(i),(store_uri(self.protocol.path(gid)),))
             self.raw_attached.append('raw'+str(i))
-        obs=['SELECT * FROM main.observations','SELECT * FROM legacy.observations WHERE id NOT IN (SELECT id FROM main.observations)']
+        core_proof="ab72_verified_raw('observations',COALESCE((SELECT fingerprint FROM main.ab_legacy_pins WHERE id=o.id),(SELECT sha256 FROM main.ab_raw_receipts WHERE id=o.id)),"+','.join('o.'+k for k in COLUMNS['observations'])+")=1"
+        obs=['SELECT o.* FROM main.observations o WHERE '+core_proof,'SELECT * FROM legacy.observations WHERE id NOT IN (SELECT id FROM main.observations)']
         ticks=['SELECT '+','.join(COLUMNS['stream_events'])+' FROM legacy.stream_events']
+        fields=','.join("json_extract(p.record,'$."+column+"') AS "+column for column in COLUMNS['stream_events'])
+        proof="ab72_verified_raw('stream_events',a.fingerprint,"+','.join("json_extract(p.record,'$."+column+"')" for column in COLUMNS['stream_events'])+")=1"
+        ticks.append("SELECT "+fields+" FROM main.ab_legacy_stream_pins p JOIN main.ab_legacy_audit a ON a.dataset='stream_events' AND a.key=ab72_legacy_stream_key(p.source,p.event_id) WHERE NOT EXISTS(SELECT 1 FROM legacy.stream_events l WHERE l.source=p.source AND l.event_id=p.event_id) AND "+proof)
+
         # After retirement, copied protected records remain real historical inputs.
         # Active/sealed records come from raw views, so identities never duplicate.
         for dataset,target in (('observations',obs),('stream_events',ticks)):

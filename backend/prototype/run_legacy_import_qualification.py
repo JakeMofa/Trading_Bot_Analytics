@@ -37,9 +37,14 @@ def main():
         verified=verify_export(source,os.environ.get('AB_IMPORT_SOURCE_SHA'),repo=os.environ.get('AB_SOURCE_REPOSITORY'))
         source_bytes=64*1024+manifest.stat().st_blocks*512+sum((source/p).stat().st_blocks*512 for p in verified['files'])
     os.environ.update(AB_PROFILE_STARTED=str(started),AB_IMPORT_WORKSPACE=str(workspace),
-                      AB_IMPORT_SOURCE_BYTES=str(source_bytes))
+                      AB_IMPORT_SOURCE_BYTES=str(source_bytes),AB_IMPORT_PROGRESS=str(report.with_suffix('.progress.json')))
     command=[sys.executable,str(Path(__file__).with_name('qualify_legacy_import.py')),'--report',str(report)]
     code=supervise(command,report,seconds=180)
+    progress=report.with_suffix('.progress.json')
+    if code and progress.exists():
+        try:
+            value=json.loads(report.read_text());value['last_progress']=json.loads(progress.read_text());report.write_text(json.dumps(value))
+        except (ValueError,OSError):pass
     if not any(workspace.iterdir()):workspace.rmdir()
     else:
         # A killed/reaped run is a failure, not successful cleanup. Keep bounded

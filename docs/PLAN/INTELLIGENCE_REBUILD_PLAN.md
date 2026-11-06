@@ -3755,3 +3755,20 @@ privaterecoverymanifestnowpersistentdata/recovery-evidence/selected-2026-11-05-v
 fullgeneratedbootstrap/capsule-consumer/controlqualification underexisting physical/
 RAM/time/safetycaps;productionunchanged. Newowned-FD allocationmeasurement and
 selectedcapsuleinputcodebeingprepared;notyetqualified/committed.
+
+
+### November 5 — selected recovery full bootstrap candidate
+
+Heartbeat8bb945a/CI42126289598 PASS preserved. See
+[full bootstrap evidence and remaining release gates](PR9_FULL_BOOTSTRAP_2026-11-05.md).
+Actual bounded inventory17tables/189576 structured rows requires225777 audited
+inputs; explicit generated250000rows/256MiB logical, original2GiB/512MiB/170s/180s
+host limits unchanged. First bootstrap FAIL timestamp schema assumption; corrected
+field-specific epoch validation. Changed local full bootstrap PASS81.828s,peak
+1079271424B,RSS178372608B,all structured exact,13248 selected rows,legacy unchanged,
+new ack preserved across restart. Linux/exact candidate qualification PENDING.
+Persisted logical core quota/layout3; private exact capsule durable, sanitized
+attestation committed; owned Linux family/unlinked TEMP measurement implemented.
+Production independent-service allocation, post-quiescent binding, complete legacy
+verification and manual scope/identity controls remain NOT PROVEN. No production
+command is approved/executable; production held,PR9DRAFT,I7/Phase1.75OPEN.

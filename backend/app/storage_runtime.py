@@ -33,9 +33,16 @@ def configured_runtime(environ=None):
     if mode not in ('full-import','fresh-b'):raise RuntimeError('unsupported A/B startup mode')
     ceiling=int(env.get('MAX_LOCAL_STORAGE_MB','2048'))*1024**2 if mode=='fresh-b' else 2*1024**3
     if not 2*1024**3<=ceiling<=8*1024**3:raise RuntimeError('unsupported fresh-B aggregate budget')
-    rows=int(env.get('AB_MIGRATION_ROWS','60000' if mode=='fresh-b' else '10000'))
-    if not 0<rows<=150000:raise RuntimeError('migration rows exceed supported audit envelope')
-    return StorageRuntime(root,legacy,size,enabled(env.get('ENABLE_AB_RETIREMENT','false')),fresh_b=mode=='fresh-b',aggregate_bytes=ceiling,migration_rows=rows)
+    try:
+        rows=int(env.get('AB_MIGRATION_ROWS','60000' if mode=='fresh-b' else '10000'))
+        audit_bytes=int(env.get('AB_MIGRATION_BYTES',str(128*1024**2)))
+    except (ValueError,TypeError):raise RuntimeError('invalid explicit audit envelope') from None
+    if not 0<rows<=250000 or not 0<audit_bytes<=256*1024**2:raise RuntimeError('migration scope exceeds supported audit envelope')
+    recovery_keys=('AB_RECOVERY_MANIFEST','AB_RECOVERY_DEPENDENCIES','AB_RECOVERY_STREAM','AB_RECOVERY_MANIFEST_SHA256','AB_RECOVERY_DEPENDENCY_SHA256','AB_RECOVERY_STREAM_SHA256')
+    recovery={k:env.get(k) for k in recovery_keys}
+    if any(recovery.values()) and (mode!='fresh-b' or not all(recovery.values())):raise RuntimeError('complete explicit fresh-B recovery binding required')
+    recovery=recovery if any(recovery.values()) else None
+    return StorageRuntime(root,legacy,size,enabled(env.get('ENABLE_AB_RETIREMENT','false')),fresh_b=mode=='fresh-b',aggregate_bytes=ceiling,migration_rows=rows,migration_bytes=audit_bytes,recovery_files=recovery)
 
 
 def adapter_modules():
@@ -47,11 +54,12 @@ def adapter_modules():
 
 
 class StorageRuntime:
-    def __init__(self,root,legacy,threshold,retirement=False,fresh_b=False,aggregate_bytes=2*1024**3,migration_rows=None):
+    def __init__(self,root,legacy,threshold,retirement=False,fresh_b=False,aggregate_bytes=2*1024**3,migration_rows=None,migration_bytes=128*1024**2,recovery_files=None):
         self.root = Path(root)
         self.legacy = Path(legacy)
         self.threshold = threshold
         self.aggregate_bytes = aggregate_bytes
+        self.migration_bytes=migration_bytes;self.recovery_files=recovery_files
         self.migration_rows = migration_rows or (60000 if fresh_b else 10000)
         self.fresh_b = fresh_b
         self.retirement = retirement
@@ -68,9 +76,15 @@ class StorageRuntime:
         if role == 'collector':
             from migration_budget import MigrationBudget
             import time
+            budget=MigrationBudget(row_limit=self.migration_rows,byte_limit=self.migration_bytes,deadline=time.monotonic()+170)
+            recovery=None
+            if self.recovery_files:
+                from recovery_capsule import RecoveryCapsule
+                r=self.recovery_files
+                recovery=RecoveryCapsule(r['AB_RECOVERY_MANIFEST'],r['AB_RECOVERY_DEPENDENCIES'],r['AB_RECOVERY_STREAM'],manifest_sha256=r['AB_RECOVERY_MANIFEST_SHA256'],dependency_sha256=r['AB_RECOVERY_DEPENDENCY_SHA256'],stream_sha256=r['AB_RECOVERY_STREAM_SHA256'],deadline=budget.deadline)
             self.handle = collector(self.root,self.legacy,routing=True,
                                     retirement=self.retirement,generation_bytes=self.threshold,fresh_b=self.fresh_b,aggregate_bytes=self.aggregate_bytes,
-                                    migration_budget=MigrationBudget(row_limit=self.migration_rows,deadline=time.monotonic()+170))
+                                    migration_budget=budget,recovery=recovery)
         else:
             self.handle = worker(self.root,self.legacy,routing=True,role=role)
         return self.handle

@@ -12,7 +12,7 @@ TIMES={'received_at','source_time','first_seen','last_seen','as_of','created_at'
        'published_at','linked_at','known_at'}
 JSON_FIELDS={'payload','raw_json','values_json','quality_json','evidence_json',
              'categories_json','assumptions_json','component_scores'}
-LAYOUT_VERSION=2
+LAYOUT_VERSION=3
 
 
 def timestamp(value):
@@ -24,7 +24,12 @@ def timestamp(value):
 
 def row_check(table,row):
     for key in TIMES & row.keys():
-        if row[key] is not None:timestamp(row[key])
+        if row[key] is not None:
+            # Existing historical endpoint stores epoch seconds, not ISO text.
+            if table=='historical_market_prices' and key=='source_time':
+                if type(row[key]) is not int:raise ValueError('historical source epoch integer required')
+                datetime.fromtimestamp(row[key],timezone.utc)
+            else:timestamp(row[key])
     for key in DECIMALS.get(table,()):
         value=row.get(key)
         if value is not None:
@@ -62,7 +67,7 @@ def header(db,required,exact=False):
         if not set(columns)<=actual or (exact and set(columns)!=actual):raise ValueError('incompatible schema: '+name)
 
 
-def protected_core(db,legacy,columns,budget):
+def protected_core(db,legacy,columns,budget,recovery_lookup=None):
     """Check protected copies and semantic links; point reads, never raw-history audit."""
     import hashlib
     canonical=lambda value:json.dumps(value,sort_keys=True,separators=(',',':'),allow_nan=False)
@@ -71,10 +76,12 @@ def protected_core(db,legacy,columns,budget):
         budget.check()
         local=db.execute('SELECT '+','.join(columns['observations'])+' FROM observations WHERE id=?',(event_id,)).fetchone()
         original=legacy.execute('SELECT '+','.join(columns['observations'])+' FROM observations WHERE id=?',(event_id,)).fetchone()
-        if local is None or original is None or tuple(local)!=tuple(original) or fingerprint(dict(local))!=expected:
+        if recovery_lookup:original=recovery_lookup('observations',str(event_id),original)
+        if local is None or original is None or dict(local)!=dict(original) or fingerprint(dict(local))!=expected:
             raise ValueError('protected legacy observation differs')
     for source,event,record in db.execute('SELECT source,event_id,record FROM ab_legacy_stream_pins'):
         budget.check();original=legacy.execute('SELECT '+','.join(columns['stream_events'])+' FROM stream_events WHERE source=? AND event_id=?',(source,event)).fetchone()
+        if recovery_lookup:original=recovery_lookup('stream_events',event,original)
         if original is None or json.loads(record)!=dict(original):raise ValueError('protected legacy price differs')
         row_check('stream_events',dict(original))
     if db.execute('SELECT 1 FROM ab_required_evidence r LEFT JOIN ab_evidence p ON p.id=r.event_id WHERE p.id IS NULL LIMIT 1').fetchone():
@@ -126,3 +133,7 @@ def protected_core(db,legacy,columns,budget):
                 raise ValueError('price provenance value differs')
     if db.execute('SELECT 1 FROM predictions p JOIN feature_snapshots f ON f.id=p.snapshot_id WHERE p.market_id!=f.market_id LIMIT 1').fetchone():
         raise ValueError('prediction/snapshot market mismatch')
+
+
+def logical_size(*values):
+    return len(json.dumps(values,sort_keys=True,separators=(',',':')).encode())

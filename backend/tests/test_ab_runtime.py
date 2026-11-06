@@ -54,7 +54,7 @@ class RuntimeTests(unittest.TestCase):
                     runtime.open('collector');self.assertEqual(runtime.handle.migration_budget.row_limit,150000)
                 finally:runtime.close()
             self.assertEqual(configured_runtime(environment(root)).migration_rows,10000)
-            env['AB_MIGRATION_ROWS']='150001'
+            env['AB_MIGRATION_ROWS']='250001'
             with self.assertRaisesRegex(RuntimeError,'audit envelope'):configured_runtime(env)
 
     def test_real_api_startup_selects_adapter_and_routes_history_and_dashboard(self):

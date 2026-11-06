@@ -84,8 +84,16 @@ class CompleteHandoff(unittest.TestCase):
                 if time.monotonic()>=end:raise TimeoutError('generated barrier')
                 await asyncio.sleep(.01)
         with guarded_fixture() as root:
-            root=Path(root);path=root/'generated-legacy.db';legacy(path)
-            store=ApplicationStore(root,path,routing=True,fresh_b=True,generation_bytes=2*1024**2)
+            root=Path(root)
+            import test_recovery_bootstrap as recovery_fixture
+            from migration_budget import MigrationBudget
+            path,capsule,expected_history,_,_=recovery_fixture.Tests().fixture(root,live_name='generated-legacy.db',deadline=deadline)
+            store=ApplicationStore(root,path,routing=True,fresh_b=True,generation_bytes=2*1024**2,recovery=capsule,migration_budget=MigrationBudget(row_limit=60000,deadline=deadline))
+            with closing(store.worker_connection('history')) as recovered:
+                from test_ab_application import T
+                self.assertEqual(features.calculate(recovered,'m',T+timedelta(seconds=1)),expected_history)
+                self.assertEqual(recovered.execute('SELECT id,snapshot_id FROM predictions').fetchone(),(1,1))
+            metrics['recovered_legacy_inputs']=2;metrics['historical_feature_equivalence']=True
             state=live_state.LiveState();clock=[datetime(2026,1,2,tzinfo=timezone.utc)+timedelta(seconds=2)]
             class Clock(datetime):
                 @classmethod

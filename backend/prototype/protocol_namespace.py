@@ -8,9 +8,10 @@ def namespace(sql):
     return TOKEN.sub(lambda m: 'ab_'+m[0] if m[0] in TABLES else m[0],sql)
 class ProtocolConnection:
     def __init__(self,native):
-        from application_validation import LAYOUT_VERSION
+        from application_validation import LAYOUT_VERSION,logical_size
         self.native=native
         native.create_function('ab72_layout_version',0,lambda:LAYOUT_VERSION)
+        native.create_function('ab72_logical_size',-1,logical_size)
     def execute(self,sql,args=()):return self.native.execute(namespace(sql),args)
     def executescript(self,sql):return self.native.executescript(namespace(sql))
     def __getattr__(self,name):return getattr(self.native,name)

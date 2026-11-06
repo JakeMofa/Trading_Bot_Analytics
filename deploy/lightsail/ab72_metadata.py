@@ -51,7 +51,43 @@ def verification_binding(path):
     return {'schema_identity':identity,'files':files}
 
 
+def recovery_capacity(preflight):
+    """Finite recovery-envelope arithmetic only; never authorizes a guard change.
+
+    Actual retained files and bound service FDs count in full. Quota arithmetic
+    is not proof of transaction overrun, a peak, verification or live runway.
+    """
+    gib=1024**3
+    if preflight.get('status')!='PASS_READ_ONLY_METADATA' or preflight.get('sqlite_opened') is not False:raise ValueError('bounded read-only preflight required')
+    allocation=preflight['allocation']
+    if allocation.get('owner_scope')!='bound Linux service roots and descendants' or set(allocation.get('bound_service_roles',[]))!={'tradebot-api','tradebot-ensemble','tradebot-lifecycle'}:raise ValueError('all independent service owners required')
+    fields=(allocation['sampled_total_bytes'],preflight['filesystem_available_bytes'],preflight['mem_available_bytes'])
+    if any(type(x) is not int or x<0 for x in fields):raise ValueError('nonnegative measured bytes required')
+    retained,free,ram=fields;new=2*gib;reserve=gib//2;proposal=8*gib
+    subtotal=retained+new+reserve
+    return {'status':'REVIEW_ONLY_NOT_AUTHORITY','production_authorized':False,
+            'measured_at_utc':preflight['at_utc'],'measured_retained_and_open_fd_bytes':retained,
+            'new_layout_quota_bytes':new,'recovery_reserve_bytes':reserve,
+            'required_sum_bytes':subtotal,'proposed_aggregate_bytes':proposal,
+            'quota_margin_bytes':proposal-subtotal,'quota_arithmetic_fits':subtotal<=proposal,
+            'filesystem_floor_bytes':10*gib,'filesystem_after_full_new_and_recovery_bytes':free-new-reserve,
+            'filesystem_floor_fits':free-new-reserve>=10*gib,
+            'available_ram_bytes':ram,'qualification_ram_prerequisite_bytes':1152*1024**2,
+            'ram_precondition_fits':ram>=1152*1024**2,
+            'normal_5120mib_remaining_bytes':5*gib-retained,
+            'continuous_runway':'NOT_PROVEN','peak_and_write_overrun':'NOT_PROVEN',
+            'required_before_dispatch':['complete legacy verification within reviewed absolute budget',
+                'post-quiescent source/dependency binding and exact capsule revalidation',
+                'aggregate guard covering all service owners with qualified write-overrun margin',
+                'reviewed production path/UID/permission/manual scope and fresh absolute expiry',
+                'separate explicit source-use/cutover/storage-policy approval']}
+
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('path');args=parser.parse_args()
-    print(json.dumps(inspect(args.path)))
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('path',nargs='?');parser.add_argument('--recovery-preflight',type=Path);args=parser.parse_args()
+    if bool(args.path)==bool(args.recovery_preflight):parser.error('one metadata path or recovery preflight required')
+    if args.recovery_preflight:
+        p=args.recovery_preflight
+        if p.is_symlink() or not p.is_file() or p.stat().st_size>65536:raise ValueError('bounded preflight JSON required')
+        print(json.dumps(recovery_capacity(json.loads(p.read_text()))))
+    else:print(json.dumps(inspect(args.path)))

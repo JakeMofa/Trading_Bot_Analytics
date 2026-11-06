@@ -1,0 +1,28 @@
+{
+  "available_ram_bytes": 1379188736,
+  "continuous_runway": "NOT_PROVEN",
+  "filesystem_after_full_new_and_recovery_bytes": 47111634944,
+  "filesystem_floor_bytes": 10737418240,
+  "filesystem_floor_fits": true,
+  "measured_at_utc": "2026-11-06T01:27:03Z",
+  "measured_retained_and_open_fd_bytes": 5369188352,
+  "new_layout_quota_bytes": 2147483648,
+  "normal_5120mib_remaining_bytes": -479232,
+  "peak_and_write_overrun": "NOT_PROVEN",
+  "production_authorized": false,
+  "proposed_aggregate_bytes": 8589934592,
+  "qualification_ram_prerequisite_bytes": 1207959552,
+  "quota_arithmetic_fits": true,
+  "quota_margin_bytes": 536391680,
+  "ram_precondition_fits": true,
+  "recovery_reserve_bytes": 536870912,
+  "required_before_dispatch": [
+    "complete legacy verification within reviewed absolute budget",
+    "post-quiescent source/dependency binding and exact capsule revalidation",
+    "aggregate guard covering all service owners with qualified write-overrun margin",
+    "reviewed production path/UID/permission/manual scope and fresh absolute expiry",
+    "separate explicit source-use/cutover/storage-policy approval"
+  ],
+  "required_sum_bytes": 8053542912,
+  "status": "REVIEW_ONLY_NOT_AUTHORITY"
+}

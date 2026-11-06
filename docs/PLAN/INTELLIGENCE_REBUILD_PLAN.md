@@ -3804,3 +3804,18 @@ corelogicalquota250k/256MiB qualifiedgenerated only;physical/host/time gates unc
 Production manualscope/expiry/post-quiescentbinding/fullverification/independent
 service allocation/fullrawcapacity and9mergeconflicts remain open. No approval
 request before technical readiness;no production change. PR9DRAFT,I7/Phase1.75OPEN.
+
+
+### November 5 — PR9 release merge and independent-service allocation review
+
+Merge864d0b6 joins deployment78bcaf0 without discarding qualified behavior;all9
+conflicts resolved;sole treeaddition4rollover regressions PASS. Reuse f782002
+bootstrap/recovery/workload evidence. BoundPID/start/UID independent-service FD
+sampler and Linux sibling/TEMP/reuse/exit regressions added;exact successor CI pending.
+Read-only VMstat/PID sample0.069s,noSQLiteopen ormutation:legacy+serviceFDs5369188352B,
+free49795989504B,RAM1379188736B.8GiBquotaarithmetic leaves536391680B,notqualified
+overrun/runway. Old5120MiB remainsSTOP. NO-GO:fulllegacy verification cannotbe
+claimedwithinunchanged1800/2590s;policy decision needed beforeproduction adapter/
+manual/fence scope andruntimeaggregate qualification. SeePR9_CUTOVER_READINESS_2026-11-05.md
+for executable read-only review and gated procedure. No heavy scan/helper/deploy,
+permission/guard/expiry change or production cutover. PR9DRAFT,I7/Phase1.75OPEN.

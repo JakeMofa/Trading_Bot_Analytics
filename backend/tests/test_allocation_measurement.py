@@ -1,8 +1,29 @@
 import os,subprocess,sys,tempfile,unittest
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'prototype'))
-from allocation_measurement import measure
+from allocation_measurement import measure,process_binding
 class Tests(unittest.TestCase):
+    @unittest.skipUnless(sys.platform=='linux','Linux independent service descriptor proof')
+    def test_bound_sibling_owner_temp_and_pid_reuse_hold(self):
+        import json
+        with tempfile.TemporaryDirectory() as root:
+            owner=subprocess.Popen([sys.executable,'-c',"import tempfile,time;f=tempfile.TemporaryFile();f.write(b'x'*262144);f.flush();print('ready',flush=True);time.sleep(20)"],stdout=subprocess.PIPE,text=True)
+            try:
+                self.assertEqual(owner.stdout.readline().strip(),'ready');binding=process_binding(owner.pid)
+                # Inspector and owner are siblings: family-only traversal cannot see owner.
+                code="import sys,json;sys.path.insert(0,sys.argv[1]);from allocation_measurement import measure;print(json.dumps(measure(sys.argv[2],require_family=True,owners=json.loads(sys.argv[3]))))"
+                def inspect(value):return subprocess.run([sys.executable,'-c',code,str(Path(__file__).resolve().parents[1]/'prototype'),root,json.dumps(value)],capture_output=True,text=True,timeout=5)
+                plain=inspect({});self.assertEqual(plain.returncode,0,plain.stderr)
+                bound=inspect({'tradebot-lifecycle':binding});self.assertEqual(bound.returncode,0,bound.stderr)
+                self.assertGreaterEqual(json.loads(bound.stdout)['unlinked_regular_bytes']-json.loads(plain.stdout)['unlinked_regular_bytes'],262144)
+                stale=inspect({'tradebot-lifecycle':{**binding,'start_ticks':binding['start_ticks']+1}})
+                self.assertNotEqual(stale.returncode,0);self.assertIn('identity changed',stale.stderr)
+                owner.terminate();owner.wait()
+                self.assertNotEqual(inspect({'tradebot-lifecycle':binding}).returncode,0)
+            finally:
+                if owner.poll() is None:owner.kill();owner.wait()
+                owner.stdout.close()
+
     def test_sparse_length_hardlinks_and_open_fd_are_not_double_counted(self):
         with tempfile.TemporaryDirectory() as root:
             p=Path(root)/'sparse.bin'

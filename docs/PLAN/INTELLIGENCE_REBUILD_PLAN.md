@@ -53,7 +53,32 @@ and positions in persistent storage.
 
 **Current phase:** Phase 1.75 — Lightsail migration and initial cloud soak
 **Current branch:** `codex/phase1-75-retention-enable`; preserve the existing checkout and unrelated edits.
-**Next gate:** NO-GO production recovery policy and matching controls.
+**Next gate:** Qualify continuous A/B scale and the production cutover controls.
+Planning-session reconciliation on November 5 verified repository HEAD
+`101921ee00d3e89a50d02c61569bd808ed268cec` and exact Linux
+[CI 42161689378 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42161689378).
+The resumable-verification work and corrected OFF-first joint handoff have a
+passing successor after two retained CI failures. This is generated qualification,
+with production scale and final retirement verification still open.
+
+The target is continuous 72-hour-or-size A/B rotation with incremental Supabase
+archiving, verified retirement and automatic dashboard/prediction handoff. The
+latest capacity proposal is 24 GiB aggregate, including two provisional 5 GiB slots,
+retained legacy, core/WAL, working/TEMP and recovery allowances. It is unapplied
+and unqualified at full size. The older 8 GiB recovery proposal with 64 MiB slots,
+2 MiB rotation trigger and retirement OFF provides only finite runway.
+
+Next execution must inspect the passing successor's artifacts, reconcile final
+fresh-readback limits with multi-GiB retirement, qualify finite ledger/core/audit
+growth and aggregate overshoot, then finish legacy verification policy and tested
+post-quiescent source/fence/manual cutover bindings. Reuse the passing bootstrap,
+selected-row recovery, cloud probes and generated workload evidence. PR #9 stays
+draft. Latest recorded production remains legacy d56b4a7 at its 5120 MiB guard,
+collection held, retention and paid AI OFF. No fresh production measurement was
+performed by this planning reconciliation. I7 freshness/rollover, cloud recovery,
+visibility, replay and sustained-operation acceptance remain open; Redis is deferred.
+
+**Prior qualified baseline and unresolved production controls:**
 Frozen source4bc3699f05ad86708c5833d99f57c2acb1910764/pushCI42144544730 PASS;PR9
 conflict-free after merging deployment78bcaf0,stillDRAFT.418backend/13privilegeskips
 all root-covered,122controls/0skips;bootstrap/full recovery/workload/handoff PASS.

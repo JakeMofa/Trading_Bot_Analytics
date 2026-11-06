@@ -1,10 +1,31 @@
 # Tradebot session handoff
 
-Updated November 4, 2026. Use this entry point when resuming in Codex, Claude,
+Updated November 5, 2026. Use this entry point when resuming in Codex, Claude,
 or another coding session. The master roadmap governs project status and
 production authorization.
 
 ## Resume here
+
+Latest repository source is `101921ee00d3e89a50d02c61569bd808ed268cec`.
+Exact Linux CI42161689378 completed successfully, checked once by the planning
+session. Read PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md and the master roadmap's
+Current position before using older entries below. The usage-limit interruption
+was followed by committed resumable-verification work and two failed joint runs;
+101921e is their passing successor. Inspect its artifacts before carrying forward
+individual acceptance claims. Preserve all existing edits, including AGENTS.md
+and the unrelated roadmap additions; do not reset to an earlier candidate.
+
+Continuous A/B remains the goal. Two 5 GiB slots and a 24 GiB aggregate budget
+are provisional, unapplied and unqualified at full scale. The 8 GiB/64 MiB slots/
+2 MiB trigger/retirement-OFF recovery proposal is finite runway only. Resume with
+multi-GiB final fresh verification, ledger/core/audit growth, aggregate overrun,
+legacy verification policy and post-quiescent source/fence/manual cutover controls.
+PR9 remains draft and production NO-GO. Latest recorded production is d56b4a7,
+5120 MiB guard, collection held, retention/paid AI OFF. This status update made
+no fresh production measurements or production changes. I7, cloud recovery,
+visibility, replay and sustained acceptance stay open. Redis evaluation is deferred.
+
+### Prior baseline and production blockers
 
 Frozen source4bc3699f05ad86708c5833d99f57c2acb1910764,pushCI42144544730 PASS.
 Read PR9_CUTOVER_READINESS_2026-11-05.md: one decision NO-GO production,with

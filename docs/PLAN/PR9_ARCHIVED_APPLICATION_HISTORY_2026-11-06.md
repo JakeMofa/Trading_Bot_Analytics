@@ -175,3 +175,29 @@ services,plus actual A/B/core/legacy allocation/identity checks. Later first nat
 seal/readback and recorded retirement enablement are separate bounded gates.
 Supabase/SQLite before/during/after checks are NOT PERFORMED production evidence;
 no production operator dispatch/scan/live cloud probe is authorized by this report.
+
+## First exact successor failure and owned-fixture correction
+
+0cef90a6eb2f6fdc1784e6e2deeab431709f3578 pushCI42326920556 FAIL:
+https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42326920556 .
+Dependency audit,source/workflow quality and API/SSE contracts PASS. Controls FAIL
+because the old isolated job omitted runtime dependencies (websockets import);
+CIworker already owns that setup fix. Backend374tests/16skips failed with3errors
+in background_verification:hard GET refused a non-single-thread test process.
+Root/import/integrated evidence therefore NOT COMPLETED;no post-unlink PASS.
+
+The new stalled loopback HTTP fixture used daemon request handlers;API cancellation
+closed its client but the synthetic remote's2s handler could still be alive when
+the next verifier test started. Fix ONLY fixture ownership:non-daemon handlers,
+block_on_close and owned server shutdown/join. No guard/retry/time limit changed.
+History suite followed immediately by background_verification now6tests/5PASS/
+1root skip in5.668s;the verifier's guard remains unchanged. Sample after cleanup:
+12objects/2011B,0.247752s,19acks,save5.830ms,heartbeat19.795ms,phaseRSS24576000B,
+sampledworkspace2438336B. Not a replacement for the slower prior0.616s sample.
+macOS emitted the existing fork supervisor's native-thread DeprecationWarning;
+no production single-thread/OS-scheduling guarantee is claimed from this run.
+
+Source0cef's302-file/3145273B export passed its direct explicit history API test
+in2.487s and exact Git manifest re-verification after subprocess use. Explicit-B
+prevents helper imports modifying exported bytes despite-I ignoring environment
+bytecode flags. This packaging PASS does not erase source0cef's CI failure.

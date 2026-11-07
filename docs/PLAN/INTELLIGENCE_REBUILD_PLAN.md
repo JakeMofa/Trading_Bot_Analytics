@@ -4051,3 +4051,17 @@ before/during/afterrelease NOTPERFORMED,nolivequeriesorproductionoperationsautho
 Cutover,firstsealedverification,retirementenablementseparate;legacyexact-file
 retirementrequiresarchive/history/reference/drainproofandseparateapproval. I7,
 recovery/replay/visibility/sustainedoperation OPEN;Redis/paidAI/Phase2deferred.
+
+
+### Exact archived-history successor CI failure and bounded fixture fix
+
+0cef90a6eb2f6fdc1784e6e2deeab431709f3578 pushCI42326920556 FAIL(one statuscheck).
+Dependency audit/sourcequality/APIcontracts PASS;controls oldsetupwebsockets import
+FAIL(CIworker-owned fixpendingintegration). Backend374/16skips:3backgroundverifier
+errors because newstalledHTTP fixtureleftdaemonhandlersalive afterclientcancel;
+existing single-thread guard correctlyREFUSED. Root/import/integrated NOTCOMPLETED.
+Fixownedfixture only:non-daemonhandlers,server_closejoin;guard/gates/retries unchanged.
+History→background regression6tests/5PASS/1rootskip5.668s afterfix;native-threadfork
+warning onmacOS retainedaslimitation,notproductionproof.0cef exactsourceexport
+302files/3145273B APItestPASS2.487s thenGitmanifestreverificationPASS(explicit-I -B).
+Do not relabel CI failure. NewsourceexactLinux/root qualification required.

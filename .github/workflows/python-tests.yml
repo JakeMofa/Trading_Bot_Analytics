@@ -27,10 +27,25 @@ jobs:
         run: python -m pip install -r backend/requirements.txt
       - name: Run unit tests
         env:
+          MALLOC_ARENA_MAX: "2"
+          PYTHONDONTWRITEBYTECODE: "1"
           ENABLE_OPENAI_ANALYST: "false"
           ENABLE_SUPABASE_SYNC: "false"
           ENABLE_LOCAL_RETENTION: "false"
         run: python -m unittest discover -s backend/tests -v
+
+      - name: Generated storage Linux root checks for this split scope
+        env:
+          ENABLE_OPENAI_ANALYST: "false"
+          ENABLE_SUPABASE_SYNC: "false"
+          ENABLE_LOCAL_RETENTION: "false"
+        run: |
+          # Downstream suites are required as soon as their implementation enters the stack.
+          for suite in test_raw_generations.py test_ab_application.py test_ab_runtime.py test_incremental_retirement.py test_ab_cutover.py test_archive_history.py; do
+            if test -f "backend/tests/$suite"; then
+              sudo -n env PYTHONDONTWRITEBYTECODE=1 ENABLE_OPENAI_ANALYST=false ENABLE_SUPABASE_SYNC=false ENABLE_LOCAL_RETENTION=false "$(command -v python)" -m unittest discover -s backend/tests -p "$suite" -v
+            fi
+          done
 
       - name: Run deployment controls
         run: python -m unittest discover -s deploy/lightsail -p 'test_*.py' -v

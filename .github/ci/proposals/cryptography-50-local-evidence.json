@@ -1,0 +1,137 @@
+{
+  "base_source_sha": "7bee563aa05c09592f4758520bab83477470d1db",
+  "proposal_applied_to_repository": false,
+  "requirements_sha256": "2d9f681d6cd90e8708a223f49dee05d4c9553fe726e3db08a555a003df0d6976",
+  "proposal_sha256": "24015499594d9ab45ca9863f698bc5ef460e246419d13235cc07567be59d3a19",
+  "environment": {
+    "python": "3.13.1 (main, Dec  3 2024, 17:59:52) [Clang 16.0.0 (clang-1600.0.26.4)]",
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "cryptography": "50.0.0",
+    "openssl": "OpenSSL 4.0.1 9 Jun 2026"
+  },
+  "pip_check": "PASS",
+  "dependency_audit": {
+    "gate": "PASS",
+    "exit_code": 0,
+    "packages": [
+      {
+        "name": "websockets",
+        "version": "15.0.1"
+      },
+      {
+        "name": "cryptography",
+        "version": "50.0.0"
+      },
+      {
+        "name": "fastapi",
+        "version": "0.156.4"
+      },
+      {
+        "name": "uvicorn",
+        "version": "0.54.0"
+      },
+      {
+        "name": "httpx",
+        "version": "0.28.1"
+      },
+      {
+        "name": "httpcore",
+        "version": "1.0.9"
+      },
+      {
+        "name": "annotated-doc",
+        "version": "0.0.5"
+      },
+      {
+        "name": "cffi",
+        "version": "2.1.1"
+      },
+      {
+        "name": "click",
+        "version": "8.5.1"
+      },
+      {
+        "name": "h11",
+        "version": "0.16.0"
+      },
+      {
+        "name": "opentelemetry-api",
+        "version": "1.45.2"
+      },
+      {
+        "name": "pydantic",
+        "version": "2.14.3"
+      },
+      {
+        "name": "pydantic-core",
+        "version": "2.50.4"
+      },
+      {
+        "name": "annotated-types",
+        "version": "0.8.0"
+      },
+      {
+        "name": "starlette",
+        "version": "1.10.0"
+      },
+      {
+        "name": "anyio",
+        "version": "4.16.0"
+      },
+      {
+        "name": "idna",
+        "version": "3.20"
+      },
+      {
+        "name": "typing-extensions",
+        "version": "4.16.0"
+      },
+      {
+        "name": "typing-inspection",
+        "version": "0.4.5"
+      },
+      {
+        "name": "certifi",
+        "version": "2026.10.23"
+      },
+      {
+        "name": "pycparser",
+        "version": "3.12"
+      }
+    ],
+    "known_vulnerabilities": 0
+  },
+  "suites": {
+    "backend": {
+      "gate": "PASS",
+      "tests": 367,
+      "skips": 20,
+      "failures": 0,
+      "errors": 0,
+      "elapsed_seconds": 44.134
+    },
+    "application": {
+      "gate": "PASS",
+      "tests": 67,
+      "skips": 0,
+      "failures": 0,
+      "errors": 0,
+      "elapsed_seconds": 1.889
+    },
+    "controls": {
+      "gate": "PASS",
+      "tests": 123,
+      "skips": 3,
+      "failures": 0,
+      "errors": 0,
+      "elapsed_seconds": 3.389
+    }
+  },
+  "not_performed": [
+    "candidate Linux/Python 3.12 CI",
+    "candidate privileged root qualification",
+    "production deployment",
+    "production acceptance",
+    "full-scale capacity"
+  ]
+}

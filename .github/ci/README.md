@@ -90,3 +90,30 @@ PASS. Audit fix versions range from 48.0.1 to 50.0.0, so the storage owner shoul
 review a compatible cryptography pin at least 50.0.0 and qualify dependency,
 Ed25519 authentication/streaming and application regressions. This is a proposed
 dependency remediation, not an applied or compatibility-qualified upgrade.
+
+## Latest reviewed results and merge dependency
+
+Source `7bee563aa05c09592f4758520bab83477470d1db`:
+[exact push run 42323798491](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42323798491)
+and [PR run 42323822761](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42323822761).
+PR tested merge SHA: `e645e553abbaafd79089334019fcfe0a49fa2bed`, not the source SHA.
+Downloaded category artifacts verified those bindings. In both runs: backend
+367/14 skips PASS, root 76/0 PASS, application 67/0 PASS, controls 123/0 PASS,
+CI-control tests 4/0 PASS; source/static/workflows and integrated qualification
+PASS. Dependency audit FAIL; readiness BLOCKED solely by that security failure.
+There is no current joint-application handoff failure on these tested SHAs.
+The historical 439c93b failure remains recorded; later PASS does not identify its
+cause or qualify future storage changes.
+
+The control setup defect is fixed. Remaining security remediation belongs to the
+storage owner. See [tested exact patch, primary advisory references, environment
+scope and safe merge order](proposals/README.md). Neither application's requirements
+file was changed by this worker. PR #10 intentionally depends on that base-branch
+dependency correction and fresh exact-source/PR qualification before merge.
+
+The final job summary now lists required job states, test counts/skips, source
+and tested SHAs, blockers and the run/artifact evidence link. Security failures
+are reported separately from SHA mismatches. Five local CI regressions pass,
+including pending/in-progress required jobs blocking readiness. Replaying the new
+validator against downloaded 7bee563 push artifacts reports only the genuine
+security failure, with no spurious SHA mismatch. New source CI is still required.

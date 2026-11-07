@@ -1,4 +1,4 @@
-# PR quality and release CI
+# Tradebot CI and Lightsail CD
 
 `python-tests.yml` remains the qualifying release workflow. Push CI runs on
 `main` and `codex/**`; PR CI runs for every base branch; merge groups are also
@@ -144,3 +144,13 @@ name-only deletion. Five mock ownership regressions and all five actual isolated
 SQL tests pass. Final local backend 374 tests PASS/22 platform skips on storage
 freeze 00f390e; eleven CI-control tests PASS. Final exact Linux/PR qualification
 remains required; production A/B operator and live Supabase scopes remain separate.
+
+## Workflow naming and completeness review
+
+GitHub displays **CI — Tradebot checks** (`python-tests.yml`) and
+**CD — Lightsail deployment** (`deploy-tradebot.yml`). Existing job/check names,
+triggers and release guards are unchanged. See [prioritized checklist and
+security-tool evaluation](CHECK_COVERAGE.md). Actual filename renaming would
+require a coordinated, tested migration of every API lookup, test and document
+reference, notably `verify_ci.py` and `test_release_lookup.py`; it is not part of
+this display-name change.

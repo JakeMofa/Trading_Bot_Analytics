@@ -1,10 +1,10 @@
-name: Deploy Tradebot
+name: CD — Lightsail deployment
 
 on:
   workflow_dispatch:
     inputs:
       revision:
-        description: Full approved deployment-branch HEAD SHA (must have passing Python tests)
+        description: Full approved deployment-branch HEAD SHA (must have passing CI — Tradebot checks)
         required: true
         type: string
       operation:

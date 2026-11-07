@@ -305,10 +305,7 @@ jobs:
         run: timeout 150s python .github/ci/postgres_schema.py
       - name: Remove only this job's disposable SQL instance
         if: always()
-        run: |
-          if docker container inspect "$CI_POSTGRES_CONTAINER" >/dev/null 2>&1; then
-            docker rm --force --volumes "$CI_POSTGRES_CONTAINER"
-          fi
+        run: python .github/ci/container_ownership.py --cleanup "$CI_EVIDENCE_DIR/postgres-container-receipt.json"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

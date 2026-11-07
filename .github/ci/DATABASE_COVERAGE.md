@@ -23,7 +23,10 @@ The new Postgres job uses a network-disabled Docker container, no published host
 port or mounted host data, generated roles only, one CPU, 512 MiB container RAM,
 256 MiB data tmpfs, 8 MiB socket tmpfs, 128 PIDs. Pull is capped at 120s; tests at
 150s; job at five minutes. Normal and always-run cleanup remove only the job's
-unique generated instance. Schema SHA-256s, source/tested SHAs, test counts,
+owned generated instance, using a successfully created container ID plus a unique
+owner label and receipt. Both normal and always-run cleanup verify ID and label;
+name collision/create failure without a receipt preserves existing instances.
+Schema SHA-256s, source/tested SHAs, test counts,
 skips and elapsed time are in `ci-postgres-<tested-sha>`; missing/failed evidence
 blocks `PR readiness`. This is a small compatibility workload, not a capacity test.
 
@@ -67,7 +70,10 @@ No independent latest joint-handoff bug was identified on that source.
 Storage owner applied the reviewed 50.0.0 dependency patch in `4c673bf`, then pushed
 new application/reconciliation source `cc06c01`, followed by packaging fix
 `0cef90a6eb2f6fdc1784e6e2deeab431709f3578` (isolated helper uses `-I -B` to
-preserve exact exports). Refresh this CI branch from that final base; require fresh exact-source push and PR checks, including the new Postgres
+preserve exact exports). The subsequent final freeze `00f390e` joins generated
+HTTP handlers after cancellation, fixing the diagnosed background-verification
+thread interaction without changing the single-thread guard or budgets. Refresh
+this CI branch from that final base; require fresh exact-source push and PR checks, including the new Postgres
 job and privileged application replay test. PR #10 stays a CI-only diff against
 the working branch; review it there before separately considering PR #9's full
 storage/release gates. Do not merge either PR based on older checks. Enable branch
@@ -78,3 +84,11 @@ References: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/ro
 [Postgres RLS/bypass semantics](https://www.postgresql.org/docs/17/ddl-rowsecurity.html).
 The current Supabase changelog was reviewed; no Supabase CLI/SDK is invoked or
 upgraded by this isolated SQL-engine job.
+
+Final local checkpoint on storage freeze 00f390e (combined application source
+2ea954d): backend 374 tests PASS with 22 platform/privilege skips; application
+67 PASS/0 skips and controls 123 PASS/3 skips on the preceding base (the freeze
+changes generated HTTP-fixture cleanup only). Eleven CI-control regressions PASS,
+including collision/create-failure/wrong-owner cleanup cases; five isolated SQL
+regressions PASS after the ownership fix. Latest combined Linux/source/PR checks
+are required; no local skip is presented as a Linux/root PASS.

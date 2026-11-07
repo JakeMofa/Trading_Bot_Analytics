@@ -12,6 +12,7 @@ import time
 import unittest
 import uuid
 from run_tests import write_evidence
+import container_ownership
 
 IMAGE = 'postgres:17.6@sha256:00bc86618629af00d2937fdc5a5d63db3ff8450acf52f0636ec813c7f4902929'
 SCHEMAS = [Path('supabase/schema') / name for name in
@@ -21,16 +22,11 @@ SCHEMAS = [Path('supabase/schema') / name for name in
 class SchemaTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.container = os.environ.get('CI_POSTGRES_CONTAINER', 'tradebot-schema-' + uuid.uuid4().hex)
-        if not cls.container.startswith('tradebot-schema-'):
-            raise ValueError('generated container identity required')
-        cls.addClassCleanup(cls.cleanup)
-        subprocess.run(['docker', 'run', '--detach', '--name', cls.container,
-                        '--network', 'none', '--memory', '512m', '--cpus', '1',
-                        '--pids-limit', '128', '--tmpfs', '/var/lib/postgresql/data:rw,size=256m',
-                        '--tmpfs', '/var/run/postgresql:rw,size=8m',
-                        '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', IMAGE],
-                       check=True, capture_output=True, timeout=60)
+        name = os.environ.get('CI_POSTGRES_CONTAINER', 'tradebot-schema-' + uuid.uuid4().hex)
+        cls.receipt = Path(os.environ['CI_EVIDENCE_DIR']) / 'postgres-container-receipt.json'
+        cls.addClassCleanup(container_ownership.cleanup, cls.receipt)
+        cls.container = container_ownership.create(IMAGE, name, cls.receipt)
+        subprocess.run(['docker', 'start', cls.container], check=True, capture_output=True, timeout=20)
         deadline = time.monotonic() + 40
         while time.monotonic() < deadline:
             ready = subprocess.run(['docker', 'exec', cls.container, 'pg_isready', '-h', '127.0.0.1', '-U', 'postgres'],
@@ -40,11 +36,6 @@ class SchemaTests(unittest.TestCase):
                 return
             time.sleep(.25)
         raise RuntimeError('generated Postgres readiness deadline')
-
-    @classmethod
-    def cleanup(cls):
-        subprocess.run(['docker', 'rm', '--force', '--volumes', cls.container],
-                       check=True, capture_output=True, timeout=20)
 
     @classmethod
     def sql(cls, text, database='postgres', fail=False):

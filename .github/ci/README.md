@@ -131,3 +131,16 @@ aggregate resource guards and recovery/retirement gates remain storage-owned.
 Storage dependency correction 4c673bf and final source 0cef90a (including cc06c01) are now available;
 refresh this isolated CI branch from that base. Older failed audit evidence remains
 FAIL for its original source; new passing checks are required for the combined SHA.
+
+Final storage freeze update: 00f390e supersedes the earlier 0cef90a packaging
+checkpoint by joining generated HTTP handlers after cancellation. The earlier
+three background-verification errors remain FAIL on their original source;
+the hard single-thread guard and budgets are unchanged. This CI branch includes
+that storage-owner correction; exact combined-source and PR evidence are required.
+
+The Postgres fixture cleanup review found and corrected a name-collision hazard:
+cleanup is now bound to a recorded container ID plus unique owner label, never a
+name-only deletion. Five mock ownership regressions and all five actual isolated
+SQL tests pass. Final local backend 374 tests PASS/22 platform skips on storage
+freeze 00f390e; eleven CI-control tests PASS. Final exact Linux/PR qualification
+remains required; production A/B operator and live Supabase scopes remain separate.

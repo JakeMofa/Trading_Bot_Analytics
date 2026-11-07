@@ -205,6 +205,7 @@ class DashboardAPITests(unittest.TestCase):
         paths=('/state/current','/models/current','/history/predictions?limit=100',
                '/history/context','/history/coinbase-chart','/system/status','/system/history')
         payload={path:self.client.get(path).json() for path in paths}
+        payload['/system/status']['active_buffer'] = dict(slot='B', generation_id='fixture-b')
         result=subprocess.run(['node',str(Path(__file__).with_name('dashboard_contract.cjs')),
             str(Path(__file__).resolve().parents[1]/'app/dashboard.html')],
             input=json.dumps(payload),text=True,capture_output=True,timeout=10)

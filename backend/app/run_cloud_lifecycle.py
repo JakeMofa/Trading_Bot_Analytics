@@ -4,6 +4,8 @@ import json
 import os
 import signal
 import threading
+from pathlib import Path
+from datetime import datetime, timezone
 
 from cloud_lifecycle import (
     LifecycleConfig,
@@ -23,10 +25,44 @@ def build_worker(db_path, should_stop=None):
         os.getenv("ENABLE_SUPABASE_SYNC", "false").strip().lower() in ("1", "true", "yes", "on"))
     retention = RetentionConfig.from_env()
     bucket = os.getenv("SUPABASE_RAW_BUCKET", "market-raw")
-    return LifecycleWorker(
-        db_path, config, retention,
-        cloud_factory=lambda: SupabaseHTTP(CloudConfig.from_env(require_enabled=True)),
-        bucket=bucket, should_stop=should_stop)
+    from storage_runtime import configured_runtime
+    runtime = configured_runtime()
+    if not runtime:
+        return LifecycleWorker(
+            db_path, config, retention,
+            cloud_factory=lambda: SupabaseHTTP(CloudConfig.from_env(require_enabled=True)),
+            bucket=bucket, should_stop=should_stop)
+    if Path(db_path).resolve()!=runtime.legacy.resolve():
+        raise LifecycleError('A/B lifecycle legacy path mismatch')
+    runtime.open('lifecycle')
+    from dataclasses import replace
+    from compatible_cloud import CompatibleCloud
+    import time
+    deadline = [None]
+
+    def cloud_factory():
+        deadline[0] = time.monotonic()+30
+        return CompatibleCloud(SupabaseHTTP(CloudConfig.from_env(require_enabled=True)),deadline[0])
+
+    def finish():
+        if not runtime.retirement:
+            return {'status':'disabled'}
+        # This is the original archive operation deadline, never reset after
+        # an ambiguous request or for the final verification readback.
+        if deadline[0] is None or time.monotonic()>=deadline[0]:
+            return {'status':'held','reason':'archive operation deadline'}
+        cloud = CompatibleCloud(SupabaseHTTP(CloudConfig.from_env(require_enabled=True)),deadline[0])
+        try:
+            return runtime.retire_verified(cloud,datetime.now(timezone.utc))
+        finally:
+            cloud.close()
+
+    worker = LifecycleWorker(
+        runtime.database,replace(config,raw_batch_size=min(config.raw_batch_size,1000)),retention,
+        cloud_factory,bucket=bucket,should_stop=should_stop,
+        connection_factory=runtime.connection,after_archive=finish)
+    worker.storage_runtime = runtime
+    return worker
 
 
 def main():
@@ -45,7 +81,7 @@ def main():
     stop = threading.Event()
     try:
         worker = build_worker(args.db, should_stop=stop.is_set)
-        with lifecycle_lock(args.db):
+        with lifecycle_lock(worker.db_path):
             if args.command == "once":
                 result = worker.run_cycle(force=True)
                 print(json.dumps(result, indent=2))
@@ -57,6 +93,10 @@ def main():
             worker.run_forever(stop)
     except (LifecycleError, RetentionError) as exc:
         raise SystemExit(f"cloud lifecycle refused: {exc}")
+    finally:
+        runtime = getattr(locals().get('worker'),'storage_runtime',None)
+        if runtime:
+            runtime.close()
 
 
 if __name__ == "__main__":

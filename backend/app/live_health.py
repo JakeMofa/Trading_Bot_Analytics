@@ -62,6 +62,7 @@ def degradation_reasons(snapshot, collector, now=None):
         if str(feature.get('market_id')) != str(market.get('id')):
             add('feature_market_mismatch')
         fresh(feature.get('as_of'), 'feature_as_of')
-    if snapshot.get('feeds', {}).get('storage_guard', {}).get('status') == 'limit_reached':
-        add('storage_guard_limit_reached')
+    storage = snapshot.get('feeds', {}).get('storage_guard', {}).get('status')
+    if storage in ('limit_reached', 'blocked'):
+        add('storage_guard_' + storage)
     return reasons

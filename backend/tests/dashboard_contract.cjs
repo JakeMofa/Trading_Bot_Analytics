@@ -39,6 +39,9 @@ vm.runInContext(script,context);
   vm.runInContext("showPage('system')",context);
   await new Promise(setImmediate);
   assert(nodes.get('system-status').children.length>10);
+  const activeBuffer = nodes.get('system-status').children.find(
+    row => row.children[0]?.textContent === 'Active raw buffer');
+  assert.equal(activeBuffer?.children[1].textContent, 'B · fixture-b');
   assert(nodes.get('system-charts').children.length>0);
   assert(paths.every(path=>!path.startsWith('/api/')));
   console.log('FastAPI fixtures rendered; SSE updates, history, and system charts passed.');

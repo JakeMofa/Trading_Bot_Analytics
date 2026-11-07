@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import sqlite3
 import time
+import threading
 
 from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
@@ -22,11 +23,11 @@ def _readonly(db_path):
     return sqlite3.connect(Path(db_path).resolve().as_uri() + '?mode=ro', uri=True, timeout=0.2)
 
 
-def _saved_dashboard(db_path, chart=False):
+def _saved_dashboard(db_path, chart=False, connection_factory=None):
     # Reuse the existing bounded history/context queries, never start the legacy server/relay.
     from dashboard import open_readonly, status, chart_data
     try:
-        with closing(open_readonly(db_path)) as db:
+        with closing(connection_factory() if connection_factory else open_readonly(db_path)) as db:
             db.execute('PRAGMA busy_timeout=200')
             deadline = time.monotonic() + 1
             db.set_progress_handler(lambda: int(time.monotonic() > deadline), 10000)
@@ -35,8 +36,30 @@ def _saved_dashboard(db_path, chart=False):
             saved = status(db)
             return {key: saved[key] for key in (
                 'evaluation', 'news', 'news_last_seen', 'outcomes', 'evidence')}
-    except (OSError, sqlite3.Error, ValueError, TypeError, KeyError):
+    except (OSError, sqlite3.Error, ValueError, TypeError, KeyError, RuntimeError):
         return {'status': 'unavailable', 'points': [], 'market': None} if chart else {'status': 'unavailable'}
+
+
+def _active_buffer(connection_factory):
+    with closing(connection_factory()) as db:
+        read_buffer = getattr(db, 'active_buffer', None)
+        return read_buffer() if read_buffer else None
+
+
+def _active_buffer_metadata(db_path):
+    # Status/SSE need only durable core metadata, not leases on retiring raw files.
+    try:from application_validation import LAYOUT_VERSION
+    except ImportError:raise RuntimeError('A/B metadata validator unavailable') from None
+    with closing(_readonly(db_path)) as db:
+        version=db.execute('SELECT version FROM ab_layout_version WHERE id=1').fetchone()
+        if not version or version[0]!=LAYOUT_VERSION:raise RuntimeError('unsupported storage layout')
+        rows=db.execute("SELECT slot,id,started FROM ab_generations WHERE state='active' LIMIT 2").fetchall()
+        if len(rows)>1:raise RuntimeError('multiple active generations')
+        result=dict(zip(('slot','generation_id','started_at'),rows[0])) if rows else None
+        mode=db.execute('SELECT mode FROM ab_bootstrap_mode WHERE id=1').fetchone()
+        if result and mode and mode[0]=='fresh-b':
+            result.update(legacy_history='sealed_retirement_held',archive_checkpoint_prefix='archive:ab72:',legacy_full_verification='NOT_PERFORMED_BY_FRESH_BOOTSTRAP')
+        return result
 
 
 def _collector_status(task):
@@ -141,9 +164,16 @@ def _read_prediction_history(db_path, limit):
         db.close()
 
 
-def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None):
+def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None, read_connection_factory=None, archive_read_factory=None):
+    from storage_runtime import configured_runtime
+    runtime = configured_runtime()
+    if runtime and read_connection_factory:
+        raise RuntimeError('conflicting A/B read connection factory')
     state = live_state or LiveState()
-    resolved_db_path = db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db')
+    archive_gate = threading.BoundedSemaphore(1)
+    resolved_db_path = runtime.database if runtime else (db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db'))
+    if runtime:
+        read_connection_factory = runtime.read_connection
 
     resolved_telemetry = telemetry_path or os.getenv('SYSTEM_TELEMETRY_PATH') or str(Path(resolved_db_path).parent / 'cloud-soak.jsonl')
 
@@ -161,6 +191,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     @asynccontextmanager
     async def lifespan(app):
         task = None
+        adapter = runtime.open('collector' if start_collectors else 'history') if runtime else None
         if start_collectors:
             interval = max(15, int(os.getenv('REST_INTERVAL_SECONDS', '30')))
             max_storage = max(
@@ -172,7 +203,8 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                     interval=interval,
                     max_storage_mb=max_storage,
                     live_state=state,
-                    install_signal_handlers=False),
+                    install_signal_handlers=False,
+                    **({'storage_adapter':adapter} if adapter else {})),
                 name='btc-intelligence-collectors')
         app.state.collector_task = task
         try:
@@ -181,6 +213,8 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
             if task and not task.done():
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)
+            if runtime:
+                runtime.close()
 
     app = FastAPI(
         title='BTC Intelligence API',
@@ -219,11 +253,12 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
 
     @app.get('/history/context')
     async def historical_context():
-        return await asyncio.to_thread(_saved_dashboard, resolved_db_path)
+        return await asyncio.to_thread(_saved_dashboard, resolved_db_path, False, read_connection_factory)
 
     @app.get('/history/coinbase-chart')
     async def historical_chart():
-        return await asyncio.to_thread(_saved_dashboard, resolved_db_path, True)
+        return await asyncio.to_thread(_saved_dashboard, resolved_db_path, True, read_connection_factory)
+
 
     @app.get('/system/history')
     async def system_history(limit: int = Query(default=288, ge=1, le=288)):
@@ -253,6 +288,13 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                        'openai_enabled': _env_enabled('ENABLE_OPENAI_ANALYST'),
                        'retention_enabled': _env_enabled('ENABLE_LOCAL_RETENTION'),
                        'cloud': await asyncio.to_thread(_read_cloud_status, resolved_db_path)})
+        if read_connection_factory:
+            try:
+                result['active_buffer'] = await asyncio.to_thread(_active_buffer_metadata, resolved_db_path)
+            except (OSError, sqlite3.Error, RuntimeError) as error:
+                result['active_buffer'] = None
+                result['active_buffer_diagnostic']={'type':type(error).__name__,
+                    'sqlite_code':getattr(error,'sqlite_errorcode',None)}
         return result
 
     @app.get('/state/current')
@@ -319,7 +361,10 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
             last_token = object()
             while True:
                 snapshot = live_snapshot()
-                token = snapshot.get('updated_at')
+                if read_connection_factory:
+                    try:snapshot['active_buffer'] = await asyncio.to_thread(_active_buffer_metadata,resolved_db_path)
+                    except (OSError,sqlite3.Error,RuntimeError):snapshot['active_buffer'] = None
+                token = (snapshot.get('updated_at'),(snapshot.get('active_buffer') or {}).get('generation_id'))
                 if token != last_token:
                     yield f"data: {json.dumps(snapshot, separators=(',', ':'))}\n\n"
                     last_token = token

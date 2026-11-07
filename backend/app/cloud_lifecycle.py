@@ -265,7 +265,10 @@ def read_lifecycle_status(db_path):
 class LifecycleWorker:
     def __init__(self, db_path, config, retention, cloud_factory,
                  bucket=RAW_BUCKET, structured_batch_size=DEFAULT_BATCH_SIZE,
-                 now_fn=None, monotonic=None, should_stop=None):
+                 now_fn=None, monotonic=None, should_stop=None, connection_factory=None, after_archive=None):
+        self.connection_factory = connection_factory
+        self.after_archive = after_archive
+        self._handoff_token = None
         self.db_path = str(db_path)
         self.config = config
         self.retention = retention
@@ -320,15 +323,19 @@ class LifecycleWorker:
             manifest = archive_raw_batch(
                 db, cloud, dataset, limit=self.config.raw_batch_size, bucket=self.bucket)
             if manifest is None:
-                caught_up = True
+                caught_up = not (hasattr(db,'raw_archive_has_backlog') and db.raw_archive_has_backlog(dataset))
                 break
             archived += manifest["event_count"]
             if manifest["event_count"] < self.config.raw_batch_size:
-                caught_up = True
+                if hasattr(db, "raw_archive_caught_up") and not db.raw_archive_caught_up(dataset):
+                    continue
+                caught_up = not (hasattr(db,'raw_archive_has_backlog') and db.raw_archive_has_backlog(dataset))
                 break
         return archived, caught_up
 
     def _retention(self, db, cloud):
+        if hasattr(db, "ab_retention_hold"):
+            raise LifecycleError(db.ab_retention_hold())
         manifests = fetch_verified_manifests(cloud, self.bucket)
         plan = plan_retention(db, manifests, self.retention, self.now_fn(), self.bucket)
         result = apply_retention(db, plan, self.retention, confirm=True)
@@ -336,17 +343,28 @@ class LifecycleWorker:
 
     def run_cycle(self, force=False):
         """Run every due stage once. Returns a sanitized result dict."""
-        db = open_lifecycle_db(self.db_path)
+        db = self.connection_factory() if self.connection_factory else open_lifecycle_db(self.db_path)
         result = {"structured": None, "archive": {}, "retention": None, "errors": []}
         try:
             initialize_local_sync(db)
             initialize_lifecycle_state(db)
             now = self.monotonic()
             run_structured = force or now >= self._next_due["structured"]
-            run_archive = force or now >= self._next_due["archive"]
+            token_reader = getattr(db,'archive_handoff_token',None)
+            token = token_reader() if token_reader else ()
+            handoff_due = bool(token) and token != self._handoff_token
+            run_archive = force or handoff_due or now >= self._next_due["archive"]
             run_retention = force or now >= self._next_due["retention"]
+            if handoff_due and run_structured:
+                # One new seal/drain transition gets archive priority. Keep
+                # structured sync due; a stable held reader must not starve it.
+                run_structured = False
+                result['structured_deferred_reason'] = 'new_sealed_generation_handoff'
+
             if not any((run_structured, run_archive, run_retention)):
                 result["status"] = "idle"
+                if token and self.after_archive:
+                    result["archive"] = {"handoff_retry": True}
                 return result
 
             started = _now()
@@ -354,7 +372,8 @@ class LifecycleWorker:
             if run_structured:
                 self._next_due["structured"] = now + self.config.structured_interval
             if run_archive:
-                self._next_due["archive"] = now + self.config.raw_archive_interval
+                self._next_due["archive"] = now + (min(self.config.raw_archive_interval,30) if token else self.config.raw_archive_interval)
+                self._handoff_token = token
             if run_retention:
                 self._next_due["retention"] = now + self.config.retention_interval
 
@@ -373,6 +392,8 @@ class LifecycleWorker:
                         result["errors"].append("structured")
                         self._fail(db, "structured", exc)
                 if run_archive:
+                    begin_archive=getattr(db,'begin_archive_cycle',None)
+                    if begin_archive:result['archive_scope']=begin_archive(sealed_only=handoff_due)
                     archive_ran_this_cycle = True
                     archive_ok_this_cycle = True
                     for dataset in RAW_DATASETS:
@@ -406,6 +427,13 @@ class LifecycleWorker:
             return result
         finally:
             db.close()
+            if self.after_archive and result.get('archive') and not result['errors']:
+                try:
+                    result['generation_retirement'] = self.after_archive()
+                except Exception as error:
+                    result['generation_retirement'] = {'status':'held','reason':type(error).__name__}
+                    result['status'] = 'degraded'
+                    result['errors'].append('generation_retirement')
 
     def _run_retention_stage(self, db, cloud, result,
                              archive_ran_this_cycle, archive_ok_this_cycle):
@@ -434,7 +462,7 @@ class LifecycleWorker:
     def run_forever(self, stop, poll_seconds=1.0, on_cycle=None):
         """Loop until `stop` (threading.Event) is set; each stage keeps its own cadence."""
         self.continuous = True
-        db = open_lifecycle_db(self.db_path)
+        db = self.connection_factory() if self.connection_factory else open_lifecycle_db(self.db_path)
         try:
             initialize_lifecycle_state(db)
             self._record(db, worker_status="running", worker_pid=os.getpid(),
@@ -453,7 +481,7 @@ class LifecycleWorker:
                 waits = [value - self.monotonic() for value in self._next_due.values()]
                 stop.wait(max(poll_seconds, min(min(waits), 30.0)))
         finally:
-            db = open_lifecycle_db(self.db_path)
+            db = self.connection_factory() if self.connection_factory else open_lifecycle_db(self.db_path)
             try:
                 initialize_lifecycle_state(db)
                 self._record(db, worker_status="stopped", worker_pid=None)

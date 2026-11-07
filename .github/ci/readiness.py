@@ -6,8 +6,8 @@ import time
 from run_tests import write_evidence
 from summaries import readiness_summary
 
-CATEGORIES = ['backend', 'application', 'root', 'controls', 'ci-controls', 'source', 'static', 'workflows', 'dependencies']
-JOBS = {'quality', 'security', 'application', 'controls', 'test', 'integrated'}
+CATEGORIES = ['backend', 'application', 'root', 'controls', 'ci-controls', 'source', 'static', 'workflows', 'dependencies', 'postgres']
+JOBS = {'quality', 'security', 'application', 'controls', 'test', 'integrated', 'postgres'}
 REQUIRED = ['ab-generated-report.json', 'ab-joint-report.json', 'ab-import-report.json',
             'integrated-report.json', 'AB_CANDIDATE_MANIFEST.json']
 
@@ -25,7 +25,7 @@ def validate(directory, jobs, tested_sha, source_sha):
             problems.append(f"{category}: {evidence.get('gate', 'BLOCKED')} gate result")
         if evidence.get('tested_sha') != tested_sha or evidence.get('source_sha') != source_sha:
             problems.append(f'{category}: FAIL SHA binding')
-        if category in CATEGORIES[:5] and evidence.get('tests', 0) <= evidence.get('skips', 0):
+        if category in CATEGORIES[:5] + ['postgres'] and evidence.get('tests', 0) <= evidence.get('skips', 0):
             problems.append(f'{category}: BLOCKED no executed tests')
     for name in REQUIRED:
         files = list(directory.rglob(name))

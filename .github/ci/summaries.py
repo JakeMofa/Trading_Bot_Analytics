@@ -33,5 +33,9 @@ def readiness_summary(directory, jobs, categories, source_sha, tested_sha, run_u
     lines += ['', '### Readiness: ' + ('BLOCKED' if problems else 'PASS'), '']
     lines += ['- ' + problem for problem in problems]
     lines += ['', 'Production deployment, acceptance and full-scale capacity: NOT PERFORMED.',
-              'A passing PR merge run does not replace exact-source push CI for release.', '']
+              'A passing PR merge run does not replace exact-source push CI for release.',
+              '[Before/during/after database coverage and remaining production gates]'
+              f'({run_url.split("/actions/")[0]}/blob/{tested_sha}/.github/ci/DATABASE_COVERAGE.md)',
+              'Postgres uses minimal generated roles/storage fixtures; live Supabase drift/auth/Storage: NOT PERFORMED.',
+              'Production A/B/core/retained-legacy operator route and aggregate capacity: BLOCKED pending storage-owner qualification.', '']
     return '\n'.join(lines)

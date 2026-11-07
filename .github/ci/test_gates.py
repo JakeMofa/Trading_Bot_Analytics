@@ -62,6 +62,22 @@ class GateTests(unittest.TestCase):
                              '/actions/runs/123', 'Readiness: BLOCKED', 'NOT PERFORMED']:
                 self.assertIn(expected, text)
 
+    def test_postgres_job_and_executed_schema_evidence_are_required(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            self.fixture(root)
+            jobs = dict.fromkeys(JOBS, 'success')
+            self.assertEqual(validate(root, jobs, 'b'*40, 'a'*40), [])
+            jobs.pop('postgres')
+            self.assertTrue(validate(root, jobs, 'b'*40, 'a'*40))
+            jobs['postgres'] = 'success'
+            (root / 'postgres.json').unlink()
+            self.assertTrue(validate(root, jobs, 'b'*40, 'a'*40))
+            self.fixture(root)
+            (root / 'postgres.json').write_text(json.dumps({'gate': 'PASS',
+                'tested_sha': 'b'*40, 'source_sha': 'a'*40, 'tests': 0, 'skips': 0}))
+            self.assertTrue(validate(root, jobs, 'b'*40, 'a'*40))
+
     def test_application_partition_names_exist(self):
         self.assertTrue(APPLICATION)
         for name in APPLICATION:

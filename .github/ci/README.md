@@ -117,3 +117,17 @@ are reported separately from SHA mismatches. Five local CI regressions pass,
 including pending/in-progress required jobs blocking readiness. Replaying the new
 validator against downloaded 7bee563 push artifacts reports only the genuine
 security failure, with no spurious SHA mismatch. New source CI is still required.
+
+## Database deployment coverage
+
+See [before/during/after coverage matrix](DATABASE_COVERAGE.md). The required
+`Isolated Postgres schema compatibility` job executes unchanged reviewed SQL on
+a bounded disposable PostgreSQL engine, beyond existing mock-wire tests. It
+does not install the Supabase service stack, use live secrets or certify deployed
+drift/permissions. `PR readiness` now requires its evidence too. Existing VM
+controllers remain legacy-path-only; production A/B/core/retained-legacy identity,
+aggregate resource guards and recovery/retirement gates remain storage-owned.
+
+Storage dependency correction 4c673bf and final source 0cef90a (including cc06c01) are now available;
+refresh this isolated CI branch from that base. Older failed audit evidence remains
+FAIL for its original source; new passing checks are required for the combined SHA.

@@ -55,6 +55,8 @@ jobs:
       - name: Run unit tests
         working-directory: ${{ runner.temp }}/ab-test-candidate
         env:
+          # Bound inherited glibc arenas before Python starts; child AS cap stays 512 MiB.
+          MALLOC_ARENA_MAX: "2"
           ENABLE_OPENAI_ANALYST: "false"
           ENABLE_SUPABASE_SYNC: "false"
           ENABLE_LOCAL_RETENTION: "false"

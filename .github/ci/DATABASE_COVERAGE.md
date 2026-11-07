@@ -97,3 +97,28 @@ Subsequent storage freeze d35644c adds one-helper/no-backlog archive-history
 admission and cancellation recovery. The CI branch incorporates that reviewed
 base too; previous local full-suite results remain bound to their earlier source.
 Final combined exact-source/PR Linux and privileged replay evidence is pending.
+
+## Linux resource diagnosis on de7f735
+
+The three generic child errors were reproduced with exact exported application
+bytes on Docker Linux arm64/Python3.12.16. After threaded history tests, inherited
+VmSize565740KiB exceeded the unchanged512MiB RLIMIT_AS before new SQLite work;
+SQLite initialization raised OperationalError. A diagnostic wrapper recorded only
+class/frames/numeric counters. Limiting glibc arenas to2 at interpreter startup
+reduced inherited VmSize to172548KiB and removed these three child errors.
+See [sanitized evidence](evidence/linux-inherited-arena-de7f735.json).
+
+CI now sets MALLOC_ARENA_MAX=2 **only in the backend unit-test step**. The child
+memory cap, deadline, single-thread guard, workload and latency/storage limits
+are unchanged. Root/import/integrated and production environments are untouched.
+This is bounded test-process resource setup, not production runtime qualification.
+[glibc documents the arena limit](https://sourceware.org/glibc/manual/latest/html_node/Memory-Allocation-Tunables.html).
+
+The corrected local sequence still FAILED its concurrent writer on the generated
+host bind filesystem with `pending intent must recover before another event`.
+That failure is preserved, not retried or masked. Full exact-source GitHub Linux
+checks must determine whether it is also a runner/application blocker. No reviewed
+application fix for the current functions exists on available base0c110a2;
+therefore no application source was integrated or rewritten. If the writer error
+persists, its pending-intent/recovery interleaving requires a separate reviewed
+application patch; do not clear pending intents or weaken admission guards.

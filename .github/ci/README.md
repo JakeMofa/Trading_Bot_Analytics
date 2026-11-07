@@ -154,3 +154,13 @@ security-tool evaluation](CHECK_COVERAGE.md). Actual filename renaming would
 require a coordinated, tested migration of every API lookup, test and document
 reference, notably `verify_ci.py` and `test_release_lookup.py`; it is not part of
 this display-name change.
+
+## Versioned candidate visibility
+
+[Manual release-candidate workflow and usage](RELEASE_VISIBILITY.md) now implement
+version-bound source artifacts and explicit create-only prerelease publication.
+The release manifest is the version authority. No actual tag/version/publication
+is selected here; deployment and acceptance states remain separate. The existing
+operator bundle format is not replaced, and host version/outcome recording remains
+an explicit controller dependency. Prior source9847353 push42335758651 and
+PR42335763918 PASS are preserved for that SHA only; new source needs fresh CI.

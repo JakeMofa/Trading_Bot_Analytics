@@ -1,0 +1,101 @@
+name: Release — Tradebot candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Existing branch whose exact HEAD has passed push CI
+        required: true
+        type: choice
+        options: [codex/ci-pr-quality-gates, codex/phase1-75-retention-enable, codex/lightsail-deployment, main]
+      revision:
+        description: Full approved commit SHA (must equal dispatch branch HEAD)
+        required: true
+        type: string
+      version:
+        description: Explicit reviewed SemVer, without v prefix (no default version)
+        required: true
+        type: string
+      scope:
+        description: Candidate scope only; does not approve deployment
+        required: true
+        type: choice
+        options: [read-only-analysis-candidate]
+      operation:
+        description: Build artifacts or explicitly publish candidate prerelease
+        required: true
+        type: choice
+        default: build
+        options: [build, publish]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tradebot-release-candidate-${{ inputs.version }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_BRANCH: ${{ inputs.branch }}
+  RELEASE_SHA: ${{ inputs.revision }}
+  RELEASE_VERSION: ${{ inputs.version }}
+  RELEASE_SCOPE: ${{ inputs.scope }}
+  PYTHONDONTWRITEBYTECODE: "1"
+
+jobs:
+  prepare:
+    name: Prepare reviewed candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require exact push CI and build sanitized version-bound source artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_OUTPUT: ${{ runner.temp }}/candidate
+        run: python .github/ci/release_candidate.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reviewed-candidate-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/candidate/source.tar.gz
+            ${{ runner.temp }}/candidate/requirements.txt
+            ${{ runner.temp }}/candidate/ci-evidence.json
+            ${{ runner.temp }}/candidate/compatibility.json
+            ${{ runner.temp }}/candidate/release-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish reviewed prerelease
+    if: inputs.operation == 'publish'
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: reviewed-candidate-${{ github.run_id }}
+          path: ${{ runner.temp }}/prepared
+      - name: Rebuild and compare prepared bytes before create-only tag/prerelease reconciliation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_OUTPUT: ${{ runner.temp }}/candidate
+        run: python .github/ci/release_candidate.py --publish --prepared "$RUNNER_TEMP/prepared"

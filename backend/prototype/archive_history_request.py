@@ -9,7 +9,7 @@ def request_history(connection,cloud,generation,dataset,identities,deadline):
         url=cloud.cloud.config.url,key=cloud.cloud.config.secret_key,
         generation=generation,dataset=dataset,identities=identities,deadline=deadline)).encode()
     if len(body)>65536:return unavailable
-    child=subprocess.Popen([sys.executable,'-I',str(Path(__file__).with_name('archive_history_worker.py'))],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,start_new_session=True)
+    child=subprocess.Popen([sys.executable,'-I','-B',str(Path(__file__).with_name('archive_history_worker.py'))],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,start_new_session=True)
     try:
         try:output,_=child.communicate(body,timeout=max(.001,deadline-time.monotonic()))
         except subprocess.TimeoutExpired:return unavailable

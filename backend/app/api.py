@@ -45,6 +45,22 @@ def _active_buffer(connection_factory):
         return read_buffer() if read_buffer else None
 
 
+def _active_buffer_metadata(db_path):
+    # Status/SSE need only durable core metadata, not leases on retiring raw files.
+    try:from application_validation import LAYOUT_VERSION
+    except ImportError:raise RuntimeError('A/B metadata validator unavailable') from None
+    with closing(_readonly(db_path)) as db:
+        version=db.execute('SELECT version FROM ab_layout_version WHERE id=1').fetchone()
+        if not version or version[0]!=LAYOUT_VERSION:raise RuntimeError('unsupported storage layout')
+        rows=db.execute("SELECT slot,id,started FROM ab_generations WHERE state='active' LIMIT 2").fetchall()
+        if len(rows)>1:raise RuntimeError('multiple active generations')
+        result=dict(zip(('slot','generation_id','started_at'),rows[0])) if rows else None
+        mode=db.execute('SELECT mode FROM ab_bootstrap_mode WHERE id=1').fetchone()
+        if result and mode and mode[0]=='fresh-b':
+            result.update(legacy_history='sealed_retirement_held',archive_checkpoint_prefix='archive:ab72:',legacy_full_verification='NOT_PERFORMED_BY_FRESH_BOOTSTRAP')
+        return result
+
+
 def _collector_status(task):
     if task is None:
         return {'enabled': False, 'running': False, 'error': None}
@@ -147,7 +163,7 @@ def _read_prediction_history(db_path, limit):
         db.close()
 
 
-def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None, read_connection_factory=None):
+def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None, read_connection_factory=None, archive_read_factory=None):
     from storage_runtime import configured_runtime
     runtime = configured_runtime()
     if runtime and read_connection_factory:
@@ -241,6 +257,22 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     async def historical_chart():
         return await asyncio.to_thread(_saved_dashboard, resolved_db_path, True, read_connection_factory)
 
+    @app.get('/history/archive')
+    async def archive_history(generation: str = Query(max_length=64), dataset: str = Query(max_length=32), identities: str = Query(max_length=8192)):
+        # Explicit history request only: never called from discovery/live features.
+        def read():
+            if not read_connection_factory or not archive_read_factory:
+                return {'status':'unavailable','reason':'archive_history_not_configured','records':[]}
+            try:
+                deadline=time.monotonic()+1
+                requested=json.loads(identities)
+                with closing(read_connection_factory()) as db, closing(archive_read_factory(deadline)) as cloud:
+                    db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+                    return db.archived_history_background(cloud,generation,dataset,requested,deadline)
+            except (OSError,sqlite3.Error,ValueError,TypeError,KeyError,RuntimeError,AttributeError):
+                return {'status':'unavailable','reason':'archive_history_unverified_or_unavailable','records':[]}
+        return await asyncio.to_thread(read)
+
     @app.get('/system/history')
     async def system_history(limit: int = Query(default=288, ge=1, le=288)):
         return await asyncio.to_thread(read_history, resolved_telemetry, limit)
@@ -271,9 +303,11 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                        'cloud': await asyncio.to_thread(_read_cloud_status, resolved_db_path)})
         if read_connection_factory:
             try:
-                result['active_buffer'] = await asyncio.to_thread(_active_buffer, read_connection_factory)
-            except (OSError, sqlite3.Error, RuntimeError):
+                result['active_buffer'] = await asyncio.to_thread(_active_buffer_metadata, resolved_db_path)
+            except (OSError, sqlite3.Error, RuntimeError) as error:
                 result['active_buffer'] = None
+                result['active_buffer_diagnostic']={'type':type(error).__name__,
+                    'sqlite_code':getattr(error,'sqlite_errorcode',None)}
         return result
 
     @app.get('/state/current')
@@ -341,7 +375,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
             while True:
                 snapshot = live_snapshot()
                 if read_connection_factory:
-                    try:snapshot['active_buffer'] = await asyncio.to_thread(_active_buffer,read_connection_factory)
+                    try:snapshot['active_buffer'] = await asyncio.to_thread(_active_buffer_metadata,resolved_db_path)
                     except (OSError,sqlite3.Error,RuntimeError):snapshot['active_buffer'] = None
                 token = (snapshot.get('updated_at'),(snapshot.get('active_buffer') or {}).get('generation_id'))
                 if token != last_token:

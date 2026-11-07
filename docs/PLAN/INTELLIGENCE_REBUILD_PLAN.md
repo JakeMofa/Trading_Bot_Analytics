@@ -3998,3 +3998,56 @@ Supabase schema intendedservice_role CRUD on raw_archives/checkpoints is not
 immutability/deployed identity evidence. Existing prepare_scope reads CURRENT raw,
 not post-retirement application replay. No fresh-readback replacement authorized.
 Next:receive exactCI result once,review effective mutation-fence model;keepPRdraft.
+
+
+## November6 — reviewed dependency remediation, CI ownership preserved
+
+PreservedCIcommit1cc9e8d. ReviewedCIworker42f207c proposal/patch hash24015499...
+against primary cryptography advisory/changelog;apply minimal tested50.0.0 pin,
+not untested claim of latest. IsolatedPython3.13macOS consistencyPASS,pip-audit2.9
+reports0knownvulnerabilities for requirementsSHA2d9f681d6cd90e8708a223f49dee05d4c9553fe726e3db08a555a003df0d6976.
+Ed25519/streaming/API/state/rollover/fresh-B tests execute under candidate;fault
+fixture/selection errors preserved in sanitizedreview record,not securityfailures.
+ExactLinux/root/finalrelease CI stillREQUIRED. No advisory waivers or production
+changes. See evidence/cryptography50-storage-review.json. CIbranch/PR10 remains
+owned byseparateworker;no workflow/configuration file edited here. 439c93b's exact
+pushCI42320474396 isFAIL(nullactivebuffer duringjointarchive);underlyingconnection
+error wasnotretained. Later1cc/7beePASS doesnotexplain or erasehistoricalfailure.
+
+
+## November6 — actual archived application history and cursor recovery
+
+See PR9_ARCHIVED_APPLICATION_HISTORY_2026-11-06.md. PreservedCI1cc9e8d andseparate
+CIworkerworkflowownership;reviewedpin4c673bf fixesreportedcryptoissues locally.
+Explicit /history/archive useshistoryrole+isolatedPython-I subprocess,authenticated
+readback andcommittedcorefingerprints,originalpayloadTEXT/decimals/times/identities,
+no livefeature/discovery fallback. One-second wholeAPI deadline inclstartup,
+network/body/JSON;process-group cancellation,512MiB maxpreserving tighterlimits,
+100identities/8objects/boundedresponse;unconfigured/missing/corrupt/late/unverifiable
+history isexplicitunavailable. No production factoryenabled or cloudwrites.
+Rootregression nowqueuedinexistingapplicationrootsuite:originalverifiedretirement
+then actualAPIarchive retrieval,deterministiccalculation/corehistory/reference/FK/
+dashboard checks. LocalrootcaseSKIPPED,notPASSuntil exactLinuxCI. Legacy-file
+postremoval replay remainsseparateunqualifiedgate;retainedlegacy unchanged.
+Explicitlifecycle cursorreconciliation verifiessealedarchivedPREFIXagainstlocal
+rows/acks beforeinstallingexactgenerationcheckpoint;no globalcursorseed.8objects/
+1000rows/object/30s bounds;gaps/corruption/changedreceipts HOLD. Remoteack-before-
+localcommit crash,restart,idempotentprefix recovery/suffixeligibility tested.
+Historical439c93b pushCI42320474396 FAIL:active_bufferNone duringjointarchive;
+underlying swallowedconnectioncauseUNKNOWN. Status/SSE nowreads coremetadataonly,
+notrawleases,andretains sanitizedfailuretype/code;unsupportedversionhold tested.
+Local440backendPASS/22platformskips42.334s beforefinalsmallcorrections;finalaffected
+31tests/30PASS/1rootskip4.006s undercrypto50.0.0. Exact successorLinuxCI REQUIRED.
+Mandatoryfreshreadback unchanged;separatefullpassretirementbudget mustbequalified
+beforeproposalapplied. Runtimecreate-only/conflictcontract isnotserverimmutable
+permission;effectiveprivilegedmutation/policycontinuity remainsBLOCKED. No grants/
+schema/newdeletionauthority. Proposedadminboundary inreport requiresreview.
+CIworkerPR10 control/readiness/schema-matrix followupmustqualifywithnewbase then
+mergeviareviewedCI-onlyPR;do notinheritoldergreenSHA. PR9DRAFT,releaseBLOCKED.
+5GiBslotsSELECTEDTARGET/24GiBaggregateUNQUALIFIED/appliedlegacy5120MiBSTOP distinct;
+finitecore/100kledger,capacity/outage,completelegacyverification,actualproduction
+fence/manualcontrols OPEN. LiveSupabase drift andactualA/B/core/legacy verification
+before/during/afterrelease NOTPERFORMED,nolivequeriesorproductionoperationsauthorized.
+Cutover,firstsealedverification,retirementenablementseparate;legacyexact-file
+retirementrequiresarchive/history/reference/drainproofandseparateapproval. I7,
+recovery/replay/visibility/sustainedoperation OPEN;Redis/paidAI/Phase2deferred.

@@ -48,6 +48,10 @@ class Cloud:
         self.rows.setdefault(table,[]).extend(rows)
     def close(self):pass
 class Tests(unittest.TestCase):
+    def test_archived_history_after_actual_local_retirement(self):
+        # Included in the existing root application suite without CI workflow edits.
+        from test_archive_history import Tests as ReplayTests
+        ReplayTests().test_actual_retirement_then_archive_history_calculations_and_dashboard()
     def setup_store(self,folder):
         p=Path(folder)/'generated-legacy.db';expected=legacy(p)
         return ApplicationStore(folder,p,routing=True),expected

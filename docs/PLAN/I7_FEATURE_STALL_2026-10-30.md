@@ -1,6 +1,6 @@
 # I7 feature-cycle stall diagnosis and prepared fix
 
-I7 remains OPEN. Production is still on a7c0989; this change is prepared and tested on the existing `codex/phase1-75-retention-enable` branch, without deployment or restart.
+**Latest update:** I7 remains OPEN. Worker containment `d56b4a7` is now deployed; sampled API responsiveness passed, snapshot freshness and rollover remain unresolved. See [production validation](I7_PRODUCTION_VALIDATION_2026-10-30.md). The diagnosis below records the earlier production baseline and preparation, not current runtime status.
 
 Production logs bracket one synchronous feature call from 2026-10-30 18:02:19.637356 UTC to 18:04:30.688175 UTC: 131.050819 seconds (13:02:19 to 13:04:30 America/Chicago). These are the adjacent pre/post-call log timestamps, not newly added per-query instrumentation. The earlier ~83-second estimate is no longer the current duration.
 
@@ -16,4 +16,4 @@ Validation: 182 backend tests and six deployment-control tests pass. Added regre
 
 Raw evidence: `/Users/jake/Documents/ChatGPT/TradebotAnalytics/evidence/phase175-baseline/i7-feature-stall/` (observation.jsonl, query-io-and-logs.txt, perf.txt, final-health.jsonl, backend-tests.log, deployment-tests.log). No production database copy was created. Retention, R0–R17, guard 4096 MiB, SSH/firewall and AWS resources are unchanged. Phase 2 is not started.
 
-Next action: review this prepared containment fix, then use the normal controlled deployment process and validate API/feed responsiveness, feature age, disk reads and writer latency across multiple feature cycles. I7 is not ready to close from local tests alone.
+Next action: separately review/test source-time query optimization and rollover latency using the production validation evidence. The worker containment is deployed; I7 is not ready to close because freshness/rollover still fail. Full quick/FK audit is explicitly outstanding after the user-authorized exact-release exception.

@@ -1,0 +1,104 @@
+{
+  "elapsed_seconds": 6.946660179994069,
+  "raw_history_scan": false,
+  "status": "PASS_BOUNDED_FULL_SELECTED_SIZE",
+  "tables": {
+    "ai_suggestions": {
+      "canonical_array_bytes": 217660,
+      "max_canonical_array_bytes": 239,
+      "rows": 1277
+    },
+    "candles": {
+      "canonical_array_bytes": 7470082,
+      "max_canonical_array_bytes": 130,
+      "rows": 58812
+    },
+    "cloud_lifecycle_state": {
+      "canonical_array_bytes": 320,
+      "max_canonical_array_bytes": 320,
+      "rows": 1
+    },
+    "cloud_sync_state": {
+      "canonical_array_bytes": 843,
+      "max_canonical_array_bytes": 216,
+      "rows": 7
+    },
+    "current_decisions": {
+      "canonical_array_bytes": 184461,
+      "max_canonical_array_bytes": 273,
+      "rows": 832
+    },
+    "feature_snapshots": {
+      "canonical_array_bytes": 45250265,
+      "max_canonical_array_bytes": 2526,
+      "rows": 18289
+    },
+    "feed_health": {
+      "canonical_array_bytes": 462,
+      "max_canonical_array_bytes": 166,
+      "rows": 4
+    },
+    "historical_backfill_chunks": {
+      "canonical_array_bytes": 103898,
+      "max_canonical_array_bytes": 1427,
+      "rows": 90
+    },
+    "historical_market_prices": {
+      "canonical_array_bytes": 899188,
+      "max_canonical_array_bytes": 71,
+      "rows": 12694
+    },
+    "markets": {
+      "canonical_array_bytes": 8062485,
+      "max_canonical_array_bytes": 4999,
+      "rows": 1826
+    },
+    "news": {
+      "canonical_array_bytes": 0,
+      "max_canonical_array_bytes": 0,
+      "rows": 0
+    },
+    "news_events": {
+      "canonical_array_bytes": 11682,
+      "max_canonical_array_bytes": 474,
+      "rows": 28
+    },
+    "prediction_context_links": {
+      "canonical_array_bytes": 2635,
+      "max_canonical_array_bytes": 151,
+      "rows": 20
+    },
+    "predictions": {
+      "canonical_array_bytes": 15952800,
+      "max_canonical_array_bytes": 679,
+      "rows": 27743
+    },
+    "reference_prices": {
+      "canonical_array_bytes": 6168101,
+      "max_canonical_array_bytes": 333,
+      "rows": 18692
+    },
+    "runs": {
+      "canonical_array_bytes": 5825208,
+      "max_canonical_array_bytes": 1398,
+      "rows": 49260
+    },
+    "schema_migrations": {
+      "canonical_array_bytes": 22,
+      "max_canonical_array_bytes": 22,
+      "rows": 1
+    },
+    "selected_observations": {
+      "canonical_array_bytes": 47000394,
+      "max_canonical_array_bytes": 4137,
+      "missing": 6755,
+      "rows": 11513
+    },
+    "selected_stream_events": {
+      "canonical_array_bytes": 7109690,
+      "max_canonical_array_bytes": 630,
+      "missing": 6493,
+      "rows": 11431
+    }
+  }
+}

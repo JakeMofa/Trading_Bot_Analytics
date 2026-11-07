@@ -1,0 +1,12 @@
+{
+  "artifact_status": "FAIL",
+  "ci_run": 42159636989,
+  "failed_gate": "joint OFF-first handoff",
+  "fix": "call existing owner-thread rotation_tick after held transition; no extra retries, timeout or gate change",
+  "later_import_and_integrated_jobs": "NOT_COMPLETED",
+  "reason": "fixture repeated retirement before collector attachment refresh after the new draining transition",
+  "root_incremental_tests_passed": 7,
+  "source_sha": "be6e12126f56cc315e4d5b58b02ff50784c66a70",
+  "status": "FAIL",
+  "whole_suite_elapsed_seconds": 16.150645320999985
+}

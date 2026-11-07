@@ -1,0 +1,67 @@
+{
+  "ci_run": 42126289598,
+  "diagnostics": {
+    "counter_overhead_seconds": 0.03710061400077791,
+    "due_timer_handoffs": 269,
+    "handoff_seconds": 0.017159486000210222,
+    "schedstats_enabled": false,
+    "timing_calls": 4031
+  },
+  "historical_1547_failure_relabelled": false,
+  "historical_resource_attribution": "NOT_PROVEN",
+  "metrics": {
+    "archive_rows": 4000,
+    "committed_rows": 4000,
+    "elapsed_seconds": 14.30850545300001,
+    "fixture_setup_seconds": 0.012302825999995548,
+    "heartbeat_max_seconds": 0.10138092500000084,
+    "heartbeat_start_after_setup_seconds": 0.012691312000001176,
+    "save_max_seconds": 0.06344176500000742
+  },
+  "source_sha": "8bb945a13cbb4ec819c3c79262c7972849abe143",
+  "status": "PASS_SCALED",
+  "worst_window": {
+    "end": 14.133669266000012,
+    "events": [
+      {
+        "end": 14.035803889000007,
+        "index": 3998,
+        "phase": "save",
+        "runqueue_wait_seconds": null,
+        "start": 14.032339607999987,
+        "thread": "main",
+        "thread_cpu_seconds": 0.002607739000000109,
+        "wall_seconds": 0.003464281000020719
+      },
+      {
+        "end": 14.039481941999995,
+        "index": 3999,
+        "phase": "save",
+        "runqueue_wait_seconds": null,
+        "start": 14.035863107999987,
+        "thread": "main",
+        "thread_cpu_seconds": 0.002578114999998604,
+        "wall_seconds": 0.0036188340000080643
+      },
+      {
+        "end": 14.133565649000005,
+        "index": null,
+        "phase": "residual_archive",
+        "runqueue_wait_seconds": null,
+        "start": 14.039532176999998,
+        "thread": "main",
+        "thread_cpu_seconds": 0.09274607700000104,
+        "wall_seconds": 0.09403347200000667
+      }
+    ],
+    "events_truncated": false,
+    "interval_seconds": 0.10138092500000084,
+    "main_sync_overlap_seconds": 0.10111658700003545,
+    "main_window_complete": true,
+    "overdue_seconds": 0.05138092500000084,
+    "requested_sleep_seconds": 0.05,
+    "runqueue_wait_seconds": null,
+    "start": 14.032288341000012,
+    "thread_cpu_seconds": 0.09818594999999952
+  }
+}

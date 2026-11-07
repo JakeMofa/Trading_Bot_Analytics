@@ -1,0 +1,68 @@
+{
+  "after_ack_restart_seconds": 7.691011473000003,
+  "allocation_scope": "owned Linux process family",
+  "cleanup_error_type": "RuntimeError",
+  "constructor_seconds": 115.52754884900003,
+  "counts": {
+    "ai_suggestions": 1277,
+    "candles": 58812,
+    "cloud_lifecycle_state": 1,
+    "cloud_sync_state": 7,
+    "current_decisions": 832,
+    "feature_snapshots": 18289,
+    "feed_health": 4,
+    "historical_backfill_chunks": 90,
+    "historical_market_prices": 12694,
+    "markets": 1826,
+    "news": 0,
+    "news_events": 28,
+    "prediction_context_links": 20,
+    "predictions": 27743,
+    "reference_prices": 18692,
+    "runs": 49260,
+    "schema_migrations": 1
+  },
+  "elapsed_before_cleanup_seconds": 155.72497711500003,
+  "elapsed_including_cleanup_seconds": 155.731611613,
+  "import_metrics": {
+    "audit_and_import_seconds": 109.36697255400003,
+    "audited_bytes": 179671813,
+    "identity": "6f285cd348266cd1d7ea62a8ec9f1b1bfd498c2b07f1d3f53027767008dce3e5",
+    "raw_audit": "targeted protected/current inputs only",
+    "rows": 225777
+  },
+  "last_progress": {
+    "elapsed_seconds": 148.01168034999998,
+    "phase": "restart_audit",
+    "sampled_allocated_peak_bytes": 1022902272
+  },
+  "legacy_unchanged": true,
+  "limits": {
+    "audit_bytes": 268435456,
+    "linux_address_space_bytes": 536870912,
+    "rows": 250000,
+    "total_seconds": 180,
+    "work_seconds": 170,
+    "workspace_bytes": 2147483648
+  },
+  "logical_admission": {
+    "byte_limit": 268435456,
+    "logical_bytes": 168200760,
+    "row_limit": 250000,
+    "rows": 207852
+  },
+  "new_acknowledged_id": 229700,
+  "phase": "cleanup",
+  "prediction_dependencies": 6745,
+  "preparation_seconds": 23.029372674,
+  "protocol_peak_bytes": 424525824,
+  "restart_audit_seconds": 7.69022283999999,
+  "rss_bytes": 134549504,
+  "sampled_allocated_peak_bytes": 1022902272,
+  "scope": "full recorded structured counts and selected fanout; not full raw volume/production proof",
+  "selected_rows": 13248,
+  "snapshot_dependencies": 6776,
+  "source_sha": "53d8582c1495800e4b4e14a561a974b1c3f2a33a",
+  "status": "FAIL",
+  "unlinked_temp_peak_bytes": 0
+}

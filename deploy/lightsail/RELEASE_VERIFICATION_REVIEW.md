@@ -33,7 +33,7 @@ below. No production approval is inferred from passing tests or this file.
   and persisted age[-5,30]s, both RAM and both persistence timestamps advancing
   since the preceding probe. Persistence uses latest256stream/128observation
   rowids only, not source-time history scans. Schema identity reads are metadata.
-- Physical DB+WAL must remain below5120MiB minus64MiB reserve. Retain existing
+- Physical DB+WAL must remain below5120MiB minus512MiB required headroom. Retain existing
   min2GiB free disk/runtime flags/protected configuration/sole collector/private
   listener checks. No guard increase. A long read snapshot can pin WAL frames:
   abort/reap if collection or storage guards fail; never checkpoint to make room.
@@ -71,7 +71,7 @@ The template below is deliberately invalid and is NOT an authorization:
   "policy": {
     "work_seconds": 1800, "reap_seconds": 10, "recovery_seconds": 180,
     "freshness_seconds": 300, "deploy_seconds": 600,
-    "storage_ceiling_mb": 5120, "storage_reserve_mb": 64
+    "storage_ceiling_mb": 5120, "storage_reserve_mb": 512
   }
 }
 ```
@@ -87,7 +87,7 @@ requires current deployment-branch HEAD and exact successful push CI.
    verify its exact application/control CI run(s), helper hashes and clean deployed
    d56b4a7. Refresh actual flags/cap/services/storage/private listener without heavy
    queries. Keep retention/paidAI OFF and the storage-cap review deadline unchanged.
-   Check enough time remains for verification, deployment and up-to30min acceptance;
+   Check enough time remains for verification, deployment and bounded functional smoke;
    reaching the cap deadline is an operator review, not an extension.
 2. Export only the CI-passed `deploy.py`, `release_verification.py`, `smoke.py`.
    Through existing pinned operator SSH verify their SHA256 and install as reviewed
@@ -122,14 +122,13 @@ requires current deployment-branch HEAD and exact successful push CI.
    feature_as_of_stale; current-market/source collection checks remain mandatory.
    Legacy smoke defaults still require ok. A failure records code-only rollback;
    no data, config, unit, WAL or index restoration is performed.
-8. Independently observe >=20min, >=3completed feature cycles and one actual market
-   boundary, max30min. Require zero2s probes timing out, advancing Coinbase and
-   CURRENT-market Polymarket RAM/persistence, discovery during feature computation,
-   no expired-market ok, no stale/wrong-market feature publication, stable services
-   and working dashboard/SSE. Record discovery delay, first book, feature age and
-   rejected/publication decisions separately. Feature absence is allowed and must
-   stay visible. Missing evidence/cycles or venue failure means incomplete, no
-   automatic second window. The short deployment smoke is not this acceptance.
+8. After deployment, run one bounded functional smoke sequence: API/current market,
+   source freshness, advancing RAM/persistence, dashboard/SSE and stable services.
+   Existing controls use two samples separated by5s for progress/stability; no
+   repeated observation session, background soak or automatic retry. Report results
+   and yield. Multi-cycle and real-boundary acceptance are NOT PERFORMED unless
+   separately evidenced. I7 and Phase1.75 remain OPEN. Slow feature freshness and
+   retention remain separate unfinished work.
 9. Preserve private review/verification/deployment and observation evidence.
    Retire unused authority and restore helper CODE only if separately required by
    the approved procedure, with exact hash checks; never replace database contents.
@@ -163,6 +162,65 @@ up to180s within the existing600s code budget for transport to become available.
 Only connection/transport failures are polled. Once health responds, run collection
 validation once; expired identity, stale source data or unexpected degradation is
 a failure, not a new recovery/retry window. Startup timing/failure counts are
-recorded separately and are not counted as the subsequent20min acceptance probes.
+recorded separately and are not counted as the functional smoke results.
 The final control qualification includes this readiness regression (19new controls;
 89total working-tree controls, including three platform-specific skips locally).
+
+## Final qualified control candidate — awaiting production review
+
+Candidate **2c24ddef0b746945caa228c5c7954b6755ebfe70** is on the existing
+`codex/lightsail-deployment` branch, retaining fd90458's exact application tree.
+Working source **bde20f5197222ddd376ef2d6a703d6fe0ba783a6** passed
+[CI41331790634](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41331790634).
+Candidate [Python CI41331916958](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41331916958)
+passed169backend/25control tests on Linux, including the real bounded verification
+child. Its [manual-workflow validation41331917043](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/41331917043)
+was a **push** event: validate PASS; verify/deploy SKIPPED. No production phase ran.
+Local candidate169backend/25controls PASS(one Linux-only skip); working246backend/
+89controls PASS(two/three Linux-only skips). No source-time/index/dependency or
+application change was introduced by the control candidate.
+
+Exact helper SHA256 values for operator readback after the procedure is approved:
+
+| Installed helper | SHA256 |
+|---|---|
+| deploy.py | 41db48d22d945f03e65892ac18c5314bc9dd326f56b1debcb50ff6e322334321 |
+| release_verification.py | 1160b97691909362bfae97dc0dd3c32bcb2e0f24d83e2e1c18a34fbccaec830b |
+| smoke.py | 59ace5e05a961512590f4932caa1403f4eb84bd9d657b04feb35db64383d7780 |
+
+After review, the operator's review document would use release=the full2c24dde SHA,
+application_ci_run=41331916958 and controls_ci_run=41331917043, independently
+rechecked against GitHub. Keep approval_confirmed=false until approval; expires_at
+must be computed at actual authorization creation, never extended automatically.
+
+These are the future manual commands for steps4/6, **not executed during prep**:
+
+```sh
+gh workflow run deploy-tradebot.yml --ref codex/lightsail-deployment -f revision=2c24ddef0b746945caa228c5c7954b6755ebfe70 -f operation=verify
+# Only after a fresh complete PASS, within TTL and with unchanged identities:
+gh workflow run deploy-tradebot.yml --ref codex/lightsail-deployment -f revision=2c24ddef0b746945caa228c5c7954b6755ebfe70 -f operation=deploy-verified
+```
+
+Production procedure review is still pending. There is no installed review file,
+new helper install, heavy scan, application restart or production acceptance result
+from this milestone. Retention/paidAI stay OFF; original data/ceiling/deadline and
+unrelated working edits are preserved.
+
+## Revised gate — November1 17:41:57UTC
+
+The former64MiB storage reserve was inconsistent with the required512MiB headroom.
+The revised control enforces512MiB; candidate2c24dde and its helper hashes are
+superseded for this revised procedure and must not be installed/dispatched.
+New exact-candidate CI/review bindings are required before execution.
+
+Fresh DB+WAL4846731328bytes leaves497.796814MiB, below512MiB: STORAGE STOP.
+Ceiling5120MiB and deadline2026-11-02T01:56:47.671426Z remain unchanged.
+No cleanup, capacity increase, helper installation, authority, heavy scan or
+production dispatch is authorized by this revision. Storage needs a separately
+reviewed resolution; procedure approval alone does not override this STOP.
+
+The sequence is now verify -> deploy -> bounded functional smoke -> report/yield.
+All earlier20-30minute observation instructions in historical qualification text
+are superseded. No repeated monitoring or automatic background soak. Multi-cycle
+and real-boundary acceptance: NOT PERFORMED. Production approval is pending the
+revised request; the user's revision is not installation/verification/deploy authority.

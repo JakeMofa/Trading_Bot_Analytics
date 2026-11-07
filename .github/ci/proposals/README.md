@@ -1,10 +1,11 @@
 # Dependency remediation for the storage owner
 
-This is a tested **proposal**, not an applied application dependency change.
-Apply `cryptography-50.patch` to `backend/requirements.txt` only after the storage
-owner reviews it. `git apply --check .github/ci/proposals/cryptography-50.patch`
-passes against the current pin. Normal CI continues auditing the actual runtime
-requirements; it does not use this alternative requirements file or ignore alerts.
+Historical proposal and qualification record: the storage owner reviewed and
+applied this exact pin in `4c673bf`. The refreshed CI branch now contains that
+base change. **Do not reapply the patch.** Its apply check passed against the
+original `7bee563` baseline. The evidence below records the isolated proposal
+before application; normal CI now audits the actual updated requirements and
+does not use an alternative input or ignore alerts.
 
 ## Upstream evidence
 

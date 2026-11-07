@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import sqlite3
 import time
+import threading
 
 from fastapi import FastAPI, Query
 from fastapi.responses import StreamingResponse, FileResponse, PlainTextResponse
@@ -169,6 +170,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     if runtime and read_connection_factory:
         raise RuntimeError('conflicting A/B read connection factory')
     state = live_state or LiveState()
+    archive_gate = threading.BoundedSemaphore(1)
     resolved_db_path = runtime.database if runtime else (db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db'))
     if runtime:
         read_connection_factory = runtime.read_connection
@@ -263,6 +265,8 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
         def read():
             if not read_connection_factory or not archive_read_factory:
                 return {'status':'unavailable','reason':'archive_history_not_configured','records':[]}
+            if not archive_gate.acquire(blocking=False):
+                return {'status':'unavailable','reason':'archive_history_busy','records':[]}
             try:
                 deadline=time.monotonic()+1
                 requested=json.loads(identities)
@@ -271,6 +275,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
                     return db.archived_history_background(cloud,generation,dataset,requested,deadline)
             except (OSError,sqlite3.Error,ValueError,TypeError,KeyError,RuntimeError,AttributeError):
                 return {'status':'unavailable','reason':'archive_history_unverified_or_unavailable','records':[]}
+            finally:archive_gate.release()
         return await asyncio.to_thread(read)
 
     @app.get('/system/history')

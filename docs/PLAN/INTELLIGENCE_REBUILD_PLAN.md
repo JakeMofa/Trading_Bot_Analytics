@@ -4065,3 +4065,11 @@ History→background regression6tests/5PASS/1rootskip5.668s afterfix;native-thre
 warning onmacOS retainedaslimitation,notproductionproof.0cef exactsourceexport
 302files/3145273B APItestPASS2.487s thenGitmanifestreverificationPASS(explicit-I -B).
 Do not relabel CI failure. NewsourceexactLinux/root qualification required.
+
+
+### Bounded archive worker admission
+
+One nonblocking archive-history worker per API instance;concurrentrequestreturns
+explicitbusy/no backlog. Cancellation releases admission. History→background
+regression7tests/6PASS/1rootskip8.295s undercrypto50.0.0;guardunchanged. Newsource
+requiredforLinuxroot/exactCI. No runtime/cloud/production limits changed.

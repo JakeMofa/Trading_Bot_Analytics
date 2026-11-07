@@ -201,3 +201,16 @@ Source0cef's302-file/3145273B export passed its direct explicit history API test
 in2.487s and exact Git manifest re-verification after subprocess use. Explicit-B
 prevents helper imports modifying exported bytes despite-I ignoring environment
 bytecode flags. This packaging PASS does not erase source0cef's CI failure.
+
+
+### Explicit worker admission is bounded
+
+Release review added one nonblocking archive-read semaphore per API instance.
+A concurrent request receives explicit archive_history_busy/empty records instead
+of spawning another subprocess or queuing archive jobs. Normal/corrupt/cancelled
+requests always release the slot. The sole API/collector deployment constraint
+remains;this is not a new service or writer coordinator. No live feature path
+calls the remote reader. Busy/cancellation/recovery regression plus immediate
+history→background verifier run7tests/6PASS/1root skip in8.295s undercrypto50.0.0.
+The existing single-thread guard remains untouched. Root post-retirement and full
+exact-source Linux qualification still required;no production wiring enabled.

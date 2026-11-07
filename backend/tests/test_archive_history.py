@@ -12,7 +12,7 @@ from compatible_cloud import CompatibleCloud
 
 @contextmanager
 def endpoint(remote):
-    state={'mode':'normal','gets':0}
+    state={'mode':'normal','gets':0,'started':threading.Event()}
     class Handler(BaseHTTPRequestHandler):
         def log_message(self,*args):pass
         def do_GET(self):
@@ -20,6 +20,7 @@ def endpoint(remote):
             prefix='/storage/v1/object/authenticated/market-raw/'
             if self.headers.get('Authorization')!='Bearer generated-only' or not self.path.startswith(prefix):
                 self.send_error(403);return
+            state['started'].set()
             key=unquote(self.path[len(prefix):]);body=remote.objects.get(key)
             if state['mode']=='missing' or body is None:self.send_error(404);return
             if state['mode']=='hang':time.sleep(2)
@@ -39,6 +40,27 @@ def endpoint(remote):
     finally:server.shutdown();server.server_close();thread.join(2)
 
 class Tests(unittest.TestCase):
+    def test_archive_history_has_one_worker_no_backlog_and_recovers_after_cancel(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from fastapi.testclient import TestClient
+        from api import create_app
+        with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
+            store,path,gid,now,remote,oid,event,before=self.fixture(root)
+            try:
+                with endpoint(remote) as (factory,state):
+                    app=create_app(db_path=str(Path(root)/'core.db'),start_collectors=False,read_connection_factory=lambda:store.worker_connection('history'),archive_read_factory=factory)
+                    with TestClient(app) as client,ThreadPoolExecutor(max_workers=1) as pool:
+                        params=dict(generation=gid,dataset='observations',identities=json.dumps([[oid]]))
+                        state['mode']='hang';first=pool.submit(client.get,'/history/archive',params=params)
+                        self.assertTrue(state['started'].wait(.8))
+                        busy=client.get('/history/archive',params=params).json()
+                        self.assertEqual(busy['reason'],'archive_history_busy')
+                        self.assertEqual(busy['records'],[])
+                        self.assertEqual(first.result(timeout=2).json()['status'],'unavailable')
+                        state['mode']='normal'
+                        self.assertEqual(client.get('/history/archive',params=params).json()['status'],'ok')
+            finally:store.close()
+
     def test_changed_committed_receipt_blocks_archived_history(self):
         from fastapi.testclient import TestClient
         from api import create_app

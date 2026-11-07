@@ -259,6 +259,24 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     async def historical_chart():
         return await asyncio.to_thread(_saved_dashboard, resolved_db_path, True, read_connection_factory)
 
+    @app.get('/history/archive')
+    async def archive_history(generation: str = Query(max_length=64), dataset: str = Query(max_length=32), identities: str = Query(max_length=8192)):
+        # Explicit history request only: never called from discovery/live features.
+        def read():
+            if not read_connection_factory or not archive_read_factory:
+                return {'status':'unavailable','reason':'archive_history_not_configured','records':[]}
+            if not archive_gate.acquire(blocking=False):
+                return {'status':'unavailable','reason':'archive_history_busy','records':[]}
+            try:
+                deadline=time.monotonic()+1
+                requested=json.loads(identities)
+                with closing(read_connection_factory()) as db, closing(archive_read_factory(deadline)) as cloud:
+                    db.set_progress_handler(lambda:int(time.monotonic()>=deadline),1000)
+                    return db.archived_history_background(cloud,generation,dataset,requested,deadline)
+            except (OSError,sqlite3.Error,ValueError,TypeError,KeyError,RuntimeError,AttributeError):
+                return {'status':'unavailable','reason':'archive_history_unverified_or_unavailable','records':[]}
+            finally:archive_gate.release()
+        return await asyncio.to_thread(read)
 
     @app.get('/system/history')
     async def system_history(limit: int = Query(default=288, ge=1, le=288)):

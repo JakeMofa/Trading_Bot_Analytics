@@ -682,6 +682,12 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
         source,path=cloud_memory.archive_batch_object_path(dataset,rows)
         gid=self._row_generation(dataset,rows[0])
         return source, (gid+'/'+path if gid!='legacy' else path)
+    def archived_history(self,cloud,generation,dataset,identities,deadline):
+        from archive_history import read_history
+        return read_history(self,cloud,generation,dataset,identities,deadline)
+    def archived_history_background(self,cloud,generation,dataset,identities,deadline):
+        from archive_history_request import request_history
+        return request_history(self,cloud,generation,dataset,identities,deadline)
     def archive_manifest_metadata(self,dataset,rows):
         ids={self._row_generation(dataset,r) for r in rows}
         if len(ids)!=1:raise Stop('archive must not span generations')

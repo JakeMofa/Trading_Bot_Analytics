@@ -6,6 +6,21 @@ production authorization.
 
 ## Resume here
 
+LATEST November7: checkpoint4 PASS, superseding BLOCKED entries below.
+Frozen source6cf351aaa36a5f09ddb7b61dc554dfe4f80fcd5b,exactLinuxpush42407584696PASS.
+Actual post-unlink application archive-history test EXECUTED/PASS;root82/0skips.
+See PR9_CHECKPOINT4_LINUX_GATE_2026-11-06.md and evidence/pr9-checkpoint4-6cf351a-linux.json.
+Requiredcase4.161s,allocation snapshots1507328/1458176B(notpeak),RSS79112KiB cumulative.
+Integrated4000commit/archive/0errors,20cycles,save230ms/heartbeat299ms;scaledonly.
+Nexteligible gate:retirement mutation/authorization review and bounded finalreadback
+scaling,then finitecore/ledger,5GiBcapacity/outage,legacyverification/cutovercontrols.
+No replacement deletionauthority approved;mandatoryfreshreadbackunchanged.
+5GiBtarget/24GiBunqualifiedproposal/appliedlegacy5120MiBSTOP remain distinct.
+Productionheld,PR9DRAFT,I7/Phase1.75OPEN. PreserveAGENTS/+596roadmap/localdata.
+
+Historical status below retained as evidence,not latest result.
+
+
 ACTIVE SCOPE: checkpoint4 history AFTER generated local raw retirement.
 Storage implementationfrozen d35644c3608c0f086052b5d09276fd938ef0345e.
 OwnexactLinuxpush42327631685 FAILbeforeprivilegedapplicationstage;3background

@@ -4107,3 +4107,30 @@ workspace allocation snapshots(not peak) and cumulative rootprocess RSS.
 No workflow/runtime/deletion changes;production held. See updated
 PR9_CHECKPOINT4_LINUX_GATE_2026-11-06.md. 5GiBcapacity/coreledger/legacy/cutover and
 final fresh-readback authorization remain open;24GiBproposal unapplied;PR9DRAFT.
+
+
+## November7 — checkpoint4 PASS: actual removal then application archive history
+
+Frozen source6cf351aaa36a5f09ddb7b61dc554dfe4f80fcd5b; exact pushCI42407584696
+PASS https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42407584696 .
+Required test_archive_history actual retirement case EXECUTED/PASS,not skipped;
+root.json requires successful exact test,82root tests/0skips/59.475s. Original
+fresh-readback/reference/drain gates removed generated raw;actual file absence,
+authenticated archive API exact rows/decimal payloads/timestamps/identity/provenance,
+core calculations,context/prediction/dashboard history,protected reference90/FKs
+PASS after removal. Missing/corrupt/hang/changed receipt/busy/cancellation regressions
+PASS. Required case4.161s,allocation snapshots1507328/1458176B(not peak),cumulative
+rootprocess RSS79112KiB. Wrapper case4.465s alsoPASS. Durable sanitized evidence:
+evidence/pr9-checkpoint4-6cf351a-linux.json. Backend375/16nonroot skips,root82/0,
+application67/0,controls123/0,CIcontrols16/0,Postgres5/0 PASS. Exactexport317files/
+3249612B verified afterLinux suites. Integrated4000committed/archived,20featurecycles,
+0errors,save230.338ms/heartbeat298.854ms,38.070s PASS_SCALED_INTEGRATED.
+Local4historyPASS/1rootskip;16CIcontrolsPASS. Local export invocation madepycache,
+correctlyrejected;onlygeneratedcachesremoved,exactGitmanifestreverificationPASS.
+Historicald356 failure retained,not relabelled. This supersedescheckpoint4BLOCKED.
+Nexteligible gate:retirement authorization/mutation-policy protection review and
+bounded final fresh-readback scaling;then finitecore/ledger,representative5GiB
+capacity/outage,legacyverification andproduction cutovercontrols. Do not treat
+scaled integratedPASS as release/capacity approval. 5GiBslots target;24GiBproposal
+unqualified/unapplied. Removedlegacy replay andruntime archivefactory activation
+remainOPEN. PR9DRAFT;productionheld/unchanged;I7/Phase1.75OPEN.

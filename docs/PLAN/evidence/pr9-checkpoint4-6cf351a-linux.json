@@ -1,0 +1,72 @@
+{
+  "source_sha": "6cf351aaa36a5f09ddb7b61dc554dfe4f80fcd5b",
+  "run_url": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42407584696",
+  "conclusion": "success",
+  "required_test": "test_archive_history.Tests.test_actual_retirement_then_archive_history_calculations_and_dashboard",
+  "required_test_result": "PASS_EXECUTED",
+  "observations": [
+    {
+      "raw_removed": true,
+      "archive_api_calculation_dashboard_references": "PASS",
+      "elapsed_seconds": 4.465157305000005,
+      "workspace_allocated_snapshots_bytes": [
+        1503232,
+        1454080
+      ],
+      "process_lifetime_max_rss_kib": 65632,
+      "scope": "tiny generated fixture; allocation snapshots are not peak disk; RSS includes prior root tests"
+    },
+    {
+      "raw_removed": true,
+      "archive_api_calculation_dashboard_references": "PASS",
+      "elapsed_seconds": 4.161189586000006,
+      "workspace_allocated_snapshots_bytes": [
+        1507328,
+        1458176
+      ],
+      "process_lifetime_max_rss_kib": 79112,
+      "scope": "tiny generated fixture; allocation snapshots are not peak disk; RSS includes prior root tests"
+    }
+  ],
+  "root_suite": {
+    "tests": 82,
+    "skips": 0,
+    "seconds": 59.475
+  },
+  "backend_suite": {
+    "tests": 375,
+    "skips": 16,
+    "seconds": 56.446
+  },
+  "integrated": {
+    "committed": 4000,
+    "archived": 4000,
+    "feature_cycles": 20,
+    "errors": 0,
+    "save_max_seconds": 0.230337908,
+    "heartbeat_max_seconds": 0.298854173,
+    "elapsed_seconds": 38.070125503
+  },
+  "limitations": [
+    "Generated small fixture and synthetic authenticated HTTP only; no new live Supabase evidence",
+    "Allocation snapshots are not peak storage; RSS is cumulative Linux root process high water",
+    "No 5GiB slot or 24GiB envelope qualification",
+    "Production archive history factory remains disabled; removed-legacy replay unqualified",
+    "Mandatory final fresh readback unchanged; no reusable retirement authorization approved"
+  ],
+  "production": "UNCHANGED_HELD",
+  "root_runner_evidence": {
+    "category": "root",
+    "source_sha": "6cf351aaa36a5f09ddb7b61dc554dfe4f80fcd5b",
+    "tested_sha": "6cf351aaa36a5f09ddb7b61dc554dfe4f80fcd5b",
+    "event": "push",
+    "scope": "synthetic offline CI; no production acceptance or capacity claim",
+    "elapsed_seconds": 59.805,
+    "gate": "PASS",
+    "tests": 82,
+    "skips": 0,
+    "required_checkpoint4_executed": true,
+    "failures": 0,
+    "errors": 0
+  }
+}

@@ -3955,3 +3955,33 @@ its eventual exact-file retirement requires SEPARATE approval. No runtime/cloud/
 production changes.5GiBslots TARGET/24GiBaggregate PROPOSAL/applied5120MiBlegacy
 remain distinct. Finite ledger/core limits, capacity, I7freshness/rollover,recovery/
 replay,visibility,sustainedoperation OPEN;Redis deferred. Exact successor CI pending.
+
+
+## November 6 — exact-generation progress and separate readback diagnostic
+
+Baseline13740c7 exactCI42316045831 PASS (one check). See
+[checkpoint report](PR9_BACKGROUND_VERIFICATION_CHECKPOINT_2026-11-06.md).
+1.PASS generated selected fresh-B route: per-generation/dataset checkpoints preserve
+legacy/shared historical rows; newer-first archive cannot skip older pending rows;
+restart/rotation/duplicates/partial readback failure tested. Old full-import route
+keeps historical semantics,not a qualified continuous route. Existing generation
+manifests without new cursors HOLD for exact manifest reconciliation;no guessed seed.
+2.PASS diagnostic ONLY: separate supervised full authenticated readback,12objects/
+12chunks/2011verifiedcompressedbytes,0.616007s,24805376BphaseRSS,0downloadTEMP,
+2553696Bsampledworkspace,21concurrentacks,save85.202ms/heartbeat175.720ms.
+Corruption/cancellation preserve raw;explicit fresh recovery tested. No unlink
+permit issued.120sdiagnostic/30ssuboperation under existing180sfixture;production
+budgets unchanged. Linux phase512MiB address cap;5GiB/deadline/peakNOTPROVEN.
+3.BLOCKED replacement auth: enforceable mutation/policy continuity unproven;
+existing final fresh full readback/reference/drain/deletion gate unchanged.
+4.BLOCKED: actual archived-raw replay into calculations/dashboard after local
+removal not integrated/proven;local/core/A/B history evidence preserved.
+5.BLOCKED full requestedintegration pending3/4;local434backendPASS/20platformskips,
+123controlsPASS/3platformskips;exact successor LinuxCI required,not yet claimed.
+6.BLOCKED release:finitecore/100kledger,capacity,legacyverification,production
+fence/manualscope unresolved.5GiBslots selected target/24GiBproposal/appliedlegacy
+5120MiBSTOP distinct. Cutover,firstnatural sealverification,retirementenablement
+separatebounded checkpoints. Legacy archive/history/drain+separate retirement
+approval retained. I7freshness/rollover,historyrecovery/replay,visibility,sustained
+operation remainOPEN;PR9DRAFT;Redisdeferred. No production/cloudwrite/permission/
+schema/guard changes. Preserve existingAGENTS/+596roadmap and passing evidence.

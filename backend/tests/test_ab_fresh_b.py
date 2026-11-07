@@ -62,7 +62,7 @@ class FreshBTests(unittest.TestCase):
                         self.assertEqual(manifest['metadata']['generation_id'],store.protocol.active()['id'])
                         self.assertIsNone(cloud_memory.archive_raw_batch(db,cloud,dataset,limit=100))
                     self.assertEqual(cloud_memory._checkpoint(db,'archive:observations'),old_checkpoint)
-                    self.assertEqual(cloud_memory._checkpoint(db,'archive:ab72:observations')[0],new)
+                    self.assertEqual(cloud_memory._checkpoint(db,db.archive_checkpoint_name('observations'))[0],new)
                     self.assertEqual(db.execute('PRAGMA foreign_key_check').fetchall(),[])
                 self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(),before)
                 b_id=store.protocol.active()['id']

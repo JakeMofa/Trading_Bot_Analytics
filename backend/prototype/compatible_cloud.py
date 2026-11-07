@@ -51,7 +51,7 @@ def allowed_update(table,prior,row):
             old,new=prior.get('last_source_key'),row.get('last_source_key')
             if old is not None:
                 if new is None:return False
-                if row.get('dataset')=='archive:stream_events':
+                if row.get('dataset')=='archive:stream_events' or (row.get('dataset','').startswith('archive:ab72:') and row['dataset'].endswith(':stream_events')):
                     try:old,new=json.loads(old),json.loads(new)
                     except (ValueError,TypeError):return False
                     if not all(isinstance(x,list) and len(x)==2 and all(isinstance(v,str) for v in x) for x in (old,new)):return False

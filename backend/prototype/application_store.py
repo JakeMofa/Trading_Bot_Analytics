@@ -689,7 +689,8 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
     def commit_verified_archive(self,cloud,dataset,rows,manifest):
         if self.db.in_transaction:raise Stop('archive cannot run in writer transaction')
         self.protocol.trip('archive_remote_verified')
-        name=self.archive_checkpoint_name(dataset);last=rows[-1]
+        gid=self.archive_manifest_metadata(dataset,rows)['generation_id']
+        name=self.archive_checkpoint_name(dataset,gid);last=rows[-1]
         key=None if dataset=='observations' else cloud_memory._stream_cursor_key(last)
         source_id=last.get('source_id')
         cloud_memory._cloud_checkpoint(cloud,name,source_id=source_id,source_time=last['received_at'],source_key=key,
@@ -725,20 +726,29 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
         try:return bool(self.raw_archive_rows(dataset,1))
         finally:self.archive_generation_scope=scope
 
-    def archive_checkpoint_name(self,dataset):
-        return ('archive:ab72:' if self.store.fresh_b else 'archive:')+dataset
+    def archive_checkpoint_name(self,dataset,generation=None):
+        if dataset not in RAW:raise Stop('unknown raw archive dataset')
+        if not self.store.fresh_b:return 'archive:'+dataset
+        gid=generation or getattr(self,'archive_selected_generations',{}).get(dataset)
+        if gid=='legacy':return 'archive:'+dataset
+        if gid is None:return 'archive:ab72:'+dataset # historical summary only; never written
+        if not self.db.execute('SELECT 1 FROM ab_generations WHERE id=?',(gid,)).fetchone():raise Stop('unknown archive checkpoint generation')
+        return 'archive:ab72:'+gid+':'+dataset
 
     def raw_archive_rows(self,dataset,limit):
         if self.store.fresh_b:
             self._refresh()
             if dataset not in RAW:raise Stop('unknown raw archive dataset')
-            checkpoint=cloud_memory._checkpoint(self,self.archive_checkpoint_name(dataset))
             # Query raw attachments directly: legacy backlog never gates B.
             rows=[]
             for alias in self.raw_attached:
                 scope=getattr(self,'archive_generation_scope',None)
                 gid=self.db.execute('SELECT id FROM '+alias+'.generation').fetchone()[0]
                 if scope is not None and gid not in scope:continue
+                name=self.archive_checkpoint_name(dataset,gid)
+                checkpoint=cloud_memory._checkpoint(self,name)
+                if checkpoint[3]==0 and self.db.execute('SELECT 1 FROM ab_manifests WHERE gen=? AND dataset=? LIMIT 1',(gid,dataset)).fetchone():
+                    raise Stop('generation checkpoint migration requires verified manifest reconciliation')
                 if dataset=='observations':
                     query='SELECT r.id AS source_id,r.* FROM '+alias+".observations r JOIN main.ab_events e ON e.id=r.id AND e.dataset='observations' AND e.status='committed' WHERE r.id>? ORDER BY r.id LIMIT ?"
                     params=(checkpoint[0] or 0,limit)
@@ -752,6 +762,8 @@ WHERE t.source='coinbase' ORDER BY COALESCE(e.id,l.id) DESC LIMIT 1""").fetchone
             rows=rows[:limit]
             if rows:
                 gid=self._row_generation(dataset,rows[0]);rows=[r for r in rows if self._row_generation(dataset,r)==gid]
+                if not hasattr(self,'archive_selected_generations'):self.archive_selected_generations={}
+                self.archive_selected_generations[dataset]=gid
             return rows
 
         # Reuse exact existing cursor semantics; avoid CREATE INDEX on temp view.

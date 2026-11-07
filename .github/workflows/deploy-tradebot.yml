@@ -32,6 +32,11 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install runtime dependencies required by control fixtures
+        run: python -m pip install -r backend/requirements.txt
       - name: Validate deployment controls
         run: python3 -m unittest discover -s deploy/lightsail -p 'test_*.py' -v
 

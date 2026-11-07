@@ -66,3 +66,27 @@ Until required checks pass, branch protection remains **NOT ENABLED**.
 The master roadmap and handoff remain owned by the active planning/storage chat;
 copy this checkpoint there with final commit/run links. This worker owns only
 CI workflow/configuration/scripts/tests and leaves production operators untouched.
+
+## Isolated follow-up checkpoint
+
+CI changes after 1cc9e8d belong to `codex/ci-pr-quality-gates` in the separate
+`Trading_bot_Analytics_CI` clone. Review follow-up changes against
+`codex/phase1-75-retention-enable`, not main. The original checkout stays owned
+by the storage worker; its existing CI milestone is not reset or reverted.
+
+Exact source 1cc9e8d / push run 42323117551 passed backend, root/generated,
+known-cardinality import, joint HTTP/SSE handoff, integrated fresh-B, application
+contracts and source/workflow quality. Controls failed to import `websockets`:
+the isolated job omitted runtime requirements that had been installed in the
+previous combined job. Both CI-owned control-validation jobs now install the
+existing pinned runtime requirements before tests. Production dispatch branch,
+operations, exact-push lookup, concurrency and operator code remain unchanged.
+The dependency audit remains FAIL; no vulnerable pin or advisory exemption was
+changed. Enforcement is still pending, including new exact-source qualification.
+
+Local isolated follow-up validation: 123 deployment-control tests PASS with three
+platform skips; four CI-control regressions PASS; actionlint and targeted Ruff
+PASS. Audit fix versions range from 48.0.1 to 50.0.0, so the storage owner should
+review a compatible cryptography pin at least 50.0.0 and qualify dependency,
+Ed25519 authentication/streaming and application regressions. This is a proposed
+dependency remediation, not an applied or compatibility-qualified upgrade.

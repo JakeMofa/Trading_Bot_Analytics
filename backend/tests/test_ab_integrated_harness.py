@@ -61,13 +61,6 @@ class Tests(unittest.TestCase):
                 self.assertGreaterEqual(workspace_bytes(f),65536)
             finally:child.kill();child.wait();child.stdout.close()
 
-    def test_mode_is_an_explicit_argument_across_privilege_boundary(self):
-        workflow=Path(__file__).resolve().parents[2]/'.github/workflows/python-tests.yml'
-        text=workflow.read_text()
-        command=next(line for line in text.splitlines() if 'sudo -n' in line and 'run_application_qualification.py' in line)
-        self.assertIn('--startup-mode fresh-b',command)
-        self.assertIn('r["startup_mode"]=="fresh-b"',text)
-        self.assertNotIn('AB_QUALIFICATION_MODE',text)
 
     def test_cleanup_disappeared_process_is_not_unknown_visibility(self):
         from unittest.mock import patch

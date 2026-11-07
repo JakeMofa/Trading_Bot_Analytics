@@ -1,0 +1,62 @@
+{
+  "after_ack_restart_seconds": 5.682503269999984,
+  "allocation_scope": "owned Linux process family",
+  "constructor_seconds": 79.11353007099999,
+  "counts": {
+    "ai_suggestions": 1277,
+    "candles": 58812,
+    "cloud_lifecycle_state": 1,
+    "cloud_sync_state": 7,
+    "current_decisions": 832,
+    "feature_snapshots": 18289,
+    "feed_health": 4,
+    "historical_backfill_chunks": 90,
+    "historical_market_prices": 12694,
+    "markets": 1826,
+    "news": 0,
+    "news_events": 28,
+    "prediction_context_links": 20,
+    "predictions": 27743,
+    "reference_prices": 18692,
+    "runs": 49260,
+    "schema_migrations": 1
+  },
+  "elapsed_before_cleanup_seconds": 112.05913178,
+  "elapsed_including_cleanup_seconds": 112.184711195,
+  "import_metrics": {
+    "audit_and_import_seconds": 74.61259920199998,
+    "audited_bytes": 179671813,
+    "identity": "0413f6074ee6d1060079263bae6467b7266f46c6cd6c0a88630f9bce95343cec",
+    "raw_audit": "targeted protected/current inputs only",
+    "rows": 225777
+  },
+  "legacy_unchanged": true,
+  "limits": {
+    "audit_bytes": 268435456,
+    "linux_address_space_bytes": 536870912,
+    "rows": 250000,
+    "total_seconds": 180,
+    "work_seconds": 170,
+    "workspace_bytes": 2147483648
+  },
+  "logical_admission": {
+    "byte_limit": 268435456,
+    "logical_bytes": 168200760,
+    "row_limit": 250000,
+    "rows": 207852
+  },
+  "new_acknowledged_id": 229700,
+  "phase": "cleanup",
+  "prediction_dependencies": 6745,
+  "preparation_seconds": 20.217434736,
+  "protocol_peak_bytes": 424513536,
+  "restart_audit_seconds": 5.70177917999996,
+  "rss_bytes": 134221824,
+  "sampled_allocated_peak_bytes": 1022881792,
+  "scope": "full recorded structured counts and selected fanout; not full raw volume/production proof",
+  "selected_rows": 13248,
+  "snapshot_dependencies": 6776,
+  "source_sha": "f7820026e78528dd1c1f4413dc2a62740b2711a7",
+  "status": "PASS_GENERATED_FULL_BOOTSTRAP",
+  "unlinked_temp_peak_bytes": 0
+}

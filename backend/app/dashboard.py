@@ -114,6 +114,8 @@ async def live_quote_loop(path, relay, stop):
 
 def latest_tick_event(db):
     """One indexed lookup for the local live chart stream."""
+    if hasattr(db, 'latest_tick_event'):
+        return db.latest_tick_event()
     row = db.execute('''SELECT rowid,price,source_time,received_at
       FROM stream_events WHERE source='coinbase' ORDER BY rowid DESC LIMIT 1''').fetchone()
     if not row:
@@ -172,9 +174,9 @@ def chart_data(db, now=None):
                 'market': None, 'points': []}
     market_id, slug, start_text, end_text, target = row
     start, end = timestamp(start_text), timestamp(end_text)
-    rows = db.execute('''SELECT received_at,source_time,price FROM stream_events
+    rows = (db.chart_ticks(CHART_SAMPLE_LIMIT) if hasattr(db, 'chart_ticks') else db.execute('''SELECT received_at,source_time,price FROM stream_events
       WHERE source='coinbase' ORDER BY rowid DESC LIMIT ?''',
-      (CHART_SAMPLE_LIMIT,)).fetchall()
+      (CHART_SAMPLE_LIMIT,)).fetchall())
     buckets = {}
     for received_text, source_text, price in rows:
         received, source_time = timestamp(received_text), timestamp(source_text)
@@ -207,8 +209,12 @@ def status(db, now=None):
     forecast = None
     market_quote = None
     latest_tick = None
-    tick_row = db.execute('''SELECT price,source_time,received_at FROM stream_events
-      WHERE source='coinbase' ORDER BY rowid DESC LIMIT 1''').fetchone()
+    if hasattr(db, 'latest_tick_event'):
+        tick = db.latest_tick_event()
+        tick_row = (tick['price_usd'],tick['source_time'],tick['received_at']) if tick else None
+    else:
+        tick_row = db.execute('''SELECT price,source_time,received_at FROM stream_events
+          WHERE source='coinbase' ORDER BY rowid DESC LIMIT 1''').fetchone()
     if tick_row:
         latest_tick = {'price_usd': tick_row[0], 'source_time': tick_row[1],
                        'received_at': tick_row[2],

@@ -111,6 +111,9 @@ def discover(now, durations=(900,)):
 def connect(path):
     Path(path).parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(path)
+    if db.execute("SELECT 1 FROM sqlite_master WHERE name='ab_application_marker'").fetchone():
+        db.close()
+        raise RuntimeError('AB72 layout requires forward-compatible adapter; monolithic writes held')
     db.execute('PRAGMA foreign_keys=ON')
     db.execute('PRAGMA journal_mode=WAL')
     db.executescript('''
@@ -141,6 +144,13 @@ def connect(path):
 
 
 def save_market(db, m, received):
+    if hasattr(db, 'save_market'):
+        return db.save_market(m, received)
+    save_market_record(db, m, received)
+    save_observation(db, m['id'], received, 'metadata', m['raw'], m['raw'].get('updatedAt'))
+
+
+def save_market_record(db, m, received):
     values = (m['id'], m['slug'], m['duration'], m['start'], m['end'], m['target'],
               m['final'], m['result'], m['status'], m['index'], m['rules'], received,
               received, json.dumps(m['raw']))
@@ -148,10 +158,11 @@ def save_market(db, m, received):
       ON CONFLICT(id) DO UPDATE SET target=excluded.target, final=excluded.final,
       result=excluded.result,status=excluded.status,last_seen=excluded.last_seen,
       raw_json=excluded.raw_json,rules=excluded.rules''', values)
-    save_observation(db, m['id'], received, 'metadata', m['raw'], m['raw'].get('updatedAt'))
 
 
 def save_observation(db, market_id, received, kind, payload, source_time=None):
+    if hasattr(db, 'save_observation'):
+        return db.save_observation(market_id, received, kind, payload, source_time)
     db.execute('INSERT INTO observations(market_id,received_at,source_time,kind,payload) VALUES(?,?,?,?,?)',
                (market_id, received, source_time, kind, json.dumps(payload)))
 
@@ -217,7 +228,7 @@ def collect_once(db, durations=(900,)):
     messages = []
     try:
         markets = discover(utcnow(), durations)
-        received = utcnow().isoformat()
+        received = utcnow().isoformat(timespec='microseconds')
         for duration in durations:
             m = markets.get(duration)
             if not m:
@@ -238,7 +249,7 @@ def collect_once(db, durations=(900,)):
                 if not isinstance(book.get('marketData'), dict):
                     raise ValueError('Missing marketData')
                 with db:
-                    save_observation(db,m['id'],utcnow().isoformat(),kind,book,book['marketData'].get('transactTime'))
+                    save_observation(db,m['id'],utcnow().isoformat(timespec='microseconds'),kind,book,book['marketData'].get('transactTime'))
             except Exception as exc:
                 detail = f"{m['slug']} endpoint={kind}: {exc}"
                 record(db,'polymarket_quotes',False,detail)
@@ -256,7 +267,7 @@ def collect_once(db, durations=(900,)):
             m = normalize(raw)
             if m:
                 with db:
-                    save_market(db,m,utcnow().isoformat())
+                    save_market(db,m,utcnow().isoformat(timespec='microseconds'))
         except Exception as exc:
             record(db,'polymarket_resolution',False,f'{slug}: {exc}')
     try:

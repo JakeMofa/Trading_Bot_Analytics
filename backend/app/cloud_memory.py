@@ -256,6 +256,10 @@ def _market_rows(db, limit):
     return _dict_rows(cursor)
 
 
+def _adapt_row(db, table, row, mapped):
+    return db.map_cloud_row(table, row, mapped) if hasattr(db, 'map_cloud_row') else mapped
+
+
 def _map_market(row):
     return {
         "id": row["id"],
@@ -302,8 +306,8 @@ def _ensure_markets(db, cloud, market_ids):
         found = {row["id"] for row in rows}
         missing = sorted(set(ids) - found)
         raise RuntimeError(f"Missing local market dependencies: {missing}")
-    cloud.upsert("markets", [_map_market(row) for row in rows], "id")
-    outcomes = [item for item in (_map_outcome(row) for row in rows) if item]
+    cloud.upsert("markets", [_adapt_row(db, "markets", row, _map_market(row)) for row in rows], "id")
+    outcomes = [_adapt_row(db, "official_outcomes", row, _map_outcome(row)) for row in rows if _map_outcome(row)]
     if outcomes:
         cloud.upsert("official_outcomes", outcomes, "market_id")
 
@@ -322,7 +326,7 @@ def _ensure_snapshots(db, cloud, snapshot_ids):
         missing = sorted(set(ids) - found)
         raise RuntimeError(f"Missing local snapshot dependencies: {missing}")
     _ensure_markets(db, cloud, [row["market_id"] for row in rows])
-    cloud.upsert("feature_snapshots", [_map_snapshot(row) for row in rows], "source_id")
+    cloud.upsert("feature_snapshots", [_adapt_row(db, "feature_snapshots", row, _map_snapshot(row)) for row in rows], "source_id")
 
 
 def _id_rows(db, dataset, table, limit):
@@ -446,10 +450,10 @@ def sync_structured_once(db, cloud, batch_size=DEFAULT_BATCH_SIZE):
 
     if _table_exists(db, "markets"):
         rows = _market_rows(db, batch_size)
-        mapped = [_map_market(row) for row in rows]
+        mapped = [_adapt_row(db, "markets", row, _map_market(row)) for row in rows]
         if mapped:
             cloud.upsert("markets", mapped, "id")
-            outcomes = [item for item in (_map_outcome(row) for row in rows) if item]
+            outcomes = [_adapt_row(db, "official_outcomes", row, _map_outcome(row)) for row in rows if _map_outcome(row)]
             if outcomes:
                 cloud.upsert("official_outcomes", outcomes, "market_id")
             last = rows[-1]
@@ -470,7 +474,7 @@ def sync_structured_once(db, cloud, batch_size=DEFAULT_BATCH_SIZE):
             result[dataset] = 0
             continue
         rows = _id_rows(db, dataset, table, batch_size)
-        mapped = [mapper(row) for row in rows]
+        mapped = [_adapt_row(db, table, row, mapper(row)) for row in rows]
         if mapped:
             if dataset == "feature_snapshots":
                 _ensure_markets(db, cloud, [row["market_id"] for row in rows])
@@ -485,7 +489,7 @@ def sync_structured_once(db, cloud, batch_size=DEFAULT_BATCH_SIZE):
 
     if _table_exists(db, "candles"):
         rows = _candle_rows(db, batch_size)
-        mapped = [_map_candle(row) for row in rows]
+        mapped = [_adapt_row(db, "candles", row, _map_candle(row)) for row in rows]
         if mapped:
             cloud.upsert("candles", mapped, "source,symbol,granularity,time")
             last_time = rows[-1]["time"]
@@ -557,7 +561,10 @@ def _stream_cursor_key(row):
 
 
 def _raw_batch_rows(db, dataset, limit):
-    checkpoint_name = f"archive:{dataset}"
+    if hasattr(db, 'raw_archive_rows'):
+        return db.raw_archive_rows(dataset, limit)
+    checkpoint_name = (db.archive_checkpoint_name(dataset) if hasattr(db,"archive_checkpoint_name")
+                       else f"archive:{dataset}")
     last_id, last_time, last_key, _ = _checkpoint(db, checkpoint_name)
     if dataset == "observations":
         cursor = db.execute(
@@ -624,13 +631,16 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
     if not 1 <= limit <= 50000:
         raise ValueError("raw archive batch limit must be 1..50000")
     initialize_local_sync(db)
-    checkpoint_name = f"archive:{dataset}"
+    checkpoint_name = (db.archive_checkpoint_name(dataset) if hasattr(db,"archive_checkpoint_name")
+                       else f"archive:{dataset}")
     rows = _raw_batch_rows(db, dataset, limit)
     if not rows:
         return None
 
-    raw, compressed, digest = build_archive(dataset, rows)
-    source, object_path = archive_batch_object_path(dataset, rows)
+    raw, compressed, digest = (db.build_archive(dataset, rows) if hasattr(db, "build_archive")
+                               else build_archive(dataset, rows))
+    source, object_path = (db.archive_batch_object_path(dataset, rows) if hasattr(db, "archive_batch_object_path")
+                           else archive_batch_object_path(dataset, rows))
     cloud.upload_bytes(bucket, object_path, compressed, "application/gzip")
     verification = cloud.verify_object(
         bucket, object_path, digest, len(compressed)
@@ -669,7 +679,12 @@ def archive_raw_batch(db, cloud, dataset, limit=5000, bucket=RAW_BUCKET):
             "last_source_key": last_source_key,
         },
     }
+    if hasattr(db, "archive_manifest_metadata"):
+        manifest["metadata"].update(db.archive_manifest_metadata(dataset, rows))
     cloud.upsert("raw_archives", [manifest], "bucket,object_path")
+    if hasattr(db, "commit_verified_archive"):
+        db.commit_verified_archive(cloud, dataset, rows, manifest)
+        return manifest
     _save_checkpoint(
         db,
         checkpoint_name,
@@ -711,7 +726,7 @@ def archive_raw_backfill(db, cloud, dataset, max_batches=24, batch_size=5000,
         if manifest["event_count"] < batch_size:
             break
     last_id, last_time, _, rows_synced = _checkpoint(
-        db, f"archive:{dataset}"
+        db, (db.archive_checkpoint_name(dataset) if hasattr(db,"archive_checkpoint_name") else f"archive:{dataset}")
     )
     return {
         "dataset": dataset,
@@ -729,7 +744,8 @@ def archive_raw_window(db, cloud, dataset, start, end, bucket=RAW_BUCKET):
     rows = _archive_rows(db, dataset, start, end)
     if not rows:
         return None
-    raw, compressed, digest = build_archive(dataset, rows)
+    raw, compressed, digest = (db.build_archive(dataset, rows) if hasattr(db, "build_archive")
+                               else build_archive(dataset, rows))
     source, object_path = archive_object_path(dataset, start, end)
     cloud.upload_bytes(bucket, object_path, compressed, "application/gzip")
     verification = cloud.verify_object(

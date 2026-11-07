@@ -218,3 +218,22 @@ run is not a deployment. The temporary runner unregisters after one job, so no
 persistent Mac runner was installed. Protect the runner machine as production
 access: it executes trusted repository workflow code and receives deployment
 Secrets. Keep it limited to an authorized deployment window.
+
+
+## Retention enablement stop — October 25, 2026
+
+The Phase 1.75 attempt stopped before any apply or enablement. Production still
+runs `a7c098900f8310367fc262a1b837c369bb63dc56` with retention OFF. Integrity and
+foreign keys passed, but the query-only 48h retention planner blocked BOTH raw
+datasets as `non_canonical_received_at`: one exact-second timestamp without a
+fraction was found in each table. The current validator requires six-digit
+microseconds; default writer `isoformat()` can omit them.
+
+Do not bypass the validator, rewrite raw evidence, apply retention, or switch
+`ENABLE_LOCAL_RETENTION` on to work around this stop. Resolve timestamp and
+logical-cursor compatibility through review, then repeat the gated coverage,
+readback, dry-run, verified-backup and recovery procedure. Existing units and
+preflight explicitly enforce retention OFF; any reviewed enablement must also
+follow controlled CI/CD and provisioning checks. Detailed counts, timestamps,
+storage headroom and remaining gates are recorded in the existing roadmap;
+ignored local evidence is in `data/deploy/lightsail/phase1-75-20261025/`.

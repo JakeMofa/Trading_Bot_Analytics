@@ -63,9 +63,13 @@ def save_coinbase(db, msg):
     if price is None or 'trade_id' not in msg or not msg.get('time'):
         raise ValueError('Incomplete Coinbase ticker')
     timestamp(msg['time'])
+    if hasattr(db, 'save_stream_event'):
+        return db.save_stream_event(dict(source='coinbase',event_id=str(msg['trade_id']),
+            received_at=utcnow().isoformat(timespec='microseconds'),source_time=msg['time'],
+            price=price,size=amount(msg.get('last_size')),side=msg.get('side'),payload=json.dumps(msg)))
     with db:
         inserted=db.execute('INSERT OR IGNORE INTO stream_events VALUES(?,?,?,?,?,?,?,?)',
-          ('coinbase',str(msg['trade_id']),utcnow().isoformat(),msg['time'],price,
+          ('coinbase',str(msg['trade_id']),utcnow().isoformat(timespec='microseconds'),msg['time'],price,
            amount(msg.get('last_size')),msg.get('side'),json.dumps(msg))).rowcount
     return bool(inserted)
 
@@ -105,7 +109,7 @@ def polymarket_credentials(env_path=None):
 
 def current_market(db):
     now=utcnow().isoformat()
-    return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN' ORDER BY start DESC LIMIT 1",(now,now)).fetchone()
+    return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?) AND status='MARKET_STATUS_OPEN' ORDER BY julianday(start) DESC LIMIT 1",(now,now)).fetchone()
 
 
 def sync_live_market(db, live_state, now=None):
@@ -113,8 +117,8 @@ def sync_live_market(db, live_state, now=None):
         return None
     now=(now or utcnow()).isoformat()
     row=db.execute('''SELECT id,slug,start,end,target,status FROM markets
-      WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN'
-      ORDER BY start DESC LIMIT 1''',(now,now)).fetchone()
+      WHERE duration=900 AND julianday(start)<=julianday(?) AND julianday(end)>julianday(?) AND status='MARKET_STATUS_OPEN'
+      ORDER BY julianday(start) DESC LIMIT 1''',(now,now)).fetchone()
     if not row:
         live_state.set_market(None)
         return None
@@ -218,7 +222,7 @@ def save_polymarket(db, msg):
     if not row:
         return False
     with db:
-        save_observation(db,row[0],utcnow().isoformat(),'stream_book',msg,
+        save_observation(db,row[0],utcnow().isoformat(timespec='microseconds'),'stream_book',msg,
                          payload.get('transactTime') or payload.get('transact_time'))
     return True
 
@@ -267,6 +271,8 @@ async def coinbase_stream(db, stop, connector=ws_connect, live_state=None):
                     elif last_data is not None and time.monotonic()-last_data>15:
                         health(db,'coinbase_stream','stale','No ticker for 15 seconds',live_state=live_state)
         except Exception as exc:
+            if hasattr(db, 'ab_stop_requested') and db.ab_stop_requested():
+                health(db,'coinbase_stream','blocked',db.ab_stop_requested(),live_state=live_state);stop.set();return
             # Deliberately omit raw exception text: handshake errors may contain headers.
             health(db,'coinbase_stream','disconnected',type(exc).__name__,reconnect=True,live_state=live_state)
             await pause(stop,reconnect_delay(attempt)); attempt+=1
@@ -323,13 +329,15 @@ async def polymarket_stream(db, stop, key_id, secret, connector=ws_connect, live
                             last_saved=last_data
                             health(db,'polymarket_stream','live',data=True,live_state=live_state); attempt=0
         except Exception as exc:
+            if hasattr(db, 'ab_stop_requested') and db.ab_stop_requested():
+                health(db,'polymarket_stream','blocked',db.ab_stop_requested(),live_state=live_state);stop.set();return
             health(db,'polymarket_stream','disconnected',type(exc).__name__,reconnect=True,live_state=live_state)
             await pause(stop,reconnect_delay(attempt)); attempt+=1
     health(db,'polymarket_stream','stopped',live_state=live_state)
 
 
-def rest_cycle(path, refresh_candles=False):
-    db=connect(path)
+def rest_cycle(path, refresh_candles=False, connection_factory=None):
+    db=connection_factory() if connection_factory else connect(path)
     try:
         messages = collect_once(db)
         if refresh_candles:
@@ -345,9 +353,9 @@ def rest_cycle(path, refresh_candles=False):
         db.close()
 
 
-async def storage_guard_loop(path, db, stop, max_storage_mb, live_state=None):
+async def storage_guard_loop(path, db, stop, max_storage_mb, live_state=None, storage_adapter=None):
     while not stop.is_set():
-        used = storage_bytes(path)
+        used = storage_adapter.protocol.allocation()['total_bytes'] if storage_adapter else storage_bytes(path)
         if used >= max_storage_mb * 1024 * 1024:
             detail = (f'Storage cap {max_storage_mb} MiB reached '
                       f'({used / (1024 * 1024):.1f} MiB used); '
@@ -361,14 +369,27 @@ async def storage_guard_loop(path, db, stop, max_storage_mb, live_state=None):
     health(db, 'storage_guard', 'stopped',live_state=live_state)
 
 
-def feature_cycle(path):
+async def buffer_rotation_loop(storage_adapter, db, stop, live_state=None):
+    """Check idle buffer age and physical size on the collector's event loop."""
+    while not stop.is_set():
+        try:
+            storage_adapter.rotation_tick(utcnow())
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            health(db, 'storage_guard', 'limit_reached',
+                   'Buffer rotation held: '+type(error).__name__, live_state=live_state)
+            stop.set()
+            return
+        await pause(stop, 1)
+
+
+def feature_cycle(path, connection_factory=None):
     """Run one feature/forecast cycle on a connection owned by this worker.
 
     Keep slow historical reads off the API/collector event loop. The caller
     awaits this whole cycle before scheduling another; never share its SQLite
     connection or mutate LiveState from the worker.
     """
-    db = sqlite3.connect(path, timeout=5)
+    db = connection_factory() if connection_factory else sqlite3.connect(path, timeout=5)
     try:
         db.execute('PRAGMA foreign_keys=ON')
         snapshot = capture_features(db)
@@ -379,17 +400,23 @@ def feature_cycle(path):
             'SELECT id,as_of FROM feature_snapshots WHERE market_id=? ORDER BY id DESC LIMIT 1',
             (market_id,)).fetchone()
         forecast = forecast_snapshot(db, snapshot_id)
+        if hasattr(db, "feature_cycle_ready"):
+            db.feature_cycle_ready()
         return snapshot, snapshot_id, snapshot_as_of, forecast
     finally:
         db.close()
 
 
-async def rest_loop(path, db, stop, interval, live_state=None):
+async def rest_loop(path, db, stop, interval, live_state=None, connection_factory=None):
     last_candle_refresh = None
     while not stop.is_set():
         try:
             refresh = last_candle_refresh is None or time.monotonic()-last_candle_refresh >= 60
-            messages=await asyncio.to_thread(rest_cycle,path,refresh)
+            messages=(await asyncio.to_thread(rest_cycle,path,refresh,connection_factory) if connection_factory
+                      else await asyncio.to_thread(rest_cycle,path,refresh))
+            if hasattr(db, 'ab_stop_requested') and db.ab_stop_requested():
+                health(db,'storage_guard','blocked',db.ab_stop_requested(),live_state=live_state)
+                health(db,'rest_supervisor','blocked',db.ab_stop_requested(),live_state=live_state);stop.set();return
             sync_live_market(db,live_state)
             if refresh:
                 last_candle_refresh = time.monotonic()
@@ -432,13 +459,14 @@ def publish_feature_cycle(cycle, live_state, now=None):
     return True
 
 
-async def feature_loop(path, db, stop, live_state=None, interval=FEATURE_INTERVAL_SECONDS):
+async def feature_loop(path, db, stop, live_state=None, interval=FEATURE_INTERVAL_SECONDS, connection_factory=None):
     """One serial feature worker independent of REST discovery; no queued cycles."""
     while not stop.is_set():
         try:
             started = time.monotonic()
             print(f'Feature cycle started: {utcnow().isoformat()}', flush=True)
-            worker = asyncio.create_task(asyncio.to_thread(feature_cycle, path))
+            worker = asyncio.create_task(asyncio.to_thread(feature_cycle, path, connection_factory) if connection_factory
+                                         else asyncio.to_thread(feature_cycle, path))
             try:
                 cycle = await asyncio.shield(worker)
             except asyncio.CancelledError:
@@ -468,51 +496,58 @@ async def feature_loop(path, db, stop, live_state=None, interval=FEATURE_INTERVA
 
 async def run(path, seconds, interval, markets_only=False,
               max_storage_mb=DEFAULT_MAX_STORAGE_MB, live_state=None,
-              install_signal_handlers=True):
+              install_signal_handlers=True, storage_adapter=None):
     with collector_lock(path) as socket_path:
         await run_locked(path, seconds, interval, markets_only, max_storage_mb,
                          socket_path, live_state=live_state,
-                         install_signal_handlers=install_signal_handlers)
+                         install_signal_handlers=install_signal_handlers,
+                         **({"storage_adapter":storage_adapter} if storage_adapter else {}))
 
 
 async def run_locked(path, seconds, interval, markets_only, max_storage_mb, socket_path,
-                     live_state=None, install_signal_handlers=True):
+                     live_state=None, install_signal_handlers=True, storage_adapter=None):
     key_id, secret = polymarket_credentials()
     if markets_only and not (key_id and secret):
         raise ValueError('Polymarket market-stream credentials are missing')
-    db=connect(path); initialize(db)
-    if not markets_only:
-        initialize_features(db); initialize_forecasts(db)
-    live_state=live_state or LiveState()
-    hydrate_live_state(db,live_state)
-    health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB',
-           live_state=live_state)
-    stop=asyncio.Event()
-    loop=asyncio.get_running_loop()
-    if install_signal_handlers:
-        for sig in (signal.SIGINT,signal.SIGTERM):
-            loop.add_signal_handler(sig,stop.set)
-    server = await control_server(socket_path, stop)
-    timer=loop.call_later(seconds,stop.set) if seconds else None
-    tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state))]
-    if not markets_only:
-        tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state)),
-                      asyncio.create_task(feature_loop(path,db,stop,live_state)),
-                      asyncio.create_task(coinbase_stream(db,stop,live_state=live_state))))
-    tasks.append(asyncio.create_task(polymarket_stream(
-        db,stop,key_id,secret,live_state=live_state)))
+    db=storage_adapter.connection() if storage_adapter else connect(path)
     try:
-        await asyncio.gather(*tasks)
-        summary=db.execute('SELECT source,status,reconnects FROM feed_health').fetchall()
-        print('Feed status:',summary,flush=True)
+        if not storage_adapter:initialize(db)
+        if not markets_only:
+            initialize_features(db); initialize_forecasts(db)
+        live_state=live_state or LiveState()
+        hydrate_live_state(db,live_state)
+        health(db, 'storage_guard', 'watching', f'Storage cap {max_storage_mb} MiB',
+               live_state=live_state)
+        stop=asyncio.Event()
+        loop=asyncio.get_running_loop()
+        if install_signal_handlers:
+            for sig in (signal.SIGINT,signal.SIGTERM):
+                loop.add_signal_handler(sig,stop.set)
+        server = await control_server(socket_path, stop)
+        timer=loop.call_later(seconds,stop.set) if seconds else None
+        tasks=[asyncio.create_task(storage_guard_loop(path,db,stop,max_storage_mb,live_state,storage_adapter))]
+        if storage_adapter:
+            tasks.append(asyncio.create_task(buffer_rotation_loop(storage_adapter,db,stop,live_state)))
+        if not markets_only:
+            tasks.extend((asyncio.create_task(rest_loop(path,db,stop,interval,live_state,storage_adapter.connection if storage_adapter else None)),
+                          asyncio.create_task(feature_loop(path,db,stop,live_state,connection_factory=(lambda: storage_adapter.worker_connection('feature')) if storage_adapter else None)),
+                          asyncio.create_task(coinbase_stream(db,stop,live_state=live_state))))
+        tasks.append(asyncio.create_task(polymarket_stream(
+            db,stop,key_id,secret,live_state=live_state)))
+        try:
+            await asyncio.gather(*tasks)
+            summary=db.execute('SELECT source,status,reconnects FROM feed_health').fetchall()
+            print('Feed status:',summary,flush=True)
+        finally:
+            stop.set()
+            if timer: timer.cancel()
+            for task in tasks:
+                if not task.done(): task.cancel()
+            await asyncio.gather(*tasks,return_exceptions=True)
+            server.close()
+            await server.wait_closed()
+            db.close()
     finally:
-        stop.set()
-        if timer: timer.cancel()
-        for task in tasks:
-            if not task.done(): task.cancel()
-        await asyncio.gather(*tasks,return_exceptions=True)
-        server.close()
-        await server.wait_closed()
         db.close()
 
 

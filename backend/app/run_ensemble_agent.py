@@ -7,6 +7,7 @@ import argparse
 import os
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from collector import connect
 from ensemble import compute_ensemble_for_snapshot
@@ -93,7 +94,13 @@ def main():
                         help='Seconds between ensemble runs')
     args = parser.parse_args()
     print(f'Ensemble agent starting: db={args.db} interval={args.interval}s')
-    db = connect(args.db)
+    from storage_runtime import configured_runtime
+    runtime = configured_runtime()
+    if runtime:
+        if Path(args.db).resolve()!=runtime.legacy.resolve():
+            raise RuntimeError('A/B ensemble legacy path mismatch')
+        runtime.open('feature')
+    db = runtime.connection() if runtime else connect(args.db)
     try:
         while True:
             try:
@@ -120,6 +127,8 @@ def main():
             time.sleep(args.interval)
     finally:
         db.close()
+        if runtime:
+            runtime.close()
 
 
 if __name__ == '__main__':

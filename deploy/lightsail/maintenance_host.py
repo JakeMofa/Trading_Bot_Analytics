@@ -108,17 +108,36 @@ class Host:
         return {'database':value,'release':self.release,'runtime':self.cmd('git','rev-parse','HEAD',user=True,seconds=min(15,seconds)),
             'helpers':{n:rv.sha(Path(__file__).with_name(n)) for n in FILES},'protected':list(self.cd.protected())}
     def verify(self,reap,seconds):
-        # Keep a separate reap allowance inside the granted total step cap.
-        work=max(.01,seconds-reap)
+        work=max(.01,seconds-reap);started=time.monotonic()
+        self.record.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
+        progress=self.record.with_name(self.record.stem+'-verification-progress.json')
+        rv.require(not progress.exists(),'prior verification diagnostic exists')
+        self.verification_diagnostic={'termination':'not_requested','reaped':False,'progress_path':str(progress)}
         self.child=subprocess.Popen([sys.executable,str(Path(__file__).with_name('release_verification.py')),
-            '--child',str(self.cd.ROOT/'data/btc_intelligence.db'),'--seconds',str(work)],stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
-        try:out,err=self.child.communicate(timeout=work)
-        except BaseException:
-            self.reap_owned_child(reap);raise
-        rv.require(self.child.returncode==0,'complete verification child failed')
-        result=json.loads(out)
-        rv.require(result.get('status')=='PASS' and [x['check'] for x in result['checks']]==['quick_check','foreign_key_check'],'incomplete verification')
-        return result
+            '--child',str(self.cd.ROOT/'data/btc_intelligence.db'),'--seconds',str(work),'--progress',str(progress)],
+            stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+        try:
+            try:out,err=self.child.communicate(timeout=work)
+            except BaseException:
+                self.verification_diagnostic['termination']='requested'
+                try:
+                    self.reap_owned_child(reap)
+                    self.verification_diagnostic['termination']='terminated_and_reaped'
+                except BaseException:
+                    self.verification_diagnostic['termination']='reap_failed';raise
+                raise
+            rv.require(self.child.returncode==0,'complete verification child failed')
+            result=json.loads(out)
+            rv.require(result.get('status')=='PASS' and [x['check'] for x in result['checks']]==['quick_check','foreign_key_check'] and all(x.get('status')=='PASS' for x in result['checks']),'incomplete verification')
+            return result
+        finally:
+            self.verification_diagnostic.update(elapsed_seconds=time.monotonic()-started,
+                reaped=self.child.poll() is not None,returncode=self.child.returncode,
+                partial=rv.read_verification_progress(progress,self.child.pid))
+            if self.child.poll() is not None:
+                for stream in (self.child.stdout,self.child.stderr):
+                    if stream is not None:stream.close()
+
     def reap_owned_child(self,seconds):
         if self.child is not None and self.child.poll() is None:rv.reap(self.child,min(10,seconds))
     def checkout_release(self,seconds):self.cmd('git','checkout','--detach',self.release,user=True,seconds=min(30,seconds))
@@ -159,6 +178,7 @@ class Host:
             'before_receipts':self.baseline,'after_receipts':first,
             'receipt_gap_upper_seconds':{k:(rv.stamp(first[k])-rv.stamp(self.baseline[k])).total_seconds() for k in self.baseline}}
     def save(self,report):
+        if hasattr(self,'verification_diagnostic'):report['verification_diagnostic']=self.verification_diagnostic
         self.record.parent.mkdir(mode=0o700,parents=True,exist_ok=True)
         report.update(release=self.release,at=self.utcnow())
         self.record.write_text(json.dumps(report,indent=2)+'\n');self.record.chmod(0o600)

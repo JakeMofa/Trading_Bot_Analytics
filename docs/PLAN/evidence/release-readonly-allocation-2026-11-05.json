@@ -1,0 +1,60 @@
+{
+  "allocation": {
+    "bound_service_roles": [
+      "tradebot-api",
+      "tradebot-ensemble",
+      "tradebot-lifecycle"
+    ],
+    "kernel_hard_quota": false,
+    "named_bytes": 5369184256,
+    "observed_processes": 4,
+    "other_regular_bytes": 4096,
+    "owner_scope": "bound Linux service roots and descendants",
+    "regular_inode_count": 4,
+    "sampled_total_bytes": 5369188352,
+    "unlinked_regular_bytes": 0
+  },
+  "at_utc": "2026-11-06T01:27:03Z",
+  "collection_started": false,
+  "elapsed_seconds": 0.06923195102717727,
+  "filesystem_available_bytes": 49795989504,
+  "legacy_files": {
+    "-shm": {
+      "allocated": 98304,
+      "charged": 98304,
+      "length": 98304,
+      "mode": "0o600"
+    },
+    "-wal": {
+      "allocated": 45178880,
+      "charged": 45178880,
+      "length": 45171712,
+      "mode": "0o600"
+    },
+    "main": {
+      "allocated": 5323907072,
+      "charged": 5323907072,
+      "length": 5323907072,
+      "mode": "0o600"
+    }
+  },
+  "mem_available_bytes": 1379188736,
+  "peak_runtime_allocation": "NOT_PROVEN",
+  "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a",
+  "services": {
+    "tradebot-api": {
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tradebot-ensemble": {
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "tradebot-lifecycle": {
+      "ActiveState": "active",
+      "SubState": "running"
+    }
+  },
+  "sqlite_opened": false,
+  "status": "PASS_READ_ONLY_METADATA"
+}

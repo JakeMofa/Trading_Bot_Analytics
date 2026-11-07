@@ -1,0 +1,94 @@
+{
+  "ab-import-report": {
+    "after_ack_restart_seconds": 5.507311113000014,
+    "constructor_seconds": 76.88609501600001,
+    "elapsed_including_cleanup_seconds": 109.083726818,
+    "import_metrics": {
+      "audit_and_import_seconds": 72.52903206300002,
+      "audited_bytes": 179671813,
+      "identity": "a034f593cd72cd8ab30bec4efe1ed1e6b37493b56de4dd589d5243817c9896a8",
+      "raw_audit": "targeted protected/current inputs only",
+      "rows": 225777
+    },
+    "legacy_unchanged": true,
+    "limits": {
+      "audit_bytes": 268435456,
+      "linux_address_space_bytes": 536870912,
+      "rows": 250000,
+      "total_seconds": 180,
+      "work_seconds": 170,
+      "workspace_bytes": 2147483648
+    },
+    "logical_admission": {
+      "byte_limit": 268435456,
+      "logical_bytes": 168200760,
+      "row_limit": 250000,
+      "rows": 207852
+    },
+    "restart_audit_seconds": 5.527174825999992,
+    "rss_bytes": 134516736,
+    "sampled_allocated_peak_bytes": 1023041536,
+    "source_sha": "101921ee00d3e89a50d02c61569bd808ed268cec",
+    "status": "PASS_GENERATED_FULL_BOOTSTRAP"
+  },
+  "ab-joint-report": {
+    "ack_interval_max_seconds": 0.884526883999996,
+    "acknowledged_ticks": 29,
+    "api_max_seconds": 0.07402427400000988,
+    "archive_completed_while_retirement_disabled": true,
+    "current_price_max_seconds": 0.0018824849999958815,
+    "elapsed_seconds": 7.4733161760000115,
+    "errors": [],
+    "feature_max_seconds": 0.027661295000001473,
+    "heartbeat_max_seconds": 0.15156614400000024,
+    "historical_feature_equivalence": true,
+    "history_max_seconds": 0.04909862099999884,
+    "http_requests": 62,
+    "http_timeouts": 0,
+    "incremental_verification_cycles": [
+      3,
+      1,
+      1
+    ],
+    "maximum_feature_workers": 1,
+    "real_venue_cadence": false,
+    "recovered_legacy_inputs": 2,
+    "retirement_enabled_without_collector_restart": true,
+    "retirement_readbacks_and_reader_hold": 3,
+    "save_max_seconds": 0.11082147999999847,
+    "simulated_clock": true,
+    "source_sha": "101921ee00d3e89a50d02c61569bd808ed268cec",
+    "sse_max_seconds": 0.19603930499999933,
+    "status": "PASS_GENERATED_JOINT",
+    "whole_suite_elapsed_seconds": 9.383718703999989
+  },
+  "ci_conclusion": "success",
+  "ci_event": "push",
+  "ci_run": 42161684724,
+  "five_GiB_per_slot_qualified": false,
+  "integrated-report": {
+    "archived_rows": 4000,
+    "committed_rows": 4000,
+    "elapsed_seconds": 55.752985804999994,
+    "errors": [],
+    "feature_cycles": 20,
+    "feature_max_seconds": 0.5522394509999913,
+    "fixture_cleanup_complete": true,
+    "heartbeat_max_seconds": 0.32995725000000675,
+    "history_max_seconds": 0.22982945100000052,
+    "pending_rows": 0,
+    "published_cycles": 20,
+    "rss_bytes": 57102336,
+    "save_max_seconds": 0.05898210200001586,
+    "source_sha": "101921ee00d3e89a50d02c61569bd808ed268cec",
+    "status": "PASS_SCALED_INTEGRATED",
+    "workload_complete": true,
+    "workspace_peak_bytes": 23057141
+  },
+  "jobs": {
+    "integrated-qualification": "success",
+    "test": "success"
+  },
+  "production_changed": false,
+  "source_sha": "101921ee00d3e89a50d02c61569bd808ed268cec"
+}

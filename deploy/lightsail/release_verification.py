@@ -131,32 +131,100 @@ def persistence(path, market):
     finally:db.close()
 
 
-def check_database(path, seconds):
-    """One read transaction; both checks fully consumed. Child only, no output rows."""
-    started=time.monotonic();path=Path(path);before=_identity(path)
-    db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=.1)
+def write_verification_progress(path, value):
+    """Bounded private atomic diagnostics; never authority or integrity proof."""
+    if path is None:return
+    path=Path(path);parent=path.parent;st=parent.stat()
+    require(not parent.is_symlink() and st.st_uid==os.geteuid() and not st.st_mode&0o077,'unsafe progress directory')
+    data=json.dumps(value,separators=(',',':')).encode()
+    require(len(data)<=8192,'verification diagnostic too large')
+    if path.exists():
+        st=path.lstat();require(not path.is_symlink() and st.st_uid==os.geteuid() and st.st_mode&0o777==0o600,'unsafe progress target')
+    pending=path.with_name(path.name+'.pending-'+str(os.getpid()))
+    fd=os.open(pending,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
     try:
+        with os.fdopen(fd,'wb') as f:f.write(data);f.flush();os.fsync(f.fileno())
+        os.replace(pending,path)
+    finally:
+        if pending.exists():pending.unlink()
+
+
+def read_verification_progress(path,pid):
+    """Missing/truncated/stale diagnostics never count as verification success."""
+    try:
+        path=Path(path);st=path.lstat()
+        require(not path.is_symlink() and st.st_uid==os.geteuid() and st.st_mode&0o777==0o600 and st.st_size<=8192,'unsafe partial report')
+        value=json.loads(path.read_text())
+        require(value.get('format')==1 and value.get('pid')==pid,'stale partial report')
+        require(value.get('active_check') in (None,'identity','quick_check','foreign_key_check','final_identity'),'invalid partial phase')
+        checks=value.get('checks');require(isinstance(checks,list) and len(checks)<=2 and all(isinstance(c,dict) for c in checks),'invalid partial checks')
+        require([c.get('check') for c in checks] in ([],['quick_check'],['quick_check','foreign_key_check']),'invalid partial order')
+        require(all(c.get('status')=='PASS' and type(c.get('seconds')) in (int,float) for c in checks),'invalid partial result')
+        require(value.get('status') in ('RUNNING','STOP','PASS'),'invalid diagnostic state')
+        require(type(value.get('elapsed_seconds')) in (int,float),'invalid diagnostic time')
+        # Return only bounded metadata; arbitrary JSON fields are never logged.
+        out={k:value[k] for k in ('format','pid','status','active_check','elapsed_seconds') if k in value}
+        out['checks']=[{k:c[k] for k in ('check','status','seconds')} for c in checks]
+        table=value.get('active_table')
+        if table is None or (isinstance(table,str) and re.fullmatch('[A-Za-z_][A-Za-z_0-9]{0,127}',table)):out['active_table']=table
+        count=value.get('foreign_key_tables_completed')
+        if type(count) is int and 0<=count<=256:out['foreign_key_tables_completed']=count
+        error=value.get('error_type')
+        if isinstance(error,str) and re.fullmatch('[A-Za-z][A-Za-z0-9_]{0,63}',error):out['error_type']=error
+        return out
+    except (OSError,ValueError,TypeError,KeyError,Stop):return {'status':'UNAVAILABLE','active_check':None,'checks':[]}
+
+
+def check_database(path, seconds, progress=None):
+    """Complete checks in one read transaction, with durable phase boundaries."""
+    started=time.monotonic();path=Path(path);checks=[];db=None
+    state={'format':1,'pid':os.getpid(),'status':'RUNNING','active_check':'identity','checks':checks,
+           'started_at':datetime.now(timezone.utc).isoformat()}
+    def publish():
+        state['elapsed_seconds']=time.monotonic()-started
+        write_verification_progress(progress,state)
+    try:
+        publish();require(seconds>0,'verification deadline');before=_identity(path)
+        db=sqlite3.connect(path.resolve().as_uri()+'?mode=ro',uri=True,timeout=.1)
         db.execute('PRAGMA query_only=ON');db.execute('BEGIN')
-        # Establish the same schema identity in the transaction used for checks.
         require(db.execute('PRAGMA schema_version').fetchone()[0]==before['schema_version'],'schema changed before checks')
         db.set_progress_handler(lambda:int(time.monotonic()-started>=seconds),1000)
-        checks=[]
         for name in ('quick_check','foreign_key_check'):
-            try:
-                require(time.monotonic()-started<seconds,'verification deadline')
-                at=time.monotonic();cursor=db.execute('PRAGMA '+name)
-                first=cursor.fetchone()
-                valid=(first==('ok',) and cursor.fetchone() is None) if name=='quick_check' else first is None
-                require(valid,name+' failed')
-                checks.append({'check':name,'status':'PASS','seconds':time.monotonic()-at})
-            except BaseException as error:
-                error.verification_phase=name;error.completed_checks=list(checks)
-                raise
+            state['active_check']=name;publish()
+            require(time.monotonic()-started<seconds,'verification deadline')
+            at=time.monotonic()
+            if name=='quick_check':
+                cursor=db.execute('PRAGMA quick_check');first=cursor.fetchone()
+                require(first==('ok',) and cursor.fetchone() is None,'quick_check failed')
+            else:
+                # Same complete FK scope, with a durable boundary per declaring
+                # table. Never substitute sampled rows or table-local integrity.
+                tables=db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name LIMIT 257").fetchall()
+                require(len(tables)<=256,'foreign key schema bound')
+                state['foreign_key_tables_completed']=0
+                for (table,) in tables:
+                    require(re.fullmatch('[A-Za-z_][A-Za-z_0-9]{0,127}',table),'unsupported table identity')
+                    if not db.execute('PRAGMA foreign_key_list("'+table+'")').fetchone():continue
+                    state['active_table']=table;publish()
+                    require(time.monotonic()-started<seconds,'verification deadline')
+                    require(db.execute('PRAGMA foreign_key_check("'+table+'")').fetchone() is None,'foreign_key_check failed')
+                    state['foreign_key_tables_completed']+=1;publish()
+                state['active_table']=None
+            checks.append({'check':name,'status':'PASS','seconds':time.monotonic()-at})
+            state['active_check']=None;publish()
         require(time.monotonic()-started<seconds,'verification deadline')
-        db.rollback() # End read snapshot only; never restore database contents.
-    finally:db.close()
-    require(_identity(path)==before,'database/schema identity changed during verification')
-    return {'status':'PASS','identity':before,'checks':checks,'seconds':time.monotonic()-started}
+        db.rollback() # End read snapshot only, never restore database contents.
+        db.close();db=None
+        state['active_check']='final_identity';publish()
+        require(_identity(path)==before,'database/schema identity changed during verification')
+        state.update(status='PASS',active_check=None);publish()
+        return {'status':'PASS','identity':before,'checks':checks,'seconds':time.monotonic()-started}
+    except BaseException as error:
+        error.verification_phase=state['active_check'];error.completed_checks=list(checks)
+        state.update(status='STOP',error_type=type(error).__name__);publish()
+        raise
+    finally:
+        if db is not None:db.close()
 
 
 def validate_evidence(evidence, revision, old, helper_hash, current_identity, now):
@@ -409,6 +477,7 @@ def http_child(route):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--child',type=Path);parser.add_argument('--seconds',type=float)
+    parser.add_argument('--progress',type=Path)
     parser.add_argument('--identity',type=Path);parser.add_argument('--persistence',type=Path);parser.add_argument('--market')
     parser.add_argument('--http',choices=('/health','/state/current','/dashboard','/events'))
     args=parser.parse_args()
@@ -420,7 +489,7 @@ if __name__=='__main__':
             require(args.child is not None and args.seconds is not None and 0<args.seconds<=POLICY['work_seconds'],'invalid child request')
             require(sys.platform=='linux','bounded verification child requires Linux')
             resource.setrlimit(resource.RLIMIT_AS,(512*1024**2,512*1024**2))
-            result=check_database(args.child,args.seconds)
+            result=check_database(args.child,args.seconds,args.progress)
         print(json.dumps(result),flush=True)
     except BaseException as error:
         print(json.dumps({'status':'STOP','error_type':type(error).__name__,

@@ -1,0 +1,20 @@
+{
+  "review_date": "2026-11-06",
+  "base": "1cc9e8d",
+  "ci_worker_proposal_commit": "42f207c",
+  "proposal_sha256": "24015499594d9ab45ca9863f698bc5ef460e246419d13235cc07567be59d3a19",
+  "requirements_sha256": "2d9f681d6cd90e8708a223f49dee05d4c9553fe726e3db08a555a003df0d6976",
+  "selected_cryptography_version": "50.0.0",
+  "selection": "Smallest version fixing all four reported advisories; reviewed CI-worker patch, not a claim of latest version.",
+  "primary_sources": [
+    "https://cryptography.io/en/latest/changelog/#v50-0-0",
+    "https://github.com/pyca/cryptography/security/advisories/GHSA-g6cj-pr64-35w5",
+    "https://github.com/pyca/cryptography/security/advisories/GHSA-537c-gmf6-5ccf"
+  ],
+  "local_environment": "isolated macOS arm64 Python3.13 virtual environment; no production credentials or calls",
+  "pip_check": "PASS",
+  "pip_audit": {"version": "2.9.0", "known_vulnerabilities": 0},
+  "affected_tests": "Streaming/Ed25519, API, state, rollover health, fresh-B, generation progress, cursor reconciliation and explicit archive-history tests executed. Initial selections included one nonexistent module; corrected selection hit one guarded fault-fixture error; corrected history tests3PASSincluding1root skip. Those harness failures are not represented as successful runs.",
+  "linux_exact_release": "REQUIRED_NOT_YET_CLAIMED",
+  "production": "UNCHANGED"
+}

@@ -3998,3 +3998,18 @@ Supabase schema intendedservice_role CRUD on raw_archives/checkpoints is not
 immutability/deployed identity evidence. Existing prepare_scope reads CURRENT raw,
 not post-retirement application replay. No fresh-readback replacement authorized.
 Next:receive exactCI result once,review effective mutation-fence model;keepPRdraft.
+
+
+## November6 — reviewed dependency remediation, CI ownership preserved
+
+PreservedCIcommit1cc9e8d. ReviewedCIworker42f207c proposal/patch hash24015499...
+against primary cryptography advisory/changelog;apply minimal tested50.0.0 pin,
+not untested claim of latest. IsolatedPython3.13macOS consistencyPASS,pip-audit2.9
+reports0knownvulnerabilities for requirementsSHA2d9f681d6cd90e8708a223f49dee05d4c9553fe726e3db08a555a003df0d6976.
+Ed25519/streaming/API/state/rollover/fresh-B tests execute under candidate;fault
+fixture/selection errors preserved in sanitizedreview record,not securityfailures.
+ExactLinux/root/finalrelease CI stillREQUIRED. No advisory waivers or production
+changes. See evidence/cryptography50-storage-review.json. CIbranch/PR10 remains
+owned byseparateworker;no workflow/configuration file edited here. 439c93b's exact
+pushCI42320474396 isFAIL(nullactivebuffer duringjointarchive);underlyingconnection
+error wasnotretained. Later1cc/7beePASS doesnotexplain or erasehistoricalfailure.

@@ -63,3 +63,17 @@ production legacy5120MiBSTOP unchanged. No production/Supabase queries,writes,sc
 restart,retirement,permission/schema changes or deployment. PR9 stays DRAFT;
 I7/Phase1.75,sustained operation and eventual separately approved legacy retirement
 remain open. Redis/paidAI/Phase2 deferred.
+
+
+## November 7 — missing root coverage corrected, successor qualification pending
+
+Safely fast-forwarded existing checkout to PR10 merge `52be7cb` without touching
+unrelated AGENTS/roadmap/local files. Merged green CI did not execute this exact
+root-only case: root partition omitted test_archive_history.py. Narrow successor
+adds that module and fail-closed required-success evidence: missing or skipped
+checkpoint4 cannot produce a root PASS. Synthetic runner regressions prove success,
+skip and missing-execution behavior. No workflow or runtime/deletion gate change.
+Exact root case emits actual removal and application assertions, elapsed time,
+allocated workspace snapshots and cumulative process RSS. Snapshots are not peak
+storage; root-process RSS includes earlier tests. Tiny fixtures do not prove 5GiB.
+Local runner regressions: 6 PASS. Exact successor Linux result remains pending.

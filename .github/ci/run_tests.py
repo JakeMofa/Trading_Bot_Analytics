@@ -10,7 +10,25 @@ APPLICATION = {'test_api.py', 'test_dashboard.py', 'test_dashboard_api.py',
                'test_live_state.py', 'test_streaming.py', 'test_rollover_publication.py',
                'test_rollover_health.py', 'test_feature_freshness.py'}
 ROOT = ['test_raw_generations.py', 'test_ab_application.py', 'test_ab_runtime.py',
-        'test_incremental_retirement.py', 'test_ab_cutover.py']
+        'test_incremental_retirement.py', 'test_ab_cutover.py', 'test_archive_history.py']
+
+
+REQUIRED_ROOT = 'test_archive_history.Tests.test_actual_retirement_then_archive_history_calculations_and_dashboard'
+
+
+class ExecutionEvidence(unittest.TextTestResult):
+    """Record successful execution, rather than discovery or a skipped test."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.successful_ids = set()
+
+    def addSuccess(self, test):
+        self.successful_ids.add(test.id())
+        super().addSuccess(test)
+
+
+def required_execution(category, result):
+    return category != 'root' or REQUIRED_ROOT in result.successful_ids
 
 
 def write_evidence(category, result, started):
@@ -56,10 +74,11 @@ def main():
     args = parser.parse_args()
     started = time.monotonic()
     try:
-        result = unittest.TextTestRunner(verbosity=2).run(suite(args.category))
-        passed = result.wasSuccessful() and result.testsRun > len(result.skipped)
+        result = unittest.TextTestRunner(verbosity=2, resultclass=ExecutionEvidence).run(suite(args.category))
+        passed = result.wasSuccessful() and result.testsRun > len(result.skipped) and required_execution(args.category, result)
         write_evidence(args.category, {'gate': 'PASS' if passed else 'FAIL',
                        'tests': result.testsRun, 'skips': len(result.skipped),
+                       'required_checkpoint4_executed': REQUIRED_ROOT in result.successful_ids,
                        'failures': len(result.failures), 'errors': len(result.errors)}, started)
     except Exception:
         write_evidence(args.category, {'gate': 'BLOCKED', 'reason': 'test runner could not complete'}, started)

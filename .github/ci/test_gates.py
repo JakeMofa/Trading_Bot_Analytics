@@ -3,7 +3,8 @@ from pathlib import Path
 import tempfile
 import unittest
 from readiness import CATEGORIES, REQUIRED, JOBS, validate
-from run_tests import APPLICATION
+from run_tests import APPLICATION, ROOT, REQUIRED_ROOT, ExecutionEvidence, required_execution
+import io
 from summaries import readiness_summary
 
 
@@ -77,6 +78,20 @@ class GateTests(unittest.TestCase):
             (root / 'postgres.json').write_text(json.dumps({'gate': 'PASS',
                 'tested_sha': 'b'*40, 'source_sha': 'a'*40, 'tests': 0, 'skips': 0}))
             self.assertTrue(validate(root, jobs, 'b'*40, 'a'*40))
+
+    def test_checkpoint4_root_inclusion_and_success_not_skip_are_required(self):
+        self.assertIn('test_archive_history.py', ROOT)
+        class Case(unittest.TestCase):
+            def runTest(self): pass
+            def id(self): return REQUIRED_ROOT
+        success = unittest.TextTestRunner(stream=io.StringIO(), resultclass=ExecutionEvidence).run(Case())
+        self.assertTrue(required_execution('root', success))
+        class Skipped(Case):
+            def runTest(self): self.skipTest('missing privilege')
+        skipped = unittest.TextTestRunner(stream=io.StringIO(), resultclass=ExecutionEvidence).run(Skipped())
+        self.assertFalse(required_execution('root', skipped))
+        empty = unittest.TextTestRunner(stream=io.StringIO(), resultclass=ExecutionEvidence).run(unittest.TestSuite())
+        self.assertFalse(required_execution('root', empty))
 
     def test_application_partition_names_exist(self):
         self.assertTrue(APPLICATION)

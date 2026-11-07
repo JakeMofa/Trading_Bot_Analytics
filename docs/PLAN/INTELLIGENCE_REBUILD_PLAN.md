@@ -4093,3 +4093,17 @@ no child-memory/stagediagnosticimplementationwasadded. Preserveallstoragework.
 180s/512MiBprocess/2GiBworkspace/API1s+2sprobegatesandfreshreadbackunchanged.
 Retirementauthorization,5GiBcapacity/core-ledger,legacyverification/cutoverremain
 lateropengates;24GiBproposal/unapplied;production5120MiBSTOPuntouched;PR9DRAFT.
+
+
+## November7 — checkpoint4 missing privileged coverage fixed
+
+Safely integrated PR10 merge52be7cb via fast-forward, preserving unrelated edits.
+Root partition now includes test_archive_history.py and requires successful actual
+execution of exact post-retirement application-history case; missing/skip HOLD.
+6runner regressions PASS;5local history tests/4PASS/1Linuxroot skip in6.308s.
+Successor exact exported Linux qualification pending; no post-retirement PASS yet.
+Case reports actual removal/API/calculation/dashboard/reference assertions,elapsed,
+workspace allocation snapshots(not peak) and cumulative rootprocess RSS.
+No workflow/runtime/deletion changes;production held. See updated
+PR9_CHECKPOINT4_LINUX_GATE_2026-11-06.md. 5GiBcapacity/coreledger/legacy/cutover and
+final fresh-readback authorization remain open;24GiBproposal unapplied;PR9DRAFT.

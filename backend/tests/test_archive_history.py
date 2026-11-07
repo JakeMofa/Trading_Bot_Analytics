@@ -154,10 +154,20 @@ class Tests(unittest.TestCase):
 
     @unittest.skipUnless(sys.platform=='linux' and os.geteuid()==0,'actual retirement needs Linux root descriptor proof')
     def test_actual_retirement_then_archive_history_calculations_and_dashboard(self):
+        import resource
+        started=time.monotonic()
         with tempfile.TemporaryDirectory(prefix='generated-ab-') as root:
             store,path,gid,now,remote,oid,event,before=self.fixture(root)
             try:
+                allocation=lambda:sum(p.stat().st_blocks*512 for p in Path(root).rglob('*') if p.is_file())
+                before_bytes=allocation()
                 store.retire(gid,remote,now)
                 self.assertFalse(store.protocol.path(gid).exists())
                 with endpoint(remote) as (factory,state):self.check_api(store,path,gid,oid,event,before,factory,state)
+                print('CHECKPOINT4_EVIDENCE '+json.dumps(dict(
+                    raw_removed=True, archive_api_calculation_dashboard_references='PASS',
+                    elapsed_seconds=time.monotonic()-started,
+                    workspace_allocated_snapshots_bytes=[before_bytes,allocation()],
+                    process_lifetime_max_rss_kib=resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+                    scope='tiny generated fixture; allocation snapshots are not peak disk; RSS includes prior root tests')),flush=True)
             finally:store.close()

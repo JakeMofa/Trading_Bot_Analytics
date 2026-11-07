@@ -1,0 +1,62 @@
+{
+  "frozen_original_source": "0204901ae856810fcff06c3a1181f59884261fbf",
+  "base": "78bcaf07baac8ba5f26a6c7dd827c35283511f30",
+  "scope": "offline/generated review split only; no production authority",
+  "split": [
+    {
+      "part": 1,
+      "pr": 11,
+      "url": "https://github.com/JakeMofa/Trading_Bot_Analytics/pull/11",
+      "branch": "codex/pr9-storage-foundation",
+      "assembled_sha": "3c01eb5bde6265ae22822b07768900f0294ff025",
+      "base_branch": "codex/lightsail-deployment",
+      "backend_tests": 277,
+      "backend_skips": 9,
+      "deployment_control_tests": 41,
+      "deployment_control_skips": 1
+    },
+    {
+      "part": 2,
+      "pr": 12,
+      "url": "https://github.com/JakeMofa/Trading_Bot_Analytics/pull/12",
+      "branch": "codex/pr9-application-integration",
+      "assembled_sha": "341f33923b4dc52e752a3e34252504a8687b3902",
+      "base_branch": "codex/pr9-storage-foundation",
+      "backend_tests": 418,
+      "backend_skips": 20,
+      "deployment_control_tests": 41,
+      "deployment_control_skips": 1
+    },
+    {
+      "part": 3,
+      "pr": 13,
+      "url": "https://github.com/JakeMofa/Trading_Bot_Analytics/pull/13",
+      "branch": "codex/pr9-archive-history",
+      "assembled_sha": "6384f3faa05d5e323c30c102f69bdb0eeee4928b",
+      "base_branch": "codex/pr9-application-integration",
+      "backend_tests": 426,
+      "backend_skips": 22,
+      "deployment_control_tests": 41,
+      "deployment_control_skips": 1
+    },
+    {
+      "part": 4,
+      "pr": 14,
+      "url": "https://github.com/JakeMofa/Trading_Bot_Analytics/pull/14",
+      "branch": "codex/pr9-release-controls",
+      "assembled_sha": "b8cd9d3c5bc9d52ba2471dcc2e3d32d24c7fc248",
+      "base_branch": "codex/pr9-archive-history",
+      "backend_tests": 442,
+      "backend_skips": 22,
+      "deployment_control_tests": 123,
+      "deployment_control_skips": 3
+    }
+  ],
+  "code_tree_equality": "PASS: all original non-documentation paths match frozen source in completed stack",
+  "original_checkout_preservation": "PASS: HEAD/index/worktree/untracked inventory unchanged",
+  "workflow_syntax": "actionlint PASS",
+  "linux_ci": "new split exact CI pending; original exact evidence not reused as new-source qualification",
+  "production_changed": false,
+  "phase_175": "OPEN",
+  "i7": "OPEN"
+}

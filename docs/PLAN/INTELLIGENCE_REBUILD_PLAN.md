@@ -4134,3 +4134,43 @@ capacity/outage,legacyverification andproduction cutovercontrols. Do not treat
 scaled integratedPASS as release/capacity approval. 5GiBslots target;24GiBproposal
 unqualified/unapplied. Removedlegacy replay andruntime archivefactory activation
 remainOPEN. PR9DRAFT;productionheld/unchanged;I7/Phase1.75OPEN.
+
+
+## November 7, 2026 — PR9 split into dependent review milestones
+
+User approved splitting the existing PR rather than waiting for all of Phase 1.75.
+Original PR #9 and branch remain historical references; no original code or local
+edits were discarded. Frozen source: `0204901ae856810fcff06c3a1181f59884261fbf`.
+
+| Order | Pull request | Scope | Base |
+|---|---|---|---|
+|1|[#11](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/11)|Storage protocol and recovery foundations|`codex/lightsail-deployment`|
+|2|[#12](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/12)|Default-off collector dashboard and prediction integration|`codex/pr9-storage-foundation`|
+|3|[#13](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/13)|Archive-backed history and bounded verification tools|`codex/pr9-application-integration`|
+|4|[#14](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/14)|Release controls CI and historical execution evidence|`codex/pr9-archive-history`|
+
+Local generated backend suites passed 277/418/426/442 tests respectively; Mac
+platform skips were 9/20/22/22. Deployment controls passed 41/41/41/123 tests,
+with 1/1/1/3 platform skips. Intermediate workflow syntax passed actionlint.
+Each new split commit needs its own Linux CI; prior source evidence is retained
+with original bindings, not relabelled as exact split evidence. The completed
+stack preserves original application/schema/deployment/workflow bytes exactly;
+only split review records and this roadmap/handoff update are added.
+
+Merge in dependency order. Prefer ancestry-preserving merge commits; if a merge
+rewrites commits, deliberately restack affected children and require new exact
+checks. Retarget each next PR to the integration/release branch after its parent
+merges. Do not merge the original monolithic PR as well. No merge, deployment or
+retirement enablement was performed by the split. PR merge is separate from
+production release and Phase completion.
+
+The current technical checkpoint remains scalable final verification and
+retirement authorization after checkpoint 4's generated Linux PASS. Mandatory
+fresh readback remains unchanged. Capacity/core-ledger growth, legacy proof,
+cutover controls and production acceptance remain OPEN. 5 GiB slots are targets;
+24 GiB aggregate is unqualified/unapplied. Last recorded production collection
+is held at the legacy storage guard, with retention and paid AI OFF; no fresh
+production measurement was performed for this split.
+
+Evidence: `docs/PLAN/evidence/pr9-split-2026-11-07.json`. This is a review
+reorganization of existing code, not a new roadmap or production authorization.

@@ -273,3 +273,22 @@ The full1590-page historical transcript reading remains unfinished. Do not claim
 all original ChatGPT chats were read. Historical memory/reference documents do
 not override current user decisions or the authoritative roadmap. A new session
 should not reread the entire transcript to repeat already-recorded investigations.
+
+
+## November 7 split-review handoff — supersedes PR9 branch ownership below
+
+PR #9 is superseded by dependent draft PRs #11 → #12 → #13 → #14. Do not resume
+implementation on the original `codex/phase1-75-retention-enable` branch without
+reconciling these successors. Preserve that branch and all its unrelated edits.
+
+- `codex/pr9-storage-foundation`: protocol/recovery foundations.
+- `codex/pr9-application-integration`: actual application wiring, default OFF.
+- `codex/pr9-archive-history`: archive-backed retrieval and diagnostic verification.
+- `codex/pr9-release-controls`: CI/deployment controls and consolidated evidence.
+
+The master roadmap contains links, order, local results and outstanding gates.
+Review and merge each dependency before advancing its child; do not merge PR #9
+as well. New functional changes belong in a scoped successor/appropriate owned
+branch after current review, not a second monolithic PR. Coordinate changes to
+shared files and restack children deliberately. Production activation, retirement,
+limits and paid AI remain unchanged and require their existing separate gates.

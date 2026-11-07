@@ -3930,3 +3930,28 @@ incllegacy/WAL/core/work/TEMP/recovery,above2GiBfixturelimitby19.500446GiB. Full
 fresh-tail/core/ledger/guard/controls andlegacyverification remainNO-GO. See
 PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md andsanitizedexactevidence. No production
 change/approval/soak/capexpiryextension;PR9DRAFT,I7/Phase1.75OPEN.
+
+
+## November 6 — mutation-protection review checkpoint (offline only)
+
+See [exact authorization model](PR9_MUTATION_AUTHORIZATION_REVIEW_2026-11-06.md).
+Existing final full fresh authenticated readback remains REQUIRED. Incremental
+cached-proof replacement is NOT PROVEN: runtime RLS cannot constrain service-key/
+admin bypass; a client policy hash/poll/expiry cannot close mutation-to-unlink races.
+Proposed actor matrix, durable authorization/crash/expiry/policy-change protocol
+are for review, not applied permissions, schema changes or deletion authority.
+New namespace characterization2PASS; focused20tests/19PASS/1Linux-root skip in2.294s.
+Legacy/new paths and manifest generation identity distinct; mixed batches rejected.
+Legacy cursor separate, but fresh-B checkpoint shared across NEW generations:
+per-generation cursor requirement OPEN. Structured identity conflicts fail closed.
+Actual local/core/A/B feature and dashboard/history tests PASS generated; archive-
+backed raw replay into dashboard/calculations after local removal NOT PROVEN.
+Do not retire dependent history before that retrieval gate passes.
+Separate bounded gates: cutover+smoke (no wait for seal), later first sealed-gen
+verification, then separately recorded new-generation retirement enablement.
+Legacy remains until structured history/core+Postgres, exact raw archival coverage,
+protected references, post-removal replay/history and reader drainage qualify;
+its eventual exact-file retirement requires SEPARATE approval. No runtime/cloud/
+production changes.5GiBslots TARGET/24GiBaggregate PROPOSAL/applied5120MiBlegacy
+remain distinct. Finite ledger/core limits, capacity, I7freshness/rollover,recovery/
+replay,visibility,sustainedoperation OPEN;Redis deferred. Exact successor CI pending.

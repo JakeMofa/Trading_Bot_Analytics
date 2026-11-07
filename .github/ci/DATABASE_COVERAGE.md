@@ -92,3 +92,8 @@ changes generated HTTP-fixture cleanup only). Eleven CI-control regressions PASS
 including collision/create-failure/wrong-owner cleanup cases; five isolated SQL
 regressions PASS after the ownership fix. Latest combined Linux/source/PR checks
 are required; no local skip is presented as a Linux/root PASS.
+
+Subsequent storage freeze d35644c adds one-helper/no-backlog archive-history
+admission and cancellation recovery. The CI branch incorporates that reviewed
+base too; previous local full-suite results remain bound to their earlier source.
+Final combined exact-source/PR Linux and privileged replay evidence is pending.

@@ -6,6 +6,21 @@ production authorization.
 
 ## Resume here
 
+ACTIVE SCOPE: checkpoint4 history AFTER generated local raw retirement.
+Storage implementationfrozen d35644c3608c0f086052b5d09276fd938ef0345e.
+OwnexactLinuxpush42327631685 FAILbeforeprivilegedapplicationstage;3background
+verificationchilderrors(genericArchiveHold),rootretirementtestNOTRUN.
+ResultBLOCKED,notreplayFAIL/PASS. See PR9_CHECKPOINT4_LINUX_GATE_2026-11-06.md.
+NeedapprovedexistingLinuxexecutionofexactcheckpoint4rootcase+exportSHA/resources,
+notanotherunchangedfullrun. Local7run/6PASS/1rootskip doesnotprovepost-unlink.
+PlanningwithdrawnextraCIbranchinvestigation;no newdiagnosticcodeadded;noCIbranch
+merge/workflowedits. KeepseparateCIownershipandalllaterproductiongatesOPEN.
+Allnewerstorage/history/cursor/admission/cryptoedits preserved;noreset/revert.
+Productionunchanged/held;preserveAGENTS/+596roadmap/localdata.
+
+Historical entries below remain evidence;this top scope governs resume.
+
+
 November6 successor439c93b25ec05c04ef710afbfed5600ebd910f35:
 PR9_BACKGROUND_VERIFICATION_CHECKPOINT_2026-11-06.md governs latest results.
 Baseline13740c7 exactCI42316045831 PASS;successorpushCI42320474396 INPROGRESS

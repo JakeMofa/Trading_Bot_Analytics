@@ -4073,3 +4073,23 @@ One nonblocking archive-history worker per API instance;concurrentrequestreturns
 explicitbusy/no backlog. Cancellation releases admission. History→background
 regression7tests/6PASS/1rootskip8.295s undercrypto50.0.0;guardunchanged. Newsource
 requiredforLinuxroot/exactCI. No runtime/cloud/production limits changed.
+
+
+## November6 — checkpoint4 scope restored: BLOCKED, exact Linux evidence absent
+
+Frozen storage source d35644c3608c0f086052b5d09276fd938ef0345e preserved.
+See PR9_CHECKPOINT4_LINUX_GATE_2026-11-06.md. Exact own-source Linuxpush42327631685
+FAIL:backendstage3errors in freshbackgroundverification child(genericArchiveHold;
+underlyingcauseUNKNOWN);privilegedapplication/rootstageNOTRUN. Do NOT call this
+checkpoint4 replayfailure or post-retirementPASS. Rawwasnotprovedretiredforthis
+checkpoint/source. Local7tests/6PASS/1Linuxrootskip8.295s ispre-removal/faultproof,
+notpost-unlinkLinuxevidence. Existing exact root testcase/wrapper remainsready.
+Nextspecificprerequisite: approvedexistingLinuxexecutionofcheckpoint4testfor
+exactexportedsource,withactualunlink,APIarchivehistory/calculation/dashboard/
+reference checks andresources;ordinaryfailedbackendmustnotbeunchangedrerun.
+CIowner owns execution-route/workflowchanges;storage doesnotabsorbotherbranch
+verifierissues ormergeCIchanges. Planning'sextraCIinvestigationrequestwithdrawn;
+no child-memory/stagediagnosticimplementationwasadded. Preserveallstoragework.
+180s/512MiBprocess/2GiBworkspace/API1s+2sprobegatesandfreshreadbackunchanged.
+Retirementauthorization,5GiBcapacity/core-ledger,legacyverification/cutoverremain
+lateropengates;24GiBproposal/unapplied;production5120MiBSTOPuntouched;PR9DRAFT.

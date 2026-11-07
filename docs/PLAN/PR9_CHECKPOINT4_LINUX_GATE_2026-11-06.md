@@ -1,0 +1,65 @@
+# Checkpoint4 — BLOCKED on exact-source privileged Linux execution
+
+November6,2026. Frozen storage source:
+`d35644c3608c0f086052b5d09276fd938ef0345e`.
+Existing checkout/branch and all unrelated edits preserved. No successor
+implementation was needed or made for this result.
+
+Exact-source push [Linux run42327631685](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42327631685)
+is **FAIL**. The ordinary backend stage stopped with three errors from fresh
+`background_verification.verify_phase` calls:the existing supervisor reported
+`ArchiveHold('archive GET held by child')`. The underlying child cause is not
+established by that log. Privileged application/root stage occurs after that
+unit stage and did not run. The separate controls setup failure is also recorded
+in the run;it is not a checkpoint4 history/replay failure.
+
+## What is and is not proved
+
+- **Raw actually retired for checkpoint4 on this Linux source: NO evidence.**
+  The root-only test was not reached. Do not substitute another branch's run,
+  a local platform skip,earlier101921e retirement proof or pre-removal API proof.
+- Existing test:
+  `test_archive_history.Tests.test_actual_retirement_then_archive_history_calculations_and_dashboard`.
+  A wrapper in `test_ab_application.Tests.test_archived_history_after_actual_local_retirement`
+  includes it in the existing privileged application suite.
+- Intended actual path:original fresh authenticated readback/reference/drain gate
+  retires generated raw;assert file absent;real API `/history/archive` invokes
+  isolated read-only history worker;authenticated synthetic HTTP bytes are checked
+  against exact manifest and committed core receipts;original fields,payload
+  decimals/source times/identities/provenance are returned. Historical deterministic
+  calculations use preserved core evidence;dashboard/context/prediction history,
+  protected reference90 and foreign keys are checked after retirement.
+- Existing local evidence remains useful but narrower:history/background sequence
+  seven tests,six PASS/one Linux-root-only skip,8.295s. Explicit pre-removal API
+  replay and fault behavior passed;that is not post-removal Linux qualification.
+- Faults implemented/tested locally:missing/corrupt/stalled archive,changed committed
+  receipt,unconfigured route,concurrent busy/no backlog,cancellation/recovery and
+  unsupported metadata version. No placeholder success or live feature fallback.
+
+## Limits and next required step
+
+Use the existing generated harness and approved bounds:180s whole fixture including
+preparation/cleanup,512MiB/process,2GiB whole workspace;one archive worker/no backlog,
+one-second whole archive API request,two-second probe gate,100identities/eightobjects
+and existing gzip/response bounds. No changed deadline,memory guard or deletion gate.
+
+The missing prerequisite is an existing approved **privileged Linux execution of
+this checkpoint4 test independently of the unrelated failing backend stage**, with
+exact exported source SHA,zero root skips,actual unlink assertion and retained test/
+resource evidence. The CI owner must provide/approve that existing execution route;
+this storage chat does not rewrite its workflow,merge its branch or absorb its
+verifier issue queue. Do not rerun the unchanged full failing suite as a substitute.
+If no such route is available,checkpoint4 remains BLOCKED pending that prerequisite.
+
+The planning chat's extra request to investigate another branch's verifier failure
+was withdrawn. No child-stage/memory diagnostic implementation was added from that
+request. Owned HTTP-fixture cleanup,one-worker admission and all existing storage
+work remain preserved. A broader verifier investigation is not resumed here.
+
+Mandatory final fresh readback/retirement authorization,representative5GiB capacity,
+finite core/ledger limits,legacy verification and production cutover remain later
+open gates.5GiB/slot selected target;24GiBaggregate unqualified proposal;applied
+production legacy5120MiBSTOP unchanged. No production/Supabase queries,writes,scans,
+restart,retirement,permission/schema changes or deployment. PR9 stays DRAFT;
+I7/Phase1.75,sustained operation and eventual separately approved legacy retirement
+remain open. Redis/paidAI/Phase2 deferred.

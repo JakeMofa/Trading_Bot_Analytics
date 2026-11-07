@@ -1,0 +1,64 @@
+"""Rejected indexed NOT IN candidate versus current merge; generated fixtures only.
+
+This standalone diagnostic accepts no existing database path, creates no indexes
+on application databases and removes its fixture. Timing is local/warm-cache,
+not a qualification PASS. Defaults reproduce the October31 failed-candidate scale.
+"""
+import sqlite3,time,json,tempfile,os,argparse,sys
+from unittest.mock import patch
+from datetime import datetime,timedelta,timezone
+from pathlib import Path
+parser=argparse.ArgumentParser(description='Compare timestamp guards on generated data only; not Linux retention qualification.')
+parser.add_argument('--observations',type=int,default=654328)
+parser.add_argument('--stream-events',type=int,default=1896953)
+parser.add_argument('--native-library',type=Path,help='Optional reviewed native artifact, not a database')
+parser.add_argument('--guard-indexes',action='store_true',help='Build invalid-only indexes on this generated fixture only')
+parser.add_argument('--day-scale-times',action='store_true',help='Spread timestamps across day-scale windows, not adjacent microseconds')
+args=parser.parse_args()
+profile={'observations':args.observations,'stream_events':args.stream_events}
+if min(profile.values())<100 or max(profile.values())>3000000:parser.error('row counts must be100..3000000')
+with tempfile.TemporaryDirectory(prefix='generated-timestamp-plan-') as folder:
+ os.environ['SQLITE_TMPDIR']=folder
+ db=sqlite3.connect(str(Path(folder)/'generated.db'))
+ db.executescript('CREATE TABLE observations(id INTEGER PRIMARY KEY,market_id TEXT,kind TEXT,received_at TEXT,payload TEXT); CREATE INDEX observations_market_kind_received ON observations(market_id,kind,received_at); CREATE TABLE stream_events(source TEXT,event_id TEXT,received_at TEXT,payload TEXT,PRIMARY KEY(source,event_id)); CREATE INDEX stream_cursor ON stream_events(received_at,source,event_id); CREATE TEMP TABLE retention_valid_times(value TEXT PRIMARY KEY) WITHOUT ROWID;')
+ base=datetime(2026,10,1,tzinfo=timezone.utc)
+ for table,n in profile.items():
+  old_count=min(40031 if table=='observations' else 196509,n-1)
+  recent=base+timedelta(days=3)
+  for lo in range(0,n,2000):
+   if args.day_scale_times:
+    stamps=[((base if i<old_count else recent)+timedelta(microseconds=(i if i<old_count else i-old_count)*(12 if i<old_count else 46)*3600*1000000//(old_count if i<old_count else n-old_count))).isoformat(timespec='microseconds') for i in range(lo,min(lo+2000,n))]
+   else:
+    stamps=[((base if i<old_count else recent)+timedelta(microseconds=i+1)).isoformat(timespec='microseconds') for i in range(lo,min(lo+2000,n))]
+   if table=='observations':db.executemany('INSERT INTO observations VALUES(?,?,?,?,?)',[(lo+j+1,str((lo+j)%97),str((lo+j)%3),v,'{}') for j,v in enumerate(stamps)])
+   else:db.executemany('INSERT INTO stream_events VALUES(?,?,?,?)',[('coinbase',str(lo+j),v,'{}') for j,v in enumerate(stamps)])
+   db.executemany('INSERT OR IGNORE INTO retention_valid_times VALUES(?)',[(s,) for s in stamps])
+ db.commit();results=[]
+ if args.native_library:
+  sys.path.insert(0,str(Path(__file__).parent/'app'));import retention
+  with patch.object(retention,'_native_library_path',return_value=args.native_library):
+   if not retention._load_native_time_validator(db):raise RuntimeError('native artifact missing')
+ guard_build=None
+ if args.guard_indexes:
+  sys.path.insert(0,str(Path(__file__).parent/'app'));import retention_timestamp_guards as guards
+  before=db.execute('PRAGMA page_count').fetchone()[0];started=time.monotonic()
+  db.execute('BEGIN IMMEDIATE');guards.create_indexes(db);db.commit()
+  guard_build={'seconds':time.monotonic()-started,'page_growth_bytes':(db.execute('PRAGMA page_count').fetchone()[0]-before)*db.execute('PRAGMA page_size').fetchone()[0]}
+ variants=['old_merge','candidate','cached_candidate']+(['native'] if args.native_library else [])+(['indexed_guard'] if args.guard_indexes else [])
+ for variant in variants:
+  cache_kib=131072 if variant=='cached_candidate' else 2000
+  db.execute(f'PRAGMA temp.cache_size=-{cache_kib}')
+  for table in ('observations','stream_events'):
+   query=(f'SELECT received_at COLLATE BINARY FROM {table} EXCEPT SELECT value COLLATE BINARY FROM temp.retention_valid_times ORDER BY 1' if variant=='old_merge' or table=='stream_events' else 'SELECT DISTINCT received_at COLLATE BINARY FROM observations INDEXED BY observations_market_kind_received WHERE received_at IS NULL OR received_at COLLATE BINARY NOT IN (SELECT value FROM temp.retention_valid_times)')
+   if variant=='indexed_guard':query=f'SELECT 1 FROM main.{table} INDEXED BY {guards.index_name(table)} WHERE {guards.INVALID_SQL} LIMIT 1'
+   if variant=='native':query=f'SELECT 1 FROM {table} WHERE NOT retention_raw_time_valid_v1(received_at) LIMIT 1'
+   plan=list(db.execute('EXPLAIN QUERY PLAN '+query));times=[]
+   for _ in range(3):
+    start=time.monotonic()
+    if variant=='indexed_guard':rows=[(1,)] if guards.invalid_exists(db,table) else []
+    else:rows=list(db.execute(query))
+    times.append(time.monotonic()-start)
+   results.append({'variant':variant,'temp_cache_kib':cache_kib,'table':table,'seconds':times,'unknown_count':len(rows),'plan':plan})
+ value={'generated_only':True,'local_warm_cache_not_qualification':True,'rows':profile,'guard_build':guard_build,'timestamp_distribution':'day-scale' if args.day_scale_times else 'adjacent-microseconds','results':results}
+ print(json.dumps(value))
+ db.close()

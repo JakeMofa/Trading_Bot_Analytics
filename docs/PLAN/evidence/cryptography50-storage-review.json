@@ -14,7 +14,7 @@
   "local_environment": "isolated macOS arm64 Python3.13 virtual environment; no production credentials or calls",
   "pip_check": "PASS",
   "pip_audit": {"version": "2.9.0", "known_vulnerabilities": 0},
-  "affected_tests": "Streaming/Ed25519, API, state, rollover health, fresh-B, generation progress, cursor reconciliation and explicit archive-history tests executed. Initial selections included one nonexistent module; corrected selection hit one guarded fault-fixture error; corrected history tests3PASSincluding1root skip. Those harness failures are not represented as successful runs.",
+  "affected_tests": "Streaming/Ed25519, API, state, rollover health, fresh-B, generation progress, cursor reconciliation and explicit archive-history tests executed. Initial selections included one nonexistent module; corrected selection hit one guarded fault-fixture error; corrected history tests: 3 run, 2 PASS, 1 root-only skip. Those harness failures are not represented as successful runs.",
   "linux_exact_release": "REQUIRED_NOT_YET_CLAIMED",
   "production": "UNCHANGED"
 }

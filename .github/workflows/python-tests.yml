@@ -6,6 +6,23 @@ on:
       - main
       - "codex/**"
   pull_request:
+  merge_group:
+
+permissions:
+  contents: read
+
+# Push runs are retained: production requires exact push-commit CI.
+concurrency:
+  group: python-tests-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+  CI_EVIDENCE_DIR: ${{ github.workspace }}/ci-evidence
+  PYTHONDONTWRITEBYTECODE: "1"
+  ENABLE_OPENAI_ANALYST: "false"
+  ENABLE_SUPABASE_SYNC: "false"
+  ENABLE_LOCAL_RETENTION: "false"
 
 jobs:
   test:
@@ -16,6 +33,8 @@ jobs:
       AB_SOURCE_REPOSITORY: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -39,15 +58,11 @@ jobs:
           ENABLE_OPENAI_ANALYST: "false"
           ENABLE_SUPABASE_SYNC: "false"
           ENABLE_LOCAL_RETENTION: "false"
-        run: python -m unittest discover -s backend/tests -v
+        run: python .github/ci/run_tests.py backend
       - name: Generated A/B retirement descriptor proof (Linux root, no production)
         working-directory: ${{ runner.temp }}/ab-test-candidate
         run: |
-          sudo -n env PYTHONDONTWRITEBYTECODE=1 AB_REPORT_PATH="$RUNNER_TEMP/ab-generated-report.json" "$(command -v python)" -m unittest discover -s backend/tests -p test_raw_generations.py -v
-          sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_application.py -v
-          sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_runtime.py -v
-          sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_incremental_retirement.py -v
-          sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" -m unittest discover -s backend/tests -p test_ab_cutover.py -v
+          sudo -n env PYTHONDONTWRITEBYTECODE=1 CI_SOURCE_SHA="$CI_SOURCE_SHA" GITHUB_SHA="$GITHUB_SHA" GITHUB_EVENT_NAME="$GITHUB_EVENT_NAME" CI_EVIDENCE_DIR="$CI_EVIDENCE_DIR" GITHUB_STEP_SUMMARY="$GITHUB_STEP_SUMMARY" AB_REPORT_PATH="$RUNNER_TEMP/ab-generated-report.json" "$(command -v python)" .github/ci/run_tests.py root
           sudo -n env PYTHONDONTWRITEBYTECODE=1 "$(command -v python)" backend/prototype/run_joint_qualification.py --report "$RUNNER_TEMP/ab-joint-report.json"
           sudo -n chmod 0644 "$RUNNER_TEMP/ab-joint-report.json"
           sudo -n chmod 0644 "$RUNNER_TEMP/ab-generated-report.json"
@@ -65,10 +80,6 @@ jobs:
           path: ${{ runner.temp }}/ab-joint-report.json
           if-no-files-found: warn
           retention-days: 7
-      - name: Run deployment and maintenance controls
-        working-directory: ${{ runner.temp }}/ab-test-candidate
-        run: python -m unittest discover -s deploy/lightsail -p 'test_*.py' -v
-
       - name: One bounded known-structured-cardinality import (not full legacy volume)
         working-directory: ${{ runner.temp }}/ab-test-candidate
         env:
@@ -103,6 +114,15 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      - name: Publish test counts and exact candidate scope
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-test-${{ github.sha }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 7
+
   integrated-qualification:
     needs: test
     runs-on: ubuntu-latest
@@ -115,6 +135,8 @@ jobs:
       ENABLE_LOCAL_RETENTION: "false"
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -147,5 +169,147 @@ jobs:
         with:
           name: ab-integrated-report-${{ github.sha }}
           path: ${{ runner.temp }}/ab-integration-workspace/integrated-report.json
+          if-no-files-found: error
+          retention-days: 7
+
+  quality:
+    name: Source and workflow quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install narrow static checker
+        run: python -m pip install ruff==0.11.13
+      - name: Tracked syntax, shell and credential signatures
+        run: python .github/ci/command.py source python .github/ci/check_source.py
+      - name: Targeted invalid Python constructs (no broad style/type gate)
+        run: python .github/ci/command.py static ruff check --select E9,F63,F7,F82 backend/app deploy/lightsail .github/ci
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.2"
+          cache: false
+      - name: Install pinned workflow validator
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+      - name: Validate workflows (shell syntax checked separately)
+        run: python .github/ci/command.py workflows actionlint -shellcheck= -pyflakes=
+      - name: Test fail-closed evidence controls
+        run: python .github/ci/run_tests.py ci-controls
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-quality-${{ github.sha }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 7
+
+  security:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned auditor
+        run: python -m pip install pip-audit==2.9.0
+      - name: Audit runtime dependencies (network/service failure blocks readiness)
+        run: python .github/ci/command.py dependencies pip-audit -r backend/requirements.txt --progress-spinner off
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-security-${{ github.sha }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 7
+
+  application:
+    name: Application dashboard API and SSE contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install -r backend/requirements.txt
+      - name: Export exact tracked candidate
+        run: python backend/build_ab_candidate.py --sha "$GITHUB_SHA" --output "$RUNNER_TEMP/application-candidate"
+      - name: Run application contracts once
+        working-directory: ${{ runner.temp }}/application-candidate
+        run: python .github/ci/run_tests.py application
+      - name: Verify application candidate bytes
+        run: python backend/build_ab_candidate.py --sha "$GITHUB_SHA" --output "$RUNNER_TEMP/application-candidate" --verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-application-${{ github.sha }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 7
+
+  controls:
+    name: Deployment and maintenance controls
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Export exact tracked candidate
+        run: python backend/build_ab_candidate.py --sha "$GITHUB_SHA" --output "$RUNNER_TEMP/control-candidate"
+      - name: Run offline deployment controls once
+        working-directory: ${{ runner.temp }}/control-candidate
+        run: python .github/ci/run_tests.py controls
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-controls-${{ github.sha }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
+          if-no-files-found: error
+          retention-days: 7
+
+  readiness:
+    name: PR readiness
+    if: always()
+    needs: [quality, security, application, controls, test, integrated-qualification]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/ci-artifacts
+      - name: Require successful gates and complete exact-candidate evidence
+        env:
+          CI_ARTIFACTS: ${{ runner.temp }}/ci-artifacts
+          CI_JOB_RESULTS: >-
+            {"quality":"${{ needs.quality.result }}","security":"${{ needs.security.result }}","application":"${{ needs.application.result }}","controls":"${{ needs.controls.result }}","test":"${{ needs.test.result }}","integrated":"${{ needs.integrated-qualification.result }}"}
+        run: python .github/ci/readiness.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-readiness-${{ github.sha }}
+          path: ${{ env.CI_EVIDENCE_DIR }}
           if-no-files-found: error
           retention-days: 7

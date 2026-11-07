@@ -124,6 +124,21 @@ normal discovery. A passing small generated CI qualifies those paths only; full
 integrated archived-history/independent-phase authorization path remains blocked
 by checkpoints3/4. Preserve prior latency gates and failures, no new guard/retries.
 
+Local full suites:434backend PASS/20platform skips in38.441s;123controlsPASS/
+3platform skips in3.050s. Frozen source439c93b25ec05c04ef710afbfed5600ebd910f35.
+Exact push LinuxCI42320474396 IN PROGRESS at the single valid status check:
+https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/42320474396 .
+Do not inherit baseline CI as successor qualification. Resume via completion
+notification or one status check; no polling/retry. Source unchanged after freeze.
+
+Concrete code evidence for checkpoint3:cloud_memory_v1.sql grants service_role
+SELECT/INSERT/UPDATE/DELETE on raw_archives and sync_checkpoints;the repository
+does not establish runtime Storage immutability. This is intended structured-table
+schema evidence,NOT an inventory of deployed grants or the actual runtime token.
+No credential was read. The existing retention_recovery.prepare_scope helper
+selects CURRENT local rows before readback/reconstruction,so it does not by itself
+implement post-retirement archive-to-application replay (checkpoint4).
+
 ## Checkpoint6 — release BLOCKED, numeric policy unchanged
 
 5GiB physical total per raw slot is SELECTED TARGET;72h-or-qualified-size rotation

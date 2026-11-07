@@ -3985,3 +3985,16 @@ separatebounded checkpoints. Legacy archive/history/drain+separate retirement
 approval retained. I7freshness/rollover,historyrecovery/replay,visibility,sustained
 operation remainOPEN;PR9DRAFT;Redisdeferred. No production/cloudwrite/permission/
 schema/guard changes. Preserve existingAGENTS/+596roadmap and passing evidence.
+
+
+### Frozen successor and current stop — November6
+
+439c93b25ec05c04ef710afbfed5600ebd910f35 pushed;exact pushCI42320474396
+IN PROGRESS at one valid check. Local434backend/123controls PASS as above;
+not yet a Linux successor PASS. Checkpoints1/2 PASS only within recorded generated
+scope;3BLOCKED on enforceable mutation authority/policy continuity;4BLOCKED actual
+archive-backed application retrieval;5BLOCKED fullintegration/exactCI;6BLOCKEDrelease.
+Supabase schema intendedservice_role CRUD on raw_archives/checkpoints is not
+immutability/deployed identity evidence. Existing prepare_scope reads CURRENT raw,
+not post-retirement application replay. No fresh-readback replacement authorized.
+Next:receive exactCI result once,review effective mutation-fence model;keepPRdraft.

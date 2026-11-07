@@ -6,6 +6,25 @@ production authorization.
 
 ## Resume here
 
+November6 successor439c93b25ec05c04ef710afbfed5600ebd910f35:
+PR9_BACKGROUND_VERIFICATION_CHECKPOINT_2026-11-06.md governs latest results.
+Baseline13740c7 exactCI42316045831 PASS;successorpushCI42320474396 INPROGRESS
+at one valid check,not PASS. Resume via notification/one status,no polling.
+Generated fresh-B per-generation/dataset checkpoint4testsPASS;legacy untouched;
+old shared-cursor manifests without newprogress HOLD for exact reconciliation.
+Separate fullreadback diagnostic12objects/2011B/0.616s,21acks,save85.202ms,
+heartbeat175.720ms,phaseRSS24805376B,workspace2553696B;corruption/cancellation
+preservefiles.120sphase cap within180sfixture;not runtime/production policy.
+434backendPASS/20platformskips,123controlsPASS/3platformskips locally.
+CP3replacementauthBLOCKED effectiveimmutableauthority/policycontinuity;finalfresh
+readbackunchanged. CP4archivedraw→actualapplicationhistoryreplayBLOCKED;existing
+prepare_scope requirescurrentraw. CP5fullintegration/exactLinuxCI andCP6release
+BLOCKED.5GiBslots target/24GiBproposal/appliedlegacy5120MiBSTOP distinct.
+No cloudpermission/schema/write/productionchanges. PreserveunrelatedAGENTS/+596.
+
+Previous qualified evidence remains below;do not confuse it with successorCI.
+
+
 Frozen101921ee00d3e89a50d02c61569bd808ed268cec/pushCI42161684724 PASS. Read
 PR9_CONTINUOUS_AB_CHECKPOINT_2026-11-05.md for consolidated bounded checkpoint.
 428backend/14privilegeskips rootcovered,123controls/0skips,8incrementaltestsPASSroot.

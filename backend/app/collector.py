@@ -170,7 +170,7 @@ def save_candles(db, rows, start, end):
           VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(source,symbol,granularity,time) DO UPDATE SET
           low=excluded.low,high=excluded.high,open=excluded.open,close=excluded.close,
           volume=excluded.volume,first_seen=COALESCE(candles.first_seen,excluded.first_seen)''',
-          ('coinbase', 'BTC-USD', 60, int(t), *prices, utcnow().isoformat()))
+          ('coinbase', 'BTC-USD', 60, int(t), *prices, utcnow().isoformat(timespec='microseconds')))
 
 
 def backfill(db, hours):
@@ -210,14 +210,14 @@ def refresh_recent_candles(db, minutes=20):
 def record(db, source, success, detail):
     with db:
         db.execute('INSERT INTO runs(received_at,source,success,detail) VALUES(?,?,?,?)',
-                   (utcnow().isoformat(), source, int(success), str(detail)))
+                   (utcnow().isoformat(timespec='microseconds'), source, int(success), str(detail)))
 
 
 def collect_once(db, durations=(900,)):
     messages = []
     try:
         markets = discover(utcnow(), durations)
-        received = utcnow().isoformat()
+        received = utcnow().isoformat(timespec='microseconds')
         for duration in durations:
             m = markets.get(duration)
             if not m:
@@ -238,7 +238,7 @@ def collect_once(db, durations=(900,)):
                 if not isinstance(book.get('marketData'), dict):
                     raise ValueError('Missing marketData')
                 with db:
-                    save_observation(db,m['id'],utcnow().isoformat(),kind,book,book['marketData'].get('transactTime'))
+                    save_observation(db,m['id'],utcnow().isoformat(timespec='microseconds'),kind,book,book['marketData'].get('transactTime'))
             except Exception as exc:
                 detail = f"{m['slug']} endpoint={kind}: {exc}"
                 record(db,'polymarket_quotes',False,detail)
@@ -249,14 +249,14 @@ def collect_once(db, durations=(900,)):
         messages.append(f'Discovery failed: {exc}')
     # Resolve previous markets separately from discovery of the new active one.
     placeholders = ','.join('?' for _ in durations)
-    pending = db.execute(f"SELECT slug FROM markets WHERE end<=? AND result IS NULL AND duration IN ({placeholders}) ORDER BY end LIMIT 10", (utcnow().isoformat(), *durations)).fetchall()
+    pending = db.execute(f"SELECT slug FROM markets WHERE end<=? AND result IS NULL AND duration IN ({placeholders}) ORDER BY end LIMIT 10", (utcnow().isoformat(timespec='microseconds'), *durations)).fetchall()
     for (slug,) in pending:
         try:
             raw = get_json(PM, '/v1/market/slug/'+quote(slug,safe=''))['market']
             m = normalize(raw)
             if m:
                 with db:
-                    save_market(db,m,utcnow().isoformat())
+                    save_market(db,m,utcnow().isoformat(timespec='microseconds'))
         except Exception as exc:
             record(db,'polymarket_resolution',False,f'{slug}: {exc}')
     try:
@@ -265,7 +265,7 @@ def collect_once(db, durations=(900,)):
             raise ValueError('Missing BTC price')
         with db:
             db.execute('INSERT INTO reference_prices(received_at,source_time,source,price,payload) VALUES(?,?,?,?,?)',
-                       (utcnow().isoformat(),ticker.get('time'),'coinbase',amount(ticker['price']),json.dumps(ticker)))
+                       (utcnow().isoformat(timespec='microseconds'),ticker.get('time'),'coinbase',amount(ticker['price']),json.dumps(ticker)))
         messages.append('BTC reference (Coinbase, not settlement): '+amount(ticker['price']))
         record(db,'coinbase_ticker',True,'stored')
     except Exception as exc:

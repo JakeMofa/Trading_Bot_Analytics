@@ -42,7 +42,7 @@ def initialize(db):
 
 
 def health(db, source, status, detail=None, data=False, reconnect=False, live_state=None):
-    now=utcnow().isoformat()
+    now=utcnow().isoformat(timespec='microseconds')
     with db:
         db.execute('''INSERT INTO feed_health VALUES(?,?,?,?,?,?)
         ON CONFLICT(source) DO UPDATE SET status=excluded.status,
@@ -65,7 +65,7 @@ def save_coinbase(db, msg):
     timestamp(msg['time'])
     with db:
         inserted=db.execute('INSERT OR IGNORE INTO stream_events VALUES(?,?,?,?,?,?,?,?)',
-          ('coinbase',str(msg['trade_id']),utcnow().isoformat(),msg['time'],price,
+          ('coinbase',str(msg['trade_id']),utcnow().isoformat(timespec='microseconds'),msg['time'],price,
            amount(msg.get('last_size')),msg.get('side'),json.dumps(msg))).rowcount
     return bool(inserted)
 
@@ -104,7 +104,7 @@ def polymarket_credentials(env_path=None):
 
 
 def current_market(db):
-    now=utcnow().isoformat()
+    now=utcnow().isoformat(timespec='microseconds')
     return db.execute("SELECT id,slug FROM markets WHERE duration=900 AND start<=? AND end>? AND status='MARKET_STATUS_OPEN' ORDER BY start DESC LIMIT 1",(now,now)).fetchone()
 
 
@@ -218,7 +218,7 @@ def save_polymarket(db, msg):
     if not row:
         return False
     with db:
-        save_observation(db,row[0],utcnow().isoformat(),'stream_book',msg,
+        save_observation(db,row[0],utcnow().isoformat(timespec='microseconds'),'stream_book',msg,
                          payload.get('transactTime') or payload.get('transact_time'))
     return True
 
@@ -437,7 +437,7 @@ async def feature_loop(path, db, stop, live_state=None, interval=FEATURE_INTERVA
     while not stop.is_set():
         try:
             started = time.monotonic()
-            print(f'Feature cycle started: {utcnow().isoformat()}', flush=True)
+            print(f'Feature cycle started: {utcnow().isoformat(timespec='microseconds')}', flush=True)
             worker = asyncio.create_task(asyncio.to_thread(feature_cycle, path))
             try:
                 cycle = await asyncio.shield(worker)
@@ -454,7 +454,7 @@ async def feature_loop(path, db, stop, live_state=None, interval=FEATURE_INTERVA
                 if not worker.cancelled():
                     worker.exception()  # Retrieve a failed worker without masking cancellation.
                 raise
-            print(f'Feature cycle finished: {utcnow().isoformat()} elapsed={time.monotonic()-started:.3f}s', flush=True)
+            print(f'Feature cycle finished: {utcnow().isoformat(timespec='microseconds')} elapsed={time.monotonic()-started:.3f}s', flush=True)
             if not stop.is_set():
                 published = publish_feature_cycle(cycle, live_state)
                 if cycle:

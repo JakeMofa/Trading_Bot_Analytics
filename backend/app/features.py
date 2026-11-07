@@ -10,6 +10,17 @@ MAX_PRICE_AGE_SECONDS = 30
 MAX_CANDLE_AGE_SECONDS = 60
 
 
+def price_query(table, key):
+    if (table, key) not in (('stream_events', 'event_id'), ('reference_prices', 'id')):
+        raise ValueError('unsupported price source')
+    return f'''SELECT {key}, price, source_time, received_at FROM {table}
+      WHERE source='coinbase' AND source_time IS NOT NULL
+        AND julianday(source_time)<=julianday(?)
+        AND julianday(received_at)<=julianday(?)
+      ORDER BY julianday(source_time) DESC, {key} ASC LIMIT 1'''
+
+
+
 def initialize(db):
     db.executescript('''
     CREATE TABLE IF NOT EXISTS feature_snapshots (

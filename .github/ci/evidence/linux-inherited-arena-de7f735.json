@@ -1,0 +1,43 @@
+{
+  "source_sha": "de7f73537d1245c513a69c566b338db44b20ccf3",
+  "scope": "local Docker Linux arm64 CPython3.12.16; exact tracked candidate; generated bind-mounted fixtures",
+  "diagnostic": "temporary wrapper recorded exception classes, frame names and /proc memory counters, no exception messages or credentials",
+  "baseline": {
+    "tests": 7,
+    "errors": 3,
+    "skips": 1,
+    "child_exception": "OperationalError",
+    "child_frames": [
+      "operation:34",
+      "RetirementProtocol.__init__:874",
+      "header:59"
+    ],
+    "inherited_vm_kib": 565740,
+    "rss_kib": 57124,
+    "threads": 1,
+    "rlimit_as_bytes": 536870912
+  },
+  "bounded_arenas": {
+    "MALLOC_ARENA_MAX": "2",
+    "inherited_vm_kib": 172548,
+    "rlimit_as_bytes": 536870912,
+    "original_child_errors": 0,
+    "tests": 7,
+    "failures": 1,
+    "skips": 1,
+    "remaining_failure": "concurrent writer exits1: pending intent must recover before another event"
+  },
+  "limits": {
+    "container_memory_bytes": 1073741824,
+    "cpus": 2,
+    "pids": 128,
+    "network": "none",
+    "application_limits": "unchanged"
+  },
+  "limitations": [
+    "First local run blocked by original 10GiB filesystem floor; no floor changed; generated fixtures moved to dedicated host bind directory",
+    "Bind-filesystem writer failure remains FAIL; Linux GitHub runner filesystem qualification pending",
+    "No claim that source de7f735 or production passed",
+    "No production/application file changed"
+  ]
+}

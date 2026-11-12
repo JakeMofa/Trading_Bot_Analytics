@@ -6,7 +6,15 @@ for SQLite A/B, to qualify first in isolated PP/PRT. This authorizes planning an
 inventory, not provisioning, production migration or retention enablement.
 Phase 1.75 and I7 remain open.
 
-## Verified starting point
+## Applied amendment — selected 2 GiB host launched
+
+The user selected 2 GiB / 60 GB and authorized launch. tradebot-preprod-01 is
+running in us-east-2a at $12/month; host/restart baseline passed after repairing
+the initial script-format failure. PostgreSQL/application setup remains open.
+The earlier 4 GiB suggestion below is not selected. See the
+[launch result](PREPROD_VM_LAUNCH_2026-11-11.md). Earlier inventory remains dated.
+
+## Verified starting point (before the second VM launch)
 
 Measurements were taken November 11 CST / November 12 UTC. See
 [evidence](evidence/postgres-pp-inventory-2026-11-11.json).
@@ -72,7 +80,7 @@ supply another machine or eliminate interference.
 |---|---:|---:|
 | Existing production, 2 GiB / 60 GB | $12/month | $12/month |
 | Add matching 2 GiB / 60 GB PP | +$12/month | $24/month |
-| Recommended starting PP candidate, 4 GiB / 80 GB | +$24/month | $36/month |
+| Earlier 4 GiB / 80 GB option — not selected | +$24/month | $36/month |
 
 These AWS API/pricing figures exclude taxes, usage extras and credits; they are
 not an invoice. AWS reports the project is on the active FREE plan, not PAID.
@@ -80,7 +88,8 @@ Confirm plan eligibility, credits/spend controls and the exact provisioning
 scope before creation. No resource or plan upgrade has been authorized here.
 [Lightsail pricing](https://aws.amazon.com/lightsail/pricing/)
 
-Four GiB is a proposed test-host size, not proven production sizing. Qualify
+The earlier four GiB suggestion was not selected. Two GiB is the applied host size,
+not proven application workload sizing. Qualify
 the candidate under the existing production memory/CPU envelope too, or review
 a separate production resize. More PP RAM cannot prove the 2 GiB host will cope.
 The old fixture caps remain until a specific test resource change is approved.
@@ -139,7 +148,7 @@ access, writer fencing, reader drainage and recovery permit its retirement.
 1. Inventory: completed in the scoped sense above. Full integrity, archive
    readback, representative growth and backup/recovery coverage remain unproven.
 2. Select the exact PP host/billing/network/runtime/test-resource scope for
-   approval. Recommended starting candidate: second VM, 4 GiB / 80 GB, us-east-2.
+   approval. Host launch complete: second VM, 2 GiB / 60 GB, us-east-2; runtime/test scope remains open.
 3. Implement small reviewed PRs for PostgreSQL schema/adapter parity, isolated
    PP packaging, migration/recovery, archive/retention, then release controls.
    Preserve SQLite implementation and tests as evidence until classification

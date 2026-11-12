@@ -7,6 +7,11 @@ to test in isolated PP before a separately reviewed production migration. The
 master roadmap and POSTGRES_PP_TRANSITION_2026-11-11.md hold the current status.
 The SQLite architecture below remains historical implementation evidence.
 
+Applied host milestone: the user selected and launched a separate 2 GiB /
+60 GB PP VM (tradebot-preprod-01, us-east-2a, $12/month). This supersedes the
+earlier 4 GiB suggestion. Host baseline/restart checks passed; PostgreSQL/app
+setup and workload qualification remain open. Production was unchanged.
+
 Recommend a separate PP Lightsail VM, local PostgreSQL plus candidate app,
 one real market collector, read-only production preview and isolated writable
 test data. Docker is a proposed packaging tool, not deployed infrastructure.

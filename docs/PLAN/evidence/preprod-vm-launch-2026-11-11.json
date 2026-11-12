@@ -1,0 +1,80 @@
+{
+  "checked_at_utc": "2026-11-12T04:38:00.976467+00:00",
+  "local_date": "2026-11-11",
+  "authorization": "User requested a second preproduction VM and explicitly selected 2 GiB instead of 4 GiB; keep it for PP.",
+  "instance": {
+    "name": "tradebot-preprod-01",
+    "state": "running",
+    "region": "us-east-2",
+    "availability_zone": "us-east-2a",
+    "bundle": "small_3_0",
+    "vcpus": 2,
+    "ram_gib": 2,
+    "disk_gb": 60,
+    "blueprint": "ubuntu_24_04",
+    "guest_os": "Ubuntu 24.04.5 LTS",
+    "public_ipv4": "18.119.253.233",
+    "private_ipv4": "172.26.11.9",
+    "static_ip_allocated": false
+  },
+  "cost": {
+    "monthly_vm_list_usd": 12,
+    "combined_production_and_pp_monthly_list_usd": 24,
+    "excludes": [
+      "tax",
+      "usage extras",
+      "credits"
+    ]
+  },
+  "networking": {
+    "public_inbound": "TCP22 only; current operator IPv4 /32 and lightsail-connect",
+    "database_port_public": false,
+    "app_ports_public": false,
+    "browser_ssh": "PASS",
+    "direct_ssh": "NOT_TESTED",
+    "production_firewall_changed": false
+  },
+  "initial_bootstrap": {
+    "result": "FAIL",
+    "cause": "Lightsail executed supplied cloud-config YAML as an appended shell launch script",
+    "recovery": "Preserved the AWS-generated script prefix; replaced only the custom tail with shell commands, applied and syntax-checked it, then rebooted only preproduction once",
+    "custom_tail_sha256": "11757847502d3e0a0edea4e0cc634f4b3930acc136f12afa9fc6c0e20ebd4d63"
+  },
+  "post_restart_guest": {
+    "measured_at_utc": "2026-11-12T04:37:03.393525+00:00",
+    "source": "Authenticated Lightsail browser SSH terminal, manually transcribed",
+    "hostname": "tradebot-preprod-01",
+    "cloud_init_status": "done",
+    "cloud_init_errors": [],
+    "filesystem_total_gib_rounded": 57.076,
+    "filesystem_available_gib_rounded": 55.051,
+    "memory_total_kib": 1951736,
+    "memory_available_kib": 1543040,
+    "root_ssh_login": "no",
+    "password_ssh_authentication": "no",
+    "public_key_ssh_authentication": "yes",
+    "preprod_marker_present": true,
+    "tradebot_service_units": "not-found/inactive",
+    "postgresql_service_unit": "not-found/inactive",
+    "docker_service_unit": "not-found/inactive",
+    "production_database_present": false,
+    "network_listeners": "SSH22 plus local resolver53; no API8000 or PostgreSQL5432 listener"
+  },
+  "safety": {
+    "production_mutated": false,
+    "production_restarted": false,
+    "production_data_copied": false,
+    "new_live_market_collector_started": false,
+    "retention_enabled": false,
+    "paid_ai_calls": 0,
+    "snapshots": 0,
+    "add_ons": []
+  },
+  "limitations": [
+    "Host baseline only, not application/database qualification",
+    "PostgreSQL, Docker and candidate app not installed",
+    "API-based read-only preview not connected",
+    "2 GiB workload adequacy must be measured; no inherited larger fixture allowance"
+  ],
+  "user_aws_guidance": "HIGH"
+}

@@ -2,6 +2,23 @@
 
 ## Current direction — November 11, 2026
 
+### Applied checkpoint — preproduction host launched November 11
+
+The user authorized the second VM and selected **2 GiB / 60 GB**, replacing the
+earlier 4 GiB suggestion. tradebot-preprod-01 is running in us-east-2a on the
+$12/month small_3_0 bundle; public IP 18.119.253.233 (not static). Exactly two VMs
+now exist. SSH is restricted to current operator /32 and Lightsail browser SSH.
+Initial launch-script format failure was corrected on PP only; one PP restart
+passed cloud-init done/no errors, hostname, marker, SSH security and isolation
+checks. PostgreSQL, Docker and Tradebot are not installed; no data was copied
+and no extra live collector started. Production unchanged. AWS guidance HIGH.
+See [host launch report](PREPROD_VM_LAUNCH_2026-11-11.md).
+
+**Next checkpoint:** qualify isolated PP runtime/PostgreSQL/application setup
+on the selected 2 GiB host. No production migration, retention, cloud-write
+scope or fixture-budget increase follows from provisioning this host.
+The inventory below was collected before this second VM was launched.
+
 **Phase 1.75 / I7 remain OPEN.** The user selected PostgreSQL as the intended
 replacement for the SQLite A/B implementation, to qualify first in isolated
 PP/PRT. This is a planning direction, not permission to provision or migrate
@@ -23,16 +40,15 @@ The latest authorized access change added only the current Wi-Fi IPv4 /32 to
 Lightsail TCP22. Prior rules were preserved; UFW unchanged. Direct SSH still
 times out, while browser SSH works. No app/storage/service change occurred.
 
-**Next decision:** review an exact PP provisioning/test scope. Recommend a
-second VM with local PostgreSQL and the candidate application; 4 GiB / 80 GB is
-a proposed $24/month starting host, not approved or proven sizing. One VM can
-host both environments, but tests share production resources. Keep one real
-market collector; preview uses read-only production API, while writable tests
-use isolated generated/replayed data. Local PostgreSQL and Supabase remain
-separate instances with explicit sync/archive/replay.
+**Selected environment:** separate 2 GiB / 60 GB PP VM, now provisioned at
+$12/month. One VM could host both environments but would share production
+resources. Keep one real market collector; preview uses read-only production
+API, while writable tests use isolated generated/replayed data. Local
+PostgreSQL and Supabase remain separate instances with explicit sync/archive.
 
 - [x] Scoped AWS/Supabase and VM structure inventory; record limitations.
-- [ ] Approve exact PP cost, Region, access, runtime and test-resource scope.
+- [x] Approve and launch 2 GiB / 60 GB PP host in us-east-2; baseline PASS.
+- [ ] Qualify PP runtime, PostgreSQL setup and bounded test-resource scope.
 - [ ] Qualify PostgreSQL schema/adapter, time partitions, archival, history,
   corruption/crash recovery, capacity and concurrent performance in small PRs.
 - [ ] Review rolling 72-hour retention semantics explicitly: the previous

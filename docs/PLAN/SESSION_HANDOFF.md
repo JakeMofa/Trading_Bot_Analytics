@@ -9,7 +9,10 @@ production authorization.
 Read the newest Current direction block in INTELLIGENCE_REBUILD_PLAN.md and
 POSTGRES_PP_TRANSITION_2026-11-11.md first. PostgreSQL is the user's intended
 replacement for A/B, qualified in isolated PP before any production decision.
-No PP instance, PostgreSQL application deployment or migration exists yet.
+PP host tradebot-preprod-01 now exists: 2 GiB / 60 GB, us-east-2a,
+18.119.253.233 (not static), $12/month. Guest boot/restart baseline PASS after
+correcting the initial launch-script format. No PostgreSQL application deployment
+or migration exists yet. See PREPROD_VM_LAUNCH_2026-11-11.md.
 One real collector; PP read-only preview may use production API, and database
 tests require isolated writable data. No copies/snapshots or live write scope
 are implied. Preserve all existing SQLite implementation and test evidence.
@@ -21,11 +24,12 @@ OFF, cap 5120 MiB. /health ok does not mean collection works. Current operator
 SSH /32 added with authorization, prior Lightsail rules/UFW preserved; direct
 SSH still timed out, browser SSH worked. No application operation performed.
 
-Planning recommendation is a second PP VM (proposed 4 GiB / 80 GB, $24/month),
-subject to exact cost/access/runtime/resource approval and qualification under
-the production memory budget. AWS project is FREE/ACTIVE; billing eligibility
-must be checked before provisioning. main=production is intended policy, but
-deploy-tradebot.yml still gates codex/lightsail-deployment; reconcile/test first.
+The user explicitly selected 2 GiB instead of the earlier 4 GiB suggestion.
+Next: isolated PP runtime/PostgreSQL/application qualification under that host's
+resource limits. No production data copied or extra market collector started.
+AWS guidance preference HIGH. Project FREE/ACTIVE; no plan upgrade occurred.
+main=production is intended policy, but deploy-tradebot.yml still gates
+codex/lightsail-deployment; reconcile/test before any production release.
 
 PR #9 closed/superseded. #11 open/ready; #12–#14 open/draft and unmerged, with
 existing code checks passed at the single inspection. Storage/CI/PRT workers

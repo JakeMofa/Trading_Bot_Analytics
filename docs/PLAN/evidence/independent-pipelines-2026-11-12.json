@@ -1,0 +1,55 @@
+{
+  "preprod_environment": {
+    "name": "preprod",
+    "protection_rules": [
+      {
+        "id": 72182856,
+        "node_id": "GA_kwDOU0DaNM4ETWxI",
+        "type": "branch_policy"
+      }
+    ],
+    "deployment_branch_policy": {
+      "protected_branches": false,
+      "custom_branch_policies": true
+    }
+  },
+  "production_environment": {
+    "name": "production",
+    "protection_rules": [
+      {
+        "type": "required_reviewers"
+      },
+      {
+        "type": "branch_policy"
+      }
+    ],
+    "deployment_branch_policy": {
+      "protected_branches": false,
+      "custom_branch_policies": true
+    }
+  },
+  "runner_count": {
+    "total_count": 0,
+    "runners": []
+  },
+  "preprod_secret_names": [],
+  "production_secret_names": [],
+  "releases": [],
+  "recorded_date": "2026-11-12",
+  "phase175": "OPEN",
+  "i7": "OPEN",
+  "ab_prs": "11,12,13 CLOSED_UNMERGED_SUPERSEDED",
+  "production_changed": false,
+  "packages_published": false,
+  "local_backend": {
+    "tests": 67,
+    "result": "PASS"
+  },
+  "local_controls": {
+    "tests": 29,
+    "result": "PASS"
+  },
+  "dependency_audit": "NO_KNOWN_VULNERABILITIES",
+  "actionlint": "PASS",
+  "docker_local": "NOT_RUN_DAEMON_UNAVAILABLE_CI_REQUIRED"
+}

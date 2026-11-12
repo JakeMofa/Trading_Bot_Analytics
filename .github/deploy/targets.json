@@ -1,0 +1,22 @@
+{
+  "preprod": {
+    "instance": "tradebot-preprod-01",
+    "region": "us-east-2",
+    "host": "18.119.253.233",
+    "user": "tradebot-preprod-deploy",
+    "runtime_qualified": false,
+    "controller_sha256": "",
+    "qualification_commit": "",
+    "timeout_seconds": 600
+  },
+  "production": {
+    "instance": "tradebot-analytics-01",
+    "region": "us-east-2",
+    "host": "3.13.133.25",
+    "user": "tradebot-production-deploy",
+    "runtime_qualified": false,
+    "controller_sha256": "",
+    "qualification_commit": "",
+    "timeout_seconds": 600
+  }
+}

@@ -1,4 +1,4 @@
-name: CD — Lightsail deployment
+name: Legacy — Lightsail maintenance
 
 on:
   workflow_dispatch:
@@ -75,9 +75,27 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  environment-gate:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.operation != 'verify' }}
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      APPROVED_REVISION: ${{ inputs.revision }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reject legacy deploy bypass; production now requires main and PP acceptance
+        run: python .github/ci/environment_pipeline.py preflight production
+
   deploy:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/lightsail-deployment' && inputs.operation == 'deploy-verified'
-    needs: validate
+    needs: [validate, environment-gate]
     # A trusted operator runner reaches the existing SSH /32. No public API/firewall changes.
     runs-on: [self-hosted, tradebot-private]
     timeout-minutes: 15
@@ -112,7 +130,7 @@ jobs:
 
   maintenance:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/lightsail-deployment' && inputs.operation == 'maintenance'
-    needs: validate
+    needs: [validate, environment-gate]
     # A trusted operator runner reaches the existing SSH /32. No public API/firewall changes.
     runs-on: [self-hosted, tradebot-private]
     timeout-minutes: 50

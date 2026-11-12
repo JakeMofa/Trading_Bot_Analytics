@@ -2,6 +2,39 @@
 
 ## Current direction — November 11, 2026
 
+### Environment CI/CD checkpoint — November 11
+
+The user requested four entry points: **CI Production, CD Production, CI Preprod,
+CD Preprod**. Implemented in ci-prod.yml, cd-prod.yml, ci-pp.yml and cd-pp.yml.
+They reuse the existing python-tests.yml exact-source engine without repeating
+the full suites. Release candidate/tag publication stays manual and separate.
+
+GitHub environments now exist: PP allows main/preprod/codex/*; production only
+main and requires the owner's approval. No deployment keys were added. Main
+branch protection is still pending. Automatic follow-up workflow registration
+requires the definitions on the default branch; no merge/dispatch occurred.
+
+Both deployment runtime/controller profiles are explicitly NOT QUALIFIED and
+disabled. CD stops before source bundling or SSH. Prepared transport requires a
+dedicated pinned controller and separate environment key; it is not the runtime
+controller itself. Production promotion requires matching exact-source PP CD
+acceptance, archive/policy digests and current evidence. Legacy mutating workflow
+paths cannot bypass the new preflight in this source tree; historical credentials
+still need retirement/restriction before production enablement.
+
+Local evidence: 31 CI controls (15 new pipeline cases), 123 deployment tests
+(three Mac platform skips), actionlint/Python/JSON/whitespace PASS. Exact successor
+Linux CI remains pending after push. No VM, database, archive, retention or paid
+AI mutation occurred. See [pipeline checkpoint](ENVIRONMENT_PIPELINE_2026-11-11.md).
+
+- [x] Prepare four named workflows, environment guards and regression tests.
+- [x] Configure separate GitHub deployment environments and production approval.
+- [ ] Require exact successor Linux CI and review/merge/register the workflows.
+- [ ] Qualify PP PostgreSQL/application runtime and both restricted controllers;
+  install scoped environment credentials/host pins and approved runner access.
+- [ ] Apply tested main branch protection and retire/restrict legacy credentials.
+- [ ] Run approved PP deployment/acceptance before any production promotion.
+
 ### Applied checkpoint — preproduction host launched November 11
 
 The user authorized the second VM and selected **2 GiB / 60 GB**, replacing the

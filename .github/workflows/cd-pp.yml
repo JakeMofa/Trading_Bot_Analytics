@@ -1,0 +1,82 @@
+name: CD — Preprod
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full approved branch HEAD SHA with exact push CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tradebot-preprod
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      APPROVED_REVISION: ${{ inputs.revision }}
+      PREPROD_RUN_ID: ''
+      GH_TOKEN: ${{ github.token }}
+      PIPELINE_REPORT: ci-evidence/preprod-preflight/environment.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require exact CI and qualified preprod runtime/controller
+        run: python .github/ci/environment_pipeline.py preflight preprod
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preprod-preflight-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: preflight
+    environment: preprod
+    # Reuse an approved private operator runner; never expose SSH publicly.
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 15
+    env:
+      APPROVED_REVISION: ${{ inputs.revision }}
+      PREPROD_RUN_ID: ''
+      GH_TOKEN: ${{ github.token }}
+      PP_DEPLOY_KEY: ${{ secrets.PP_DEPLOY_KEY }}
+      PP_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_DEPLOY_KNOWN_HOSTS }}
+      PIPELINE_REPORT: ci-evidence/preprod-deployment/deployment.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: One bounded pinned-controller deployment with acceptance checks
+        run: python .github/ci/environment_pipeline.py deploy preprod
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preprod-deployment-evidence-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: preprod-acceptance-${{ inputs.revision }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 7

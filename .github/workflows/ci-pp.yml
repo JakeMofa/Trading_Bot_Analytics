@@ -1,0 +1,48 @@
+name: CI — Preprod
+
+on:
+  workflow_run:
+    workflows: ["CI — Tradebot checks"]
+    types: [completed]
+    branches: [main, preprod, "codex/**"]
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full source SHA at this branch HEAD with passing exact push CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: environment-ci-preprod-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      APPROVED_REVISION: ${{ github.event.workflow_run.head_sha || inputs.revision }}
+      GH_TOKEN: ${{ github.token }}
+      PIPELINE_REPORT: ci-evidence/preprod-ci/environment.json
+    steps:
+      # workflow_run uses the trusted default-branch control code, not PR code.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reuse exact source CI and check preprod branch/repository bindings
+        run: python .github/ci/environment_pipeline.py ci preprod
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: preprod-source-ci-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 7

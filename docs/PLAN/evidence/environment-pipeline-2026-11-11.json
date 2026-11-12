@@ -1,0 +1,77 @@
+{
+  "milestone": "Four environment CI/CD entry points",
+  "date_local": "2026-11-11",
+  "repository": "JakeMofa/Trading_Bot_Analytics",
+  "base_commit": "2e6daf47002c4b75de6a006baf0a7e75da61f8bb",
+  "source_files_sha256": {
+    ".github/ci/environment_pipeline.py": "8ac1c8f632a3223c2f7d1322125a72f9b2dd4ed69ec2065505de6371ebcc1f24",
+    ".github/ci/test_environment_pipeline.py": "8809b4311ea5b32c562d76e576774a7a0237667ef0d7875861d4ffe56a246fe7",
+    ".github/deploy/targets.json": "7bebfc4c530c686c269111471f83c2b16f6b9576dac8c897210c76d7b46ec383",
+    ".github/workflows/ci-prod.yml": "ea8eaae991b0c677ea6615b0ef0d4c02ee8ba9b168eae3579e6e5379430eb8aa",
+    ".github/workflows/ci-pp.yml": "f2164a3d5eff51cb591d4c7ff673aff46c854597d35fa66aa682a6a79b1083f0",
+    ".github/workflows/cd-prod.yml": "4d0553a65a133f5b6b1e0e61ea99e12dfd0c42a311c9a302f4e25d2cc22594be",
+    ".github/workflows/cd-pp.yml": "ad04c44af3857ac10b81ec780015789fc8930326acd2c5fed53d27fdc6944f3c",
+    ".github/workflows/python-tests.yml": "bc1361d5dbb59bfd51a0fd9f0d93f762d4ef7f204cdb21c36ec126441aeb3849",
+    ".github/workflows/deploy-tradebot.yml": "73b9cac12aef9a1f0cb8d39f0d88e01204960d1b408dfac147d184a8e43fe4c0"
+  },
+  "local_tests": {
+    "ci_controls": {
+      "run": 31,
+      "failed": 0,
+      "new_pipeline_cases": 15,
+      "scope": "Full CI controls passed; affected pipeline cases rerun after final acceptance-key changes"
+    },
+    "deployment_controls": {
+      "run": 123,
+      "failed": 0,
+      "skipped": 3,
+      "skip_scope": "Mac platform/privilege limitations; exact Linux CI still required"
+    },
+    "actionlint": {
+      "version": "1.7.7",
+      "result": "PASS"
+    },
+    "new_python_ast": "PASS",
+    "targets_json": "PASS",
+    "whitespace": "PASS"
+  },
+  "github_configuration": {
+    "environments": [
+      {
+        "environment": "preprod",
+        "created": true,
+        "branches": [
+          "main",
+          "preprod",
+          "codex/*"
+        ],
+        "owner_approval_required": false,
+        "deployment_credentials_added": false
+      },
+      {
+        "environment": "production",
+        "created": true,
+        "branches": [
+          "main"
+        ],
+        "owner_approval_required": true,
+        "deployment_credentials_added": false
+      }
+    ],
+    "branch_protection_changed": false,
+    "workflow_dispatched": false,
+    "deployment_performed": false
+  },
+  "deployment_profiles": {
+    "preprod": "NOT_QUALIFIED_DISABLED",
+    "production": "NOT_QUALIFIED_DISABLED"
+  },
+  "exact_commit_ci": "PENDING_AFTER_PUSH",
+  "vm_commands_executed": false,
+  "workflow_dispatched": false,
+  "deployment_performed": false,
+  "secrets_written": false,
+  "runtime_qualification": "NOT_PERFORMED",
+  "main_branch_protection": "NOT_APPLIED",
+  "legacy_credential_retirement": "NOT_PERFORMED"
+}

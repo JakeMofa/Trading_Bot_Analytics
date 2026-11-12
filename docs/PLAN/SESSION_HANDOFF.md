@@ -6,6 +6,16 @@ production authorization.
 
 ## Resume here — November 11, 2026
 
+Pipeline milestone: four environment entry points are implemented in the
+release-control review branch (CI/CD Production and CI/CD Preprod). Existing
+exact-source python-tests.yml remains the shared engine. GitHub preprod and
+production environments exist; production requires owner approval and main.
+No deployment keys or main branch protection were installed. Both runtime
+profiles remain NOT QUALIFIED/disabled; no workflow was dispatched. Next work
+is PP PostgreSQL/application plus restricted controller qualification, then
+scoped secrets/host pins/runner and approved PP deployment. See
+ENVIRONMENT_PIPELINE_2026-11-11.md. Exact successor CI pending after push.
+
 Read the newest Current direction block in INTELLIGENCE_REBUILD_PLAN.md and
 POSTGRES_PP_TRANSITION_2026-11-11.md first. PostgreSQL is the user's intended
 replacement for A/B, qualified in isolated PP before any production decision.

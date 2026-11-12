@@ -1,0 +1,79 @@
+name: CD — Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full approved branch HEAD SHA with exact push CI
+        required: true
+        type: string
+      preprod_run_id:
+        description: Successful CD Preprod run for this exact source/artifact
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tradebot-production
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      APPROVED_REVISION: ${{ inputs.revision }}
+      PREPROD_RUN_ID: ${{ inputs.preprod_run_id || '' }}
+      GH_TOKEN: ${{ github.token }}
+      PIPELINE_REPORT: ci-evidence/production-preflight/environment.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Require exact CI and qualified production runtime/controller plus PP acceptance
+        run: python .github/ci/environment_pipeline.py preflight production
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-preflight-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: preflight
+    environment: production
+    # Reuse an approved private operator runner; never expose SSH publicly.
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 15
+    env:
+      APPROVED_REVISION: ${{ inputs.revision }}
+      PREPROD_RUN_ID: ${{ inputs.preprod_run_id || '' }}
+      GH_TOKEN: ${{ github.token }}
+      PROD_DEPLOY_KEY: ${{ secrets.PROD_DEPLOY_KEY }}
+      PROD_DEPLOY_KNOWN_HOSTS: ${{ secrets.PROD_DEPLOY_KNOWN_HOSTS }}
+      PIPELINE_REPORT: ci-evidence/production-deployment/deployment.json
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: One bounded pinned-controller deployment with acceptance checks
+        run: python .github/ci/environment_pipeline.py deploy production
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-deployment-evidence-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 7

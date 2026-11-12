@@ -1,5 +1,8 @@
 # Tradebot CI and Lightsail CD
 
+Environment entry points: [CI/CD Production and Preprod](ENVIRONMENTS.md).
+These reuse the exact-source engine below; runtime deployment remains gated.
+
 `python-tests.yml` remains the qualifying release workflow. Push CI runs on
 `main` and `codex/**`; PR CI runs for every base branch; merge groups are also
 validated. Push and PR jobs intentionally both run: deploy/lightsail/verify_ci.py

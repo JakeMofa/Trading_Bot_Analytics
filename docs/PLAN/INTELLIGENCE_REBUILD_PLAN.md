@@ -2,6 +2,8 @@
 
 ## Current direction — November 11, 2026
 
+**Permanent preprod branch created November 11:** seeded from GitHub main at b01d3236a705eb74d85ba3df8b1a98411b4a5723. Deletion and force-push are blocked, including admins. This is a long-lived code branch; no deployment, merge to main or VM change occurred. Its initial snapshot does not include pending PR/workflow changes and is not proof of matching deployed d56b4a7. Reviewed integration and required CI/PR merge checks remain open. Evidence: [branch creation](evidence/permanent-preprod-branch-2026-11-11.json).
+
 ### Environment CI/CD checkpoint — November 11
 
 The user requested four entry points: **CI Production, CD Production, CI Preprod,

@@ -1,0 +1,15 @@
+{
+  "checked_at_utc": "2026-11-12T05:39:44.823504+00:00",
+  "repository": "JakeMofa/Trading_Bot_Analytics",
+  "branch": "preprod",
+  "created_from": "main",
+  "starting_sha": "b01d3236a705eb74d85ba3df8b1a98411b4a5723",
+  "main_unchanged": true,
+  "force_push_allowed": false,
+  "deletion_allowed": false,
+  "admin_enforcement": true,
+  "required_ci_checks": "Not configured yet; exact new workflows still pending review/merge",
+  "deployment_performed": false,
+  "vm_changed": false,
+  "local_checkout_switched": false
+}

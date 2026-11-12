@@ -6,6 +6,8 @@ production authorization.
 
 ## Resume here — November 11, 2026
 
+Permanent GitHub branch preprod now exists from main at b01d3236, protected against deletion/force-push including admins. Required CI/PR checks remain unconfigured. Integrate reviewed pending code/workflows before PP deployment; no deployment or VM change occurred. See evidence/permanent-preprod-branch-2026-11-11.json.
+
 Pipeline milestone: four environment entry points are implemented in the
 release-control review branch (CI/CD Production and CI/CD Preprod). Existing
 exact-source python-tests.yml remains the shared engine. GitHub preprod and

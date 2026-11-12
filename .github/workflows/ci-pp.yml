@@ -1,4 +1,4 @@
-name: CI — Preprod
+name: CI Preprod
 
 on:
   workflow_run:

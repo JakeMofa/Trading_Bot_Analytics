@@ -5,10 +5,10 @@ in docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md remains authoritative.
 
 | Actions name | File | Scope |
 |---|---|---|
-| CI — Production | .github/workflows/ci-prod.yml | Qualify current main SHA after shared exact push CI |
-| CD — Production | .github/workflows/cd-prod.yml | Manual main-only promotion, matching PP acceptance, production approval |
-| CI — Preprod | .github/workflows/ci-pp.yml | Qualify trusted main/preprod/codex source after shared exact push CI |
-| CD — Preprod | .github/workflows/cd-pp.yml | Manual deployment to isolated PP with independent credentials |
+| CI Prod/Main | .github/workflows/ci-prod.yml | Qualify current main SHA after shared exact push CI |
+| CD Prod/Main | .github/workflows/cd-prod.yml | Manual main-only promotion, matching PP acceptance, production approval |
+| CI Preprod | .github/workflows/ci-pp.yml | Qualify trusted main/preprod/codex source after shared exact push CI |
+| CD Preprod | .github/workflows/cd-pp.yml | Manual deployment to isolated PP with independent credentials |
 
 ## Reuse checks, preserve release compatibility
 

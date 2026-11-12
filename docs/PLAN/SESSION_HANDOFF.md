@@ -6,6 +6,8 @@ production authorization.
 
 ## Resume here — November 11, 2026
 
+**November 12 workflow names:** CI Preprod, CD Preprod, CI Prod/Main, CD Prod/Main. CI checks code; CD deploys to its named environment. Display names changed; filenames, branch gates and deployment holds are unchanged. Parent 34eb9f4 passed existing GitHub code checks (Supabase Preview skipped); successor CI remains required. No deployment was performed.
+
 Permanent GitHub branch preprod now exists from main at b01d3236, protected against deletion/force-push including admins. Required CI/PR checks remain unconfigured. Integrate reviewed pending code/workflows before PP deployment; no deployment or VM change occurred. See evidence/permanent-preprod-branch-2026-11-11.json.
 
 Pipeline milestone: four environment entry points are implemented in the

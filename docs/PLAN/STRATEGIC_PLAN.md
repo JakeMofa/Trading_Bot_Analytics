@@ -1,5 +1,27 @@
 # BTC Intelligence — Strategic Plan
 
+## November 11, 2026 — PostgreSQL PP qualification direction
+
+The user selected PostgreSQL as the intended replacement for local SQLite A/B,
+to test in isolated PP before a separately reviewed production migration. The
+master roadmap and POSTGRES_PP_TRANSITION_2026-11-11.md hold the current status.
+The SQLite architecture below remains historical implementation evidence.
+
+Recommend a separate PP Lightsail VM, local PostgreSQL plus candidate app,
+one real market collector, read-only production preview and isolated writable
+test data. Docker is a proposed packaging tool, not deployed infrastructure.
+Evaluate partitioned raw history with persistent structured/evidence tables;
+preserve exact decimals, original source timestamps, identities and provenance.
+Local PostgreSQL does not automatically sync with Supabase Postgres/Storage.
+Verified archives and protected references remain prerequisites for deletion.
+Review rolling 72-hour policy semantics separately from A/B's 72-hour-or-size
+rotation. Neither 5 GiB slots nor the old 24 GiB proposal sets PostgreSQL sizing.
+
+PP provisioning, migration, retention and production release remain gated.
+Reconcile intended main=production with the implemented deployment-branch
+workflow before release. Phase 2, hourly collection, trading and paid AI remain
+deferred; this change does not close I7/Phase 1.75.
+
 Prepared September 29, 2026. Status: implementation underway; order execution remains deferred.
 Project folder: `/Users/jake/Documents/Trading_bot_Analytics/`.
 

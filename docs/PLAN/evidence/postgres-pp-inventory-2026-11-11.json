@@ -1,0 +1,192 @@
+{
+  "measured_at_utc": "2026-11-12T03:44:50.242252+00:00",
+  "local_date": "2026-11-11",
+  "scope": "Read-only architecture inventory plus explicitly authorized current-operator SSH /32 addition",
+  "repository": {
+    "working_branch": "codex/phase1-75-retention-enable",
+    "head": "0204901ae856810fcff06c3a1181f59884261fbf",
+    "unrelated_edits_preserved": true
+  },
+  "aws": {
+    "region": "us-east-2",
+    "instance_count": 1,
+    "instance_snapshots": 0,
+    "project_plan": "FREE",
+    "project_plan_status": "ACTIVE",
+    "instance": {
+      "name": "tradebot-analytics-01",
+      "state": "running",
+      "vcpus": 2,
+      "ram_gib": 2,
+      "disk_gb": 60,
+      "bundle": "small_3_0"
+    },
+    "bundle_monthly_usd": {
+      "small_3_0": 12,
+      "medium_3_0": 24
+    }
+  },
+  "operator_access": {
+    "current_ipv4_32_added_to_tcp22": true,
+    "prior_rules_preserved": true,
+    "application_ports_opened": false,
+    "direct_ssh_after_addition": "TIMEOUT",
+    "browser_ssh": "PASS",
+    "ufw_changed": false,
+    "ufw_observation": "Existing TCP22 Anywhere rule delegates source filtering to Lightsail"
+  },
+  "vm": {
+    "source": "Browser SSH terminal output, manually transcribed; schema-only read child capped at five seconds",
+    "filesystem_total_gib_rounded": 57.076,
+    "filesystem_available_gib_rounded": 46.397,
+    "memory_total_mib_rounded": 1905.99,
+    "memory_available_mib_rounded": 1299.8,
+    "swap_total_mib": 0,
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a",
+    "service_pids": {
+      "tradebot-api": 31763,
+      "tradebot-ensemble": 31767,
+      "tradebot-lifecycle": 31771
+    },
+    "service_state": "All three active/running, NRestarts=0 in the sampled systemd state",
+    "safe_process_flags": {
+      "ENABLE_OPENAI_ANALYST": false,
+      "ENABLE_LOCAL_RETENTION": false,
+      "MAX_LOCAL_STORAGE_MB": 5120,
+      "FASTAPI_HOST": "127.0.0.1",
+      "FASTAPI_RELOAD": false
+    },
+    "sqlite_file_lengths_bytes": {
+      "btc_intelligence.db": 5323907072,
+      "btc_intelligence.db-wal": 4517712,
+      "btc_intelligence.db-shm": 98304
+    },
+    "sqlite_tables": [
+      "ai_suggestions",
+      "candles",
+      "cloud_lifecycle_state",
+      "cloud_sync_state",
+      "current_decisions",
+      "feature_snapshots",
+      "feed_health",
+      "historical_backfill_chunks",
+      "historical_market_prices",
+      "markets",
+      "news",
+      "news_events",
+      "news_events_fts",
+      "news_events_fts_config",
+      "news_events_fts_data",
+      "news_events_fts_docsize",
+      "news_events_fts_idx",
+      "observations",
+      "prediction_context_links",
+      "predictions",
+      "reference_prices",
+      "runs",
+      "schema_migrations",
+      "stream_events"
+    ],
+    "persisted_feed_status_at_utc": "2026-11-12T03:45:44.041742+00:00",
+    "persisted_feed_status": {
+      "coinbase_stream": "stopped",
+      "polymarket_stream": "stopped",
+      "rest_supervisor": "stopped",
+      "storage_guard": "limit_reached"
+    },
+    "health_http_reported_status": "ok",
+    "health_limitation": "The deployed endpoint's ok does not establish collection freshness; persisted feeds report stopped",
+    "service_units": {
+      "postgresql": "not-found/inactive",
+      "docker": "not-found/inactive"
+    },
+    "full_integrity_and_fk_verification": "NOT_PERFORMED"
+  },
+  "supabase": {
+    "project": "TokenBot",
+    "project_ref": "xttdqeimdujweijxcuro",
+    "region": "us-west-2",
+    "postgres_version": "17.11",
+    "database_bytes": 102233779,
+    "tables_all_rls_enabled": [
+      "candles",
+      "evaluation_metrics",
+      "feature_snapshots",
+      "markets",
+      "model_outputs",
+      "news_events",
+      "official_outcomes",
+      "predictions",
+      "raw_archives",
+      "sync_checkpoints"
+    ],
+    "bucket_inventory_at_utc": "2026-11-12T03:32:52.652825+00:00",
+    "buckets": [
+      {
+        "id": "market-raw",
+        "public": false,
+        "objects": 966,
+        "metadata_bytes": 338708904
+      },
+      {
+        "id": "knowledge",
+        "public": false,
+        "objects": 0,
+        "metadata_bytes": 0
+      },
+      {
+        "id": "backups",
+        "public": false,
+        "objects": 0,
+        "metadata_bytes": 0
+      }
+    ],
+    "fresh_authenticated_archive_readback": "NOT_PERFORMED",
+    "schema_notes": [
+      "Exact OHLCV and targets use numeric",
+      "Candles.time is bigint; many other times are timestamptz",
+      "Forecast evidence and values use jsonb",
+      "Structured source IDs are preserved independently of archive paths"
+    ]
+  },
+  "github": {
+    "observed_prs": [
+      {
+        "number": 11,
+        "state": "OPEN",
+        "draft": false,
+        "head": "3c01eb5bde6265ae22822b07768900f0294ff025",
+        "checks": "SUCCESS; Supabase Preview SKIPPED"
+      },
+      {
+        "number": 12,
+        "state": "OPEN",
+        "draft": true,
+        "head": "341f33923b4dc52e752a3e34252504a8687b3902",
+        "checks": "SUCCESS; Supabase Preview SKIPPED"
+      },
+      {
+        "number": 13,
+        "state": "OPEN",
+        "draft": true,
+        "head": "6384f3faa05d5e323c30c102f69bdb0eeee4928b",
+        "checks": "SUCCESS; Supabase Preview SKIPPED"
+      },
+      {
+        "number": 14,
+        "state": "OPEN",
+        "draft": true,
+        "head": "a7c555ebfbe792941a80453b29b8a66cbeb8d98a",
+        "checks": "SUCCESS including PR readiness; Supabase Preview SKIPPED"
+      }
+    ],
+    "source_of_production_policy": "User intends main; deployed manual workflow currently gates codex/lightsail-deployment",
+    "postgres_ci_limitation": "Existing isolated Postgres schema compatibility does not qualify the application storage engine replacement"
+  },
+  "application_changes": false,
+  "provisioned_resources": 0,
+  "database_rows_mutated": 0,
+  "service_restarts": 0,
+  "retention_enabled": false,
+  "paid_ai_calls": 0
+}

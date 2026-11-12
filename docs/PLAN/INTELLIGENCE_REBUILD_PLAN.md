@@ -1,5 +1,61 @@
 # BTC Intelligence Rebuild Plan
 
+## Current direction — November 11, 2026
+
+**Phase 1.75 / I7 remain OPEN.** The user selected PostgreSQL as the intended
+replacement for the SQLite A/B implementation, to qualify first in isolated
+PP/PRT. This is a planning direction, not permission to provision or migrate
+production. Retain all existing SQLite code/evidence; older A/B goals below are
+historical pending explicit reuse/supersession review.
+
+**Fresh inventory:** one running Lightsail VM in us-east-2, 2 vCPU / 2 GiB RAM /
+60 GB SSD; no instance snapshots in that Region. Browser SSH verified d56b4a7,
+46.397 GiB filesystem available, 1,299.80 MiB available RAM, main SQLite
+5,323,907,072 bytes plus 4,517,712-byte WAL. Services are active, but persisted
+feeds are stopped and storage_guard=limit_reached. All three processes keep
+retention/paid AI OFF and MAX_LOCAL_STORAGE_MB=5120. /health says ok and must
+not be used to infer fresh collection. Full quick/FK checks were not run.
+
+Supabase TokenBot in us-west-2 remains structured Postgres history (ten public
+application tables, 97.50 MiB database) plus private raw Storage (966 objects,
+323.02 MiB metadata-reported bytes). No fresh archive readback was performed.
+The latest authorized access change added only the current Wi-Fi IPv4 /32 to
+Lightsail TCP22. Prior rules were preserved; UFW unchanged. Direct SSH still
+times out, while browser SSH works. No app/storage/service change occurred.
+
+**Next decision:** review an exact PP provisioning/test scope. Recommend a
+second VM with local PostgreSQL and the candidate application; 4 GiB / 80 GB is
+a proposed $24/month starting host, not approved or proven sizing. One VM can
+host both environments, but tests share production resources. Keep one real
+market collector; preview uses read-only production API, while writable tests
+use isolated generated/replayed data. Local PostgreSQL and Supabase remain
+separate instances with explicit sync/archive/replay.
+
+- [x] Scoped AWS/Supabase and VM structure inventory; record limitations.
+- [ ] Approve exact PP cost, Region, access, runtime and test-resource scope.
+- [ ] Qualify PostgreSQL schema/adapter, time partitions, archival, history,
+  corruption/crash recovery, capacity and concurrent performance in small PRs.
+- [ ] Review rolling 72-hour retention semantics explicitly: the previous
+  72-hour-or-size A/B rotation did not guarantee that local history window.
+- [ ] Reconcile intended main=production with the current manual workflow's
+  codex/lightsail-deployment gate; test PP and production release separation.
+- [ ] Qualify migration/fencing/forward recovery before requesting production
+  cutover. Archive verification precedes deletion; legacy retirement and
+  retention enablement stay separately gated. No Phase 2 or paid AI.
+
+PR #9 is superseded by #11–#14, all still unmerged at this check. #11 is ready;
+#12–#14 are draft. Existing code checks passed, Supabase Preview skipped. These
+are SQLite/schema-fixture results, not PostgreSQL application qualification.
+The old 5 GiB slot targets and 24 GiB transition proposal are not PostgreSQL
+limits or applied guard changes. Do not continue A/B scale work or merge a
+SQLite deployment by inference from this planning direction.
+
+See [inventory and transition review](POSTGRES_PP_TRANSITION_2026-11-11.md)
+and [sanitized evidence](evidence/postgres-pp-inventory-2026-11-11.json).
+This master roadmap remains authoritative; the review is supporting evidence.
+
+---
+
 **Branch:** `codex/phase1-75-retention-enable` (working); `codex/lightsail-deployment` (release target)
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  
@@ -83,7 +139,7 @@ and positions in persistent storage.
 
 ---
 
-## Current position
+## Historical current-position entry — superseded by November 11 direction
 
 **Session resume:** Read [SESSION_HANDOFF.md](SESSION_HANDOFF.md) for ownership, recorded production STOP and the active generated A/B/core checkpoint; it indexes this roadmap and does not replace it.
 

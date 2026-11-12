@@ -14,8 +14,9 @@ published Releases/packages are not automatically pruned by this configuration.
 
 Local results: 67 backend tests, 29 release/transport control tests, dependency
 audit and actionlint PASS. The local Docker daemon is unavailable, so the
-scratch-carrier build/extract proof is required in exact Linux CI, not claimed
-locally. New-source GitHub CI remains pending until push/inspection.
+scratch-carrier build/extract proof was obtained in exact Linux CI, not claimed
+locally. Exact source 954dd42 passed push CI 43174492139 and PR CI 43174499594,
+including the Linux carrier build/extract step. No publication occurred.
 
 Live GitHub read-only inventory found zero private runners and no environment
 deployment secrets; production's owner approval/branch restriction exists.
@@ -27,3 +28,7 @@ The master roadmap remains authoritative. Production remains at the recorded
 legacy SQLite storage hold; no fresh VM inspection or data operation occurred.
 I7 and Phase 1.75 remain OPEN. No paid AI, retention, snapshots, manual WAL or
 infrastructure changes were made.
+
+Root README onboarding was added afterward: local empty-fixture initialization,
+bounded dashboard status and local links PASS. The README-only/source-evidence
+successor requires its own normal checks; it introduces no runtime code change.

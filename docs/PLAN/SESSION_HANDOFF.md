@@ -15,8 +15,9 @@ User will merge PR14 after exact CI; do not merge or deploy production on their
 behalf. New pipelines are definitions and fail-closed controls, not evidence of
 PP installation. GitHub has no registered private runner or environment deploy
 keys at the latest bounded inventory. Runtime profiles are unqualified. No
-released package/version has been published by this checkpoint. CI on the new
-independent source remains required; inspect once, do not poll.
+released package/version has been published by this checkpoint. Source 954dd42 passed exact push CI 43174492139 and PR CI 43174499594,
+including the carrier build/extract. No code CI failure remains; this README/
+documentation successor gets its own automatic checks. Do not poll.
 
 PP: tradebot-preprod-01, us-east-2a, 2 GiB / 60 GB, last known public IP
 18.119.253.233 (not static), private 172.26.11.9. Host baseline passed earlier;

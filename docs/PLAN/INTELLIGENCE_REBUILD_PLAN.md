@@ -2,6 +2,16 @@
 
 ## Current execution checkpoint — November 12, 2026
 
+**Verified CI update — November 12:** source 954dd426b8d05d17b7aff741b59de9c713efa924
+passed exact [push CI 43174492139](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43174492139)
+and [PR CI 43174499594](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43174499594).
+Linux executed the carrier build/extract test successfully. No code CI failure
+remains. Root README now documents local startup, actual/planned databases,
+VMs, approved connection paths, four CI/CD workflows, versions and rollback
+limits; its empty-fixture/status command and local links were checked. This is
+a documentation successor, not a runtime deployment. Next is PostgreSQL PP
+application/controller/connection qualification, not more pipeline design.
+
 The user removed SQLite A/B from the active implementation path. PRs #11–#13
 are closed, unmerged and superseded; their branches and evidence are preserved.
 The selected direction is local PostgreSQL qualified first on the separate

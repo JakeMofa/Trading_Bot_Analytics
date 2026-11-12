@@ -51,5 +51,16 @@
   },
   "dependency_audit": "NO_KNOWN_VULNERABILITIES",
   "actionlint": "PASS",
-  "docker_local": "NOT_RUN_DAEMON_UNAVAILABLE_CI_REQUIRED"
+  "docker_local": "NOT_RUN_DAEMON_UNAVAILABLE_CI_REQUIRED",
+  "exact_source_sha": "954dd426b8d05d17b7aff741b59de9c713efa924",
+  "push_ci": {
+    "run_id": 43174492139,
+    "result": "PASS"
+  },
+  "pr_ci": {
+    "run_id": 43174499594,
+    "result": "PASS"
+  },
+  "linux_carrier_build_extract": "PASS",
+  "readme_commands_and_links": "PASS"
 }

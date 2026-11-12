@@ -1,0 +1,10 @@
+changelog:
+  exclude:
+    labels: [skip-changelog]
+  categories:
+    - title: Application and data changes
+      labels: [application, database]
+    - title: CI/CD and operations
+      labels: [ci, deployment]
+    - title: Other reviewed changes
+      labels: ['*']

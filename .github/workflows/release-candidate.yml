@@ -1,0 +1,69 @@
+name: Release — publish version and package
+on:
+  workflow_dispatch:
+    inputs:
+      source_branch:
+        description: CI-passed source branch; controls always run from main
+        required: true
+        type: choice
+        options: [preprod, main]
+      revision:
+        description: Exact source branch HEAD SHA with passing push CI
+        required: true
+        type: string
+      version:
+        description: Explicit SemVer with v prefix, for example v0.1.0-rc.1; never overwritten
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: release-publication
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+      packages: write
+      attestations: write
+      id-token: write
+    env:
+      SOURCE_BRANCH: ${{ inputs.source_branch }}
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      APPROVED_REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Require exact CI, prepare sanitized committed source and create-only version
+        run: python .github/ci/release_package.py prepare --output "$RUNNER_TEMP/release"
+      - name: Publish source carrier to GitHub Packages, capture digest
+        id: package
+        run: python .github/ci/release_package.py package --output "$RUNNER_TEMP/release"
+      - name: Attest the registry digest
+        uses: actions/attest-build-provenance@43d14bc2b83dec42d39ecae14e916627a18bb661 # v3
+        with:
+          subject-name: ghcr.io/jakemofa/trading_bot_analytics/releases
+          subject-digest: ${{ steps.package.outputs.digest }}
+          push-to-registry: true
+      - name: Create candidate tag and Release with checksums and registry link
+        run: python .github/ci/release_package.py publish --output "$RUNNER_TEMP/release"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-publication-${{ inputs.version }}
+          path: |
+            ${{ runner.temp }}/release/release-manifest.json
+            ${{ runner.temp }}/release/SHA256SUMS
+            ${{ runner.temp }}/release/NOTES.md
+          if-no-files-found: warn
+          retention-days: 90

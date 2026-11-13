@@ -292,11 +292,18 @@ For a release:
    environment approval is required. No merge, tag or release auto-deploys.
 
 This promotes code between two VMs; it does not move the PP VM/database to prod.
-The database foundation is installed. Application/controller and deployment
-bindings are still separate checkpoints: no private runner or
-environment deployment secrets were registered at the November 12 inventory,
-and both target profiles are unqualified. Full PostgreSQL application/database
-qualification is still separate. PR #14 registered configuration; CP1 installed the PP database only.
+The PP PostgreSQL foundation, restricted host controller, dedicated SSH identity
+and preprod environment secrets are installed and qualified. Production's target
+remains disabled. The first PP manual attempt (43354829263) failed in the Mac
+runner's Python installer before invoking the controller; business migrations and
+application start did not occur. Its unused authorization was revoked.
+
+The temporary runner is a one-job GitHub Actions process on the existing operator
+Mac, not another VM or database. It unregisters after the job. Private deployment
+uses the existing `/opt/homebrew/bin/python3.12`, checked under a one-minute bound;
+it does not install Python into a GitHub-hosted runner's filesystem paths.
+A new candidate requires its own exact CI, publication and one-use host authority.
+Follow [the PP procedure](deploy/preprod/RUNTIME_REVIEW.md) and latest master entry.
 
 Where to inspect versions and outcomes:
 
@@ -307,8 +314,9 @@ Where to inspect versions and outcomes:
 | [Packages](https://github.com/JakeMofa/Trading_Bot_Analytics/packages) | Versioned GHCR source carriers at `ghcr.io/jakemofa/trading_bot_analytics/releases` | Retained by digest/version, no mutable `latest` or automatic cleanup |
 | [Deployments](https://github.com/JakeMofa/Trading_Bot_Analytics/deployments) / repository Environments | Actual PP/production attempts and results | Separate from candidate Release status |
 
-Releases/Packages remain empty until the first successful explicit publication;
-a CI pass does not publish a version. The registry carrier is a scratch image
+Candidate [v0.2.0-pp.1](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.1)
+and its package are published; its PP deployment failed before host execution.
+A CI pass does not itself publish a version. The registry carrier is a scratch image
 used as a source envelope, **not a runnable app image**. It does not install
 Docker on either VM. Manifests distinguish candidate, deployed and validated
 states; a candidate is never labelled production merely because tests passed.

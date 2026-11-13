@@ -1,0 +1,28 @@
+{
+  "checkpoint": "CP5 first manual PP application deployment",
+  "result": "FAIL_BEFORE_HOST_DEPLOYMENT",
+  "source_sha": "d59cd1edebe99d1aa6f4124535141ad264ab04b1",
+  "source_ci_run": 43353905598,
+  "release_version": "v0.2.0-pp.1",
+  "publication_run": 43354307493,
+  "deployment_run": 43354829263,
+  "preflight": "PASS",
+  "failed_stage": "actions/setup-python on existing macOS operator runner",
+  "failure": "Permission denied creating /Users/runner",
+  "host_controller_invoked": false,
+  "application_deployed": false,
+  "business_migration_performed": false,
+  "unused_authority_revoked": true,
+  "authority_consumed": false,
+  "ephemeral_runner_id": 27,
+  "runner_removed": true,
+  "runner_credential_files_removed": true,
+  "production_changed": false,
+  "corrective_source": "e4b28bbb178d9c0ae505583256a1b9f58b724ee1",
+  "corrective_local_checks": {
+    "controls_passed": 34,
+    "actionlint": "PASS",
+    "actual_operator_python": "3.12.8"
+  },
+  "retry_policy": "A changed exact-CI-passed candidate, fresh one-use authority and separately recorded attempt are required. Do not overwrite pp.1."
+}

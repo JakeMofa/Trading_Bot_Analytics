@@ -27,8 +27,9 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   checks passed. Smoke 32 KiB, cluster allocation 48,205,824 bytes, sampled memory
   18.13 MiB / 512 MiB; no published port. CI rejected injected column drift.
   [Sanitized evidence](evidence/pp-postgres-foundation-2026-11-12.json).
-  App/collector/CD remain uninstalled or unqualified on PP; source CP2–4
-  qualification and CP5 integration are recorded below.
+  PP application remains uninstalled. CP2–4 generated source and actual CP5
+  host bindings passed; the first manual attempt failed before host execution,
+  as recorded in the latest CP5 checkpoint below.
 - Production is untouched by this milestone. No new production health/collection
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
@@ -63,7 +64,7 @@ qualified route with generated data, collector/cloud/retirement OFF. The existin
 2 GiB PP VM and 64 MiB generated-data foundation allowance remain the initial
 limits; record any additional bounded runtime resource proposal before use.
 
-### CP2–5 generated source integration qualified; PP host deployment next
+### CP2–5 generated source integration qualification — historical source checkpoint
 
 Component PRs [#18](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/18)
 (schema `77eb698`), [#19](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/19)
@@ -184,6 +185,35 @@ unique PP candidate, then make the first manual generated-only CD attempt.
 Application deployment, acceptance and sustained/live operation remain separate.
 No Supabase write/permission, real collection, retirement or paid-AI enablement
 is included. CP6–10 and I7/Phase 1.75 remain open.
+
+### CP5 first manual attempt — failed before PP application execution
+
+**Current CP5 status: application deployment INCOMPLETE.** PR #22 merged the
+qualified PP binding into preprod `d59cd1e`; its exact CI
+[43353905598](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43353905598)
+passed. Candidate [v0.2.0-pp.1](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.1)
+and its immutable GHCR source carrier published successfully in run 43354307493.
+
+Manual [CD run 43354829263](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43354829263)
+passed hosted preflight, then failed at `actions/setup-python` on the existing
+Mac operator runner: it attempted to create `/Users/runner` without permission.
+The host controller was never invoked: no PP business migration or application
+start occurred. This failure is not a database or application-test failure.
+The unused root authorization was revoked. Ephemeral runner 27 unregistered and
+removed its credential files; no runner remains from this attempt.
+
+Scoped fix `e4b28bb` replaces only the private deployment job's interpreter
+installation with a bounded validation and invocation of the existing tested
+`/opt/homebrew/bin/python3.12`. Actual command execution, 34 release controls and
+actionlint passed locally. Hosted CI setup and production workflow are unchanged.
+Require successor exact CI and a small PR into preprod before publishing a new
+candidate and issuing fresh authority. No unchanged retry or overwrite of pp.1.
+[Sanitized attempt evidence](evidence/pp-first-deployment-failure-2026-11-13.json).
+
+Actual PP currently retains the qualified PostgreSQL foundation, dedicated SSH
+controller and restricted roles. The application remains uninstalled. CP6 actual
+Supabase, CP7 live/capacity, CP8 exact production candidate, CP9 approved cutover
+and CP10 verified lifecycle/acceptance are still open. Production is unchanged.
 
 ### Fixed architecture and policy
 

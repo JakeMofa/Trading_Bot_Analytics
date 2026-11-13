@@ -4,16 +4,18 @@ Read AGENTS.md, then the active checkpoint in
 [INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). That is the only
 authoritative roadmap; this file is an entry point, not a second checklist.
 
-Current work: Phase 1.75 / I7. PostgreSQL CP0–1 passed within foundation scope;
-**CP2–5 source components are merged through PR #17 into preprod `ed46314`.
-Controller source `687861e` passed exact CI and actual PP host/SSH/role preflight.
-The PP profile activation PR is next; the manual generated application deployment
-has not run. Temporary ephemeral runner 27 is online on the existing operator
-computer, and PP environment secrets are configured. No authority issued yet.
-Read the master's latest CP5 binding checkpoint and evidence before dispatch.** PR #15 aligned reviewed main
-workflows/docs into preprod (`15475f7`); foundation source `40c2761` passed exact Linux CI 43340827516 and PP execution.
-Check the newest foundation PR, exact CI and host evidence before treating that
-statement as current. Docker/PostgreSQL alone do not qualify app or CD.
+Current work: Phase 1.75 / I7, CP5. CP0–1 foundation and CP2–4 generated
+source qualification passed. PRs #17/#22 merged into preprod `d59cd1e`, exact
+CI 43353905598 PASS. Actual PP controller/SSH/roles are qualified.
+
+Candidate v0.2.0-pp.1 published, but CD 43354829263 failed at the Mac runner's
+Python installer before invoking the host controller. PP application/migrations
+were NOT executed. Unused root authority revoked; ephemeral runner 27 removed.
+The tested fix `e4b28bb` uses existing Python 3.12. Continue its small PR, require
+exact successor CI, then publish a new immutable PP candidate and prepare fresh
+one-use authority for the corrected generated-only attempt. Preserve the failed
+attempt. Do not reinstall qualified roles/helpers unnecessarily. Read the latest
+CP5 master entry and procedure before dispatch. Production remains untouched.
 
 The original working checkout is dirty on codex/phase1-75-retention-enable.
 Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge

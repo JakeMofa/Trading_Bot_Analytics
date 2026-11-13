@@ -19,7 +19,12 @@ PostgreSQL, roles, migrations, API restart, persisted acknowledgements and recov
 only the PP hostname binding is substituted on the disposable GitHub host.
 Actual PP prerequisite bindings are recorded in
 [the sanitized report](../../docs/PLAN/evidence/pp-runtime-binding-2026-11-13.json).
-This does not certify a deployment or production acceptance.
+Actual successor `a7f7cd0` deployed as v0.2.0-pp.2 in CD 43356521535 with
+PASS generated-only acceptance. The initial pp.1 failure remains recorded.
+[Actual deployment evidence](../../docs/PLAN/evidence/pp-application-deployment-2026-11-13.json).
+The operator SSH route to the dynamically resolved internal API address passed;
+Docker did not publish host localhost:8000. This does not certify production
+acceptance or live/cloud behavior.
 
 The runtime permits generated/replay data only and has no real collector, cloud
 transport or retirement activation route. A passing generated smoke cannot

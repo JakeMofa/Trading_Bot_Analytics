@@ -105,15 +105,18 @@ The VM and database are never moved from PP to production.
 
 Targets are bound by instance name, Region, host, dedicated user, qualified
 controller digest and qualification commit in `.github/deploy/targets.json`.
-Both profiles currently say `runtime_qualified=false`; CD stops before bundle
-creation, SSH or service changes. Do not flip that flag as a workaround.
+The PP profile is qualified using actual controller/SSH/role evidence and has
+completed generated deployment v0.2.0-pp.2 in run 43356521535. Production remains
+`runtime_qualified=false`. The flag cannot substitute for runtime qualification.
 A hostname/public IP alone does not establish a deployment connection.
 
 Qualify the PostgreSQL app, local schema/migration checks and restricted
 host-side controller on PP; then install its dedicated forced-command key,
-verified SSH host pin and approved private runner. At the November 12 read-only
-GitHub inventory, no runner was registered and both environments had zero
-secrets. Required bindings:
+verified SSH host pin and approved private runner. PP environment secrets are configured. An ephemeral operator Mac runner takes
+one manual job, then unregisters; none remains after the successful pp.2 attempt.
+The deployment job validates existing Python 3.12 instead of installing a hosted
+runner toolcache. The earlier pp.1 setup failure and revoked authority remain
+recorded. Required bindings:
 
 | Environment | Secrets | Target |
 | --- | --- | --- |
@@ -173,3 +176,13 @@ cloud writes or retirement. Normal runtime container caps total 1 GiB: PostgreSQ
 512 MiB, API 192 MiB, calculations 192 MiB and lifecycle 128 MiB. The migration
 container has a separate 192 MiB cap and runs before the application starts.
 These caps are prepared limits, not a production capacity qualification.
+
+## Verified PP operator route
+
+The generated API/dashboard/SSE passed through pinned operator SSH to its
+dynamically resolved internal container IP. Docker did not publish the configured
+host localhost:8000 mapping. Container-local CI/controller checks do not prove
+that mapping, so use the [verified README procedure](../../README.md) and retain
+the deployment key's no-forwarding restriction. Production-preview networking
+is a separate gate. Do not add public exposure or loosen the internal database
+network to make a dashboard link work.

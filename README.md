@@ -155,11 +155,18 @@ followed by archived API/history retrieval. The built API container acknowledged
 scope; it does not establish live feeds, preview networking, representative
 capacity, ensemble/news/evaluation or real cloud permissions.
 
-CP5 supplies the separate runtime Compose overlay and restricted manual host
-controller. They are not installed merely by merging application code. Do not
-run the foundation-only `verify` command against the migrated business schema.
-Production and runtime retirement remain unchanged/OFF. Exact verified runtime
-commands will be added after the PP host deployment succeeds.
+The generated runtime is now installed on PP as **v0.2.0-pp.2**, source `a7f7cd0`,
+[CD 43356521535 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43356521535).
+PostgreSQL, API, calculation and lifecycle run as four separate containers.
+The same named volume preserved 32 foundation rows; 21 generated events and
+21 predictions survived the deployment's API restart. Real collector, cloud
+sync, retirement and paid AI remain OFF. Generated feeds become stale when the
+finite test stops; this is expected and must remain visible.
+
+Do not run the foundation-only `verify`/`start` commands against this migrated
+business schema. The root host marker now blocks those foundation operations.
+Use the private access and runtime inspection commands below. Production remains
+unchanged; live qualification and full production behavior are later gates.
 
 ## Local developer quick start
 
@@ -241,20 +248,54 @@ do not turn host verification off. Browser SSH is the existing fallback when
 the pinned operator route is unavailable. Do not open database or API ports to
 the internet to make a deployment work.
 
-Once the candidate app is installed, use its verified private port through an
-SSH tunnel. Set `TRADEBOT_REMOTE_PORT` to the port confirmed by the runtime
-configuration; the local baseline dashboard uses 8765, while the deployed
-FastAPI service may have a different private port:
+PP's API is on its internal Docker network. **Host `127.0.0.1:8000` is not
+published**, even though the current Compose configuration requests it. Keep
+PostgreSQL and the workers isolated. Use the existing operator identity (not the
+restricted CD identity) to inspect the API's current address, then tunnel to it.
+Resolve it again after container recreation; never assume a fixed container IP.
+
+The following address-inspection command and the equivalent bounded tunnel were
+executed successfully on the deployed candidate:
 
 ```sh
-ssh -N -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+TRADEBOT_PP_API_IP="$(ssh -o BatchMode=yes -o IdentitiesOnly=yes \
+  -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
   -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_SSH_KEY" \
-  -L "8765:127.0.0.1:${TRADEBOT_REMOTE_PORT:?set the verified private app port}" \
+  "ubuntu@$TRADEBOT_VM_HOST" \
+  'sudo -n docker inspect --format "{{(index .NetworkSettings.Networks \"tradebot-pp-foundation_database\").IPAddress}}" tradebot-pp-foundation-api-1')"
+ssh -N -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+  -o ExitOnForwardFailure=yes -o ConnectTimeout=10 \
+  -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_SSH_KEY" \
+  -L "127.0.0.1:8765:${TRADEBOT_PP_API_IP:?resolve the current PP API address}:8000" \
   "ubuntu@$TRADEBOT_VM_HOST"
 ```
 
-Then browse http://127.0.0.1:8765. This tunnel will not work against an uninstalled
-PP app. For an approved production read-only inspection, basic safe checks are:
+Open http://127.0.0.1:8765/dashboard. API paths `/state/current`,
+`/history/predictions?limit=3` and `/events` were verified through this route.
+Keep the tunnel in its terminal and close it with Ctrl-C when finished. This
+binds only your computer's loopback interface; it opens no public API or DB port.
+The deployed image accepts generated/replay data, not production preview or live
+collection. A failed or stale feed must not be presented as live.
+
+On PP through the operator SSH session, these read-only commands were verified:
+
+```sh
+sudo docker ps --filter label=com.docker.compose.project=tradebot-pp-foundation \
+  --format '{{.Names}}: {{.Status}}'
+sudo docker stats --no-stream --format '{{.Name}} {{.MemUsage}} {{.CPUPerc}}'
+sudo docker system df
+```
+
+Runtime services are named `tradebot-pp-foundation-api-1`, `-calculation-1`,
+`-lifecycle-1` and `-postgres-1`. Inspect bounded service logs with
+`sudo docker logs --tail 50 <exact-service-name>`; do not dump environments or
+DSN files. CD artifacts record schema, exact source/image, disabled flags and
+API-restart recovery. Explicit migrations run only through the reviewed release
+controller, never ordinary API startup. Do not use `docker compose down -v` or
+replace the volume. Recovery preserves the current database and acknowledged
+writes; it does not restore old database contents.
+
+For an approved production read-only inspection, basic safe checks are:
 
 ```sh
 git -C /opt/tradebot rev-parse HEAD
@@ -294,9 +335,10 @@ For a release:
 This promotes code between two VMs; it does not move the PP VM/database to prod.
 The PP PostgreSQL foundation, restricted host controller, dedicated SSH identity
 and preprod environment secrets are installed and qualified. Production's target
-remains disabled. The first PP manual attempt (43354829263) failed in the Mac
-runner's Python installer before invoking the controller; business migrations and
-application start did not occur. Its unused authorization was revoked.
+remains disabled. The first PP manual attempt (43354829263) failed before host execution and its
+unused authorization was revoked. The corrected pp.2 attempt (43356521535) passed
+actual migrations/application acceptance. Its authority was consumed and temporary
+runner removed. Current access is the verified private-IP SSH route above.
 
 The temporary runner is a one-job GitHub Actions process on the existing operator
 Mac, not another VM or database. It unregisters after the job. Private deployment
@@ -315,7 +357,9 @@ Where to inspect versions and outcomes:
 | [Deployments](https://github.com/JakeMofa/Trading_Bot_Analytics/deployments) / repository Environments | Actual PP/production attempts and results | Separate from candidate Release status |
 
 Candidate [v0.2.0-pp.1](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.1)
-and its package are published; its PP deployment failed before host execution.
+preserves the first failed attempt. Successor
+[v0.2.0-pp.2](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.2)
+is deployed to PP with generated-only acceptance.
 A CI pass does not itself publish a version. The registry carrier is a scratch image
 used as a source envelope, **not a runnable app image**. It does not install
 Docker on either VM. Manifests distinguish candidate, deployed and validated

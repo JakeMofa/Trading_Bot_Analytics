@@ -1,7 +1,7 @@
 # Overlay on compose.yaml. Explicitly generated-only; no live/cloud credentials.
 services:
   postgres:
-    secrets: [admin, migrator, application, reader, lifecycle_password]
+    secrets: [admin, migrator, application, reader, {source: lifecycle_password, target: lifecycle}]
   api:
     image: ${PP_APP_IMAGE:?supply qualified local image ID}
     pull_policy: never

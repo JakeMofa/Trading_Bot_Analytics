@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 import httpx
 
 from .config import Settings
-from .domain import utcnow
+from .domain import timestamp, utcnow
 from .ingestion import generated_events
 from .store import IdentityConflict, Store
 from .worker import CalculationWorker
@@ -49,7 +49,9 @@ def qualify(base_url, timeout=20):
             response.raise_for_status()
             latencies.append(time.monotonic()-started)
             state=response.json()
-            if ((state.get('feature_snapshot') or {}).get('snapshot_id')==snapshot_id
+            feature=state.get('feature_snapshot') or {}
+            if (feature.get('quality',{}).get('price',{}).get('input_id')==price_event['event_id']
+                    and timestamp(feature['as_of'])>=now
                     and (state.get('coinbase') or {}).get('event_id')==price_event['event_id']):
                 break
             if time.monotonic()>=deadline:
@@ -78,7 +80,8 @@ def qualify(base_url, timeout=20):
                 streamed=json.loads(first[6:])
                 if (streamed.get('market') or {}).get('id')!=state['market']['id']:
                     raise AssertionError('SSE market differs from current RAM')
-                if (streamed.get('feature_snapshot') or {}).get('snapshot_id')!=snapshot_id:
+                streamed_feature=streamed.get('feature_snapshot') or {}
+                if streamed_feature.get('quality',{}).get('price',{}).get('input_id')!=price_event['event_id']:
                     raise AssertionError('SSE did not carry persisted snapshot')
     return {'status':'pass','scope':'generated_local_api','origin_id':settings.origin_id,
             'acknowledged_events':len(acknowledgements),'conflict_detected':conflict_detected,

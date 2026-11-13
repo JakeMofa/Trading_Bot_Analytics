@@ -56,6 +56,15 @@ def state_fixture(now=NOW):
 
 
 class NumericAndStateTests(unittest.TestCase):
+    def test_generated_overlapping_seeds_have_identical_immutable_events(self):
+        first={row['event_id']:row for row in generated_events(NOW)}
+        second={row['event_id']:row for row in generated_events(NOW+timedelta(minutes=1))}
+        overlaps=set(first)&set(second)
+        self.assertGreater(len(overlaps),10)
+        for identity in overlaps:
+            self.assertEqual({k:v for k,v in first[identity].items() if k!='received_at'},
+                             {k:v for k,v in second[identity].items() if k!='received_at'})
+
     def test_exact_feature_distance_and_deployed_model(self):
         market,price,candles = inputs()
         values,quality,_ = calculate(market,price,candles,NOW)

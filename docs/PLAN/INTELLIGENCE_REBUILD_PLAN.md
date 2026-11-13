@@ -108,6 +108,16 @@ until its own combined exact CI and review; preprod has not yet received this st
 
 ### CP5 controller qualification — November 13 UTC
 
+Source `e402a8c` passed exact push CI
+[43350188521](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43350188521)
+and PR CI 43350197910. Actual controller stages, API restart, one-use rejection
+and forward-preserving recovery passed in 121.842 seconds, with the Linux
+permissions test executed as root. Twenty-one generated events were acknowledged;
+maximum sampled API request 3.585 ms. [Evidence](evidence/postgres-controller-generated-2026-11-13.json).
+This proves the tested generated scope only. Subsequent review identified a
+process-group cleanup edge case when a child leader exits before its descendant;
+the narrow fix and regression require successor CI before installation.
+
 The Linux controller now exercises the actual pinned PostgreSQL runtime,
 explicit migrations, API/SSE smoke, API restart and forward-preserving recovery
 in disposable CI. Only CI host identity is substituted. Both deployment target

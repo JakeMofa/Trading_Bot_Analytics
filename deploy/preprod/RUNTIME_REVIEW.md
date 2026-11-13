@@ -7,8 +7,9 @@ and evidence record, not another roadmap. The production target remains disabled
 ## Current qualification boundary
 
 The schema, application and lifecycle passed combined generated PostgreSQL 17 and
-actual container/API/SSE tests at `751f1f8`, CI 43346308984. The newer deployment
-controller/adapter is under exact Linux qualification. Its CI uses real Docker,
+actual container/API/SSE tests at `751f1f8`, CI 43346308984. The deployment controller/adapter passed exact Linux CI 43350188521 at
+`e402a8c`; a later process-group cleanup correction requires its own exact CI
+before installation. Its CI uses real Docker,
 PostgreSQL, roles, migrations, API restart, persisted acknowledgements and recovery;
 only the PP hostname binding is substituted on the disposable GitHub host.
 Actual PP host/deployment bindings remain separately unqualified until recorded.

@@ -63,7 +63,7 @@ qualified route with generated data, collector/cloud/retirement OFF. The existin
 2 GiB PP VM and 64 MiB generated-data foundation allowance remain the initial
 limits; record any additional bounded runtime resource proposal before use.
 
-### CP2–4 generated integration qualified; CP5 continuing
+### CP2–5 generated source integration qualified; PP host deployment next
 
 Component PRs [#18](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/18)
 (schema `77eb698`), [#19](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/19)
@@ -98,7 +98,8 @@ core/dedup/acknowledged-outbox growth, sole-collector ownership and real rollove
 
 CP5 [PR #21](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/21) owns the
 required combined CI job, runtime Compose and host deployment/recovery controls.
-The latter are still being qualified; target flags remain disabled. Proposed
+Its source/controller qualification now passes as recorded below; actual host
+bindings and manual deployment remain unperformed, so target flags remain disabled. Proposed
 normal runtime caps total 1 GiB (PG512/API192/calculation192/lifecycle128 MiB),
 with a separate 192 MiB explicit migration container before app startup.
 Generated PP smoke evidence cannot authorize production promotion. The existing
@@ -108,6 +109,17 @@ until its own combined exact CI and review; preprod has not yet received this st
 
 ### CP5 controller qualification — November 13 UTC
 
+**Final source qualification PASS:** `deb8f0d` passed exact push CI
+[43351324325](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43351324325)
+and PR CI 43351333800, including the descendant-cleanup regression and required
+Linux-root SSH permissions case. [Final generated evidence](evidence/postgres-controller-final-generated-2026-11-13.json).
+PR #21 merged into integration at `87576fd`. All four component PRs #18–#21 are
+now integrated; PR #17 is the reviewed route to preprod. Its own exact merged
+source CI is still required before that merge. Actual PP helper/identity/runner
+installation and the first manual generated deployment remain CP5's next steps.
+No host runtime qualification flag, production configuration or cloud permission
+changed as part of these merges.
+
 Source `e402a8c` passed exact push CI
 [43350188521](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43350188521)
 and PR CI 43350197910. Actual controller stages, API restart, one-use rejection
@@ -116,7 +128,7 @@ permissions test executed as root. Twenty-one generated events were acknowledged
 maximum sampled API request 3.585 ms. [Evidence](evidence/postgres-controller-generated-2026-11-13.json).
 This proves the tested generated scope only. Subsequent review identified a
 process-group cleanup edge case when a child leader exits before its descendant;
-the narrow fix and regression require successor CI before installation.
+the narrow fix and regression required successor CI before installation.
 
 The Linux controller now exercises the actual pinned PostgreSQL runtime,
 explicit migrations, API/SSE smoke, API restart and forward-preserving recovery
@@ -135,8 +147,8 @@ A separate operator review found the root-owned authorized-key files were not
 readable by the dedicated SSH identity. Their corrected modes retain root-only
 write authority while permitting authentication; Linux effective-UID tests are
 required before installation. No VM change resulted from these source fixes.
-The exact successor result must be recorded before treating the controller as
-qualified. [Generated PP release procedure](../../deploy/preprod/RUNTIME_REVIEW.md)
+The final successor result above qualifies the generated controller code;
+actual PP host bindings remain a separate requirement. [Generated PP release procedure](../../deploy/preprod/RUNTIME_REVIEW.md)
 keeps installation, binding evidence and the first manual deployment separate.
 
 ### Fixed architecture and policy

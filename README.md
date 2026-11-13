@@ -12,7 +12,9 @@ controls into preprod. Checkpoint 1 is qualified on PP: Docker and PostgreSQL ar
 generated persistence/role tests pass. The application adapter and live collector
 are not installed on PP. Generated PostgreSQL schema, application and lifecycle
 components are qualified together in the feature integration branch; PP
-deployment controls remain in progress. See the master for exact commits and CI.
+deployment-control code also passed generated Linux qualification. Actual host
+bindings and manual application deployment remain open. See the master for exact
+commits and CI.
 
 Start with the authoritative [master roadmap](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md),
 then the [session handoff](docs/PLAN/SESSION_HANDOFF.md). Detailed pipeline operation

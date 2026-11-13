@@ -56,31 +56,31 @@ class ArchiveHistory:
             raise HistoryError('invalid_limit', 'history limit must be 1..500')
         after = decode_cursor(after_event_id, generation_id)
         try:
-            generation, local, more = self.repository.local_history(
-                generation_id, after, replace(self.limits, max_rows=min(limit, self.limits.max_rows)))
-            if local is not None:
-                return self._result(generation, wire(local), more, 'local_postgres', [])
-            if self.transport is None:
-                raise HistoryError('archive_disabled', 'archived history transport is not configured')
-            manifests = self.repository.manifests(generation_id)
-            digest = validate_manifest_chain(manifests, generation)
-            if digest != generation['seal_hash']:
-                raise ArchiveIntegrityError('archived generation catalog changed')
-            budget = CycleBudget(self.limits)
-            rows, hashes, more = [], [], False
-            for index, manifest in enumerate(manifests):
-                last = manifest['coverage']['last']
-                if after is not None and last is not None and last <= after:
-                    continue
-                decoded = read_verified(self.transport, manifest, budget)
-                candidates = [row for row in decoded if after is None or row_cursor(row) > after]
-                space = limit - len(rows)
-                rows.extend(candidates[:space])
-                hashes.append(manifest['sha256'])
-                if len(rows) == limit:
-                    more = len(candidates) > space or index < len(manifests) - 1
-                    break
-            return self._result(generation, rows, more, 'authenticated_archive', hashes)
+            with CycleBudget(self.limits) as budget:
+                generation, local, more = self.repository.local_history(
+                    generation_id, after, replace(self.limits, max_rows=min(limit, self.limits.max_rows)))
+                if local is not None:
+                    return self._result(generation, wire(local), more, 'local_postgres', [])
+                if self.transport is None:
+                    raise HistoryError('archive_disabled', 'archived history transport is not configured')
+                manifests = self.repository.manifests(generation_id)
+                digest = validate_manifest_chain(manifests, generation)
+                if digest != generation['seal_hash']:
+                    raise ArchiveIntegrityError('archived generation catalog changed')
+                rows, hashes, more = [], [], False
+                for index, manifest in enumerate(manifests):
+                    last = manifest['coverage']['last']
+                    if after is not None and last is not None and last <= after:
+                        continue
+                    decoded = read_verified(self.transport, manifest, budget)
+                    candidates = [row for row in decoded if after is None or row_cursor(row) > after]
+                    space = limit - len(rows)
+                    rows.extend(candidates[:space])
+                    hashes.append(manifest['sha256'])
+                    if len(rows) == limit:
+                        more = len(candidates) > space or index < len(manifests) - 1
+                        break
+                return self._result(generation, rows, more, 'authenticated_archive', hashes)
         except HistoryError:
             raise
         except ArchiveError as exc:

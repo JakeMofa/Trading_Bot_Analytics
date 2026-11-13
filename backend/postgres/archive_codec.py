@@ -215,7 +215,9 @@ def read_verified(transport: ArchiveTransport, manifest: dict,
                                         max_bytes=budget.limits.max_object_bytes,
                                         timeout_seconds=timeout)
     budget.check()
-    return unpack_chunk(blob, manifest, budget.limits)
+    rows = unpack_chunk(blob, manifest, budget.limits)
+    budget.check()
+    return rows
 
 
 def manifest_set_hash(manifests: list[dict]) -> str:

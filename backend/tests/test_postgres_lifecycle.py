@@ -4,8 +4,10 @@ from decimal import Decimal
 from pathlib import Path
 import gzip
 import sys
+import tempfile
 import unittest
 import uuid
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import (ArchiveIntegrityError, ArchiveLimit, ArchiveLimits,
@@ -13,7 +15,7 @@ from postgres.archive_codec import (ArchiveIntegrityError, ArchiveLimit, Archive
                                     unpack_chunk, wire)
 from postgres.history import ArchiveHistory, HistoryError
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, RotationPolicy
-from postgres.lifecycle_worker import configuration
+from postgres.lifecycle_worker import configuration, main, read_dsn
 from postgres_lifecycle_fixtures import (ImmutableMemoryTransport, MemoryRepository,
                                          generated_rows, outbox_row)
 
@@ -90,11 +92,39 @@ class RotationConfigurationTests(unittest.TestCase):
             RotationPolicy(0)
 
     def test_runtime_cannot_enable_cloud_or_retirement(self):
-        self.assertEqual(configuration({})['origin_id'], 'generated-preprod')
+        self.assertEqual(configuration({})['origin_id'], 'generated-pp')
         for values in [{'TRADEBOT_RETIREMENT_ENABLED': 'true'}, {'TRADEBOT_CLOUD_ENABLED': 'true'},
                        {'TRADEBOT_DATA_MODE': 'live'}, {'TRADEBOT_ORIGIN_ID': 'production'}]:
             with self.subTest(values=values), self.assertRaises(ValueError):
                 configuration(values)
+
+    def test_shared_environment_flags_and_bounds_fail_before_database_startup(self):
+        cases = [{'TRADEBOT_ENVIRONMENT': 'production'}, {'TRADEBOT_ENVIRONMENT': 'wrong'},
+                 {'TRADEBOT_DATA_MODE': 'production-preview'}, {'TRADEBOT_COLLECTOR_ENABLED': 'true'},
+                 {'TRADEBOT_COLLECTOR_ENABLED': 'unknown'}, {'TRADEBOT_CLOUD_ENABLED': '1'},
+                 {'TRADEBOT_RETIREMENT_ENABLED': 'on'}, {'TRADEBOT_OUTBOX_MAX_PENDING': '9'},
+                 {'TRADEBOT_OUTBOX_MAX_PENDING': '100001'}, {'TRADEBOT_ORIGIN_ID': ''}]
+        for values in cases:
+            with self.subTest(values=values), patch.dict('os.environ', values, clear=True), \
+                    patch('postgres.lifecycle_worker.read_dsn') as read, self.assertRaises(ValueError):
+                main(['--once', '--bootstrap'])
+            read.assert_not_called()
+        self.assertEqual(configuration({'TRADEBOT_DATA_MODE': 'replay'})['mode'], 'replay')
+        for flag in ('TRADEBOT_COLLECTOR_ENABLED', 'TRADEBOT_CLOUD_ENABLED', 'TRADEBOT_RETIREMENT_ENABLED'):
+            self.assertEqual(configuration({flag: 'off'})['origin_id'], 'generated-pp')
+
+    def test_shared_database_file_setting_required_and_no_legacy_alias(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'generated-credential'
+            path.write_text('generated-test-placeholder\n')
+            self.assertEqual(read_dsn({'TRADEBOT_DATABASE_DSN_FILE': str(path)}), 'generated-test-placeholder')
+            with self.assertRaises(ValueError):
+                read_dsn({'DSN_FILE': str(path)})
+            with self.assertRaises(ValueError):
+                read_dsn({'TRADEBOT_DATABASE_DSN_FILE': str(path), 'TRADEBOT_DATABASE_DSN': 'ambiguous'})
+            path.write_text('')
+            with self.assertRaises(ValueError):
+                read_dsn({'TRADEBOT_DATABASE_DSN_FILE': str(path)})
 
 
 class ArchiveLifecycleTests(unittest.TestCase):

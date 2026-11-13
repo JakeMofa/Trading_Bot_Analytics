@@ -19,7 +19,7 @@ def configuration(environ):
         raise ValueError('cloud mutation authority remains CP6-unqualified')
     if environ.get('TRADEBOT_RETIREMENT_ENABLED', 'false').lower() != 'false':
         raise ValueError('runtime retirement remains OFF')
-    origin = environ.get('TRADEBOT_ORIGIN_ID', 'generated-preprod')
+    origin = environ.get('TRADEBOT_ORIGIN_ID', 'generated-pp')
     if mode == 'generated' and not origin.startswith('generated-'):
         raise ValueError('generated mode requires generated- origin namespace')
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')

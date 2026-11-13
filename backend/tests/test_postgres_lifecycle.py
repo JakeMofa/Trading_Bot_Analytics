@@ -90,7 +90,7 @@ class RotationConfigurationTests(unittest.TestCase):
             RotationPolicy(0)
 
     def test_runtime_cannot_enable_cloud_or_retirement(self):
-        self.assertEqual(configuration({})['origin_id'], 'generated-preprod')
+        self.assertEqual(configuration({})['origin_id'], 'generated-pp')
         for values in [{'TRADEBOT_RETIREMENT_ENABLED': 'true'}, {'TRADEBOT_CLOUD_ENABLED': 'true'},
                        {'TRADEBOT_DATA_MODE': 'live'}, {'TRADEBOT_ORIGIN_ID': 'production'}]:
             with self.subTest(values=values), self.assertRaises(ValueError):

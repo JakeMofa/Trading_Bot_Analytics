@@ -4,10 +4,13 @@ import io
 import json
 import os
 from pathlib import Path
+import signal
+import socket
 import sys
 import tarfile
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import datetime,timedelta,timezone
 from dataclasses import replace
 import uuid
@@ -270,6 +273,57 @@ class BudgetTests(unittest.TestCase):
             c.Budget(.1).run([sys.executable,'-c','import time; time.sleep(5)'])
         with self.assertRaisesRegex(c.DeploymentHold,'child_output_bound'):
             c.Budget(3).run([sys.executable,'-c','print("x"*70000)'])
+
+    def test_exited_leader_does_not_leave_sigterm_ignoring_descendant(self):
+        # The descendant keeps stdout/stderr open after its leader exits. A
+        # separate socket proves actual exit (EOF), including before zombie reaping.
+        script='''import os,signal,socket,sys,time
+ready_read,ready_write=os.pipe()
+child=os.fork()
+if child:
+    os.close(ready_write)
+    os.read(ready_read,1)
+    os._exit(0)
+os.close(ready_read)
+signal.signal(signal.SIGTERM,signal.SIG_IGN)
+connection=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+connection.connect(sys.argv[1])
+connection.sendall((str(os.getpid())+"\\n").encode())
+os.write(ready_write,b'1')
+while True:
+    time.sleep(10)
+'''
+        original_popen=c.subprocess.Popen
+        leaders=[]
+        def record_leader(*args,**kwargs):
+            process=original_popen(*args,**kwargs)
+            leaders.append(process)
+            return process
+        descendant=None
+        connection=None
+        with tempfile.TemporaryDirectory() as directory,socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as listener:
+            address=str(Path(directory)/'exit.sock')
+            listener.bind(address)
+            listener.listen(1)
+            listener.settimeout(2)
+            try:
+                with patch.object(c.subprocess,'Popen',side_effect=record_leader):
+                    with self.assertRaises(c.DeploymentHold):
+                        c.Budget(1).run([sys.executable,'-c',script,address])
+                connection,_=listener.accept()
+                connection.settimeout(1)
+                descendant=int(connection.recv(64).strip())
+                self.assertEqual(leaders[0].returncode,0)
+                self.assertEqual(connection.recv(1),b'')
+            finally:
+                if descendant is not None:
+                    try:os.kill(descendant,signal.SIGKILL)
+                    except ProcessLookupError:pass
+                for leader in leaders:
+                    try:os.killpg(leader.pid,signal.SIGKILL)
+                    except ProcessLookupError:pass
+                    leader.wait(timeout=2)
+                if connection is not None:connection.close()
 
 
 if __name__=='__main__':unittest.main()

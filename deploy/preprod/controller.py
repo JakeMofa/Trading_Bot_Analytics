@@ -219,15 +219,31 @@ class Budget:
             finally:
                 selector.close()
                 if not completed:
+                    grace_deadline=time.monotonic()+2
                     try:
                         os.killpg(process.pid,signal.SIGTERM)
                     except ProcessLookupError:
                         pass
                     try:
-                        process.wait(timeout=2)
+                        process.wait(timeout=max(.001,grace_deadline-time.monotonic()))
                     except subprocess.TimeoutExpired:
-                        os.killpg(process.pid,signal.SIGKILL)
-                        process.wait(timeout=2)
+                        pass
+                    # The leader may have exited while descendants still hold the
+                    # output pipes. Its wait result does not establish group exit.
+                    group_remaining=True
+                    while time.monotonic()<grace_deadline:
+                        try:
+                            os.killpg(process.pid,0)
+                        except ProcessLookupError:
+                            group_remaining=False
+                            break
+                        time.sleep(min(.05,max(0,grace_deadline-time.monotonic())))
+                    if group_remaining:
+                        try:
+                            os.killpg(process.pid,signal.SIGKILL)
+                        except ProcessLookupError:
+                            pass
+                    process.wait(timeout=2)
                 process.stdout.close()
                 process.stderr.close()
 

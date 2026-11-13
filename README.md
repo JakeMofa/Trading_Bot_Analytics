@@ -10,7 +10,11 @@ The pending SQLite A/B implementation was superseded; PRs #11–#13 are closed,
 with their branches and evidence retained. PR #14 added independent CI/CD and version publication; PR #15 aligned those
 controls into preprod. Checkpoint 1 is qualified on PP: Docker and PostgreSQL are installed and
 generated persistence/role tests pass. The application adapter and live collector
-are not installed. Next is checkpoint 2, versioned schema and migration checks.
+are not installed on PP. Generated PostgreSQL schema, application and lifecycle
+components are qualified together in the feature integration branch; PP
+deployment-control code also passed generated Linux qualification. Actual host
+bindings and manual application deployment remain open. See the master for exact
+commits and CI.
 
 Start with the authoritative [master roadmap](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md),
 then the [session handoff](docs/PLAN/SESSION_HANDOFF.md). Detailed pipeline operation
@@ -40,7 +44,7 @@ data. PP must not write to the production database or start a second collector.
 | Store | Purpose | Current versus planned |
 | --- | --- | --- |
 | Production local SQLite | Existing collector evidence, structured records and application history | Existing `/opt/tradebot/data/btc_intelligence.db`; do not modify or copy it during onboarding |
-| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Installed foundation with empty raw/core/ops/archive namespaces and isolated smoke data; business schema/adapter remain planned |
+| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Installed foundation with empty raw/core/ops/archive namespaces and isolated smoke data; business schema and adapter pass generated CI but are not yet deployed |
 | Supabase Postgres | Long-term structured markets, candles, features, predictions, outcomes and sync checkpoints | Existing TokenBot project, ref `xttdqeimdujweijxcuro`, `us-west-2` |
 | Supabase Storage | Private raw archives and associated verification evidence | Existing `market-raw` bucket; other private buckets include `knowledge` and `backups` |
 
@@ -131,9 +135,31 @@ hosts with the PP marker. No foundation command enables collection, retention,
 Supabase sync, paid AI, or the CD runtime qualification flag.
 
 CI executes host/control regressions and the real pinned container on Linux,
-including recreation, role tests and rejection of injected column drift. Full
-business-schema migration/drift coverage belongs to checkpoint 2. Evidence is a sanitized
+including recreation, role tests and rejection of injected column drift. The
+separate PostgreSQL integration job adds business-schema migration and drift
+coverage from checkpoint 2. Evidence is a sanitized
 `postgres-foundation-<SHA>` Actions artifact. It does not need cloud secrets.
+
+## PostgreSQL application qualification (feature integration)
+
+The `backend/postgres/` package contains the reviewed local schema contract,
+explicit versioned migrator, generated ingestion, RAM-backed API/SSE, serial
+calculation worker and A/B lifecycle/history code. Its local business migration
+is separate from the unapplied private Supabase `history_v2` contract. Application
+startup only validates schema; unreviewed drift stops startup.
+
+The generated integration run on Linux executes against PostgreSQL 17, including
+restricted-role migrations, repeated/upgrade checks and actual partition removal
+followed by archived API/history retrieval. The built API container acknowledged
+21 generated records and served dashboard/history/SSE. This proves that tested
+scope; it does not establish live feeds, preview networking, representative
+capacity, ensemble/news/evaluation or real cloud permissions.
+
+CP5 supplies the separate runtime Compose overlay and restricted manual host
+controller. They are not installed merely by merging application code. Do not
+run the foundation-only `verify` command against the migrated business schema.
+Production and runtime retirement remain unchanged/OFF. Exact verified runtime
+commands will be added after the PP host deployment succeeds.
 
 ## Local developer quick start
 

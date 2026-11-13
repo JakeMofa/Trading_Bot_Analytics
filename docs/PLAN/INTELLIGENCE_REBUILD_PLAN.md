@@ -27,10 +27,129 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   checks passed. Smoke 32 KiB, cluster allocation 48,205,824 bytes, sampled memory
   18.13 MiB / 512 MiB; no published port. CI rejected injected column drift.
   [Sanitized evidence](evidence/pp-postgres-foundation-2026-11-12.json).
-  App/collector/CD remain uninstalled or unqualified. Next small PR is **CP2**.
+  App/collector/CD remain uninstalled or unqualified on PP; source CP2–4
+  qualification and CP5 integration are recorded below.
 - Production is untouched by this milestone. No new production health/collection
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
+
+### Parallel implementation authorized — November 12, 2026
+
+The user authorized CP2–5 as separate feature branches and one consolidation
+branch. Base: preprod `3031554`, exact merge CI 43342088466 PASS. This changes
+work ownership, not checkpoint acceptance or production authorization.
+
+| Workstream | Feature branch | Owner / scope |
+| --- | --- | --- |
+| CP2 | `codex/pg-schema` | Schema agent: migrations, checksum/drift contract, exact values/references |
+| CP3 | `codex/pg-application` | Application agent: PostgreSQL adapter, calculation/API/SSE/dashboard, app image |
+| CP4 | `codex/pg-lifecycle` | Lifecycle agent: switch/seal, outbox/archive/readback, reader drainage, history |
+| CP5 | `codex/pg-preprod-deploy` | Coordinator: runtime Compose, restricted PP deployment controls, integrated CI |
+| Integration | `codex/feature-postgres-pp` | Coordinator: review, dependency integration, README/master/handoff, PR to preprod |
+
+Workers have isolated code worktrees from the same base. Original dirty checkout
+remains untouched. Shared schema/interfaces must be agreed before consumers
+implement SQL; schema owns that contract. No worker may silently amend another
+worker's ownership or loosen a gate. Component PRs target the integration branch;
+CP2 merges before consumers, then CP3/CP4, then CP5 controls after integrated tests.
+The consolidated branch targets preprod only. Successful source builds do not
+qualify the host controller or authorize live feeds, Supabase DDL/writes,
+production changes or retirement. A failing dependency stops its dependent
+release stage, while independent offline work may continue.
+
+Each component records tested scope and gaps; no repeated CI polling or unchanged
+failed-trial reruns. Manual PP application deployment follows CP5's executable
+qualified route with generated data, collector/cloud/retirement OFF. The existing
+2 GiB PP VM and 64 MiB generated-data foundation allowance remain the initial
+limits; record any additional bounded runtime resource proposal before use.
+
+### CP2–5 generated source integration qualified; PP host deployment next
+
+Component PRs [#18](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/18)
+(schema `77eb698`), [#19](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/19)
+(application `cdc7e34`) and [#20](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/20)
+(lifecycle `c0b2cc8`) are merged into the integration branch only. The combined
+source `751f1f8` passed exact Linux CI
+[43346308984](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43346308984):
+16 schema and 35 application/lifecycle tests, **zero PostgreSQL skips**, plus a
+built runnable container and actual generated API/SSE acceptance.
+
+The isolated runtime committed 21 generated events, rejected conflicting replay,
+preserved exact decimals, published prediction history and served two SSE
+connections. Maximum sampled API request 2.995 ms; complete qualification
+55.835 seconds; generated relations 1,867,776 bytes, database 10,565,299 bytes,
+WAL 16,777,216 bytes. These are tiny generated measurements, not host/capacity or
+live-market acceptance. [Sanitized evidence](evidence/postgres-integrated-generated-2026-11-12.json).
+
+Earlier integrated failures remain recorded: `1aa8001`/CI43345696255 rejected
+migration-role access before explicit owner activation; `92f25fd`/CI43346090808
+passed database suites then failed the malformed Compose tmpfs mount. Both had
+specific fixes; no gate was weakened or unchanged failed run retried.
+
+CP4 now proves generated A/B switching, current B writes during A verification,
+reader/protected-reference holds, real partition removal and archived API/history
+retrieval afterward. Runtime cloud transport and retirement remain OFF. The
+private `history_v2` file is a contract only, not applied Supabase DDL.
+
+CP3 is the generated adapter/dashboard/baseline-calculation milestone, not full
+production parity: live feeds, production preview, ensemble/news/evaluation and
+outcome display remain explicit follow-on work. CP7 must measure capacity,
+core/dedup/acknowledged-outbox growth, sole-collector ownership and real rollover.
+
+CP5 [PR #21](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/21) owns the
+required combined CI job, runtime Compose and host deployment/recovery controls.
+Its source/controller qualification now passes as recorded below; actual host
+bindings and manual deployment remain unperformed, so target flags remain disabled. Proposed
+normal runtime caps total 1 GiB (PG512/API192/calculation192/lifecycle128 MiB),
+with a separate 192 MiB explicit migration container before app startup.
+Generated PP smoke evidence cannot authorize production promotion. The existing
+PP foundation and production are unchanged by this source milestone. Integration
+[PR #17](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/17) remains draft
+until its own combined exact CI and review; preprod has not yet received this stack.
+
+### CP5 controller qualification — November 13 UTC
+
+**Final source qualification PASS:** `deb8f0d` passed exact push CI
+[43351324325](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43351324325)
+and PR CI 43351333800, including the descendant-cleanup regression and required
+Linux-root SSH permissions case. [Final generated evidence](evidence/postgres-controller-final-generated-2026-11-13.json).
+PR #21 merged into integration at `87576fd`. All four component PRs #18–#21 are
+now integrated; PR #17 is the reviewed route to preprod. Its own exact merged
+source CI is still required before that merge. Actual PP helper/identity/runner
+installation and the first manual generated deployment remain CP5's next steps.
+No host runtime qualification flag, production configuration or cloud permission
+changed as part of these merges.
+
+Source `e402a8c` passed exact push CI
+[43350188521](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43350188521)
+and PR CI 43350197910. Actual controller stages, API restart, one-use rejection
+and forward-preserving recovery passed in 121.842 seconds, with the Linux
+permissions test executed as root. Twenty-one generated events were acknowledged;
+maximum sampled API request 3.585 ms. [Evidence](evidence/postgres-controller-generated-2026-11-13.json).
+This proves the tested generated scope only. Subsequent review identified a
+process-group cleanup edge case when a child leader exits before its descendant;
+the narrow fix and regression required successor CI before installation.
+
+The Linux controller now exercises the actual pinned PostgreSQL runtime,
+explicit migrations, API/SSE smoke, API restart and forward-preserving recovery
+in disposable CI. Only CI host identity is substituted. Both deployment target
+profiles remain disabled until actual operator/SSH bindings are qualified.
+
+Earlier controller runs are preserved as failures: `9fc68c2` / 43348103458
+rejected the newer `ubuntu-latest` host; `a6d35f8` / 43348320613 rejected Compose
+config without its inactive migration profile; `699cf20` / 43348745820 rejected
+Compose's normalized absolute secret targets. The matching Ubuntu 24.04 runner,
+explicit inspection of the migration profile and strictly equivalent secret
+paths address those evidenced failures. Full normalized Compose validation was
+also exercised locally, not only the individual failed field.
+
+A separate operator review found the root-owned authorized-key files were not
+readable by the dedicated SSH identity. Their corrected modes retain root-only
+write authority while permitting authentication; Linux effective-UID tests are
+required before installation. No VM change resulted from these source fixes.
+The final successor result above qualifies the generated controller code;
+actual PP host bindings remain a separate requirement. [Generated PP release procedure](../../deploy/preprod/RUNTIME_REVIEW.md)
+keeps installation, binding evidence and the first manual deployment separate.
 
 ### Fixed architecture and policy
 

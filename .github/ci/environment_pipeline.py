@@ -84,8 +84,10 @@ def qualify_ci(api, role, sha, env):
         require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'manual or successful source CI trigger required')
         branch = env.get('SOURCE_BRANCH', env.get('GITHUB_REF_NAME', ''))
         if env.get('SOURCE_BRANCH'):
-            require(env.get('GITHUB_REF_NAME') == 'main', 'deployment/release controls must come from main')
-            controls = api.read('/git/ref/heads/main')
+            control_branch=env.get('GITHUB_REF_NAME')
+            require(control_branch=='main' or (role=='preprod' and control_branch=='preprod' and branch=='preprod'),
+                    'controls must come from main or exact preprod for PP only')
+            controls = api.read('/git/ref/heads/'+control_branch)
             require(controls['object']['sha'] == env.get('GITHUB_SHA'), 'control branch moved')
         else:
             require(env.get('GITHUB_SHA') == sha, 'dispatch SHA differs from source')
@@ -115,7 +117,11 @@ def target_profile(role, path):
     require(DIGEST.fullmatch(profile.get('controller_sha256', '')), 'qualified controller hash missing')
     require(profile.get('qualification_commit') and SHA.fullmatch(profile['qualification_commit']),
             'controller qualification commit missing')
-    require(profile.get('timeout_seconds') == 600, 'reviewed 600-second controller deadline required')
+    if role == 'preprod':
+        require(profile.get('work_seconds') == 600 and profile.get('recovery_seconds') == 180
+                and profile.get('timeout_seconds') == 810, 'reviewed PP work/recovery/transport budgets required')
+    else:
+        require(profile.get('timeout_seconds') == 600, 'reviewed production controller deadline required')
     require(profile.get('user') == 'tradebot-' + role + '-deploy', 'dedicated deployment identity required')
     require(re.fullmatch(r'[A-Za-z0-9.-]+', profile.get('host', '')), 'invalid target host')
     return profile
@@ -152,6 +158,8 @@ def preprod_proof(api, run_id, sha, artifact_digest, policy_digest):
             and proof.get('controls_sha') == run.get('head_sha'),
             'PP acceptance bindings mismatch')
     require(proof.get('checks') == dict.fromkeys(REQUIRED_CHECKS, 'PASS'), 'PP acceptance checks incomplete')
+    require(proof.get('acceptance_scope') == 'production_candidate',
+            'generated-only PP checks cannot authorize production promotion')
     validate_result(proof, 'preprod', sha, artifact_digest)
     issued = dt.datetime.fromisoformat(proof['completed_at_utc'])
     require(issued.utcoffset() is not None, 'timezone required in PP evidence')
@@ -170,11 +178,15 @@ def validate_result(result, role, sha, digest):
     if role == 'preprod':
         require(result.get('live_collector_enabled') is False and result.get('production_data_mounted') is False,
                 'PP must not collect live markets or mount production data')
+        require(result.get('acceptance_scope') in ('generated_only','production_candidate'),
+                'explicit PP acceptance scope required')
+        require(re.fullmatch(r'sha256:[0-9a-f]{64}',result.get('runtime_image_id','')) is not None,
+                'actual PP runtime image identity required')
     # Never persist arbitrary controller stdout fields (logs or credentials).
     safe = {'gate', 'environment', 'instance', 'source_sha', 'artifact_sha256',
             'checks', 'paid_ai_enabled', 'retention_enabled'}
     if role == 'preprod':
-        safe.update({'live_collector_enabled', 'production_data_mounted'})
+        safe.update({'live_collector_enabled', 'production_data_mounted', 'acceptance_scope', 'runtime_image_id'})
     return {key: result[key] for key in safe}
 
 
@@ -241,7 +253,10 @@ def bounded_process(command, source, timeout):
 
 
 def deploy(api, role, sha, profile_path, env, pp_run_id=''):
-    require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and env.get('GITHUB_REF_NAME') == 'main', 'deployment controls must be dispatched from main')
+    require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'manual deployment required')
+    control_branch=env.get('GITHUB_REF_NAME')
+    require(control_branch=='main' or (role=='preprod' and control_branch=='preprod' and env.get('SOURCE_BRANCH')=='preprod'),
+            'deployment controls require main or exact preprod for PP only')
     qualified = qualify_ci(api, role, sha, env)
     profile = target_profile(role, profile_path)  # Before any SSH or bundle creation.
     from release_package import load_candidate

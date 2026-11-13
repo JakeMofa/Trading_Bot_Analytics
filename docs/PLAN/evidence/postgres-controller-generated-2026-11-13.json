@@ -1,0 +1,108 @@
+{
+  "baseline": {
+    "application": "NOT_INSTALLED",
+    "cd": "NOT_QUALIFIED",
+    "collector": "NOT_INSTALLED",
+    "container_memory": "19.45MiB / 512MiB",
+    "elapsed_seconds": 9.543,
+    "generated_relation_bytes": 32768,
+    "generated_rows": 32,
+    "image": "postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+    "pgdata_allocated_bytes": 48205824,
+    "published_ports": [],
+    "recreated": true,
+    "restricted_role_checks": 4,
+    "result": "PASS_FOUNDATION_ONLY",
+    "schema_fingerprint": "d88dcb38e88339c01ebc72bf71d966c1a37b6f9f7597e74015de0dc9103f5d40",
+    "settings": {
+      "autovacuum": "on",
+      "data_checksums": "on",
+      "fsync": "on",
+      "full_page_writes": "on",
+      "max_connections": "20",
+      "shared_buffers": "128MB",
+      "synchronous_commit": "on",
+      "version": "17.12 (Debian 17.12-1.pgdg12+1)"
+    },
+    "usage": {
+      "database_bytes": 7837363,
+      "temporary_bytes": 0,
+      "wal_bytes": 16777216
+    },
+    "volume": "tradebot_pp_pgdata"
+  },
+  "cloud_writes": false,
+  "controller": {
+    "actual_pp_host_binding": "UNQUALIFIED",
+    "api_restart_persisted_acknowledgement": true,
+    "controller_bundle_sha256": "9e379fe7461a068614ba9b42642179fad965bdb690b077977095ca7e6501a63e",
+    "one_use_replay_rejected": true,
+    "qualification_scope": "generated_ci_host_identity_substituted",
+    "recovery": {
+      "database_preserved": true,
+      "database_restored": false,
+      "new_acknowledgements_preserved": true,
+      "strategy": "stop_candidate_keep_database"
+    },
+    "result": {
+      "acceptance_scope": "generated_only",
+      "artifact_sha256": "c1de9569de7f38d93c0fdf4a0eb5995fa9614fbbb7df8f3c8802aa80f17fa721",
+      "checks": {
+        "api": "PASS",
+        "collector_ownership": "PASS",
+        "data_correctness": "PASS",
+        "disabled_flags": "PASS",
+        "freshness": "PASS",
+        "market_identity": "PASS",
+        "migration": "PASS",
+        "recovery": "PASS",
+        "schema": "PASS",
+        "sse": "PASS"
+      },
+      "controller_sha256": "9e379fe7461a068614ba9b42642179fad965bdb690b077977095ca7e6501a63e",
+      "environment": "preprod",
+      "gate": "PASS",
+      "instance": "tradebot-preprod-01",
+      "live_collector_enabled": false,
+      "paid_ai_enabled": false,
+      "production_data_mounted": false,
+      "retention_enabled": false,
+      "runtime_image_id": "sha256:b898c6a09379f49696cbae3ae470e1905dc02f3764f0fdebdd75abdac07203e4",
+      "source_sha": "e402a8c64376c4838f9a736f4a55f4d57c148b44"
+    }
+  },
+  "elapsed_seconds": 121.842,
+  "production_access": false,
+  "recorded_date_utc": "2026-11-13",
+  "representative_capacity": "NOT_PERFORMED",
+  "result": "PASS_GENERATED_POSTGRES_INTEGRATION",
+  "runtime": {
+    "acknowledged_events": 21,
+    "api_max_seconds": 0.003585,
+    "api_ram_after_commit": true,
+    "bounded_chart": true,
+    "collector_enabled": false,
+    "conflict_detected": true,
+    "dashboard_contract": true,
+    "exact_decimal_roundtrip": true,
+    "origin_id": "generated-pp",
+    "prediction_history": true,
+    "scope": "generated_local_api",
+    "sse_connections": 2,
+    "status": "pass",
+    "unsupported": [
+      "real_feeds",
+      "production_preview",
+      "ensemble",
+      "news",
+      "evaluation",
+      "capacity"
+    ]
+  },
+  "sizes": {
+    "database_bytes": 10966707,
+    "generated_relation_bytes": 2228224,
+    "wal_bytes": 33554432
+  },
+  "source_ci_run": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43350188521"
+}

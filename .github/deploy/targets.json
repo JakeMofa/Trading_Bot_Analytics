@@ -7,7 +7,9 @@
     "runtime_qualified": false,
     "controller_sha256": "",
     "qualification_commit": "",
-    "timeout_seconds": 600
+    "timeout_seconds": 810,
+    "work_seconds": 600,
+    "recovery_seconds": 180
   },
   "production": {
     "instance": "tradebot-analytics-01",

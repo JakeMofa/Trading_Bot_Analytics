@@ -11,9 +11,9 @@ with their branches and evidence retained. PR #14 added independent CI/CD and ve
 controls into preprod. Checkpoint 1 is qualified on PP: Docker and PostgreSQL are installed and
 generated persistence/role tests pass. The application adapter and live collector
 are not installed on PP. Generated PostgreSQL schema, application and lifecycle
-components are qualified together in the feature integration branch; PP
-deployment-control code also passed generated Linux qualification. Actual host
-bindings and manual application deployment remain open. See the master for exact
+components and deployment controls are merged into preprod. Actual PP
+controller, SSH, role and private-volume bindings are qualified; the first
+manual generated application deployment remains open. See the master for exact
 commits and CI.
 
 Start with the authoritative [master roadmap](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md),
@@ -25,7 +25,7 @@ and remaining bindings are in the [environment guide](.github/ci/ENVIRONMENTS.md
 | Environment | Code policy | Lightsail instance | Last verified resources/address | Actual application/database state |
 | --- | --- | --- | --- | --- |
 | Local development | Your reviewed feature branch | Your computer | Isolated fixtures | Existing main-baseline application uses SQLite; tests use generated data |
-| PP / preprod / PRT | Permanent `preprod` branch; main controls may also test an exact main candidate | `tradebot-preprod-01`, `us-east-2a` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `18.119.253.233`, private `172.26.11.9` | Docker 29.9.3 / Compose 5.7.1 / PostgreSQL 17.12 foundation qualified; app, collector and CD controller not installed/qualified |
+| PP / preprod / PRT | Permanent `preprod` branch; main controls may also test an exact main candidate | `tradebot-preprod-01`, `us-east-2a` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `18.119.253.233`, private `172.26.11.9` | Docker 29.9.3 / Compose 5.7.1 / PostgreSQL 17.12 foundation qualified; CD controller and role/SSH bindings qualified; app not deployed; collector OFF |
 | Production | Intended release branch `main`, explicit manual promotion only | `tradebot-analytics-01`, `us-east-2` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `3.13.133.25`, private `172.26.2.84` | Last recorded deployed revision `d56b4a7`, legacy SQLite; services active but collection held at the 5,120 MiB DB+WAL guard |
 
 PP foundation was verified November 12 (November 13 UTC); production state is

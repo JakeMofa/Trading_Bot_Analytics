@@ -7,12 +7,16 @@ and evidence record, not another roadmap. The production target remains disabled
 ## Current qualification boundary
 
 The schema, application and lifecycle passed combined generated PostgreSQL 17 and
-actual container/API/SSE tests at `751f1f8`, CI 43346308984. The deployment controller/adapter passed exact Linux CI 43350188521 at
-`e402a8c`; a later process-group cleanup correction requires its own exact CI
-before installation. Its CI uses real Docker,
+actual container/API/SSE tests at `751f1f8`, CI 43346308984. The final deployment controller/adapter, including descendant cleanup, passed
+exact Linux CI 43351324325 at `deb8f0d`. Combined source `687861e` also passed
+exact CI 43351856515. That exact helper source is installed and its actual PP
+host/SSH/role preflight is qualified; the first manual application deployment
+remains unperformed. Its CI uses real Docker,
 PostgreSQL, roles, migrations, API restart, persisted acknowledgements and recovery;
 only the PP hostname binding is substituted on the disposable GitHub host.
-Actual PP host/deployment bindings remain separately unqualified until recorded.
+Actual PP prerequisite bindings are recorded in
+[the sanitized report](../../docs/PLAN/evidence/pp-runtime-binding-2026-11-13.json).
+This does not certify a deployment or production acceptance.
 
 The runtime permits generated/replay data only and has no real collector, cloud
 transport or retirement activation route. A passing generated smoke cannot
@@ -65,8 +69,9 @@ Before enabling the target, prove through that dedicated key and strict host pin
 
 Set the preprod GitHub environment's dedicated key and verified host pin through
 secret input, never command-line values or evidence. Restore the approved private
-runner mechanism. Fresh GitHub inventory currently has zero runners and no PP
-secrets, so workflow definitions alone cannot dispatch to the host.
+runner mechanism. The recorded preparation configured both PP environment secrets and temporary
+ephemeral runner 27. Recheck availability before dispatch; workflow definitions
+alone do not establish those bindings.
 
 Record actual binding evidence before committing a qualified preprod profile.
 The source-reviewed target flag, controller hash and qualification commit must

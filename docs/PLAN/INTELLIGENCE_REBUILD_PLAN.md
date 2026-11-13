@@ -27,10 +27,84 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   checks passed. Smoke 32 KiB, cluster allocation 48,205,824 bytes, sampled memory
   18.13 MiB / 512 MiB; no published port. CI rejected injected column drift.
   [Sanitized evidence](evidence/pp-postgres-foundation-2026-11-12.json).
-  App/collector/CD remain uninstalled or unqualified. Next small PR is **CP2**.
+  App/collector/CD remain uninstalled or unqualified on PP; source CP2–4
+  qualification and CP5 integration are recorded below.
 - Production is untouched by this milestone. No new production health/collection
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
+
+### Parallel implementation authorized — November 12, 2026
+
+The user authorized CP2–5 as separate feature branches and one consolidation
+branch. Base: preprod `3031554`, exact merge CI 43342088466 PASS. This changes
+work ownership, not checkpoint acceptance or production authorization.
+
+| Workstream | Feature branch | Owner / scope |
+| --- | --- | --- |
+| CP2 | `codex/pg-schema` | Schema agent: migrations, checksum/drift contract, exact values/references |
+| CP3 | `codex/pg-application` | Application agent: PostgreSQL adapter, calculation/API/SSE/dashboard, app image |
+| CP4 | `codex/pg-lifecycle` | Lifecycle agent: switch/seal, outbox/archive/readback, reader drainage, history |
+| CP5 | `codex/pg-preprod-deploy` | Coordinator: runtime Compose, restricted PP deployment controls, integrated CI |
+| Integration | `codex/feature-postgres-pp` | Coordinator: review, dependency integration, README/master/handoff, PR to preprod |
+
+Workers have isolated code worktrees from the same base. Original dirty checkout
+remains untouched. Shared schema/interfaces must be agreed before consumers
+implement SQL; schema owns that contract. No worker may silently amend another
+worker's ownership or loosen a gate. Component PRs target the integration branch;
+CP2 merges before consumers, then CP3/CP4, then CP5 controls after integrated tests.
+The consolidated branch targets preprod only. Successful source builds do not
+qualify the host controller or authorize live feeds, Supabase DDL/writes,
+production changes or retirement. A failing dependency stops its dependent
+release stage, while independent offline work may continue.
+
+Each component records tested scope and gaps; no repeated CI polling or unchanged
+failed-trial reruns. Manual PP application deployment follows CP5's executable
+qualified route with generated data, collector/cloud/retirement OFF. The existing
+2 GiB PP VM and 64 MiB generated-data foundation allowance remain the initial
+limits; record any additional bounded runtime resource proposal before use.
+
+### CP2–4 generated integration qualified; CP5 continuing
+
+Component PRs [#18](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/18)
+(schema `77eb698`), [#19](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/19)
+(application `cdc7e34`) and [#20](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/20)
+(lifecycle `c0b2cc8`) are merged into the integration branch only. The combined
+source `751f1f8` passed exact Linux CI
+[43346308984](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43346308984):
+16 schema and 35 application/lifecycle tests, **zero PostgreSQL skips**, plus a
+built runnable container and actual generated API/SSE acceptance.
+
+The isolated runtime committed 21 generated events, rejected conflicting replay,
+preserved exact decimals, published prediction history and served two SSE
+connections. Maximum sampled API request 2.995 ms; complete qualification
+55.835 seconds; generated relations 1,867,776 bytes, database 10,565,299 bytes,
+WAL 16,777,216 bytes. These are tiny generated measurements, not host/capacity or
+live-market acceptance. [Sanitized evidence](evidence/postgres-integrated-generated-2026-11-12.json).
+
+Earlier integrated failures remain recorded: `1aa8001`/CI43345696255 rejected
+migration-role access before explicit owner activation; `92f25fd`/CI43346090808
+passed database suites then failed the malformed Compose tmpfs mount. Both had
+specific fixes; no gate was weakened or unchanged failed run retried.
+
+CP4 now proves generated A/B switching, current B writes during A verification,
+reader/protected-reference holds, real partition removal and archived API/history
+retrieval afterward. Runtime cloud transport and retirement remain OFF. The
+private `history_v2` file is a contract only, not applied Supabase DDL.
+
+CP3 is the generated adapter/dashboard/baseline-calculation milestone, not full
+production parity: live feeds, production preview, ensemble/news/evaluation and
+outcome display remain explicit follow-on work. CP7 must measure capacity,
+core/dedup/acknowledged-outbox growth, sole-collector ownership and real rollover.
+
+CP5 [PR #21](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/21) owns the
+required combined CI job, runtime Compose and host deployment/recovery controls.
+The latter are still being qualified; target flags remain disabled. Proposed
+normal runtime caps total 1 GiB (PG512/API192/calculation192/lifecycle128 MiB),
+with a separate 192 MiB explicit migration container before app startup.
+Generated PP smoke evidence cannot authorize production promotion. The existing
+PP foundation and production are unchanged by this source milestone. Integration
+[PR #17](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/17) remains draft
+until its own combined exact CI and review; preprod has not yet received this stack.
 
 ### Fixed architecture and policy
 

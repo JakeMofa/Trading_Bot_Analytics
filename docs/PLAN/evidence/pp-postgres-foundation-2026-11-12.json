@@ -1,0 +1,164 @@
+{
+  "checkpoint": "PP PostgreSQL foundation CP0\u20131",
+  "source": "40c2761c659ba91afb92fcc3aaa6ae8812c9531a",
+  "exact_ci": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43340827516",
+  "pr_ci": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43340834244",
+  "alignment_pr": 15,
+  "foundation_pr": 16,
+  "ci_generated": {
+    "application": "NOT_INSTALLED",
+    "cd": "NOT_QUALIFIED",
+    "collector": "NOT_INSTALLED",
+    "container_memory": "19.78MiB / 512MiB",
+    "elapsed_seconds": 9.281,
+    "generated_drift_injection_rejected": true,
+    "generated_relation_bytes": 32768,
+    "generated_rows": 32,
+    "image": "postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+    "pgdata_allocated_bytes": 48205824,
+    "published_ports": [],
+    "recreated": true,
+    "restricted_role_checks": 4,
+    "result": "PASS_FOUNDATION_ONLY",
+    "schema_fingerprint": "d88dcb38e88339c01ebc72bf71d966c1a37b6f9f7597e74015de0dc9103f5d40",
+    "settings": {
+      "autovacuum": "on",
+      "data_checksums": "on",
+      "fsync": "on",
+      "full_page_writes": "on",
+      "max_connections": "20",
+      "shared_buffers": "128MB",
+      "synchronous_commit": "on",
+      "version": "17.12 (Debian 17.12-1.pgdg12+1)"
+    },
+    "usage": {
+      "database_bytes": 7837363,
+      "temporary_bytes": 0,
+      "wal_bytes": 16777216
+    },
+    "volume": "tradebot_pp_pgdata"
+  },
+  "pp_preflight": {
+    "available_memory_bytes": 1563713536,
+    "disk_free_bytes": 58639339520,
+    "host": "tradebot-preprod-01"
+  },
+  "installation": {
+    "available_memory_bytes": 1568927744,
+    "compose": "Docker Compose version v5.7.1",
+    "disk_free_bytes": 58639339520,
+    "docker": "Docker version 29.9.3, build 5457199",
+    "host": "tradebot-preprod-01"
+  },
+  "pp_smoke": {
+    "application": "NOT_INSTALLED",
+    "available_memory_bytes": 1419223040,
+    "cd": "NOT_QUALIFIED",
+    "collector": "NOT_INSTALLED",
+    "container_memory": "18.13MiB / 512MiB",
+    "disk_free_bytes": 57445605376,
+    "elapsed_seconds": 11.541,
+    "generated_relation_bytes": 32768,
+    "generated_rows": 32,
+    "host": "tradebot-preprod-01",
+    "image": "postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+    "pgdata_allocated_bytes": 48205824,
+    "published_ports": [],
+    "recreated": true,
+    "restricted_role_checks": 4,
+    "result": "PASS_FOUNDATION_ONLY",
+    "schema_fingerprint": "d88dcb38e88339c01ebc72bf71d966c1a37b6f9f7597e74015de0dc9103f5d40",
+    "settings": {
+      "autovacuum": "on",
+      "data_checksums": "on",
+      "fsync": "on",
+      "full_page_writes": "on",
+      "max_connections": "20",
+      "shared_buffers": "128MB",
+      "synchronous_commit": "on",
+      "version": "17.12 (Debian 17.12-1.pgdg12+1)"
+    },
+    "usage": {
+      "database_bytes": 7837363,
+      "temporary_bytes": 0,
+      "wal_bytes": 16777216
+    },
+    "volume": "tradebot_pp_pgdata"
+  },
+  "pp_host_checks": {
+    "compose_version": "Docker Compose version v5.7.1",
+    "docker_version": "Docker version 29.9.3, build 5457199",
+    "free_filesystem_bytes": 57445326848,
+    "host": "tradebot-preprod-01",
+    "image_id": "sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+    "image_repo_digests": [
+      "postgres@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536"
+    ],
+    "image_size_bytes": 645627679,
+    "log_bytes": 1339,
+    "oom_killed": false,
+    "port_bindings": {},
+    "private_network": true,
+    "published_postgres_listener": false,
+    "restart_count": 0,
+    "secret_metadata": [
+      {
+        "mode": "0o400",
+        "name": "admin",
+        "uid": 999
+      },
+      {
+        "mode": "0o400",
+        "name": "reader",
+        "uid": 999
+      },
+      {
+        "mode": "0o400",
+        "name": "application",
+        "uid": 999
+      },
+      {
+        "mode": "0o400",
+        "name": "migrator",
+        "uid": 999
+      }
+    ],
+    "tradebot_units": {
+      "tradebot-api": "not-found",
+      "tradebot-ensemble": "not-found",
+      "tradebot-lifecycle": "not-found"
+    }
+  },
+  "failed_predecessors": [
+    {
+      "source": "9755da2",
+      "run": 43340346433,
+      "cause": "Compose normalized memory values are strings; parser corrected without limit change"
+    },
+    {
+      "source": "48aa5bd",
+      "run": 43340559278,
+      "cause": "restricted-role password initialization retained file newline; trim corrected; successor actual authentication passed"
+    }
+  ],
+  "limits": {
+    "generated_smoke_bytes": 67108864,
+    "container_memory_bytes": 536870912,
+    "live_collector": false,
+    "cloud_writes": false,
+    "production_operations": false,
+    "representative_load": "NOT_PERFORMED",
+    "application": "NOT_INSTALLED",
+    "cd": "NOT_QUALIFIED"
+  },
+  "ssh_access": "existing operator identity; trusted host key independently read via authenticated Lightsail browser SSH; current operator /32 added only on PP; prior /32 and lightsail-connect retained",
+  "readme_execution": {
+    "at": "2026-11-13T01:00:21.195498+00:00",
+    "identity": "preprod|tradebot_pp|1",
+    "rows_after_stop_start": 32,
+    "readme_log_command_passed": true,
+    "log_lines": 25,
+    "log_sha256": "04219330c3690f76707953d2d5245558caae823265a2c64a2f3657dbe3cad77b",
+    "schema_fingerprint": "d88dcb38e88339c01ebc72bf71d966c1a37b6f9f7597e74015de0dc9103f5d40"
+  }
+}

@@ -4,8 +4,9 @@ Read AGENTS.md, then the active checkpoint in
 [INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). That is the only
 authoritative roadmap; this file is an entry point, not a second checklist.
 
-Current work: Phase 1.75 / I7, PostgreSQL CP0–1. PR #15 aligned reviewed main
-workflows/docs into preprod (`15475f7`); foundation qualification is in progress.
+Current work: Phase 1.75 / I7. PostgreSQL CP0–1 passed within foundation scope;
+**next separate PR: CP2 versioned business schema and migration/drift tests.** PR #15 aligned reviewed main
+workflows/docs into preprod (`15475f7`); foundation source `40c2761` passed exact Linux CI 43340827516 and PP execution.
 Check the newest foundation PR, exact CI and host evidence before treating that
 statement as current. Docker/PostgreSQL alone do not qualify app or CD.
 

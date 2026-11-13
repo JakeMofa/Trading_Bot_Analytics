@@ -8,8 +8,9 @@ not official settlement. Hourly markets, trading and paid AI remain deferred.
 is PostgreSQL tested in isolated preproduction before any production migration.
 The pending SQLite A/B implementation was superseded; PRs #11–#13 are closed,
 with their branches and evidence retained. PR #14 added independent CI/CD and version publication; PR #15 aligned those
-controls into preprod. The first PostgreSQL foundation is being qualified;
-it does not yet include an application adapter or live collector.
+controls into preprod. Checkpoint 1 is qualified on PP: Docker and PostgreSQL are installed and
+generated persistence/role tests pass. The application adapter and live collector
+are not installed. Next is checkpoint 2, versioned schema and migration checks.
 
 Start with the authoritative [master roadmap](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md),
 then the [session handoff](docs/PLAN/SESSION_HANDOFF.md). Detailed pipeline operation
@@ -20,11 +21,11 @@ and remaining bindings are in the [environment guide](.github/ci/ENVIRONMENTS.md
 | Environment | Code policy | Lightsail instance | Last verified resources/address | Actual application/database state |
 | --- | --- | --- | --- | --- |
 | Local development | Your reviewed feature branch | Your computer | Isolated fixtures | Existing main-baseline application uses SQLite; tests use generated data |
-| PP / preprod / PRT | Permanent `preprod` branch; main controls may also test an exact main candidate | `tradebot-preprod-01`, `us-east-2a` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `18.119.253.233`, private `172.26.11.9` | Host baseline passed. PostgreSQL, candidate app and deployment controller are not installed/qualified yet |
+| PP / preprod / PRT | Permanent `preprod` branch; main controls may also test an exact main candidate | `tradebot-preprod-01`, `us-east-2a` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `18.119.253.233`, private `172.26.11.9` | Docker 29.9.3 / Compose 5.7.1 / PostgreSQL 17.12 foundation qualified; app, collector and CD controller not installed/qualified |
 | Production | Intended release branch `main`, explicit manual promotion only | `tradebot-analytics-01`, `us-east-2` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `3.13.133.25`, private `172.26.2.84` | Last recorded deployed revision `d56b4a7`, legacy SQLite; services active but collection held at the 5,120 MiB DB+WAL guard |
 
-VM state above is the last recorded November 11 inventory, not a live health
-claim. PP's public address is **not static**; recheck it in Lightsail. Disk/SSD
+PP foundation was verified November 12 (November 13 UTC); production state is
+the earlier recorded inventory, not a fresh live-health claim. PP's public address is **not static**; recheck it in Lightsail. Disk/SSD
 holds database files; RAM holds caches and working state. The storage guard is
 an application limit, not the VM's total SSD size.
 
@@ -39,7 +40,7 @@ data. PP must not write to the production database or start a second collector.
 | Store | Purpose | Current versus planned |
 | --- | --- | --- |
 | Production local SQLite | Existing collector evidence, structured records and application history | Existing `/opt/tradebot/data/btc_intelligence.db`; do not modify or copy it during onboarding |
-| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Planned; no working PostgreSQL application adapter or production migration is claimed |
+| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Installed foundation with empty raw/core/ops/archive namespaces and isolated smoke data; business schema/adapter remain planned |
 | Supabase Postgres | Long-term structured markets, candles, features, predictions, outcomes and sync checkpoints | Existing TokenBot project, ref `xttdqeimdujweijxcuro`, `us-west-2` |
 | Supabase Storage | Private raw archives and associated verification evidence | Existing `market-raw` bucket; other private buckets include `knowledge` and `backups` |
 
@@ -68,11 +69,14 @@ Never point these commands at production. The helper requires the root-owned
 PP host marker, exact hostname, Ubuntu 24.04, 10 GiB free disk and 1 GiB available
 RAM. It rejects an already installed Tradebot service.
 
-The following candidate procedure is under qualification; the master roadmap
-records whether its exact revision and PP execution have passed:
+These commands passed on the existing PP host using source `40c2761`. From an
+approved SSH session, use the installed root-owned checkout. Do not run `verify`
+against a later business schema: it intentionally rejects additions until the
+versioned migration contract replaces this foundation-only check.
 
 ```sh
-# On PP, from a reviewed export of this revision:
+# On PP, from the installed reviewed export:
+cd /opt/tradebot-pp-foundation
 sudo python3 deploy/preprod/foundation.py preflight
 sudo python3 deploy/preprod/foundation.py install-docker
 sudo python3 deploy/preprod/foundation.py up
@@ -127,7 +131,8 @@ hosts with the PP marker. No foundation command enables collection, retention,
 Supabase sync, paid AI, or the CD runtime qualification flag.
 
 CI executes host/control regressions and the real pinned container on Linux,
-including recreation and role tests. Evidence is a sanitized
+including recreation, role tests and rejection of injected column drift. Full
+business-schema migration/drift coverage belongs to checkpoint 2. Evidence is a sanitized
 `postgres-foundation-<SHA>` Actions artifact. It does not need cloud secrets.
 
 ## Local developer quick start
@@ -240,10 +245,13 @@ service restarts and storage changes require their applicable operator scope.
 [GitHub Actions](https://github.com/JakeMofa/Trading_Bot_Analytics/actions) is the
 entry point. The four environment names are **CI Preprod**, **CD Preprod**,
 **CI Prod/Main**, **CD Prod/Main**. Shared `CI — Tradebot checks` runs backend/
-SQLite regressions, release/transport safeguards, dependency audit and workflow
-validation, then reports fail-closed **PR readiness**. The two environment CI
-wrappers reuse successful exact push checks. Definitions become registered on
-main when PR #14 merges; sync them into preprod through a reviewed PR.
+legacy SQLite regressions, the real PostgreSQL foundation, release/transport
+safeguards, dependency audit and workflow validation, then reports fail-closed
+**PR readiness**. The two environment CI
+wrappers reuse successful exact push checks. Definitions are registered on main (PR #14) and aligned into preprod (PR #15).
+The PostgreSQL job is added by PR #16; when its workflow is promoted to main,
+main source checks include that same required gate. No production host check
+is implied by a generated CI run.
 
 For a release:
 
@@ -258,10 +266,11 @@ For a release:
    environment approval is required. No merge, tag or release auto-deploys.
 
 This promotes code between two VMs; it does not move the PP VM/database to prod.
-Current blockers are runtime setup, not workflow labels: no private runner or
+The database foundation is installed. Application/controller and deployment
+bindings are still separate checkpoints: no private runner or
 environment deployment secrets were registered at the November 12 inventory,
 and both target profiles are unqualified. Full PostgreSQL application/database
-qualification is still separate. Merging #14 only registers the configuration.
+qualification is still separate. PR #14 registered configuration; CP1 installed the PP database only.
 
 Where to inspect versions and outcomes:
 
@@ -293,8 +302,10 @@ existing SQLite suite does not certify PostgreSQL or live Supabase behavior.
 No shared writable production DB for PP. Retention enablement, production
 migration and legacy retirement remain separately reviewed operations.
 
-The next runtime milestone is to qualify the PostgreSQL app and restricted PP
-deployment controller, then install the scoped runner/key/verified-host bindings
-and deploy a tested PP candidate. I7 freshness/rollover, continuous verified
+The next small PR is **checkpoint 2: versioned business schema and migrations**,
+including drift, wrong-environment, repeat/upgrade and exact-data tests. Separate
+PRs then add the application adapter, lifecycle/history, and qualified CD host
+controller/bindings. Follow the master roadmap rather than bundling them into
+the foundation PR. I7 freshness/rollover, continuous verified
 retention, history recovery and sustained-operation evidence remain required
 before closing Phase 1.75. Redis and larger-scale orchestration stay deferred.

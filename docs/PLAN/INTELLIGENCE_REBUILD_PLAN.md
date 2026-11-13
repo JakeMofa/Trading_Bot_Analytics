@@ -20,8 +20,14 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   Existing production: `tradebot-analytics-01`, same region/resources. No third
   instance. Production remains the separately deployed legacy SQLite release
   `d56b4a7` by last recorded inspection, not the application on current `main`.
-- **CP0 branch alignment PASS; CP1 foundation implementation/qualification in
-  progress.** A successful database container will not imply app/CD readiness.
+- **CP0 PASS; CP1 foundation PASS within generated scope.** Source `40c2761`
+  passed exact push CI [43340827516](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43340827516)
+  and PR CI 43340834244. Existing PP runs Docker 29.9.3, Compose 5.7.1 and pinned
+  PostgreSQL 17.12. All 32 rows persisted across recreation; four restricted-role
+  checks passed. Smoke 32 KiB, cluster allocation 48,205,824 bytes, sampled memory
+  18.13 MiB / 512 MiB; no published port. CI rejected injected column drift.
+  [Sanitized evidence](evidence/pp-postgres-foundation-2026-11-12.json).
+  App/collector/CD remain uninstalled or unqualified. Next small PR is **CP2**.
 - Production is untouched by this milestone. No new production health/collection
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
@@ -104,9 +110,9 @@ The obsolete `codex/lightsail-deployment` route is not the new release path.
 
 | CP | Work | Completion gate / current state |
 | --- | --- | --- |
-| 0 | Consolidate plan, align reviewed main workflows/docs to PP | PR #15 merged; no SQLite A/B bulk merge; current plan/handoff consolidation included in foundation PR |
-| 1 | PP Docker/PostgreSQL/developer foundation | Official Ubuntu Docker repo; pinned `postgres:17.12-bookworm`; isolated network, persistent volume, restricted roles, secrets, health; generated persistence/recreation and README commands. **In progress** |
-| 2 | Versioned local database and `history_v2` contract | Empty/repeat/upgrade, wrong-environment, decimals/timestamps/identity/reference regressions; no cloud DDL until CP6 |
+| 0 | Consolidate plan, align reviewed main workflows/docs to PP | PR #15 merged; no SQLite A/B bulk merge; one active plan/handoff consolidated in PR #16 |
+| 1 | PP Docker/PostgreSQL/developer foundation | Official Ubuntu Docker repo; pinned `postgres:17.12-bookworm`; isolated network, persistent volume, restricted roles, secrets, health; generated persistence/recreation and README commands. **PASS generated/PP foundation; PR #16** |
+| 2 | Versioned local database and `history_v2` contract | Version/checksum ledger; empty/repeat/upgrade; schema/constraint/index/grant drift; wrong-environment, decimals/timestamps/identity/reference regressions; no cloud DDL until CP6 |
 | 3 | PostgreSQL app and dashboard | Adapter, indexed current-price and bounded history, calculations, actual API/SSE, independent discovery/serial calculation, runnable application image |
 | 4 | A/B lifecycle and historical retrieval | Atomic switch/seal, durable structured outbox, bounded archives/readback, history after real generated partition retirement; preserve on failure |
 | 5 | CD Preprod | Qualified restricted host controller/deploy identity/host pin/credentials/runner; migration/app/image CI; manual PP deploy and recovery evidence; no flag-only enablement |
@@ -149,6 +155,10 @@ feature/input ages within 30 seconds and timely rollover. Small fixtures prove
 only their correctness scope. Representative work proves capacity/performance.
 The old 5 GiB slot target and 24 GiB transition estimate are not applied PG
 limits. Larger qualification packages need explicit resource/time bounds.
+
+PP access used the existing operator key and independently pinned host key. The
+current operator /32 was added only to PP SSH after fresh rule comparison; the
+old /32 and browser SSH alias were retained. No production rule changed.
 
 Paid AI, trading, hourly work, new infrastructure, database copies/snapshots,
 manual WAL/VACUUM shortcuts and Phase 2 remain outside this implementation.

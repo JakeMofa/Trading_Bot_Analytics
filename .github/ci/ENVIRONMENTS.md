@@ -5,7 +5,7 @@ It does not create a second roadmap or certify a database migration.
 
 | Workflow | Purpose | When it runs |
 | --- | --- | --- |
-| `python-tests.yml` — CI — Tradebot checks | Existing application/SQLite regressions, release/transport controls, workflow syntax, dependency audit, fail-closed PR readiness | PR, merge queue, push main/preprod/codex branches |
+| `python-tests.yml` — CI — Tradebot checks | Application/legacy SQLite compatibility, real PostgreSQL foundation, release/transport controls, workflow syntax, dependency audit, fail-closed PR readiness | PR, merge queue, push main/preprod/codex branches |
 | `ci-pp.yml` — CI Preprod | Reuse latest exact push CI for permitted PP source | Successful shared push CI; manual |
 | `ci-prod.yml` — CI Prod/Main | Reuse exact main push CI | Successful shared main push CI; manual |
 | `cd-pp.yml` — CD Preprod | Deploy published candidate to tradebot-preprod-01 after host qualification | Explicit dispatch from main |
@@ -25,9 +25,23 @@ ship the old main app merely because this configuration merged.
 Source and test dependencies are independent of the superseded A/B stack.
 The only baseline dependency change is cryptography 46.0.7 → 50.0.0, removing
 the known audit blocker; the existing signing/collector regressions qualify it.
-CI preserves real backend tests, but does not pretend to test undeveloped
-PostgreSQL migrations or live Supabase policies. Add isolated generated
-migration/compatibility/recovery tests with each PostgreSQL schema PR.
+CI retains SQLite regressions for the legacy code still present. The required
+`PostgreSQL PP foundation` job now runs the pinned database image on Linux,
+checks environment/column/ownership contracts, restricted authenticated roles,
+exact generated values, full durability and container-recreation persistence.
+An injected unexpected column must fail verification. Failure or a skipped job
+fails `PR readiness`; this feeds the existing exact-commit CI Preprod / CI
+Prod/Main qualification. No separate database service is contacted in production.
+
+This is not yet a complete business migration/drift gate. Checkpoint 2 must add
+versioned migrations, immutable migration checksums, empty/repeat/supported-
+upgrade tests, schema/constraint/index/privilege comparisons and explicit
+approval of intentional changes. Later CD must bind the inspected host schema
+and migration evidence to the exact artifact/environment and reject unexpected
+drift before execution. Supabase `history_v2` compatibility is a separate CP6
+gate; CI credentials must not silently apply live cloud DDL. Database changes
+must arrive with their migration, compatibility/recovery tests and updated
+contract, rather than treating every green Python suite as migration evidence.
 
 ## Publication and visible rollback inventory
 

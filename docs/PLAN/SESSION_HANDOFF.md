@@ -20,6 +20,12 @@ Next is CP6 actual Supabase compatibility with its reviewed migration/permission
 and bounded cloud-write scope. CP7 live/capacity, CP8 production candidate, CP9
 approved cutover and CP10 verified retirement/acceptance remain open. No production
 change or cloud activation is authorized by the generated PP deployment pass.
+The master plan now specifies the requested temporary PP live rehearsal: first
+qualify stable private API access and real PostgreSQL feed/query paths, explicitly
+fence production, run PP as the sole collector across a market boundary and a
+qualified A/B switch, then stop and fence PP collection while leaving its API
+up. Production later uses its own database/collector; PP preview reads the
+production API/SSE, never production's database directly.
 
 The original working checkout is dirty on codex/phase1-75-retention-enable.
 Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge

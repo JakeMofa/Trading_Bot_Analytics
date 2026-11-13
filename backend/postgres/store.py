@@ -277,6 +277,14 @@ class Store:
             raise PublicationRejected('stale or expired calculation')
         snapshot_id = digest([self.origin,market['id'],snapshot['as_of'],1])
         with self.connection() as db:
+            existing = db.execute('''SELECT f.content_hash AS feature_hash,p.content_hash AS prediction_hash
+                FROM core.feature_snapshots f JOIN core.predictions p USING(origin_id,snapshot_id)
+                WHERE f.origin_id=%s AND f.snapshot_id=%s AND p.model_version=%s''',
+                (self.origin,snapshot_id,prediction['model_version'])).fetchone()
+            if existing:
+                if existing['feature_hash'] != digest(snapshot) or existing['prediction_hash'] != digest(prediction):
+                    raise IdentityConflict('conflicting calculation identity')
+                return snapshot_id
             self._admit(db,6)
             active = self._active(db,now)
             if not active or active['market_id'] != market['id']:

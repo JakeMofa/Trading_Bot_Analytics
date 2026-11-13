@@ -47,7 +47,9 @@ class LiveState:
                 # Reordered reads cannot rewind the latest accepted event.
                 if self._price is None or timestamp(price['source_time']) >= timestamp(self._price['source_time']):
                     self._price = deepcopy(price)
-            if quote and quote.get('market_id') == market_id:
+            if (quote and quote.get('market_id') == market_id and quote.get('source_time')
+                    and timestamp(quote['source_time']) <= now and timestamp(quote['received_at']) <= now
+                    and (self._quote is None or timestamp(quote['source_time']) >= timestamp(self._quote['source_time']))):
                 self._quote = deepcopy(quote)
             if snapshot and snapshot['market_id'] == market_id and 0 <= (now-timestamp(snapshot['as_of'])).total_seconds() <= 30:
                 if self._snapshot is None or timestamp(snapshot['as_of']) >= timestamp(self._snapshot['as_of']):

@@ -123,6 +123,14 @@ class NumericAndStateTests(unittest.TestCase):
             state.publish(market['id'],candidate,None,None,None)
             self.assertEqual(state.snapshot()['coinbase']['price_usd'],price['price_usd'])
 
+    def test_future_and_reordered_quotes_do_not_refresh_health(self):
+        state,current,records = state_fixture()
+        market,price,quote,snapshot,prediction = records
+        for seconds in (-5,5):
+            candidate=dict(quote,source_time=(NOW+timedelta(seconds=seconds)).isoformat(),up_probability='0.99')
+            state.publish(market['id'],None,candidate,None,None)
+            self.assertEqual(state.snapshot()['polymarket']['up_probability'],'0.52')
+
     def test_live_config_is_rejected_without_secret_leak(self):
         for mode in ('live','production_preview'):
             with self.assertRaises(ValueError):

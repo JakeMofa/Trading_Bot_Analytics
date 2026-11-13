@@ -286,7 +286,9 @@ def extract_archive(stream,destination,request,budget):
             require(not member.issparse() and not member.mode & 0o7000,'archive_unsafe_mode')
             require(name not in names,'archive_duplicate_member')
             require(not any(part in {'.git','.env','.venv','node_modules'} for part in parts)
-                    and parts[0]!='data','archive_forbidden_content')
+                    and parts[0]!='data'
+                    and not any((part.startswith('.env.') or part.startswith('.env ')) and part!='.env.example' for part in parts)
+                    and PurePosixPath(name).suffix.lower() not in {'.db','.sqlite','.sqlite3','.pem','.key','.log'},'archive_forbidden_content')
             require(0<=member.size<=FILE_LIMIT and (not member.isdir() or member.size==0),'archive_file_bound')
             total+=member.size
             require(total<=EXPANDED_LIMIT,'archive_expanded_bound')
@@ -350,10 +352,12 @@ class Actions(Protocol):
 
 class Controller:
     def __init__(self,binding,authority,controller_path,staging_root,*,expected_uid=0,
-                 clock=time.monotonic,wall_clock=lambda:datetime.now(timezone.utc)):
+                 clock=time.monotonic,wall_clock=lambda:datetime.now(timezone.utc),work_seconds=600):
         self.binding,self.authority=binding,authority
         self.controller_path,self.staging_root=Path(controller_path),Path(staging_root)
         self.expected_uid,self.clock,self.wall_clock=expected_uid,clock,wall_clock
+        require(0<work_seconds<=600,'invalid_work_budget')
+        self.work_seconds=work_seconds
 
     @staticmethod
     def _journal(context,state):
@@ -368,7 +372,7 @@ class Controller:
 
     def deploy(self,request,stream,actions):
         from dataclasses import replace
-        budget=Budget(600,self.clock)
+        budget=Budget(self.work_seconds,self.clock)
         context=None
         mutation_started=False
         stage='validation'
@@ -412,7 +416,7 @@ class Controller:
             require(evidence.get('acceptance_scope')=='generated_only','wrong_acceptance_scope')
             flags=('live_collector_enabled','paid_ai_enabled','retention_enabled','production_data_mounted')
             require(all(evidence.get(flag) is False for flag in flags),'unsafe_runtime_flags')
-            result.update(gate='PASS',checks=evidence['checks'],**{flag:False for flag in flags})
+            result.update(gate='PASS',checks=evidence['checks'],runtime_image_id=context.image,**{flag:False for flag in flags})
             self._journal(context,{'stage':'complete','migration_started':True,'image':image,'gate':'PASS'})
         except Exception as error:
             result.update(reason=str(error) if isinstance(error,DeploymentHold) else 'controller_action_failed',failed_stage=stage)
@@ -421,7 +425,7 @@ class Controller:
                 try:
                     recovered=actions.recover(replace(context,failed_stage=stage),recovery_budget)
                     recovery_budget.timeout()
-                    require(recovered.get('strategy') in ('stop_candidate_keep_database','forward_candidate')
+                    require(recovered.get('strategy') in ('stop_candidate_keep_database','forward_candidate','prior_runtime_unchanged')
                             and recovered.get('database_preserved') is True
                             and recovered.get('new_acknowledgements_preserved') is True
                             and recovered.get('database_restored') is False,'recovery_not_proven')

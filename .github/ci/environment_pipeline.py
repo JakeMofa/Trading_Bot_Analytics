@@ -180,11 +180,13 @@ def validate_result(result, role, sha, digest):
                 'PP must not collect live markets or mount production data')
         require(result.get('acceptance_scope') in ('generated_only','production_candidate'),
                 'explicit PP acceptance scope required')
+        require(re.fullmatch(r'sha256:[0-9a-f]{64}',result.get('runtime_image_id','')) is not None,
+                'actual PP runtime image identity required')
     # Never persist arbitrary controller stdout fields (logs or credentials).
     safe = {'gate', 'environment', 'instance', 'source_sha', 'artifact_sha256',
             'checks', 'paid_ai_enabled', 'retention_enabled'}
     if role == 'preprod':
-        safe.update({'live_collector_enabled', 'production_data_mounted', 'acceptance_scope'})
+        safe.update({'live_collector_enabled', 'production_data_mounted', 'acceptance_scope', 'runtime_image_id'})
     return {key: result[key] for key in safe}
 
 

@@ -6,7 +6,7 @@ import json
 import zipfile
 
 HERE=Path(__file__).resolve().parent
-ENTRY='''import json,os,signal,sys
+ENTRY='''import fcntl,json,os,signal,stat,sys
 from pathlib import Path
 from controller import Controller,DeploymentHold,HostBinding,Request,RootAuthorization
 from linux_actions import LinuxActions
@@ -19,6 +19,11 @@ def main():
         raise DeploymentHold("fixed_root_entrypoint_required")
     request=Request.parse(sys.argv[1])
     binding=HostBinding.from_marker()
+    lock=os.open("/run/tradebot-pp-deploy/controller.lock",os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
+    info=os.fstat(lock)
+    if info.st_uid!=0 or not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+        raise DeploymentHold("unsafe_controller_lock")
+    fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     for name in ("SIGTERM","SIGINT","SIGHUP"):
         signal.signal(getattr(signal,name),interrupted)
     controller=Controller(binding,RootAuthorization("/run/tradebot-pp-deploy/authorization.json"),

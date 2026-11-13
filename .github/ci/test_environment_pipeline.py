@@ -24,7 +24,7 @@ def accepted():
             'registry':'ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:'+DIGEST, 'checks': dict.fromkeys(p.REQUIRED_CHECKS, 'PASS'),
             'completed_at_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
             'paid_ai_enabled': False, 'retention_enabled': False,
-            'live_collector_enabled': False, 'production_data_mounted': False, 'acceptance_scope': 'production_candidate'}
+            'live_collector_enabled': False, 'production_data_mounted': False, 'acceptance_scope': 'production_candidate','runtime_image_id':'sha256:'+'b'*64}
 
 
 class API:

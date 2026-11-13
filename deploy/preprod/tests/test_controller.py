@@ -103,6 +103,20 @@ class ControllerTests(unittest.TestCase):
     def deploy(self,actions=None,raw=None,request=None,binding=None):
         return self.controller(binding).deploy(request or self.request,io.BytesIO(raw or self.raw),actions or Actions())
 
+    def test_budget_override_can_only_reduce_work_allowance(self):
+        for value in (0,-1,601):
+            with self.subTest(value=value),self.assertRaises(c.DeploymentHold):
+                c.Controller(self.binding,c.RootAuthorization(self.authority_path,os.geteuid()),
+                             self.installed,self.stage,expected_uid=os.geteuid(),work_seconds=value)
+
+    def test_before_migration_recovery_can_preserve_prior_runtime(self):
+        actions=Actions(fail='build',recovery={'strategy':'prior_runtime_unchanged',
+            'database_preserved':True,'new_acknowledgements_preserved':True,'database_restored':False})
+        result=self.deploy(actions)
+        self.assertEqual(result['gate'],'BLOCKED')
+        self.assertFalse(actions.recovery_context.migration_started)
+        self.assertEqual(result['recovery']['strategy'],'prior_runtime_unchanged')
+
     def test_success_requires_real_adapter_evidence_and_consumes_once(self):
         actions=Actions()
         result=self.deploy(actions)

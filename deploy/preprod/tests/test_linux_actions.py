@@ -29,7 +29,8 @@ def configuration(source,image=IMAGE):
                  'logging':{'driver':'json-file','options':{'max-size':'5m','max-file':'2'}}}
         if name in a.CPUS:service['cpus']=a.CPUS[name]
         if name=='postgres':
-            service.update(environment={'POSTGRES_DB':'tradebot_pp','POSTGRES_USER':'postgres','POSTGRES_PASSWORD_FILE':'/run/secrets/admin'},
+            service.update(environment=dict(a.PG_ENV),command=list(a.PG_COMMAND),
+                           secrets=[{'source':source,'target':target} for source,target in a.PG_SECRET_MAPPINGS.items()],
                            volumes=[{'type':'volume','source':'pp_pgdata','target':'/var/lib/postgresql/data'},
                                     {'type':'bind','source':str(source/'deploy/preprod/init.sh'),
                                      'target':'/docker-entrypoint-initdb.d/10-foundation.sh','read_only':True}])
@@ -44,10 +45,13 @@ def configuration(source,image=IMAGE):
 
 def inspected(service='api',running=True):
     return {'Id':CID,'Image':IMAGE,'State':{'Running':running,'OOMKilled':False,'Health':{'Status':'healthy'}},
-        'Config':{'Image':IMAGE,'Cmd':a.COMMANDS[service],'User':'10001:10001','Labels':{'com.docker.compose.project':a.PROJECT},
+        'Config':{'Image':IMAGE,'Cmd':a.COMMANDS[service],'User':'10001:10001','Labels':{
+                  'com.docker.compose.project':a.PROJECT,'com.docker.compose.service':service,'com.docker.compose.oneoff':'False'},
                   'Env':[key+'='+value for key,value in a.expected_environment(service).items()]},
         'HostConfig':{'Memory':a.MEMORY[service]*1024**2,'MemorySwap':a.MEMORY[service]*1024**2,'PidsLimit':64,
-                      'ReadonlyRootfs':True,'Privileged':False,'CapDrop':['ALL'],'RestartPolicy':{'Name':'no'},
+                      'ReadonlyRootfs':True,'Privileged':False,'CapDrop':['ALL'],
+                      'NanoCpus':int(a.CPUS.get(service,0)*1_000_000_000),
+                      'RestartPolicy':{'Name':'unless-stopped' if running else 'no'},
                       'PortBindings':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}},
         'Mounts':[{'Destination':'/run/secrets/'+a.ROLE_SECRET[service],'Source':str(a.RUNTIME_SECRETS/a.ROLE_SECRET[service]),'RW':False}],
         'NetworkSettings':{'Networks':{a.NETWORK:{}}}}
@@ -60,6 +64,35 @@ class RecordingBudget:
         result=self.responses.pop(0) if self.responses else b''
         if isinstance(result,Exception):raise result
         return result
+
+
+class OneoffBudget(RecordingBudget):
+    """Docker daemon keeps running after its CLI times out; stop is ignored."""
+    def __init__(self,actions,context):
+        super().__init__()
+        self.actions,self.context=actions,context
+        self.exists=False;self.running=True;self.ignore_kill=False;self.foreign=False;self.name=None
+    def run(self,args,**kwargs):
+        self.calls.append((args,kwargs))
+        if args[:2]==['docker','compose'] and 'run' in args:
+            self.name=args[args.index('--name')+1]
+            self.exists=True
+            raise c.DeploymentHold('child_deadline_exceeded')
+        if args[:2]==['docker','ps']:return (CID+'\n').encode() if self.exists else b''
+        if args[:2]==['docker','inspect']:
+            return json.dumps([{'Id':CID,'Name':'/'+self.name,'State':{'Running':self.running},
+                'Config':{'Labels':{'com.docker.compose.project':a.PROJECT,'com.docker.compose.service':'migrate',
+                                   a.ATTEMPT_LABEL:'foreign-attempt' if self.foreign else self.actions.attempt_id,
+                                   a.SOURCE_LABEL:self.context.request.source_sha}},
+                'HostConfig':{'RestartPolicy':{'Name':'no'}}}]).encode()
+        if args[:2]==['docker','stop']:return b''
+        if args[:2]==['docker','kill']:
+            if not self.ignore_kill:self.running=False
+            return b''
+        if args[:2]==['docker','rm']:
+            if self.running:raise AssertionError('cannot remove a running owned container without exit evidence')
+            self.exists=False;return b''
+        raise AssertionError('unexpected command in owned-oneoff test')
 
 
 class ConfigTests(unittest.TestCase):
@@ -84,6 +117,15 @@ class ConfigTests(unittest.TestCase):
             lambda c:c['services']['api'].update(configs=[{'source':'secret'}]),
             lambda c:c['services']['api'].update(command=['python','-m','postgres.migrate']),
             lambda c:c['secrets']['app_dsn'].update(file='/etc/tradebot/prod-runtime/app_dsn'),
+            lambda c:c['services']['api'].update(use_api_socket=True),
+            lambda c:c['services']['api'].update(post_start=[{'command':'touch /data/unsafe'}]),
+            lambda c:c['services']['api'].update(pre_stop=[{'command':'touch /data/unsafe'}]),
+            lambda c:c['services']['api'].update(volumes_from=['otherproject']),
+            lambda c:c['services']['postgres'].update(command=['postgres','-c','fsync=off']),
+            lambda c:c['services']['postgres']['environment'].update(POSTGRES_HOST_AUTH_METHOD='trust'),
+            lambda c:c['services']['postgres']['environment'].update(POSTGRES_INITDB_ARGS='--auth-host=trust'),
+            lambda c:c['services']['postgres']['secrets'].append({'source':'app_dsn','target':'app_dsn'}),
+            lambda c:c['services']['postgres']['secrets'][0].update(target='other'),
         ]
         for index,mutate in enumerate(mutations):
             with self.subTest(case=index):
@@ -149,7 +191,9 @@ class ActionTests(unittest.TestCase):
              patch.object(self.actions,'_compose',side_effect=lambda ctx,budget,args,**kw:(calls.append(args) or b'{"environment":"preprod","operation":"migrate","result":[1]}')):
             self.actions.migrate(self.context,self.budget)
         self.assertEqual(calls[0],'fence')
-        self.assertEqual(calls[1],['run','--rm','--no-deps','migrate'])
+        self.assertEqual(calls[1][:3],['run','--rm','--no-deps'])
+        self.assertEqual(calls[1][-1],'migrate')
+        self.assertIn(a.ATTEMPT_LABEL+'='+self.actions.attempt_id,calls[1])
         self.assertTrue(self.actions.migrated)
 
     def test_migration_existing_evidence_change_is_held_without_restore(self):
@@ -167,15 +211,15 @@ class ActionTests(unittest.TestCase):
         self.actions.start(self.context,self.budget)
         commands=[args for args,_ in self.budget.calls]
         self.assertIn('--bootstrap',commands[0])
-        self.assertEqual(commands[1][-3:],list(a.SERVICES))
-        self.assertIn('--no-deps',commands[1])
-        self.assertIn('--force-recreate',commands[1])
+        startup=next(args for args in commands if '--force-recreate' in args)
+        self.assertEqual(startup[-3:],list(a.SERVICES))
+        self.assertIn('--no-deps',startup)
 
     def test_recovery_fences_restart_then_stops_only_application_services(self):
         self.actions.pg_id=CID;self.actions.pg_volume=a.PG_VOLUME
         with patch.object(self.actions,'_ids',return_value=[CID]),patch.object(self.actions,'_inspect',return_value=[inspected(running=False)]), \
              patch.object(self.actions,'_postgres'),patch.object(self.actions,'_inventory',return_value={'core.predictions':{'count':2,'digest':'f'*32}}):
-            result=self.actions.recover(replace(self.context,failed_stage='start'),self.budget)
+            result=self.actions.recover(replace(self.context,failed_stage='start',migration_started=True),self.budget)
         self.assertTrue(result['database_preserved'])
         self.assertTrue(result['new_acknowledgements_preserved'])
         self.assertFalse(result['database_restored'])
@@ -189,7 +233,68 @@ class ActionTests(unittest.TestCase):
         with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'), \
              patch.object(self.actions,'_inventory',side_effect=[{'core.predictions':{'count':2}}, {'core.predictions':{'count':1}}]):
             with self.assertRaisesRegex(c.DeploymentHold,'database_changed_after_writer_fence'):
-                self.actions.recover(replace(self.context,failed_stage='smoke'),self.budget)
+                self.actions.recover(replace(self.context,failed_stage='smoke',migration_started=True),self.budget)
+
+    def test_build_failure_keeps_prior_runtime_untouched(self):
+        with patch.object(self.actions,'_fence') as fence,patch.object(self.actions,'_inventory') as inventory:
+            result=self.actions.recover(replace(self.context,failed_stage='build',migration_started=False),self.budget)
+        self.assertEqual(result['strategy'],'prior_runtime_unchanged')
+        self.assertTrue(result['database_preserved'])
+        self.assertEqual(self.budget.calls,[])
+        fence.assert_not_called();inventory.assert_not_called()
+
+    def test_cli_timeout_stubborn_oneoff_is_killed_removed_before_inventory(self):
+        budget=OneoffBudget(self.actions,self.context)
+        with self.assertRaisesRegex(c.DeploymentHold,'child_deadline_exceeded'):
+            self.actions._oneoff(self.context,budget,'migrate')
+        self.assertTrue(self.actions.oneoffs)
+        self.assertTrue(budget.exists)
+        checks=[]
+        def inventory(_):
+            self.assertFalse(budget.exists)
+            checks.append(True)
+            return {'core.predictions':{'count':1,'digest':'a'*32}}
+        with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'),patch.object(self.actions,'_inventory',side_effect=inventory):
+            result=self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),budget)
+        self.assertEqual(result['strategy'],'stop_candidate_keep_database')
+        self.assertEqual(len(checks),2)
+        operations=[args[:2] for args,_ in budget.calls]
+        self.assertIn(['docker','stop'],operations)
+        self.assertIn(['docker','kill'],operations)
+        self.assertIn(['docker','rm'],operations)
+        self.assertFalse(self.actions.oneoffs)
+        for args,_ in budget.calls:
+            if args[:2] in (['docker','stop'],['docker','kill'],['docker','rm']):
+                self.assertEqual(args[-1],CID)
+        searches=[args for args,_ in budget.calls if args[:2]==['docker','ps']]
+        self.assertTrue(all('label='+a.ATTEMPT_LABEL+'='+self.actions.attempt_id in args for args in searches))
+        self.assertTrue(all('label=com.docker.compose.project='+a.PROJECT in args for args in searches))
+
+    def test_unstoppable_oneoff_blocks_inventory_and_preservation_claim(self):
+        budget=OneoffBudget(self.actions,self.context);budget.ignore_kill=True
+        with self.assertRaises(c.DeploymentHold):self.actions._oneoff(self.context,budget,'migrate')
+        with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'),patch.object(self.actions,'_inventory') as inventory:
+            with self.assertRaisesRegex(c.DeploymentHold,'deployment_oneoff_still_running'):
+                self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),budget)
+            inventory.assert_not_called()
+        self.assertTrue(budget.exists)
+        self.assertNotIn(['docker','rm'],[args[:2] for args,_ in budget.calls])
+
+    def test_oneoff_from_other_attempt_is_never_stopped_or_removed(self):
+        budget=OneoffBudget(self.actions,self.context)
+        with self.assertRaises(c.DeploymentHold):self.actions._oneoff(self.context,budget,'migrate')
+        budget.foreign=True
+        with self.assertRaisesRegex(c.DeploymentHold,'oneoff_ownership_mismatch'):
+            self.actions._cleanup_oneoffs(self.context,budget)
+        self.assertFalse(any(args[:2] in (['docker','stop'],['docker','kill'],['docker','rm']) for args,_ in budget.calls))
+
+    def test_service_fence_never_adopts_another_attempt_oneoff(self):
+        row=inspected(service='lifecycle',running=False)
+        row['Config']['Labels']['com.docker.compose.oneoff']='True'
+        with patch.object(self.actions,'_ids',return_value=[CID]),patch.object(self.actions,'_inspect',return_value=[row]):
+            with self.assertRaisesRegex(c.DeploymentHold,'unowned_container_blocks_runtime_fence'):
+                self.actions._fence(self.context,self.budget)
+        self.assertEqual(self.budget.calls,[])
 
     def test_runtime_inspection_rejects_wrong_image_public_port_and_privilege(self):
         for mutation in (lambda r:r.update(Image='sha256:'+'f'*64),

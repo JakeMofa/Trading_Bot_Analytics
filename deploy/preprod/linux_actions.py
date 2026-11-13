@@ -16,6 +16,7 @@ import re
 import shutil
 import stat
 import urllib.parse
+import uuid
 
 from controller import CHECKS, DeploymentHold, HostBinding, require
 
@@ -29,6 +30,16 @@ PYTHON_IMAGE='python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca56923
 SERVICES=('api','calculation','lifecycle')
 MEMORY={'postgres':512,'api':192,'calculation':192,'lifecycle':128,'migrate':192}
 CPUS={'postgres':1.0,'api':0.5,'calculation':0.5,'lifecycle':0.25}
+PG_ENV={'POSTGRES_DB':'tradebot_pp','POSTGRES_USER':'postgres','POSTGRES_PASSWORD_FILE':'/run/secrets/admin',
+        'POSTGRES_INITDB_ARGS':'--auth-host=scram-sha-256 --data-checksums'}
+PG_COMMAND=['postgres',*sum((['-c',value] for value in (
+    'shared_buffers=128MB','max_connections=20','work_mem=2MB','maintenance_work_mem=32MB','temp_file_limit=64MB',
+    'statement_timeout=15s','lock_timeout=2s','idle_in_transaction_session_timeout=15s','fsync=on',
+    'synchronous_commit=on','full_page_writes=on','autovacuum=on','max_wal_size=256MB','min_wal_size=80MB')),[])]
+PG_SECRET_MAPPINGS={name:name for name in ('admin','migrator','application','reader')}
+PG_SECRET_MAPPINGS['lifecycle_password']='lifecycle'
+ATTEMPT_LABEL='tradebot.deployment_attempt'
+SOURCE_LABEL='tradebot.deployment_source'
 COMMANDS={'api':['python','-m','uvicorn','postgres.api:app','--host','0.0.0.0','--port','8000'],
           'calculation':['python','-m','postgres.worker'],
           'lifecycle':['python','-m','postgres.lifecycle_worker'],
@@ -75,7 +86,9 @@ def validate_config(config,source,image):
         require(service.get('privileged',False) is False and not service.get('devices') and not service.get('cap_add')
                 and not service.get('pid') and not service.get('ipc') and not service.get('network_mode')
                 and not service.get('extra_hosts') and not service.get('entrypoint') and not service.get('build')
-                and not service.get('configs') and not service.get('runtime'), 'unsafe_service_override')
+                and not service.get('configs') and not service.get('runtime')
+                and not service.get('use_api_socket') and not service.get('post_start') and not service.get('pre_stop')
+                and not service.get('volumes_from'), 'unsafe_service_override')
         require(set(service.get('networks',{}))=={'database'},'unexpected_service_network')
         log=service.get('logging',{})
         require(log.get('driver')=='json-file' and log.get('options')=={'max-size':'5m','max-file':'2'},'unbounded_container_logs')
@@ -86,9 +99,13 @@ def validate_config(config,source,image):
                     and str(ports[0].get('published'))=='8000' and ports[0].get('protocol','tcp')=='tcp','unsafe_api_port')
         else:require(not ports,'unexpected_published_port')
         if name=='postgres':
-            env=service.get('environment',{})
-            require(env.get('POSTGRES_DB')=='tradebot_pp' and env.get('POSTGRES_USER')=='postgres'
-                    and env.get('POSTGRES_PASSWORD_FILE')=='/run/secrets/admin','wrong_postgres_environment')
+            require(service.get('environment',{})==PG_ENV,'wrong_postgres_environment')
+            require(service.get('command')==PG_COMMAND,'unreviewed_postgres_command')
+            mappings=service.get('secrets',[])
+            require(len(mappings)==len(PG_SECRET_MAPPINGS)
+                    and all(set(item)=={'source','target'} for item in mappings)
+                    and {item['source']:item['target'] for item in mappings}==PG_SECRET_MAPPINGS,
+                    'unexpected_postgres_secret_mapping')
             mounts=service.get('volumes',[])
             require(len(mounts)==2,'unexpected_postgres_mount')
             data=next((m for m in mounts if m.get('target')=='/var/lib/postgresql/data'),{})
@@ -173,6 +190,9 @@ class LinuxActions:
         self.migrated=False
         self.anchor=None
         self.before_migration=None
+        self.attempt_id=uuid.uuid4().hex
+        self.oneoffs={}
+        self.oneoff_sequence=0
 
     @staticmethod
     def _environment(image):
@@ -201,6 +221,62 @@ class LinuxActions:
         result=self._json(budget.run(['docker','inspect',*ids],env=self._environment('unused'),timeout=15))
         require(isinstance(result,list) and len(result)==len(ids),'missing_container_inspection')
         return result
+
+    def _owned_oneoff(self,context,budget,name,service):
+        """Read only exact-attempt containers; never adopt another deployment."""
+        output=budget.run(['docker','ps','-a','--no-trunc','--filter','label=com.docker.compose.project='+PROJECT,
+            '--filter','label='+ATTEMPT_LABEL+'='+self.attempt_id,'--filter','name='+name,'--format','{{.ID}}'],
+            env=self._environment(context.image or 'unused'),timeout=10).decode().split()
+        require(all_id(output) and len(output)<=1,'ambiguous_deployment_oneoff')
+        if not output:return []
+        rows=self._inspect(budget,output)
+        for row in rows:
+            labels=row.get('Config',{}).get('Labels',{})
+            require(row.get('Name')=='/'+name and labels.get('com.docker.compose.project')==PROJECT
+                    and labels.get('com.docker.compose.service')==service
+                    and labels.get(ATTEMPT_LABEL)==self.attempt_id and labels.get(SOURCE_LABEL)==context.request.source_sha,
+                    'oneoff_ownership_mismatch')
+            require(row.get('HostConfig',{}).get('RestartPolicy',{}).get('Name') in ('no',''),
+                    'oneoff_restart_not_fenced')
+        return rows
+
+    def _cleanup_oneoffs(self,context,budget):
+        for name,service in list(self.oneoffs.items()):
+            rows=self._owned_oneoff(context,budget,name,service)
+            if rows and rows[0]['State'].get('Running'):
+                try:
+                    budget.run(['docker','stop','--time','5',rows[0]['Id']],
+                               env=self._environment(context.image or 'unused'),timeout=10)
+                except DeploymentHold:
+                    pass  # CLI timeout is not proof of container exit; inspect again.
+                rows=self._owned_oneoff(context,budget,name,service)
+                if rows and rows[0]['State'].get('Running'):
+                    try:
+                        budget.run(['docker','kill',rows[0]['Id']],env=self._environment(context.image or 'unused'),timeout=10)
+                    except DeploymentHold:
+                        pass
+                    rows=self._owned_oneoff(context,budget,name,service)
+            require(not rows or not rows[0]['State'].get('Running'),'deployment_oneoff_still_running')
+            if rows:
+                try:
+                    budget.run(['docker','rm',rows[0]['Id']],env=self._environment(context.image or 'unused'),timeout=10)
+                except DeploymentHold:
+                    pass  # --rm may already have removed the stopped container.
+            require(not self._owned_oneoff(context,budget,name,service),'deployment_oneoff_not_removed')
+            del self.oneoffs[name]
+
+    def _oneoff(self,context,budget,service,args=(),timeout=90):
+        require(service in ('migrate','lifecycle'),'unsupported_deployment_oneoff')
+        self.oneoff_sequence+=1
+        name='tradebot-pp-deploy-'+self.attempt_id+'-'+str(self.oneoff_sequence)
+        self.oneoffs[name]=service  # Record before daemon-side creation can occur.
+        output=self._compose(context,budget,['run','--rm','--no-deps','--name',name,
+            '--label',ATTEMPT_LABEL+'='+self.attempt_id,'--label',SOURCE_LABEL+'='+context.request.source_sha,
+            service,*args],timeout=timeout)
+        # On timeout the exception leaves ownership registered for fresh recovery
+        # budget. Success also requires daemon-side exit/removal, not CLI exit alone.
+        self._cleanup_oneoffs(context,budget)
+        return output
 
     def _sql(self,budget,query):
         require(self.pg_id is not None,'postgres_identity_not_verified')
@@ -264,6 +340,10 @@ class LinuxActions:
         require(re.findall(r'^FROM (.+)$',dockerfile,re.M)==[PYTHON_IMAGE],'unqualified_python_base')
         self.config=validate_config(self._json(self._compose(context,budget,['config','--format','json'])),context.source,'sha256:'+'0'*64)
         self._postgres(context,budget)
+        pending=budget.run(['docker','ps','-a','--filter','label=com.docker.compose.project='+PROJECT,
+            '--filter','label=com.docker.compose.oneoff=True','--format','{{.ID}}'],
+            env=self._environment('unused'),timeout=10).strip()
+        require(not pending,'prior_oneoff_requires_operator_inspection')
 
     def build(self,context,budget):
         require(self.config is not None,'preflight_required')
@@ -282,6 +362,13 @@ class LinuxActions:
     def _fence(self,context,budget):
         ids=self._ids(context,budget,SERVICES,all=True)
         if ids:
+            # Compose ps may include run/one-off containers for a service. Those
+            # are handled only by exact-attempt cleanup, never a service-wide fence.
+            prior=self._inspect(budget,ids)
+            require(all(row.get('Config',{}).get('Labels',{}).get('com.docker.compose.project')==PROJECT
+                        and row['Config']['Labels'].get('com.docker.compose.service') in SERVICES
+                        and row['Config']['Labels'].get('com.docker.compose.oneoff','False')=='False'
+                        for row in prior),'unowned_container_blocks_runtime_fence')
             budget.run(['docker','update','--restart=no',*ids],env=self._environment(context.image or 'unused'),timeout=20)
             self._compose(context,budget,['stop','--timeout','20',*SERVICES],timeout=30)
             require(all(not row['State'].get('Running') and row['HostConfig']['RestartPolicy']['Name']=='no'
@@ -308,7 +395,7 @@ class LinuxActions:
     def migrate(self,context,budget):
         self._fence(context,budget)
         self.before_migration=self._inventory(budget)
-        evidence=self._json(self._compose(context,budget,['run','--rm','--no-deps','migrate'],timeout=90))
+        evidence=self._json(self._oneoff(context,budget,'migrate',timeout=90))
         require(evidence.get('environment')=='preprod' and evidence.get('operation')=='migrate'
                 and isinstance(evidence.get('result'),list),'explicit_migration_not_proven')
         after=self._inventory(budget)
@@ -317,7 +404,7 @@ class LinuxActions:
 
     def start(self,context,budget):
         require(self.migrated,'explicit_migration_required')
-        evidence=self._json(self._compose(context,budget,['run','--rm','--no-deps','lifecycle','python','-m','postgres.lifecycle_worker','--once','--bootstrap']))
+        evidence=self._json(self._oneoff(context,budget,'lifecycle',['python','-m','postgres.lifecycle_worker','--once','--bootstrap']))
         require(evidence.get('retirement')=='off' and evidence.get('archive')=='held_no_qualified_transport','generated_bootstrap_not_proven')
         self._compose(context,budget,['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
 
@@ -354,7 +441,7 @@ class LinuxActions:
 
     def smoke(self,context,budget):
         require(self.migrated,'explicit_migration_required')
-        schema=self._json(self._compose(context,budget,['run','--rm','--no-deps','migrate','python','-m','postgres.migrate',
+        schema=self._json(self._oneoff(context,budget,'migrate',['python','-m','postgres.migrate',
             '--environment','preprod','--dsn-file','/run/secrets/migrator_dsn','--check']))
         require(schema.get('environment')=='preprod' and schema.get('operation')=='check' and isinstance(schema.get('result'),int)
                 and schema['result']>0,'schema_check_not_proven')
@@ -382,6 +469,11 @@ class LinuxActions:
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}
 
     def recover(self,context,budget):
+        if not context.migration_started:
+            require(not self.oneoffs,'unexpected_pre_migration_oneoff')
+            return {'strategy':'prior_runtime_unchanged','database_preserved':True,
+                    'new_acknowledgements_preserved':True,'database_restored':False}
+        self._cleanup_oneoffs(context,budget)
         self._fence(context,budget)
         self._postgres(context,budget)
         before=self._inventory(budget)

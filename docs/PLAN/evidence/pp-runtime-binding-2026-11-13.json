@@ -1,0 +1,112 @@
+{
+  "application_deployed": false,
+  "controller_sha256": "56de886e023e65ccabe712e7c4b7022247b6983e51ee72ca983df9ad990b3296",
+  "exact_source_ci": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43351856515",
+  "github_secret_names": [
+    "PP_DEPLOY_KEY",
+    "PP_DEPLOY_KNOWN_HOSTS"
+  ],
+  "host_preflight": {
+    "application_deployed": false,
+    "authority_created_or_consumed": false,
+    "configured_services": [
+      "api",
+      "calculation",
+      "lifecycle",
+      "migrate",
+      "postgres"
+    ],
+    "controller_sha256": "56de886e023e65ccabe712e7c4b7022247b6983e51ee72ca983df9ad990b3296",
+    "host": "tradebot-preprod-01",
+    "production_changed": false,
+    "read_only": true,
+    "real_host_binding": true,
+    "result": "ACTUAL_PP_CONTROLLER_PREFLIGHT_PASS",
+    "source_sha": "687861e729c029c16e37c96a03c8ddf56ed6f14e",
+    "volume": "tradebot_pp_pgdata"
+  },
+  "installed": {
+    "controller_sha256": "56de886e023e65ccabe712e7c4b7022247b6983e51ee72ca983df9ad990b3296",
+    "database_changed": false,
+    "deployment_dispatched": false,
+    "environment": "preprod",
+    "resource_preflight": {
+      "available_memory_bytes": 1432743936,
+      "disk_free_bytes": 57426333696,
+      "host": "tradebot-preprod-01"
+    },
+    "result": "INSTALLED_NOT_AUTHORIZED",
+    "reviewed_export": "/opt/tradebot-pp-reviewed/687861e729c029c16e37c96a03c8ddf56ed6f14e",
+    "runtime_qualified": false,
+    "source_sha": "687861e729c029c16e37c96a03c8ddf56ed6f14e"
+  },
+  "production_changed": false,
+  "qualification_source_sha": "687861e729c029c16e37c96a03c8ddf56ed6f14e",
+  "recorded_date_utc": "2026-11-13",
+  "runner": {
+    "busy": false,
+    "credentials_recorded": false,
+    "ephemeral": true,
+    "observed_at_utc": "2026-11-13T02:35:37Z",
+    "official_release": "v2.338.2",
+    "runner_id": 27,
+    "runner_name": "tradebot-pp-operator-20261113",
+    "started": true,
+    "status": "online"
+  },
+  "runtime_prerequisites": {
+    "application_started": false,
+    "cloud_writes": false,
+    "credential_values_recorded": false,
+    "elapsed_recreation_and_checks_seconds": 9.032,
+    "exact_rows_preserved": true,
+    "foundation_rows": 32,
+    "host": "tradebot-preprod-01",
+    "lifecycle_connection_limit": 3,
+    "live_collector_started": false,
+    "postgres_container_recreated": true,
+    "preflight": {
+      "available_memory_bytes": 1467326464,
+      "disk_free_bytes": 57426198528,
+      "host": "tradebot-preprod-01"
+    },
+    "production_changed": false,
+    "restricted_roles_authenticated": 4,
+    "result": "PP_RUNTIME_PREREQUISITES_PASS",
+    "source_sha": "687861e729c029c16e37c96a03c8ddf56ed6f14e",
+    "volume": "tradebot_pp_pgdata"
+  },
+  "scope": "actual_preprod_controller_prerequisites",
+  "ssh_binding": [
+    {
+      "check": "exact_identity",
+      "response": {
+        "controller_sha256": "56de886e023e65ccabe712e7c4b7022247b6983e51ee72ca983df9ad990b3296",
+        "database_changed": false,
+        "environment": "preprod",
+        "gate": "IDENTITY_PASS",
+        "instance": "tradebot-preprod-01",
+        "runtime_qualified": false
+      },
+      "result": "PASS"
+    },
+    {
+      "check": "arbitrary_command",
+      "response": {
+        "environment": "preprod",
+        "gate": "BLOCKED",
+        "reason": "entrypoint_precondition_failed"
+      },
+      "result": "PASS"
+    },
+    {
+      "check": "wrong_digest",
+      "response": {
+        "environment": "preprod",
+        "gate": "BLOCKED",
+        "reason": "entrypoint_precondition_failed"
+      },
+      "result": "PASS"
+    }
+  ]
+}

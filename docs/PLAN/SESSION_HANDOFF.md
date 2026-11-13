@@ -5,12 +5,12 @@ Read AGENTS.md, then the active checkpoint in
 authoritative roadmap; this file is an entry point, not a second checklist.
 
 Current work: Phase 1.75 / I7. PostgreSQL CP0–1 passed within foundation scope;
-**CP2–5 source components PRs #18–#21 are merged into the integration branch.
-Final controller source `deb8f0d` passed exact Linux CI 43351324325, including
-real Docker/PostgreSQL/API recovery and root SSH permissions. PR #17 targets
-preprod and needs its combined exact CI. Next is actual PP helper/identity/runner
-binding and the manual generated deployment; those are not yet performed.
-Read the master's current checkpoint and ownership table.** PR #15 aligned reviewed main
+**CP2–5 source components are merged through PR #17 into preprod `ed46314`.
+Controller source `687861e` passed exact CI and actual PP host/SSH/role preflight.
+The PP profile activation PR is next; the manual generated application deployment
+has not run. Temporary ephemeral runner 27 is online on the existing operator
+computer, and PP environment secrets are configured. No authority issued yet.
+Read the master's latest CP5 binding checkpoint and evidence before dispatch.** PR #15 aligned reviewed main
 workflows/docs into preprod (`15475f7`); foundation source `40c2761` passed exact Linux CI 43340827516 and PP execution.
 Check the newest foundation PR, exact CI and host evidence before treating that
 statement as current. Docker/PostgreSQL alone do not qualify app or CD.

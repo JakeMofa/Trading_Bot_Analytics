@@ -151,6 +151,40 @@ The final successor result above qualifies the generated controller code;
 actual PP host bindings remain a separate requirement. [Generated PP release procedure](../../deploy/preprod/RUNTIME_REVIEW.md)
 keeps installation, binding evidence and the first manual deployment separate.
 
+### CP5 actual PP bindings qualified — November 13 UTC
+
+PR #17 merged into preprod at `ed46314` after combined source `687861e` passed
+exact push CI 43351856515 and PR CI 43352101956. All four component PRs are
+consolidated. The application has **not** been deployed by that merge.
+
+The exact CI-passed `687861e` helper source is installed on the existing PP VM;
+its controller SHA-256 is
+`56de886e023e65ccabe712e7c4b7022247b6983e51ee72ca983df9ad990b3296`.
+The real pinned, dedicated SSH identity passed its exact binding and rejected
+arbitrary commands and a wrong hash. Full read-only controller preflight passed
+against the actual PP host, Compose configuration, private network, volume and
+prepared secret files. This is actual host evidence, not the CI hostname fixture.
+
+The explicit role preparation recreated only PP PostgreSQL to add its lifecycle
+secret mount. The same named volume preserved all 32 exact foundation rows;
+four restricted roles authenticated. Recreation plus checks took 9.032 seconds;
+that is not a measured API interruption because no PP application/collector was
+running. No production service or database was touched.
+
+The preprod GitHub environment now holds the dedicated key and verified host pin.
+Temporary runner 27 (`tradebot-pp-operator-20261113`) is online/idle and ephemeral,
+using the verified official v2.338.2 package on the existing operator computer.
+It introduces no VM or AWS resource. The PP target profile may now be enabled
+through a tested configuration PR using this evidence; the production target
+remains disabled. No one-use deployment authority has been issued yet.
+
+[Sanitized binding evidence](evidence/pp-runtime-binding-2026-11-13.json).
+Next: merge the bounded PP profile change, require exact preprod CI, publish a
+unique PP candidate, then make the first manual generated-only CD attempt.
+Application deployment, acceptance and sustained/live operation remain separate.
+No Supabase write/permission, real collection, retirement or paid-AI enablement
+is included. CP6–10 and I7/Phase 1.75 remain open.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

@@ -1,3 +1,4 @@
+import subprocess
 import datetime as dt
 import io
 import hashlib
@@ -135,12 +136,35 @@ class EnvironmentTests(unittest.TestCase):
                 with self.subTest(changes=changes), self.assertRaises(p.PipelineHold):
                     p.qualify_ci(API(), 'production', SHA, env)
 
-    def test_current_unqualified_targets_stop_before_bundle_or_ssh(self):
-        with patch.object(p, 'archive') as bundle, patch.object(p, 'transport') as transport:
-            for role in p.TARGETS:
-                with self.assertRaisesRegex(p.PipelineHold, 'NOT QUALIFIED'):
-                    p.deploy(API(), role, SHA, '.github/deploy/targets.json', self.env())
-            bundle.assert_not_called();transport.assert_not_called()
+    def test_unqualified_targets_stop_before_bundle_or_ssh(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'targets.json'
+            targets=json.loads(Path('.github/deploy/targets.json').read_text())
+            for profile in targets.values():profile['runtime_qualified']=False
+            path.write_text(json.dumps(targets))
+            with patch.object(p, 'archive') as bundle, patch.object(p, 'transport') as transport:
+                for role in p.TARGETS:
+                    with self.assertRaisesRegex(p.PipelineHold, 'NOT QUALIFIED'):
+                        p.deploy(API(), role, SHA, str(path), self.env())
+                bundle.assert_not_called();transport.assert_not_called()
+
+    def test_qualified_pp_profile_matches_controller_and_actual_host_evidence(self):
+        targets=json.loads(Path('.github/deploy/targets.json').read_text())
+        self.assertFalse(targets['production']['runtime_qualified'])
+        profile=p.target_profile('preprod','.github/deploy/targets.json')
+        proof=json.loads(Path(profile['qualification_evidence']).read_text())
+        self.assertEqual(proof['scope'],'actual_preprod_controller_prerequisites')
+        self.assertEqual(proof['qualification_source_sha'],profile['qualification_commit'])
+        self.assertEqual(proof['controller_sha256'],profile['controller_sha256'])
+        self.assertEqual(proof['host_preflight']['result'],'ACTUAL_PP_CONTROLLER_PREFLIGHT_PASS')
+        self.assertTrue(proof['host_preflight']['real_host_binding'])
+        self.assertTrue(proof['runtime_prerequisites']['exact_rows_preserved'])
+        self.assertTrue(all(check['result']=='PASS' for check in proof['ssh_binding']))
+        self.assertFalse(proof['production_changed'])
+        # Controller edits require new qualification; a flag cannot substitute for it.
+        with tempfile.TemporaryDirectory() as directory:
+            result=subprocess.run([sys.executable,'deploy/preprod/controller_bundle.py',str(Path(directory)/'controller.pyz')],capture_output=True,text=True,check=True,timeout=10)
+            self.assertEqual(json.loads(result.stdout)['sha256'],profile['controller_sha256'])
 
     def test_wrong_host_identity_user_hash_or_budget_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

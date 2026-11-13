@@ -286,6 +286,12 @@ class PostgreSQLTests(unittest.TestCase):
             row=db.execute('''SELECT count(*) AS count FROM core.snapshot_evidence WHERE origin_id=%s AND snapshot_id=%s''',
                            (self.settings.origin_id,snapshot_id)).fetchone()
             self.assertGreaterEqual(row['count'],2)
+            orphaned=db.execute('''SELECT count(*) AS count FROM ops.outbox WHERE origin_id=%s AND generation_id IS NULL''',
+                                (self.settings.origin_id,)).fetchone()
+            self.assertEqual(orphaned['count'],0)
+            protected=db.execute('''SELECT payload FROM core.protected_evidence WHERE origin_id=%s AND source='coinbase'
+                AND event_id=%s''',(self.settings.origin_id,event['event_id'])).fetchone()
+            self.assertEqual(protected['payload']['normalized']['price'],event['price'])
         self.assertTrue(self.store.predictions(5))
         self.assertTrue(self.store.chart(now)['points'])
 

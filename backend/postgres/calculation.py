@@ -26,7 +26,8 @@ def calculate(market, price, candles, as_of):
         price_info = {'status': 'fresh' if age <= 30 else 'stale', 'source': price['source'],
                       'source_time': price['source_time'], 'received_at': price['received_at'],
                       'age_seconds': age, 'input_id': price['event_id'],
-                      'origin': price['origin'], 'provenance': price.get('provenance', {})}
+                      'origin': price['origin'], 'generation_id': price.get('generation_id'),
+                      'content_hash': price.get('content_hash'), 'provenance': price.get('provenance', {})}
         if age <= 30:
             reference = Decimal(price['price_usd'])
     wanted = int(as_of.timestamp()) // 60 * 60 - 60

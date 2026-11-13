@@ -168,6 +168,29 @@ class ActionTests(unittest.TestCase):
             postgres.assert_not_called()
         self.assertTrue(all('up' not in args and 'run' not in args for args,_ in self.budget.calls))
 
+    def test_profiled_migration_is_inspected_without_enabling_it_for_runtime_start(self):
+        budget=self.budget
+        def rendered_config(args,**kwargs):
+            budget.calls.append((args,kwargs))
+            if 'config' in args:
+                config=configuration(self.context.source,'sha256:'+'0'*64)
+                if '--profile' not in args or args[args.index('--profile')+1]!='migration':
+                    del config['services']['migrate']  # Compose v5 inactive-profile behavior.
+                return json.dumps(config).encode()
+            return b''
+        budget.run=rendered_config
+        with patch.object(self.actions,'_host'),patch.object(self.actions,'_postgres'):
+            self.actions.preflight(self.context,budget)
+        self.assertEqual(set(self.actions.config['services']),set(a.MEMORY))
+        rendered=budget.calls[0][0]
+        self.assertLess(rendered.index('--profile'),rendered.index('config'))
+        self.actions._compose(self.context,budget,['up','-d','--no-deps','api'])
+        self.assertNotIn('--profile',budget.calls[-1][0])
+        incomplete=configuration(self.context.source,IMAGE)
+        del incomplete['services']['migrate']
+        with self.assertRaisesRegex(c.DeploymentHold,'unexpected_compose_project_or_services'):
+            a.validate_config(incomplete,self.context.source,IMAGE)
+
     def test_build_binds_source_label_and_uses_actual_iid_not_mutable_tag(self):
         self.actions.config=configuration(self.context.source)
         budget=self.budget

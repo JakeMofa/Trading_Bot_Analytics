@@ -6,9 +6,9 @@ import json
 import zipfile
 
 HERE=Path(__file__).resolve().parent
-ENTRY='''import fcntl,json,os,signal,stat,sys
+ENTRY='''import fcntl,hashlib,json,os,signal,stat,sys
 from pathlib import Path
-from controller import Controller,DeploymentHold,HostBinding,Request,RootAuthorization
+from controller import Controller,DeploymentHold,HostBinding,Request,RootAuthorization,_secure_file,require
 from linux_actions import LinuxActions
 
 def interrupted(signum,frame):
@@ -17,8 +17,17 @@ def interrupted(signum,frame):
 def main():
     if os.geteuid()!=0 or len(sys.argv)!=2:
         raise DeploymentHold("fixed_root_entrypoint_required")
-    request=Request.parse(sys.argv[1])
     binding=HostBinding.from_marker()
+    parts=sys.argv[1].split(' ')
+    if parts[0]=='identity-v1':
+        require(len(parts)==4 and parts[1:3]==['preprod','tradebot-preprod-01'],'invalid_identity_command')
+        content,_=_secure_file(Path(sys.argv[0]).resolve(),private=False)
+        digest=hashlib.sha256(content).hexdigest()
+        require(parts[3]==digest,'controller_digest_mismatch')
+        print(json.dumps({'gate':'IDENTITY_PASS','environment':'preprod','instance':'tradebot-preprod-01',
+                          'controller_sha256':digest,'runtime_qualified':False,'database_changed':False}),flush=True)
+        return 0
+    request=Request.parse(sys.argv[1])
     lock=os.open("/run/tradebot-pp-deploy/controller.lock",os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
     info=os.fstat(lock)
     if info.st_uid!=0 or not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:

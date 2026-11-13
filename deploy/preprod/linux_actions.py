@@ -202,8 +202,11 @@ class LinuxActions:
     def _compose(self,context,budget,args,*,timeout=90,input=None,image=None):
         selected=image or context.image or 'sha256:'+'0'*64
         folder=context.source/'deploy/preprod'
+        # Compose v5 omits inactive profile services from rendered config. Inspect
+        # the explicit migration service too, without enabling it for normal up.
+        profiles=['--profile','migration'] if args and args[0]=='config' else []
         return budget.run(['docker','compose','--env-file','/dev/null','--project-name',PROJECT,
-            '--project-directory',str(folder),'-f',str(folder/'compose.yaml'),'-f',str(folder/'runtime.compose.yaml'),*args],
+            '--project-directory',str(folder),'-f',str(folder/'compose.yaml'),'-f',str(folder/'runtime.compose.yaml'),*profiles,*args],
             cwd=context.source,env=self._environment(selected),timeout=timeout,input=input)
 
     def _json(self,raw):

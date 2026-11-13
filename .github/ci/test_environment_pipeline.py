@@ -24,7 +24,7 @@ def accepted():
             'registry':'ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:'+DIGEST, 'checks': dict.fromkeys(p.REQUIRED_CHECKS, 'PASS'),
             'completed_at_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
             'paid_ai_enabled': False, 'retention_enabled': False,
-            'live_collector_enabled': False, 'production_data_mounted': False}
+            'live_collector_enabled': False, 'production_data_mounted': False, 'acceptance_scope': 'production_candidate'}
 
 
 class API:
@@ -77,7 +77,7 @@ class EnvironmentTests(unittest.TestCase):
     def profile(self, role):
         return {'instance': p.TARGETS[role], 'region': 'us-east-2', 'host': '192.0.2.1',
                 'user': 'tradebot-' + role + '-deploy', 'runtime_qualified': True,
-                'controller_sha256': DIGEST, 'qualification_commit': SHA, 'timeout_seconds': 600}
+                'controller_sha256': DIGEST, 'qualification_commit': SHA, 'timeout_seconds': 810 if role=='preprod' else 600, 'work_seconds':600,'recovery_seconds':180}
 
     def test_exact_ci_and_main_production_route(self):
         self.assertEqual(p.qualify_ci(API(), 'production', SHA, self.env())['gate'], 'PASS')
@@ -156,6 +156,15 @@ class EnvironmentTests(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(p.PipelineHold):
                 p.preprod_proof(api, 72, SHA, DIGEST, POLICY)
 
+    def test_generated_scope_cannot_authorize_production(self):
+        api=API();api.proof['acceptance_scope']='generated_only'
+        self.assertEqual(p.validate_result(api.proof,'preprod',SHA,DIGEST)['acceptance_scope'],'generated_only')
+        with self.assertRaisesRegex(p.PipelineHold,'generated-only'):
+            p.preprod_proof(api,72,SHA,DIGEST,POLICY)
+        del api.proof['acceptance_scope']
+        with self.assertRaisesRegex(p.PipelineHold,'scope'):
+            p.validate_result(api.proof,'preprod',SHA,DIGEST)
+
     def test_wrong_workflow_failed_run_or_artifact_layout_cannot_authorize_prod(self):
         for changes in [{'event': 'push'}, {'conclusion': 'failure'}, {'status': 'in_progress'},
                         {'head_branch': 'untrusted'}, {'head_sha': 'd'*40},
@@ -192,7 +201,7 @@ class EnvironmentTests(unittest.TestCase):
                 self.assertEqual(key.stat().st_mode & 0o777, 0o600)
                 self.assertIn('StrictHostKeyChecking=yes', command)
                 self.assertIn('ConnectionAttempts=1', command)
-                self.assertEqual(timeout, 600)
+                self.assertEqual(timeout, 810)
                 self.assertNotIn('synthetic-key', ' '.join(command))
                 self.key = key
                 return type('Result', (), {'returncode': 0, 'stdout': json.dumps(accepted()).encode()})()

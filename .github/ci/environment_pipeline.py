@@ -115,7 +115,11 @@ def target_profile(role, path):
     require(DIGEST.fullmatch(profile.get('controller_sha256', '')), 'qualified controller hash missing')
     require(profile.get('qualification_commit') and SHA.fullmatch(profile['qualification_commit']),
             'controller qualification commit missing')
-    require(profile.get('timeout_seconds') == 600, 'reviewed 600-second controller deadline required')
+    if role == 'preprod':
+        require(profile.get('work_seconds') == 600 and profile.get('recovery_seconds') == 180
+                and profile.get('timeout_seconds') == 810, 'reviewed PP work/recovery/transport budgets required')
+    else:
+        require(profile.get('timeout_seconds') == 600, 'reviewed production controller deadline required')
     require(profile.get('user') == 'tradebot-' + role + '-deploy', 'dedicated deployment identity required')
     require(re.fullmatch(r'[A-Za-z0-9.-]+', profile.get('host', '')), 'invalid target host')
     return profile
@@ -152,6 +156,8 @@ def preprod_proof(api, run_id, sha, artifact_digest, policy_digest):
             and proof.get('controls_sha') == run.get('head_sha'),
             'PP acceptance bindings mismatch')
     require(proof.get('checks') == dict.fromkeys(REQUIRED_CHECKS, 'PASS'), 'PP acceptance checks incomplete')
+    require(proof.get('acceptance_scope') == 'production_candidate',
+            'generated-only PP checks cannot authorize production promotion')
     validate_result(proof, 'preprod', sha, artifact_digest)
     issued = dt.datetime.fromisoformat(proof['completed_at_utc'])
     require(issued.utcoffset() is not None, 'timezone required in PP evidence')
@@ -170,11 +176,13 @@ def validate_result(result, role, sha, digest):
     if role == 'preprod':
         require(result.get('live_collector_enabled') is False and result.get('production_data_mounted') is False,
                 'PP must not collect live markets or mount production data')
+        require(result.get('acceptance_scope') in ('generated_only','production_candidate'),
+                'explicit PP acceptance scope required')
     # Never persist arbitrary controller stdout fields (logs or credentials).
     safe = {'gate', 'environment', 'instance', 'source_sha', 'artifact_sha256',
             'checks', 'paid_ai_enabled', 'retention_enabled'}
     if role == 'preprod':
-        safe.update({'live_collector_enabled', 'production_data_mounted'})
+        safe.update({'live_collector_enabled', 'production_data_mounted', 'acceptance_scope'})
     return {key: result[key] for key in safe}
 
 

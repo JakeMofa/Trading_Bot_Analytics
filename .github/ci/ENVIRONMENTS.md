@@ -5,10 +5,10 @@ It does not create a second roadmap or certify a database migration.
 
 | Workflow | Purpose | When it runs |
 | --- | --- | --- |
-| `python-tests.yml` — CI — Tradebot checks | Application/legacy SQLite compatibility, real PostgreSQL foundation, release/transport controls, workflow syntax, dependency audit, fail-closed PR readiness | PR, merge queue, push main/preprod/codex branches |
+| `python-tests.yml` — CI — Tradebot checks | Application/legacy SQLite compatibility, isolated PostgreSQL migrations/application/lifecycle and runtime image, release controls, dependency audit and PR readiness | PR, merge queue, push main/preprod/codex branches |
 | `ci-pp.yml` — CI Preprod | Reuse latest exact push CI for permitted PP source | Successful shared push CI; manual |
 | `ci-prod.yml` — CI Prod/Main | Reuse exact main push CI | Successful shared main push CI; manual |
-| `cd-pp.yml` — CD Preprod | Deploy published candidate to tradebot-preprod-01 after host qualification | Explicit dispatch from main |
+| `cd-pp.yml` — CD Preprod | Deploy published candidate to tradebot-preprod-01 after host qualification | Explicit dispatch from main, or exact preprod controls for a preprod source only |
 | `cd-prod.yml` — CD Prod/Main | Promote exact main candidate with successful matching PP acceptance and owner approval | Explicit dispatch from main |
 | `release-candidate.yml` — Release — publish version and package | Explicit candidate tag, source package, checksum, attestation and GitHub prerelease | Explicit dispatch from main |
 
@@ -33,15 +33,20 @@ An injected unexpected column must fail verification. Failure or a skipped job
 fails `PR readiness`; this feeds the existing exact-commit CI Preprod / CI
 Prod/Main qualification. No separate database service is contacted in production.
 
-This is not yet a complete business migration/drift gate. Checkpoint 2 must add
-versioned migrations, immutable migration checksums, empty/repeat/supported-
-upgrade tests, schema/constraint/index/privilege comparisons and explicit
-approval of intentional changes. Later CD must bind the inspected host schema
-and migration evidence to the exact artifact/environment and reject unexpected
-drift before execution. Supabase `history_v2` compatibility is a separate CP6
-gate; CI credentials must not silently apply live cloud DDL. Database changes
-must arrive with their migration, compatibility/recovery tests and updated
-contract, rather than treating every green Python suite as migration evidence.
+The additional `PostgreSQL migrations and application lifecycle` job starts an
+isolated PostgreSQL 17 container and runs empty/repeat/upgrade, immutable
+migration checksum, schema/constraint/index/privilege drift, exact-value,
+application and partition-retirement/history tests. Any skipped database case
+fails this qualification. It builds the runnable app image and exercises actual
+API/SSE endpoints with generated data; the source-bundle registry carrier remains
+a different artifact. The job owns only disposable CI data and cannot run on the
+marked PP host. Sanitized evidence is retained as `postgres-integration-<SHA>`.
+
+Generated proof does not establish live collection, representative capacity or
+Supabase permissions. `history_v2` remains an unapplied CP6 contract. CD must bind
+the inspected host schema and migration evidence to the exact artifact and
+reject unreviewed drift. Application startup validates; only the explicit
+migration command applies reviewed SQL. Production controls remain disabled.
 
 ## Publication and visible rollback inventory
 
@@ -75,7 +80,7 @@ registry-wide immutability. There is no scheduled pruning in this PR.
 ## PP, then production
 
 1. Feature PR → preprod; exact push CI and review.
-2. Publish that preprod candidate, dispatch CD Preprod from main with its
+2. Publish that preprod candidate, dispatch CD Preprod from main or the exact reviewed preprod HEAD with its
    source_branch/version/SHA. PP uses isolated generated/replayed DB data, no
    production mount, extra live collector, retention or paid AI.
 3. Review preprod → main. A merge/squash creates a new source SHA: publish and
@@ -84,6 +89,8 @@ registry-wide immutability. There is no scheduled pruning in this PR.
 4. Dispatch CD Prod/Main from main with that published main version/SHA and
    successful PP CD run ID. PP evidence must match source/archive/policy/version/
    registry digest, current attempt, all ten acceptance checks and age ≤24h.
+   Evidence must explicitly have production-candidate scope; generated-only PP
+   acceptance is rejected even when every smoke check passes.
    Production environment requires the owner's approval; no automatic deploy
    follows a merge, tag, Release or package publication.
 
@@ -146,3 +153,22 @@ a retained source bundle alone is not a self-contained runtime image.
 [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases),
 [workflow artifact retention](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/remove-workflow-artifacts),
 [artifact provenance](https://docs.github.com/en/actions/how-tos/secure-your-work/use-artifact-attestations/use-artifact-attestations).
+
+## Generated PP controller implementation
+
+The controller source in `deploy/preprod/controller.py` implements a bounded
+one-use authorization, exact source/archive/controller binding, safe extraction,
+explicit migration stage and forward-preserving recovery. Its tests inject
+wrong bindings, unsafe archives, stage failures, timeouts and recovery failure.
+The Linux adapter, installed identity/pin, runtime preparation and actual manual
+workflow need separate qualification. Neither creating a controller file nor
+setting a target flag establishes that evidence.
+
+The prepared PP route reserves 600 seconds of work, 180 seconds of recovery and
+30 seconds for transport. Production's existing controls are unchanged.
+Recovery preserves PostgreSQL and new acknowledgements; code rollback never
+restores database contents. The current runtime cannot enable a live collector,
+cloud writes or retirement. Normal runtime container caps total 1 GiB: PostgreSQL
+512 MiB, API 192 MiB, calculations 192 MiB and lifecycle 128 MiB. The migration
+container has a separate 192 MiB cap and runs before the application starts.
+These caps are prepared limits, not a production capacity qualification.

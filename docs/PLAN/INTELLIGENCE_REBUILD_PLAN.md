@@ -1,67 +1,171 @@
 # BTC Intelligence Rebuild Plan
 
-## Current execution checkpoint — November 12, 2026
+## Active execution plan — November 12, 2026
 
-**Verified CI update — November 12:** source 954dd426b8d05d17b7aff741b59de9c713efa924
-passed exact [push CI 43174492139](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43174492139)
-and [PR CI 43174499594](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43174499594).
-Linux executed the carrier build/extract test successfully. No code CI failure
-remains. Root README now documents local startup, actual/planned databases,
-VMs, approved connection paths, four CI/CD workflows, versions and rollback
-limits; its empty-fixture/status command and local links were checked. This is
-a documentation successor, not a runtime deployment. Next is PostgreSQL PP
-application/controller/connection qualification, not more pipeline design.
+**Phase 1.75 / I7 remain OPEN. This is the only authoritative roadmap.**
+The checkpoints below implement the selected PostgreSQL direction within Phase
+1.75; they are not new product phases. README documents operation; handoff points
+here. Dated reports and the older sections below preserve evidence, not current
+instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
 
-The user removed SQLite A/B from the active implementation path. PRs #11–#13
-are closed, unmerged and superseded; their branches and evidence are preserved.
-The selected direction is local PostgreSQL qualified first on the separate
-2 GiB / 60 GB preprod host. Existing production legacy SQLite and its files are
-untouched. Removing A/B from the release does not migrate or remove production.
-**Phase 1.75 and I7 remain OPEN.**
+### Current verified checkpoint
 
-PR #14 is now an independent CI/CD and version-publication change based on
-main b01d3236a705eb74d85ba3df8b1a98411b4a5723, with no A/B application or database
-migration code. Original stacked head e174649166a78633f7ac2d80ca596dcdb031d293 is
-preserved at archive/pr14-stacked-2026-11-12. It is historical, not a release.
-The older main application is NOT the deployed d56b4a7 production revision.
-Merging this configuration must not be treated as application migration or
-permission to replace the running production code.
+- PR #14 is merged into `main` at `cf86a19`. PR #15 aligns its reviewed
+  CI/CD/docs into `preprod` at `15475f7`. PR #15 CI 43338705231 passed.
+- The original dirty checkout stays on `codex/phase1-75-retention-enable` at
+  `0204901`; unrelated changes and the uncommitted roadmap history are preserved.
+  New foundation changes are prepared from the reviewed `main` tree, not merged
+  wholesale from the superseded SQLite application branch.
+- Existing PP: `tradebot-preprod-01`, us-east-2a, 2 vCPU / 2 GiB / 60 GB.
+  Existing production: `tradebot-analytics-01`, same region/resources. No third
+  instance. Production remains the separately deployed legacy SQLite release
+  `d56b4a7` by last recorded inspection, not the application on current `main`.
+- **CP0 branch alignment PASS; CP1 foundation implementation/qualification in
+  progress.** A successful database container will not imply app/CD readiness.
+- Production is untouched by this milestone. No new production health/collection
+  claim is inferred from GitHub CI. Last recorded collection was storage-held;
+  retention and paid AI were OFF.
 
-Four entry points: CI Preprod, CD Preprod, CI Prod/Main, CD Prod/Main. Shared
-source checks, explicit SemVer candidate publication, GHCR source packages,
-checksums, provenance and manual promotion are configured. Actions evidence has
-90-day retention. Published Releases/packages have no automatic pruning here.
-Candidate publication never means deployed or acceptance-validated. Main
-controls may publish/test a CI-passed preprod source; production requires a
-main source SHA tested again in PP after the main merge changes its identity.
+### Fixed architecture and policy
 
-Live GitHub environments exist; production requires owner approval. No runner
-is registered and neither environment has deployment secrets as of the bounded
-November 12 API inventory. Both runtime/controller profiles remain explicitly
-unqualified. No PP/production workflow was dispatched. Merging PR #14 registers
-the workflows; it does not complete PP host/application readiness. PP controller,
-restricted deployment key/verified host pin and approved private runner need
-qualification with the PostgreSQL application before CD can execute.
+Each VM eventually runs an independent Compose deployment: API/collector/RAM
+LiveState, calculation worker, lifecycle/history worker, and PostgreSQL on a
+persistent volume. Database migrations are an explicit command, never normal
+application startup. PP and production have independent credentials, volumes,
+networks and environment identities with the same versioned business schema.
 
-- [x] Supersede A/B PRs and extract independent pipeline/release scope.
-- [x] Local main-baseline backend tests, release/transport regressions, dependency
-  audit and workflow syntax validation. Exact new GitHub CI remains required.
-- [ ] Merge reviewed PR #14 after its exact checks pass; sync workflow/config
-  changes into permanent preprod through a reviewed PR.
-- [ ] Implement/qualify PostgreSQL adapter, isolated schema/migration fixtures,
-  archive-before-delete lifecycle, replay, capacity and crash/forward recovery.
-- [ ] Qualify PP controller/runtime and install scoped PP deployment bindings;
-  deploy one candidate in PP. Only one real market collector remains permitted.
-- [ ] Separately qualify production controller/compatibility and approve an
-  exact main release with matching PP evidence before production deployment.
-- [ ] Close I7 freshness/rollover and sustained-operation gates from measurements.
+| PP mode | Source | Collector policy |
+| --- | --- | --- |
+| Production preview | Restricted authenticated production API/SSE | PP collector OFF; PP API/dashboard ON |
+| Isolated development | Generated or approved replay/subset in PP PostgreSQL | Real collector OFF |
+| Bounded live qualification | Official feeds writing only PP data | PP temporarily owns sole real collector after production fencing |
 
-No production deployment, engine change, retention, paid AI or Phase 2 is
-included. Detailed pipeline operation: [environment and release guide](../../.github/ci/ENVIRONMENTS.md).
-The prior full execution history remains accessible in the preserved
-[stacked roadmap](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/archive/pr14-stacked-2026-11-12/docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md).
-Older baseline phases below are historical; this current checkpoint governs.
+Before production takes collection ownership, stop and fence PP collection so
+it cannot automatically restart; keep PP API running. A storage-guard pause is
+not a writer fence. Cross-host preview uses qualified private networking or an
+approved tunnel and a restricted API identity. Docker bridge networks do not
+span hosts. Never share database volumes or expose PostgreSQL publicly. Preview
+credentials cannot call administrative or collector controls.
 
+Local databases are `tradebot_pp` and `tradebot_prod`:
+
+| Schema | Contract |
+| --- | --- |
+| `raw` | Observations/events partitioned by unique A/B generation |
+| `core` | Markets, candles, current prices, features, predictions, outcomes, protected evidence |
+| `ops` | Versioned migrations, ownership, health, durable outbox/checkpoints, bounded deduplication |
+| `archive` | Generation state, exact coverage, manifests, verification, retirement records |
+
+Preserve stable origin-aware identities, exact financial decimals, original
+source timestamp strings, receipt/availability times and provenance. A duplicate
+identity succeeds only if its content matches. Raw retirement cannot cascade
+into protected evidence/predictions. PostgreSQL timestamp precision alone must
+not replace the original source timestamp representation.
+
+**A collects → switch to B → seal A → upload and verify required A data →
+preserve references/history → drain readers → retire A locally → repeat.**
+Rotation occurs at 72 hours or a qualified size threshold. There is no additional
+72-hour wait after sealing and no guaranteed minimum 72-hour local window when
+size triggers first. PostgreSQL partition retirement reclaims that relation's
+storage; measure aggregate disk/WAL/temporary/log/image usage separately. Archive
+failure, uncertain coverage or evidence changes preserve local data. Normal
+PostgreSQL locking/maintenance still require measured interference limits.
+
+### Supabase, hot reads and history
+
+Selected cloud contract: additive **private `history_v2`** structured tables,
+protected evidence, coverage and origin/generation checkpoints. Preserve all
+existing public tables and objects. Raw remains compressed objects in private
+Supabase Storage. The cloud migration is NOT applied by foundation initialization.
+Same database engine does not provide automatic sync or format compatibility.
+
+| Query | Path |
+| --- | --- |
+| Current dashboard / SSE | RAM LiveState |
+| Recent calculations / bounded history | Indexed local PostgreSQL |
+| Older structured history | Explicit historical retrieval from Supabase |
+| Exact archived evidence | Catalog → authenticated download → verification → decode/replay |
+| Future AI | Bounded retrieval tools returning data plus provenance |
+
+Remote retrieval stays off the live forecasting path. Never replace a missing
+live price with an old cloud price. Distinguish stale, missing and failed
+retrieval. Preserve existing API contracts where possible; add truthful
+source/as-of time, environment/data mode, archive coverage and retention holds.
+Redis is deferred unless a measured bottleneck supports a reconstructible cache.
+It cannot replace durable persistence or archive verification.
+
+### Delivery checkpoints and evidence
+
+Each completed milestone has a tested commit, small PR to `preprod`, applicable
+CI and one consolidated outcome. Qualified default-off pieces may merge without
+waiting for every Phase 1.75 gate. `main` is the intended production release
+branch; production CD is manual and requires exact main-artifact PP evidence.
+The obsolete `codex/lightsail-deployment` route is not the new release path.
+
+| CP | Work | Completion gate / current state |
+| --- | --- | --- |
+| 0 | Consolidate plan, align reviewed main workflows/docs to PP | PR #15 merged; no SQLite A/B bulk merge; current plan/handoff consolidation included in foundation PR |
+| 1 | PP Docker/PostgreSQL/developer foundation | Official Ubuntu Docker repo; pinned `postgres:17.12-bookworm`; isolated network, persistent volume, restricted roles, secrets, health; generated persistence/recreation and README commands. **In progress** |
+| 2 | Versioned local database and `history_v2` contract | Empty/repeat/upgrade, wrong-environment, decimals/timestamps/identity/reference regressions; no cloud DDL until CP6 |
+| 3 | PostgreSQL app and dashboard | Adapter, indexed current-price and bounded history, calculations, actual API/SSE, independent discovery/serial calculation, runnable application image |
+| 4 | A/B lifecycle and historical retrieval | Atomic switch/seal, durable structured outbox, bounded archives/readback, history after real generated partition retirement; preserve on failure |
+| 5 | CD Preprod | Qualified restricted host controller/deploy identity/host pin/credentials/runner; migration/app/image CI; manual PP deploy and recovery evidence; no flag-only enablement |
+| 6 | Actual Supabase compatibility | Separately reviewed additive private `history_v2` DDL/grants; bounded isolated writes/readback; exact values/conflicts/checkpoints/replay; mutation-authority qualification |
+| 7 | PP live/capacity/recovery | Explicit prod fencing; bounded sole-collector PP run; API/SSE/persistence/features/rollover/archive; normal/outage growth, core/outbox, legacy import/recovery; PP collector disabled afterward |
+| 8 | Exact production candidate | Reviewed small PRs assembled on main; exact image/version tested in PP; executable cutover/recovery with measured operating limits |
+| 9 | Approved production cutover | Fence old writer; verify/import committed history/delta; single PG collector; bounded smoke; measured interruption; retirement initially OFF |
+| 10 | Lifecycle and Phase 1.75 acceptance | Separately verify first sealed generation then enable retirement; bounded automated sustained evidence across cycles/boundaries; independent legacy retirement gate |
+
+Cutover, first sealed-generation verification and retirement enablement are
+separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
+new PostgreSQL acknowledgements, recovery must preserve them; restarting the old
+SQLite writer blindly is prohibited. Legacy SQLite is retained until its own
+archive, exact reference/retrieval and reader-drain checks pass.
+
+### Budgets, regression matrix and acceptance
+
+Foundation: generated smoke data ≤64 MiB, PostgreSQL container 512 MiB RAM,
+128 MiB shared buffers and bounded connections. Full durability/autovacuum stay
+ON. Fresh resource preflight before installation: ≥10 GiB free filesystem and
+≥1 GiB available RAM. These foundation prerequisites are not a production sizing
+claim. Installer work bounded to 10 minutes; database up to 6 minutes; smoke to
+3 minutes. Generated CI owns only its isolated project/volume. Operator failure
+preserves the PP data volume; no automatic deletion/rollback of database contents.
+
+Required subsequent regressions:
+- Wrong schema/version/environment; malformed timestamps/decimals; duplicate and
+  conflicting identities; missing/broken protected references.
+- A→B→A with concurrent/late events, crashes/restarts, one writer, exact durable
+  acknowledgements and forward recovery.
+- Archive outage/ambiguous upload/corruption/cancellation, failed retirement,
+  reader drainage, final authenticated readback and mutation-authority continuity.
+- Actual dashboard/API/SSE parity/reconnect, stale feeds, market boundaries,
+  history after retirement and deterministic calculations.
+- Deployment failures before/after migration; fencing; actual storage/WAL/temp,
+  logs/images/RAM and outstanding sync/backlog accounting.
+
+Retain zero two-second API timeouts, save/heartbeat delays below one second,
+feature/input ages within 30 seconds and timely rollover. Small fixtures prove
+only their correctness scope. Representative work proves capacity/performance.
+The old 5 GiB slot target and 24 GiB transition estimate are not applied PG
+limits. Larger qualification packages need explicit resource/time bounds.
+
+Paid AI, trading, hourly work, new infrastructure, database copies/snapshots,
+manual WAL/VACUUM shortcuts and Phase 2 remain outside this implementation.
+
+Implementation references: [Docker Ubuntu installation](https://docs.docker.com/engine/install/ubuntu/),
+[official PostgreSQL image](https://hub.docker.com/_/postgres),
+[PostgreSQL 17 resource settings](https://www.postgresql.org/docs/17/runtime-config-resource.html).
+Historical detailed storage evidence is preserved in the
+[archived stacked roadmap](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/archive/pr14-stacked-2026-11-12/docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md).
+
+---
+
+## Historical product phases — dated baseline, not current checkpoint
+
+The sections below retain the original roadmap. Their phase/branch and SQLite
+statements are superseded where they conflict with the active programme above.
+They do not authorize new work or declare current production state.
 
 **Branch:** `codex/intelligence-rebuild-phase0`
 **Status:** Active implementation plan

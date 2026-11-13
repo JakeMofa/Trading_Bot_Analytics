@@ -1,0 +1,81 @@
+name: tradebot-pp-foundation
+services:
+  postgres:
+    image: postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536
+    restart: unless-stopped
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    shm_size: 128m
+    stop_grace_period: 60s
+    security_opt: [no-new-privileges:true]
+    environment:
+      POSTGRES_DB: tradebot_pp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/admin
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256 --data-checksums
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - max_connections=20
+      - -c
+      - work_mem=2MB
+      - -c
+      - maintenance_work_mem=32MB
+      - -c
+      - temp_file_limit=64MB
+      - -c
+      - statement_timeout=15s
+      - -c
+      - lock_timeout=2s
+      - -c
+      - idle_in_transaction_session_timeout=15s
+      - -c
+      - fsync=on
+      - -c
+      - synchronous_commit=on
+      - -c
+      - full_page_writes=on
+      - -c
+      - autovacuum=on
+      - -c
+      - max_wal_size=256MB
+      - -c
+      - min_wal_size=80MB
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d tradebot_pp']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    secrets: [admin, migrator, application, reader]
+    volumes:
+      - pp_pgdata:/var/lib/postgresql/data
+      - ./init.sh:/docker-entrypoint-initdb.d/10-foundation.sh:ro
+    networks: [database]
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
+networks:
+  database:
+    internal: true
+volumes:
+  pp_pgdata:
+    name: tradebot_pp_pgdata
+    labels:
+      tradebot.environment: preprod
+      tradebot.purpose: postgres-foundation
+secrets:
+  admin:
+    file: ${PP_SECRET_DIR:?set PP_SECRET_DIR}/admin
+  migrator:
+    file: ${PP_SECRET_DIR:?set PP_SECRET_DIR}/migrator
+  application:
+    file: ${PP_SECRET_DIR:?set PP_SECRET_DIR}/application
+  reader:
+    file: ${PP_SECRET_DIR:?set PP_SECRET_DIR}/reader

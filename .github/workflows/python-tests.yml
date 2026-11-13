@@ -79,10 +79,28 @@ jobs:
           path: dependency-audit.json
           if-no-files-found: error
           retention-days: 90
+  postgres-foundation:
+    name: PostgreSQL PP foundation
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: python3 -m unittest discover -s deploy/preprod/tests -v
+      - name: Qualify isolated database and container recreation
+        run: sudo env GITHUB_ACTIONS=true python3 deploy/preprod/foundation.py ci > postgres-foundation.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: postgres-foundation-${{ github.sha }}
+          path: postgres-foundation.json
+          if-no-files-found: error
+          retention-days: 90
   readiness:
     name: PR readiness
     if: always()
-    needs: [backend, controls, dependencies]
+    needs: [backend, controls, dependencies, postgres-foundation]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     env:
@@ -95,5 +113,5 @@ jobs:
           results=json.loads(os.environ['RESULTS'])
           assert results and all(r['result']=='success' for r in results.values()), 'Required check failed, skipped or incomplete'
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as output:
-              output.write('PR readiness: PASS. Source checks only; no VM deployment, PostgreSQL migration, cloud archive or production acceptance performed.\n\n[Authoritative roadmap](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/main/docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md)\n')
+              output.write('PR readiness: PASS. Source and isolated PostgreSQL foundation checks only; no application migration, cloud archive or production acceptance performed.\n\n[Authoritative roadmap](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/main/docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md)\n')
           CHECK

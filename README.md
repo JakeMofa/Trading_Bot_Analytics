@@ -7,8 +7,9 @@ not official settlement. Hourly markets, trading and paid AI remain deferred.
 **Current checkpoint: Phase 1.75 / I7 unfinished.** The active storage direction
 is PostgreSQL tested in isolated preproduction before any production migration.
 The pending SQLite A/B implementation was superseded; PRs #11–#13 are closed,
-with their branches and evidence retained. PR #14 adds independent CI/CD and
-version publication; it does not migrate the database or deploy the application.
+with their branches and evidence retained. PR #14 added independent CI/CD and version publication; PR #15 aligned those
+controls into preprod. The first PostgreSQL foundation is being qualified;
+it does not yet include an application adapter or live collector.
 
 Start with the authoritative [master roadmap](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md),
 then the [session handoff](docs/PLAN/SESSION_HANDOFF.md). Detailed pipeline operation
@@ -51,10 +52,83 @@ Raw archive objects are not SQL tables; archived history needs explicit retrieva
 
 Preserve exact decimal values, original source timestamp strings, receive times,
 source/market identities, missing-data states and provenance. Review the actual
-rolling 72-hour policy as part of PostgreSQL work; the old 72-hour-or-size A/B
-rotation is superseded and is not a deployed retention policy. Production
+selected 72-hour-or-qualified-size A/B policy in the master roadmap. The SQLite
+implementation is superseded; the lifecycle is retained using PostgreSQL
+partitions. No additional 72-hour wait follows sealing, and retirement always
+follows verified archival. It is not yet a deployed retention policy. Production
 retention and paid AI remain OFF. Supabase schema/permissions do not change
 when this CI configuration merges.
+
+## PP PostgreSQL foundation (checkpoint 1)
+
+The source package in `deploy/preprod/` runs only PostgreSQL, not Tradebot's
+API, calculation/lifecycle workers or collector. The business schema and app
+adapter are subsequent checkpoints. Use the existing approved PP SSH route.
+Never point these commands at production. The helper requires the root-owned
+PP host marker, exact hostname, Ubuntu 24.04, 10 GiB free disk and 1 GiB available
+RAM. It rejects an already installed Tradebot service.
+
+The following candidate procedure is under qualification; the master roadmap
+records whether its exact revision and PP execution have passed:
+
+```sh
+# On PP, from a reviewed export of this revision:
+sudo python3 deploy/preprod/foundation.py preflight
+sudo python3 deploy/preprod/foundation.py install-docker
+sudo python3 deploy/preprod/foundation.py up
+sudo python3 deploy/preprod/foundation.py verify
+sudo python3 deploy/preprod/foundation.py status
+```
+
+`install-docker` uses Docker's signed official Ubuntu repository, checks its
+signing-key fingerprint and refuses conflicting packages. It does not add users
+to the root-equivalent Docker group. `up` pins PostgreSQL 17.12/bookworm by digest
+and creates only the named `tradebot_pp_pgdata` volume and private Compose
+network. No port is published; no production/cloud credentials are loaded.
+
+Secret files live only under `/etc/tradebot/pp-postgres`, mode 0700, with 0400
+files owned by the pinned image's PostgreSQL UID. The helper creates them once,
+preserves them on repeat runs, and never prints passwords. Credentials are not
+in Compose environment variables, Git, artifacts or command arguments. Admin
+access remains a privileged operator action. Keep the deployment files at a
+stable root-owned location on PP for subsequent Compose operations.
+
+Restricted roles: non-login owner, migration identity with explicit `SET ROLE`,
+application without DDL, and read-only history identity. Foundation creates only
+empty `raw/core/ops/archive` namespaces plus `ops.environment_identity`; future
+business migrations run explicitly rather than at app startup. Role grants for
+real business tables must be reviewed with those migrations.
+
+`verify` uses 32 generated rows, checks exact decimals/source strings and role
+restrictions, recreates only the PostgreSQL container, and confirms the same
+volume still contains committed rows. It reports relation/data/WAL/temp usage
+and memory. Smoke data is capped at 64 MiB; PostgreSQL's own cluster, image and
+WAL consume additional measured space. This is persistence/correctness evidence,
+not representative capacity, power-loss, application or A/B qualification.
+
+Defaults: 512 MiB memory including no swap allowance, 128 MiB shared buffers,
+20 connections, 2 MiB work memory, bounded queries/temp files and rotated logs.
+Full durability, page checksums and autovacuum remain enabled. `max_wal_size` is
+a soft maintenance setting, not an aggregate storage ceiling.
+
+```sh
+# PP-only status and logs (do not print secret contents):
+sudo python3 deploy/preprod/foundation.py status
+sudo env PP_SECRET_DIR=/etc/tradebot/pp-postgres docker compose \
+  --env-file /dev/null -f deploy/preprod/compose.yaml logs --tail 50 postgres
+# Stop safely; volume and credentials are retained:
+sudo python3 deploy/preprod/foundation.py stop
+```
+
+Failure recovery preserves the database volume. Correct the evidenced error
+before restarting; do not use `down --volumes`, replace files, or restore old
+code over newly acknowledged data. The CI-only disposable-data command refuses
+hosts with the PP marker. No foundation command enables collection, retention,
+Supabase sync, paid AI, or the CD runtime qualification flag.
+
+CI executes host/control regressions and the real pinned container on Linux,
+including recreation and role tests. Evidence is a sanitized
+`postgres-foundation-<SHA>` Actions artifact. It does not need cloud secrets.
 
 ## Local developer quick start
 
@@ -104,7 +178,9 @@ There is no second live collector in this quick start.
 Access is restricted. Developers need an individually approved operator/deploy
 identity, its private key kept outside Git, and a host key verified through an
 existing trusted route. GitHub CD uses separate scoped keys for each environment;
-never reuse the production operator key for PP or put key material in a README.
+do not reuse an operator key as a CD deployment identity or put key material
+in a README. The existing approved operator key is already attached to both
+hosts; future CD uses separate restricted environment identities.
 
 Find the current PP address in the [Lightsail console](https://lightsail.aws.amazon.com/ls/webapp/us-east-2/instances/tradebot-preprod-01/connect)
 or, with existing authenticated read access, run:

@@ -1,5 +1,15 @@
 # BTC Intelligence — Strategic Plan
 
+## Current architecture pointer — November 12, 2026
+
+The authoritative master roadmap selects local PostgreSQL on the existing PP
+and production VMs, qualified in PP first. It replaces the SQLite A/B
+implementation while preserving the 72-hour-or-qualified-size A/B lifecycle
+using PostgreSQL partitions and persistent core. Private additive Supabase
+`history_v2` is selected but unapplied. Older architecture below is historical
+where it differs; execution progress belongs only in the master roadmap.
+
+
 ## November 12, 2026 — active storage direction
 
 SQLite A/B is superseded and its unmerged PRs are closed. Qualify local PostgreSQL

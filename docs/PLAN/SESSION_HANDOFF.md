@@ -1,43 +1,22 @@
-# Tradebot continuation — November 12, 2026
+# Resume here
 
-Read AGENTS.md and the current execution checkpoint in
-INTELLIGENCE_REBUILD_PLAN.md first. That document is authoritative.
+Read AGENTS.md, then the active checkpoint in
+[INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). That is the only
+authoritative roadmap; this file is an entry point, not a second checklist.
 
-The active branch/PR is codex/pr9-release-controls / #14, independently based
-on main; despite the historical branch name, its new tree contains no SQLite
-A/B implementation. PRs #11–#13 are closed/superseded, branches retained. Their
-work must not be merged into this pipeline change. The old PR14 source is
-preserved by archive/pr14-stacked-2026-11-12. The original local checkout stays
-codex/phase1-75-retention-enable at 0204901; unrelated AGENTS/roadmap/local data
-edits are intentionally uncommitted. Never reset or overwrite them.
+Current work: Phase 1.75 / I7, PostgreSQL CP0–1. PR #15 aligned reviewed main
+workflows/docs into preprod (`15475f7`); foundation qualification is in progress.
+Check the newest foundation PR, exact CI and host evidence before treating that
+statement as current. Docker/PostgreSQL alone do not qualify app or CD.
 
-User will merge PR14 after exact CI; do not merge or deploy production on their
-behalf. New pipelines are definitions and fail-closed controls, not evidence of
-PP installation. GitHub has no registered private runner or environment deploy
-keys at the latest bounded inventory. Runtime profiles are unqualified. No
-released package/version has been published by this checkpoint. Source 954dd42 passed exact push CI 43174492139 and PR CI 43174499594,
-including the carrier build/extract. No code CI failure remains; this README/
-documentation successor gets its own automatic checks. Do not poll.
+The original working checkout is dirty on codex/phase1-75-retention-enable.
+Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge
+the superseded SQLite A/B branch wholesale. Current foundation changes are based
+on reviewed main/preprod, isolated from that checkout. Do not expose credentials.
 
-PP: tradebot-preprod-01, us-east-2a, 2 GiB / 60 GB, last known public IP
-18.119.253.233 (not static), private 172.26.11.9. Host baseline passed earlier;
-PostgreSQL and app are not installed/qualified. Production remains the separate
-tradebot-analytics-01 at 3.13.133.25, last recorded deployed d56b4a7, legacy
-storage guard 5120 MiB, feeds held, retention/paid AI OFF. These are recorded VM
-findings, not fresh measurements from the PR rewrite. AWS help preference HIGH.
-
-Next application work: small PostgreSQL PP PRs with isolated test data, exact
-decimals/source timestamps/provenance, one real collector, explicit structured
-Supabase sync and verified raw archives. No production data sharing for writable
-migration tests. New PostgreSQL migrations must add real isolated compatibility,
-forward recovery and application contract tests; the baseline SQLite CI does
-not certify PostgreSQL or live Supabase.
-
-Guide: .github/ci/ENVIRONMENTS.md. Releases/packages publish manually from main
-controls, including preprod candidates. Source bundle is a scratch registry
-carrier, not a runnable app image; Docker is used on hosted CI, not installed on
-VMs by this PR. Main promotion requires exact main source to pass PP again.
-Rollback candidates remain in the registry/Releases, but applying old code
-requires reviewed schema compatibility and current acceptance. Database contents
-are never restored by code rollback. Production migration/legacy retirement,
-retention, paid AI and Phase2 remain separately gated.
+Implement small PRs targeting preprod. Production remains unchanged until CP9's
+explicit approval. CP2 schema, CP3 app, CP4 lifecycle/history, CP5 CD, CP6 cloud,
+CP7 live/capacity, CP8 exact release, CP9 cutover and CP10 acceptance are distinct.
+No production/Supabase mutation, real collector, paid AI or retention is enabled
+by the foundation milestone. The selected A/B contract is 72-hour-or-qualified-
+size rotation inside PostgreSQL, with verified archive before local retirement.

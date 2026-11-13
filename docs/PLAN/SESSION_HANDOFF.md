@@ -4,18 +4,22 @@ Read AGENTS.md, then the active checkpoint in
 [INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). That is the only
 authoritative roadmap; this file is an entry point, not a second checklist.
 
-Current work: Phase 1.75 / I7, CP5. CP0–1 foundation and CP2–4 generated
-source qualification passed. PRs #17/#22 merged into preprod `d59cd1e`, exact
-CI 43353905598 PASS. Actual PP controller/SSH/roles are qualified.
+Current work: Phase 1.75 / I7. CP0–5 PASS in generated scope; CP6 next.
+Preprod source `a7f7cd0` passed exact CI 43355993076 and deployed as
+v0.2.0-pp.2 in CD 43356521535. Four PP containers run, with 32 foundation rows,
+21 generated events and 21 predictions preserved. Authority consumed; temporary
+runner 28 removed. Live collector/cloud/retirement/paid AI remain OFF.
 
-Candidate v0.2.0-pp.1 published, but CD 43354829263 failed at the Mac runner's
-Python installer before invoking the host controller. PP application/migrations
-were NOT executed. Unused root authority revoked; ephemeral runner 27 removed.
-The tested fix `e4b28bb` uses existing Python 3.12. Continue its small PR, require
-exact successor CI, then publish a new immutable PP candidate and prepare fresh
-one-use authority for the corrected generated-only attempt. Preserve the failed
-attempt. Do not reinstall qualified roles/helpers unnecessarily. Read the latest
-CP5 master entry and procedure before dispatch. Production remains untouched.
+Operator dashboard/API/SSE access passed through pinned SSH to the dynamically
+resolved private API container IP. The configured localhost:8000 publication is
+UNAVAILABLE on the internal-only bridge; do not document it as working or loosen
+network isolation. Read the verified README route and latest CP5 evidence.
+The pp.1 Python-setup failure is preserved; it did not invoke the host controller.
+
+Next is CP6 actual Supabase compatibility with its reviewed migration/permission
+and bounded cloud-write scope. CP7 live/capacity, CP8 production candidate, CP9
+approved cutover and CP10 verified retirement/acceptance remain open. No production
+change or cloud activation is authorized by the generated PP deployment pass.
 
 The original working checkout is dirty on codex/phase1-75-retention-enable.
 Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge

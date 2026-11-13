@@ -27,9 +27,9 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   checks passed. Smoke 32 KiB, cluster allocation 48,205,824 bytes, sampled memory
   18.13 MiB / 512 MiB; no published port. CI rejected injected column drift.
   [Sanitized evidence](evidence/pp-postgres-foundation-2026-11-12.json).
-  PP application remains uninstalled. CP2–4 generated source and actual CP5
-  host bindings passed; the first manual attempt failed before host execution,
-  as recorded in the latest CP5 checkpoint below.
+  CP2–4 generated source and CP5 actual PP application deployment now PASS in
+  generated-only scope. See the latest CP5 result below; the failed first
+  attempt remains historical evidence, not the current runtime state.
 - Production is untouched by this milestone. No new production health/collection
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
@@ -214,6 +214,61 @@ Actual PP currently retains the qualified PostgreSQL foundation, dedicated SSH
 controller and restricted roles. The application remains uninstalled. CP6 actual
 Supabase, CP7 live/capacity, CP8 exact production candidate, CP9 approved cutover
 and CP10 verified lifecycle/acceptance are still open. Production is unchanged.
+
+### CP5 actual application deployment PASS — November 13 UTC
+
+**Current checkpoint: CP0–5 PASS within generated foundation/application scope;
+CP6 is next. Phase 1.75 / I7 remain OPEN.** PR #23 fixed only the private
+runner's Python setup; source push 43355664176 and PR 43355676753 passed. Its
+preprod merge `a7f7cd036fec6956891707d8240f696c0cfb0925` passed exact
+[CI 43355993076](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43355993076).
+The failed pp.1 attempt remains failed and preserved above.
+
+Candidate [v0.2.0-pp.2](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.2)
+published in run 43356340605. Manual
+[CD 43356521535](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43356521535)
+**PASS**: exact schema/migrations, generated writes/conflicts, private API,
+dashboard/history/SSE, source freshness/market identity and API-restart recovery.
+The runtime image is `sha256:3a77dd8eccc304d0d762c7a6be0ed4f22cc62ae72efb990a8428c375ce473a84`.
+Release/registry source carriers are retained, distinct from this locally built
+runnable image; exact production-image promotion remains CP8.
+
+Independent PP postflight confirmed four running containers, zero automatic
+restarts, the same `tradebot_pp_pgdata` volume, all 32 exact foundation rows,
+21 generated raw events and 21 predictions. Database allocation 10,122,931 bytes,
+WAL 33,554,432 bytes; sampled free filesystem 57,080,659,968 bytes and available
+RAM 1,324,470,272 bytes. Docker reports 796.1 MB images, 67.84 MB volume and
+258 MB build cache (overlapping image/cache accounting must not be blindly summed).
+These are tiny-fixture snapshots, not representative performance/capacity proof.
+
+The job ran for 79 seconds. No real collector was running, so real collection
+interruption was zero; controlled API-restart interruption was not separately
+timed. The one-use authority was consumed; temporary Mac runner 28 unregistered
+and removed its credentials. The host marker now records application installed,
+preventing foundation-only operations against the migrated application schema.
+
+**Access qualification and limitation:** Docker's internal-only bridge retained
+isolation but did not publish the configured host `127.0.0.1:8000` mapping.
+Controller smoke proves container-local API, not that host mapping. The initial
+host-local probe failed and is not relabelled PASS. The separately tested route
+is the existing pinned **operator SSH tunnel to the dynamically resolved API
+container IP**. Dashboard 858 ms, current state 80 ms, history 160 ms, initial SSE
+received, no two-second timeout; the tunnel was terminated/reaped. Keep the
+restricted deployment key non-forwarding. Re-resolve container identity/IP after
+recreation. No public port, firewall or additional bridge was enabled.
+[Docker internal-network reference](https://docs.docker.com/reference/cli/docker/network/create/#network-internal-mode---internal).
+
+Generated feed ages became stale after the finite smoke stopped, and health
+reported that truthfully. Live collector, Supabase sync, retirement and paid AI
+remain OFF. PP is not yet production preview; PP/prod databases are not shared.
+Production is untouched; its earlier recorded SQLite state is not a fresh audit.
+[Sanitized deployment and host evidence](evidence/pp-application-deployment-2026-11-13.json).
+
+**Next:** CP6 reviewed additive private `history_v2` migration/permissions and
+bounded actual cloud compatibility, then CP7 sole-collector live/capacity/recovery,
+CP8 exact production candidate, CP9 approved cutover, and CP10 first-generation
+verification/retirement/sustained acceptance. No cloud mutation or production
+cutover is authorized by this generated deployment result.
 
 ### Fixed architecture and policy
 

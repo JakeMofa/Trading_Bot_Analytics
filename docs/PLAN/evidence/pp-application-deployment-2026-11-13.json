@@ -1,0 +1,195 @@
+{
+  "checkpoint": "CP5 actual PP generated deployment",
+  "result": "PASS_GENERATED_RUNTIME_AND_OPERATOR_ACCESS",
+  "deployment": {
+    "source_sha": "a7f7cd036fec6956891707d8240f696c0cfb0925",
+    "branch": "preprod",
+    "source_ci_run_id": 43355993076,
+    "source_ci_attempt": 1,
+    "environment": "preprod",
+    "gate": "PASS",
+    "scope": "exact-source runtime deployment and acceptance",
+    "runtime_image_id": "sha256:3a77dd8eccc304d0d762c7a6be0ed4f22cc62ae72efb990a8428c375ce473a84",
+    "instance": "tradebot-preprod-01",
+    "live_collector_enabled": false,
+    "artifact_sha256": "b6b7bb87dba6b53a69c67057e8d5ba8cd201c93fbc068d6476dbeecfb29b33f6",
+    "production_data_mounted": false,
+    "acceptance_scope": "generated_only",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "retention_enabled": false,
+    "paid_ai_enabled": false,
+    "policy_sha256": "08046508d9d1b25386c9ed0e58b0ee533e0c12964e7749f6c995213209938b25",
+    "release_version": "v0.2.0-pp.2",
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:1ad26a818071c23a1cd14442b1eb970aee25d54f449a05281cc2556ae61030a2",
+    "controls_sha": "a7f7cd036fec6956891707d8240f696c0cfb0925",
+    "run_id": 43356521535,
+    "run_attempt": 1,
+    "completed_at_utc": "2026-11-13T03:06:22.699869+00:00"
+  },
+  "postflight": {
+    "access_route": "host-to-internal-container-IP; localhost mapping unavailable",
+    "api_private_ip": "172.18.0.4",
+    "at": "2026-11-13T03:07:48.542328+00:00",
+    "authority_remaining": false,
+    "data_mode": "generated",
+    "database": {
+      "database": "tradebot_pp",
+      "database_bytes": 10122931,
+      "enabled_collectors": 0,
+      "foundation_exact": true,
+      "foundation_rows": 32,
+      "predictions": 21,
+      "raw_events": 21,
+      "wal_bytes": 33554432
+    },
+    "disk_free_bytes": 57080659968,
+    "feed_states": {
+      "coinbase_stream": {
+        "age_seconds": 100.946426,
+        "last_data_at": "2026-11-13T03:06:07.591910+00:00",
+        "market_match": true,
+        "received_at": "2026-11-13T03:06:07.591910+00:00",
+        "reconnects": null,
+        "source": "coinbase_stream",
+        "status": "stale"
+      },
+      "polymarket_stream": {
+        "age_seconds": 100.946426,
+        "last_data_at": "2026-11-13T03:06:07.591910+00:00",
+        "market_match": true,
+        "received_at": "2026-11-13T03:06:07.591910+00:00",
+        "reconnects": null,
+        "source": "polymarket_stream",
+        "status": "stale"
+      }
+    },
+    "image": "sha256:3a77dd8eccc304d0d762c7a6be0ed4f22cc62ae72efb990a8428c375ce473a84",
+    "live_collector_enabled": false,
+    "production_changed": false,
+    "result": "POSTFLIGHT_PASS",
+    "services": {
+      "api": {
+        "flags": {
+          "ENABLE_LOCAL_RETENTION": "false",
+          "ENABLE_OPENAI_ANALYST": "false",
+          "ENABLE_SUPABASE_SYNC": "false",
+          "TRADEBOT_COLLECTOR_ENABLED": "false",
+          "TRADEBOT_DATA_MODE": "generated",
+          "TRADEBOT_ENVIRONMENT": "preprod"
+        },
+        "id": "4c086673cec6686780d4b7d6cd0c13c6dde5dd03bd96b97510164c24f54492b4",
+        "image": "sha256:3a77dd8eccc304d0d762c7a6be0ed4f22cc62ae72efb990a8428c375ce473a84",
+        "memory_limit": 201326592,
+        "ports": {
+          "8000/tcp": [
+            {
+              "HostIp": "127.0.0.1",
+              "HostPort": "8000"
+            }
+          ]
+        },
+        "restarts": 0,
+        "running": true
+      },
+      "calculation": {
+        "flags": {
+          "ENABLE_LOCAL_RETENTION": "false",
+          "ENABLE_OPENAI_ANALYST": "false",
+          "ENABLE_SUPABASE_SYNC": "false",
+          "TRADEBOT_COLLECTOR_ENABLED": "false",
+          "TRADEBOT_DATA_MODE": "generated",
+          "TRADEBOT_ENVIRONMENT": "preprod"
+        },
+        "id": "d2cb19be485b124e2bf1ea56d7098786a3b33ac84a53649c9973ed7d38c8ece8",
+        "image": "sha256:3a77dd8eccc304d0d762c7a6be0ed4f22cc62ae72efb990a8428c375ce473a84",
+        "memory_limit": 201326592,
+        "ports": {},
+        "restarts": 0,
+        "running": true
+      },
+      "lifecycle": {
+        "flags": {
+          "ENABLE_LOCAL_RETENTION": "false",
+          "ENABLE_OPENAI_ANALYST": "false",
+          "ENABLE_SUPABASE_SYNC": "false",
+          "TRADEBOT_COLLECTOR_ENABLED": "false",
+          "TRADEBOT_DATA_MODE": "generated",
+          "TRADEBOT_ENVIRONMENT": "preprod"
+        },
+        "id": "231dc1c08aec8bd5abce455461291ba3ade45c938ef2d7d39fbaee0230057538",
+        "image": "sha256:3a77dd8eccc304d0d762c7a6be0ed4f22cc62ae72efb990a8428c375ce473a84",
+        "memory_limit": 134217728,
+        "ports": {},
+        "restarts": 0,
+        "running": true
+      },
+      "postgres": {
+        "flags": {},
+        "id": "09ed172ab159946debc0e55602edf1a5fbb46d052428f37b236f88eda9eb55f6",
+        "image": "sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+        "memory_limit": 536870912,
+        "ports": {},
+        "restarts": 0,
+        "running": true
+      }
+    },
+    "source": "a7f7cd036fec6956891707d8240f696c0cfb0925",
+    "state_probe_seconds": 0.03573814200353809,
+    "volume": "tradebot_pp_pgdata"
+  },
+  "operator_tunnel": {
+    "route": "pinned SSH to dynamically inspected private container IP",
+    "production_changed": false,
+    "result": "PASS",
+    "http_seconds": {
+      "/dashboard": 0.8584836670052027,
+      "/state/current": 0.08023462499841116,
+      "/history/predictions?limit=3": 0.16025533300125971
+    },
+    "sse_first_line_received": true,
+    "generated_only": true,
+    "live_collector_enabled": false,
+    "tunnel_terminated_and_reaped": true
+  },
+  "resources": {
+    "api_private_ip": "172.18.0.4",
+    "containers": "tradebot-pp-foundation-api-1: Up 2 minutes (healthy)\ntradebot-pp-foundation-lifecycle-1: Up 3 minutes\ntradebot-pp-foundation-calculation-1: Up 3 minutes\ntradebot-pp-foundation-postgres-1: Up 37 minutes (healthy)",
+    "stats": "tradebot-pp-foundation-api-1 42.9MiB / 192MiB 23.05%\ntradebot-pp-foundation-lifecycle-1 24.09MiB / 128MiB 0.00%\ntradebot-pp-foundation-calculation-1 25.06MiB / 192MiB 1.89%\ntradebot-pp-foundation-postgres-1 24.78MiB / 512MiB 14.64%",
+    "images": "{\"Active\":\"2\",\"Reclaimable\":\"0B (0%)\",\"Size\":\"796.1MB\",\"TotalCount\":\"2\",\"Type\":\"Images\"}\n{\"Active\":\"4\",\"Reclaimable\":\"0B (0%)\",\"Size\":\"65.54kB\",\"TotalCount\":\"4\",\"Type\":\"Containers\"}\n{\"Active\":\"1\",\"Reclaimable\":\"0B (0%)\",\"Size\":\"67.84MB\",\"TotalCount\":\"1\",\"Type\":\"Local Volumes\"}\n{\"Active\":\"0\",\"Reclaimable\":\"372.7kB\",\"Size\":\"258MB\",\"TotalCount\":\"12\",\"Type\":\"Build Cache\"}",
+    "available_memory_bytes": 1324470272,
+    "application_installed": true
+  },
+  "prior_failure_run": 43354829263,
+  "corrective_pr": 23,
+  "ephemeral_runner_removed": true,
+  "runner_credentials_removed": true,
+  "authority_consumed": true,
+  "application_installed_marker": true,
+  "actual_live_collection_interruption_seconds": 0,
+  "api_restart_interruption_seconds": "NOT_SEPARATELY_MEASURED; controlled API restart acceptance passed",
+  "network_limitations": {
+    "configured_localhost_8000": "UNAVAILABLE; Docker internal-only bridge did not publish it",
+    "qualified_access": "existing pinned operator SSH tunnel to dynamically resolved private API container address",
+    "deployment_identity_forwarding": "remains prohibited",
+    "public_exposure_added": false
+  },
+  "remaining_scope": [
+    "CP6 actual cloud integration",
+    "CP7 sole-collector live/capacity/legacy/recovery qualification",
+    "CP8 exact production image/candidate",
+    "CP9 explicitly approved production cutover",
+    "CP10 verified retirement and sustained acceptance"
+  ],
+  "production_changed": false
+}

@@ -100,6 +100,48 @@ class ConfigTests(unittest.TestCase):
         source=Path('/private/candidate/source')
         self.assertEqual(a.validate_config(configuration(source),source,IMAGE)['name'],a.PROJECT)
 
+    def test_compose_v5_short_secret_expansion_and_remaining_normalized_fields(self):
+        # Observed from actual `docker compose v5.6.1 ... config --format json`:
+        # short secrets expand to absolute destinations; explicit lifecycle target
+        # remains relative. Limits are strings, postgres cpus is numeric 1, and
+        # the API port includes ingress mode. No credential contents are fixtures.
+        source=Path('/private/candidate/source')
+        config=configuration(source)
+        for service in config['services'].values():
+            service['mem_limit']=str(service['mem_limit'])
+            service['memswap_limit']=str(service['memswap_limit'])
+            for mapping in service.get('secrets',[]):
+                if mapping['source']!='lifecycle_password':
+                    mapping['target']='/run/secrets/'+mapping['target']
+        config['services']['postgres']['cpus']=1
+        config['services']['api']['ports'][0]['mode']='ingress'
+        validated=a.validate_config(config,source,IMAGE)
+        self.assertEqual(set(validated['services']),set(a.MEMORY))
+        self.assertEqual(sum(len(service['secrets']) for service in validated['services'].values()),9)
+        # Long syntax can explicitly use the same absolute destination too.
+        config['services']['postgres']['secrets'][-1]['target']='/run/secrets/lifecycle'
+        a.validate_config(config,source,IMAGE)
+
+    def test_secret_target_aliases_do_not_admit_other_paths_or_ownership_overrides(self):
+        source=Path('/private/candidate/source')
+        for service in ('api','calculation','lifecycle','migrate','postgres'):
+            baseline=configuration(source)
+            mapping=baseline['services'][service]['secrets'][0]
+            for change in ({'target':'/tmp/'+mapping['target']},
+                           {'target':'/run/secrets/../'+mapping['target']},
+                           {'target':'/run/secrets//'+mapping['target']},
+                           {'target':'nested/'+mapping['target']},
+                           {'target':'/run/secrets/unreviewed'},
+                           {'source':'unreviewed'},{'uid':'0'},{'uid':'10001'},
+                           {'gid':'0'},{'mode':0o400},{'mode':0o444}):
+                with self.subTest(service=service,field=next(iter(change))):
+                    candidate=deepcopy(baseline)
+                    candidate['services'][service]['secrets'][0].update(change)
+                    with self.assertRaises(c.DeploymentHold):a.validate_config(candidate,source,IMAGE)
+        config=configuration(source)
+        config['services']['postgres']['secrets'][1]=dict(config['services']['postgres']['secrets'][0])
+        with self.assertRaises(c.DeploymentHold):a.validate_config(config,source,IMAGE)
+
     def test_public_ports_live_flags_external_volume_extra_mount_and_unbounded_resources_hold(self):
         source=Path('/private/candidate/source')
         mutations=[

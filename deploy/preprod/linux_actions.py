@@ -62,6 +62,17 @@ def expected_environment(service):
     return {**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
 
 
+def reviewed_secret_mapping(mapping,source,target):
+    """Compose may expand short syntax to its exact /run/secrets destination.
+
+    Accept only the two equivalent literal spellings. Do not normalize arbitrary
+    paths or accept uid/gid/mode overrides: file ownership and 0400 permissions
+    are checked independently on the fixed root-provisioned secret files.
+    """
+    return (isinstance(mapping,dict) and set(mapping)=={'source','target'}
+            and mapping['source']==source and mapping['target'] in (target,'/run/secrets/'+target))
+
+
 def validate_config(config,source,image):
     """Validate normalized Compose, including hostile overrides in approved source."""
     require(config.get('name')==PROJECT and set(config.get('services',{}))==set(MEMORY),'unexpected_compose_project_or_services')
@@ -103,8 +114,9 @@ def validate_config(config,source,image):
             require(service.get('command')==PG_COMMAND,'unreviewed_postgres_command')
             mappings=service.get('secrets',[])
             require(len(mappings)==len(PG_SECRET_MAPPINGS)
-                    and all(set(item)=={'source','target'} for item in mappings)
-                    and {item['source']:item['target'] for item in mappings}==PG_SECRET_MAPPINGS,
+                    and all(isinstance(item,dict) and item.get('source') in PG_SECRET_MAPPINGS for item in mappings)
+                    and {item['source'] for item in mappings}==set(PG_SECRET_MAPPINGS)
+                    and all(reviewed_secret_mapping(item,item['source'],PG_SECRET_MAPPINGS[item['source']]) for item in mappings),
                     'unexpected_postgres_secret_mapping')
             mounts=service.get('volumes',[])
             require(len(mounts)==2,'unexpected_postgres_mount')
@@ -127,8 +139,8 @@ def validate_config(config,source,image):
             require(set(env)<=set(expected_environment(name))|OPTIONAL_DISABLED
                     and all(env.get(key,'false')=='false' for key in OPTIONAL_DISABLED),'unexpected_application_environment')
             secrets=service.get('secrets',[])
-            require(len(secrets)==1 and secrets[0].get('source')==ROLE_SECRET[name]
-                    and secrets[0].get('target')==ROLE_SECRET[name],'unexpected_application_secret')
+            require(len(secrets)==1 and reviewed_secret_mapping(secrets[0],ROLE_SECRET[name],ROLE_SECRET[name]),
+                    'unexpected_application_secret')
     return config
 
 

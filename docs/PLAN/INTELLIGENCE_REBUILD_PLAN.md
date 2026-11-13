@@ -32,6 +32,36 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
 
+### Parallel implementation authorized — November 12, 2026
+
+The user authorized CP2–5 as separate feature branches and one consolidation
+branch. Base: preprod `3031554`, exact merge CI 43342088466 PASS. This changes
+work ownership, not checkpoint acceptance or production authorization.
+
+| Workstream | Feature branch | Owner / scope |
+| --- | --- | --- |
+| CP2 | `codex/pg-schema` | Schema agent: migrations, checksum/drift contract, exact values/references |
+| CP3 | `codex/pg-application` | Application agent: PostgreSQL adapter, calculation/API/SSE/dashboard, app image |
+| CP4 | `codex/pg-lifecycle` | Lifecycle agent: switch/seal, outbox/archive/readback, reader drainage, history |
+| CP5 | `codex/pg-preprod-deploy` | Coordinator: runtime Compose, restricted PP deployment controls, integrated CI |
+| Integration | `codex/feature-postgres-pp` | Coordinator: review, dependency integration, README/master/handoff, PR to preprod |
+
+Workers have isolated code worktrees from the same base. Original dirty checkout
+remains untouched. Shared schema/interfaces must be agreed before consumers
+implement SQL; schema owns that contract. No worker may silently amend another
+worker's ownership or loosen a gate. Component PRs target the integration branch;
+CP2 merges before consumers, then CP3/CP4, then CP5 controls after integrated tests.
+The consolidated branch targets preprod only. Successful source builds do not
+qualify the host controller or authorize live feeds, Supabase DDL/writes,
+production changes or retirement. A failing dependency stops its dependent
+release stage, while independent offline work may continue.
+
+Each component records tested scope and gaps; no repeated CI polling or unchanged
+failed-trial reruns. Manual PP application deployment follows CP5's executable
+qualified route with generated data, collector/cloud/retirement OFF. The existing
+2 GiB PP VM and 64 MiB generated-data foundation allowance remain the initial
+limits; record any additional bounded runtime resource proposal before use.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

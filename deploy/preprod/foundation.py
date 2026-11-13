@@ -11,6 +11,7 @@ import shutil
 import signal
 import socket
 import stat
+import sys
 import subprocess
 import tempfile
 import time
@@ -119,7 +120,7 @@ def verify_configuration(secret_dir):
     service = config['services']['postgres']
     if set(config['services']) != {'postgres'} or service.get('ports') or service['image'] != IMAGE:
         raise RuntimeError('unexpected service, exposed port or image')
-    if service['mem_limit'] != 512 * 1024 ** 2 or service['memswap_limit'] != service['mem_limit']:
+    if int(service['mem_limit']) != 512 * 1024 ** 2 or int(service['memswap_limit']) != int(service['mem_limit']):
         raise RuntimeError('memory limit mismatch')
     if not config['networks']['database'].get('internal'):
         raise RuntimeError('database network must be isolated')
@@ -128,10 +129,12 @@ def verify_configuration(secret_dir):
 
 def start(secret_dir):
     verify_configuration(secret_dir)
+    print('foundation: image pull', file=sys.stderr)
     compose(['pull', 'postgres'], secret_dir, timeout=240)
     uid = run(['docker', 'run', '--rm', '--network', 'none', '--entrypoint', 'id', IMAGE, '-u', 'postgres'])
     if uid != '999':
         raise RuntimeError('image postgres UID does not match secret ownership')
+    print('foundation: secret preparation', file=sys.stderr)
     prepare_secrets(secret_dir)
     try:
         compose(['up', '-d', '--wait', '--wait-timeout', '90', 'postgres'], secret_dir, timeout=110)
@@ -145,6 +148,7 @@ def start(secret_dir):
 
 
 def verify(secret_dir):
+    print('foundation: verify identity/settings', file=sys.stderr)
     started = time.monotonic()
     verify_configuration(secret_dir)
     identity = sql('SELECT environment, database_name, foundation_version FROM ops.environment_identity;', secret_dir)
@@ -155,6 +159,7 @@ def verify(secret_dir):
         raise RuntimeError('durability/resource settings mismatch')
     if not settings['version'].startswith('17.12 '):
         raise RuntimeError('unexpected PostgreSQL version')
+    print('foundation: generated data and roles', file=sys.stderr)
     # Deliberately small, repeatable generated data; business migrations are CP2.
     sql("SET ROLE tradebot_owner; CREATE TABLE IF NOT EXISTS ops.foundation_smoke(id integer PRIMARY KEY CHECK(id BETWEEN 1 AND 32), amount numeric(30,18) NOT NULL, source_time text NOT NULL, payload text NOT NULL CHECK(length(payload)=128)); GRANT SELECT,INSERT ON ops.foundation_smoke TO tradebot_app; GRANT SELECT ON ops.foundation_smoke TO tradebot_reader;", secret_dir, 'migrator')
     sql("INSERT INTO ops.foundation_smoke SELECT n, 12345.123456789012345678::numeric, '2026-11-12T00:00:00.123456789Z', repeat('g',128) FROM generate_series(1,32) AS n ON CONFLICT DO NOTHING;", secret_dir, 'application')
@@ -177,6 +182,7 @@ def verify(secret_dir):
                 raise
         else:
             raise RuntimeError('restricted role unexpectedly permitted operation')
+    print('foundation: container recreation', file=sys.stderr)
     container_before = compose(['ps', '-q', 'postgres'], secret_dir)
     volume_before = json.loads(run(['docker', 'inspect', '--format', '{{json .Mounts}}', container_before]))
     pg_volume = next(m['Name'] for m in volume_before if m['Destination'] == '/var/lib/postgresql/data')

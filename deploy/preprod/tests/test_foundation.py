@@ -80,6 +80,11 @@ class FoundationControls(unittest.TestCase):
             with self.subTest(mode=mode), patch.object(f,'compose',return_value=json.dumps(config)), self.assertRaises(RuntimeError):
                 f.verify_configuration(Path('/unused'))
 
+    def test_compose_string_memory_values_are_validated(self):
+        safe={'services':{'postgres':{'image':f.IMAGE,'mem_limit':'536870912','memswap_limit':'536870912'}},'networks':{'database':{'internal':True}}}
+        with patch.object(f,'compose',return_value=json.dumps(safe)):
+            f.verify_configuration(Path('/unused'))
+
     def test_ci_cannot_execute_on_pp(self):
         with patch.dict(os.environ,{'GITHUB_ACTIONS':'true'}), patch.object(f.os,'geteuid',return_value=0), patch.object(f,'MARKER') as marker, patch.object(sys,'argv',['foundation.py','ci']):
             marker.exists.return_value=True

@@ -17,8 +17,9 @@ It does not create a second roadmap or certify a database migration.
 It registers these definitions on the default branch, making manual workflows
 visible in Actions. It imports no A/B code and triggers no deployment or
 publication. CI runs on main and follows with environment CI summaries.
-The permanent preprod branch starts from an older main; sync these definitions
-into it through a reviewed main → preprod PR before relying on its push checks.
+PR #15 aligned the reviewed workflow definitions from main into the permanent
+preprod branch. Application changes still reach preprod through reviewed PRs;
+merging them does not automatically deploy either environment.
 Main's existing application differs from production's deployed d56b4a7. Do not
 ship the old main app merely because this configuration merged.
 

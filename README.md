@@ -42,7 +42,7 @@ data. PP must not write to the production database or start a second collector.
 | Store | Purpose | Current versus planned |
 | --- | --- | --- |
 | Production local SQLite | Existing collector evidence, structured records and application history | Existing `/opt/tradebot/data/btc_intelligence.db`; do not modify or copy it during onboarding |
-| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Installed foundation with empty raw/core/ops/archive namespaces and isolated smoke data; business schema/adapter remain planned |
+| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Installed foundation with empty raw/core/ops/archive namespaces and isolated smoke data; business schema and adapter pass generated CI but are not yet deployed |
 | Supabase Postgres | Long-term structured markets, candles, features, predictions, outcomes and sync checkpoints | Existing TokenBot project, ref `xttdqeimdujweijxcuro`, `us-west-2` |
 | Supabase Storage | Private raw archives and associated verification evidence | Existing `market-raw` bucket; other private buckets include `knowledge` and `backups` |
 
@@ -133,8 +133,9 @@ hosts with the PP marker. No foundation command enables collection, retention,
 Supabase sync, paid AI, or the CD runtime qualification flag.
 
 CI executes host/control regressions and the real pinned container on Linux,
-including recreation, role tests and rejection of injected column drift. Full
-business-schema migration/drift coverage belongs to checkpoint 2. Evidence is a sanitized
+including recreation, role tests and rejection of injected column drift. The
+separate PostgreSQL integration job adds business-schema migration and drift
+coverage from checkpoint 2. Evidence is a sanitized
 `postgres-foundation-<SHA>` Actions artifact. It does not need cloud secrets.
 
 ## PostgreSQL application qualification (feature integration)
@@ -145,7 +146,7 @@ calculation worker and A/B lifecycle/history code. Its local business migration
 is separate from the unapplied private Supabase `history_v2` contract. Application
 startup only validates schema; unreviewed drift stops startup.
 
-The generated integration run on Linux executes against PostgreSQL17, including
+The generated integration run on Linux executes against PostgreSQL 17, including
 restricted-role migrations, repeated/upgrade checks and actual partition removal
 followed by archived API/history retrieval. The built API container acknowledged
 21 generated records and served dashboard/history/SSE. This proves that tested

@@ -106,6 +106,29 @@ PP foundation and production are unchanged by this source milestone. Integration
 [PR #17](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/17) remains draft
 until its own combined exact CI and review; preprod has not yet received this stack.
 
+### CP5 controller qualification — November 13 UTC
+
+The Linux controller now exercises the actual pinned PostgreSQL runtime,
+explicit migrations, API/SSE smoke, API restart and forward-preserving recovery
+in disposable CI. Only CI host identity is substituted. Both deployment target
+profiles remain disabled until actual operator/SSH bindings are qualified.
+
+Earlier controller runs are preserved as failures: `9fc68c2` / 43348103458
+rejected the newer `ubuntu-latest` host; `a6d35f8` / 43348320613 rejected Compose
+config without its inactive migration profile; `699cf20` / 43348745820 rejected
+Compose's normalized absolute secret targets. The matching Ubuntu 24.04 runner,
+explicit inspection of the migration profile and strictly equivalent secret
+paths address those evidenced failures. Full normalized Compose validation was
+also exercised locally, not only the individual failed field.
+
+A separate operator review found the root-owned authorized-key files were not
+readable by the dedicated SSH identity. Their corrected modes retain root-only
+write authority while permitting authentication; Linux effective-UID tests are
+required before installation. No VM change resulted from these source fixes.
+The exact successor result must be recorded before treating the controller as
+qualified. [Generated PP release procedure](../../deploy/preprod/RUNTIME_REVIEW.md)
+keeps installation, binding evidence and the first manual deployment separate.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

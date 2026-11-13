@@ -252,7 +252,7 @@ class Store:
         return json_value({'origin':row['origin_id'], 'source':row['source'], 'event_id':row['event_id'],
                           'generation_id':row['generation_id'],'source_time':row['source_time'], 'received_at':row['received_at'],
                           'available_at':row['available_at'],'price_usd':row['price'],'size_btc':row['size'],
-                          'provenance':row['payload'].get('provenance',{})}) if row else None
+                          'content_hash':row['content_hash'],'provenance':row['payload'].get('provenance',{})}) if row else None
 
     def inputs(self, market_id, now=None):
         now = timestamp(now or utcnow())
@@ -285,6 +285,12 @@ class Store:
                 if existing['feature_hash'] != digest(snapshot) or existing['prediction_hash'] != digest(prediction):
                     raise IdentityConflict('conflicting calculation identity')
                 return snapshot_id
+            writer=db.execute('''SELECT w.generation_id,g.state FROM ops.writer_state w
+                JOIN archive.generations g USING(origin_id,generation_id) WHERE w.origin_id=%s FOR SHARE OF w''',
+                (self.origin,)).fetchone()
+            if not writer or writer['state']!='collecting':
+                raise PublicationRejected('no collecting generation for structured acknowledgement')
+            output_generation=writer['generation_id']
             self._admit(db,6)
             active = self._active(db,now)
             if not active or active['market_id'] != market['id']:
@@ -292,34 +298,40 @@ class Store:
             evidences = []
             price = snapshot['evidence'].get('price', {})
             if price.get('input_id'):
-                raw = db.execute('''SELECT * FROM raw.events WHERE origin_id=%s AND source=%s AND event_id=%s
-                    ORDER BY received_at DESC LIMIT 1''',(self.origin,price['source'],price['input_id'])).fetchone()
-                if not raw:
-                    raise PublicationRejected('raw price evidence unavailable')
-                evidences.append(self._protect(db,raw))
+                evidence_id=digest([self.origin,price['source'],price['input_id'],price['content_hash']])
+                protected=db.execute('''SELECT * FROM core.protected_evidence WHERE origin_id=%s AND evidence_id=%s''',
+                    (self.origin,evidence_id)).fetchone()
+                if protected:
+                    evidences.append(protected)
+                else:
+                    raw = db.execute('''SELECT * FROM raw.events WHERE generation_id=%s AND origin_id=%s AND source=%s AND event_id=%s''',
+                        (price['generation_id'],self.origin,price['source'],price['input_id'])).fetchone()
+                    if not raw:
+                        raise PublicationRejected('raw price evidence unavailable')
+                    evidences.append(self._protect(db,raw))
             # Persist full calculation input envelope, including exact metadata and candle versions.
-            envelope = dict(origin_id=self.origin,generation_id=None,source='calculation_inputs',event_id=snapshot_id,kind='feature_inputs',
+            envelope = dict(origin_id=self.origin,generation_id=output_generation,source='calculation_inputs',event_id=snapshot_id,kind='feature_inputs',
                             market_id=market['id'],source_time=snapshot['as_of'],source_epoch=source_timestamp(snapshot['as_of'])[1],
                             received_at=now,available_at=now,payload=snapshot['evidence'],raw_payload=None,content_hash=digest(snapshot['evidence']))
             evidences.append(self._protect(db,envelope))
             row = dict(origin_id=self.origin,snapshot_id=snapshot_id,market_id=market['id'],as_of=timestamp(snapshot['as_of']),version=1,
                        values_json=snapshot['values'],quality_json=snapshot['quality'],evidence_json=snapshot['evidence'],content_hash=digest(snapshot))
             row = self._insert(db,'core.feature_snapshots',row,('origin_id','snapshot_id'))
-            self._outbox(db,'core.feature_snapshots',row,('origin_id','snapshot_id'))
+            self._outbox(db,'core.feature_snapshots',row,('origin_id','snapshot_id'),output_generation)
             for evidence in evidences:
                 db.execute('''INSERT INTO core.snapshot_evidence(origin_id,snapshot_id,evidence_id) VALUES(%s,%s,%s)
                   ON CONFLICT DO NOTHING''',(self.origin,snapshot_id,evidence['evidence_id']))
                 # FK edges have a stable lossless outbox envelope too.
                 edge = dict(origin_id=self.origin,snapshot_id=snapshot_id,evidence_id=evidence['evidence_id'])
                 edge['content_hash'] = digest(edge)
-                self._outbox(db,'core.snapshot_evidence',edge,('origin_id','snapshot_id','evidence_id'))
+                self._outbox(db,'core.snapshot_evidence',edge,('origin_id','snapshot_id','evidence_id'),output_generation)
             row = dict(origin_id=self.origin,prediction_id=digest([snapshot_id,prediction['model_version']]),snapshot_id=snapshot_id,
                        market_id=market['id'],model_version=prediction['model_version'],as_of=timestamp(prediction['as_of']),created_at=now,
                        seconds_remaining=prediction['seconds_remaining'],probability_up=prediction['probability_up'],probability_down=prediction['probability_down'],
                        abstain_reason=prediction['abstain_reason'],assumptions_json=prediction['assumptions'],payload={'experimental':True},
                        content_hash=digest(prediction))
             row = self._insert(db,'core.predictions',row,('origin_id','prediction_id'))
-            self._outbox(db,'core.predictions',row,('origin_id','prediction_id'))
+            self._outbox(db,'core.predictions',row,('origin_id','prediction_id'),output_generation)
             db.execute('''INSERT INTO ops.worker_checkpoints(origin_id,worker,cursor,updated_at) VALUES(%s,'calculation',%s,%s)
                 ON CONFLICT(origin_id,worker) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=EXCLUDED.updated_at''',
                 (self.origin,Jsonb({'snapshot_id':snapshot_id,'market_id':market['id'],'as_of':snapshot['as_of']}),now))

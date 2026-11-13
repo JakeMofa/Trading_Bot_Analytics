@@ -56,6 +56,15 @@ def state_fixture(now=NOW):
 
 
 class NumericAndStateTests(unittest.TestCase):
+    def test_generated_overlapping_seeds_have_identical_immutable_events(self):
+        first={row['event_id']:row for row in generated_events(NOW)}
+        second={row['event_id']:row for row in generated_events(NOW+timedelta(minutes=1))}
+        overlaps=set(first)&set(second)
+        self.assertGreater(len(overlaps),10)
+        for identity in overlaps:
+            self.assertEqual({k:v for k,v in first[identity].items() if k!='received_at'},
+                             {k:v for k,v in second[identity].items() if k!='received_at'})
+
     def test_exact_feature_distance_and_deployed_model(self):
         market,price,candles = inputs()
         values,quality,_ = calculate(market,price,candles,NOW)
@@ -286,6 +295,12 @@ class PostgreSQLTests(unittest.TestCase):
             row=db.execute('''SELECT count(*) AS count FROM core.snapshot_evidence WHERE origin_id=%s AND snapshot_id=%s''',
                            (self.settings.origin_id,snapshot_id)).fetchone()
             self.assertGreaterEqual(row['count'],2)
+            orphaned=db.execute('''SELECT count(*) AS count FROM ops.outbox WHERE origin_id=%s AND generation_id IS NULL''',
+                                (self.settings.origin_id,)).fetchone()
+            self.assertEqual(orphaned['count'],0)
+            protected=db.execute('''SELECT payload FROM core.protected_evidence WHERE origin_id=%s AND source='coinbase'
+                AND event_id=%s''',(self.settings.origin_id,event['event_id'])).fetchone()
+            self.assertEqual(protected['payload']['normalized']['price'],event['price'])
         self.assertTrue(self.store.predictions(5))
         self.assertTrue(self.store.chart(now)['points'])
 

@@ -25,11 +25,13 @@ def generated_events(now=None):
         events.append(event('polymarket_us',identity,'market',{
             'slug':identity,'start':boundary.isoformat(),'end':(boundary+timedelta(minutes=15)).isoformat(),
             'duration':900,'target_usd':'100000.1234567890123456789','status':'MARKET_STATUS_OPEN',
-            'rules':'Generated test fixture; no official outcome'},market_id=identity))
+            'rules':'Generated test fixture; no official outcome'},at=boundary,market_id=identity))
     minute = int(now.timestamp())//60*60-60
     for index in range(17):
         second = minute-(16-index)*60
-        close = str(100000+(index%3)*7+index)
+        # Absolute minute identity keeps overlapping generated seed batches identical.
+        minute_id = second//60
+        close = str(100000+(minute_id%3)*7+(minute_id%17))
         events.append(event('coinbase',f'generated-candle-{second}','candle',{
             'time':second,'granularity':60,'open':close,'high':close,'low':close,'close':close,'volume':'0.1234567890123456789'},
             at=datetime.fromtimestamp(second,timezone.utc),symbol='BTC-USD'))

@@ -1,0 +1,48 @@
+name: CI Prod/Main
+
+on:
+  workflow_run:
+    workflows: ["CI — Tradebot checks"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Full source SHA at this branch HEAD with passing exact push CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: environment-ci-production-${{ github.event.workflow_run.head_sha || github.sha }}
+  cancel-in-progress: false
+
+jobs:
+  qualify:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      APPROVED_REVISION: ${{ github.event.workflow_run.head_sha || inputs.revision }}
+      GH_TOKEN: ${{ github.token }}
+      PIPELINE_REPORT: ci-evidence/production-ci/environment.json
+    steps:
+      # workflow_run uses the trusted default-branch control code, not PR code.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Reuse exact source CI and check production branch/repository bindings
+        run: python .github/ci/environment_pipeline.py ci production
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: production-source-ci-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 90

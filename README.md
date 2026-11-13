@@ -1,130 +1,224 @@
-# BTC Intelligence
+# Tradebot BTC Intelligence
 
-For a plain-language overview of work completed and remaining, see [PROGRESS_SUMMARY.md](docs/PROGRESS_SUMMARY.md).
+Read-only BTC market collection, numerical forecasts and an intelligence dashboard,
+focused on Polymarket US 15-minute markets. Exchange prices are reference inputs,
+not official settlement. Hourly markets, trading and paid AI remain deferred.
 
-Read-only Polymarket US BTC collector, currently focused on 15-minute markets. No orders, trading-account access or OpenAI calls. Optional developer keys authenticate read-only market data. The basic collector uses the Python standard library; streaming uses the pinned dependencies in `backend/requirements.txt`.
+**Current checkpoint: Phase 1.75 / I7 unfinished.** The active storage direction
+is PostgreSQL tested in isolated preproduction before any production migration.
+The pending SQLite A/B implementation was superseded; PRs #11–#13 are closed,
+with their branches and evidence retained. PR #14 adds independent CI/CD and
+version publication; it does not migrate the database or deploy the application.
 
-Run from this project folder:
+Start with the authoritative [master roadmap](docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md),
+then the [session handoff](docs/PLAN/SESSION_HANDOFF.md). Detailed pipeline operation
+and remaining bindings are in the [environment guide](.github/ci/ENVIRONMENTS.md).
+
+## Environments and instances
+
+| Environment | Code policy | Lightsail instance | Last verified resources/address | Actual application/database state |
+| --- | --- | --- | --- | --- |
+| Local development | Your reviewed feature branch | Your computer | Isolated fixtures | Existing main-baseline application uses SQLite; tests use generated data |
+| PP / preprod / PRT | Permanent `preprod` branch; main controls may also test an exact main candidate | `tradebot-preprod-01`, `us-east-2a` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `18.119.253.233`, private `172.26.11.9` | Host baseline passed. PostgreSQL, candidate app and deployment controller are not installed/qualified yet |
+| Production | Intended release branch `main`, explicit manual promotion only | `tradebot-analytics-01`, `us-east-2` | 2 vCPU, 2 GiB RAM, 60 GB SSD; `3.13.133.25`, private `172.26.2.84` | Last recorded deployed revision `d56b4a7`, legacy SQLite; services active but collection held at the 5,120 MiB DB+WAL guard |
+
+VM state above is the last recorded November 11 inventory, not a live health
+claim. PP's public address is **not static**; recheck it in Lightsail. Disk/SSD
+holds database files; RAM holds caches and working state. The storage guard is
+an application limit, not the VM's total SSD size.
+
+`main` currently differs from the deployed production revision. Merging workflow
+configuration does not reconcile or replace that application. Keep one real
+market collector. PP may preview production through an approved read-only API;
+writable schema, performance and recovery tests use its own generated/replayed
+data. PP must not write to the production database or start a second collector.
+
+## Databases and data flow
+
+| Store | Purpose | Current versus planned |
+| --- | --- | --- |
+| Production local SQLite | Existing collector evidence, structured records and application history | Existing `/opt/tradebot/data/btc_intelligence.db`; do not modify or copy it during onboarding |
+| PP local PostgreSQL | Intended replacement for SQLite A/B; qualify schema, queries, concurrency, retention and recovery | Planned; no working PostgreSQL application adapter or production migration is claimed |
+| Supabase Postgres | Long-term structured markets, candles, features, predictions, outcomes and sync checkpoints | Existing TokenBot project, ref `xttdqeimdujweijxcuro`, `us-west-2` |
+| Supabase Storage | Private raw archives and associated verification evidence | Existing `market-raw` bucket; other private buckets include `knowledge` and `backups` |
+
+Intended flow: one collector → local working database → verified background
+structured sync/raw archive → Supabase history. Local raw deletion is allowed
+only after authenticated archive readback, identity/checksum reconciliation,
+protected-reference checks and the approved retention gate. PostgreSQL on a VM
+and Supabase Postgres are separate databases; the same engine does not sync them.
+Raw archive objects are not SQL tables; archived history needs explicit retrieval.
+
+Preserve exact decimal values, original source timestamp strings, receive times,
+source/market identities, missing-data states and provenance. Review the actual
+rolling 72-hour policy as part of PostgreSQL work; the old 72-hour-or-size A/B
+rotation is superseded and is not a deployed retention policy. Production
+retention and paid AI remain OFF. Supabase schema/permissions do not change
+when this CI configuration merges.
+
+## Local developer quick start
+
+Use Python 3.12, matching CI. From a clean clone or the intended existing checkout:
 
 ```sh
-python3 -m unittest discover -s backend/tests -v
-python3 backend/app/collector.py --backfill-hours 24
-python3 backend/app/collector.py --cycles 10 --interval 30
-```
-
-The default duration is 15 minutes. Hourly collection is deferred; saved hourly records remain intact. Explicit `--duration 1h` or `--duration both` options retain support for later use.
-
-The default database is `data/btc_intelligence.db`. Each invocation is bounded and exits; nothing starts automatically. Errors are recorded in `runs` and printed. Historical candles come from Coinbase and are predictive reference data, not BRTI settlement prices. Coverage reports expose missing candles.
-
-The basic collector polls market metadata and quotes every 30 seconds by default. The streaming command receives live Coinbase updates and saves versioned feature snapshots and baseline forecasts. The bounded rollover test has finished; use `streaming.py --seconds 0` for local read-only monitoring until Ctrl+C. FTS5 news search and read-only context links exist; OpenAI analysis is deferred.
-
-Official terms determine each interval, not `startDate`/`endDate`. The collector selects `assetPriceTerms.windowStart/windowEnd`, preserves exact decimal target strings and only labels outcomes from resolved market terms. First-seen timestamps record late capture. Previous expired markets reconcile independently while the next active market is discovered.
-
-See [MILESTONES.md](docs/MILESTONES.md) for current status, [PLAN_CROSSWALK.md](docs/PLAN_CROSSWALK.md) for every original handoff phase, [STRATEGIC_PLAN.md](docs/STRATEGIC_PLAN.md) for the revised architecture, and [DATA_ACCESS_FINDINGS.md](docs/DATA_ACCESS_FINDINGS.md) for verified sources.
-
-## Local status dashboard
-
-Run `.venv/bin/python backend/app/dashboard.py` and open `http://127.0.0.1:8765`. Opening `backend/app/dashboard.html` as a `file://` preview cannot fetch the local `/api` routes; that preview now links to the live server. The server binds only to localhost and reads the existing SQLite database in query-only mode. The browser checks status every 2 seconds and refreshes full 15-minute Coinbase chart history every 5 seconds; each new status also updates the chart with the latest saved tick. Its UTC clock, market countdown, and saved-data ages tick locally between checks using the server timestamp. The chart groups captured stream ticks into five-second buckets and shows Polymarket's exact price to beat as a blue dotted line with its value, with source and partial capture labeled. The Coinbase chart can differ from Polymarket's BRTI chart. Other panels show the active market, latest saved snapshot and forecast, feed freshness, confirmed-market checkpoint counts, recent confirmed outcomes, saved BTC headlines, and the latest retrospectively linked evidence. Context links do not mean the baseline used that evidence. The dashboard makes a separate authenticated read-only Polymarket market-data WebSocket connection for direct UP/DOWN quotes, but it does not place orders. Use `--once` for a single JSON status or `--port` to change the local port. Keep the collector running separately for Coinbase ticks, active-market discovery, and saved forecasts; the dashboard labels the data stale when it stops.
-
-The dashboard shows the latest saved Coinbase stream tick separately from the older Coinbase price used by the saved forecast. Both differ from Polymarket's BRTI chart source even at the same instant. It labels completed Coinbase candles **lagging** when the latest completed minute ended 60–120 seconds before the snapshot. Those candles remain usable; the separate live Coinbase ticker can still be fresh. At 120 seconds or more without a usable completed candle, required features become unavailable and the baseline abstains. Polymarket public UP/DOWN quotes and their saved times are displayed for comparison but do not enter the current probability baseline. Quotes older than 10 seconds are visibly marked **DELAYED**. The current public REST collector samples them about every 30 seconds, so a ticking dashboard clock does not make those prices continuous or suitable for execution. Quote prices are not calibrated probabilities.
-
-## Streaming milestone
-
-Install once:
-
-```sh
-python3 -m venv .venv
+python3.12 -m venv .venv
 .venv/bin/python -m pip install -r backend/requirements.txt
 .venv/bin/python -m unittest discover -s backend/tests -v
+.venv/bin/python -m unittest discover -s .github/ci -p 'test_*.py' -v
 ```
 
-Run a bounded one-minute collection or explicitly collect until Ctrl+C:
+These tests use local/generated fixtures and mocked transports, without live
+Supabase keys or production database access. Git ignores `data/`, `.env` and
+`.venv/`; never commit a key, credentials, local database or process log.
+Do not use an operator's existing production `.env` for a development run.
+
+For a deliberately **empty, isolated SQLite dashboard preview** of the current
+main-baseline application, initialize the same schemas used by its tests:
 
 ```sh
-.venv/bin/python backend/app/streaming.py --seconds 60
-.venv/bin/python backend/app/streaming.py --seconds 0
+PYTHONPATH=backend/app .venv/bin/python - <<'PY'
+from collector import connect
+from features import initialize as features
+from forecasts import initialize as forecasts
+from news import initialize as news
+from streaming import initialize as streaming
+from knowledge import initialize as knowledge
+
+with connect('data/dev/empty-preview.db') as db:
+    for initialize in (features, forecasts, news, streaming, knowledge):
+        initialize(db)
+PY
+.venv/bin/python backend/app/dashboard.py --db data/dev/empty-preview.db --once
+.venv/bin/python backend/app/dashboard.py --db data/dev/empty-preview.db --port 8765
 ```
 
-Public Coinbase BTC ticker events stream continuously and are deduplicated by trade ID. Each event preserves source and receive timestamps, price, size and source-provided side; side must not yet be interpreted as aggressive buying/selling pressure. Connection failures reconnect with capped exponential delay and resubscribe. Feed state distinguishes connecting, awaiting data, live, stale, disconnected, disabled and stopped. REST remains at 30-second intervals for market discovery, quotes and pending settlement; transient HTTP errors and 429 responses have bounded backoff. No order routes are implemented.
+Open **http://127.0.0.1:8765**; Ctrl+C stops the preview. It has no current market,
+ticks or forecast, so unavailable states are expected. Do not add production
+credentials or point this command at a production file. This is a local preview
+of the existing SQLite application, not the planned PostgreSQL service. A real
+PP application/start command will be documented when that runtime is qualified.
+There is no second live collector in this quick start.
 
-Polymarket's read-only markets WebSocket uses `POLYMARKET_KEY_ID` and `POLYMARKET_SECRET_KEY`. The streaming command reads these from the process environment or the ignored project `.env` file, without executing that file; never paste keys into chat or commit them. Without keys, that stream is disabled while public REST continues. The adapter signs each handshake, follows the current 15-minute market on rollover, and saves at most one full book per second. A live authenticated handshake and market-data subscription were verified. The standard streaming command runs REST, Coinbase and (when keys are present) Polymarket collection together. For an isolated bounded check, run `.venv/bin/python backend/app/streaming.py --markets-only --seconds 60`; this mode does not duplicate Coinbase or REST collection. It cannot place orders.
+## Connecting to a VM
 
-Data remains local and ignored by Git. Ctrl+C closes the streams; shutdown may wait for an in-flight REST request. The collector now stops without deleting data if the SQLite database plus write-ahead log reaches 2,048 MiB; set another cap with `--max-storage-mb`. This is a storage ceiling, not automatic retention. Nothing starts on boot or keeps running after a bounded command exits.
+Access is restricted. Developers need an individually approved operator/deploy
+identity, its private key kept outside Git, and a host key verified through an
+existing trusted route. GitHub CD uses separate scoped keys for each environment;
+never reuse the production operator key for PP or put key material in a README.
 
-## Collector controls and evidence recovery
-
-Run all commands from this repository with its virtual environment:
+Find the current PP address in the [Lightsail console](https://lightsail.aws.amazon.com/ls/webapp/us-east-2/instances/tradebot-preprod-01/connect)
+or, with existing authenticated read access, run:
 
 ```sh
-.venv/bin/python backend/app/operations.py status
-.venv/bin/python backend/app/operations.py start
-.venv/bin/python backend/app/operations.py stop
-.venv/bin/python backend/app/operations.py restart
-.venv/bin/python backend/app/operations.py backup --destination data/backups/manual_backup.db
-.venv/bin/python backend/app/operations.py recover --db data/backups/manual_backup.db --destination data/recovered.db
+aws lightsail get-instance --region us-east-2 \
+  --instance-name tradebot-preprod-01 \
+  --query 'instance.{Name:name,PublicIP:publicIpAddress,PrivateIP:privateIpAddress,State:state.name}'
 ```
 
-`start` launches a local detached process and appends output to `<database>.collector.log`; it retains the 2,048 MiB database-plus-WAL ceiling. Process start does not establish feed readiness: check dashboard freshness and saved forecasts. This is not a boot service; sleep, reboot, process failure and disk exhaustion can interrupt collection. `stop` requests graceful shutdown through a private local Unix socket and waits up to 45 seconds; it does not force-kill a process or remove evidence. `restart` stops before starting. Direct streaming commands use the same per-database lock, including markets-only mode, so two collectors cannot own the same resolved database path. Use distinct databases for isolated probes. Avoid filesystem aliases/hard links to the same database.
-
-The kernel releases the lock after a crash; stale socket/PID metadata cannot make an inactive collector look running. Commands never signal stored PIDs. A fresh unmanaged legacy REST heartbeat blocks start/restart and reports that controlled stop is unavailable; a crashed legacy heartbeat can require up to 90 seconds to expire. Backups preserve historical feed-health rows, so a just-recovered database can also require that cooldown before starting. `status` distinguishes lock ownership from a fresh unmanaged heartbeat.
-
-Backup and recovery use SQLite's online backup API, including committed WAL evidence while collection continues. Integrity and foreign-key checks must pass before a new file is published. Existing destinations and their WAL/SHM sidecars are refused; recovery always creates a separate database. Keep the original database and backup while inspecting the recovered file. Point the collector and dashboard at it using `--db` only after verification. A default 60-second backup deadline fails without publishing a partial destination. Backups consume additional disk space outside the collector's database-plus-WAL ceiling; no automatic schedule, retention or off-machine redundancy is provided. October 2 verification files in ignored `data/backups/` each occupy about 307 MiB.
-
-## Milestone commits
-
-The user requested a tested commit and push for each completed milestone. See `docs/MILESTONES.md` for progress and outstanding verification.
-
-## Feature snapshots
-
-Every streaming REST cycle saves a `feature_snapshots` row for the active 15-minute market when its metadata was already observed. The row contains exact decimal target distance, time remaining, completed-candle returns, realized volatility, volume, input IDs/times, and explicit missing/freshness flags. Calculations use only records received by the snapshot time; the snapshot also records the candle inputs it used. Existing candle rows from before this schema change have unknown first-seen times and become eligible for new snapshots only after they are refreshed. The Coinbase reference price is a predictive input, never the Polymarket settlement price.
-
-The supervisor refreshes the last 20 completed Coinbase one-minute candles at startup and approximately once per minute in one bounded public request. A one-minute candle delay is labeled `lagging`; older/missing windows leave dependent fields null. Quote and candle refresh failures are recorded in `runs`. A late start does not claim earlier Polymarket book coverage. Inspect recent rows with `sqlite3 data/btc_intelligence.db 'SELECT market_id,as_of,values_json,quality_json FROM feature_snapshots ORDER BY id DESC LIMIT 3;'`.
-
-## Baseline forecasts and evaluation
-
-The streaming supervisor now saves one `predictions` row per feature snapshot, including abstentions when a required input is stale or missing. `gaussian_distance_v1` is an **untrained, uncalibrated proxy**: it combines the Coinbase reference price, Polymarket target, time remaining and recent one-minute return volatility under a zero-drift normal log-return assumption. Polymarket settles with BRTI, so this probability is not a verified trading edge or a buy/sell instruction. The model stores its assumptions and source snapshot; forecasts are only issued while their market is live.
-
-Inspect market-grouped evaluation after confirmed outcomes arrive:
+For an already authorized SSH identity, set local path/address variables and use
+strict host verification. Example operator user is `ubuntu`; use the actual
+approved identity for your role:
 
 ```sh
-.venv/bin/python backend/app/forecasts.py --report
+export TRADEBOT_VM_HOST='18.119.253.233'  # replace with verified current PP address
+export TRADEBOT_SSH_KEY='/absolute/path/to/your/approved-key'
+export TRADEBOT_KNOWN_HOSTS='/absolute/path/to/verified/known_hosts'
+ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+  -o ConnectTimeout=10 -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" \
+  -i "$TRADEBOT_SSH_KEY" "ubuntu@$TRADEBOT_VM_HOST"
 ```
 
-The read-only report selects at most one forecast per market near each of T-10m, T-5m and T-1m (within 30 seconds). It compares Brier score, log loss and directional accuracy with a 50/50 baseline, shows calibration counts, and reports abstentions. Chronological 60/20/20 blocks appear only once a checkpoint has at least 30 distinct confirmed markets. These early scores are preliminary; the latest block has only a few markets and is not a final holdout.
+A different Wi-Fi network may require an explicitly authorized current IPv4
+`/32` in Lightsail SSH rules. An unknown host key must be independently verified;
+do not turn host verification off. Browser SSH is the existing fallback when
+the pinned operator route is unavailable. Do not open database or API ports to
+the internet to make a deployment work.
 
-## Audit a bounded collection run
-
-Use the read-only audit command during or after a run:
+Once the candidate app is installed, use its verified private port through an
+SSH tunnel. Set `TRADEBOT_REMOTE_PORT` to the port confirmed by the runtime
+configuration; the local baseline dashboard uses 8765, while the deployed
+FastAPI service may have a different private port:
 
 ```sh
-.venv/bin/python backend/app/audit.py --since 2026-10-01T01:53:00Z
+ssh -N -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+  -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_SSH_KEY" \
+  -L "8765:127.0.0.1:${TRADEBOT_REMOTE_PORT:?set the verified private app port}" \
+  "ubuntu@$TRADEBOT_VM_HOST"
 ```
 
-Add `--until <UTC ISO timestamp>` to freeze the reporting window. The report counts distinct 15-minute market windows, consecutive rollovers, missing internal market starts, confirmed results by the window end, complete/missing/stale snapshots, forecast abstentions, source failures, large snapshot gaps, and SQLite integrity. It excludes old contracts that were only revisited for delayed resolution. It does not score probabilities; run `forecasts.py --report` for the confirmed-outcome evaluation. Both reports open SQLite in read-only mode and do not alter the collector.
-
-Run `.venv/bin/python backend/app/data_quality.py` for a read-only historical-gap and BTC-news freshness report. `--as-of <UTC ISO timestamp>` freezes its cutoff. It groups unavailable 15-minute intervals, separates pre-coverage dates from gaps within the saved range, and measures headline publication-to-first-seen delay. It does not fetch new data or measure whether news improves forecasts.
-
-## Retrospective history (separate from live evidence)
-
-Completed Coinbase BTC/USD minute candles can be filled quickly in bounded public requests:
+Then browse http://127.0.0.1:8765. This tunnel will not work against an uninstalled
+PP app. For an approved production read-only inspection, basic safe checks are:
 
 ```sh
-.venv/bin/python backend/app/collector.py --backfill-hours 8 --cycles 1
+git -C /opt/tradebot rev-parse HEAD
+systemctl is-active tradebot-api tradebot-ensemble tradebot-lifecycle
 ```
 
-Past Polymarket US 15-minute targets, confirmed results, and book-derived Yes/No **display-price history** are fetched separately:
+Active processes or HTTP 200 alone do not establish advancing feeds, correct
+market identity, fresh features or persistence. Do not dump process environments,
+credentials or configuration files into logs. Heavy database checks, maintenance,
+service restarts and storage changes require their applicable operator scope.
 
-```sh
-.venv/bin/python backend/app/historical.py --hours 8
-.venv/bin/python backend/app/historical.py --hours 8 --end 2026-10-01T02:00:00Z
-```
+## CI, deployment and versions
 
-The second form selects an older UTC chunk; each run is capped at eight hours and reports missing intervals and endpoint failures. The first verified chunk found 32/32 resolved markets and saved 512 display-price points. Price history is not a record of every trade or full order-book depth. Retrospective rows retain their retrieval time; they cannot be used to claim that a forecast was made before the outcome. Continue the live collector to measure real rollover, feed health and genuinely forward forecasts.
+[GitHub Actions](https://github.com/JakeMofa/Trading_Bot_Analytics/actions) is the
+entry point. The four environment names are **CI Preprod**, **CD Preprod**,
+**CI Prod/Main**, **CD Prod/Main**. Shared `CI — Tradebot checks` runs backend/
+SQLite regressions, release/transport safeguards, dependency audit and workflow
+validation, then reports fail-closed **PR readiness**. The two environment CI
+wrappers reuse successful exact push checks. Definitions become registered on
+main when PR #14 merges; sync them into preprod through a reviewed PR.
 
-To run a resumable 30-day Polymarket US scan, use `.venv/bin/python -u backend/app/history_batch.py --days 30`. It divides the requested period into 90 eight-hour windows, saves per-window results in `historical_backfill_chunks`, and skips windows with complete coverage on restart. Missing intervals and failed price-history requests remain visible and are retried on restart. The command's `--end` option fixes the range to a UTC whole hour. This is a local process; it requires the Mac to stay awake. The ignored `data/polymarket_30d_backfill.log` records progress for the current run.
+For a release:
 
-For exploratory matching against prior live cases, run `.venv/bin/python backend/app/cases.py --limit 5` or pass `--snapshot-id`. It compares target distance, recent volatility, five-minute return, and time remaining with fixed, disclosed scales. It returns at most one snapshot per prior market and includes the observation that proves its outcome was known by the query snapshot time. Retrospectively fetched markets without live feature snapshots are excluded. Matches are examples, not calibrated probabilities or proof of predictive skill.
+1. Review feature code into preprod; require CI on the exact source commit.
+2. From main, manually run **Release — publish version and package** with the
+   source branch, full SHA and an unused explicit SemVer such as `v0.1.0-rc.1`.
+3. Manually run **CD Preprod** for that published version after PP runtime
+   qualification and connection setup are complete.
+4. Review preprod → main. The merge result has its own SHA: require its CI,
+   publish that main candidate and test that exact version in PP again.
+5. Manually run **CD Prod/Main**, supplying matching PP acceptance. Production
+   environment approval is required. No merge, tag or release auto-deploys.
 
-## News headlines (read-only)
+This promotes code between two VMs; it does not move the PP VM/database to prod.
+Current blockers are runtime setup, not workflow labels: no private runner or
+environment deployment secrets were registered at the November 12 inventory,
+and both target profiles are unqualified. Full PostgreSQL application/database
+qualification is still separate. Merging #14 only registers the configuration.
 
-Run `.venv/bin/python backend/app/news.py` to fetch one batch of [CoinDesk's official RSS feed](https://www.coindesk.com/coindesk-news/2021/09/17/coindesk-rss). To poll for a bounded period, pass `--seconds 21600 --interval 600` (minimum interval five minutes). This stores headline, publisher link, categories, publication time and local first/last-seen times in `news_events`; it does not copy article bodies. Repeated polls deduplicate by feed GUID. An item can be retrieved for a forecast only after both its publication and local first-seen times. BTC tagging is a simple title/category keyword label, not a relevance model. The feed may lag or omit stories; there is no historical news backfill or forecast integration yet.
+Where to inspect versions and outcomes:
+
+| GitHub location | What it contains | Retention/status |
+| --- | --- | --- |
+| [Actions](https://github.com/JakeMofa/Trading_Bot_Analytics/actions) → a run → artifacts/summary | CI audit and bounded deployment evidence | Configured for 90 days; not the durable rollback store |
+| [Releases](https://github.com/JakeMofa/Trading_Bot_Analytics/releases) | Explicit candidate versions, source archive, checksums and manifest with source/CI/registry bindings | Retained; no automatic pruning in this PR |
+| [Packages](https://github.com/JakeMofa/Trading_Bot_Analytics/packages) | Versioned GHCR source carriers at `ghcr.io/jakemofa/trading_bot_analytics/releases` | Retained by digest/version, no mutable `latest` or automatic cleanup |
+| [Deployments](https://github.com/JakeMofa/Trading_Bot_Analytics/deployments) / repository Environments | Actual PP/production attempts and results | Separate from candidate Release status |
+
+Releases/Packages remain empty until the first successful explicit publication;
+a CI pass does not publish a version. The registry carrier is a scratch image
+used as a source envelope, **not a runnable app image**. It does not install
+Docker on either VM. Manifests distinguish candidate, deployed and validated
+states; a candidate is never labelled production merely because tests passed.
+
+Retained versions identify rollback candidates. Applying old code still needs
+current schema/data compatibility and qualification: the current CD route
+rejects blind deployment of an old non-HEAD SHA. A reviewed revert PR can produce
+a new tested candidate. No code rollback restores database contents or replaces
+an engine migration plan. See the [detailed release and recovery controls](.github/ci/ENVIRONMENTS.md).
+
+## Contributing and next work
+
+Keep PRs small and focused. Test the touched contracts and record evidence in
+the master roadmap. PostgreSQL schema PRs must supply isolated migration,
+compatibility, exact-value, archive/replay and forward-recovery tests; the
+existing SQLite suite does not certify PostgreSQL or live Supabase behavior.
+No shared writable production DB for PP. Retention enablement, production
+migration and legacy retirement remain separately reviewed operations.
+
+The next runtime milestone is to qualify the PostgreSQL app and restricted PP
+deployment controller, then install the scoped runner/key/verified-host bindings
+and deploy a tested PP candidate. I7 freshness/rollover, continuous verified
+retention, history recovery and sustained-operation evidence remain required
+before closing Phase 1.75. Redis and larger-scale orchestration stay deferred.

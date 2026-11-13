@@ -8,7 +8,6 @@ from dataclasses import dataclass
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
 import re
 
@@ -133,11 +132,14 @@ def catalog_snapshot(connection):
 
 
 def validate_roles(connection):
-    rows = _rows(connection, """SELECT rolname,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls
+    rows = _rows(connection, """SELECT rolname,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls,rolcanlogin,rolinherit
         FROM pg_roles WHERE rolname=ANY(%s) ORDER BY rolname""",
         (['tradebot_owner','tradebot_migrator','tradebot_app','tradebot_reader','tradebot_lifecycle'],))
-    if len(rows) != 5 or any(any(row[key] for key in row if key != 'rolname') for row in rows):
+    if len(rows) != 5 or any(any(row[key] for key in ('rolsuper','rolcreatedb','rolcreaterole','rolreplication','rolbypassrls')) for row in rows):
         raise SchemaDrift('required restricted roles are absent or privileged')
+    by_name={row['rolname']:row for row in rows}
+    if by_name['tradebot_owner']['rolcanlogin'] or by_name['tradebot_migrator']['rolinherit'] or by_name['tradebot_lifecycle']['rolinherit']:
+        raise SchemaDrift('owner login or migration/lifecycle inheritance drift')
     memberships = _rows(connection, """SELECT member.rolname AS member,parent.rolname AS parent
         FROM pg_auth_members m JOIN pg_roles member ON member.oid=m.member
         JOIN pg_roles parent ON parent.oid=m.roleid
@@ -214,8 +216,8 @@ def validate_partitions(connection):
         return
     children = _rows(connection, """SELECT c.oid,n.nspname AS schema,c.relname AS name,
         pg_get_userbyid(c.relowner) AS owner,pg_get_expr(c.relpartbound,c.oid) AS bound,
-        c.relrowsecurity AS rls,c.relforcerowsecurity AS force_rls,
-        p.oid::regclass::text AS parent
+        c.relrowsecurity AS rls,c.relforcerowsecurity AS force_rls,c.relpersistence::text AS persistence,
+        COALESCE(c.reloptions::text,'') AS options,p.oid::regclass::text AS parent
         FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
         JOIN pg_inherits i ON i.inhrelid=c.oid JOIN pg_class p ON p.oid=i.inhparent
         WHERE n.nspname=ANY(%s) AND c.relkind IN ('r','p')""", (SCHEMAS,))
@@ -223,7 +225,7 @@ def validate_partitions(connection):
     by_name = {r['partition_name']:r for r in generations}
     for child in children:
         generation = by_name.get(child['name'])
-        if generation is None or child['schema']!='raw' or child['parent']!='raw.events' or child['owner']!='tradebot_owner' or child['rls'] or child['force_rls']:
+        if generation is None or child['schema']!='raw' or child['parent']!='raw.events' or child['owner']!='tradebot_owner' or child['rls'] or child['force_rls'] or child['persistence']!='p' or child['options']:
             raise SchemaDrift('unregistered or altered raw partition')
         if child['name'] != partition_name(generation['generation_id']) or generation['state']=='retired' or child['bound'] != "FOR VALUES IN ('%s')" % generation['generation_id']:
             raise SchemaDrift('raw partition bound/identity/state mismatch')
@@ -233,6 +235,13 @@ def validate_partitions(connection):
             WHERE attrelid='raw.events'::regclass AND attnum>0 AND NOT attisdropped""", (child['oid'],))
         if differences:
             raise SchemaDrift('raw partition column drift')
+        child_extras = connection.execute('''SELECT
+            (SELECT count(*) FROM pg_attrdef WHERE adrelid=%s) +
+            (SELECT count(*) FROM pg_attribute WHERE attrelid=%s AND attacl IS NOT NULL) +
+            (SELECT count(*) FROM pg_rewrite WHERE ev_class=%s) AS n''',
+            (child['oid'],child['oid'],child['oid'])).fetchone()['n']
+        if child_extras:
+            raise SchemaDrift('raw partition default, column grant, or rule drift')
         extra_constraints = connection.execute('SELECT count(*) AS n FROM pg_constraint WHERE conrelid=%s AND conislocal AND conparentid=0',(child['oid'],)).fetchone()['n']
         if extra_constraints:
             raise SchemaDrift('raw partition constraint drift')

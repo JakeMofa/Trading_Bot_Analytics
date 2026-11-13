@@ -1,0 +1,119 @@
+# Overlay on compose.yaml. Explicitly generated-only; no live/cloud credentials.
+services:
+  postgres:
+    secrets: [admin, migrator, application, reader, lifecycle_password]
+  api:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    command: [python, -m, uvicorn, postgres.api:app, --host, 0.0.0.0, --port, '8000']
+    user: '10001:10001'
+    restart: unless-stopped
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    pids_limit: 64
+    read_only: true
+    tmpfs: [/tmp:size=16m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment: &app_environment
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: /app/backend
+      TRADEBOT_ENVIRONMENT: preprod
+      TRADEBOT_DATA_MODE: generated
+      TRADEBOT_ORIGIN_ID: generated-pp
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/app_dsn
+      TRADEBOT_COLLECTOR_ENABLED: 'false'
+      ENABLE_OPENAI_ANALYST: 'false'
+      ENABLE_SUPABASE_SYNC: 'false'
+      ENABLE_LOCAL_RETENTION: 'false'
+    secrets: [app_dsn]
+    networks: [database]
+    ports: [127.0.0.1:8000:8000]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2).read(8192)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    logging: &logging
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+  calculation:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    command: [python, -m, postgres.worker]
+    user: '10001:10001'
+    restart: unless-stopped
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    pids_limit: 64
+    read_only: true
+    tmpfs: [/tmp:size=16m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment: *app_environment
+    secrets: [app_dsn]
+    networks: [database]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+  lifecycle:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    command: [python, -m, postgres.lifecycle_worker]
+    user: '10001:10001'
+    restart: unless-stopped
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    tmpfs: [/tmp:size=16m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      <<: *app_environment
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
+    secrets: [lifecycle_dsn]
+    networks: [database]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+  migrate:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    command: [python, -m, postgres.migrate, --environment, preprod, --dsn-file, /run/secrets/migrator_dsn]
+    profiles: [migration]
+    user: '10001:10001'
+    restart: 'no'
+    mem_limit: 192m
+    memswap_limit: 192m
+    pids_limit: 64
+    read_only: true
+    tmpfs: [/tmp:size=16m,mode=1777]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      <<: *app_environment
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/migrator_dsn
+    secrets: [migrator_dsn]
+    networks: [database]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+secrets:
+  lifecycle_password:
+    file: ${PP_SECRET_DIR:?supply foundation secret directory}/lifecycle
+  app_dsn:
+    file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/app_dsn
+  lifecycle_dsn:
+    file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/lifecycle_dsn
+  migrator_dsn:
+    file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/migrator_dsn

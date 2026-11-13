@@ -5,8 +5,10 @@ Read AGENTS.md, then the active checkpoint in
 authoritative roadmap; this file is an entry point, not a second checklist.
 
 Current work: Phase 1.75 / I7. PostgreSQL CP0–1 passed within foundation scope;
-**CP2–5 now run on separate authorized branches; coordinator integrates through
-`codex/feature-postgres-pp` → preprod. Read the master’s parallel ownership table.** PR #15 aligned reviewed main
+**CP2–4 components are merged into the integration branch after generated
+PostgreSQL17/API/SSE CI43346308984 PASS. CP5 controller/runtime qualification
+continues in PR21; coordinator integrates through PR17 → preprod. Read the
+master’s current checkpoint and ownership table.** PR #15 aligned reviewed main
 workflows/docs into preprod (`15475f7`); foundation source `40c2761` passed exact Linux CI 43340827516 and PP execution.
 Check the newest foundation PR, exact CI and host evidence before treating that
 statement as current. Docker/PostgreSQL alone do not qualify app or CD.

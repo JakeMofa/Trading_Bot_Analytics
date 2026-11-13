@@ -1,0 +1,78 @@
+{
+  "application_lifecycle_tests": 35,
+  "applied_to_pp_host": false,
+  "baseline": {
+    "application": "NOT_INSTALLED",
+    "cd": "NOT_QUALIFIED",
+    "collector": "NOT_INSTALLED",
+    "container_memory": "19.42MiB / 512MiB",
+    "elapsed_seconds": 9.366,
+    "generated_relation_bytes": 32768,
+    "generated_rows": 32,
+    "image": "postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+    "pgdata_allocated_bytes": 48205824,
+    "published_ports": [],
+    "recreated": true,
+    "restricted_role_checks": 4,
+    "result": "PASS_FOUNDATION_ONLY",
+    "schema_fingerprint": "d88dcb38e88339c01ebc72bf71d966c1a37b6f9f7597e74015de0dc9103f5d40",
+    "settings": {
+      "autovacuum": "on",
+      "data_checksums": "on",
+      "fsync": "on",
+      "full_page_writes": "on",
+      "max_connections": "20",
+      "shared_buffers": "128MB",
+      "synchronous_commit": "on",
+      "version": "17.12 (Debian 17.12-1.pgdg12+1)"
+    },
+    "usage": {
+      "database_bytes": 7837363,
+      "temporary_bytes": 0,
+      "wal_bytes": 16777216
+    },
+    "volume": "tradebot_pp_pgdata"
+  },
+  "ci_run": 43346308984,
+  "cloud_writes": false,
+  "component_prs": [
+    18,
+    19,
+    20
+  ],
+  "elapsed_seconds": 55.835,
+  "postgres_skips": 0,
+  "production_access": false,
+  "representative_capacity": "NOT_PERFORMED",
+  "result": "PASS_GENERATED_POSTGRES_INTEGRATION",
+  "runtime": {
+    "acknowledged_events": 21,
+    "api_max_seconds": 0.002995,
+    "api_ram_after_commit": true,
+    "bounded_chart": true,
+    "collector_enabled": false,
+    "conflict_detected": true,
+    "dashboard_contract": true,
+    "exact_decimal_roundtrip": true,
+    "origin_id": "generated-pp",
+    "prediction_history": true,
+    "scope": "generated_local_api",
+    "sse_connections": 2,
+    "status": "pass",
+    "unsupported": [
+      "real_feeds",
+      "production_preview",
+      "ensemble",
+      "news",
+      "evaluation",
+      "capacity"
+    ]
+  },
+  "schema_tests": 16,
+  "sizes": {
+    "database_bytes": 10565299,
+    "generated_relation_bytes": 1867776,
+    "wal_bytes": 16777216
+  },
+  "source_sha": "751f1f8e3d89c47f24340a55063506f034cf097b"
+}

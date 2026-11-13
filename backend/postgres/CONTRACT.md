@@ -6,6 +6,10 @@ Runtime startup validates only; explicit `python -m postgres.migrate` applies SQ
 `connect(dsn, environment='preprod', readonly=False)` returns a psycopg 3 connection
 (dict_row; autocommit=False); validates database identity. `validate_schema(conn,
 environment)` is read-only. `apply_migrations(conn, environment)` is explicit.
+`connect_migrator(dsn, environment='preprod', readonly=False)` is used only by the
+explicit migration CLI/tests: it verifies session_user is tradebot_migrator,
+activates tradebot_owner, then validates environment. Runtime `connect` never
+sets a role. Lifecycle connects only after business migration grants exist.
 Dependencies: psycopg[binary]==3.2.13 (parent owns requirements).
 Prerequisite: parent/admin provisions restricted tradebot_lifecycle with no owner membership; CP1 role upgrade is separate from business DDL.
 

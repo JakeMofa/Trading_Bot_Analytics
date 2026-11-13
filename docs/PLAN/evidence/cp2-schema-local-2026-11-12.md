@@ -42,3 +42,17 @@ References checked November 12, 2026:
 - https://www.postgresql.org/docs/current/datatype-datetime.html (microsecond timestamp resolution)
 - https://www.postgresql.org/docs/17/sql-createfunction.html (SECURITY DEFINER fixed search path)
 - https://supabase.com/changelog.md (reviewed relevant current changes; no client API applied)
+
+## Generated CI connection correction
+
+Integrated source `1aa8001`, run `43345696255`, passed the CP1 foundation but
+stopped before business migration: the NOINHERIT migrator could not read
+`ops.environment_identity` through the ordinary runtime connection. Added an
+explicit `connect_migrator` path that verifies the login name before SET ROLE,
+then validates environment; the migration CLI and schema fixture use that path.
+App/lifecycle connections never activate owner. Lifecycle is expected to fail
+before explicit business grants are installed and works only after migration.
+
+Local verification after the fix: seven unit tests pass, nine actual database
+cases remain pending on the successor generated run. This correction changes no
+migration SQL, grants, role inheritance, or current database contents.

@@ -5,6 +5,7 @@ import hashlib
 import json
 from pathlib import Path
 import tempfile
+import textwrap
 import sys
 import unittest
 import urllib.request
@@ -323,6 +324,32 @@ class EnvironmentTests(unittest.TestCase):
             self.assertNotIn('secrets.', text)
             self.assertNotIn('pip install', text)
         self.assertFalse(Path('.github/workflows/deploy-tradebot.yml').exists(), 'independent PR must not import the old deployment bypass')
+
+    def test_private_pp_job_uses_existing_python_without_tool_installation(self):
+        text=Path('.github/workflows/cd-pp.yml').read_text()
+        preflight,deploy=text.split('\n  deploy:',1)
+        self.assertIn('actions/setup-python@',preflight)
+        self.assertIn('runs-on: [self-hosted, tradebot-private]',deploy)
+        self.assertNotIn('actions/setup-python@',deploy)
+        self.assertNotRegex(deploy,r'\b(?:pip|pip3|brew)\s+install\b')
+        validation=deploy.split('- name: Validate existing operator Python 3.12',1)[1].split('      - name:',1)[0]
+        self.assertIn('timeout-minutes: 1',validation)
+        self.assertIn("/opt/homebrew/bin/python3.12 -I - <<'PY'",validation)
+        self.assertIn('run: /opt/homebrew/bin/python3.12 .github/ci/environment_pipeline.py deploy preprod',deploy)
+        self.assertNotIn('run: python .github/ci/environment_pipeline.py deploy preprod',deploy)
+
+    def test_operator_version_guard_rejects_other_python_minor_versions(self):
+        from contextlib import redirect_stdout
+        text=Path('.github/workflows/cd-pp.yml').read_text().split('\n  deploy:',1)[1]
+        script=textwrap.dedent(text.split("<<'PY'\n",1)[1].split('\n          PY',1)[0])
+        code=compile(script,'operator-python-validation','exec')
+        for version in ((3,11,9),(3,13,0),(2,7,18)):
+            with self.subTest(version=version),patch.object(sys,'version_info',version),self.assertRaises(SystemExit):
+                exec(code,{})
+        output=io.StringIO()
+        with patch.object(sys,'version_info',(3,12,8)),redirect_stdout(output):
+            exec(code,{})
+        self.assertEqual(output.getvalue(),'Operator Python 3.12.8\n')
 
 
 if __name__ == '__main__':

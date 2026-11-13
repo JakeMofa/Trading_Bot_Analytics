@@ -11,7 +11,10 @@ actual container/API/SSE tests at `751f1f8`, CI 43346308984. The final deploymen
 exact Linux CI 43351324325 at `deb8f0d`. Combined source `687861e` also passed
 exact CI 43351856515. That exact helper source is installed and its actual PP
 host/SSH/role preflight is qualified; the first manual application deployment
-remains unperformed. Its CI uses real Docker,
+has not reached host execution. CD 43354829263 failed at the Mac Python setup
+step; its unused authority was revoked and ephemeral runner removed. The
+corrected workflow validates existing `/opt/homebrew/bin/python3.12` instead of
+installing into `/Users/runner`. Its CI uses real Docker,
 PostgreSQL, roles, migrations, API restart, persisted acknowledgements and recovery;
 only the PP hostname binding is substituted on the disposable GitHub host.
 Actual PP prerequisite bindings are recorded in
@@ -90,7 +93,9 @@ still CP8.
 Prepare one root authorization binding source SHA, published artifact SHA-256,
 installed controller SHA-256, PP identity, generated mode and disabled flags.
 The permit expires after 30 minutes and is consumed once. Installation/authorization
-and deployment share a host lock. Existing unused authority requires explicit
+and deployment share a host lock. Invoke the root-owned standalone installer
+with `python3 -Es` so its trusted sibling controller module is importable; the
+installed zipapp entrypoint continues to use isolated `-I`. Existing unused authority requires explicit
 reconciliation. No automatic deployment retry is permitted.
 
 Dispatch CD Preprod manually from reviewed preprod for that exact preprod source,

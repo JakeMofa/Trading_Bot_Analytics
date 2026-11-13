@@ -49,6 +49,18 @@ CREATE TABLE history_v2.candles (
   PRIMARY KEY (origin_id,source,symbol,granularity,time), CHECK (low<=high)
 );
 
+-- Historical projection only; forbidden as a live-price fallback.
+CREATE TABLE history_v2.current_prices (
+  origin_id text NOT NULL, source text NOT NULL, symbol text NOT NULL,
+  event_id text NOT NULL, generation_id history_v2.generation_uuid NOT NULL,
+  source_time text NOT NULL, source_epoch history_v2.exact_numeric NOT NULL,
+  received_at timestamptz NOT NULL, available_at timestamptz NOT NULL,
+  price history_v2.exact_numeric NOT NULL, size history_v2.exact_numeric,
+  payload jsonb NOT NULL, content_hash history_v2.sha256 NOT NULL,
+  PRIMARY KEY (origin_id,source,symbol), CHECK (available_at>=received_at),
+  CHECK(source_epoch=history_v2.source_epoch(source_time))
+);
+
 CREATE TABLE history_v2.protected_evidence (
   origin_id text NOT NULL, evidence_id text NOT NULL, generation_id history_v2.generation_uuid,
   source text NOT NULL, event_id text NOT NULL, kind text NOT NULL, market_id text,
@@ -120,6 +132,7 @@ CREATE TABLE history_v2.coverage (
   PRIMARY KEY(origin_id,generation_id,manifest_id)
 );
 
+ALTER TABLE history_v2.current_prices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE history_v2.markets ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE history_v2.candles ENABLE ROW LEVEL SECURITY;
@@ -138,9 +151,13 @@ ALTER TABLE history_v2.generation_checkpoints ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE history_v2.coverage ENABLE ROW LEVEL SECURITY;
 
+CREATE INDEX history_predictions_time ON history_v2.predictions(origin_id,as_of DESC);
+CREATE INDEX history_outcomes_time ON history_v2.outcomes(origin_id,market_id,confirmed_at);
+
 REVOKE ALL ON ALL TABLES IN SCHEMA history_v2 FROM PUBLIC,anon,authenticated;
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA history_v2 FROM PUBLIC,anon,authenticated;
 -- No public policies and no service-role grant are provisioned here.
 -- CP6 must qualify a separate narrow authenticated importer/retriever identity,
--- exact immutable-content conflict handling, checkpoint acknowledgement and
+-- exact immutable-content conflict handling, reviewed mutable projection revision
+-- ordering (markets/current_prices), checkpoint acknowledgement and
 -- irreversible object protection. This contract alone grants no mutation authority.

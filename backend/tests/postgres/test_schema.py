@@ -219,6 +219,13 @@ class PostgreSQLSchemaTests(unittest.TestCase):
     def test_dynamic_partition_shape_and_grants(self):
         with self.generated_transaction():
             _,name=self.seed_generation()
+            second='00000000-0000-4000-8000-000000000002'
+            self.db.execute("""INSERT INTO archive.generations(origin_id,generation_id,slot,state,partition_name,created_at)
+                VALUES('generated-cp2-schema',%s,'B','prepared',%s,now())""",(second,partition_name(second)))
+            third='00000000-0000-4000-8000-000000000003'
+            with self.assertRaises(Exception),self.db.transaction():
+                self.db.execute("""INSERT INTO archive.generations(origin_id,generation_id,slot,state,partition_name,created_at)
+                    VALUES('generated-cp2-schema',%s,'A','prepared',%s,now())""",(third,partition_name(third)))
             self.assertEqual(validate_schema(self.db),1)
             from psycopg import sql
             for statement in [sql.SQL('ALTER TABLE raw.{} ADD CONSTRAINT extra CHECK(length(event_id)>0)').format(sql.Identifier(name)),

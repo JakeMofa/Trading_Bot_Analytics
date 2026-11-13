@@ -11,7 +11,7 @@ from contextlib import contextmanager
 import unittest
 
 from postgres.contract import source_timestamp, exact_decimal, canonical_json, content_hash, partition_name
-from postgres.connection import EnvironmentMismatch, connect, validate_environment
+from postgres.connection import EnvironmentMismatch, connect, connect_migrator, validate_environment
 from postgres.migrate import load_migrations, validate_ledger, apply_migrations, validate_schema, SchemaDrift
 
 
@@ -59,6 +59,46 @@ class ContractTests(unittest.TestCase):
             Path(directory,'0002_gap.sql').write_text('SELECT 1;')
             with self.assertRaises(SchemaDrift): load_migrations(directory)
 
+    def test_migrator_activation_is_explicit_and_rejects_runtime_login(self):
+        import sys
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        class Cursor:
+            def __init__(self,row): self.row=row
+            def fetchone(self): return self.row
+            def fetchall(self): return self.row
+        class Connection:
+            def __init__(self,login):
+                self.login=login; self.owner=False; self.closed=False; self.statements=[]
+            def execute(self,sql):
+                self.statements.append(sql)
+                if sql=='SELECT session_user AS login': return Cursor({'login':self.login})
+                if sql=='SET ROLE tradebot_owner': self.owner=True; return Cursor(None)
+                if sql=='SELECT current_database() AS database_name': return Cursor({'database_name':'tradebot_pp'})
+                if 'FROM ops.environment_identity' in sql:
+                    if self.login=='tradebot_migrator' and not self.owner: raise PermissionError('NOINHERIT')
+                    return Cursor([dict(singleton=True,environment='preprod',database_name='tradebot_pp',foundation_version=1)])
+                raise AssertionError(sql)
+            def commit(self): pass
+            def close(self): self.closed=True
+        def run(login,helper,environment='preprod'):
+            db=Connection(login)
+            modules={'psycopg':SimpleNamespace(connect=lambda *a,**k:db),
+                     'psycopg.rows':SimpleNamespace(dict_row=object())}
+            with patch.dict(sys.modules,modules):
+                try: helper('generated fixture',environment)
+                except Exception:
+                    self.assertTrue(db.closed)
+                    raise
+            return db
+        migrated=run('tradebot_migrator',connect_migrator)
+        self.assertTrue(migrated.owner)
+        runtime=run('tradebot_app',connect)
+        self.assertFalse(runtime.owner)
+        with self.assertRaises(EnvironmentMismatch): run('tradebot_app',connect_migrator)
+        with self.assertRaises(EnvironmentMismatch): run('tradebot_migrator',connect_migrator,'production')
+        with self.assertRaises(PermissionError): run('tradebot_migrator',connect)
+
     def test_migration_cloud_separation_and_no_cascade(self):
         sql='\n'.join(m.sql for m in load_migrations())
         self.assertNotIn('history_v2',sql)
@@ -78,7 +118,7 @@ _APP_FILE = os.environ.get('TRADEBOT_TEST_APP_DSN_FILE')
 class PostgreSQLSchemaTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.db=connect(Path(_MIGRATOR_FILE).read_text().strip(),'preprod')
+        cls.db=connect_migrator(Path(_MIGRATOR_FILE).read_text().strip(),'preprod')
         cls.first_apply=apply_migrations(cls.db,'preprod')
         cls.db.commit()
 
@@ -105,6 +145,13 @@ class PostgreSQLSchemaTests(unittest.TestCase):
             original.write_text(original.read_text()+'\n-- forbidden applied-file mutation\n')
             with self.assertRaises(SchemaDrift):
                 apply_migrations(self.db,directory=directory)
+
+    def test_migrator_role_explicit_and_identity_checked(self):
+        row=self.db.execute('SELECT session_user AS login,current_user AS effective').fetchone()
+        self.assertEqual(row,dict(login='tradebot_migrator',effective='tradebot_owner'))
+        self.db.rollback()
+        with self.assertRaises(EnvironmentMismatch):
+            connect_migrator(Path(_MIGRATOR_FILE).read_text().strip(),'production')
 
     def test_wrong_environment(self):
         with self.assertRaises(EnvironmentMismatch): validate_environment(self.db,'production')
@@ -241,7 +288,11 @@ class PostgreSQLSchemaTests(unittest.TestCase):
 
     @unittest.skipUnless(_APP_FILE,'application DSN fixture not configured')
     def test_app_no_ddl_owner_or_ledger_mutation(self):
-        with connect(Path(_APP_FILE).read_text().strip(),'preprod') as app:
+        app_dsn=Path(_APP_FILE).read_text().strip()
+        with self.assertRaises(EnvironmentMismatch):
+            connect_migrator(app_dsn,'preprod')
+        with connect(app_dsn,'preprod') as app:
+            self.assertEqual(app.execute('SELECT current_user AS role').fetchone()['role'],'tradebot_app')
             self.assertEqual(validate_schema(app),1)
             app.rollback()
             for sql in ['CREATE TABLE core.unreviewed(id int)','SET ROLE tradebot_owner',

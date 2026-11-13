@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 import re
 
-from .connection import connect, validate_environment
+from .connection import connect_migrator, validate_environment
 from .contract import SCHEMA_VERSION, canonical_json, content_hash, partition_name
 
 MIGRATION_DIR = Path(__file__).with_name('migrations')
@@ -324,7 +324,7 @@ def main():
     parser.add_argument('--check', action='store_true', help='validate only; never execute migration DDL')
     args = parser.parse_args()
     dsn = args.dsn_file.read_text().strip()
-    with connect(dsn, args.environment) as connection:
+    with connect_migrator(dsn, args.environment, readonly=args.check) as connection:
         result = validate_schema(connection,args.environment) if args.check else apply_migrations(connection,args.environment)
     print(json.dumps({'environment':args.environment,'operation':'check' if args.check else 'migrate','result':result}))
 

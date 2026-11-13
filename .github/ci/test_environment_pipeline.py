@@ -104,6 +104,15 @@ class EnvironmentTests(unittest.TestCase):
             with self.assertRaises(p.PipelineHold):p.qualify_ci(api,'preprod',SHA,{**env,'GITHUB_SHA':'e'*40})
             with self.assertRaises(p.PipelineHold):p.qualify_ci(api,'preprod',SHA,{**env,'GITHUB_REF_NAME':'preprod'})
 
+    def test_preprod_controls_cannot_deploy_main_or_production(self):
+        api=API('preprod');env={**self.env('preprod'),'SOURCE_BRANCH':'preprod'}
+        self.assertEqual(p.qualify_ci(api,'preprod',SHA,env)['branch'],'preprod')
+        for role,source in [('production','preprod'),('preprod','main'),('production','main')]:
+            with self.subTest(role=role,source=source),self.assertRaises(p.PipelineHold):
+                p.qualify_ci(api,role,SHA,{**env,'SOURCE_BRANCH':source})
+        with self.assertRaises(p.PipelineHold):
+            p.qualify_ci(api,'preprod',SHA,{**env,'GITHUB_REF_NAME':'codex/unreviewed'})
+
     def test_new_failed_or_rerunning_ci_cannot_reuse_old_success(self):
         for state, conclusion in [('completed', 'failure'), ('in_progress', None), ('completed', 'cancelled')]:
             api = API();api.ci.append({**api.ci[0], 'id': 13, 'status': state, 'conclusion': conclusion})
@@ -283,7 +292,7 @@ class EnvironmentTests(unittest.TestCase):
             self.assertNotIn('pull_request_target', text)
             self.assertNotIn('  push:', text)
             self.assertIn('timeout-minutes: 15', text)
-            self.assertIn('ref: main', text)
+            self.assertIn('ref: ${{ github.sha }}' if short=='pp' else 'ref: main', text)
             self.assertIn('RELEASE_VERSION:', text)
             text = Path('.github/workflows/ci-'+short+'.yml').read_text()
             self.assertIn('workflows: ["CI — Tradebot checks"]', text)

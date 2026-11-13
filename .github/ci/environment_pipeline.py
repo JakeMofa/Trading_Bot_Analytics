@@ -84,8 +84,10 @@ def qualify_ci(api, role, sha, env):
         require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'manual or successful source CI trigger required')
         branch = env.get('SOURCE_BRANCH', env.get('GITHUB_REF_NAME', ''))
         if env.get('SOURCE_BRANCH'):
-            require(env.get('GITHUB_REF_NAME') == 'main', 'deployment/release controls must come from main')
-            controls = api.read('/git/ref/heads/main')
+            control_branch=env.get('GITHUB_REF_NAME')
+            require(control_branch=='main' or (role=='preprod' and control_branch=='preprod' and branch=='preprod'),
+                    'controls must come from main or exact preprod for PP only')
+            controls = api.read('/git/ref/heads/'+control_branch)
             require(controls['object']['sha'] == env.get('GITHUB_SHA'), 'control branch moved')
         else:
             require(env.get('GITHUB_SHA') == sha, 'dispatch SHA differs from source')
@@ -249,7 +251,10 @@ def bounded_process(command, source, timeout):
 
 
 def deploy(api, role, sha, profile_path, env, pp_run_id=''):
-    require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch' and env.get('GITHUB_REF_NAME') == 'main', 'deployment controls must be dispatched from main')
+    require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'manual deployment required')
+    control_branch=env.get('GITHUB_REF_NAME')
+    require(control_branch=='main' or (role=='preprod' and control_branch=='preprod' and env.get('SOURCE_BRANCH')=='preprod'),
+            'deployment controls require main or exact preprod for PP only')
     qualified = qualify_ci(api, role, sha, env)
     profile = target_profile(role, profile_path)  # Before any SSH or bundle creation.
     from release_package import load_candidate

@@ -12,9 +12,9 @@ CREATE ROLE tradebot_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
 CREATE ROLE tradebot_reader LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION CONNECTION LIMIT 4;
 DO $body$
 BEGIN
-  EXECUTE format('ALTER ROLE tradebot_migrator PASSWORD %L', trim(pg_read_file('/run/secrets/migrator')));
-  EXECUTE format('ALTER ROLE tradebot_app PASSWORD %L', trim(pg_read_file('/run/secrets/application')));
-  EXECUTE format('ALTER ROLE tradebot_reader PASSWORD %L', trim(pg_read_file('/run/secrets/reader')));
+  EXECUTE format('ALTER ROLE tradebot_migrator PASSWORD %L', btrim(pg_read_file('/run/secrets/migrator'), E'\n\r '));
+  EXECUTE format('ALTER ROLE tradebot_app PASSWORD %L', btrim(pg_read_file('/run/secrets/application'), E'\n\r '));
+  EXECUTE format('ALTER ROLE tradebot_reader PASSWORD %L', btrim(pg_read_file('/run/secrets/reader'), E'\n\r '));
 END
 $body$;
 GRANT tradebot_owner TO tradebot_migrator;

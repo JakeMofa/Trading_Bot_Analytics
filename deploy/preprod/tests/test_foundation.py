@@ -85,6 +85,15 @@ class FoundationControls(unittest.TestCase):
         with patch.object(f,'compose',return_value=json.dumps(safe)):
             f.verify_configuration(Path('/unused'))
 
+    def test_unreviewed_schema_is_rejected(self):
+        with patch.object(f,'sql',return_value='[]'), self.assertRaisesRegex(RuntimeError,'schema drift'):
+            f.verify_schema(Path('/unused'))
+
+    def test_password_file_newlines_are_trimmed_server_side(self):
+        text=(SOURCE/'init.sh').read_text()
+        self.assertEqual(text.count("btrim(pg_read_file("),3)
+        self.assertIn("E'\\n\\r '",text)
+
     def test_ci_cannot_execute_on_pp(self):
         with patch.dict(os.environ,{'GITHUB_ACTIONS':'true'}), patch.object(f.os,'geteuid',return_value=0), patch.object(f,'MARKER') as marker, patch.object(sys,'argv',['foundation.py','ci']):
             marker.exists.return_value=True

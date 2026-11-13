@@ -16,7 +16,7 @@ env:
   PYTHONDONTWRITEBYTECODE: "1"
 jobs:
   backend:
-    name: Application and SQLite regressions
+    name: Application and legacy SQLite compatibility
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

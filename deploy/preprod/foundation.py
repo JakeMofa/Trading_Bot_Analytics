@@ -147,6 +147,21 @@ def start(secret_dir):
         raise
 
 
+def verify_schema(secret_dir):
+    # CP1 catalog contract only. Business tables/migrations are added in CP2.
+    actual = json.loads(sql("SELECT coalesce(json_agg(json_build_object('schema',n.nspname,'table',c.relname,'column',a.attname,'type',format_type(a.atttypid,a.atttypmod),'not_null',a.attnotnull) ORDER BY n.nspname,c.relname,a.attnum),'[]'::json) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_attribute a ON a.attrelid=c.oid WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p') AND a.attnum>0 AND NOT a.attisdropped;", secret_dir))
+    columns = [('singleton','boolean'),('environment','text'),('database_name','text'),('foundation_version','integer')]
+    expected = [{'schema':'ops','table':'environment_identity','column':name,'type':kind,'not_null':True} for name,kind in columns]
+    if any(row['table']=='foundation_smoke' for row in actual):
+        expected += [{'schema':'ops','table':'foundation_smoke','column':name,'type':kind,'not_null':True} for name,kind in [('id','integer'),('amount','numeric(30,18)'),('source_time','text'),('payload','text')]]
+    if actual != expected:
+        raise RuntimeError('foundation schema drift detected; migration review required')
+    schemas = sql("SELECT string_agg(nspname||':'||pg_get_userbyid(nspowner),',' ORDER BY nspname) FROM pg_namespace WHERE nspname IN ('raw','core','ops','archive');", secret_dir)
+    if schemas != 'archive:tradebot_owner,core:tradebot_owner,ops:tradebot_owner,raw:tradebot_owner':
+        raise RuntimeError('foundation schema ownership drift')
+    return hashlib.sha256(json.dumps(actual, sort_keys=True).encode()).hexdigest()
+
+
 def verify(secret_dir):
     print('foundation: verify identity/settings', file=sys.stderr)
     started = time.monotonic()
@@ -154,6 +169,7 @@ def verify(secret_dir):
     identity = sql('SELECT environment, database_name, foundation_version FROM ops.environment_identity;', secret_dir)
     if identity != 'preprod|tradebot_pp|1':
         raise RuntimeError('database environment/version mismatch')
+    verify_schema(secret_dir)
     settings = json.loads(sql("SELECT json_build_object('version',current_setting('server_version'),'fsync',current_setting('fsync'),'synchronous_commit',current_setting('synchronous_commit'),'full_page_writes',current_setting('full_page_writes'),'autovacuum',current_setting('autovacuum'),'shared_buffers',current_setting('shared_buffers'),'max_connections',current_setting('max_connections'),'data_checksums',current_setting('data_checksums'));", secret_dir))
     if any(settings[key] != 'on' for key in ('fsync', 'synchronous_commit', 'full_page_writes', 'autovacuum', 'data_checksums')) or settings['shared_buffers'] != '128MB' or settings['max_connections'] != '20':
         raise RuntimeError('durability/resource settings mismatch')
@@ -196,6 +212,7 @@ def verify(secret_dir):
         raise RuntimeError('runtime port, memory or OOM check failed')
     if not any(m.get('Name') == pg_volume for m in inspected['Mounts']):
         raise RuntimeError('persistent volume changed')
+    schema_fingerprint = verify_schema(secret_dir)
     smoke_bytes = int(sql("SELECT pg_total_relation_size('ops.foundation_smoke');", secret_dir))
     if smoke_bytes > 64 * 1024 ** 2:
         raise RuntimeError('generated smoke allowance exceeded')
@@ -207,7 +224,7 @@ def verify(secret_dir):
             'container_memory': stats['MemUsage'], 'recreated': True, 'volume': pg_volume,
             'published_ports': [], 'restricted_role_checks': len(denied), 'image': IMAGE,
             'elapsed_seconds': round(time.monotonic() - started, 3),
-            'collector': 'NOT_INSTALLED', 'application': 'NOT_INSTALLED', 'cd': 'NOT_QUALIFIED'}
+            'schema_fingerprint': schema_fingerprint, 'collector': 'NOT_INSTALLED', 'application': 'NOT_INSTALLED', 'cd': 'NOT_QUALIFIED'}
 
 
 def main():
@@ -223,7 +240,19 @@ def main():
             directory = Path(folder)
             try:
                 start(directory)
-                print(json.dumps(verify(directory), sort_keys=True))
+                evidence = verify(directory)
+                sql('ALTER TABLE ops.environment_identity ADD COLUMN unreviewed text;', directory)
+                try:
+                    verify_schema(directory)
+                except RuntimeError as error:
+                    if 'schema drift' not in str(error):
+                        raise
+                else:
+                    raise RuntimeError('schema drift was not rejected')
+                sql('ALTER TABLE ops.environment_identity DROP COLUMN unreviewed;', directory)
+                verify_schema(directory)
+                evidence['generated_drift_injection_rejected'] = True
+                print(json.dumps(evidence, sort_keys=True))
             finally:
                 # Only generated CI's named project; never used by operator mode.
                 DEADLINE = time.monotonic() + 90

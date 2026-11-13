@@ -4,10 +4,10 @@ Never target a live database. Root creates the generated foundation fixture.
 Tests perform reversible mutation inside rollback transactions only.
 """
 from decimal import Decimal
-import hashlib
 import os
 from pathlib import Path
 import tempfile
+from contextlib import contextmanager
 import unittest
 
 from postgres.contract import source_timestamp, exact_decimal, canonical_json, content_hash, partition_name
@@ -92,6 +92,20 @@ class PostgreSQLSchemaTests(unittest.TestCase):
         self.assertEqual(validate_schema(self.db),1)
         self.db.rollback()
 
+    def test_explicit_upgrade_and_applied_file_mutation(self):
+        with self.generated_transaction(),tempfile.TemporaryDirectory() as directory:
+            for migration in load_migrations():
+                Path(directory,migration.name).write_text(migration.sql)
+            upgrade=Path(directory,'0002_generated_upgrade.sql')
+            upgrade.write_text('CREATE TABLE ops.generated_upgrade_probe(id integer PRIMARY KEY);')
+            self.assertEqual(apply_migrations(self.db,directory=directory),[2])
+            self.assertEqual(apply_migrations(self.db,directory=directory),[])
+            self.assertEqual(validate_schema(self.db,migrations=load_migrations(directory)),2)
+            original=Path(directory,load_migrations()[0].name)
+            original.write_text(original.read_text()+'\n-- forbidden applied-file mutation\n')
+            with self.assertRaises(SchemaDrift):
+                apply_migrations(self.db,directory=directory)
+
     def test_wrong_environment(self):
         with self.assertRaises(EnvironmentMismatch): validate_environment(self.db,'production')
         self.db.rollback()
@@ -134,6 +148,89 @@ class PostgreSQLSchemaTests(unittest.TestCase):
                 self.db.rollback()
                 self.assertEqual(validate_schema(self.db),1)
                 self.db.rollback()
+
+    @contextmanager
+    def generated_transaction(self):
+        class RollbackFixture(Exception): pass
+        try:
+            with self.db.transaction():
+                self.db.execute('SET LOCAL ROLE tradebot_owner')
+                yield
+                raise RollbackFixture()
+        except RollbackFixture:
+            pass
+        finally:
+            self.db.rollback()
+
+    def seed_market(self, market='market-1', origin='generated-cp2-schema'):
+        self.db.execute("""INSERT INTO core.markets(origin_id,market_id,source,slug,duration,
+            start_time,end_time,start_epoch,end_epoch,status,first_seen,last_seen,payload,content_hash)
+            VALUES(%s,%s,'polymarket_us',%s,900,'2026-11-12T00:00:00Z','2026-11-12T00:15:00Z',
+            core.source_epoch('2026-11-12T00:00:00Z'),core.source_epoch('2026-11-12T00:15:00Z'),
+            'MARKET_STATUS_OPEN','2026-11-12T00:00:00Z','2026-11-12T00:00:00Z','{}',%s)""",
+            (origin,market,market,'1'*64))
+
+    def seed_generation(self):
+        generation='00000000-0000-4000-8000-000000000001'
+        name=partition_name(generation)
+        self.db.execute("""INSERT INTO archive.generations(origin_id,generation_id,slot,state,
+            partition_name,created_at) VALUES('generated-cp2-schema',%s,'A','prepared',%s,now())""",
+            (generation,name))
+        self.db.execute("SELECT archive.create_generation_partition('generated-cp2-schema',%s)",(generation,))
+        return generation,name
+
+    def test_origin_reference_integrity_and_raw_independence(self):
+        with self.generated_transaction():
+            self.seed_market()
+            self.seed_market('market-2')
+            self.seed_market(origin='generated-other-origin')
+            generation,name=self.seed_generation()
+            self.db.execute("""INSERT INTO raw.events(generation_id,origin_id,source,event_id,kind,
+                market_id,source_time,source_epoch,received_at,available_at,price,payload,content_hash)
+                VALUES(%s,'generated-cp2-schema','polymarket_us','event-1','metadata','market-1',
+                '2026-11-12T00:00:00.123456789Z',core.source_epoch('2026-11-12T00:00:00.123456789Z'),
+                '2026-11-12T00:00:01Z','2026-11-12T00:00:01Z',91234.12345678901234567890,'{}',%s)""",
+                (generation,'2'*64))
+            self.db.execute("""INSERT INTO core.protected_evidence(origin_id,evidence_id,generation_id,
+                source,event_id,kind,market_id,source_time,source_epoch,received_at,available_at,payload,content_hash)
+                SELECT origin_id,'evidence-1',generation_id,source,event_id,kind,market_id,source_time,
+                source_epoch,received_at,available_at,payload,content_hash FROM raw.events WHERE generation_id=%s""",(generation,))
+            self.db.execute("""INSERT INTO core.feature_snapshots VALUES('generated-cp2-schema','snapshot-1',
+                'market-1','2026-11-12T00:00:02Z',1,'{}','{}','{}',%s)""",('3'*64,))
+            self.db.execute("INSERT INTO core.snapshot_evidence VALUES('generated-cp2-schema','snapshot-1','evidence-1')")
+            with self.assertRaises(Exception),self.db.transaction():
+                self.db.execute("INSERT INTO core.snapshot_evidence VALUES('generated-cp2-schema','snapshot-1','missing')")
+            with self.assertRaises(Exception),self.db.transaction():
+                self.db.execute("""INSERT INTO core.outcomes(origin_id,outcome_id,market_id,evidence_id,result,
+                    confirmed_at,available_at,payload,content_hash) VALUES('generated-cp2-schema','o1',
+                    'market-2','evidence-1','UP',now(),now(),'{}',%s)""",('4'*64,))
+            with self.assertRaises(Exception),self.db.transaction():
+                self.db.execute("""INSERT INTO core.predictions(origin_id,prediction_id,snapshot_id,market_id,
+                    model_version,as_of,created_at,seconds_remaining,probability_up,probability_down,
+                    assumptions_json,payload,content_hash) VALUES('generated-cp2-schema','p1','snapshot-1',
+                    'market-1','test','2026-11-12T00:00:03Z','2026-11-12T00:00:03Z',897,0.5,0.5,'{}','{}',%s)""",('5'*64,))
+            # Generated-only owner drop demonstrates references have no raw FK dependency;
+            # actual authoritative retirement gates are covered separately by CP4 tests.
+            from psycopg import sql
+            self.db.execute(sql.SQL('DROP TABLE raw.{}').format(sql.Identifier(name)))
+            self.assertEqual(self.db.execute("SELECT count(*) AS n FROM core.protected_evidence WHERE origin_id='generated-cp2-schema'").fetchone()['n'],1)
+            self.assertEqual(self.db.execute("SELECT count(*) AS n FROM core.snapshot_evidence WHERE origin_id='generated-cp2-schema'").fetchone()['n'],1)
+
+    def test_dynamic_partition_shape_and_grants(self):
+        with self.generated_transaction():
+            _,name=self.seed_generation()
+            self.assertEqual(validate_schema(self.db),1)
+            from psycopg import sql
+            for statement in [sql.SQL('ALTER TABLE raw.{} ADD CONSTRAINT extra CHECK(length(event_id)>0)').format(sql.Identifier(name)),
+                              sql.SQL('CREATE INDEX extra ON raw.{}(source)').format(sql.Identifier(name)),
+                              sql.SQL('GRANT DELETE ON raw.{} TO tradebot_app').format(sql.Identifier(name))]:
+                class RevertMutation(Exception): pass
+                with self.assertRaises(RevertMutation):
+                    with self.db.transaction():
+                        self.db.execute(statement)
+                        with self.assertRaises(SchemaDrift): validate_schema(self.db)
+                        raise RevertMutation()
+                self.assertEqual(validate_schema(self.db),1)
 
     @unittest.skipUnless(_APP_FILE,'application DSN fixture not configured')
     def test_app_no_ddl_owner_or_ledger_mutation(self):

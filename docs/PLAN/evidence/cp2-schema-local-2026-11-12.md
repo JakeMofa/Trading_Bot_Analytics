@@ -21,10 +21,12 @@ validated before first business install. The restricted lifecycle role must be
 provisioned explicitly by the administrator; business migrator cannot create roles.
 
 Local result: Python compile succeeded. `PYTHONPATH=backend python -m unittest
-discover -s backend/tests/postgres -v` passed six pure contract tests, with five
+discover -s backend/tests/postgres -v` passed six pure contract tests, with eight
 actual-PostgreSQL cases skipped because no generated server was running. This is
 unit evidence only. Parent owns isolated Linux PostgreSQL 17.12 execution and
-integration qualification, including exact SQL install/repeat/drift/role behavior.
+integration qualification, including exact SQL install/repeat/upgrade/drift/role behavior. Added generated
+checks exercise broken protected references, outcome/market identity, prediction
+as-of identity, partition shape/grants, and preservation after a generated raw drop.
 DSN fixture names: `TRADEBOT_TEST_MIGRATOR_DSN_FILE`,
 `TRADEBOT_TEST_APP_DSN_FILE`; file contents are never printed by the tests.
 

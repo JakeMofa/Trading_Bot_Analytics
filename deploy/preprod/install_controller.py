@@ -61,6 +61,21 @@ def checked_bundle(path,expected):
     return raw
 
 
+def install_authorized_key(home,key):
+    # OpenSSH reads AuthorizedKeysFile using the target UID. Root ownership
+    # prevents edits, while public read/traverse permissions allow authentication.
+    directory(home/'.ssh',0o755)
+    forced='restrict,command="'+str(WRAPPER)+'" '+key+'\n'
+    write_new_or_same(home/'.ssh/authorized_keys',forced.encode(),0o644)
+
+
+def read_installed_controller(path):
+    info=path.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_uid==0 and not info.st_mode & 0o022,
+            'unsafe_existing_controller')
+    return path.read_bytes()
+
+
 def install(bundle,digest,public_key_file):
     HostBinding.from_marker().validate()
     raw=checked_bundle(bundle,digest)
@@ -78,9 +93,8 @@ def install(bundle,digest,public_key_file):
     # its forced command, authorize another key, or join the Docker group.
     info=HOME.lstat()
     require(stat.S_ISDIR(info.st_mode) and info.st_uid in (0,int(fields[2])) and not info.st_mode & 0o022,'unsafe_deploy_home')
-    os.chown(HOME,0,0);directory(HOME,0o755);directory(HOME/'.ssh',0o700)
-    forced='restrict,command="'+str(WRAPPER)+'" '+key+'\n'
-    write_new_or_same(HOME/'.ssh/authorized_keys',forced.encode(),0o600)
+    os.chown(HOME,0,0);directory(HOME,0o755)
+    install_authorized_key(HOME,key)
     directory(LIB,0o755);directory(AUTHORITY,0o700);directory(STAGING,0o700)
     wrapper=b'#!/bin/sh\nset -eu\nexec sudo -n /usr/bin/python3 -I /usr/local/lib/tradebot-pp/controller.pyz "${SSH_ORIGINAL_COMMAND-}"\n'
     write_new_or_same(WRAPPER,wrapper,0o755)
@@ -92,8 +106,7 @@ def install(bundle,digest,public_key_file):
     write_new_or_same(LIB/(digest+'.pyz'),raw,0o600)
     current=LIB/'controller.pyz'
     if current.exists():
-        require(not current.is_symlink() and current.stat().st_uid==0 and stat.S_ISREG(current.stat().st_mode),'unsafe_existing_controller')
-        previous=current.read_bytes()
+        previous=read_installed_controller(current)
         write_new_or_same(LIB/(hashlib.sha256(previous).hexdigest()+'.pyz'),previous,0o600)
     temporary=LIB/'controller.pending'
     write_new_or_same(temporary,raw,0o600)

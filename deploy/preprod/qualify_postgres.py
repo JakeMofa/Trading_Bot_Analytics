@@ -134,6 +134,11 @@ def main():
     DEADLINE=time.monotonic()+600
     f.DEADLINE=DEADLINE
     started=time.monotonic()
+    PHASE="installer_effective_uid"
+    root_controls=("import unittest; s=unittest.defaultTestLoader.discover('deploy/preprod/tests',"
+                   "pattern='test_install_controller_root.py'); r=unittest.TextTestRunner(verbosity=2).run(s); "
+                   "raise SystemExit(0 if r.wasSuccessful() and not r.skipped and r.testsRun else 1)")
+    command([sys.executable,'-c',root_controls],timeout=15)
     with tempfile.TemporaryDirectory(prefix='tradebot-pg-qualified-') as folder:
         root=Path(folder)
         runtime_env=None

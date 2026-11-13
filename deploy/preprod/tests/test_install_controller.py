@@ -2,9 +2,11 @@ from pathlib import Path
 import importlib.util
 import json
 import sys
+import stat
+from types import SimpleNamespace
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch,Mock
 
 HERE=Path(__file__).parents[1]
 sys.path.insert(0,str(HERE))
@@ -37,3 +39,26 @@ class InstallationControls(unittest.TestCase):
                 original=(authority/'authorization.json').read_bytes()
                 with self.assertRaises(Exception):installer.authorize('c'*40,'d'*64,info['sha256'])
                 self.assertEqual((authority/'authorization.json').read_bytes(),original)
+
+    def test_installed_controller_rejects_nonroot_or_writable_files(self):
+        for mode,uid,accepted in [(0o600,0,True),(0o644,0,True),(0o620,0,False),
+                                  (0o602,0,False),(0o600,1234,False)]:
+            with self.subTest(mode=oct(mode),uid=uid):
+                path=Mock()
+                path.lstat.return_value=SimpleNamespace(st_mode=stat.S_IFREG|mode,st_uid=uid)
+                path.read_bytes.return_value=b'qualified-controller'
+                if accepted:
+                    self.assertEqual(installer.read_installed_controller(path),b'qualified-controller')
+                else:
+                    with self.assertRaises(Exception):installer.read_installed_controller(path)
+                    path.read_bytes.assert_not_called()
+
+    def test_authorized_key_is_root_owned_publicly_readable_and_immutable(self):
+        with tempfile.TemporaryDirectory() as folder:
+            home=Path(folder)
+            with patch.object(installer,'directory') as directory,patch.object(installer,'write_new_or_same') as write:
+                installer.install_authorized_key(home,'ssh-ed25519 generated-public-key')
+                directory.assert_called_once_with(home/'.ssh',0o755)
+                self.assertEqual(write.call_args.args[0],home/'.ssh/authorized_keys')
+                self.assertEqual(write.call_args.args[2],0o644)
+                self.assertTrue(write.call_args.args[1].startswith(b'restrict,command="/usr/local/bin/tradebot-pp-deploy" '))

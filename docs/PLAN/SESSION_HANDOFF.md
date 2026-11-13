@@ -26,6 +26,11 @@ fence production, run PP as the sole collector across a market boundary and a
 qualified A/B switch, then stop and fence PP collection while leaving its API
 up. Production later uses its own database/collector; PP preview reads the
 production API/SSE, never production's database directly.
+The user also selected a visible PP mode switch: isolated test, sole-collector
+live rehearsal, then read-only production preview. Implement a private
+authenticated operator control with durable ownership fencing and restart-safe
+OFF, and show the source/mode on the dashboard. Do not interpret the existing
+generated-only deployment as a working live collector or production mirror.
 
 The original working checkout is dirty on codex/phase1-75-retention-enable.
 Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge

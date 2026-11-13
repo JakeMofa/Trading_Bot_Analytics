@@ -13,7 +13,7 @@ services:
     cpus: 0.5
     pids_limit: 64
     read_only: true
-    tmpfs: [/tmp:size=16m,mode=1777]
+    tmpfs: ['/tmp:size=16m,mode=1777']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     environment: &app_environment
@@ -52,7 +52,7 @@ services:
     cpus: 0.5
     pids_limit: 64
     read_only: true
-    tmpfs: [/tmp:size=16m,mode=1777]
+    tmpfs: ['/tmp:size=16m,mode=1777']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     environment: *app_environment
@@ -73,7 +73,7 @@ services:
     cpus: 0.25
     pids_limit: 64
     read_only: true
-    tmpfs: [/tmp:size=16m,mode=1777]
+    tmpfs: ['/tmp:size=16m,mode=1777']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     environment:
@@ -96,7 +96,7 @@ services:
     memswap_limit: 192m
     pids_limit: 64
     read_only: true
-    tmpfs: [/tmp:size=16m,mode=1777]
+    tmpfs: ['/tmp:size=16m,mode=1777']
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     environment:

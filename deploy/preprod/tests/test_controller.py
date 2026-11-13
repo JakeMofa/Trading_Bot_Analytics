@@ -301,6 +301,7 @@ while True:
             return process
         descendant=None
         connection=None
+        exit_proven=False
         with tempfile.TemporaryDirectory() as directory,socket.socket(socket.AF_UNIX,socket.SOCK_STREAM) as listener:
             address=str(Path(directory)/'exit.sock')
             listener.bind(address)
@@ -315,15 +316,23 @@ while True:
                 descendant=int(connection.recv(64).strip())
                 self.assertEqual(leaders[0].returncode,0)
                 self.assertEqual(connection.recv(1),b'')
+                exit_proven=True
             finally:
-                if descendant is not None:
-                    try:os.kill(descendant,signal.SIGKILL)
-                    except ProcessLookupError:pass
-                for leader in leaders:
-                    try:os.killpg(leader.pid,signal.SIGKILL)
-                    except ProcessLookupError:pass
-                    leader.wait(timeout=2)
-                if connection is not None:connection.close()
+                try:
+                    # EOF plus the reaped leader already prove cleanup. Do not
+                    # signal their retired identities again during successful teardown.
+                    if not exit_proven:
+                        if descendant is not None:
+                            try:os.kill(descendant,signal.SIGKILL)
+                            except ProcessLookupError:pass
+                        for leader in leaders:
+                            try:os.killpg(leader.pid,signal.SIGKILL)
+                            except ProcessLookupError:pass
+                finally:
+                    try:
+                        for leader in leaders:leader.wait(timeout=2)
+                    finally:
+                        if connection is not None:connection.close()
 
 
 if __name__=='__main__':unittest.main()

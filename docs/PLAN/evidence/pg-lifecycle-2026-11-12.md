@@ -41,7 +41,7 @@ The master roadmap remains parent-owned and authoritative.
   retrieval is an explicit error; there is no cloud fallback for current price.
 - Runtime entrypoint: `python -m postgres.lifecycle_worker --once --bootstrap`
   prepares A explicitly; later invocations omit `--bootstrap`. The worker reads
-  dedicated lifecycle `DSN_FILE`, `TRADEBOT_DATA_MODE` (generated/replay),
+  dedicated lifecycle `TRADEBOT_DATABASE_DSN_FILE`, `TRADEBOT_DATA_MODE` (generated/replay),
   `TRADEBOT_ORIGIN_ID`, optional `TRADEBOT_QUALIFIED_GENERATION_BYTES`, and
   `TRADEBOT_OUTBOX_MAX_PENDING` (default 10,000 pending records). Runtime cloud and
   retirement flags must remain false. Without a qualified transport it rotates
@@ -69,6 +69,13 @@ admission is bounded by CP3; lifecycle independently holds if its bound is passe
   Python broad-suite attempt lacked the pre-existing websockets dependency.
 - `python3 -m compileall -q backend/postgres`: passed.
 - `git diff --check`: passed before commit.
+
+Follow-up startup checks align the shared application environment: default origin
+`generated-pp`, preprod-only environment, file-based lifecycle credential setting,
+and explicit refusal of real collector/cloud/retirement enablement. Two additional
+tests cover startup refusal before opening the database and the shared credential
+file setting (including rejection of the obsolete bare `DSN_FILE`). Full local
+suite after the follow-up: 88 discovered, 83 passed, five PostgreSQL cases skipped.
 
 Unit coverage includes decimal/source/wire preservation, chunk corruption and
 identity mismatch, gzip expansion bound, request/time/data limits, upload outage,

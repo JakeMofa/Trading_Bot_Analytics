@@ -296,6 +296,44 @@ mode and reports why it was held. The controls must prevent PP collection and
 production-preview mode from running together. No public collector switch or
 trading endpoint is added.
 
+**PP mode setting and transition contract (selected design, not deployed):**
+
+| Setting | Dashboard/API reads | PP collector | PP database use |
+| --- | --- | --- | --- |
+| `isolated` | PP API backed by PP PostgreSQL | OFF | Generated/replayed records, or a separately identified test subset; all labelled as test data |
+| `pp_live` | PP API backed by PP PostgreSQL | ON only while PP holds the sole-collector fence | Official read-only feed observations and predictions are persisted in PP; no production writes |
+| `production_preview` | Restricted, authenticated production API/SSE proxied to PP dashboard | OFF and fenced | PP test database remains available for later work but does not supply current production prices |
+
+The private operator setting changes the **PP dashboard's source** and may
+control the **PP collector**; it never switches a database connection to
+production. It is not an arbitrary database picker. If new feature experiments
+need a subset, provision a separate PP test database or an explicitly isolated
+origin/schema with its own migration version and read-only source proof. Do not
+silently reuse the live PP origin or copy production credentials. The displayed
+mode, environment, origin and last source time must travel with every API/SSE
+response so a stale PP value cannot masquerade as production.
+
+Transitions are fail closed. `isolated → pp_live` requires the qualified real
+connector, explicit production writer fence, PP ownership lease and bounded
+resource preflight. `pp_live → isolated` stops intake, drains/acknowledges in
+flight writes, persists collector OFF, checks processes/ownership after restart
+and keeps PP history queryable. `isolated → production_preview` requires the
+restricted production API route and a confirmed PP collector fence. Preview
+failure reports production unavailable and does not substitute PP values.
+Returning to `isolated` restores PP test views without starting collection.
+The approved production cutover independently verifies PP OFF before production
+takes the lease. Mode changes and failed attempts are recorded with actor,
+time, previous/new mode and fence result, excluding credentials.
+
+**Implementation order and proof:** (1) private PP API/dashboard access;
+(2) PostgreSQL live adapters and migrated queries on generated/replayed fixtures;
+(3) persisted mode/collector controls and truthful API/SSE source labels with
+transition/crash tests; (4) production writer fence and bounded PP live run;
+(5) stop/fence PP collection, confirm it stays OFF across restart; (6) after
+production cutover, qualify read-only production preview and isolated test
+subset selection. Test each mode through the actual dashboard/API and deny an
+unauthorized request, concurrent collector, stale source or failed mode change.
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an

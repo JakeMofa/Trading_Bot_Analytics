@@ -31,6 +31,10 @@ live rehearsal, then read-only production preview. Implement a private
 authenticated operator control with durable ownership fencing and restart-safe
 OFF, and show the source/mode on the dashboard. Do not interpret the existing
 generated-only deployment as a working live collector or production mirror.
+Selected PP setting has three modes: `isolated`, `pp_live`, and later
+`production_preview`. It selects a labelled dashboard source and, only with
+operator authority and a sole-collector fence, controls PP intake. It never
+points PP at the production database. Test subsets stay separately identified.
 
 The original working checkout is dirty on codex/phase1-75-retention-enable.
 Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge

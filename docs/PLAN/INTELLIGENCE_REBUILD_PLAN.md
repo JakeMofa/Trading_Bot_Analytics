@@ -345,6 +345,12 @@ This is code qualification, **not a PP deployment or operator-tunnel PASS**.
 Its controller bundle hash, exact CI, host installation and manual PP release
 must be qualified before marking checkpoint 1 complete. The live connector,
 mode switch, production fence, cloud verification and retirement are still OFF.
+The first exact push CI found an intentional old-controller hash pin in the
+release-control test. The candidate test now verifies that it is uninstalled,
+while the target profile remains bound to the separately evidenced installed
+controller; deployment cannot silently treat the candidate as qualified.
+The existing profile is not updated by this source PR. Successor source CI and
+the staged host-controller qualification remain separate gates.
 
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is

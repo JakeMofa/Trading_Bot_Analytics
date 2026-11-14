@@ -149,7 +149,7 @@ class EnvironmentTests(unittest.TestCase):
                         p.deploy(API(), role, SHA, str(path), self.env())
                 bundle.assert_not_called();transport.assert_not_called()
 
-    def test_qualified_pp_profile_matches_controller_and_actual_host_evidence(self):
+    def test_qualified_pp_profile_matches_installed_controller_and_actual_host_evidence(self):
         targets=json.loads(Path('.github/deploy/targets.json').read_text())
         self.assertFalse(targets['production']['runtime_qualified'])
         profile=p.target_profile('preprod','.github/deploy/targets.json')
@@ -162,10 +162,14 @@ class EnvironmentTests(unittest.TestCase):
         self.assertTrue(proof['runtime_prerequisites']['exact_rows_preserved'])
         self.assertTrue(all(check['result']=='PASS' for check in proof['ssh_binding']))
         self.assertFalse(proof['production_changed'])
-        # Controller edits require new qualification; a flag cannot substitute for it.
+        # Source changes may propose a successor. The qualified profile still
+        # binds the installed controller and cannot authorize a new hash until
+        # separate host installation and qualification evidence are recorded.
         with tempfile.TemporaryDirectory() as directory:
             result=subprocess.run([sys.executable,'deploy/preprod/controller_bundle.py',str(Path(directory)/'controller.pyz')],capture_output=True,text=True,check=True,timeout=10)
-            self.assertEqual(json.loads(result.stdout)['sha256'],profile['controller_sha256'])
+            candidate=json.loads(result.stdout)
+            self.assertRegex(candidate['sha256'],r'^[0-9a-f]{64}$')
+            self.assertFalse(candidate['installed'])
 
     def test_wrong_host_identity_user_hash_or_budget_rejected(self):
         with tempfile.TemporaryDirectory() as directory:

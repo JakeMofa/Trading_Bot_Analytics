@@ -28,7 +28,7 @@ services:
       ENABLE_SUPABASE_SYNC: 'false'
       ENABLE_LOCAL_RETENTION: 'false'
     secrets: [app_dsn]
-    networks: [database]
+    networks: [database, api_loopback]
     ports: [127.0.0.1:8000:8000]
     depends_on:
       postgres:
@@ -117,3 +117,8 @@ secrets:
     file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/lifecycle_dsn
   migrator_dsn:
     file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/migrator_dsn
+networks:
+  api_loopback:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: 127.0.0.1

@@ -17,7 +17,9 @@ CID='b'*64
 
 
 def configuration(source,image=IMAGE):
-    config={'name':a.PROJECT,'networks':{'database':{'name':a.NETWORK,'internal':True}},
+    config={'name':a.PROJECT,'networks':{'database':{'name':a.NETWORK,'internal':True},
+            'api_loopback':{'name':a.API_NETWORK,'driver':'bridge','driver_opts':{
+                'com.docker.network.bridge.host_binding_ipv4':'127.0.0.1'}}},
             'volumes':{'pp_pgdata':{'name':a.PG_VOLUME}},'secrets':{},'services':{}}
     for name in ('admin','migrator','application','reader'):
         config['secrets'][name]={'file':str(a.SECRETS/name)}
@@ -38,7 +40,9 @@ def configuration(source,image=IMAGE):
             service.update(command=a.COMMANDS[name],user='10001:10001',read_only=True,cap_drop=['ALL'],pids_limit=64,
                 pull_policy='never',restart='no' if name=='migrate' else 'unless-stopped',environment=a.expected_environment(name),
                 secrets=[{'source':a.ROLE_SECRET[name],'target':a.ROLE_SECRET[name]}],tmpfs=['/tmp:size=16m,mode=1777'])
-        if name=='api':service['ports']=[{'host_ip':'127.0.0.1','published':'8000','target':8000,'protocol':'tcp'}]
+        if name=='api':
+            service['ports']=[{'host_ip':'127.0.0.1','published':'8000','target':8000,'protocol':'tcp'}]
+            service['networks']['api_loopback']=None
         config['services'][name]=service
     return config
 
@@ -54,7 +58,9 @@ def inspected(service='api',running=True):
                       'RestartPolicy':{'Name':'unless-stopped' if running else 'no'},
                       'PortBindings':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}},
         'Mounts':[{'Destination':'/run/secrets/'+a.ROLE_SECRET[service],'Source':str(a.RUNTIME_SECRETS/a.ROLE_SECRET[service]),'RW':False}],
-        'NetworkSettings':{'Networks':{a.NETWORK:{}}}}
+        'NetworkSettings':{'Networks':{name:{} for name in
+            ([a.NETWORK,a.API_NETWORK] if service=='api' else [a.NETWORK])},
+            'Ports':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}}}
 
 
 class RecordingBudget:
@@ -364,14 +370,32 @@ class ActionTests(unittest.TestCase):
     def test_runtime_inspection_rejects_wrong_image_public_port_and_privilege(self):
         for mutation in (lambda r:r.update(Image='sha256:'+'f'*64),
                          lambda r:r['HostConfig'].update(Privileged=True),
-                         lambda r:r['HostConfig'].update(PortBindings={'8000/tcp':[{'HostIp':'0.0.0.0','HostPort':'8000'}]})):
+                         lambda r:r['HostConfig'].update(PortBindings={'8000/tcp':[{'HostIp':'0.0.0.0','HostPort':'8000'}]}),
+                         lambda r:r['NetworkSettings']['Ports'].update({'8000/tcp':None}),
+                         lambda r:r['NetworkSettings']['Networks'].pop(a.API_NETWORK)):
             row=inspected();mutation(row)
             with patch.object(self.actions,'_ids',return_value=[CID]),patch.object(self.actions,'_inspect',return_value=[row]):
                 with self.assertRaises(c.DeploymentHold):self.actions._runtime(self.context,self.budget)
 
+    def test_host_api_requires_private_generated_state(self):
+        class Response:
+            def __init__(self,payload):self.payload=payload
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,limit):return json.dumps(self.payload).encode()
+        valid={'environment':'preprod','data_mode':'generated','collector':{'enabled':False}}
+        for payload in (valid,{**valid,'environment':'production'},
+                        {**valid,'collector':{'enabled':True}},
+                        {**valid,'data_mode':'production_preview'}):
+            with patch.object(a.urllib.request.OpenerDirector,'open',return_value=Response(payload)) as opened:
+                if payload is valid:self.actions._host_api()
+                else:
+                    with self.assertRaises(c.DeploymentHold):self.actions._host_api()
+                self.assertEqual(opened.call_args.args[0],'http://127.0.0.1:8000/state/current')
+
     def test_smoke_does_not_turn_status200_or_partial_acceptance_into_pass(self):
         self.actions.migrated=True
-        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_compose',side_effect=[
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=[
              b'{"environment":"preprod","operation":"check","result":1}',b'{"status":"pass"}']):
             with self.assertRaisesRegex(c.DeploymentHold,'generated_acceptance_incomplete'):
                 self.actions.smoke(self.context,self.budget)
@@ -389,7 +413,7 @@ class ActionTests(unittest.TestCase):
             if '--check' in args:return b'{"environment":"preprod","operation":"check","result":1}'
             if 'postgres.acceptance' in args:return json.dumps(acceptance).encode()
             return b''
-        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_compose',side_effect=compose), \
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=compose), \
              patch.object(self.actions,'_postgres'),patch.object(self.actions,'_probe',side_effect=[anchor,{**anchor,'prior_acknowledgement_preserved':True}]) as probe:
             result=self.actions.smoke(self.context,self.budget)
         self.assertEqual(result['checks'],dict.fromkeys(c.CHECKS,'PASS'))

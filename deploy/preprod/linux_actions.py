@@ -16,6 +16,7 @@ import re
 import shutil
 import stat
 import urllib.parse
+import urllib.request
 import uuid
 
 from controller import CHECKS, DeploymentHold, HostBinding, require
@@ -23,6 +24,7 @@ from controller import CHECKS, DeploymentHold, HostBinding, require
 PROJECT='tradebot-pp-foundation'
 PG_VOLUME='tradebot_pp_pgdata'
 NETWORK=PROJECT+'_database'
+API_NETWORK=PROJECT+'_api_loopback'
 SECRETS=Path('/etc/tradebot/pp-postgres')
 RUNTIME_SECRETS=Path('/etc/tradebot/pp-runtime')
 PG_IMAGE='postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536'
@@ -76,9 +78,14 @@ def reviewed_secret_mapping(mapping,source,target):
 def validate_config(config,source,image):
     """Validate normalized Compose, including hostile overrides in approved source."""
     require(config.get('name')==PROJECT and set(config.get('services',{}))==set(MEMORY),'unexpected_compose_project_or_services')
-    require(set(config.get('networks',{}))=={'database'} and config['networks']['database'].get('internal') is True
+    require(set(config.get('networks',{}))=={'database','api_loopback'} and config['networks']['database'].get('internal') is True
             and config['networks']['database'].get('name')==NETWORK and not config['networks']['database'].get('external')
             and config['networks']['database'].get('driver','bridge')=='bridge','unsafe_database_network')
+    frontend=config['networks']['api_loopback']
+    require(frontend.get('name')==API_NETWORK and frontend.get('driver','bridge')=='bridge'
+            and frontend.get('internal',False) is False and not frontend.get('external')
+            and frontend.get('driver_opts')=={'com.docker.network.bridge.host_binding_ipv4':'127.0.0.1'},
+            'unsafe_api_loopback_network')
     require(set(config.get('volumes',{}))=={'pp_pgdata'} and config['volumes']['pp_pgdata'].get('name')==PG_VOLUME
             and config['volumes']['pp_pgdata'].get('external',False) is False
             and config['volumes']['pp_pgdata'].get('driver','local')=='local'
@@ -100,7 +107,8 @@ def validate_config(config,source,image):
                 and not service.get('configs') and not service.get('runtime')
                 and not service.get('use_api_socket') and not service.get('post_start') and not service.get('pre_stop')
                 and not service.get('volumes_from'), 'unsafe_service_override')
-        require(set(service.get('networks',{}))=={'database'},'unexpected_service_network')
+        require(set(service.get('networks',{}))==({'database','api_loopback'} if name=='api' else {'database'}),
+                'unexpected_service_network')
         log=service.get('logging',{})
         require(log.get('driver')=='json-file' and log.get('options')=={'max-size':'5m','max-file':'2'},'unbounded_container_logs')
         require('no-new-privileges:true' in service.get('security_opt',[]),'missing_security_option')
@@ -441,7 +449,9 @@ class LinuxActions:
             require(all(env.get(key)==value for key,value in expected_environment(service).items())
                     and all(env.get(key,'false')=='false' for key in OPTIONAL_DISABLED)
                     and not env.get('TRADEBOT_DATABASE_DSN'),'runtime_flag_mismatch')
-            require(set(row['NetworkSettings']['Networks'])=={NETWORK},'runtime_network_mismatch')
+            network_settings=row['NetworkSettings']
+            require(set(network_settings['Networks'])==({NETWORK,API_NETWORK} if service=='api' else {NETWORK}),
+                    'runtime_network_mismatch')
             mounts=row.get('Mounts',[])
             secret=[item for item in mounts if item.get('Destination')=='/run/secrets/'+ROLE_SECRET[service]]
             require(len(secret)==1 and secret[0].get('Source')==str(RUNTIME_SECRETS/ROLE_SECRET[service])
@@ -449,7 +459,24 @@ class LinuxActions:
                         for item in mounts),'runtime_unexpected_data_mount')
             ports=host.get('PortBindings') or {}
             require(ports==({'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}),'runtime_public_port')
-            if service=='api':require(row['State'].get('Health',{}).get('Status')=='healthy','api_not_healthy')
+            if service=='api':
+                require(network_settings.get('Ports',{}).get('8000/tcp')==ports['8000/tcp'],
+                        'api_loopback_port_not_published')
+                require(row['State'].get('Health',{}).get('Status')=='healthy','api_not_healthy')
+
+    @staticmethod
+    def _host_api():
+        """Test the real host listener; container-local HTTP is insufficient."""
+        try:
+            opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            with opener.open('http://127.0.0.1:8000/state/current',timeout=2) as response:
+                raw=response.read(65537)
+            require(len(raw)<=65536,'host_api_response_too_large')
+            state=json.loads(raw)
+            require(state.get('environment')=='preprod' and state.get('data_mode')=='generated'
+                    and state.get('collector',{}).get('enabled') is False,'host_api_wrong_state')
+        except (OSError,ValueError,KeyError) as error:
+            raise DeploymentHold('host_api_loopback_unavailable') from None
 
     def _probe(self,context,budget,expected=None):
         return self._json(self._compose(context,budget,['exec','-T','api','python','-c',PROBE],input=json.dumps(expected or {}).encode(),timeout=20))
@@ -461,6 +488,7 @@ class LinuxActions:
         require(schema.get('environment')=='preprod' and schema.get('operation')=='check' and isinstance(schema.get('result'),int)
                 and schema['result']>0,'schema_check_not_proven')
         self._runtime(context,budget)
+        self._host_api()
         accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))
         require(accepted.get('status')=='pass' and accepted.get('scope')=='generated_local_api'
                 and accepted.get('origin_id')=='generated-pp' and accepted.get('collector_enabled') is False
@@ -480,6 +508,7 @@ class LinuxActions:
         self._postgres(context,budget)
         require(self.pg_id==pg_before,'postgres_restarted_during_api_recovery')
         self._runtime(context,budget)
+        self._host_api()
         return {'checks':dict.fromkeys(CHECKS,'PASS'),'acceptance_scope':'generated_only','live_collector_enabled':False,
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}
 

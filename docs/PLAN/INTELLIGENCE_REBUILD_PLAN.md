@@ -284,12 +284,112 @@ networks and environment identities with the same versioned business schema.
 | Isolated development | Generated or approved replay/subset in PP PostgreSQL | Real collector OFF |
 | Bounded live qualification | Official feeds writing only PP data | PP temporarily owns sole real collector after production fencing |
 
+PP needs a **visible, operator-controlled mode switch**. The dashboard and API
+report whether they are showing PP live collection, isolated PP test data, or
+production preview, including environment, data origin, as-of time and collector
+ownership. A private authenticated operator API/control path may start or stop
+the PP collector only after checking the durable ownership fence and current
+mode; ordinary dashboard/preview credentials are read-only. Stop must drain and
+acknowledge the collector, persist OFF across restarts and verify that no PP
+writer can restart automatically. A failed switch leaves the previous safe
+mode and reports why it was held. The controls must prevent PP collection and
+production-preview mode from running together. No public collector switch or
+trading endpoint is added.
+
+**PP mode setting and transition contract (selected design, not deployed):**
+
+| Setting | Dashboard/API reads | PP collector | PP database use |
+| --- | --- | --- | --- |
+| `isolated` | PP API backed by PP PostgreSQL | OFF | Generated/replayed records, or a separately identified test subset; all labelled as test data |
+| `pp_live` | PP API backed by PP PostgreSQL | ON only while PP holds the sole-collector fence | Official read-only feed observations and predictions are persisted in PP; no production writes |
+| `production_preview` | Restricted, authenticated production API/SSE proxied to PP dashboard | OFF and fenced | PP test database remains available for later work but does not supply current production prices |
+
+The private operator setting changes the **PP dashboard's source** and may
+control the **PP collector**; it never switches a database connection to
+production. It is not an arbitrary database picker. If new feature experiments
+need a subset, provision a separate PP test database or an explicitly isolated
+origin/schema with its own migration version and read-only source proof. Do not
+silently reuse the live PP origin or copy production credentials. The displayed
+mode, environment, origin and last source time must travel with every API/SSE
+response so a stale PP value cannot masquerade as production.
+
+Transitions are fail closed. `isolated → pp_live` requires the qualified real
+connector, explicit production writer fence, PP ownership lease and bounded
+resource preflight. `pp_live → isolated` stops intake, drains/acknowledges in
+flight writes, persists collector OFF, checks processes/ownership after restart
+and keeps PP history queryable. `isolated → production_preview` requires the
+restricted production API route and a confirmed PP collector fence. Preview
+failure reports production unavailable and does not substitute PP values.
+Returning to `isolated` restores PP test views without starting collection.
+The approved production cutover independently verifies PP OFF before production
+takes the lease. Mode changes and failed attempts are recorded with actor,
+time, previous/new mode and fence result, excluding credentials.
+
+**Implementation order and proof:** (1) private PP API/dashboard access;
+(2) PostgreSQL live adapters and migrated queries on generated/replayed fixtures;
+(3) persisted mode/collector controls and truthful API/SSE source labels with
+transition/crash tests; (4) production writer fence and bounded PP live run;
+(5) stop/fence PP collection, confirm it stays OFF across restart; (6) after
+production cutover, qualify read-only production preview and isolated test
+subset selection. Test each mode through the actual dashboard/API and deny an
+unauthorized request, concurrent collector, stale source or failed mode change.
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an
 approved tunnel and a restricted API identity. Docker bridge networks do not
 span hosts. Never share database volumes or expose PostgreSQL publicly. Preview
 credentials cannot call administrative or collector controls.
+
+**Requested PP live rehearsal, before production cutover:** The deployed PP
+PostgreSQL API/dashboard currently serves generated data. Its current settings
+reject live collection, and runtime cloud archival/retirement are OFF; this is
+not a flag-only activation. Finish and qualify the stable private API access
+route, then implement the read-only Coinbase and Polymarket US 15-minute feed
+adapters against PP's PostgreSQL event contract. Adapt each necessary live
+collector read/write and price/history query from the legacy SQLite application;
+do not infer parity from passing generated fixtures or point PP at the legacy
+database. Preserve exact source timestamps, decimals, provenance, market
+identity, stale/unavailable states and the serial calculation worker.
+
+Before enabling that connector, verify production's *actual* collector state
+and establish an explicit, restart-safe production writer fence. Do not treat
+the recorded storage-guard hold as that fence. Run one bounded PP live window
+with PP as the sole real collector. Verify persisted feed acknowledgements,
+current-price and history query results/latency, calculations, dashboard and
+SSE advancement, and a real 15-minute market boundary. Measure save/heartbeat
+delay, API timeouts, input/feature ages, disk/WAL growth and core/outbox use
+against the existing acceptance limits. A failed feed or missing market must
+display its actual state. Stop and fence PP collection at the end; verify it
+cannot restart automatically while PP's dashboard/API remain available.
+The PP dashboard during this rehearsal reads **PP's own PostgreSQL-backed API**;
+it must show the same active market, generation and fresh values acknowledged by
+the PP collector. Compare new PostgreSQL lookup results with independently
+checked source events and the intended legacy SQLite semantics, including
+timestamps, exact values and history ordering. Record differences rather than
+assuming the two database engines return identical answers.
+
+The A/B PostgreSQL generation switch exists in generated tests, with a
+72-hour-or-qualified-size policy. The live rehearsal must verify generation
+identity, acknowledgements and dashboard/query continuity across a bounded
+switch when a qualified size trigger permits it. Do not wait 72 hours merely
+to prove the switch. Upload, authenticated readback, protected-reference and
+reader-drain gates remain required before local partition retirement; cloud
+failure preserves the sealed generation. No unqualified archive deletion is
+enabled by the live connector test.
+
+After PP passes and the exact candidate is released to production, production
+runs its **own** Docker services, PostgreSQL volume, API and sole collector.
+Production does not read or write the PP database, and its runtime does not
+depend on the PP API. In the later production-preview mode, **PP reads
+restricted production API/SSE responses** to display production state with its
+collector OFF; PP uses its own database for isolated test data. Qualify that
+authenticated private API route separately before claiming preview works.
+In preview mode PP's dashboard calls the restricted production API/SSE; it is
+not a second collector and does not query the production database directly.
+Show the production source label and stale/unavailable state clearly. A
+production API outage cannot fall back to PP's older test prices as though they
+were current production values.
 
 Local databases are `tradebot_pp` and `tradebot_prod`:
 
@@ -355,9 +455,9 @@ The obsolete `codex/lightsail-deployment` route is not the new release path.
 | 4 | A/B lifecycle and historical retrieval | Atomic switch/seal, durable structured outbox, bounded archives/readback, history after real generated partition retirement; preserve on failure |
 | 5 | CD Preprod | Qualified restricted host controller/deploy identity/host pin/credentials/runner; migration/app/image CI; manual PP deploy and recovery evidence; no flag-only enablement |
 | 6 | Actual Supabase compatibility | Separately reviewed additive private `history_v2` DDL/grants; bounded isolated writes/readback; exact values/conflicts/checkpoints/replay; mutation-authority qualification |
-| 7 | PP live/capacity/recovery | Explicit prod fencing; bounded sole-collector PP run; API/SSE/persistence/features/rollover/archive; normal/outage growth, core/outbox, legacy import/recovery; PP collector disabled afterward |
+| 7 | PP live/capacity/recovery | Implement and test real 15-minute adapters, migrated PostgreSQL queries and a private authenticated PP collector on/off control with durable ownership fencing and visible data mode. Explicitly fence production; bounded sole-collector PP run across a market boundary and qualified A/B switch; compare persisted data, dashboard/API/SSE and query/feature ages and latency; measure normal/outage growth; stop/fence PP collector afterward while its API stays on. Complete legacy import/recovery gates separately. |
 | 8 | Exact production candidate | Reviewed small PRs assembled on main; exact image/version tested in PP; executable cutover/recovery with measured operating limits |
-| 9 | Approved production cutover | Fence old writer; verify/import committed history/delta; single PG collector; bounded smoke; measured interruption; retirement initially OFF |
+| 9 | Approved production cutover | Fence old writer and PP collector; verify/import committed history/delta; start the sole PG collector on production's own database and API; bounded smoke and measured interruption; retirement initially OFF. PP preview of production is a later restricted, read-only API/SSE path. |
 | 10 | Lifecycle and Phase 1.75 acceptance | Separately verify first sealed generation then enable retirement; bounded automated sustained evidence across cycles/boundaries; independent legacy retirement gate |
 
 Cutover, first sealed-generation verification and retirement enablement are

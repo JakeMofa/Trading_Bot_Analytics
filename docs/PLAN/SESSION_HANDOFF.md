@@ -1,5 +1,13 @@
 # Resume here
 
+Latest PP access checkpoint: PR #26 merged as `62d2944`, exact CI
+43548036543 PASS. The loopback controller candidate was briefly installed on
+PP and passed root identity, but the dedicated CD identity could not be tested
+from this session. The old controller was restored; running PP application,
+PostgreSQL and profile are unchanged. Read the dated master-roadmap entry and
+`evidence/pp-loopback-controller-attempt-2026-11-13.json` before resuming.
+PR #27 is an offline feed-contract slice; it does not enable live collection.
+
 Read AGENTS.md, then the active checkpoint in
 [INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). That is the only
 authoritative roadmap; this file is an entry point, not a second checklist.

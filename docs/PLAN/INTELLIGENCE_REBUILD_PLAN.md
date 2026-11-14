@@ -352,6 +352,15 @@ controller; deployment cannot silently treat the candidate as qualified.
 The existing profile is not updated by this source PR. Successor source CI and
 the staged host-controller qualification remain separate gates.
 
+**2026-11-13 feed-contract slice (offline candidate):** Pure translators for
+Coinbase Exchange BTC-USD ticker and Polymarket US BTC 15-minute market metadata
+produce origin-distinct `pp_live` PostgreSQL events. They preserve original
+source time, exact price text, raw payload, market identity and reference versus
+settlement provenance; malformed decimal/time/window inputs fail closed. Two
+focused offline tests pass. This slice does not open feeds, write PP PostgreSQL,
+adapt books/candles, or authorize live collection. Those remain checkpoint 7
+work requiring integrated queries, fencing and bounded PP acceptance.
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an

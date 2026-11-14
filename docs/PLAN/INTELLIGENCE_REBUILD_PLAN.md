@@ -334,6 +334,24 @@ production cutover, qualify read-only production preview and isolated test
 subset selection. Test each mode through the actual dashboard/API and deny an
 unauthorized request, concurrent collector, stale source or failed mode change.
 
+**2026-11-13 implementation checkpoint — stable PP API route (candidate):**
+The API alone now joins a dedicated loopback bridge as well as the internal
+database network. The release controller requires the configured publication,
+Docker's *actual* published binding, and a successful host-side
+`127.0.0.1:8000/state/current` check before and after its API restart. Database
+and worker services remain internal-only. Compose v5 normalization passed the
+controller policy; 60 local PP-control tests passed with one platform skip.
+This is code qualification, **not a PP deployment or operator-tunnel PASS**.
+Its controller bundle hash, exact CI, host installation and manual PP release
+must be qualified before marking checkpoint 1 complete. The live connector,
+mode switch, production fence, cloud verification and retirement are still OFF.
+The first exact push CI found an intentional old-controller hash pin in the
+release-control test. The candidate test now verifies that it is uninstalled,
+while the target profile remains bound to the separately evidenced installed
+controller; deployment cannot silently treat the candidate as qualified.
+The existing profile is not updated by this source PR. Successor source CI and
+the staged host-controller qualification remain separate gates.
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an

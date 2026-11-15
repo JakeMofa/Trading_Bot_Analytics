@@ -383,6 +383,19 @@ is required before updating the target-profile hash or deploying the loopback
 release; it does not itself qualify the runtime, change the database, or enable
 live collection.
 
+**2026-11-15 PP controller binding:** The manual identity workflow was registered
+from `main` by PR #30. The official ephemeral runner was checksum-verified and
+used once. After a verified PP host preflight, the reviewed controller bundle
+`d66518ce...` was installed without changing the database. The dedicated-key
+identity run [43765449362](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43765449362)
+returned `IDENTITY_PASS` for the exact hash, then the runner deregistered.
+The running PP application remains the prior generated-only release; no deploy
+authority or release has been created. The updated target binding is recorded
+in [sanitized evidence](evidence/pp-loopback-controller-binding-2026-11-15.json).
+Its old foundation-row count is explicitly historical because an unauthenticated
+PostgreSQL read was rejected. Exact profile CI, manual release and loopback
+acceptance remain separate gates.
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an

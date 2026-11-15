@@ -1,0 +1,46 @@
+{
+  "scope": "actual_preprod_controller_prerequisites",
+  "recorded_date_utc": "2026-11-15",
+  "qualification_source_sha": "e327099d0658e2f2cbc88f9ecd7a6c183c74a35e",
+  "exact_source_ci": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43763962539",
+  "controller_sha256": "d66518ce3d54b74d6d77963ef5099be2cffc2e66244734857c4743d19265013a",
+  "identity_workflow": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43765449362",
+  "host_preflight": {
+    "result": "ACTUAL_PP_CONTROLLER_PREFLIGHT_PASS",
+    "host": "tradebot-preprod-01",
+    "real_host_binding": true,
+    "ubuntu_version": "24.04.5 LTS",
+    "disk_free_bytes": 56883978240,
+    "available_memory_bytes": 1310515200,
+    "previous_controller_sha256": "56de886e023e65ccabe712e7c4b7022247b6983e51ee72ca983df9ad990b3296",
+    "current_controller_sha256": "d66518ce3d54b74d6d77963ef5099be2cffc2e66244734857c4743d19265013a",
+    "pending_authority": false,
+    "four_application_containers_healthy_or_running": true,
+    "production_changed": false
+  },
+  "installed": {
+    "result": "INSTALLED_NOT_AUTHORIZED",
+    "controller_sha256": "d66518ce3d54b74d6d77963ef5099be2cffc2e66244734857c4743d19265013a",
+    "runtime_qualified": false,
+    "database_changed": false,
+    "deployment_dispatched": false
+  },
+  "runtime_prerequisites": {
+    "exact_rows_preserved": true,
+    "measurement_scope": "historical foundation evidence dated 2026-11-13; current row recount not performed because restricted PostgreSQL authentication rejected an unauthenticated read",
+    "historical_evidence": "docs/PLAN/evidence/pp-runtime-binding-2026-11-13.json",
+    "current_containers": "api, calculation, lifecycle and postgres remained running after controller installation"
+  },
+  "ssh_binding": [
+    {
+      "check": "dedicated_identity_exact_hash",
+      "result": "PASS",
+      "controller_sha256": "d66518ce3d54b74d6d77963ef5099be2cffc2e66244734857c4743d19265013a",
+      "database_changed": false
+    }
+  ],
+  "production_changed": false,
+  "deployment_dispatched": false,
+  "live_collection_enabled": false,
+  "archive_or_retirement_enabled": false
+}

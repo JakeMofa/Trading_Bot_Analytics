@@ -361,6 +361,18 @@ focused offline tests pass. This slice does not open feeds, write PP PostgreSQL,
 adapt books/candles, or authorize live collection. Those remain checkpoint 7
 work requiring integrated queries, fencing and bounded PP acceptance.
 
+**2026-11-13 PP host attempt:** PR #26 merged as `62d2944`; exact merge CI
+43548036543 passed. The candidate controller `d66518ce...` was installed
+briefly on the verified PP host and returned `IDENTITY_PASS` through the root
+operator route. The dedicated CD key was unavailable locally, so its required
+forced-command identity check was **not completed**. The previous controller
+`56de886e...` was restored with no authorization or deployment dispatch.
+Four PP containers remained healthy with their prior uptime; generated-mode
+application source stayed `a7f7cd0`. This does **not** close stable-loopback
+acceptance, change the target profile, or qualify a manual PP release. A
+sanitized outcome is in
+[pp-loopback-controller-attempt-2026-11-13.json](evidence/pp-loopback-controller-attempt-2026-11-13.json).
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an

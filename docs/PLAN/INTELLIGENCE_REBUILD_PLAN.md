@@ -373,6 +373,16 @@ acceptance, change the target profile, or qualify a manual PP release. A
 sanitized outcome is in
 [pp-loopback-controller-attempt-2026-11-13.json](evidence/pp-loopback-controller-attempt-2026-11-13.json).
 
+**2026-11-15 dedicated identity check (candidate):** A separate, manually
+dispatched `preprod` workflow uses only the existing private runner and PP
+environment credentials to call the controller's fixed `identity-v1` command.
+It requires the exact installed bundle hash and records a sanitized read-only
+response. Local tests and workflow validation passed. The check has not run on
+PP: the approved private runner is currently unavailable. Passing this check
+is required before updating the target-profile hash or deploying the loopback
+release; it does not itself qualify the runtime, change the database, or enable
+live collection.
+
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is
 not a writer fence. Cross-host preview uses qualified private networking or an

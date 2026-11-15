@@ -155,8 +155,8 @@ followed by archived API/history retrieval. The built API container acknowledged
 scope; it does not establish live feeds, preview networking, representative
 capacity, ensemble/news/evaluation or real cloud permissions.
 
-The generated runtime is now installed on PP as **v0.2.0-pp.2**, source `a7f7cd0`,
-[CD 43356521535 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43356521535).
+The current generated-only PP runtime is **v0.2.0-pp.3**, source `b50861d`,
+[CD 43766281486 PASS](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43766281486).
 PostgreSQL, API, calculation and lifecycle run as four separate containers.
 The same named volume preserved 32 foundation rows; 21 generated events and
 21 predictions survived the deployment's API restart. Real collector, cloud
@@ -248,30 +248,24 @@ do not turn host verification off. Browser SSH is the existing fallback when
 the pinned operator route is unavailable. Do not open database or API ports to
 the internet to make a deployment work.
 
-PP's API is on its internal Docker network. **Host `127.0.0.1:8000` is not
-published**, even though the current Compose configuration requests it. Keep
-PostgreSQL and the workers isolated. Use the existing operator identity (not the
-restricted CD identity) to inspect the API's current address, then tunnel to it.
-Resolve it again after container recreation; never assume a fixed container IP.
-
-The following address-inspection command and the equivalent bounded tunnel were
-executed successfully on the deployed candidate:
+The PP API is published **only on the PP host's `127.0.0.1:8000`**. PostgreSQL
+and the workers remain on internal Docker networks. An approved operator can
+tunnel to the stable host loopback route; the restricted CD identity cannot be
+used as an interactive tunnel. This route and the endpoints below passed on
+`v0.2.0-pp.3` (November 15, 2026):
 
 ```sh
-TRADEBOT_PP_API_IP="$(ssh -o BatchMode=yes -o IdentitiesOnly=yes \
-  -o StrictHostKeyChecking=yes -o ConnectTimeout=10 \
-  -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_SSH_KEY" \
-  "ubuntu@$TRADEBOT_VM_HOST" \
-  'sudo -n docker inspect --format "{{(index .NetworkSettings.Networks \"tradebot-pp-foundation_database\").IPAddress}}" tradebot-pp-foundation-api-1')"
 ssh -N -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
   -o ExitOnForwardFailure=yes -o ConnectTimeout=10 \
   -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_SSH_KEY" \
-  -L "127.0.0.1:8765:${TRADEBOT_PP_API_IP:?resolve the current PP API address}:8000" \
+  -L "127.0.0.1:18000:127.0.0.1:8000" \
   "ubuntu@$TRADEBOT_VM_HOST"
 ```
 
-Open http://127.0.0.1:8765/dashboard. API paths `/state/current`,
-`/history/predictions?limit=3` and `/events` were verified through this route.
+Open http://127.0.0.1:18000/dashboard. API paths `/health`, `/state/current`,
+`/history/predictions?limit=5`, `/history/coinbase-chart`, `/history/context`
+and `/events` returned HTTP 200 through this route. SSE returned
+`text/event-stream`. The current PP data mode is generated only.
 Keep the tunnel in its terminal and close it with Ctrl-C when finished. This
 binds only your computer's loopback interface; it opens no public API or DB port.
 The deployed image accepts generated/replay data, not production preview or live
@@ -359,7 +353,9 @@ Where to inspect versions and outcomes:
 Candidate [v0.2.0-pp.1](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.1)
 preserves the first failed attempt. Successor
 [v0.2.0-pp.2](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.2)
-is deployed to PP with generated-only acceptance.
+passed its historical generated-only PP deployment. Current
+[v0.2.0-pp.3](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.3)
+passed generated-only deployment and adds the private host loopback API route.
 A CI pass does not itself publish a version. The registry carrier is a scratch image
 used as a source envelope, **not a runnable app image**. It does not install
 Docker on either VM. Manifests distinguish candidate, deployed and validated

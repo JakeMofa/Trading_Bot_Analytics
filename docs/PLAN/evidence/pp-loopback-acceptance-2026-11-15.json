@@ -1,0 +1,56 @@
+{
+  "checkpoint": "Phase 1.75 PP private API access",
+  "result": "PASS_GENERATED_ONLY",
+  "source_sha": "b50861df22fa8b0c44d99733a3fbe33086e29c30",
+  "source_ci": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43765914993",
+  "release_version": "v0.2.0-pp.3",
+  "publication_run": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43766161257",
+  "deployment_run": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43766281486",
+  "controller_sha256": "d66518ce3d54b74d6d77963ef5099be2cffc2e66244734857c4743d19265013a",
+  "published_source_sha256": "b36ed7fd9a8302478c65184c354962951b6883bc665c7a50a74028175c8ea28e",
+  "runtime_image_id": "sha256:a6649455e43a2065482ba897fcec076c9c7c661835fcd5faae33b28d06521cbd",
+  "environment": "preprod",
+  "instance": "tradebot-preprod-01",
+  "application_mode": "generated_only",
+  "controller_acceptance": {
+    "gate": "PASS",
+    "api": "PASS",
+    "sse": "PASS",
+    "schema": "PASS",
+    "migration": "PASS",
+    "data_correctness": "PASS",
+    "collector_ownership": "PASS",
+    "disabled_flags": "PASS",
+    "recovery": "PASS",
+    "freshness": "PASS within generated fixture",
+    "market_identity": "PASS within generated fixture"
+  },
+  "independent_operator_tunnel": {
+    "route": "operator SSH to PP host loopback 127.0.0.1:8000; local loopback 127.0.0.1:18000",
+    "status": "PASS",
+    "http_200_paths": ["/", "/health", "/state/current", "/dashboard", "/history/predictions?limit=5", "/history/coinbase-chart", "/history/context", "/events"],
+    "sse_content_type": "text/event-stream",
+    "maximum_observed_http_latency_ms": 201.7,
+    "environment_label": "preprod",
+    "data_mode_label": "generated"
+  },
+  "post_release": {
+    "api_container": "healthy",
+    "postgres_container": "healthy and not restarted by application release",
+    "calculation_and_lifecycle_containers": "running",
+    "one_use_authority": "consumed or absent",
+    "ephemeral_private_runner": "deregistered",
+    "filesystem_free_bytes": 56887189504
+  },
+  "collection_interruption": {
+    "overall": "NOT_MEASURED; no continuous probe ran during initial application switchover",
+    "acceptance_api_restart_stop_to_start_ms": 353.65,
+    "measurement_limit": "Docker events establish process transition, not end-to-end HTTP availability"
+  },
+  "live_collector_enabled": false,
+  "retention_enabled": false,
+  "paid_ai_enabled": false,
+  "production_data_mounted": false,
+  "production_changed": false,
+  "next": "CP6 actual Supabase compatibility and CP7 real PP feed/query/mode qualification remain separate"
+}

@@ -1,57 +1,39 @@
 # Resume here
 
-Latest PP access checkpoint: PR #26 merged as `62d2944`, exact CI
-43548036543 PASS. The loopback controller candidate was briefly installed on
-PP and passed root identity, but the dedicated CD identity could not be tested
-from this session. The old controller was restored; running PP application,
-PostgreSQL and profile are unchanged. Read the dated master-roadmap entry and
-`evidence/pp-loopback-controller-attempt-2026-11-13.json` before resuming.
-PR #27 is an offline feed-contract slice; it does not enable live collection.
+Read `AGENTS.md` and the active section of
+[INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). The master roadmap is
+authoritative; this handoff only points to the current checkpoint. Preserve the
+dirty original checkout on `codex/phase1-75-retention-enable`, including all
+unrelated edits and secrets. Small reviewed PRs target `preprod`.
 
-Read AGENTS.md, then the active checkpoint in
-[INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). That is the only
-authoritative roadmap; this file is an entry point, not a second checklist.
+## Current PP checkpoint — November 15, 2026
 
-Current work: Phase 1.75 / I7. CP0–5 PASS in generated scope; CP6 next.
-Preprod source `a7f7cd0` passed exact CI 43355993076 and deployed as
-v0.2.0-pp.2 in CD 43356521535. Four PP containers run, with 32 foundation rows,
-21 generated events and 21 predictions preserved. Authority consumed; temporary
-runner 28 removed. Live collector/cloud/retirement/paid AI remain OFF.
+The private PP API route is **PASS in generated-only scope**. Source `b50861d`
+passed [exact CI 43765914993](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43765914993),
+published as `v0.2.0-pp.3`, and passed
+[CD 43766281486](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43766281486).
+The installed controller hash is `d66518ce...`; its dedicated-key identity run
+43765449362 passed. An approved operator SSH tunnel to PP host
+`127.0.0.1:8000` returned HTTP 200 for dashboard, state, health, local history
+and SSE. The prior dynamic-container-IP tunnel is historical. Read the
+[sanitized acceptance result](evidence/pp-loopback-acceptance-2026-11-15.json).
 
-Operator dashboard/API/SSE access passed through pinned SSH to the dynamically
-resolved private API container IP. The configured localhost:8000 publication is
-UNAVAILABLE on the internal-only bridge; do not document it as working or loosen
-network isolation. Read the verified README route and latest CP5 evidence.
-The pp.1 Python-setup failure is preserved; it did not invoke the host controller.
+PP runs four Compose services and local PostgreSQL. Its application remains in
+generated mode; live collector, cloud archival/retirement, paid AI and trading
+are OFF. The temporary runner deregistered and one-use authority is gone.
+Production was not changed or freshly audited by this release.
 
-Next is CP6 actual Supabase compatibility with its reviewed migration/permission
-and bounded cloud-write scope. CP7 live/capacity, CP8 production candidate, CP9
-approved cutover and CP10 verified retirement/acceptance remain open. No production
-change or cloud activation is authorized by the generated PP deployment pass.
-The master plan now specifies the requested temporary PP live rehearsal: first
-qualify stable private API access and real PostgreSQL feed/query paths, explicitly
-fence production, run PP as the sole collector across a market boundary and a
-qualified A/B switch, then stop and fence PP collection while leaving its API
-up. Production later uses its own database/collector; PP preview reads the
-production API/SSE, never production's database directly.
-The user also selected a visible PP mode switch: isolated test, sole-collector
-live rehearsal, then read-only production preview. Implement a private
-authenticated operator control with durable ownership fencing and restart-safe
-OFF, and show the source/mode on the dashboard. Do not interpret the existing
-generated-only deployment as a working live collector or production mirror.
-Selected PP setting has three modes: `isolated`, `pp_live`, and later
-`production_preview`. It selects a labelled dashboard source and, only with
-operator authority and a sole-collector fence, controls PP intake. It never
-points PP at the production database. Test subsets stay separately identified.
+## Next work
 
-The original working checkout is dirty on codex/phase1-75-retention-enable.
-Preserve its AGENTS.md, roadmap additions and every unrelated edit. Do not merge
-the superseded SQLite A/B branch wholesale. Current foundation changes are based
-on reviewed main/preprod, isolated from that checkout. Do not expose credentials.
+Continue the approved Phase 1.75 plan through small PRs. CP6 is the separately
+reviewed additive private Supabase `history_v2` compatibility and bounded
+readback qualification. CP7 implements actual read-only Coinbase/Polymarket US
+15-minute feeds into PP PostgreSQL, persisted operator mode control, truthful
+dashboard labels and the bounded sole-collector PP live run. Do not infer a live
+connector from the merged offline translators. Production collector fencing,
+production cutover and retirement require their later explicit gates.
 
-Implement small PRs targeting preprod. Production remains unchanged until CP9's
-explicit approval. CP2 schema, CP3 app, CP4 lifecycle/history, CP5 CD, CP6 cloud,
-CP7 live/capacity, CP8 exact release, CP9 cutover and CP10 acceptance are distinct.
-No production/Supabase mutation, real collector, paid AI or retention is enabled
-by the foundation milestone. The selected A/B contract is 72-hour-or-qualified-
-size rotation inside PostgreSQL, with verified archive before local retirement.
+Keep the selected 72-hour-or-qualified-size A/B generation policy inside
+PostgreSQL. Archive verification precedes local retirement. Current PP access
+success does not close I7 or Phase 1.75; both remain OPEN. The old SQLite A/B
+branch is historical and must not be bulk-merged.

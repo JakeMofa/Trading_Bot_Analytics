@@ -30,6 +30,12 @@ instructions. Passing generated SQLite A/B tests does not qualify PostgreSQL.
   CP2–4 generated source and CP5 actual PP application deployment now PASS in
   generated-only scope. See the latest CP5 result below; the failed first
   attempt remains historical evidence, not the current runtime state.
+- **PP private loopback access PASS in generated-only scope.** Exact source
+  `b50861d` passed [CI 43765914993](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43765914993),
+  published as `v0.2.0-pp.3`, and passed [CD 43766281486](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43766281486).
+  The host `127.0.0.1:8000` route and operator SSH tunnel returned HTTP 200 for
+  dashboard, state, health, history and SSE. Four PP services remained running;
+  live collector, retirement and paid AI stayed OFF. [Evidence](evidence/pp-loopback-acceptance-2026-11-15.json).
 - Production is untouched by this milestone. No new production health/collection
   claim is inferred from GitHub CI. Last recorded collection was storage-held;
   retention and paid AI were OFF.
@@ -395,6 +401,20 @@ in [sanitized evidence](evidence/pp-loopback-controller-binding-2026-11-15.json)
 Its old foundation-row count is explicitly historical because an unauthenticated
 PostgreSQL read was rejected. Exact profile CI, manual release and loopback
 acceptance remain separate gates.
+
+**2026-11-15 PP loopback release outcome:** PR #31 bound the verified controller
+to the PP target; exact merge CI 43765914993 passed. Manual source publication
+43766161257 created `v0.2.0-pp.3` for that commit. One-use CD 43766281486
+passed its migration/application, schema, data, API, SSE, recovery and disabled-
+flag checks. An independent operator tunnel to the host loopback route returned
+HTTP 200 for dashboard, current state, health, prediction/chart/context history
+and SSE; the SSE content type was correct. Maximum observed tunnel HTTP latency
+was 201.7 ms across these bounded probes. Docker events show the acceptance
+API restart took 354 ms from stop to start; overall collection interruption was
+not measured because no continuous probe covered the initial switchover. The
+one-use authority is gone and the ephemeral runner deregistered. This closes
+the **private PP access sub-checkpoint**, not CP6, live PP collection, I7 or
+Phase 1.75. [Sanitized result](evidence/pp-loopback-acceptance-2026-11-15.json).
 
 Before production takes collection ownership, stop and fence PP collection so
 it cannot automatically restart; keep PP API running. A storage-guard pause is

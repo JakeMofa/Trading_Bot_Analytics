@@ -1,0 +1,41 @@
+name: PP controller identity qualification
+
+on:
+  workflow_dispatch:
+    inputs:
+      controller_sha256:
+        description: Exact SHA-256 of the already installed PP controller bundle
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tradebot-preprod
+  cancel-in-progress: false
+
+jobs:
+  identity:
+    if: github.ref == 'refs/heads/preprod'
+    environment: preprod
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 3
+    env:
+      EXPECTED_CONTROLLER_SHA256: ${{ inputs.controller_sha256 }}
+      PP_DEPLOY_KEY: ${{ secrets.PP_DEPLOY_KEY }}
+      PP_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_DEPLOY_KNOWN_HOSTS }}
+      PIPELINE_REPORT: ci-evidence/pp-controller-identity/result.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify dedicated identity without changing PP
+        run: /opt/homebrew/bin/python3.12 -I .github/ci/pp_controller_identity.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: success()
+        with:
+          name: pp-controller-identity-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 90

@@ -285,6 +285,14 @@ exercises the private contract, privacy and exact timestamp behavior. Cloud DDL,
 grants, synthetic writes/readback and mutation protection remain OPEN. See
 [CP6 review](CP6_SUPABASE_CONTRACT_REVIEW_2026-11-15.md).
 
+**Preprod CI follow-up (November 15):** Merge commit `90d24c4` failed generated
+controller smoke after the first API acceptance; downstream `CI Preprod` also
+failed. No database migration or production deployment follows from that failed
+run. The exact child substage was not captured. A bounded generated-market
+boundary correction and sanitized phase diagnostics are under qualification;
+see [failure review](PP_CI_BOUNDARY_FAILURE_2026-11-15.md). Do not treat the
+earlier PR PASS as a passing preprod merge gate.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

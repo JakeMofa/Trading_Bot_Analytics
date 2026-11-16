@@ -84,6 +84,21 @@ class SourceClientTests(unittest.IsolatedAsyncioTestCase):
                 async with httpx.AsyncClient(transport=httpx.MockTransport(lambda _request: response)) as client:
                     with self.assertRaises(ValueError):
                         await discover_polymarket_15m(client, NOW)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: httpx.Response(200, json={'markets': [market()] * 100}))) as client:
+            with self.assertRaisesRegex(ValueError, 'pagination limit'):
+                await discover_polymarket_15m(client, NOW, max_pages=1)
+
+    async def test_coinbase_error_frame_and_missing_trade_identity_fail_closed(self):
+        for frame in ({'type': 'error', 'message': 'untrusted'},
+                      {'type': 'ticker', 'product_id': 'BTC-USD',
+                       'time': '2026-11-15T12:05:00Z', 'price': '100000'}):
+            with self.subTest(frame=frame['type']):
+                ws = FakeWebsocket([json.dumps(frame)])
+                source = coinbase_once(asyncio.Event(), connector=lambda *_args, **_kw: ws)
+                with self.assertRaises(ValueError):
+                    await anext(source)
+                await source.aclose()
 
 
 if __name__ == '__main__':

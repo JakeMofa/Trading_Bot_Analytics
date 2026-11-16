@@ -598,6 +598,13 @@ tests show disabled/mismatched live input is rejected before persistence.
 Operator control, cross-VM sole-collector fencing and PP live activation are
 still unimplemented; this check alone does not enable collection.
 
+**CP7 source-client preparation:** Default-off read-only Coinbase ticker and
+official-US Polymarket 15-minute discovery clients now have generated wire
+tests for exact value/provenance preservation, current-market selection,
+ambiguous identity and bounded failure. These clients do not own a collector
+fence, write PostgreSQL, or enable PP live mode. Actual endpoint availability,
+sole-collector operation and market-boundary acceptance remain open.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

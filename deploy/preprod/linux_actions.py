@@ -167,9 +167,12 @@ def check():
     assert len(raw)<=65536
     state=json.loads(raw)
     now=datetime.now(timezone.utc)
-    market=state['market']; feature=state['feature_snapshot']; price=state['coinbase']; quote=state['polymarket']
+    market=state['market']
     assert state['environment']=='preprod' and state['data_mode']=='generated' and state['origin_id']=='generated-pp'
     assert state['collector']['enabled'] is False and state['collector']['running'] is False
+    if market and timestamp(market['end'])<=now:
+        return {'status':'expired_generated_market'}
+    feature=state['feature_snapshot']; price=state['coinbase']; quote=state['polymarket']
     assert timestamp(market['start'])<=now<timestamp(market['end'])
     assert feature['market_id']==market['id'] and quote['market_id']==market['id']
     assert 0<market['seconds_remaining']<=900
@@ -187,7 +190,9 @@ def check():
         if expected:
             prior=db.execute('SELECT content_hash FROM core.predictions WHERE origin_id=%s AND prediction_id=%s',('generated-pp',expected['prediction_id'])).fetchone()
             assert prior and prior['content_hash']==expected['prediction_hash']
-            assert row['event_id']==expected['price_event_id'] and row['content_hash']==expected['price_hash']
+            prior_price=db.execute("SELECT content_hash FROM raw.events WHERE origin_id=%s AND source='coinbase' AND event_id=%s",
+                                   ('generated-pp',expected['price_event_id'])).fetchone()
+            assert prior_price and prior_price['content_hash']==expected['price_hash']
     return {'fresh':True,'market_identity':True,'collector_disabled':True,'schema_verified':True,
      'prediction_id':prediction['prediction_id'],'prediction_hash':prediction['content_hash'],
      'price_event_id':row['event_id'],'price_hash':row['content_hash'],'prior_acknowledgement_preserved':bool(expected)}
@@ -213,6 +218,7 @@ class LinuxActions:
         self.attempt_id=uuid.uuid4().hex
         self.oneoffs={}
         self.oneoff_sequence=0
+        self.smoke_phase='not_started'
 
     @staticmethod
     def _environment(image):
@@ -483,32 +489,57 @@ class LinuxActions:
 
     def smoke(self,context,budget):
         require(self.migrated,'explicit_migration_required')
+        self.smoke_phase='schema_check'
         schema=self._json(self._oneoff(context,budget,'migrate',['python','-m','postgres.migrate',
             '--environment','preprod','--dsn-file','/run/secrets/migrator_dsn','--check']))
         require(schema.get('environment')=='preprod' and schema.get('operation')=='check' and isinstance(schema.get('result'),int)
                 and schema['result']>0,'schema_check_not_proven')
+        self.smoke_phase='runtime_precheck'
         self._runtime(context,budget)
+        self.smoke_phase='host_api_precheck'
         self._host_api()
-        accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))
-        require(accepted.get('status')=='pass' and accepted.get('scope')=='generated_local_api'
-                and accepted.get('origin_id')=='generated-pp' and accepted.get('collector_enabled') is False
-                and accepted.get('sse_connections')==2 and accepted.get('acknowledged_events',0)>=20
-                and 0<=accepted.get('api_max_seconds',999)<2
-                and all(accepted.get(key) is True for key in ('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
-                    'dashboard_contract','bounded_chart','prediction_history')),'generated_acceptance_incomplete')
+        def accept_generated():
+            self.smoke_phase='generated_acceptance'
+            accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))
+            require(accepted.get('status')=='pass' and accepted.get('scope')=='generated_local_api'
+                    and accepted.get('origin_id')=='generated-pp' and accepted.get('collector_enabled') is False
+                    and accepted.get('sse_connections')==2 and accepted.get('acknowledged_events',0)>=20
+                    and 0<=accepted.get('api_max_seconds',999)<2
+                    and all(accepted.get(key) is True for key in ('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
+                        'dashboard_contract','bounded_chart','prediction_history')),'generated_acceptance_incomplete')
+        accept_generated()
+        self.smoke_phase='fresh_anchor'
         self.anchor=self._probe(context,budget)
+        if self.anchor.get('status')=='expired_generated_market':
+            accept_generated()
+            self.smoke_phase='fresh_anchor_after_boundary'
+            self.anchor=self._probe(context,budget)
         require(all(self.anchor.get(key) is True for key in ('fresh','market_identity','collector_disabled','schema_verified')),'freshness_or_market_not_proven')
         pg_before=self.pg_id
+        self.smoke_phase='api_restart'
         self._compose(context,budget,['restart','--timeout','10','api'],timeout=20)
         # Health waits only for API; worker and database are not recreated or restored.
+        self.smoke_phase='api_restart_health'
         self._compose(context,budget,['up','-d','--no-deps','--wait','--wait-timeout','15','api'],timeout=20)
+        # Generate a current market after restart; previous acknowledgements are
+        # checked independently below, so a real quarter-hour boundary is safe.
+        accept_generated()
+        self.smoke_phase='post_restart_probe'
         after=self._probe(context,budget,self.anchor)
+        if after.get('status')=='expired_generated_market':
+            accept_generated()
+            self.smoke_phase='post_restart_probe_after_boundary'
+            after=self._probe(context,budget,self.anchor)
         require(after.get('prior_acknowledgement_preserved') is True and all(after.get(key) is True for key in
                 ('fresh','market_identity','collector_disabled','schema_verified')),'restart_persistence_not_proven')
+        self.smoke_phase='postgres_continuity'
         self._postgres(context,budget)
         require(self.pg_id==pg_before,'postgres_restarted_during_api_recovery')
+        self.smoke_phase='runtime_postcheck'
         self._runtime(context,budget)
+        self.smoke_phase='host_api_postcheck'
         self._host_api()
+        self.smoke_phase='complete'
         return {'checks':dict.fromkeys(CHECKS,'PASS'),'acceptance_scope':'generated_only','live_collector_enabled':False,
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}
 

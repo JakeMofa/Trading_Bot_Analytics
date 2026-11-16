@@ -422,5 +422,47 @@ class ActionTests(unittest.TestCase):
         self.assertIn(['restart','--timeout','10','api'],calls)
         self.assertFalse(any('postgres' in args or 'calculation' in args or 'lifecycle' in args for args in calls))
 
+    def test_smoke_reseeds_only_expired_generated_market_and_keeps_old_anchor(self):
+        self.actions.migrated=True;self.actions.pg_id=CID
+        acceptance={'status':'pass','scope':'generated_local_api','origin_id':'generated-pp','collector_enabled':False,
+                    'sse_connections':2,'acknowledged_events':21,'api_max_seconds':.01,
+                    **dict.fromkeys(('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
+                                      'dashboard_contract','bounded_chart','prediction_history'),True)}
+        anchor={'fresh':True,'market_identity':True,'collector_disabled':True,'schema_verified':True,
+                'prediction_id':'a'*64,'prediction_hash':'b'*64,'price_event_id':'generated-price','price_hash':'c'*64}
+        calls=[]
+        def compose(ctx,budget,args,**kwargs):
+            calls.append(args)
+            if '--check' in args:return b'{"environment":"preprod","operation":"check","result":1}'
+            if 'postgres.acceptance' in args:return json.dumps(acceptance).encode()
+            return b''
+        probes=[{'status':'expired_generated_market'},anchor,
+                {'status':'expired_generated_market'},{**anchor,'prior_acknowledgement_preserved':True}]
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=compose), \
+             patch.object(self.actions,'_postgres'),patch.object(self.actions,'_probe',side_effect=probes) as probe:
+            result=self.actions.smoke(self.context,self.budget)
+        self.assertEqual(result['checks'],dict.fromkeys(c.CHECKS,'PASS'))
+        self.assertEqual(sum('postgres.acceptance' in args for args in calls),4)
+        self.assertEqual(probe.call_args_list[-1].args[-1],anchor)
+        self.assertEqual(self.actions.smoke_phase,'complete')
+
+    def test_smoke_unknown_probe_failure_is_not_reseeded(self):
+        self.actions.migrated=True
+        acceptance={'status':'pass','scope':'generated_local_api','origin_id':'generated-pp','collector_enabled':False,
+                    'sse_connections':2,'acknowledged_events':21,'api_max_seconds':.01,
+                    **dict.fromkeys(('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
+                                      'dashboard_contract','bounded_chart','prediction_history'),True)}
+        calls=[]
+        def compose(ctx,budget,args,**kwargs):
+            calls.append(args)
+            if '--check' in args:return b'{"environment":"preprod","operation":"check","result":1}'
+            if 'postgres.acceptance' in args:return json.dumps(acceptance).encode()
+            return b''
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=compose), \
+             patch.object(self.actions,'_probe',return_value={'status':'unknown'}):
+            with self.assertRaisesRegex(c.DeploymentHold,'freshness_or_market_not_proven'):
+                self.actions.smoke(self.context,self.budget)
+        self.assertEqual(sum('postgres.acceptance' in args for args in calls),1)
+
 
 if __name__=='__main__':unittest.main()

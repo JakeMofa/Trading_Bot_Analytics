@@ -591,6 +591,13 @@ The obsolete `codex/lightsail-deployment` route is not the new release path.
 | 9 | Approved production cutover | Fence old writer and PP collector; verify/import committed history/delta; start the sole PG collector on production's own database and API; bounded smoke and measured interruption; retirement initially OFF. PP preview of production is a later restricted, read-only API/SSE path. |
 | 10 | Lifecycle and Phase 1.75 acceptance | Separately verify first sealed generation then enable retirement; bounded automated sustained evidence across cycles/boundaries; independent legacy retirement gate |
 
+**CP7 source-client preparation:** Default-off read-only Coinbase ticker and
+official-US Polymarket 15-minute discovery clients now have generated wire
+tests for exact value/provenance preservation, current-market selection,
+ambiguous identity and bounded failure. These clients do not own a collector
+fence, write PostgreSQL, or enable PP live mode. Actual endpoint availability,
+sole-collector operation and market-boundary acceptance remain open.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

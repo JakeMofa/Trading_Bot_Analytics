@@ -112,11 +112,13 @@ class Store:
         immutable = {key: event.get(key) for key in ('source', 'event_id', 'kind', 'market_id', 'symbol', 'source_time', 'price', 'size', 'payload', 'raw_payload', 'provenance')}
         content_hash = digest(immutable)
         with self.connection() as db:
-            writer = db.execute('''SELECT w.generation_id,g.state FROM ops.writer_state w
+            writer = db.execute('''SELECT w.generation_id,w.collector_enabled,g.state FROM ops.writer_state w
               JOIN archive.generations g USING(origin_id,generation_id)
               WHERE w.origin_id=%s FOR SHARE OF w''', (self.origin,)).fetchone()
             if not writer or writer['state'] != 'collecting':
                 raise ValueError('explicit lifecycle bootstrap required before ingestion')
+            if self.settings.data_mode == 'pp_live' and not writer['collector_enabled']:
+                raise StorageHold('PP live collector is durably disabled')
             generation_id = writer['generation_id']
             prior = db.execute('SELECT generation_id,content_hash FROM ops.dedup WHERE origin_id=%s AND source=%s AND event_id=%s',
                                (self.origin, event['source'], event['event_id'])).fetchone()

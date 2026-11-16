@@ -591,6 +591,13 @@ The obsolete `codex/lightsail-deployment` route is not the new release path.
 | 9 | Approved production cutover | Fence old writer and PP collector; verify/import committed history/delta; start the sole PG collector on production's own database and API; bounded smoke and measured interruption; retirement initially OFF. PP preview of production is a later restricted, read-only API/SSE path. |
 | 10 | Lifecycle and Phase 1.75 acceptance | Separately verify first sealed generation then enable retirement; bounded automated sustained evidence across cycles/boundaries; independent legacy retirement gate |
 
+**CP7 write-fence preparation:** A future `pp_live` ingest now checks the
+locked `ops.writer_state.collector_enabled` value before any raw write. The
+existing provenance-mode check still runs before database access. Generated
+tests show disabled/mismatched live input is rejected before persistence.
+Operator control, cross-VM sole-collector fencing and PP live activation are
+still unimplemented; this check alone does not enable collection.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

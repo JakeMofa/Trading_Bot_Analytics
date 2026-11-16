@@ -106,8 +106,12 @@ class ContractTests(unittest.TestCase):
         self.assertNotIn('double precision',sql)
         self.assertNotIn('GRANT tradebot_owner',sql)
         cloud=(Path(__file__).parents[2]/'postgres/history_v2_contract.sql').read_text()
-        self.assertIn('REVOKE ALL ON SCHEMA history_v2 FROM PUBLIC,anon,authenticated',cloud)
+        self.assertIn('REVOKE ALL ON SCHEMA history_v2 FROM PUBLIC,anon,authenticated,service_role',cloud)
         self.assertNotIn('CREATE TABLE public.',cloud)
+        migration=(Path(__file__).parents[3]/'supabase/migrations/20261116050000_history_v2_private.sql').read_text()
+        marker='CREATE SCHEMA history_v2;'
+        self.assertIn(marker,migration)
+        self.assertEqual(migration.split(marker,1)[1],cloud.split(marker,1)[1])
 
 
 _MIGRATOR_FILE = os.environ.get('TRADEBOT_TEST_MIGRATOR_DSN_FILE')

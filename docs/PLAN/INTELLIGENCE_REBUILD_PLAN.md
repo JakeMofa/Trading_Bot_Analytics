@@ -318,6 +318,13 @@ files. It cannot perform structured sync or authorize retirement and is not
 wired into PP services. Live Storage permissions, isolated cloud write/readback
 and mutation authority remain open; passing mock tests do not clear them.
 
+**CP6 structured-import preparation:** A separate, offline envelope validator
+now recognizes only the eight versioned structured datasets, binds origin and
+generation, compares exact primary identities/content hashes and orders FK
+parents before dependents. It rejects conflicting revisions within one batch.
+This is pre-import validation only; mutable projection ordering, narrow cloud
+grants, actual writes/readback and durable acknowledgement remain open.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

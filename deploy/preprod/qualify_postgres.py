@@ -125,6 +125,36 @@ def command(args,env=None,timeout=120):
     return stdout
 
 
+def qualify_cloud_contract(secret_dir):
+    """Apply the proposed cloud DDL to the disposable CI database only."""
+    ddl=(REPO/'backend/postgres/history_v2_contract.sql').read_text()
+    if 'CREATE SCHEMA history_v2;' not in ddl or 'CREATE TABLE public.' in ddl:
+        raise RuntimeError('cloud contract scope changed')
+    f.sql('CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;',secret_dir)
+    before=f.sql("SELECT count(*) FROM information_schema.tables WHERE table_schema='public';",secret_dir).strip()
+    f.sql('BEGIN;\n'+ddl+'\nCOMMIT;',secret_dir,timeout=40)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'public_tables_before', %s,
+      'public_tables_after', (SELECT count(*) FROM information_schema.tables WHERE table_schema='public'),
+      'private_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                         WHERE n.nspname='history_v2' AND c.relkind='r'),
+      'rls_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                     WHERE n.nspname='history_v2' AND c.relkind='r' AND c.relrowsecurity),
+      'anon_schema_access', has_schema_privilege('anon','history_v2','USAGE'),
+      'authenticated_schema_access', has_schema_privilege('authenticated','history_v2','USAGE'),
+      'anon_table_access', has_table_privilege('anon','history_v2.markets','SELECT'),
+      'authenticated_table_access', has_table_privilege('authenticated','history_v2.markets','SELECT'),
+      'exact_epoch', history_v2.source_epoch('1969-12-31T23:59:59.999999999Z')::text);
+      """ % before,secret_dir))
+    if (proof['public_tables_before']!=proof['public_tables_after'] or
+        proof['private_tables']!=10 or proof['rls_tables']!=10 or
+        any(proof[key] for key in ('anon_schema_access','authenticated_schema_access',
+                                   'anon_table_access','authenticated_table_access')) or
+        proof['exact_epoch']!='-0.000000001'):
+        raise RuntimeError('generated cloud contract privacy or precision check failed')
+    return proof
+
+
 def main():
     global DEADLINE, PHASE
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or f.MARKER.exists() or f.MARKER.is_symlink():
@@ -186,6 +216,8 @@ def main():
                 PHASE=phase
                 code=("import unittest; s=unittest.defaultTestLoader.discover("+repr(directory)+",pattern="+repr(pattern)+"); r=unittest.TextTestRunner(verbosity=2).run(s); raise SystemExit(0 if r.wasSuccessful() and not r.skipped and r.testsRun else 1)")
                 command([sys.executable,'-c',code],env,timeout=180)
+            PHASE='generated_cloud_contract'
+            cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
             PHASE='runtime_image'
             command(['docker','build','-f','deploy/preprod/Dockerfile','-t','tradebot-pg-test','.'],timeout=200)
             runtime_env={**os.environ,'PP_SECRET_DIR':str(CI_FOUNDATION_SECRETS),'PP_RUNTIME_SECRET_DIR':str(CI_RUNTIME_SECRETS),'PP_APP_IMAGE':'tradebot-pg-test'}
@@ -209,7 +241,7 @@ def main():
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

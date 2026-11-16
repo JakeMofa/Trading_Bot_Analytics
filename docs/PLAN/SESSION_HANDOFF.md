@@ -33,6 +33,13 @@ dashboard labels and the bounded sole-collector PP live run. Do not infer a live
 connector from the merged offline translators. Production collector fencing,
 production cutover and retirement require their later explicit gates.
 
+CP6's read-only Supabase inventory found ten existing public history tables and
+no `history_v2`; two migration ledger entries were counted by catalog query.
+The generated private-contract check passed exact CI at `bc3db42` (PR #33),
+but actual cloud migration, scoped grants, isolated writes/readback and
+mutation-authority qualification remain open. See
+[the CP6 review](CP6_SUPABASE_CONTRACT_REVIEW_2026-11-15.md).
+
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access
 success does not close I7 or Phase 1.75; both remain OPEN. The old SQLite A/B

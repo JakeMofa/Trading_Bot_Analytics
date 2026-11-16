@@ -276,6 +276,15 @@ CP8 exact production candidate, CP9 approved cutover, and CP10 first-generation
 verification/retirement/sustained acceptance. No cloud mutation or production
 cutover is authorized by this generated deployment result.
 
+**CP6 read-only review (November 15):** The confirmed Supabase project still has
+ten existing public history tables and no `history_v2` tables. Migration history
+could not be listed because the connector returned an internal error. Security
+advisors identified pre-existing public RLS/no-policy notices and a callable
+public security-definer function; neither was changed. A generated CI gate now
+exercises the private contract, privacy and exact timestamp behavior. Cloud DDL,
+grants, synthetic writes/readback and mutation protection remain OPEN. See
+[CP6 review](CP6_SUPABASE_CONTRACT_REVIEW_2026-11-15.md).
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

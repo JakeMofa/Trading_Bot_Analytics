@@ -1,0 +1,40 @@
+{
+  "scope": "additive_private_supabase_schema_only",
+  "project_id": "xttdqeimdujweijxcuro",
+  "source_merge_commit": "589bb9786d91659d5939c72fbbf0a9e00ce5e52d",
+  "source_migration": "supabase/migrations/20261116050000_history_v2_private.sql",
+  "source_migration_sha256": "f30df30ddb45815bd1c6df316a7c4f7f39883e6bf0a5fc332501f67f51d7c275",
+  "cloud_migration_name": "history_v2_private_20261116",
+  "cloud_migration_version": "20261116050522",
+  "cloud_migration_result": "success",
+  "before": {
+    "public_tables": 10,
+    "history_v2_tables": 0,
+    "migration_count": 2
+  },
+  "after": {
+    "public_tables": 10,
+    "history_v2_tables": 10,
+    "history_v2_rls_tables": 10,
+    "history_v2_rows": 0,
+    "anon_schema_usage": false,
+    "authenticated_schema_usage": false,
+    "service_role_schema_usage": false,
+    "anon_authenticated_service_role_table_access_count": 0,
+    "migration_count": 3,
+    "exact_pre_1970_epoch": "-0.000000001"
+  },
+  "cloud_structured_writes": 0,
+  "cloud_storage_writes": 0,
+  "pp_application_deployed": false,
+  "production_vm_changed": false,
+  "supabase_schema_changed": true,
+  "retirement_state_changed": false,
+  "paid_ai_state_changed": false,
+  "remaining": [
+    "narrow importer and retriever permissions",
+    "bounded runtime write and authenticated readback",
+    "Storage archive mutation authority",
+    "generation checkpoint and replay qualification"
+  ]
+}

@@ -299,6 +299,17 @@ review. It grants no runtime role; CI applies that exact file to disposable
 PostgreSQL and checks contract parity. Cloud application, later narrow grants,
 client behavior and authenticated archive readback remain separate open gates.
 
+**CP6 cloud schema installation (November 15 CST):** Exact source merge
+`589bb97` passed [CI 43807662623](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43807662623).
+The reviewed migration was applied to Supabase as
+`history_v2_private_20261116` (ledger `20261116050522`). Post-checks found ten
+empty private RLS tables, zero anon/authenticated/service-role access, and the
+same ten public tables. No cloud records or Storage objects were written, no
+application was deployed, and retirement remains OFF. The schema-only subgate
+is PASS; CP6 is OPEN for narrow permissions, bounded runtime write/readback,
+generation checkpoints, raw archive readback and mutation authority. See
+[sanitized evidence](evidence/cp6-history-v2-schema-2026-11-16.json).
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

@@ -40,6 +40,13 @@ but actual cloud migration, scoped grants, isolated writes/readback and
 mutation-authority qualification remain open. See
 [the CP6 review](CP6_SUPABASE_CONTRACT_REVIEW_2026-11-15.md).
 
+Update: the schema-only migration from PR #35 was applied to Supabase as
+`history_v2_private_20261116` after exact preprod CI passed. Ten empty private
+RLS tables exist; public tables and disabled runtime flags are unchanged.
+Scoped grants, runtime writes/readback and Storage authority remain CP6 work.
+The historical preprod merge CI failure was addressed by PR #34; its merge CI
+passed. Read the [sanitized schema result](evidence/cp6-history-v2-schema-2026-11-16.json).
+
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access
 success does not close I7 or Phase 1.75; both remain OPEN. The old SQLite A/B

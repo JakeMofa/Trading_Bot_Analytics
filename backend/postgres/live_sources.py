@@ -8,6 +8,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 import json
+import time
 
 import httpx
 from websockets.asyncio.client import connect as websocket_connect
@@ -56,14 +57,18 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
     current = None
     now = now.astimezone(timezone.utc)
     instant = source_timestamp(now.isoformat())[1]
+    deadline = time.monotonic() + 10
     for page in range(max_pages):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ValueError('Polymarket discovery deadline reached')
         try:
             async with client.stream('GET', POLYMARKET_REST + '/v1/markets',
                                      params={'limit': 100, 'offset': page * 100,
                                              'active': 'true', 'closed': 'false',
                                              'categories': 'crypto'},
                                      headers={'Accept': 'application/json'},
-                                     timeout=4, follow_redirects=False) as response:
+                                     timeout=min(4, remaining), follow_redirects=False) as response:
                 if response.status_code != 200:
                     raise ValueError('Polymarket discovery HTTP failure')
                 body = bytearray()

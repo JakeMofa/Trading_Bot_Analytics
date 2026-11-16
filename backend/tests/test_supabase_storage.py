@@ -18,13 +18,14 @@ from postgres.supabase_storage import (BUCKET, PROJECT_URL, SupabaseStorageTrans
 KEY = ('raw-v1/' + 'a' * 64 + '/00000000-0000-4000-8000-000000000001/' +
        'b' * 64 + '.jsonl.gz')
 TOKEN = 'generated-secret-for-mock-only'
+API_KEY = 'generated-public-project-key-for-mock-only'
 
 
 class SupabaseStorageTests(unittest.TestCase):
     def client(self, handler):
         client = httpx.Client(transport=httpx.MockTransport(handler), trust_env=False)
         self.addCleanup(client.close)
-        return SupabaseStorageTransport(TOKEN, client=client)
+        return SupabaseStorageTransport(API_KEY, TOKEN, client=client)
 
     def test_create_only_then_authenticated_exact_readback(self):
         requests = []
@@ -45,6 +46,7 @@ class SupabaseStorageTests(unittest.TestCase):
         self.assertEqual(requests[1].url.path,
                          '/storage/v1/object/authenticated/' + BUCKET + '/' + KEY)
         self.assertEqual(requests[0].headers['authorization'], 'Bearer ' + TOKEN)
+        self.assertEqual(requests[0].headers['apikey'], API_KEY)
 
     def test_existing_object_requires_exact_bytes_and_accounts_second_request(self):
         calls = []
@@ -105,6 +107,11 @@ class SupabaseStorageTests(unittest.TestCase):
             path.write_text(TOKEN + '\n')
             path.chmod(0o400)
             self.assertEqual(read_token_file(path), TOKEN)
+            api_key_path = Path(folder) / 'api-key'
+            api_key_path.write_text(API_KEY + '\n')
+            api_key_path.chmod(0o400)
+            self.assertIsInstance(SupabaseStorageTransport.from_token_files(
+                api_key_path, path), SupabaseStorageTransport)
             path.chmod(0o644)
             with self.assertRaises(ValueError):
                 read_token_file(path)
@@ -115,7 +122,9 @@ class SupabaseStorageTests(unittest.TestCase):
                 read_token_file(alias)
         for url, bucket in [('https://other.supabase.co', BUCKET), (PROJECT_URL, 'public')]:
             with self.assertRaises(ValueError):
-                SupabaseStorageTransport(TOKEN, project_url=url, bucket=bucket)
+                SupabaseStorageTransport(API_KEY, TOKEN, project_url=url, bucket=bucket)
+        with self.assertRaises(ValueError):
+            SupabaseStorageTransport(TOKEN, TOKEN)
 
 
 if __name__ == '__main__':

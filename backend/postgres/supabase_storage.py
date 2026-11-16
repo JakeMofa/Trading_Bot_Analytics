@@ -57,17 +57,21 @@ class SupabaseStorageTransport:
 
     authority_scope = 'supabase-unqualified'
 
-    def __init__(self, token: str, *, client: httpx.Client | None = None,
+    def __init__(self, api_key: str, access_token: str, *, client: httpx.Client | None = None,
                  project_url: str = PROJECT_URL, bucket: str = BUCKET):
-        if project_url != PROJECT_URL or bucket != BUCKET or not token or any(c.isspace() for c in token):
-            raise ValueError('unreviewed Supabase project, bucket or credential')
-        self._token = token
+        if (project_url != PROJECT_URL or bucket != BUCKET or not api_key or not access_token or
+                api_key == access_token or any(c.isspace() for c in api_key + access_token)):
+            raise ValueError('unreviewed Supabase project, bucket or credential separation')
+        self._api_key = api_key
+        self._access_token = access_token
         self._client = client or httpx.Client(trust_env=False)
         self._owns_client = client is None
 
     @classmethod
-    def from_token_file(cls, path: str | Path, **kwargs):
-        return cls(read_token_file(path), **kwargs)
+    def from_token_files(cls, api_key_path: str | Path, access_token_path: str | Path,
+                         **kwargs):
+        return cls(read_token_file(api_key_path), read_token_file(access_token_path),
+                   **kwargs)
 
     def close(self):
         if self._owns_client:
@@ -80,7 +84,7 @@ class SupabaseStorageTransport:
         return f'{PROJECT_URL}/storage/v1/{route}/{BUCKET}/{quote(key, safe="/")}'
 
     def _headers(self, *, upload: bool = False) -> dict[str, str]:
-        headers = {'apikey': self._token, 'Authorization': 'Bearer ' + self._token,
+        headers = {'apikey': self._api_key, 'Authorization': 'Bearer ' + self._access_token,
                    'Cache-Control': 'no-store', 'Accept-Encoding': 'identity'}
         if upload:
             headers.update({'Content-Type': 'application/gzip', 'x-upsert': 'false'})

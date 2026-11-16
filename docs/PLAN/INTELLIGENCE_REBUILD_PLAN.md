@@ -277,8 +277,8 @@ verification/retirement/sustained acceptance. No cloud mutation or production
 cutover is authorized by this generated deployment result.
 
 **CP6 read-only review (November 15):** The confirmed Supabase project still has
-ten existing public history tables and no `history_v2` tables. Migration history
-could not be listed because the connector returned an internal error. Security
+ten existing public history tables and no `history_v2` tables. The migration-list
+tool errored; a catalog query counted two migrations but did not verify contents. Security
 advisors identified pre-existing public RLS/no-policy notices and a callable
 public security-definer function; neither was changed. A generated CI gate now
 exercises the private contract, privacy and exact timestamp behavior. Cloud DDL,

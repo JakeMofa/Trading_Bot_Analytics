@@ -6,8 +6,9 @@ The confirmed project is `xttdqeimdujweijxcuro`. Its existing structured
 history is in ten `public` tables, including markets, candles, feature snapshots,
 predictions, official outcomes, sync checkpoints and raw archive metadata.
 `history_v2` has no tables. The Supabase migrations-list call returned an internal
-error, so migration history is **not verified**. No cloud DDL or data writes were
-performed for this review.
+error. A read-only catalog query independently found two recorded migrations,
+latest version `20261023023156`; their contents and tool-level history remain
+unverified. No cloud DDL or data writes were performed for this review.
 
 The security advisor reports ten existing public tables with RLS enabled and no
 policies, and one existing public `SECURITY DEFINER` function, `rls_auto_enable()`,
@@ -23,6 +24,14 @@ the count of public tables is unchanged, all ten private tables have RLS enabled
 `anon` and `authenticated` lack schema/table access, and a pre-1970 fractional
 timestamp remains exact. The fixture is destroyed after qualification. This is
 not evidence of cloud permissions or application write/readback behavior.
+
+Source `bc3db426a51bed67419825b4c695b39bc957eb6d` passed
+[exact-source CI 43805048832](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43805048832)
+and [PR CI 43805066582](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43805066582).
+The sanitized generated artifact reports ten private/RLS tables, zero public
+table-count change, no `anon`/`authenticated` schema or table access, and exact
+epoch `-0.000000001`. It records `production_access=false` and
+`cloud_writes=false`.
 
 ## Exact cloud migration gate
 

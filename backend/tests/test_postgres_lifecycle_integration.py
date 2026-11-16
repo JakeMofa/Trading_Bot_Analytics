@@ -77,6 +77,49 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
             self.assertIsNotNone(connection.execute('SELECT to_regclass(%s) AS name',
                                                      ('raw.' + generation['partition_name'],)).fetchone()['name'])
 
+    def test_durable_stop_waits_for_writer_then_is_idempotent(self):
+        # Generated isolated DB only: simulate a previously enabled PP writer.
+        with self.factory() as connection:
+            connection.execute('''UPDATE ops.writer_state SET collector_enabled=true
+                WHERE origin_id=%s''', (self.origin,))
+        held, release, done = threading.Event(), threading.Event(), threading.Event()
+        failures, results = [], []
+        def in_flight():
+            try:
+                with self.app_factory() as connection:
+                    with connection.transaction():
+                        connection.execute('''SELECT collector_enabled FROM ops.writer_state
+                            WHERE origin_id=%s FOR SHARE''', (self.origin,)).fetchone()
+                        held.set()
+                        if not release.wait(3):
+                            raise TimeoutError('generated writer release deadline')
+            except BaseException as error:
+                failures.append(error)
+        def stop():
+            try:
+                results.append(self.repository.disable_collector(self.origin))
+            except BaseException as error:
+                failures.append(error)
+            finally:
+                done.set()
+        writer = threading.Thread(target=in_flight)
+        writer.start()
+        self.assertTrue(held.wait(3))
+        stopper = threading.Thread(target=stop)
+        stopper.start()
+        self.assertFalse(done.wait(0.1))
+        release.set()
+        writer.join(3)
+        stopper.join(3)
+        self.assertFalse(writer.is_alive() or stopper.is_alive())
+        self.assertEqual(failures, [])
+        self.assertFalse(results[0]['collector_enabled'])
+        self.assertEqual(self.repository.disable_collector(self.origin), results[0])
+        with self.factory() as connection:
+            state = connection.execute('''SELECT collector_enabled,epoch FROM ops.writer_state
+                WHERE origin_id=%s''', (self.origin,)).fetchone()
+        self.assertEqual(state, results[0])
+
     def test_atomic_switch_waits_for_acknowledged_write_then_late_events_use_b(self):
         locked, release, completed = threading.Event(), threading.Event(), threading.Event()
         failures, result = [], []

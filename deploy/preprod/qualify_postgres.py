@@ -128,10 +128,14 @@ def command(args,env=None,timeout=120):
 
 def qualify_cloud_contract(secret_dir):
     """Apply the proposed cloud DDL to the disposable CI database only."""
-    ddl=(REPO/'backend/postgres/history_v2_contract.sql').read_text()
+    contract=(REPO/'backend/postgres/history_v2_contract.sql').read_text()
+    ddl=(REPO/'supabase/migrations/20261116050000_history_v2_private.sql').read_text()
+    marker='CREATE SCHEMA history_v2;'
+    if marker not in ddl or marker not in contract or ddl.split(marker,1)[-1]!=contract.split(marker,1)[-1]:
+        raise RuntimeError('cloud migration diverged from reviewed contract')
     if 'CREATE SCHEMA history_v2;' not in ddl or 'CREATE TABLE public.' in ddl:
         raise RuntimeError('cloud contract scope changed')
-    f.sql('CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN;',secret_dir)
+    f.sql('CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;',secret_dir)
     before=f.sql("SELECT count(*) FROM information_schema.tables WHERE table_schema='public';",secret_dir).strip()
     f.sql('BEGIN;\n'+ddl+'\nCOMMIT;',secret_dir,timeout=40)
     proof=json.loads(f.sql("""SELECT json_build_object(
@@ -143,14 +147,17 @@ def qualify_cloud_contract(secret_dir):
                      WHERE n.nspname='history_v2' AND c.relkind='r' AND c.relrowsecurity),
       'anon_schema_access', has_schema_privilege('anon','history_v2','USAGE'),
       'authenticated_schema_access', has_schema_privilege('authenticated','history_v2','USAGE'),
+      'service_schema_access', has_schema_privilege('service_role','history_v2','USAGE'),
       'anon_table_access', has_table_privilege('anon','history_v2.markets','SELECT'),
       'authenticated_table_access', has_table_privilege('authenticated','history_v2.markets','SELECT'),
+      'service_table_access', has_table_privilege('service_role','history_v2.markets','SELECT'),
       'exact_epoch', history_v2.source_epoch('1969-12-31T23:59:59.999999999Z')::text);
       """ % before,secret_dir))
     if (proof['public_tables_before']!=proof['public_tables_after'] or
         proof['private_tables']!=10 or proof['rls_tables']!=10 or
         any(proof[key] for key in ('anon_schema_access','authenticated_schema_access',
-                                   'anon_table_access','authenticated_table_access')) or
+                                   'service_schema_access','anon_table_access',
+                                   'authenticated_table_access','service_table_access')) or
         proof['exact_epoch']!='-0.000000001'):
         raise RuntimeError('generated cloud contract privacy or precision check failed')
     return proof

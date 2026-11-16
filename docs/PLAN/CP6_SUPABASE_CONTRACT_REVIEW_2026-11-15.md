@@ -50,5 +50,22 @@ evidence. Keep full fresh authenticated readback before local retirement until
 the privileged mutation paths, policy continuity and final authorization race
 are separately qualified. No local deletion is enabled by this review.
 
+## Schema-only successor prepared for review
+
+`supabase/migrations/20261116050000_history_v2_private.sql` is the exact
+additive migration candidate. It creates only the ten `history_v2` tables,
+domains, timestamp parser and indexes in the existing contract. It revokes
+schema, table and function access from `PUBLIC`, `anon`, `authenticated` and
+`service_role`; it changes no existing `public` table. CI requires the migration
+body to match the reviewed contract and applies the exact file to a disposable
+PostgreSQL database. No importer or retriever can use it yet.
+
+**Cloud application gate:** compare live catalog/migration version again, apply
+this named migration only once through the Supabase migration facility, and
+recheck ten private RLS tables, grants, public table inventory and advisories.
+A failed migration or unexpected drift stops client integration. Dropping the
+schema is not an automatic rollback; the release is additive and default-off.
+Cloud application is separate from this local candidate and its generated test.
+
 Production and PP collectors, retirement and paid AI remain unchanged. CP6, I7
 and Phase 1.75 are OPEN.

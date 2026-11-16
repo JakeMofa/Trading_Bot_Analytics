@@ -293,6 +293,12 @@ boundary correction and sanitized phase diagnostics are under qualification;
 see [failure review](PP_CI_BOUNDARY_FAILURE_2026-11-15.md). Do not treat the
 earlier PR PASS as a passing preprod merge gate.
 
+**CP6 schema-only candidate:** A named additive private migration is prepared
+under `supabase/migrations/20261116050000_history_v2_private.sql` for separate
+review. It grants no runtime role; CI applies that exact file to disposable
+PostgreSQL and checks contract parity. Cloud application, later narrow grants,
+client behavior and authenticated archive readback remain separate open gates.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

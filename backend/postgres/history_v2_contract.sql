@@ -2,7 +2,7 @@
 -- Applying to cloud, privileges and authenticated mutation/readback require CP6.
 -- Existing public objects are never modified. Fails if history_v2 already exists.
 CREATE SCHEMA history_v2;
-REVOKE ALL ON SCHEMA history_v2 FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON SCHEMA history_v2 FROM PUBLIC,anon,authenticated,service_role;
 
 CREATE DOMAIN history_v2.exact_numeric AS numeric
   CHECK (VALUE NOT IN ('NaN'::numeric, 'Infinity'::numeric, '-Infinity'::numeric));
@@ -154,8 +154,8 @@ ALTER TABLE history_v2.coverage ENABLE ROW LEVEL SECURITY;
 CREATE INDEX history_predictions_time ON history_v2.predictions(origin_id,as_of DESC);
 CREATE INDEX history_outcomes_time ON history_v2.outcomes(origin_id,market_id,confirmed_at);
 
-REVOKE ALL ON ALL TABLES IN SCHEMA history_v2 FROM PUBLIC,anon,authenticated;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA history_v2 FROM PUBLIC,anon,authenticated;
+REVOKE ALL ON ALL TABLES IN SCHEMA history_v2 FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA history_v2 FROM PUBLIC,anon,authenticated,service_role;
 -- No public policies and no service-role grant are provisioned here.
 -- CP6 must qualify a separate narrow authenticated importer/retriever identity,
 -- exact immutable-content conflict handling, reviewed mutable projection revision

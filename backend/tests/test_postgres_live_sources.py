@@ -1,6 +1,7 @@
 """Generated wire tests for default-off read-only PP source clients."""
 import asyncio
 from datetime import datetime, timezone
+import gzip
 import json
 from pathlib import Path
 import sys
@@ -9,7 +10,7 @@ import unittest
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.live_sources import coinbase_once, discover_polymarket_15m
+from postgres.live_sources import coinbase_once, discover_polymarket_15m, fetch_polymarket_bbo
 
 
 NOW = datetime(2026, 11, 15, 12, 5, tzinfo=timezone.utc)
@@ -89,6 +90,18 @@ class SourceClientTests(unittest.IsolatedAsyncioTestCase):
             with self.assertRaisesRegex(ValueError, 'pagination limit'):
                 await discover_polymarket_15m(client, NOW, max_pages=1)
 
+    async def test_compressed_json_is_decoded_then_bounded(self):
+        def compressed(payload):
+            return httpx.Response(200, content=gzip.compress(json.dumps(payload).encode()),
+                                  headers={'content-encoding': 'gzip'})
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: compressed({'markets': [market()]}))) as client:
+            self.assertEqual((await discover_polymarket_15m(client, NOW))['market_id'], 'one')
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: compressed({'markets': [], 'padding': 'x' * (1024 * 1024 + 1)}))) as client:
+            with self.assertRaisesRegex(ValueError, 'exceeds bound'):
+                await discover_polymarket_15m(client, NOW)
+
     async def test_coinbase_error_frame_and_missing_trade_identity_fail_closed(self):
         for frame in ({'type': 'error', 'message': 'untrusted'},
                       {'type': 'ticker', 'product_id': 'BTC-USD',
@@ -99,6 +112,26 @@ class SourceClientTests(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(ValueError):
                     await anext(source)
                 await source.aclose()
+
+    async def test_bbo_404_fallback_and_wrong_market_hold(self):
+        event = {'market_id': 'one', 'payload': {'slug': 'btc-up-down-one'}}
+        calls = []
+        body = {'marketData': {'marketSlug': 'btc-up-down-one',
+                               'lastPriceSample': {'ts': '2026-11-15T12:05:00Z'},
+                               'bestBid': {'value': '0.50'}, 'bestAsk': {'value': '0.51'}}}
+        def handler(request):
+            calls.append(request.url.path)
+            if request.url.path.endswith('/bbo'):
+                return httpx.Response(404)
+            return httpx.Response(200, json=body)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            quote = await fetch_polymarket_bbo(client, event)
+        self.assertEqual(quote['payload']['best_ask'], '0.51')
+        self.assertEqual([path.rsplit('/', 1)[-1] for path in calls], ['bbo', 'book'])
+        body['marketData']['marketSlug'] = 'wrong'
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            with self.assertRaisesRegex(ValueError, 'market identity'):
+                await fetch_polymarket_bbo(client, event)
 
 
 if __name__ == '__main__':

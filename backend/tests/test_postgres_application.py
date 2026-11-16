@@ -10,7 +10,9 @@ import socket
 import sys
 import threading
 import time
+from types import SimpleNamespace
 import unittest
+import uuid
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
@@ -21,7 +23,8 @@ from postgres.config import Settings
 from postgres.domain import decimal_text, timestamp
 from postgres.ingestion import generated_events
 from postgres.live_state import LiveState
-from postgres.store import IdentityConflict, Store
+from postgres.live_contract import coinbase_ticker
+from postgres.store import IdentityConflict, StorageHold, Store
 from postgres.worker import CalculationWorker
 
 NOW = datetime(2026,11,12,12,5,tzinfo=timezone.utc)
@@ -303,6 +306,23 @@ class PostgreSQLTests(unittest.TestCase):
             self.assertEqual(protected['payload']['normalized']['price'],event['price'])
         self.assertTrue(self.store.predictions(5))
         self.assertTrue(self.store.chart(now)['points'])
+
+    def test_disabled_pp_live_collector_cannot_write_real_postgres(self):
+        live_settings = SimpleNamespace(origin_id=self.settings.origin_id,
+                                        environment='preprod', dsn=self.settings.dsn,
+                                        data_mode='pp_live')
+        event = coinbase_ticker({'type':'ticker','product_id':'BTC-USD',
+                                 'trade_id':str(uuid.uuid4()),
+                                 'time':datetime.now(timezone.utc).isoformat(),
+                                 'price':'100000.1234567890123456789'},
+                                datetime.now(timezone.utc).isoformat())
+        with self.assertRaisesRegex(StorageHold, 'durably disabled'):
+            Store(live_settings).ingest(event)
+        with self.store.connection(True) as db:
+            count = db.execute('''SELECT count(*) AS count FROM raw.events
+                WHERE origin_id=%s AND source=%s AND event_id=%s''',
+                (self.settings.origin_id,event['source'],event['event_id'])).fetchone()['count']
+        self.assertEqual(count, 0)
 
 
 if __name__=='__main__':

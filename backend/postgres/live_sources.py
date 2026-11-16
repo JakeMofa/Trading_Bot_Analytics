@@ -7,14 +7,16 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from decimal import Decimal
 import json
 import time
+from urllib.parse import quote
 
 import httpx
 from websockets.asyncio.client import connect as websocket_connect
 
 from .contract import source_timestamp
-from .live_contract import coinbase_ticker, polymarket_market
+from .live_contract import coinbase_ticker, polymarket_bbo, polymarket_market
 
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
@@ -37,11 +39,11 @@ async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):
             raw = await asyncio.wait_for(websocket.recv(), timeout=10)
             if not isinstance(raw, str) or len(raw.encode('utf-8')) > MAX_RESPONSE_BYTES:
                 raise ValueError('Coinbase frame exceeds bound')
-            message = json.loads(raw)
+            message = json.loads(raw, parse_float=Decimal)
             if not isinstance(message, dict) or message.get('type') == 'error':
                 raise ValueError('invalid Coinbase feed response')
             received = datetime.now(timezone.utc).isoformat()
-            event = coinbase_ticker(message, received)
+            event = coinbase_ticker(message, received, raw_wire=raw)
             if event is not None:
                 yield event
 
@@ -73,7 +75,7 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                     raise ValueError('Polymarket discovery HTTP failure')
                 body = bytearray()
                 try:
-                    async for chunk in response.aiter_raw():
+                    async for chunk in response.aiter_bytes():
                         body.extend(chunk)
                         if len(body) > MAX_RESPONSE_BYTES:
                             raise ValueError('Polymarket discovery response exceeds bound')
@@ -84,7 +86,7 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                         raise ValueError('Polymarket discovery response exceeds bound')
         except httpx.HTTPError:
             raise ValueError('Polymarket discovery unavailable') from None
-        payload = json.loads(body)
+        payload = json.loads(body, parse_float=Decimal)
         markets = payload.get('markets') if isinstance(payload, dict) else None
         if not isinstance(markets, list) or len(markets) > 100:
             raise ValueError('invalid Polymarket discovery response')
@@ -103,3 +105,35 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
         if len(markets) < 100:
             return current
     raise ValueError('Polymarket discovery pagination limit reached')
+
+
+async def fetch_polymarket_bbo(client: httpx.AsyncClient, market_event: dict):
+    """Read one bounded BBO, with the legacy book fallback on an exact 404."""
+    slug = market_event.get('payload', {}).get('slug')
+    if not isinstance(slug, str) or not slug or len(slug) > 256:
+        raise ValueError('invalid BBO market slug')
+    for route in ('bbo', 'book'):
+        try:
+            async with client.stream('GET', POLYMARKET_REST + '/v1/markets/' +
+                                     quote(slug, safe='') + '/' + route,
+                                     headers={'Accept': 'application/json'},
+                                     timeout=4, follow_redirects=False) as response:
+                if response.status_code == 404 and route == 'bbo':
+                    continue
+                if response.status_code != 200:
+                    raise ValueError('Polymarket BBO unavailable')
+                body = bytearray()
+                try:
+                    async for chunk in response.aiter_bytes():
+                        body.extend(chunk)
+                        if len(body) > MAX_RESPONSE_BYTES:
+                            raise ValueError('Polymarket BBO exceeds byte bound')
+                except httpx.StreamConsumed:
+                    body = bytearray(response.content)
+                    if len(body) > MAX_RESPONSE_BYTES:
+                        raise ValueError('Polymarket BBO exceeds byte bound')
+        except httpx.HTTPError:
+            raise ValueError('Polymarket BBO unavailable') from None
+        return polymarket_bbo(json.loads(body, parse_float=Decimal), market_event,
+                              datetime.now(timezone.utc).isoformat())
+    raise ValueError('Polymarket BBO unavailable')

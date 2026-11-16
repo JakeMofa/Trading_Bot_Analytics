@@ -620,6 +620,15 @@ ambiguous identity and bounded failure. These clients do not own a collector
 fence, write PostgreSQL, or enable PP live mode. Actual endpoint availability,
 sole-collector operation and market-boundary acceptance remain open.
 
+**CP7 read-only wire correction (November 16):** A bounded direct US endpoint
+probe found an active BTC 15-minute market and a BBO response. The market list
+uses HTTP compression, so discovery now bounds decoded bytes. Translators store
+raw JSON as text for the PostgreSQL `raw_payload` column, keep source decimal
+strings exact, and map BBO bid/ask prices without calling them calibrated
+probabilities. Its available `lastPriceSample.ts` is labeled as a sample time,
+not a book-update time. One bounded live read returned market/quote data; it
+did not ingest, qualify sustained freshness, or establish collector ownership.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

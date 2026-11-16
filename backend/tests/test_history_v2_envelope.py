@@ -1,5 +1,9 @@
 """Generated, network-free structured history envelope tests."""
 import unittest
+from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from postgres.archive_codec import ArchiveIntegrityError, encoded
 from postgres.history_v2_envelope import IMPORT_ORDER, TABLE_KEYS, validate_outbox_batch

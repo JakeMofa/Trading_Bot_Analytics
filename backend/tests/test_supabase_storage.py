@@ -1,10 +1,13 @@
 """CP6 Storage wire tests; all HTTP is intercepted by a generated transport."""
 import os
 from pathlib import Path
+import sys
 import tempfile
 import unittest
 
 import httpx
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from postgres.archive_codec import (ArchiveIntegrityError, ArchiveLimit,
                                     ArchiveLimits, ArchiveUnavailable, CycleBudget)

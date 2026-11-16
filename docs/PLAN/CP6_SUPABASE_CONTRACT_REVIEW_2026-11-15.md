@@ -67,5 +67,26 @@ A failed migration or unexpected drift stops client integration. Dropping the
 schema is not an automatic rollback; the release is additive and default-off.
 Cloud application is separate from this local candidate and its generated test.
 
+## Cloud schema outcome
+
+The exact merge commit `589bb9786d91659d5939c72fbbf0a9e00ce5e52d`
+passed [preprod CI 43807662623](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/43807662623).
+Its migration SHA-256 was
+`f30df30ddb45815bd1c6df316a7c4f7f39883e6bf0a5fc332501f67f51d7c275`.
+The Supabase migration facility applied it once as
+`history_v2_private_20261116`, ledger version `20261116050522`.
+
+Read-only post-checks showed ten empty private tables, all ten with RLS;
+`PUBLIC`/`anon`/`authenticated`/`service_role` have no usable table access,
+and the public table count remained ten. The ledger moved from two to three
+entries. The advisor now reports ten additional informational RLS-without-policy
+notices for the new intentionally inaccessible tables. Its pre-existing public
+security-definer warning remains unresolved; this migration did not alter it.
+[Sanitized exact result](evidence/cp6-history-v2-schema-2026-11-16.json).
+
+This proves schema installation only. Runtime importer/retriever permissions,
+structured writes, private Storage upload/readback, archive mutation authority
+and recovery/replay remain unqualified. Retention and retirement stay OFF.
+
 Production and PP collectors, retirement and paid AI remain unchanged. CP6, I7
 and Phase 1.75 are OPEN.

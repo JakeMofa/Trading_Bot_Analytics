@@ -47,6 +47,10 @@ Scoped grants, runtime writes/readback and Storage authority remain CP6 work.
 The historical preprod merge CI failure was addressed by PR #34; its merge CI
 passed. Read the [sanitized schema result](evidence/cp6-history-v2-schema-2026-11-16.json).
 
+The default-off private Storage transport candidate is tested with intercepted
+HTTP only. It has no PP runtime wiring or retirement authority. Cloud access
+and structured sync still require separate qualification.
+
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access
 success does not close I7 or Phase 1.75; both remain OPEN. The old SQLite A/B

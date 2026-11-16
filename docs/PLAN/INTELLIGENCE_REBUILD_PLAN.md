@@ -318,6 +318,14 @@ files. It cannot perform structured sync or authorize retirement and is not
 wired into PP services. Live Storage permissions, isolated cloud write/readback
 and mutation authority remain open; passing mock tests do not clear them.
 
+**CP6 credential correction:** The default-off Storage adapter now requires a
+separate project API key and bearer access token, held in separate private files.
+This permits a future RLS-scoped runtime identity. A service-role key or S3
+access key bypasses Storage RLS and cannot establish runtime mutation limits;
+no such credential is wired into PP. A scoped authenticated identity, reviewed
+Storage policies, actual deny tests and privileged-mutation fencing remain
+required before any cloud-enabled runtime or retirement gate.
+
 **CP6 structured-import preparation:** A separate, offline envelope validator
 now recognizes only the eight versioned structured datasets, binds origin and
 generation, compares exact primary identities/content hashes and orders FK

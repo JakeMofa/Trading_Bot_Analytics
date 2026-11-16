@@ -213,6 +213,7 @@ class LinuxActions:
         self.attempt_id=uuid.uuid4().hex
         self.oneoffs={}
         self.oneoff_sequence=0
+        self.smoke_phase='not_started'
 
     @staticmethod
     def _environment(image):
@@ -483,12 +484,16 @@ class LinuxActions:
 
     def smoke(self,context,budget):
         require(self.migrated,'explicit_migration_required')
+        self.smoke_phase='schema_check'
         schema=self._json(self._oneoff(context,budget,'migrate',['python','-m','postgres.migrate',
             '--environment','preprod','--dsn-file','/run/secrets/migrator_dsn','--check']))
         require(schema.get('environment')=='preprod' and schema.get('operation')=='check' and isinstance(schema.get('result'),int)
                 and schema['result']>0,'schema_check_not_proven')
+        self.smoke_phase='runtime_precheck'
         self._runtime(context,budget)
+        self.smoke_phase='host_api_precheck'
         self._host_api()
+        self.smoke_phase='generated_acceptance'
         accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))
         require(accepted.get('status')=='pass' and accepted.get('scope')=='generated_local_api'
                 and accepted.get('origin_id')=='generated-pp' and accepted.get('collector_enabled') is False
@@ -496,19 +501,27 @@ class LinuxActions:
                 and 0<=accepted.get('api_max_seconds',999)<2
                 and all(accepted.get(key) is True for key in ('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
                     'dashboard_contract','bounded_chart','prediction_history')),'generated_acceptance_incomplete')
+        self.smoke_phase='fresh_anchor'
         self.anchor=self._probe(context,budget)
         require(all(self.anchor.get(key) is True for key in ('fresh','market_identity','collector_disabled','schema_verified')),'freshness_or_market_not_proven')
         pg_before=self.pg_id
+        self.smoke_phase='api_restart'
         self._compose(context,budget,['restart','--timeout','10','api'],timeout=20)
         # Health waits only for API; worker and database are not recreated or restored.
+        self.smoke_phase='api_restart_health'
         self._compose(context,budget,['up','-d','--no-deps','--wait','--wait-timeout','15','api'],timeout=20)
+        self.smoke_phase='post_restart_probe'
         after=self._probe(context,budget,self.anchor)
         require(after.get('prior_acknowledgement_preserved') is True and all(after.get(key) is True for key in
                 ('fresh','market_identity','collector_disabled','schema_verified')),'restart_persistence_not_proven')
+        self.smoke_phase='postgres_continuity'
         self._postgres(context,budget)
         require(self.pg_id==pg_before,'postgres_restarted_during_api_recovery')
+        self.smoke_phase='runtime_postcheck'
         self._runtime(context,budget)
+        self.smoke_phase='host_api_postcheck'
         self._host_api()
+        self.smoke_phase='complete'
         return {'checks':dict.fromkeys(CHECKS,'PASS'),'acceptance_scope':'generated_only','live_collector_enabled':False,
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}
 

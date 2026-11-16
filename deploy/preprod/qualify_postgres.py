@@ -81,7 +81,8 @@ def qualify_controller(root):
     with patch.object(HostBinding,'from_marker',return_value=binding):
         result=controller.deploy(request,io.BytesIO(blob),actions)
     if result.get('gate')!='PASS' or result.get('acceptance_scope')!='generated_only':
-        print(json.dumps({'controller':result,'qualification_scope':'generated_ci_host_identity_substituted'},sort_keys=True),file=sys.stderr)
+        print(json.dumps({'controller':result,'failed_smoke_phase':actions.smoke_phase,
+                          'qualification_scope':'generated_ci_host_identity_substituted'},sort_keys=True),file=sys.stderr)
         raise RuntimeError('real Linux controller generated acceptance failed')
     if authorization.exists() or len(list(root.glob('consumed-*.json')))!=1:
         raise RuntimeError('controller one-use authority consumption not proven')

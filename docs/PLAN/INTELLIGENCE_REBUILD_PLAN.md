@@ -310,6 +310,14 @@ is PASS; CP6 is OPEN for narrow permissions, bounded runtime write/readback,
 generation checkpoints, raw archive readback and mutation authority. See
 [sanitized evidence](evidence/cp6-history-v2-schema-2026-11-16.json).
 
+**CP6 Storage transport candidate:** A default-off, project/bucket-bound
+create-only raw-object adapter now has generated HTTP tests for exact
+authenticated readback, identical versus conflicting duplicate objects,
+ambiguous upload failure, bounded responses, invalid keys and private credential
+files. It cannot perform structured sync or authorize retirement and is not
+wired into PP services. Live Storage permissions, isolated cloud write/readback
+and mutation authority remain open; passing mock tests do not clear them.
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

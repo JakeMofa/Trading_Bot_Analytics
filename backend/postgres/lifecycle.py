@@ -127,6 +127,29 @@ class LifecycleRepository:
             return connection.execute('SELECT * FROM archive.generations WHERE generation_id=%s',
                                       (generation['generation_id'],)).fetchone()
 
+    def disable_collector(self, origin_id: str, now: datetime | None = None) -> dict:
+        """Durably stop new writes after all holders of the writer row finish.
+
+        No corresponding enable operation exists here: cross-VM ownership and
+        operator authorization must be qualified before PP live activation.
+        """
+        if self.environment != 'preprod' or not origin_id or len(origin_id) > 160:
+            raise LifecycleHold('unsupported collector stop scope')
+        now = now or utcnow()
+        with self.transaction() as connection:
+            writer = connection.execute('''SELECT epoch,collector_enabled FROM ops.writer_state
+                WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
+            if writer is None:
+                raise LifecycleHold('collector writer identity missing')
+            if writer['collector_enabled']:
+                updated = connection.execute('''UPDATE ops.writer_state
+                    SET collector_enabled=false,epoch=epoch+1,updated_at=%s
+                    WHERE origin_id=%s RETURNING epoch''', (now, origin_id)).fetchone()
+                epoch = updated['epoch']
+            else:
+                epoch = writer['epoch']
+            return {'collector_enabled': False, 'epoch': epoch}
+
     @staticmethod
     def _create(connection, origin_id, slot, now):
         generation_id = str(uuid.uuid4())

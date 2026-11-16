@@ -606,6 +606,13 @@ tests show disabled/mismatched live input is rejected before persistence.
 Operator control, cross-VM sole-collector fencing and PP live activation are
 still unimplemented; this check alone does not enable collection.
 
+**CP7 stop-path preparation:** The lifecycle role now has an idempotent
+`disable_collector` transaction. It locks the same writer-state row used by
+ingestion, waits for in-flight holders, then durably turns the flag OFF and
+advances the writer epoch. Generated PostgreSQL CI must prove the lock handoff.
+There is deliberately no enable operation or operator API yet; PP live mode
+still requires cross-VM fencing and reviewed authorization.
+
 **CP7 source-client preparation:** Default-off read-only Coinbase ticker and
 official-US Polymarket 15-minute discovery clients now have generated wire
 tests for exact value/provenance preservation, current-market selection,

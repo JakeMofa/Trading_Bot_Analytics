@@ -1,5 +1,14 @@
 # Resume here
 
+Current CP7 runtime (November 17): `preprod` source `4eea47b` passed exact
+CI 44166604082 and was deployed as `v0.2.0-pp.7` in manual CD 44167381155.
+Migration 0002 and generated-only acceptance passed. PP has five running
+services; collector, cloud sync, retirement and paid AI remain OFF. The one-use
+authority was consumed and the ephemeral runner unregistered. The pp.6 package
+mentioned below is historical and was never deployed. Next qualify the host
+ON/OFF path and cross-VM production fence before any bounded PP live run.
+The master roadmap and sanitized deployment artifact have exact evidence.
+
 Current CP7 checkpoint (November 17): PR #60 merged at `e849794`; exact CI
 passed. Generated-only `v0.2.0-pp.6` is published but **not deployed**. PP still
 runs `v0.2.0-pp.5` and has no lease migration 0002. The installed controller

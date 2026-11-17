@@ -41,6 +41,10 @@ class Settings:
                    int(os.getenv('TRADEBOT_OUTBOX_MAX_PENDING','10000')))
 
     def public(self):
+        live = self.data_mode == 'pp_live'
         return {'environment': self.environment, 'data_mode': self.data_mode, 'origin_id': self.origin_id,
-                'collector': {'enabled': False, 'running': False, 'error': None},
-                'unsupported': ['real_collector', 'production_preview', 'ensemble', 'news', 'evaluation', 'paid_ai']}
+                'collector': {'enabled': None if live else False,
+                              'running': None if live else False,
+                              'error': 'unavailable' if live else None},
+                'unsupported': ([] if live else ['real_collector']) +
+                               ['production_preview', 'ensemble', 'news', 'evaluation', 'paid_ai']}

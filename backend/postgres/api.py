@@ -16,7 +16,8 @@ from .store import Store
 
 def health(snapshot):
     required = set(snapshot['missing_data'])-{'trade_flow','btc_order_book'}
-    return 'ok' if not required and snapshot['storage_status']=='ok' else 'degraded'
+    collector_ok = snapshot['data_mode'] != 'pp_live' or snapshot['collector']['enabled'] is True
+    return 'ok' if not required and snapshot['storage_status']=='ok' and collector_ok else 'degraded'
 
 
 def history_context():
@@ -61,6 +62,15 @@ def create_app(settings=None, store=None, state=None, *, history=None, refresh=T
                     state.storage_status('unavailable')
             await asyncio.sleep(.5)
 
+    async def monitor_collector():
+        while True:
+            try:
+                enabled = await asyncio.to_thread(store.collector_enabled)
+                state.collector_status(enabled if type(enabled) is bool else None)
+            except Exception:
+                state.collector_status(None)
+            await asyncio.sleep(1)
+
     @asynccontextmanager
     async def lifespan(app):
         # Verification is mandatory, including in tests; only explicit migrate CLI mutates schema.
@@ -68,6 +78,8 @@ def create_app(settings=None, store=None, state=None, *, history=None, refresh=T
         tasks = []
         if refresh:
             tasks = [asyncio.create_task(discover()),asyncio.create_task(hydrate())]
+            if settings.data_mode == 'pp_live':
+                tasks.append(asyncio.create_task(monitor_collector()))
         try:
             yield
         finally:
@@ -117,6 +129,7 @@ def create_app(settings=None, store=None, state=None, *, history=None, refresh=T
     async def status():
         snapshot = state.snapshot()
         return {**settings.public(),'status':health(snapshot),'feeds':snapshot['feeds'],
+                'collector':snapshot['collector'],
                 'missing_data':snapshot['missing_data'],'storage_status':snapshot['storage_status'],
                 'updated_at':snapshot['updated_at'],'cloud':{'enabled':False,'status':'disabled','datasets':[]}}
 
@@ -160,6 +173,7 @@ def create_app(settings=None, store=None, state=None, *, history=None, refresh=T
     async def system_status():
         snapshot = state.snapshot()
         return {**settings.public(),'api':'responding','live_engine_status':health(snapshot),
+                'collector':snapshot['collector'],
                 'host':{'status':'unavailable','captured_at':None},'services':{},'services_stale':True,
                 'database':{'engine':'postgresql','status':snapshot['storage_status']},
                 'feeds':snapshot['feeds'],'openai_enabled':False,'retention_enabled':False,

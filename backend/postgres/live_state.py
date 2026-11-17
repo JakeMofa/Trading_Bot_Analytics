@@ -18,6 +18,18 @@ class LiveState:
         self._revision = 0
         self._updated_at = None
         self._storage_status = 'starting'
+        self._collector = deepcopy(settings.public()['collector'])
+
+    def collector_status(self, enabled: bool | None):
+        """A database lease is observable; process liveness is not visible here."""
+        if self.settings.data_mode != 'pp_live':
+            return
+        value = {'enabled': enabled, 'running': None,
+                 'error': None if enabled is not None else 'unavailable'}
+        with self._lock:
+            if value != self._collector:
+                self._collector = value
+                self._touch()
 
     def discover(self, market):
         with self._lock:
@@ -107,7 +119,8 @@ class LiveState:
                             'abstain_reason': reason, 'as_of': price['source_time'],
                             'snapshot_as_of': feature['as_of'], 'source': 'live_state_ram'}
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
-            return {**self.settings.public(), 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
+            return {**self.settings.public(), 'collector': deepcopy(self._collector),
+                    'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'feature_snapshot': feature, 'forecast': saved,

@@ -1,5 +1,19 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 truthful PP live dashboard and health — November 17, 2026
+
+Before activation, review found `Settings.public()` and the dashboard label
+always claimed the real collector was OFF, even when a PP live lease could be
+enabled. The candidate now polls the durable PP database lease into RAM once
+per second. Live mode initially reports **unavailable**, reports OFF or ON only
+from that lease, and never infers process liveness from it. The live health
+result degrades when the lease is OFF or unknown. `/health`, `/system/status`,
+API/SSE snapshots and the dashboard label use the same state; a database read
+failure returns unavailable rather than stale healthy data. Generated mode
+still reports OFF. Focused local application tests pass. Exact Linux CI,
+release and real-market observation remain open; PP and production are
+unchanged by this source candidate.
+
 ## CP7 database-wide PP collector lease correction — November 17, 2026
 
 Review of the live trial found that an origin-row lease alone could admit a

@@ -1,0 +1,43 @@
+{
+  "observed_at_utc": "2026-11-17T05:57:44Z",
+  "environment": "preprod",
+  "instance": "tradebot-preprod-01",
+  "first_attempt": {
+    "version": "v0.2.0-pp.4",
+    "source_sha": "6ff5393fa5dd62961879ed8be64d78d157cdd3cf",
+    "workflow_run": 44026013400,
+    "workflow_result": "FAIL",
+    "reason": "GitHub validator rejected the new operator_control check while the host controller recorded PASS",
+    "authority_consumed": true,
+    "operator_service_started": true
+  },
+  "accepted_attempt": {
+    "version": "v0.2.0-pp.5",
+    "source_sha": "e9070229c96d3d046b9730fbdc788bf36afda2fb",
+    "exact_source_ci_run": 44026918955,
+    "publication_run": 44027242158,
+    "workflow_run": 44027443677,
+    "workflow_result": "PASS",
+    "acceptance_scope": "generated_only",
+    "checks": ["api", "collector_ownership", "data_correctness", "disabled_flags", "freshness", "market_identity", "migration", "operator_control", "recovery", "schema", "sse"],
+    "runtime_image_id": "sha256:8a3ef5a2379c36dbc5464acfa52e00ba15783c8784752ae5cf230af0ea937053"
+  },
+  "post_release_read": {
+    "api_environment": "preprod",
+    "api_data_mode": "generated",
+    "api_collector_enabled": false,
+    "api_health_http": 200,
+    "operator_origin": "pp-live-pp",
+    "operator_collector_enabled": false,
+    "operator_initialized": false,
+    "running_services": ["api", "calculation", "lifecycle", "operator", "postgres"],
+    "one_use_authority_present": false,
+    "ephemeral_runner_removed": true
+  },
+  "cloud_sync_enabled": false,
+  "retirement_enabled": false,
+  "paid_ai_enabled": false,
+  "production_changed": false,
+  "actual_collection_interruption_seconds": "NOT_MEASURED",
+  "pp_live_market_acceptance": "NOT_PERFORMED"
+}

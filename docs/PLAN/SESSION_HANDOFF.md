@@ -21,7 +21,16 @@ acceptance check after the host controller passed and started the operator
 container. PP now has five running containers. Authenticated operator status
 reports collection OFF; unauthenticated access is denied. Do not call this
 release PASS. The authority was consumed. A PP-only acceptance-check
-correction is under review; production remains unchanged.
+correction was required; production remained unchanged.
+
+That correction merged as `e907022`, exact CI 44026918955 PASS. Version
+`v0.2.0-pp.5` passed manual CD 44027443677 in generated-only scope. PP now
+runs five services; private API and authenticated operator status respond,
+but collection, cloud sync, retirement and paid AI remain OFF. The one-use
+authority and temporary runner are gone. See
+`docs/PLAN/evidence/pp-operator-release-2026-11-17.json`. Continue CP7 with
+the cross-VM sole-collector fence and bounded ON/OFF session control before
+any live PP feed run. Production is unchanged.
 
 ## Current PP checkpoint — November 15, 2026
 

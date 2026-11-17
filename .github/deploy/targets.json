@@ -5,12 +5,12 @@
     "host": "18.119.253.233",
     "user": "tradebot-preprod-deploy",
     "runtime_qualified": true,
-    "controller_sha256": "d66518ce3d54b74d6d77963ef5099be2cffc2e66244734857c4743d19265013a",
-    "qualification_commit": "e327099d0658e2f2cbc88f9ecd7a6c183c74a35e",
+    "controller_sha256": "416f7326ad381879e537856c095b0fd54cfdd9ec315b914ac69c9257c234007f",
+    "qualification_commit": "989f4615bddaa3387c00a59a67375a33a6b99b5c",
     "timeout_seconds": 810,
     "work_seconds": 600,
     "recovery_seconds": 180,
-    "qualification_evidence": "docs/PLAN/evidence/pp-loopback-controller-binding-2026-11-15.json"
+    "qualification_evidence": "docs/PLAN/evidence/pp-operator-controller-binding-2026-11-17.json"
   },
   "production": {
     "instance": "tradebot-analytics-01",

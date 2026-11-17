@@ -131,20 +131,22 @@ class PostgreSQLSchemaTests(unittest.TestCase):
         cls.db.close()
 
     def test_empty_or_foundation_install_and_repeat(self):
-        self.assertIn(self.first_apply,([1],[]))
+        current = len(load_migrations())
+        self.assertIn(self.first_apply,(list(range(1,current+1)),[]))
         self.assertEqual(apply_migrations(self.db),[])
-        self.assertEqual(validate_schema(self.db),1)
+        self.assertEqual(validate_schema(self.db),current)
         self.db.rollback()
 
     def test_explicit_upgrade_and_applied_file_mutation(self):
         with self.generated_transaction(),tempfile.TemporaryDirectory() as directory:
             for migration in load_migrations():
                 Path(directory,migration.name).write_text(migration.sql)
-            upgrade=Path(directory,'0002_generated_upgrade.sql')
+            current = len(load_migrations())
+            upgrade=Path(directory,f'{current+1:04d}_generated_upgrade.sql')
             upgrade.write_text('CREATE TABLE ops.generated_upgrade_probe(id integer PRIMARY KEY);')
-            self.assertEqual(apply_migrations(self.db,directory=directory),[2])
+            self.assertEqual(apply_migrations(self.db,directory=directory),[current+1])
             self.assertEqual(apply_migrations(self.db,directory=directory),[])
-            self.assertEqual(validate_schema(self.db,migrations=load_migrations(directory)),2)
+            self.assertEqual(validate_schema(self.db,migrations=load_migrations(directory)),current+1)
             original=Path(directory,load_migrations()[0].name)
             original.write_text(original.read_text()+'\n-- forbidden applied-file mutation\n')
             with self.assertRaises(SchemaDrift):
@@ -197,7 +199,7 @@ class PostgreSQLSchemaTests(unittest.TestCase):
                         with self.assertRaises(SchemaDrift): validate_schema(self.db)
                         raise ExpectedRollback()
                 self.db.rollback()
-                self.assertEqual(validate_schema(self.db),1)
+                self.assertEqual(validate_schema(self.db),len(load_migrations()))
                 self.db.rollback()
 
     @contextmanager

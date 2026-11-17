@@ -798,6 +798,10 @@ reports expiry but still has no ON route or process-liveness claim. Local
 generated tests pass; Linux PostgreSQL migration/integration and exact CI are
 pending. This code is not deployed to PP and does not prove or replace the
 production fence, host process controller, CP6 cloud gate or retirement hold.
+The first exact CI on `609713f` failed because generated schema tests hardcoded
+version 1 and reused migration number 2 for their synthetic upgrade. The
+successor makes those expectations follow the actual migration count; that
+failure remains recorded until the successor passes Linux integration.
 CP6 cloud permissions/readback still gate retirement. Production is unchanged.
 
 Cutover, first sealed-generation verification and retirement enablement are

@@ -45,10 +45,16 @@ latest source `a0e2678` passed
 These changes were not deployed to PP. They do not enable collection.
 
 **Continue with:** the restricted authenticated PP operator control, real
-Polymarket quote mapping, source/market-boundary integration and cross-VM
+source/market-boundary integration and cross-VM
 sole-collector fence. CP6 cloud identity/grants and actual readback must pass
 before archival/retirement is enabled. Keep PP generated-only, production
 legacy SQLite held, and retirement/paid AI OFF until their separate gates.
+
+The November 16 default-off ingestion bridge connects the read-only source
+clients to acknowledged `Store.ingest` calls in offline tests. Its code is not
+started by PP and does not authorize live collection. Next qualify the bridge
+with generated PostgreSQL, then implement the operator control and cross-VM
+fence before any bounded live run.
 
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access

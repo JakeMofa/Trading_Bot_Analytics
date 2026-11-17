@@ -629,6 +629,19 @@ probabilities. Its available `lastPriceSample.ts` is labeled as a sample time,
 not a book-update time. One bounded live read returned market/quote data; it
 did not ingest, qualify sustained freshness, or establish collector ownership.
 
+**CP7 default-off ingestion bridge (November 16):** The official read-only
+source clients now have a narrow async bridge to `Store.ingest`. It requires
+`preprod`, `pp_live`, and a distinct `pp-live-` origin before invoking a source;
+each Coinbase ticker is acknowledged before the next is processed. Independent
+Polymarket discovery persists the selected market before requesting its
+matching BBO. A missing current market is not replaced with an old identity;
+durable write holds and source failures propagate. Network-free tests cover
+ordering, stop boundaries, mode/origin rejection and failed acknowledgements.
+This is a code-only, default-off slice: the deployed Settings still rejects
+`pp_live`, no process starts this bridge, and no operator enable/ownership
+control exists. Integrated PostgreSQL, market-boundary and PP live evidence
+remain CP7 gates.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

@@ -1,5 +1,30 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 isolated size-switch qualification candidate — November 17, 2026
+
+A generated-origin, isolated-PostgreSQL test now measures an A→B switch while
+two live-shaped ticker writers run. It checks every committed acknowledgement
+against raw rows, first/second partition allocation and WAL growth, the
+occupied-slot hold, and the PostgreSQL-backed API's current price generation
+and dashboard data binding. The fixture derives its tiny trigger from its own
+partition allocation; it is **mechanism evidence, not a qualified PP capacity
+threshold**. The dashboard does not separately label the active writer
+generation. Cloud sync and retirement remain OFF. Exact Linux PostgreSQL CI
+and any deployed PP observation are still separate gates; no PP service,
+production database, or Supabase state changes in this candidate.
+The first isolated CI run caught a concurrent A→B lookup race in the joined
+writer/generation read. The candidate now locks the writer pointer before a
+fresh generation lookup for both ingest and calculation. Exact PR CI
+[44189046509](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44189046509)
+passed all jobs. Its isolated PostgreSQL 17 run recorded 24 distinct
+acknowledgements, zero acknowledgement gaps, six writes to A and 18 to B,
+an occupied-slot hold, 81,920/114,688 byte A/B partition allocations and
+143,224 WAL bytes generated during the fixture. API current price referenced
+B and the dashboard consumed that state; the dashboard still has no separate
+active-writer generation label. This qualifies the generated size-switch
+mechanism only. A PP runtime threshold, deployed live rotation, cloud archive,
+retirement and sustained acceptance remain OPEN.
+
 ## CP7 PP live observation and OFF calculation corrections — November 17, 2026
 
 Candidate source separates a Polymarket US REST BBO's local observation time
@@ -15,6 +40,7 @@ tests cover old/missing sample times, repeated polls and quote ordering. The
 isolated PostgreSQL test covers BBO hydration and calculation ON→OFF; exact
 Linux CI and real-market PP observation remain open. This candidate does not
 activate a collector or change PP/production hosts.
+
 ## CP7 PP host mode-transition core — November 17, 2026
 
 The candidate `LiveTransition` component validates the normalized live Compose

@@ -16,12 +16,57 @@ import httpx
 from websockets.asyncio.client import connect as websocket_connect
 
 from .contract import source_timestamp
-from .live_contract import coinbase_ticker, polymarket_bbo, polymarket_market
+from .live_contract import coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
 
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
 POLYMARKET_REST = 'https://gateway.polymarket.us'
 MAX_RESPONSE_BYTES = 1024 * 1024
+
+
+async def fetch_coinbase_closed_candles(client: httpx.AsyncClient, now: datetime):
+    """One bounded historical read for 17 completed minutes; no gap filling.
+
+    Coinbase documents that historical candles may omit no-trade intervals and
+    should not be polled frequently. Scheduling belongs to the owning collector.
+    """
+    if now.tzinfo is None:
+        raise ValueError('candle request requires timezone-aware time')
+    now = now.astimezone(timezone.utc)
+    end = int(now.timestamp()) // 60 * 60
+    start = end - 17 * 60
+    try:
+        async with client.stream('GET', 'https://api.exchange.coinbase.com/products/BTC-USD/candles',
+                                 params={'start': datetime.fromtimestamp(start, timezone.utc).isoformat(),
+                                         'end': datetime.fromtimestamp(end, timezone.utc).isoformat(),
+                                         'granularity': 60},
+                                 headers={'Accept': 'application/json'},
+                                 timeout=4, follow_redirects=False) as response:
+            if response.status_code != 200:
+                raise ValueError('Coinbase candles unavailable')
+            body = bytearray()
+            async for chunk in response.aiter_bytes():
+                body.extend(chunk)
+                if len(body) > MAX_RESPONSE_BYTES:
+                    raise ValueError('Coinbase candle response exceeds bound')
+    except httpx.HTTPError:
+        raise ValueError('Coinbase candles unavailable') from None
+    rows = json.loads(body, parse_float=Decimal)
+    if not isinstance(rows, list) or len(rows) > 25:
+        raise ValueError('invalid Coinbase candle response')
+    received = datetime.now(timezone.utc).isoformat()
+    events, seen = [], set()
+    for row in rows:
+        event = coinbase_closed_candle(row, received)
+        second = event['payload']['time']
+        if second in seen:
+            raise ValueError('duplicate Coinbase candle bucket')
+        seen.add(second)
+        # Coinbase may return buckets before the requested start. An open
+        # current minute is never admitted as a stable immutable candle.
+        if start <= second < end:
+            events.append(event)
+    return sorted(events, key=lambda item: item['payload']['time'])
 
 
 async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):

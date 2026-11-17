@@ -19,8 +19,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded, wire
 from postgres.history import ArchiveHistory
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
-from postgres.live_contract import coinbase_ticker, polymarket_bbo, polymarket_market
-from postgres.live_ingest import coinbase_session, polymarket_cycle
+from postgres.live_contract import coinbase_closed_candle, coinbase_ticker, polymarket_bbo, polymarket_market
+from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
 from postgres.store import StorageHold, Store
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
 
@@ -124,19 +124,26 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
                                (live.origin,))
         asyncio.run(cycle())
         asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
+        minute = int(now.timestamp()) // 60 * 60 - 60
+        candle = coinbase_closed_candle([minute, '99999.1', '100001.1', '100000.1',
+                                         '100000.5', '0.1234567890123456789'], received)
+        async def closed(_client, _now):
+            return [candle]
+        self.assertEqual(asyncio.run(coinbase_candle_cycle(live, None, asyncio.Event(), fetch=closed)), 1)
         query_now = datetime.now(timezone.utc)
         active = live.active_market(query_now)
         self.assertEqual(active['id'], market['market_id'])
-        price, _ = live.inputs(active['id'], query_now)
+        price, candles = live.inputs(active['id'], query_now)
         self.assertEqual(price['price_usd'], ticker['price'])
         self.assertEqual(price['source_time'], ticker['source_time'])
+        self.assertEqual(candles[-1]['close'], '100000.5')
         self.repository.disable_collector(live.origin)
         with self.assertRaises(StorageHold):
             asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
         with live.connection(True) as connection:
             count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE origin_id=%s',
                                        (live.origin,)).fetchone()['count']
-        self.assertEqual(count, 3)
+        self.assertEqual(count, 4)
 
     def test_durable_stop_waits_for_writer_then_is_idempotent(self):
         # Generated isolated DB only: simulate a previously enabled PP writer.

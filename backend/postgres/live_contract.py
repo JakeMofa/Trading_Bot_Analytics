@@ -3,6 +3,8 @@
 These functions do not open a feed, enable collection, or write a database.
 Original wire values remain in raw_payload and source_time.
 """
+from datetime import datetime, timezone
+
 from .contract import canonical_json, content_hash, exact_decimal, source_timestamp
 
 
@@ -38,6 +40,32 @@ def coinbase_ticker(message, received_at, raw_wire=None):
         'provenance': {**PROVENANCE, 'feed': 'coinbase_exchange_ws',
                        'price_role': 'reference_not_settlement'},
     }
+
+
+def coinbase_closed_candle(row, received_at):
+    """Map one completed Exchange 60-second bucket without inventing gaps."""
+    source_timestamp(received_at)
+    if not isinstance(row, list) or len(row) != 6:
+        raise ValueError('invalid Coinbase candle shape')
+    second, low, high, opened, closed, volume = row
+    if isinstance(second, bool) or not isinstance(second, int) or second % 60:
+        raise ValueError('Coinbase candle time must be an aligned minute')
+    values = [exact_decimal(value) for value in (low, high, opened, closed, volume)]
+    if any(value <= 0 for value in values[:4]) or values[4] < 0:
+        raise ValueError('invalid Coinbase candle values')
+    if not values[0] <= values[2] <= values[1] or not values[0] <= values[3] <= values[1]:
+        raise ValueError('Coinbase candle OHLC is inconsistent')
+    at = datetime.fromtimestamp(second, timezone.utc).isoformat()
+    payload = {'time': second, 'granularity': 60,
+               'low': str(low), 'high': str(high), 'open': str(opened),
+               'close': str(closed), 'volume': str(volume)}
+    return {'source': 'coinbase', 'event_id': 'exchange-candle-60-' + str(second),
+            'kind': 'candle', 'symbol': 'BTC-USD', 'source_time': at,
+            'received_at': received_at, 'payload': payload,
+            'raw_payload': canonical_json(row),
+            'provenance': {**PROVENANCE, 'feed': 'coinbase_exchange_rest_candles',
+                           'source_time_role': 'bucket_start_not_last_trade',
+                           'price_role': 'reference_not_settlement'}}
 
 
 def polymarket_market(raw, received_at):

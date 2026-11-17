@@ -1,5 +1,35 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 PP generated release and live-controller binding — November 17, 2026
+
+Exact `preprod` source `9dbeec6` passed push CI
+[44193279239](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44193279239)
+and was published as immutable candidate `v0.2.0-pp.8` by
+[44193897155](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44193897155).
+One-use generated-mode CD
+[44194501783](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44194501783)
+passed. Host readback matched the source and image, all five PP containers were
+running, and the API reported `generated` with collector OFF. The temporary
+private runner deregistered.
+
+The reviewed PP live-controller zipapp was built twice byte-identically and
+installed at SHA-256 `bdb11511039365990249846d1e5a521228255530db000a25181ad260f7aebee7`.
+The prior controller code remains present. Dedicated forced-command identity
+run [44195257281](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44195257281)
+returned `IDENTITY_PASS` for that exact hash; host API readback remained
+generated/OFF. The binding is recorded in
+`docs/PLAN/evidence/pp-live-controller-binding-2026-11-17.json`.
+**READY_OFF has not been entered and no PP live feed session has run.** Cloud
+sync, retirement, paid AI and trading remain OFF. A separate one-use enter and
+session ON authority is required for the bounded first PP collector/query trial.
+
+At 22:49 UTC, a bounded read-only production `/health` check returned HTTP 200
+but reported collector `enabled=true`, `running=false`, Coinbase and Polymarket
+streams `stopped`, and storage guard `limit_reached`. This is a fresh service
+status sample, not a full persistence or feature audit. No production operation
+was performed. PP as an outage standby and cross-origin gap reconciliation are
+**future** resilience work, not this trial's acceptance gate.
+
 ## CP7 occupied-slot fail-closed preparation — November 17, 2026
 
 The PP-live lifecycle candidate now commits `other_slot_not_retired` and a

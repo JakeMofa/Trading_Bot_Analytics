@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import controller as c
@@ -506,6 +507,33 @@ class ActionTests(unittest.TestCase):
                 if payload is valid:self.actions._host_api(live=True)
                 else:
                     with self.assertRaises(c.DeploymentHold):self.actions._host_api(live=True)
+
+    def test_host_operator_proves_live_on_route_without_enabling_it(self):
+        class Response:
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,_limit):return json.dumps({
+                'environment':'preprod','origin_id':'pp-live-pp',
+                'collector_enabled':False,'initialized':True,
+                'process_running':False,'live_fence_qualified':False}).encode()
+        class Opener:
+            def __init__(self,on_code):self.on_code=on_code;self.paths=[]
+            def open(self,target,timeout):
+                path=target if isinstance(target,str) else target.full_url
+                self.paths.append(path)
+                if len(self.paths)==1:raise HTTPError(path,401,'unauthorized',None,None)
+                if len(self.paths)==2:return Response()
+                raise HTTPError(path,self.on_code,'route check',None,None)
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder)/'operator_token').write_text('fixture-token')
+            for code,passes in ((405,True),(404,False),(200,False)):
+                opener=Opener(code)
+                with patch.object(a,'RUNTIME_SECRETS',Path(folder)), \
+                     patch.object(a.urllib.request,'build_opener',return_value=opener):
+                    if passes:self.actions._host_operator(live=True)
+                    else:
+                        with self.assertRaises(c.DeploymentHold):self.actions._host_operator(live=True)
+                self.assertEqual(opener.paths[-1],'http://127.0.0.1:8001/collector/on')
 
     def test_smoke_does_not_turn_status200_or_partial_acceptance_into_pass(self):
         self.actions.migrated=True

@@ -540,6 +540,13 @@ class LinuxActions:
                     and state.get('process_running') is (False if live else None)
                     and state.get('live_fence_qualified') is False,
                     'operator_not_default_off')
+            # A GET cannot enable collection. FastAPI returns 405 only when
+            # the opt-in POST route exists; generated mode must leave it absent.
+            try:
+                opener.open('http://127.0.0.1:8001/collector/on',timeout=2)
+                raise DeploymentHold('operator_on_get_unexpectedly_accepted')
+            except HTTPError as error:
+                require(error.code==(405 if live else 404),'operator_on_route_mismatch')
         except (OSError,ValueError,KeyError):
             raise DeploymentHold('host_operator_loopback_unavailable') from None
 

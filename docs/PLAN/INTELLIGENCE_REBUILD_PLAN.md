@@ -25,6 +25,28 @@ active-writer generation label. This qualifies the generated size-switch
 mechanism only. A PP runtime threshold, deployed live rotation, cloud archive,
 retirement and sustained acceptance remain OPEN.
 
+## CP7 PP host mode-transition core — November 17, 2026
+
+The candidate `LiveTransition` component validates the normalized live Compose
+overlay against the exact generated profile, checks the currently running
+PostgreSQL and generated services, stops/recreates only the four application
+services into PP live mode, and requires both private host API/operator routes
+to report the PP live origin with a durable OFF lease. It **does not** call ON.
+On leave, a bounded lifecycle-role one-off stops the collector through the
+writer-row lock and independently reads back OFF before restoring generated
+services. The same OFF check precedes generated restoration after a failed
+entry; an unproven OFF leaves the transition held. PostgreSQL, its volume,
+cloud flags and retirement are never changed by this component. Local
+deployment-control tests pass, including failed start and unproven-OFF paths.
+
+This component is **not yet installed or executable on PP**. A separate trusted
+root entrypoint must bind the exact CI-passed source, image, host and one-use
+authority, expose bounded ON/OFF without disclosing the operator token, and
+prove recovery after interruption. Only then can a reviewed generated-only
+release be switched to live mode for the real-market trial. A short trial still
+cannot prove archive/retirement or 72-hour rotation; those remain separate
+gates.
+
 ## CP7 independent PP live OFF recovery path — November 17, 2026
 
 The private operator API is the normal ON/OFF route, but it may be unreachable

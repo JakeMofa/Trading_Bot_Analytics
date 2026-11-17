@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import controller as c
@@ -53,19 +54,19 @@ def configuration(source,image=IMAGE):
     return config
 
 
-def inspected(service='api',running=True):
+def inspected(service='api',running=True,live=False):
     port=8000 if service=='api' else 8001 if service=='operator' else None
     bindings={f'{port}/tcp':[{'HostIp':'127.0.0.1','HostPort':str(port)}]} if port else {}
     return {'Id':CID,'Image':IMAGE,'State':{'Running':running,'OOMKilled':False,'Health':{'Status':'healthy'}},
         'Config':{'Image':IMAGE,'Cmd':a.COMMANDS[service],'User':'10001:10001','Labels':{
                   'com.docker.compose.project':a.PROJECT,'com.docker.compose.service':service,'com.docker.compose.oneoff':'False'},
-                  'Env':[key+'='+value for key,value in a.expected_environment(service).items()]},
+                  'Env':[key+'='+value for key,value in a.expected_environment(service,live=live).items()]},
         'HostConfig':{'Memory':a.MEMORY[service]*1024**2,'MemorySwap':a.MEMORY[service]*1024**2,'PidsLimit':64,
                       'ReadonlyRootfs':True,'Privileged':False,'CapDrop':['ALL'],
                       'NanoCpus':int(a.CPUS.get(service,0)*1_000_000_000),
                       'RestartPolicy':{'Name':'unless-stopped' if running else 'no'},
                       'PortBindings':bindings},
-        'Mounts':[{'Destination':'/run/secrets/'+secret,'Source':str(a.RUNTIME_SECRETS/secret),'RW':False} for secret in a.service_secrets(service)],
+        'Mounts':[{'Destination':'/run/secrets/'+secret,'Source':str(a.RUNTIME_SECRETS/secret),'RW':False} for secret in a.service_secrets(service,live=live)],
         'NetworkSettings':{'Networks':{name:{} for name in
             ([a.NETWORK,a.API_NETWORK] if service in ('api','operator') else [a.NETWORK])},
             'Ports':bindings}}
@@ -432,13 +433,56 @@ class ActionTests(unittest.TestCase):
             with patch.object(self.actions,'_ids',return_value=[CID]),patch.object(self.actions,'_inspect',return_value=[row]):
                 with self.assertRaises(c.DeploymentHold):self.actions._runtime(self.context,self.budget)
 
+    def test_live_runtime_requires_exact_origin_flags_and_app_secret(self):
+        ids=lambda _context,_budget,services:[services[0]]
+        rows=lambda _budget,items:[inspected(service=items[0],live=True)]
+        with patch.object(self.actions,'_ids',side_effect=ids), \
+             patch.object(self.actions,'_inspect',side_effect=rows):
+            self.actions._runtime(self.context,self.budget,live=True)
+        self.assertEqual(a.expected_environment('api',live=True)['TRADEBOT_ORIGIN_ID'],'pp-live-pp')
+        self.assertIn('app_dsn',a.service_secrets('operator',live=True))
+        self.assertNotIn('app_dsn',a.service_secrets('operator'))
+        for mutation in (
+            lambda row:row['Config']['Env'].append('ENABLE_SUPABASE_SYNC=true'),
+            lambda row:row['Mounts'].pop(),
+            lambda row:row['Config']['Env'].append('TRADEBOT_ORIGIN_ID=generated-pp'),
+        ):
+            def changed(_budget,items):
+                row=inspected(service=items[0],live=True)
+                if items[0]=='operator':mutation(row)
+                return [row]
+            with patch.object(self.actions,'_ids',side_effect=ids), \
+                 patch.object(self.actions,'_inspect',side_effect=changed), \
+                 self.assertRaises(c.DeploymentHold):
+                self.actions._runtime(self.context,self.budget,live=True)
+
+    def test_owned_lifecycle_oneoff_uses_only_explicit_live_compose(self):
+        commands=[]
+        def selected(args,timeout):
+            commands.append((args,timeout))
+            return b'{"collector_enabled":false}'
+        with patch.object(self.actions,'_cleanup_oneoffs') as cleanup, \
+             patch.object(self.actions,'_compose') as base:
+            result=self.actions._oneoff(self.context,self.budget,'lifecycle',
+                ['python','-m','postgres.lifecycle_worker','--stop-collector'],
+                timeout=30,compose=selected)
+        self.assertEqual(result,b'{"collector_enabled":false}')
+        self.assertEqual(len(commands),1)
+        self.assertIn(a.ATTEMPT_LABEL+'='+self.actions.attempt_id,commands[0][0])
+        self.assertIn(a.SOURCE_LABEL+'='+self.context.request.source_sha,commands[0][0])
+        self.assertEqual(commands[0][0][-4:],['python','-m','postgres.lifecycle_worker','--stop-collector'])
+        self.assertEqual(commands[0][1],30)
+        cleanup.assert_called_once()
+        base.assert_not_called()
+
     def test_host_api_requires_private_generated_state(self):
         class Response:
             def __init__(self,payload):self.payload=payload
             def __enter__(self):return self
             def __exit__(self,*args):return False
             def read(self,limit):return json.dumps(self.payload).encode()
-        valid={'environment':'preprod','data_mode':'generated','collector':{'enabled':False}}
+        valid={'environment':'preprod','data_mode':'generated','origin_id':'generated-pp',
+               'collector':{'enabled':False}}
         for payload in (valid,{**valid,'environment':'production'},
                         {**valid,'collector':{'enabled':True}},
                         {**valid,'data_mode':'production_preview'}):
@@ -447,6 +491,49 @@ class ActionTests(unittest.TestCase):
                 else:
                     with self.assertRaises(c.DeploymentHold):self.actions._host_api()
                 self.assertEqual(opened.call_args.args[0],'http://127.0.0.1:8000/state/current')
+
+    def test_host_live_api_requires_pp_origin_and_durable_off(self):
+        class Response:
+            def __init__(self,payload):self.payload=payload
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,_limit):return json.dumps(self.payload).encode()
+        valid={'environment':'preprod','data_mode':'pp_live','origin_id':'pp-live-pp',
+               'collector':{'enabled':False}}
+        for payload in (valid,{**valid,'origin_id':'generated-pp'},
+                        {**valid,'collector':{'enabled':None}},
+                        {**valid,'collector':{'enabled':True}}):
+            with patch.object(a.urllib.request.OpenerDirector,'open',return_value=Response(payload)):
+                if payload is valid:self.actions._host_api(live=True)
+                else:
+                    with self.assertRaises(c.DeploymentHold):self.actions._host_api(live=True)
+
+    def test_host_operator_proves_live_on_route_without_enabling_it(self):
+        class Response:
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,_limit):return json.dumps({
+                'environment':'preprod','origin_id':'pp-live-pp',
+                'collector_enabled':False,'initialized':True,
+                'process_running':False,'live_fence_qualified':False}).encode()
+        class Opener:
+            def __init__(self,on_code):self.on_code=on_code;self.paths=[]
+            def open(self,target,timeout):
+                path=target if isinstance(target,str) else target.full_url
+                self.paths.append(path)
+                if len(self.paths)==1:raise HTTPError(path,401,'unauthorized',None,None)
+                if len(self.paths)==2:return Response()
+                raise HTTPError(path,self.on_code,'route check',None,None)
+        with tempfile.TemporaryDirectory() as folder:
+            (Path(folder)/'operator_token').write_text('fixture-token')
+            for code,passes in ((405,True),(404,False),(200,False)):
+                opener=Opener(code)
+                with patch.object(a,'RUNTIME_SECRETS',Path(folder)), \
+                     patch.object(a.urllib.request,'build_opener',return_value=opener):
+                    if passes:self.actions._host_operator(live=True)
+                    else:
+                        with self.assertRaises(c.DeploymentHold):self.actions._host_operator(live=True)
+                self.assertEqual(opener.paths[-1],'http://127.0.0.1:8001/collector/on')
 
     def test_smoke_does_not_turn_status200_or_partial_acceptance_into_pass(self):
         self.actions.migrated=True

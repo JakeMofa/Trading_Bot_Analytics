@@ -67,6 +67,10 @@ class LiveContractTests(unittest.TestCase):
         self.assertEqual(event['source_time'], '2026-11-13T12:00:00.123456789Z')
         self.assertEqual(json.loads(event['raw_payload']), raw)
         self.assertEqual(event['provenance']['source_time_role'], 'last_price_sample_not_book_update')
+        later = polymarket_bbo(raw, market, '2026-11-13T12:00:05Z')
+        self.assertNotEqual(event['event_id'], later['event_id'])
+        self.assertEqual(event['source_time'], later['source_time'])
+        self.assertEqual(event['event_id'], polymarket_bbo(raw, market, NOW)['event_id'])
         with self.assertRaisesRegex(ValueError, 'market identity'):
             polymarket_bbo({'marketData': {**raw['marketData'], 'marketSlug': 'other'}}, market, NOW)
         with self.assertRaisesRegex(ValueError, 'unit interval'):

@@ -308,11 +308,14 @@ class Store:
                 if existing['feature_hash'] != digest(snapshot) or existing['prediction_hash'] != digest(prediction):
                     raise IdentityConflict('conflicting calculation identity')
                 return snapshot_id
-            writer=db.execute('''SELECT w.generation_id,g.state FROM ops.writer_state w
+            writer=db.execute('''SELECT w.generation_id,w.collector_enabled,
+                w.collector_lease_expires_at>clock_timestamp() AS lease_valid,g.state FROM ops.writer_state w
                 JOIN archive.generations g USING(origin_id,generation_id) WHERE w.origin_id=%s FOR SHARE OF w''',
                 (self.origin,)).fetchone()
             if not writer or writer['state']!='collecting':
                 raise PublicationRejected('no collecting generation for structured acknowledgement')
+            if self.settings.data_mode == 'pp_live' and not (writer['collector_enabled'] and writer['lease_valid']):
+                raise PublicationRejected('PP live collector is durably disabled')
             output_generation=writer['generation_id']
             self._admit(db,6)
             active = self._active(db,now)
@@ -358,6 +361,12 @@ class Store:
             db.execute('''INSERT INTO ops.worker_checkpoints(origin_id,worker,cursor,updated_at) VALUES(%s,'calculation',%s,%s)
                 ON CONFLICT(origin_id,worker) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=EXCLUDED.updated_at''',
                 (self.origin,Jsonb({'snapshot_id':snapshot_id,'market_id':market['id'],'as_of':snapshot['as_of']}),now))
+            if self.settings.data_mode == 'pp_live':
+                valid = db.execute('''SELECT collector_enabled AND
+                    collector_lease_expires_at>clock_timestamp() AS valid
+                    FROM ops.writer_state WHERE origin_id=%s''', (self.origin,)).fetchone()
+                if not valid or not valid['valid']:
+                    raise PublicationRejected('PP live collector lease expired before calculation acknowledgement')
         return snapshot_id
 
     def hydrate(self, market_id, now=None):
@@ -369,8 +378,8 @@ class Store:
             prediction = db.execute('''SELECT * FROM core.predictions WHERE origin_id=%s AND market_id=%s AND as_of<=%s
                 ORDER BY as_of DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
             quote = db.execute('''SELECT * FROM raw.events WHERE origin_id=%s AND market_id=%s AND source='polymarket_us'
-                AND kind='quote' AND available_at<=%s AND source_epoch<=%s ORDER BY source_epoch DESC LIMIT 1''',
-                (self.origin,market_id,now,Decimal(str(now.timestamp())))).fetchone()
+                AND kind='quote' AND available_at<=%s AND received_at<=%s ORDER BY received_at DESC,event_id DESC LIMIT 1''',
+                (self.origin,market_id,now,now)).fetchone()
         feature = json_value({'snapshot_id':feature['snapshot_id'],'market_id':market_id,'as_of':feature['as_of'],
                               'values':feature['values_json'],'quality':feature['quality_json']}) if feature else None
         quote = json_value({**quote['payload']['data'],'market_id':market_id,'source_time':quote['source_time'],

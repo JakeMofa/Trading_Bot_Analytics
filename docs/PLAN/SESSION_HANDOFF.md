@@ -1,5 +1,14 @@
 # Resume here
 
+Current CP7 checkpoint (November 17): PR #60 merged at `e849794`; exact CI
+passed. Generated-only `v0.2.0-pp.6` is published but **not deployed**. PP still
+runs `v0.2.0-pp.5` and has no lease migration 0002. The installed controller
+matches the candidate, but the approved ephemeral private GitHub runner is
+absent; no one-use host authority was created. Restore that runner, then run
+the exact manual PP release and bounded acceptance. Do not activate PP live
+collection until the host ON/OFF path and cross-VM production fence pass.
+The master roadmap has the exact SHA, run links and remaining gates.
+
 Read `AGENTS.md` and the active section of
 [INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). The master roadmap is
 authoritative; this handoff only points to the current checkpoint. Preserve the

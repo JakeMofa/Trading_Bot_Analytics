@@ -1,5 +1,32 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 PP collector lease checkpoint — November 17, 2026
+
+PR [#60](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/60) merged
+the explicit PostgreSQL collector-lease migration and default-OFF, lifecycle-only
+lease enforcement into `preprod` at `e849794`. Exact source CI
+[44163202311](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44163202311)
+and merge CI [44163745406](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44163745406)
+passed. Earlier candidate failures from stale migration-count assertions remain
+failures; they were corrected before the passing source. The lease rejects
+expired sessions before acknowledgement and does not expose a collector ON route.
+
+The immutable generated-only release candidate
+[`v0.2.0-pp.6`](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.6)
+was published by [run 44164383015](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44164383015)
+for exact source `e849794`; artifact SHA-256 is
+`6888e78fb23d5b60190bf1671977d408593f7d5523b968b03c9715558d2b6352`.
+Read-only PP preflight matched the installed controller hash and found no unused
+one-use authority. GitHub listed **no available private runner**, so no
+authorization was created and no CD was dispatched. PP still runs the previous
+generated-only `v0.2.0-pp.5`; schema migration 0002 is **not applied** there.
+Production and PP runtime settings were not changed by this checkpoint. Restore
+the previously approved ephemeral private runner, then perform the exact manual
+PP release with its one-use authority and bounded smoke checks. Cross-VM
+collector fencing and a host ON/OFF controller remain prerequisites to live PP
+collection; CP6 cloud archival and retirement remain OFF. I7 and Phase 1.75
+remain OPEN.
+
 ## Branch archive — November 17, 2026
 
 The repository now retains four active GitHub branches: `main`, `preprod`,

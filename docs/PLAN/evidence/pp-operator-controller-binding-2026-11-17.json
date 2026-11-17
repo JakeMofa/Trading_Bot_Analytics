@@ -1,0 +1,22 @@
+{
+  "observed_at_utc": "2026-11-17T05:33:09Z",
+  "scope": "actual_pp_operator_controller_binding",
+  "environment": "preprod",
+  "instance": "tradebot-preprod-01",
+  "source_commit": "989f4615bddaa3387c00a59a67375a33a6b99b5c",
+  "source_ci_run": 44024202007,
+  "controller_sha256": "416f7326ad381879e537856c095b0fd54cfdd9ec315b914ac69c9257c234007f",
+  "prior_controller_code_retained": true,
+  "dedicated_identity_run": 44024832718,
+  "dedicated_identity_result": "PASS",
+  "operator_token_metadata_valid": true,
+  "token_value_recorded": false,
+  "one_use_deployment_authority_present": false,
+  "ephemeral_private_runner_removed": true,
+  "running_services": ["api", "calculation", "lifecycle", "postgres"],
+  "operator_service_running": false,
+  "application_release_dispatched": false,
+  "database_changed_by_controller_installation": false,
+  "live_collection_enabled": false,
+  "production_changed": false
+}

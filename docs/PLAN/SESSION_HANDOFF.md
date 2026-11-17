@@ -7,11 +7,15 @@ dirty original checkout on `codex/phase1-75-retention-enable`, including all
 unrelated edits and secrets. Small reviewed PRs target `preprod`.
 
 PR #52 merged a separate loopback-bound PP operator status/OFF service; merged
-source `a11d922` passed exact CI 44022560772. An explicit PP token-preparation
-attempt stopped before writing because the existing application's host marker
-is correctly `application_installed=true`. The narrowly scoped runtime
-preflight correction is under review. No operator process or token is installed,
-and PP collection remains OFF.
+source `a11d922` passed exact CI 44022560772. The first explicit token
+preparation stopped before writing because the existing PP marker correctly
+said `application_installed=true`. PR #53 fixed that narrow preflight and
+merged as `989f461`; exact preprod CI
+44024202007 passed. The explicit token preparation and controller installation
+passed on PP, followed by dedicated identity run 44024832718 PASS. The
+operator service is still not deployed; a profile PR and manual PP release
+remain. The old four containers stayed running. See the sanitized binding in
+`docs/PLAN/evidence/pp-operator-controller-binding-2026-11-17.json`.
 
 ## Current PP checkpoint — November 15, 2026
 

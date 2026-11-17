@@ -727,6 +727,17 @@ database were not changed. The new operator bundle is hash-verified in
 root-owned staging but not installed. Exact successor CI and host rerun remain
 required before any manual PP release.
 
+**PP operator controller binding (November 17):** PR #53 merged as `989f461`;
+exact preprod CI 44024202007 passed. The explicit PP runtime preparation
+created only the missing operator token with UID 10001 and mode 0400. The
+hash-verified controller `416f7326...` was installed, with prior helper code
+retained. Dedicated-key identity workflow 44024832718 passed for that exact
+hash; its temporary runner was removed. The four prior containers remained
+running, no one-use authority exists, and the operator service has not started.
+The [sanitized host binding](evidence/pp-operator-controller-binding-2026-11-17.json)
+supports the separate deployment-profile PR. Manual PP release and its
+functional acceptance remain open; live collection stays OFF.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

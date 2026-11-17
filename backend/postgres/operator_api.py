@@ -38,6 +38,8 @@ def create_operator_app(repository, *, origin_id: str, token: str):
                 'epoch': durable['epoch'], 'generation_id': durable['generation_id'],
                 'updated_at': durable['updated_at'],
                 'initialized': durable['initialized'],
+                'lease_expires_at': durable.get('collector_lease_expires_at'),
+                'lease_expired': bool(durable.get('stored_enabled') and not durable['collector_enabled']),
                 'process_running': None, 'live_fence_qualified': False}
 
     @app.post('/collector/off')

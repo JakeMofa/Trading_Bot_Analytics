@@ -114,15 +114,15 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         async def source(_stop):
             yield ticker
         # Only the scoped PP live identity may use the bridge.
-        self.repository.bootstrap(live.origin, now)
+        live_generation = self.repository.bootstrap(live.origin, now)
         self.assertFalse(live.collector_enabled())
         async def cycle():
             await polymarket_cycle(live, None, asyncio.Event(), discover=discover, fetch=fetch)
         with self.assertRaises(StorageHold):
             asyncio.run(cycle())
-        with self.factory() as connection:
-            connection.execute('UPDATE ops.writer_state SET collector_enabled=true WHERE origin_id=%s',
-                               (live.origin,))
+        self.repository.enable_collector(live.origin, session_id=str(uuid.uuid4()),
+                                         expected_generation_id=str(live_generation['generation_id']),
+                                         max_seconds=60)
         self.assertTrue(live.collector_enabled())
         asyncio.run(cycle())
         asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
@@ -151,8 +151,9 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
     def test_durable_stop_waits_for_writer_then_is_idempotent(self):
         # Generated isolated DB only: simulate a previously enabled PP writer.
         with self.factory() as connection:
-            connection.execute('''UPDATE ops.writer_state SET collector_enabled=true
-                WHERE origin_id=%s''', (self.origin,))
+            connection.execute('''UPDATE ops.writer_state SET collector_enabled=true,
+                collector_session_id=%s::uuid,collector_lease_expires_at=clock_timestamp()+interval '60 seconds'
+                WHERE origin_id=%s''', (str(uuid.uuid4()), self.origin))
         held, release, done = threading.Event(), threading.Event(), threading.Event()
         failures, results = [], []
         def in_flight():
@@ -194,19 +195,57 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
     def test_operator_status_reads_durable_flag_without_claiming_process_liveness(self):
         origin = 'pp-live-' + uuid.uuid4().hex
         self.assertEqual(self.repository.collector_state(origin)['initialized'], False)
-        self.repository.bootstrap(origin)
+        generation = self.repository.bootstrap(origin)
         state = self.repository.collector_state(origin)
         self.assertFalse(state['collector_enabled'])
         self.assertTrue(state['initialized'])
         self.assertEqual(state['epoch'], 1)
-        with self.factory() as connection:
-            connection.execute('UPDATE ops.writer_state SET collector_enabled=true WHERE origin_id=%s',
-                               (origin,))
+        self.repository.enable_collector(origin, session_id=str(uuid.uuid4()),
+                                         expected_generation_id=str(generation['generation_id']),
+                                         max_seconds=60)
         self.assertTrue(self.repository.collector_state(origin)['collector_enabled'])
         self.repository.disable_collector(origin)
         self.assertFalse(self.repository.collector_state(origin)['collector_enabled'])
         with self.assertRaises(LifecycleHold):
             self.repository.collector_state('generated-pp')
+
+    def test_pp_live_lease_expires_without_authorizing_new_writes(self):
+        origin = 'pp-live-' + uuid.uuid4().hex
+        generation = self.repository.bootstrap(origin)
+        live = Store(SimpleNamespace(origin_id=origin, environment='preprod',
+                                     dsn=os.environ['TRADEBOT_TEST_APP_DSN'], data_mode='pp_live',
+                                     outbox_max_pending=10000))
+        session = str(uuid.uuid4())
+        with self.assertRaises(LifecycleHold):
+            self.repository.enable_collector(origin, session_id=session,
+                expected_generation_id=str(generation['generation_id']), max_seconds=1801)
+        with self.assertRaises(LifecycleHold):
+            self.repository.enable_collector(origin, session_id=session,
+                expected_generation_id=str(uuid.uuid4()), max_seconds=60)
+        self.assertFalse(live.collector_enabled())
+        result = self.repository.enable_collector(origin, session_id=session,
+            expected_generation_id=str(generation['generation_id']), max_seconds=60)
+        self.assertTrue(result['collector_enabled'])
+        self.assertTrue(live.collector_enabled())
+        with self.assertRaises(LifecycleHold):
+            self.repository.enable_collector(origin, session_id=str(uuid.uuid4()),
+                expected_generation_id=str(generation['generation_id']), max_seconds=60)
+        with self.factory() as connection:
+            connection.execute('''UPDATE ops.writer_state SET
+                collector_lease_expires_at=clock_timestamp()-interval '1 second'
+                WHERE origin_id=%s''', (origin,))
+        self.assertFalse(live.collector_enabled())
+        self.assertFalse(self.repository.collector_state(origin)['collector_enabled'])
+        self.assertTrue(self.repository.collector_state(origin)['stored_enabled'])
+        event = coinbase_ticker({'type': 'ticker', 'product_id': 'BTC-USD', 'trade_id': 991,
+                                 'time': '2026-11-17T12:00:00Z', 'price': '100000.001'},
+                                '2026-11-17T12:00:01Z')
+        with self.assertRaises(StorageHold):
+            live.ingest(event)
+        self.repository.disable_collector(origin)
+        state = self.repository.collector_state(origin)
+        self.assertFalse(state['stored_enabled'])
+        self.assertIsNone(state['collector_lease_expires_at'])
 
     def test_atomic_switch_waits_for_acknowledged_write_then_late_events_use_b(self):
         locked, release, completed = threading.Event(), threading.Event(), threading.Event()

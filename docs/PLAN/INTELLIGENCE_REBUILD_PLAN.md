@@ -787,6 +787,24 @@ source failure, cancellation and unproven OFF. This does not provide a
 qualified ownership proof, a durable enable implementation, an ON API or a
 host process controller. PP and production remain unchanged; live collection
 is still blocked on those controls and the cross-VM fence.
+
+**CP7 expiring PP writer lease candidate (November 17):** Explicit migration
+`0002_collector_lease.sql` adds a finite session/expiry to the durable PP
+writer flag. A lifecycle-role method can set a 1–1800 second lease only for a
+matching collecting generation; live ingestion checks the lease and rechecks
+before acknowledgement. Expired leases read as OFF, reject writes, and require
+an explicit idempotent OFF transaction to clear. The private status route
+reports expiry but still has no ON route or process-liveness claim. Local
+generated tests pass; Linux PostgreSQL migration/integration and exact CI are
+pending. This code is not deployed to PP and does not prove or replace the
+production fence, host process controller, CP6 cloud gate or retirement hold.
+The first exact CI on `609713f` failed because generated schema tests hardcoded
+version 1 and reused migration number 2 for their synthetic upgrade. The
+successor makes those expectations follow the actual migration count; that
+failure remains recorded until the successor passes Linux integration.
+Successor `a9fd4bb` still failed on three remaining version-1 assertions in
+the generated catalog tests. Those assertions are corrected in the next
+candidate; neither failed CI run qualifies this migration.
 CP6 cloud permissions/readback still gate retirement. Production is unchanged.
 
 Cutover, first sealed-generation verification and retirement enablement are

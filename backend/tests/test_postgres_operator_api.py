@@ -60,6 +60,19 @@ class OperatorApiTests(unittest.TestCase):
             self.assertEqual(self.client.post(path, headers=self.headers).status_code, 404)
         self.assertEqual(self.repository.calls, [])
 
+    def test_expired_lease_is_reported_off_without_claiming_process_state(self):
+        class Expired(Repository):
+            def collector_state(self, origin):
+                return {**super().collector_state(origin), 'collector_enabled': False,
+                        'stored_enabled': True,
+                        'collector_lease_expires_at': datetime(2026, 11, 16, tzinfo=timezone.utc)}
+        client = TestClient(create_operator_app(Expired(), origin_id='pp-live-fixture', token=TOKEN))
+        state = client.get('/collector/status', headers=self.headers)
+        self.assertEqual(state.status_code, 200)
+        self.assertFalse(state.json()['collector_enabled'])
+        self.assertTrue(state.json()['lease_expired'])
+        self.assertIsNone(state.json()['process_running'])
+
     def test_invalid_origin_or_token_fail_at_creation(self):
         for origin in ('generated-pp', 'pp-live-'):
             with self.assertRaises(ValueError):

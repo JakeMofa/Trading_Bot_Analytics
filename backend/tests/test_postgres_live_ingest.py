@@ -27,7 +27,8 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
     async def test_off_or_wrong_origin_cannot_use_bridge(self):
         async def discover(*_):
             self.fail('network client must not be called')
-        for mode, origin in [('generated', 'pp-live-fixture'), ('pp_live', 'generated-pp')]:
+        for mode, origin in [('generated', 'pp-live-fixture'), ('pp_live', 'generated-pp'),
+                             ('pp_live', 'pp-live-')]:
             with self.subTest(mode=mode, origin=origin):
                 with self.assertRaises(ValueError):
                     await polymarket_cycle(FakeStore(mode, origin), None, asyncio.Event(), discover=discover)
@@ -71,6 +72,16 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(RuntimeError, 'durable collector hold'):
             await polymarket_cycle(store, None, asyncio.Event(), discover=discover, fetch=fetch)
         self.assertEqual(store.events, [])
+
+    async def test_mismatched_quote_is_not_persisted(self):
+        store = FakeStore()
+        async def discover(*_):
+            return {'market_id': 'current', 'event_id': 'market'}
+        async def fetch(*_):
+            return {'market_id': 'ended', 'event_id': 'quote'}
+        with self.assertRaisesRegex(ValueError, 'quote market identity'):
+            await polymarket_cycle(store, None, asyncio.Event(), discover=discover, fetch=fetch)
+        self.assertEqual([e['event_id'] for e in store.events], ['market'])
 
     async def test_coinbase_backpressure_and_stop(self):
         store, stop = FakeStore(), asyncio.Event()

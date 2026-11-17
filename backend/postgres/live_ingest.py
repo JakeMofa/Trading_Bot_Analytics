@@ -13,7 +13,7 @@ from .live_sources import coinbase_once, discover_polymarket_15m, fetch_polymark
 
 def _live_store(store):
     settings = store.settings
-    if settings.environment != 'preprod' or settings.data_mode != 'pp_live' or not settings.origin_id.startswith('pp-live-'):
+    if settings.environment != 'preprod' or settings.data_mode != 'pp_live' or not settings.origin_id.startswith('pp-live-') or len(settings.origin_id) <= len('pp-live-'):
         raise ValueError('live ingestion requires a distinct PP live origin')
 
 
@@ -47,5 +47,7 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     quote = await fetch(client, market)
     if stop.is_set():
         return None
+    if quote.get('market_id') != market['market_id']:
+        raise ValueError('quote market identity changed before persistence')
     await asyncio.to_thread(store.ingest, quote)
     return market['market_id']

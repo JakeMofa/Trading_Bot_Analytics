@@ -88,6 +88,19 @@ class OperatorApiTests(unittest.TestCase):
         self.assertEqual(stopped.status_code, 200)
         self.assertFalse(stopped.json()['process_running'])
 
+    def test_operator_shutdown_requests_durable_stop(self):
+        calls = []
+        class Session:
+            def state(self):
+                return {'process_running': False}
+            async def stop(self):
+                calls.append('off')
+                return {'process_running': False}
+        with TestClient(create_operator_app(self.repository,
+                            origin_id='pp-live-fixture', token=TOKEN, session=Session())):
+            pass
+        self.assertEqual(calls, ['off'])
+
     def test_expired_lease_is_reported_off_without_claiming_process_state(self):
         class Expired(Repository):
             def collector_state(self, origin):

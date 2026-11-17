@@ -9,11 +9,51 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import stat
+import asyncio
+import uuid
+
+import httpx
 
 from .connection import connect
 from .lifecycle import LifecycleRepository
 from .migrate import validate_schema
 from .operator_api import create_operator_app
+from .operator_session import OperatorSession
+from .collector_session import run_session
+from .config import Settings
+from .store import Store
+
+
+def build_live_session(repository, origin, app_dsn):
+    """Prepare a PP-only, explicitly started source task with a finite lease."""
+    store = Store(Settings(environment='preprod', data_mode='pp_live',
+                           origin_id=origin, dsn=app_dsn))
+    store.verify()
+
+    async def run(stop, max_seconds):
+        generation = await asyncio.to_thread(repository.bootstrap, origin)
+        generation_id = str(generation['generation_id'])
+        session_id = str(uuid.uuid4())
+        enabled = False
+
+        def owner_check():
+            return (repository.owns_collector(origin, session_id) if enabled
+                    else not repository.collector_state(origin)['collector_enabled'])
+
+        def enable():
+            nonlocal enabled
+            result = repository.enable_collector(origin, session_id=session_id,
+                         expected_generation_id=generation_id, max_seconds=max_seconds)
+            enabled = True
+            return result
+
+        async with httpx.AsyncClient(timeout=4, follow_redirects=False) as client:
+            return await run_session(store, client, stop, owner_check=owner_check,
+                         enable_collector=enable,
+                         disable_collector=lambda: repository.disable_collector(origin),
+                         max_seconds=max_seconds)
+
+    return OperatorSession(run, lambda: repository.disable_collector(origin))
 
 
 def _secret(directory: Path, name: str, *, expected_uid: int):
@@ -39,7 +79,7 @@ def _secret(directory: Path, name: str, *, expected_uid: int):
 
 
 def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_uid=10001,
-                   connector=connect):
+                   connector=connect, session_builder=build_live_session):
     environ = os.environ if environ is None else environ
     if environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or \
             environ.get('TRADEBOT_DATA_MODE') != 'pp_live':
@@ -70,7 +110,22 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         if login != 'tradebot_lifecycle':
             raise ValueError('operator runtime requires the lifecycle role')
         validate_schema(connection, 'preprod')
-    return create_operator_app(LifecycleRepository(factory), origin_id=origin, token=token)
+    repository = LifecycleRepository(factory)
+    live_control = environ.get('TRADEBOT_PP_LIVE_CONTROL', 'false')
+    if live_control not in ('true', 'false'):
+        raise ValueError('invalid PP live control flag')
+    session = None
+    if live_control == 'true':
+        if environ.get('TRADEBOT_APP_DSN_FILE') != '/run/secrets/app_dsn':
+            raise ValueError('PP live app credential path required')
+        app_dsn = _secret(root, 'app_dsn', expected_uid=expected_uid)
+        with connector(app_dsn, environment='preprod') as connection:
+            if connection.execute('SELECT session_user AS login').fetchone()['login'] != 'tradebot_app':
+                raise ValueError('PP live writer requires the app role')
+            validate_schema(connection, 'preprod')
+        session = session_builder(repository, origin, app_dsn)
+    return create_operator_app(repository, origin_id=origin, token=token,
+                               session=session)
 
 
 def main():

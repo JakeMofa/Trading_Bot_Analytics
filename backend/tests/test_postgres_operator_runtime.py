@@ -105,6 +105,38 @@ class RuntimeTests(unittest.TestCase):
             self.create()
         self.assertEqual(self.calls, [])
 
+    def test_live_control_requires_separate_app_secret_and_role(self):
+        live = {**ENV, 'TRADEBOT_PP_LIVE_CONTROL': 'true',
+                'TRADEBOT_APP_DSN_FILE': '/run/secrets/app_dsn'}
+        with self.assertRaises(OSError):
+            self.create(live)
+        path = self.root / 'app_dsn'
+        path.write_text('postgresql://app-fixture')
+        path.chmod(0o400)
+        with self.assertRaisesRegex(ValueError, 'app role'):
+            self.create(live)
+
+        def connector(dsn, *, environment):
+            return FakeConnection('tradebot_app' if dsn == 'postgresql://app-fixture'
+                                  else 'tradebot_lifecycle')
+
+        class Session:
+            def state(self):
+                return {'process_running': False}
+            async def start(self, *, max_seconds):
+                return {'process_running': True}
+            async def stop(self):
+                return {'process_running': False}
+
+        with patch('postgres.operator_runtime.validate_schema'):
+            app = create_runtime(live, secret_dir=self.root, expected_uid=os.getuid(),
+                                 connector=connector,
+                                 session_builder=lambda repo, origin, dsn: Session())
+        client = TestClient(app)
+        self.assertEqual(client.post('/collector/on').status_code, 401)
+        self.assertEqual(client.post('/collector/on',
+                          headers={'Authorization':'Bearer '+TOKEN}).status_code, 202)
+
 
 if __name__ == '__main__':
     unittest.main()

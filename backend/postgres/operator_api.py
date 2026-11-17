@@ -6,6 +6,7 @@ cannot enable collection, change the data mode, or touch production.
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import hmac
 
 from fastapi import FastAPI, Header, HTTPException, Query
@@ -19,8 +20,16 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None)
     if not isinstance(token, str) or len(token) < 32 or len(token) > 256 or not token.isascii():
         raise ValueError('operator token must be bounded ASCII secret')
     secret = ('Bearer ' + token).encode('ascii')
+    @asynccontextmanager
+    async def lifespan(_app):
+        try:
+            yield
+        finally:
+            if session is not None:
+                await session.stop()
+
     app = FastAPI(title='Private PP collector control', docs_url=None,
-                  redoc_url=None, openapi_url=None)
+                  redoc_url=None, openapi_url=None, lifespan=lifespan)
 
     def require_operator(authorization: str | None):
         candidate = authorization.encode('utf-8') if authorization is not None else b''

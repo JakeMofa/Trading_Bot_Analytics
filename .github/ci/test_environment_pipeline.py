@@ -23,7 +23,7 @@ def accepted():
     return {'gate': 'PASS', 'environment': 'preprod', 'instance': p.TARGETS['preprod'],
             'source_sha': SHA, 'artifact_sha256': DIGEST, 'policy_sha256': POLICY,
             'run_id': 72, 'run_attempt': 1, 'controls_sha':SHA, 'release_version': 'v0.1.0-rc.1',
-            'registry':'ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:'+DIGEST, 'checks': dict.fromkeys(p.REQUIRED_CHECKS, 'PASS'),
+            'registry':'ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:'+DIGEST, 'checks': dict.fromkeys(p.PREPROD_REQUIRED_CHECKS, 'PASS'),
             'completed_at_utc': dt.datetime.now(dt.timezone.utc).isoformat(),
             'paid_ai_enabled': False, 'retention_enabled': False,
             'live_collector_enabled': False, 'production_data_mounted': False, 'acceptance_scope': 'production_candidate','runtime_image_id':'sha256:'+'b'*64}
@@ -209,6 +209,17 @@ class EnvironmentTests(unittest.TestCase):
         del api.proof['acceptance_scope']
         with self.assertRaisesRegex(p.PipelineHold,'scope'):
             p.validate_result(api.proof,'preprod',SHA,DIGEST)
+
+    def test_pp_operator_control_is_mandatory_but_prod_checklist_is_separate(self):
+        self.assertEqual(p.PREPROD_REQUIRED_CHECKS-p.REQUIRED_CHECKS,{'operator_control'})
+        report=accepted()
+        del report['checks']['operator_control']
+        with self.assertRaisesRegex(p.PipelineHold,'controller acceptance incomplete'):
+            p.validate_result(report,'preprod',SHA,DIGEST)
+        report=accepted()
+        report.update(environment='production',instance=p.TARGETS['production'])
+        report['checks']=dict.fromkeys(p.REQUIRED_CHECKS,'PASS')
+        self.assertEqual(p.validate_result(report,'production',SHA,DIGEST)['gate'],'PASS')
 
     def test_wrong_workflow_failed_run_or_artifact_layout_cannot_authorize_prod(self):
         for changes in [{'event': 'push'}, {'conclusion': 'failure'}, {'status': 'in_progress'},

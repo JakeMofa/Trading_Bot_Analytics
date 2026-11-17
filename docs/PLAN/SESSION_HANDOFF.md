@@ -13,9 +13,15 @@ said `application_installed=true`. PR #53 fixed that narrow preflight and
 merged as `989f461`; exact preprod CI
 44024202007 passed. The explicit token preparation and controller installation
 passed on PP, followed by dedicated identity run 44024832718 PASS. The
-operator service is still not deployed; a profile PR and manual PP release
-remain. The old four containers stayed running. See the sanitized binding in
+operator service was not deployed at that binding checkpoint. See the sanitized binding in
 `docs/PLAN/evidence/pp-operator-controller-binding-2026-11-17.json`.
+
+PP release `v0.2.0-pp.4` in CD 44026013400 **failed** at the GitHub-side
+acceptance check after the host controller passed and started the operator
+container. PP now has five running containers. Authenticated operator status
+reports collection OFF; unauthenticated access is denied. Do not call this
+release PASS. The authority was consumed. A PP-only acceptance-check
+correction is under review; production remains unchanged.
 
 ## Current PP checkpoint — November 15, 2026
 

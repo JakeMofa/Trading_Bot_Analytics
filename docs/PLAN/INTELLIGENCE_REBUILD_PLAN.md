@@ -738,6 +738,20 @@ The [sanitized host binding](evidence/pp-operator-controller-binding-2026-11-17.
 supports the separate deployment-profile PR. Manual PP release and its
 functional acceptance remain open; live collection stays OFF.
 
+**PP operator release attempt (November 17):** PR #54 merged as `6ff5393`;
+exact preprod CI 44025449813 and version publication 44025817543 passed.
+Manual CD 44026013400 **failed** after the PP controller completed its own
+generated smoke and recorded PASS. The GitHub acceptance validator still
+expected the older check set and rejected the added `operator_control` check
+as `controller acceptance incomplete`. The single-use authority was consumed.
+Actual PP now runs API, calculation, lifecycle, operator and PostgreSQL
+containers; private API `/health` returned 200, unauthenticated operator
+status returned 401, and authenticated status reported the distinct PP origin
+with collection OFF. This is a partial deployment outcome, not a successful
+release or I7 acceptance. The narrow successor keeps the PP operator check
+mandatory and retains the production check set separately. No automatic retry;
+new exact CI, version and one-use authority are required for a second attempt.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

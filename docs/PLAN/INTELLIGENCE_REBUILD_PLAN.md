@@ -1,5 +1,18 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 isolated size-switch qualification candidate — November 17, 2026
+
+A generated-origin, isolated-PostgreSQL test now measures an A→B switch while
+two live-shaped ticker writers run. It checks every committed acknowledgement
+against raw rows, first/second partition allocation and WAL growth, the
+occupied-slot hold, and the PostgreSQL-backed API's current price generation
+and dashboard data binding. The fixture derives its tiny trigger from its own
+partition allocation; it is **mechanism evidence, not a qualified PP capacity
+threshold**. The dashboard does not separately label the active writer
+generation. Cloud sync and retirement remain OFF. Exact Linux PostgreSQL CI
+and any deployed PP observation are still separate gates; no PP service,
+production database, or Supabase state changes in this candidate.
+
 ## CP7 independent PP live OFF recovery path — November 17, 2026
 
 The private operator API is the normal ON/OFF route, but it may be unreachable

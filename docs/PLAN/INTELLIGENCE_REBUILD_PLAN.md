@@ -64,7 +64,12 @@ grants or policies; `market-raw` is private with no Storage object policies.
 The existing Storage adapter cannot sync structured rows, and the SQL
 retirement function rejects non-generated origins. A default-off origin-bound
 raw/structured transport with generated HTTP and isolated PostgreSQL tests is
-under qualification. It cannot authorize retirement. See the dated
+under qualification. Exact source `84b0488` passed
+[Linux CI 44194237939](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44194237939),
+including the isolated PostgreSQL 17 A→B/B-write/mock readback case with no
+skip. The transport cannot authorize retirement or prove live Supabase access;
+PR #79 remains draft and is excluded from the first PP collector/query
+release. See the dated
 [CP6 PP archive-flow review](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md) for the
 minimal remaining cloud and mutation-authority gates. No cloud or PP runtime
 state changed through this read-only review.

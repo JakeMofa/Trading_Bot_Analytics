@@ -30,6 +30,14 @@ permits only generated qualification origins. Existing `ArchiveWorker` can
 perform small generated archives with a mock transport, but its generated-only
 retirement proof does not authorize deleting a PP-live partition.
 
+The default-off archive-binding candidate passed exact Linux CI on source
+`84b0488` ([run 44194237939](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44194237939)).
+Its isolated PostgreSQL 17 test actually ran: B retained an acknowledged raw
+write while sealed A completed mocked create-only upload and authenticated
+readback; unqualified retirement was rejected and A remained local. Three
+generated HTTP tests also passed. This is offline fixture evidence, not a live
+Supabase request, a verified PP archive, or a cloud mutation-authority proof.
+
 The structured contract also needs a precise importer rule: the local
 `core.snapshot_evidence` outbox envelope carries a content hash, while the
 private `history_v2.snapshot_evidence` edge table stores only its three-key

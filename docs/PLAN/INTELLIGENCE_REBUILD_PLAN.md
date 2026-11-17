@@ -1,5 +1,30 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 generated-only PP lease release — November 17, 2026
+
+The exact `preprod` source `4eea47b` passed
+[CI 44166604082](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44166604082),
+was published as immutable
+[`v0.2.0-pp.7`](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.7),
+and passed manual [CD 44167381155](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44167381155).
+The deployment artifact SHA-256 was
+`4b159a18fdd2142549e80f48263d41c7de9b598a4c9080a49c62c26a4e5bb768`;
+the actual PP image ID was `sha256:2144186e6df0041a45dc5c54268046825a0a729b3fd6ed7f776411e5fa5e1d12`.
+The workflow reported PASS for migration, schema, data correctness, API, SSE,
+operator control, recovery, collector ownership, disabled flags, freshness and
+market identity. The PP host postflight found five services running, the API
+healthy, no remaining one-use authority and no registered temporary runner.
+[Sanitized deployment evidence](evidence/pp7-generated-lease-deployment-2026-11-17.json).
+
+This release applies lease migration 0002 and matching application code in
+**generated-only** mode. PP live collection, cloud sync, local retirement and
+paid AI remain OFF. The previously published pp.6 package was not deployed:
+merging the documentation checkpoint advanced the branch head before dispatch,
+so its unused permit was revoked. The older pp.6 paragraph below is historical;
+the pp.7 result above is the current PP runtime state. Production is unchanged.
+Next: qualify the host ON/OFF path and durable cross-VM sole-collector fence
+before any bounded PP live run. I7 and Phase 1.75 remain OPEN.
+
 ## CP7 PP collector lease checkpoint — November 17, 2026
 
 PR [#60](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/60) merged

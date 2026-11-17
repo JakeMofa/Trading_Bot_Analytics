@@ -14,8 +14,16 @@ and any deployed PP observation are still separate gates; no PP service,
 production database, or Supabase state changes in this candidate.
 The first isolated CI run caught a concurrent A→B lookup race in the joined
 writer/generation read. The candidate now locks the writer pointer before a
-fresh generation lookup for both ingest and calculation. Repeat CI must prove
-the correction with no missing acknowledgements before this subgate is PASS.
+fresh generation lookup for both ingest and calculation. Exact PR CI
+[44189046509](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44189046509)
+passed all jobs. Its isolated PostgreSQL 17 run recorded 24 distinct
+acknowledgements, zero acknowledgement gaps, six writes to A and 18 to B,
+an occupied-slot hold, 81,920/114,688 byte A/B partition allocations and
+143,224 WAL bytes generated during the fixture. API current price referenced
+B and the dashboard consumed that state; the dashboard still has no separate
+active-writer generation label. This qualifies the generated size-switch
+mechanism only. A PP runtime threshold, deployed live rotation, cloud archive,
+retirement and sustained acceptance remain OPEN.
 
 ## CP7 independent PP live OFF recovery path — November 17, 2026
 

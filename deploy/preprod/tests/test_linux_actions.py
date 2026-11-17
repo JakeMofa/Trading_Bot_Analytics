@@ -455,6 +455,25 @@ class ActionTests(unittest.TestCase):
                  self.assertRaises(c.DeploymentHold):
                 self.actions._runtime(self.context,self.budget,live=True)
 
+    def test_owned_lifecycle_oneoff_uses_only_explicit_live_compose(self):
+        commands=[]
+        def selected(args,timeout):
+            commands.append((args,timeout))
+            return b'{"collector_enabled":false}'
+        with patch.object(self.actions,'_cleanup_oneoffs') as cleanup, \
+             patch.object(self.actions,'_compose') as base:
+            result=self.actions._oneoff(self.context,self.budget,'lifecycle',
+                ['python','-m','postgres.lifecycle_worker','--stop-collector'],
+                timeout=30,compose=selected)
+        self.assertEqual(result,b'{"collector_enabled":false}')
+        self.assertEqual(len(commands),1)
+        self.assertIn(a.ATTEMPT_LABEL+'='+self.actions.attempt_id,commands[0][0])
+        self.assertIn(a.SOURCE_LABEL+'='+self.context.request.source_sha,commands[0][0])
+        self.assertEqual(commands[0][0][-4:],['python','-m','postgres.lifecycle_worker','--stop-collector'])
+        self.assertEqual(commands[0][1],30)
+        cleanup.assert_called_once()
+        base.assert_not_called()
+
     def test_host_api_requires_private_generated_state(self):
         class Response:
             def __init__(self,payload):self.payload=payload

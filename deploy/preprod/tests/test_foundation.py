@@ -34,6 +34,16 @@ class FoundationControls(unittest.TestCase):
             with self.subTest(changes=changes), self.assertRaises(RuntimeError):
                 self.host(**changes)
 
+    def test_runtime_reprovision_accepts_only_explicit_existing_pp_application(self):
+        self.host(marker={**self.marker,'application_installed':True},
+                  allow_existing_application=True)
+        for change in ({'environment':'production'}, {'live_collector_authorized':True},
+                       {'paid_ai_authorized':True}, {'production_data_copied':True},
+                       {'application_installed':'true'}):
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                self.host(marker={**self.marker,'application_installed':True,**change},
+                          allow_existing_application=True)
+
     def test_missing_flag_and_resources_rejected(self):
         marker = dict(self.marker)
         del marker['paid_ai_authorized']

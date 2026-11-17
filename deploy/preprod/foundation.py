@@ -48,19 +48,23 @@ def run(args, *, input=None, timeout=30, env=None):
     return stdout.strip()
 
 
-def validate_host(hostname, marker, disk_free, available_memory, os_id, version):
+def validate_host(hostname, marker, disk_free, available_memory, os_id, version,
+                  *, allow_existing_application=False):
     if hostname != 'tradebot-preprod-01' or marker.get('environment') != 'preprod' or marker.get('project') != 'Tradebot':
         raise RuntimeError('refusing non-PP host')
-    for key in ('live_collector_authorized', 'paid_ai_authorized', 'production_data_copied', 'application_installed'):
+    for key in ('live_collector_authorized', 'paid_ai_authorized', 'production_data_copied'):
         if marker.get(key) is not False:
             raise RuntimeError(f'foundation requires {key}=false')
+    if marker.get('application_installed') is not False and not (
+            allow_existing_application and marker.get('application_installed') is True):
+        raise RuntimeError('foundation requires application_installed=false')
     if os_id != 'ubuntu' or version != '24.04':
         raise RuntimeError('only qualified Ubuntu 24.04 is supported')
     if disk_free < 10 * GIB or available_memory < GIB:
         raise RuntimeError('requires 10 GiB free disk and 1 GiB available RAM')
 
 
-def preflight():
+def preflight(*, allow_existing_application=False):
     if os.geteuid() != 0:
         raise RuntimeError('run through the existing sudo operator route')
     info = MARKER.stat()
@@ -72,7 +76,8 @@ def preflight():
     available = int(memory['MemAvailable'].split()[0]) * 1024
     free = shutil.disk_usage('/').free
     validate_host(socket.gethostname(), marker, free, available,
-                  release.get('ID', '').strip('"'), release.get('VERSION_ID', '').strip('"'))
+                  release.get('ID', '').strip('"'), release.get('VERSION_ID', '').strip('"'),
+                  allow_existing_application=allow_existing_application)
     for unit in ('tradebot-api', 'tradebot-ensemble', 'tradebot-lifecycle'):
         state = run(['systemctl', 'show', unit, '--property=LoadState', '--value'])
         if state != 'not-found':

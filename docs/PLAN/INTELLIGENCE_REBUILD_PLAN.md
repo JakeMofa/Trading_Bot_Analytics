@@ -715,6 +715,18 @@ installed PP controller and runtime have not changed. There is no ON route,
 live source coordinator or cross-VM collector fence. Real collection and
 retirement remain held pending their separate gates.
 
+**PP provisioning preflight correction (November 16/17):** After PR #52 merged
+as `a11d922` with exact preprod CI 44022560772 PASS, the existing PP host was
+read through its pinned SSH route. Four prior containers remained active; no
+release authority or operator token existed. The reviewed explicit token
+provisioner stopped before writing because its foundation preflight required
+`application_installed=false`, while the correctly deployed PP marker says
+`true`. The follow-up code permits that marker only for explicit runtime-role
+provisioning; foundation setup retains its original guard. PP services and
+database were not changed. The new operator bundle is hash-verified in
+root-owned staging but not installed. Exact successor CI and host rerun remain
+required before any manual PP release.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

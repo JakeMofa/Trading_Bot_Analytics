@@ -13,6 +13,7 @@ import uuid
 import zipfile
 
 from controller import HostBinding,Request,require
+from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _read_active
 
 USER='tradebot-preprod-deploy'
 HOME=Path('/var/lib/tradebot-pp-deploy')
@@ -56,7 +57,9 @@ def checked_bundle(path,expected):
     raw=path.read_bytes()
     require(hashlib.sha256(raw).hexdigest()==expected,'bundle_digest_mismatch')
     with zipfile.ZipFile(path) as archive:
-        require(set(archive.namelist())=={'__main__.py','controller.py','linux_actions.py'} and len(archive.namelist())==3,'unexpected_bundle_members')
+        require(set(archive.namelist())=={'__main__.py','controller.py','linux_actions.py',
+            'live_profile.py','live_transition.py','transition_control.py'} and len(archive.namelist())==6,
+            'unexpected_bundle_members')
         require(sum(i.file_size for i in archive.infolist())<=256*1024,'bundle_expanded_bound')
     return raw
 
@@ -132,11 +135,48 @@ def authorize(source,artifact,controller):
             'deployment_dispatched':False}
 
 
+def _scope_permit(path,fields):
+    directory(AUTHORITY,0o700)
+    now=datetime.now(timezone.utc)
+    permit={**fields,'version':1,'nonce':str(uuid.uuid4()),
+        'issued_at':now.isoformat(),'expires_at':(now+timedelta(minutes=30)).isoformat(),
+        'paid_ai_enabled':False,'cloud_enabled':False,'retirement_enabled':False,
+        'production_data_mounted':False}
+    require(not path.exists() and not path.is_symlink(),'existing_authority_requires_reconciliation')
+    write_new_or_same(path,(json.dumps(permit,sort_keys=True)+'\n').encode(),0o600)
+    return {'result':'ONE_ATTEMPT_AUTHORIZED','scope':fields['scope'],
+            'expires_at':permit['expires_at'],'deployment_dispatched':False}
+
+
+def authorize_live_enter(source,artifact,controller,image):
+    HostBinding.from_marker().validate()
+    request=TransitionRequest('enter',source,artifact,controller,image)
+    request.validate()
+    checked_bundle(LIB/'controller.pyz',controller)
+    _candidate(request)
+    if ACTIVE.exists() or ACTIVE.is_symlink():
+        require(_read_active()['state']=='generated_restored','unfinished_transition_requires_leave')
+    return _scope_permit(ENTER_AUTHORITY,{**request.bindings(),'scope':'pp_live_ready_off'})
+
+
+def authorize_live_on(seconds):
+    HostBinding.from_marker().validate()
+    require(isinstance(seconds,int) and 1<=seconds<=1800,'invalid_live_session_duration')
+    active=_read_active()
+    require(active['state']=='ready_off','live_profile_not_ready')
+    checked_bundle(LIB/'controller.pyz',active['controller_sha256'])
+    return _scope_permit(ON_AUTHORITY,{k:active[k] for k in ('environment','instance','source_sha',
+        'artifact_sha256','controller_sha256','image_id')}|
+        {'transition_nonce':active['nonce'],'scope':'pp_live_session_on','max_seconds':seconds})
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='operation',required=True)
     a=sub.add_parser('install');a.add_argument('--bundle',type=Path,required=True);a.add_argument('--sha256',required=True);a.add_argument('--public-key-file',type=Path,required=True)
     a=sub.add_parser('authorize');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True)
+    a=sub.add_parser('authorize-live-enter');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True);a.add_argument('--image-id',required=True)
+    a=sub.add_parser('authorize-live-on');a.add_argument('--max-seconds',type=int,required=True)
     args=parser.parse_args()
     try:
         HostBinding.from_marker().validate()
@@ -146,8 +186,18 @@ if __name__=='__main__':
         require(info.st_uid==0 and stat.S_ISREG(info.st_mode) and not info.st_mode & 0o077,'unsafe_controller_lock')
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.operation=='install':
-            require(not (AUTHORITY/'authorization.json').exists(),'unused_authority_requires_reconciliation')
-        result=install(args.bundle,args.sha256,args.public_key_file) if args.operation=='install' else authorize(args.source_sha,args.artifact_sha256,args.controller_sha256)
+            require(not any(path.exists() for path in (AUTHORITY/'authorization.json',ENTER_AUTHORITY,ON_AUTHORITY)),
+                    'unused_authority_requires_reconciliation')
+            if ACTIVE.exists() or ACTIVE.is_symlink():
+                require(_read_active()['state']=='generated_restored','unfinished_transition_requires_leave')
+        if args.operation=='install':
+            result=install(args.bundle,args.sha256,args.public_key_file)
+        elif args.operation=='authorize':
+            result=authorize(args.source_sha,args.artifact_sha256,args.controller_sha256)
+        elif args.operation=='authorize-live-enter':
+            result=authorize_live_enter(args.source_sha,args.artifact_sha256,args.controller_sha256,args.image_id)
+        else:
+            result=authorize_live_on(args.max_seconds)
         print(json.dumps(result,sort_keys=True))
     except Exception:
         raise SystemExit('PP operator preparation STOP; inspect bounded configuration evidence, not credentials') from None

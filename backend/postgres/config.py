@@ -15,17 +15,22 @@ class Settings:
     def __post_init__(self):
         if self.environment != 'preprod':
             raise ValueError('only isolated preprod is qualified by this application')
-        if self.data_mode not in ('generated', 'replay'):
-            raise ValueError('live/production-preview modes are not qualified')
+        if self.data_mode not in ('generated', 'replay', 'pp_live'):
+            raise ValueError('unsupported data mode')
         if not self.origin_id or len(self.origin_id) > 128:
             raise ValueError('origin identity required')
+        if self.data_mode == 'pp_live' and (not self.origin_id.startswith('pp-live-')
+                                            or len(self.origin_id) <= len('pp-live-')):
+            raise ValueError('PP live mode requires a distinct live origin')
+        if self.data_mode != 'pp_live' and self.origin_id.startswith('pp-live-'):
+            raise ValueError('PP live origin cannot be used for test data')
         if not 10 <= self.outbox_max_pending <= 100000:
             raise ValueError('pending outbox bound must be 10..100000')
 
     @classmethod
     def from_env(cls):
         if os.getenv('TRADEBOT_COLLECTOR_ENABLED', 'false').lower() not in ('false', '0', 'off'):
-            raise ValueError('real collector is unavailable and must remain OFF')
+            raise ValueError('real collector activation is unavailable and must remain OFF')
         dsn, path = os.getenv('TRADEBOT_DATABASE_DSN'), os.getenv('TRADEBOT_DATABASE_DSN_FILE')
         if dsn and path:
             raise ValueError('configure one database credential source')

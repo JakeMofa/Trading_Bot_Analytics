@@ -662,6 +662,15 @@ runtime token/role binding, and is not a live activation route. Host-side
 binding, operator identity, production fence, process drainage/restart proof
 and exact CI remain required before PP collector activation.
 
+**CP7 prepared-OFF mode candidate:** The PP application configuration accepts
+`pp_live` only with a distinct `pp-live-` origin, while environment startup
+still rejects `TRADEBOT_COLLECTOR_ENABLED=true`. Its public status reports the
+collector OFF. Generated/replay modes reject live origins, and production
+preview remains unavailable. The existing Compose profile and release
+controller still require generated mode; this code cannot activate collection
+or change the deployed PP mode. Exact CI and a separate reviewed mode/runtime
+release remain required.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

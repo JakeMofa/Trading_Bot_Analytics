@@ -61,16 +61,25 @@ def memory_bytes(value):
     return int(match[1])*{'':1,'k':1024,'m':1024**2,'g':1024**3}[match[2]]
 
 
-def expected_environment(service):
+def expected_environment(service, *, live=False):
     env={**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
     if service=='operator':
         env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp',
                    TRADEBOT_OPERATOR_TOKEN_FILE='/run/secrets/operator_token')
+    if live:
+        if service in ('api','calculation','lifecycle'):
+            env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
+        if service=='lifecycle':
+            env['TRADEBOT_PP_LIVE_LIFECYCLE']='true'
+        if service=='operator':
+            env.update(TRADEBOT_PP_LIVE_CONTROL='true',
+                       TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
     return env
 
 
-def service_secrets(service):
-    return (ROLE_SECRET[service],'operator_token') if service=='operator' else (ROLE_SECRET[service],)
+def service_secrets(service, *, live=False):
+    return ((ROLE_SECRET[service],'operator_token',*(['app_dsn'] if live else []))
+            if service=='operator' else (ROLE_SECRET[service],))
 
 
 def reviewed_secret_mapping(mapping,source,target):
@@ -306,14 +315,15 @@ class LinuxActions:
             require(not self._owned_oneoff(context,budget,name,service),'deployment_oneoff_not_removed')
             del self.oneoffs[name]
 
-    def _oneoff(self,context,budget,service,args=(),timeout=90):
+    def _oneoff(self,context,budget,service,args=(),timeout=90,*,compose=None):
         require(service in ('migrate','lifecycle'),'unsupported_deployment_oneoff')
         self.oneoff_sequence+=1
         name='tradebot-pp-deploy-'+self.attempt_id+'-'+str(self.oneoff_sequence)
         self.oneoffs[name]=service  # Record before daemon-side creation can occur.
-        output=self._compose(context,budget,['run','--rm','--no-deps','--name',name,
+        selected=compose or (lambda arguments,deadline:self._compose(context,budget,arguments,timeout=deadline))
+        output=selected(['run','--rm','--no-deps','--name',name,
             '--label',ATTEMPT_LABEL+'='+self.attempt_id,'--label',SOURCE_LABEL+'='+context.request.source_sha,
-            service,*args],timeout=timeout)
+            service,*args],timeout)
         # On timeout the exception leaves ownership registered for fresh recovery
         # budget. Success also requires daemon-side exit/removal, not CLI exit alone.
         self._cleanup_oneoffs(context,budget)
@@ -453,7 +463,7 @@ class LinuxActions:
         require(evidence.get('retirement')=='off' and evidence.get('archive')=='held_no_qualified_transport','generated_bootstrap_not_proven')
         self._compose(context,budget,['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
 
-    def _runtime(self,context,budget):
+    def _runtime(self,context,budget,*,live=False):
         for service in SERVICES:
             ids=self._ids(context,budget,[service])
             require(len(ids)==1,'missing_runtime_service')
@@ -468,14 +478,14 @@ class LinuxActions:
                     and host.get('CapDrop')==['ALL'] and host.get('NanoCpus')==int(CPUS[service]*1_000_000_000)
                     and host.get('RestartPolicy',{}).get('Name')=='unless-stopped','runtime_resource_or_privilege_mismatch')
             env=dict(item.split('=',1) for item in config.get('Env',[]) if '=' in item)
-            require(all(env.get(key)==value for key,value in expected_environment(service).items())
+            require(all(env.get(key)==value for key,value in expected_environment(service,live=live).items())
                     and all(env.get(key,'false')=='false' for key in OPTIONAL_DISABLED)
                     and not env.get('TRADEBOT_DATABASE_DSN'),'runtime_flag_mismatch')
             network_settings=row['NetworkSettings']
             require(set(network_settings['Networks'])==({NETWORK,API_NETWORK} if service in ('api','operator') else {NETWORK}),
                     'runtime_network_mismatch')
             mounts=row.get('Mounts',[])
-            wanted=set(service_secrets(service))
+            wanted=set(service_secrets(service,live=live))
             secrets={item.get('Destination'):item for item in mounts if item.get('Destination','').startswith('/run/secrets/')}
             require(set(secrets)=={'/run/secrets/'+name for name in wanted}
                     and all(secrets['/run/secrets/'+name].get('Source')==str(RUNTIME_SECRETS/name)
@@ -493,7 +503,7 @@ class LinuxActions:
                 require(row['State'].get('Health',{}).get('Status')=='healthy','api_not_healthy')
 
     @staticmethod
-    def _host_api():
+    def _host_api(*,live=False):
         """Test the real host listener; container-local HTTP is insufficient."""
         try:
             opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -501,13 +511,14 @@ class LinuxActions:
                 raw=response.read(65537)
             require(len(raw)<=65536,'host_api_response_too_large')
             state=json.loads(raw)
-            require(state.get('environment')=='preprod' and state.get('data_mode')=='generated'
+            require(state.get('environment')=='preprod' and state.get('data_mode')==('pp_live' if live else 'generated')
+                    and state.get('origin_id')==('pp-live-pp' if live else 'generated-pp')
                     and state.get('collector',{}).get('enabled') is False,'host_api_wrong_state')
         except (OSError,ValueError,KeyError) as error:
             raise DeploymentHold('host_api_loopback_unavailable') from None
 
     @staticmethod
-    def _host_operator():
+    def _host_operator(*,live=False):
         """Prove authenticated host loopback status and deny unauthenticated use."""
         from urllib.error import HTTPError
         endpoint='http://127.0.0.1:8001/collector/status'
@@ -526,7 +537,8 @@ class LinuxActions:
             state=json.loads(raw)
             require(state.get('environment')=='preprod' and state.get('origin_id')=='pp-live-pp'
                     and state.get('collector_enabled') is False and isinstance(state.get('initialized'),bool)
-                    and state.get('process_running') is None and state.get('live_fence_qualified') is False,
+                    and state.get('process_running') is (False if live else None)
+                    and state.get('live_fence_qualified') is False,
                     'operator_not_default_off')
         except (OSError,ValueError,KeyError):
             raise DeploymentHold('host_operator_loopback_unavailable') from None

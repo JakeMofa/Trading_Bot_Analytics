@@ -642,6 +642,15 @@ This is a code-only, default-off slice: the deployed Settings still rejects
 control exists. Integrated PostgreSQL, market-boundary and PP live evidence
 remain CP7 gates.
 
+**CP7 generated database handoff qualification (candidate):** A focused Linux
+integration case simulates the collector flag only inside the disposable CI
+PostgreSQL database. It checks that the default-OFF writer rejects the bridge,
+then that market, matching quote and Coinbase price are acknowledged and read
+through the actual indexed application queries, and finally that the durable
+OFF transaction rejects further writes. This is test-only activation; it
+neither supplies production fencing nor starts a PP service. Exact-source Linux
+CI is required before calling this checkpoint PASS.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

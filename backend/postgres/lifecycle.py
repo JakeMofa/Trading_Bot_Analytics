@@ -158,8 +158,9 @@ class LifecycleRepository:
             row = connection.execute('''SELECT collector_enabled,epoch,generation_id,updated_at
                 FROM ops.writer_state WHERE origin_id=%s''', (origin_id,)).fetchone()
         if row is None:
-            raise LifecycleHold('collector writer identity missing')
-        return dict(row)
+            return {'collector_enabled': False, 'epoch': None,
+                    'generation_id': None, 'updated_at': None, 'initialized': False}
+        return {**dict(row), 'initialized': True}
 
     @staticmethod
     def _create(connection, origin_id, slot, now):

@@ -22,7 +22,8 @@ class Repository:
         self.calls.append(('status', origin))
         return {'collector_enabled': self.enabled, 'epoch': 3,
                 'generation_id': 'generated-id',
-                'updated_at': datetime(2026, 11, 16, tzinfo=timezone.utc)}
+                'updated_at': datetime(2026, 11, 16, tzinfo=timezone.utc),
+                'initialized': True}
 
     def disable_collector(self, origin):
         self.calls.append(('off', origin))
@@ -46,6 +47,7 @@ class OperatorApiTests(unittest.TestCase):
         state = self.client.get('/collector/status', headers=self.headers)
         self.assertEqual(state.status_code, 200)
         self.assertTrue(state.json()['collector_enabled'])
+        self.assertTrue(state.json()['initialized'])
         self.assertIsNone(state.json()['process_running'])
         off = self.client.post('/collector/off', headers=self.headers)
         self.assertEqual(off.status_code, 200)

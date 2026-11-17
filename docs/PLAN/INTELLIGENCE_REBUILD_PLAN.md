@@ -706,6 +706,15 @@ control review must provision the token, bind only PP host loopback, verify
 resource fit and process identity, and leave collection OFF. It cannot be used
 as a production fence or activation authority by itself.
 
+**CP7 host-bound operator candidate (November 16):** A reviewed PP Compose
+overlay prepares a separate 127.0.0.1:8001 status/OFF service with a
+root-provisioned token and lifecycle role. The generated-only controller
+checks its exact network, secrets, disabled flags, process binding and
+authenticated default-OFF response. This is source qualification only; the
+installed PP controller and runtime have not changed. There is no ON route,
+live source coordinator or cross-VM collector fence. Real collection and
+retirement remain held pending their separate gates.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

@@ -25,6 +25,7 @@ def configuration(source,image=IMAGE):
         config['secrets'][name]={'file':str(a.SECRETS/name)}
     config['secrets']['lifecycle_password']={'file':str(a.SECRETS/'lifecycle')}
     for name in a.ROLE_SECRET.values():config['secrets'][name]={'file':str(a.RUNTIME_SECRETS/name)}
+    config['secrets']['operator_token']={'file':str(a.RUNTIME_SECRETS/'operator_token')}
     for name,memory in a.MEMORY.items():
         service={'image':a.PG_IMAGE if name=='postgres' else image,'mem_limit':str(memory*1024**2),
                  'memswap_limit':memory*1024**2,'networks':{'database':None},'security_opt':['no-new-privileges:true'],
@@ -39,15 +40,18 @@ def configuration(source,image=IMAGE):
         else:
             service.update(command=a.COMMANDS[name],user='10001:10001',read_only=True,cap_drop=['ALL'],pids_limit=64,
                 pull_policy='never',restart='no' if name=='migrate' else 'unless-stopped',environment=a.expected_environment(name),
-                secrets=[{'source':a.ROLE_SECRET[name],'target':a.ROLE_SECRET[name]}],tmpfs=['/tmp:size=16m,mode=1777'])
-        if name=='api':
-            service['ports']=[{'host_ip':'127.0.0.1','published':'8000','target':8000,'protocol':'tcp'}]
+                secrets=[{'source':secret,'target':secret} for secret in a.service_secrets(name)],tmpfs=['/tmp:size=16m,mode=1777'])
+        if name in ('api','operator'):
+            port=8000 if name=='api' else 8001
+            service['ports']=[{'host_ip':'127.0.0.1','published':str(port),'target':port,'protocol':'tcp'}]
             service['networks']['api_loopback']=None
         config['services'][name]=service
     return config
 
 
 def inspected(service='api',running=True):
+    port=8000 if service=='api' else 8001 if service=='operator' else None
+    bindings={f'{port}/tcp':[{'HostIp':'127.0.0.1','HostPort':str(port)}]} if port else {}
     return {'Id':CID,'Image':IMAGE,'State':{'Running':running,'OOMKilled':False,'Health':{'Status':'healthy'}},
         'Config':{'Image':IMAGE,'Cmd':a.COMMANDS[service],'User':'10001:10001','Labels':{
                   'com.docker.compose.project':a.PROJECT,'com.docker.compose.service':service,'com.docker.compose.oneoff':'False'},
@@ -56,11 +60,11 @@ def inspected(service='api',running=True):
                       'ReadonlyRootfs':True,'Privileged':False,'CapDrop':['ALL'],
                       'NanoCpus':int(a.CPUS.get(service,0)*1_000_000_000),
                       'RestartPolicy':{'Name':'unless-stopped' if running else 'no'},
-                      'PortBindings':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}},
-        'Mounts':[{'Destination':'/run/secrets/'+a.ROLE_SECRET[service],'Source':str(a.RUNTIME_SECRETS/a.ROLE_SECRET[service]),'RW':False}],
+                      'PortBindings':bindings},
+        'Mounts':[{'Destination':'/run/secrets/'+secret,'Source':str(a.RUNTIME_SECRETS/secret),'RW':False} for secret in a.service_secrets(service)],
         'NetworkSettings':{'Networks':{name:{} for name in
-            ([a.NETWORK,a.API_NETWORK] if service=='api' else [a.NETWORK])},
-            'Ports':{'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}}}
+            ([a.NETWORK,a.API_NETWORK] if service in ('api','operator') else [a.NETWORK])},
+            'Ports':bindings}}
 
 
 class RecordingBudget:
@@ -123,14 +127,14 @@ class ConfigTests(unittest.TestCase):
         config['services']['api']['ports'][0]['mode']='ingress'
         validated=a.validate_config(config,source,IMAGE)
         self.assertEqual(set(validated['services']),set(a.MEMORY))
-        self.assertEqual(sum(len(service['secrets']) for service in validated['services'].values()),9)
+        self.assertEqual(sum(len(service['secrets']) for service in validated['services'].values()),11)
         # Long syntax can explicitly use the same absolute destination too.
         config['services']['postgres']['secrets'][-1]['target']='/run/secrets/lifecycle'
         a.validate_config(config,source,IMAGE)
 
     def test_secret_target_aliases_do_not_admit_other_paths_or_ownership_overrides(self):
         source=Path('/private/candidate/source')
-        for service in ('api','calculation','lifecycle','migrate','postgres'):
+        for service in ('api','calculation','lifecycle','operator','migrate','postgres'):
             baseline=configuration(source)
             mapping=baseline['services'][service]['secrets'][0]
             for change in ({'target':'/tmp/'+mapping['target']},
@@ -153,6 +157,10 @@ class ConfigTests(unittest.TestCase):
         mutations=[
             lambda c:c['services']['postgres'].update(ports=[{'published':'5432'}]),
             lambda c:c['services']['api']['ports'][0].update(host_ip='0.0.0.0'),
+            lambda c:c['services']['operator']['ports'][0].update(host_ip='0.0.0.0'),
+            lambda c:c['services']['operator']['environment'].update(TRADEBOT_COLLECTOR_ENABLED='true'),
+            lambda c:c['services']['operator']['secrets'].pop(),
+            lambda c:c['services']['operator']['networks'].pop('api_loopback'),
             lambda c:c['services']['api']['environment'].update(TRADEBOT_COLLECTOR_ENABLED='true'),
             lambda c:c['services']['lifecycle']['environment'].update(TRADEBOT_RETIREMENT_ENABLED='true'),
             lambda c:c['services']['calculation']['environment'].update(OPENAI_API_KEY='private'),
@@ -283,7 +291,7 @@ class ActionTests(unittest.TestCase):
         commands=[args for args,_ in self.budget.calls]
         self.assertIn('--bootstrap',commands[0])
         startup=next(args for args in commands if '--force-recreate' in args)
-        self.assertEqual(startup[-3:],list(a.SERVICES))
+        self.assertEqual(startup[-len(a.SERVICES):],list(a.SERVICES))
         self.assertIn('--no-deps',startup)
 
     def test_recovery_fences_restart_then_stops_only_application_services(self):
@@ -296,7 +304,7 @@ class ActionTests(unittest.TestCase):
         self.assertFalse(result['database_restored'])
         self.assertEqual(self.budget.calls[0][0],['docker','update','--restart=no',CID])
         stop=self.budget.calls[1][0]
-        self.assertEqual(stop[-5:],['--timeout','20',*a.SERVICES])
+        self.assertEqual(stop[-(len(a.SERVICES)+2):],['--timeout','20',*a.SERVICES])
         self.assertNotIn('postgres',stop)
         self.assertTrue(all('down' not in args and '--volumes' not in args and 'rm' not in args for args,_ in self.budget.calls))
 
@@ -395,7 +403,7 @@ class ActionTests(unittest.TestCase):
 
     def test_smoke_does_not_turn_status200_or_partial_acceptance_into_pass(self):
         self.actions.migrated=True
-        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=[
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_host_operator'),patch.object(self.actions,'_compose',side_effect=[
              b'{"environment":"preprod","operation":"check","result":1}',b'{"status":"pass"}']):
             with self.assertRaisesRegex(c.DeploymentHold,'generated_acceptance_incomplete'):
                 self.actions.smoke(self.context,self.budget)
@@ -413,7 +421,7 @@ class ActionTests(unittest.TestCase):
             if '--check' in args:return b'{"environment":"preprod","operation":"check","result":1}'
             if 'postgres.acceptance' in args:return json.dumps(acceptance).encode()
             return b''
-        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=compose), \
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_host_operator'),patch.object(self.actions,'_compose',side_effect=compose), \
              patch.object(self.actions,'_postgres'),patch.object(self.actions,'_probe',side_effect=[anchor,{**anchor,'prior_acknowledgement_preserved':True}]) as probe:
             result=self.actions.smoke(self.context,self.budget)
         self.assertEqual(result['checks'],dict.fromkeys(c.CHECKS,'PASS'))
@@ -438,7 +446,7 @@ class ActionTests(unittest.TestCase):
             return b''
         probes=[{'status':'expired_generated_market'},anchor,
                 {'status':'expired_generated_market'},{**anchor,'prior_acknowledgement_preserved':True}]
-        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=compose), \
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_host_operator'),patch.object(self.actions,'_compose',side_effect=compose), \
              patch.object(self.actions,'_postgres'),patch.object(self.actions,'_probe',side_effect=probes) as probe:
             result=self.actions.smoke(self.context,self.budget)
         self.assertEqual(result['checks'],dict.fromkeys(c.CHECKS,'PASS'))
@@ -458,7 +466,7 @@ class ActionTests(unittest.TestCase):
             if '--check' in args:return b'{"environment":"preprod","operation":"check","result":1}'
             if 'postgres.acceptance' in args:return json.dumps(acceptance).encode()
             return b''
-        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_compose',side_effect=compose), \
+        with patch.object(self.actions,'_runtime'),patch.object(self.actions,'_host_api'),patch.object(self.actions,'_host_operator'),patch.object(self.actions,'_compose',side_effect=compose), \
              patch.object(self.actions,'_probe',return_value={'status':'unknown'}):
             with self.assertRaisesRegex(c.DeploymentHold,'freshness_or_market_not_proven'):
                 self.actions.smoke(self.context,self.budget)

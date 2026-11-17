@@ -193,9 +193,11 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
 
     def test_operator_status_reads_durable_flag_without_claiming_process_liveness(self):
         origin = 'pp-live-' + uuid.uuid4().hex
+        self.assertEqual(self.repository.collector_state(origin)['initialized'], False)
         self.repository.bootstrap(origin)
         state = self.repository.collector_state(origin)
         self.assertFalse(state['collector_enabled'])
+        self.assertTrue(state['initialized'])
         self.assertEqual(state['epoch'], 1)
         with self.factory() as connection:
             connection.execute('UPDATE ops.writer_state SET collector_enabled=true WHERE origin_id=%s',

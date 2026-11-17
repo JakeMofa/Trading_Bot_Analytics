@@ -85,6 +85,33 @@ services:
       postgres:
         condition: service_healthy
     logging: *logging
+  operator:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    command: [python, -m, postgres.operator_runtime]
+    user: '10001:10001'
+    restart: unless-stopped
+    mem_limit: 96m
+    memswap_limit: 96m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      <<: *app_environment
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
+      TRADEBOT_OPERATOR_TOKEN_FILE: /run/secrets/operator_token
+    secrets: [lifecycle_dsn, operator_token]
+    networks: [database, api_loopback]
+    ports: [127.0.0.1:8001:8001]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
   migrate:
     image: ${PP_APP_IMAGE:?supply qualified local image ID}
     pull_policy: never
@@ -117,6 +144,8 @@ secrets:
     file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/lifecycle_dsn
   migrator_dsn:
     file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/migrator_dsn
+  operator_token:
+    file: ${PP_RUNTIME_SECRET_DIR:?supply runtime secret directory}/operator_token
 networks:
   api_loopback:
     driver: bridge

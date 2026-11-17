@@ -46,6 +46,20 @@ def provision(directory=RUNTIME_SECRETS):
                 os.chown(pg_secret,999,999)
             if pg_secret.read_text().strip()!=password or pg_secret.stat().st_uid!=999 or stat.S_IMODE(pg_secret.stat().st_mode)!=0o400:
                 raise RuntimeError('lifecycle secret continuity mismatch')
+    token_path=directory/'operator_token'
+    if token_path.is_symlink():raise RuntimeError('unsafe operator token symlink')
+    if token_path.exists():
+        info=token_path.stat()
+        if info.st_uid!=10001 or stat.S_IMODE(info.st_mode)!=0o400 or info.st_nlink!=1:
+            raise RuntimeError('unsafe existing operator token')
+        token=token_path.read_text().strip()
+        if len(token)!=64 or not all(c in '0123456789abcdef' for c in token):
+            raise RuntimeError('invalid existing operator token')
+    else:
+        token=secrets.token_hex(32)
+        descriptor=os.open(token_path,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o400)
+        with os.fdopen(descriptor,'w') as stream:stream.write(token+'\n')
+        os.chown(token_path,10001,10001)
     return {'result':'RUNTIME_ROLES_PREPARED','environment':'preprod','credential_values_recorded':False}
 
 def activate_role():

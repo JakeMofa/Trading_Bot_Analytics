@@ -1,5 +1,18 @@
 # BTC Intelligence Rebuild Plan
 
+## Branch archive — November 17, 2026
+
+The repository now retains four active GitHub branches: `main`, `preprod`,
+`codex/lightsail-deployment` (still required by the legacy production workflow),
+and `codex/phase1-75-retention-enable` (the preserved dirty original checkout and
+an existing release-summary link). Forty inactive remote branch names were
+removed after their exact tips were pushed to `refs/archive/2026-11-17/` and
+verified. Thirty-six inactive local branches and four clean worktrees were
+removed. The original dirty checkout and its files were not changed. The
+[branch archive manifest](evidence/branch-archive-2026-11-17.json) records every
+tip and restoration path. Archive refs preserve history; they are not active
+release branches. No production or PP service changed during this cleanup.
+
 ## Active execution plan — November 12, 2026
 
 **Phase 1.75 / I7 remain OPEN. This is the only authoritative roadmap.**

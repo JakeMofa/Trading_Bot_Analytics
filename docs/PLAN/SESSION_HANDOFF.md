@@ -54,12 +54,14 @@ November 16 CP7 progress: PRs #45-#49 merged into `preprod`. The default-off
 source bridge, generated PostgreSQL write/read/stop qualification, unstarted
 authenticated status/OFF operator surface, and prepared-OFF `pp_live` origin
 configuration and bounded closed Coinbase candles passed their PR CI and
-preprod merge CI. None was deployed to PP or enables a live collector. The
-current next code candidate adds a supervised, bounded coordinator with
-independent source tasks and one-second durable-flag/owner checks. It has no
-process entry point. Qualify host-bound operator control and the cross-VM fence
-before any bounded live run. PP remains generated-only and production is
-unchanged.
+preprod merge CI. PR #50 added a supervised, bounded coordinator with
+independent source tasks, one-second durable-flag/owner checks and a required
+durable-OFF callback; its exact preprod CI 44018709047 passed. None was
+deployed to PP or enables a live collector. The next candidate makes the
+status/OFF operator API a separate process with file-mounted credentials, but
+it has no Compose binding or ON route. Qualify host-bound operator control and
+the cross-VM fence before any bounded live run. PP remains generated-only and
+production is unchanged.
 
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access

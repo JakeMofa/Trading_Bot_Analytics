@@ -695,6 +695,17 @@ generated Linux database readback case cover these mechanics. This code has
 Host control must supply the real lifecycle-role OFF callback and verify
 process exit; those bindings remain open gates.
 
+**CP7 dedicated operator runtime candidate:** The private status/OFF API can
+now be constructed as a separate process with the lifecycle PostgreSQL role
+and a file-mounted bearer token. Startup rejects the wrong environment/origin,
+inline credentials, unsafe secret files, enabled paid/cloud/collector flags,
+wrong database role or schema drift before serving. It has no ON route and is
+**not present in PP Compose or the installed deployment controller**. Generated
+tests cover fail-closed startup and unauthorized requests. The next release
+control review must provision the token, bind only PP host loopback, verify
+resource fit and process identity, and leave collection OFF. It cannot be used
+as a production fence or activation authority by itself.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

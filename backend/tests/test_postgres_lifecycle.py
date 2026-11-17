@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from pathlib import Path
 import gzip
+import json
 import sys
 import tempfile
 import unittest
@@ -126,6 +127,42 @@ class RotationConfigurationTests(unittest.TestCase):
                 configuration({**live, flag: 'true'})
         with self.assertRaises(ValueError):
             configuration({'TRADEBOT_ORIGIN_ID': 'pp-live-fixture'})
+
+    def test_pp_live_recovery_off_and_status_are_explicit_and_sanitized(self):
+        environment={'TRADEBOT_ENVIRONMENT':'preprod','TRADEBOT_DATA_MODE':'pp_live',
+                     'TRADEBOT_ORIGIN_ID':'pp-live-fixture',
+                     'TRADEBOT_PP_LIVE_LIFECYCLE':'true',
+                     'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/lifecycle_dsn'}
+        with patch.dict('os.environ',environment,clear=True), \
+             patch('postgres.lifecycle_worker.read_dsn',return_value='private-placeholder'), \
+             patch('postgres.connection.connect') as connector, \
+             patch('postgres.migrate.validate_schema'), \
+             patch('postgres.lifecycle_worker.LifecycleRepository') as repository, \
+             patch('builtins.print') as output:
+            repository.return_value.collector_state.return_value={
+                'collector_enabled':True,'initialized':True,'epoch':2}
+            self.assertEqual(main(['--collector-status']),0)
+            status=json.loads(output.call_args.args[0])
+            self.assertEqual(status,{'environment':'preprod','origin_id':'pp-live-fixture',
+                                     'collector_enabled':True,'initialized':True,'epoch':2})
+            repository.return_value.disable_collector.return_value={
+                'collector_enabled':False,'epoch':3}
+            self.assertEqual(main(['--stop-collector']),0)
+            stopped=json.loads(output.call_args.args[0])
+            self.assertEqual(stopped,{'environment':'preprod','origin_id':'pp-live-fixture',
+                                      'collector_enabled':False,'epoch':3})
+            self.assertNotIn('private-placeholder',str(output.call_args_list))
+            connector.assert_called()
+        with patch.dict('os.environ',{},clear=True), \
+             patch('postgres.lifecycle_worker.read_dsn') as read, \
+             self.assertRaises(SystemExit):
+            main(['--stop-collector'])
+        read.assert_not_called()
+        with patch.dict('os.environ',environment,clear=True), \
+             patch('postgres.lifecycle_worker.read_dsn') as read, \
+             self.assertRaises(SystemExit):
+            main(['--stop-collector','--bootstrap'])
+        read.assert_not_called()
 
     def test_shared_environment_flags_and_bounds_fail_before_database_startup(self):
         cases = [{'TRADEBOT_ENVIRONMENT': 'production'}, {'TRADEBOT_ENVIRONMENT': 'wrong'},

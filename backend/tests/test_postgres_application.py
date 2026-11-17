@@ -148,7 +148,7 @@ class NumericAndStateTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 Settings(data_mode=mode)
         prepared = Settings(data_mode='pp_live', origin_id='pp-live-fixture')
-        self.assertFalse(prepared.public()['collector']['enabled'])
+        self.assertIsNone(prepared.public()['collector']['enabled'])
         self.assertEqual(prepared.public()['data_mode'], 'pp_live')
         for mode, origin in (('pp_live','generated-pp'), ('pp_live','pp-live-'),
                              ('generated','pp-live-fixture'), ('replay','pp-live-fixture')):
@@ -164,7 +164,7 @@ class NumericAndStateTests(unittest.TestCase):
                                     'TRADEBOT_COLLECTOR_ENABLED':'false'}, clear=True):
             configured = Settings.from_env()
             self.assertEqual(configured.data_mode, 'pp_live')
-            self.assertFalse(configured.public()['collector']['enabled'])
+            self.assertIsNone(configured.public()['collector']['enabled'])
         self.assertNotIn('dsn',Settings(dsn='secret').public())
 
 
@@ -178,6 +178,55 @@ class FakeStore:
 
 
 class ApiTests(unittest.TestCase):
+    def test_pp_live_api_polls_database_lease_without_claiming_process_liveness(self):
+        from fastapi.testclient import TestClient
+        class LeaseStore(FakeStore):
+            enabled=True
+            def collector_enabled(self):
+                if self.enabled is None:
+                    raise RuntimeError('private database diagnostic')
+                return self.enabled
+            def active_market(self):
+                return None
+        store=LeaseStore()
+        settings=Settings(data_mode='pp_live',origin_id='pp-live-fixture')
+        with TestClient(create_app(settings,store,refresh=True)) as client:
+            def seen(expected):
+                deadline=time.monotonic()+2.5
+                while time.monotonic()<deadline:
+                    value=client.get('/state/current').json()['collector']
+                    if value['enabled'] is expected:
+                        return value
+                    time.sleep(.05)
+                self.fail('durable PP collector state did not reach expected value')
+            self.assertIsNone(seen(True)['running'])
+            store.enabled=False
+            self.assertIsNone(seen(False)['running'])
+            store.enabled=None
+            self.assertEqual(seen(None)['error'],'unavailable')
+
+    def test_pp_live_health_and_dashboard_report_durable_lease_truthfully(self):
+        from fastapi.testclient import TestClient
+        market,price,quote,feature,prediction=state_fixture()[2]
+        settings=Settings(data_mode='pp_live',origin_id='pp-live-fixture')
+        state=LiveState(settings,clock=lambda:NOW)
+        state.discover(market)
+        state.publish(market['id'],price,quote,feature,prediction)
+        state.storage_status('ok')
+        # Even with a current market and source evidence, an unobserved or OFF
+        # live lease must never be reported as a healthy running collector.
+        with TestClient(create_app(settings,FakeStore(),state,refresh=False)) as client:
+            dashboard=client.get('/dashboard').text
+            self.assertNotIn('real collector OFF',dashboard)
+            for enabled,expected in ((None,'degraded'),(False,'degraded'),(True,'ok')):
+                state.collector_status(enabled)
+                result=client.get('/health').json()
+                self.assertEqual(result['status'],expected)
+                self.assertIs(result['collector']['enabled'],enabled)
+                self.assertIsNone(result['collector']['running'])
+                self.assertIs(client.get('/system/status').json()['collector']['enabled'],enabled)
+                self.assertIs(client.get('/state/current').json()['collector']['enabled'],enabled)
+
     def test_actual_routes_dashboard_contract_and_request_bounds(self):
         from fastapi.testclient import TestClient
         state,_,_ = state_fixture()

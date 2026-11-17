@@ -75,7 +75,7 @@
   </style>
 </head>
 <body>
-<div id="environment-label" style="padding:12px;background:#422f13;color:#fff;text-align:center">Isolated PostgreSQL · generated/replay data · real collector OFF</div>
+<div id="environment-label" style="padding:12px;background:#422f13;color:#fff;text-align:center">Loading environment and collector state…</div>
   <header>
     <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>BTC Intelligence</h1><div id="collection-state" class="muted small">Connecting to live market state…</div></div>
     <div class="header-actions"><button id="open-plan" class="menu-button" type="button">Plan &amp; progress</button><div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div></div>
@@ -614,7 +614,10 @@
     }
     for (const button of document.querySelectorAll('nav button')) button.onclick = () => showPage(button.dataset.target);
     function acceptState(state) {
-      set('environment-label', (state.environment || 'unknown') + ' · ' + (state.data_mode || 'unknown') + ' data · real collector OFF · unsupported fields remain unavailable');
+      const collector = state.collector || {};
+      const collectorLabel = collector.enabled === true ? 'collector lease ON' :
+        collector.enabled === false ? 'collector OFF' : 'collector state unavailable';
+      set('environment-label', (state.environment || 'unknown') + ' · ' + (state.data_mode || 'unknown') + ' data · ' + collectorLabel + ' · unsupported fields remain unavailable');
       serverEpochMs = Date.parse(state.generated_at) || Date.now(); syncAt = performance.now();
       const marketChanged = latest?.market?.id !== state.market?.id;
       const feature = state.feature_snapshot;
@@ -731,7 +734,8 @@
         const host = status.host;
         pair(view, 'API', status.api);
         pair(view, 'Live engine health', status.live_engine_status);
-        pair(view, 'Collector', status.collector.running ? 'Running' : status.collector.enabled ? 'Stopped' : 'Disabled');
+        pair(view, 'Collector', status.collector.enabled === true ? 'Lease ON · process unverified' :
+          status.collector.enabled === false ? 'OFF' : 'Unavailable');
         pair(view, 'Host telemetry', host.status + ' · '+localTime(host.captured_at));
         pair(view, 'Host uptime', seconds(host.uptime_seconds));
         pair(view, 'CPU (last 1-second sample)', host.cpu_percent == null ? 'Unavailable' : host.cpu_percent + '%');

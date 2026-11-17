@@ -1,5 +1,14 @@
 # Resume here
 
+The November 17 opening section of the master roadmap now distinguishes the
+**selected** PP modes from what is deployed. PP normally should preview the
+production API, switch temporarily to its own live collector/PostgreSQL for a
+bounded test, then return to preview; no production pause is needed. Today PP
+has one `tradebot_pp` database and generated-only dashboard, not the separate
+experiment database or production-preview route. PP cloud sync/retirement are
+OFF. Audit actual production/Supabase coverage before claiming recent data is
+complete; the last recorded production collector state was storage-held.
+
 CP7 policy correction (November 17): PP and production may independently read
 the read-only market feeds into their separate databases. Do not stop or change
 production for a PP live trial. Qualify one leased collector per **PP database**,

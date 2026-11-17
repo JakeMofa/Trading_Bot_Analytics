@@ -1,5 +1,42 @@
 # BTC Intelligence Rebuild Plan
 
+## PP dashboard and data-mode clarification — November 17, 2026
+
+**User-selected workflow:** PP normally previews production through a
+restricted, read-only production API/SSE route. Its own collector is OFF in
+preview. For a bounded PostgreSQL integration test, the operator switches PP
+to `pp_live`: its own read-only feed clients write only to PP PostgreSQL and
+the PP dashboard reads that PP API. After the test, the operator drains and
+turns PP collection OFF, confirms OFF survives restart, and switches the
+dashboard back to production preview. Production collection need not pause for
+this test. Preview is not a shared database connection or Docker network.
+
+| Data path | Selected purpose | Deployed state |
+| --- | --- | --- |
+| Production API → PP preview | Normal PP dashboard view of production, with source/as-of labels and unavailable state on failure | **Not implemented**; PP dashboard currently shows generated PP data |
+| PP collector → `tradebot_pp` | Bounded live ingestion, PostgreSQL queries, calculations and 72-hour-or-qualified-size generation qualification | Lease/schema deployed; collector process and ON path **not implemented** |
+| Separate PP experiment database | Generated/replayed subsets and schema/query experiments without contaminating PP live or production history | **Not created**; current PP has one `tradebot_pp` database with generated-origin records |
+| PP → Supabase | Environment-isolated structured history and verified raw archives | `history_v2` schema exists, but PP cloud runtime grants, writes/readback and retirement are **not enabled** |
+
+Before any PP cloud write, choose and test a PP-only identity and namespace
+(separate project or strictly isolated schema/object prefix) with explicit
+origin/generation keys and production-query exclusion. Never let PP-generated
+or duplicate live observations enter production training/evaluation as
+independent evidence. Cloud write acknowledgement is distinct from verified
+archive readback; no local generation is retired until coverage, checksum,
+references and retrieval pass. A failed cloud cycle retains local data and
+reports backlog. The live PP trial may proceed with cloud sync and retirement
+OFF, but that trial cannot claim a working 72-hour archive/retirement lifecycle.
+
+Audit the actual production and Supabase collection intervals before making
+claims about missing history. Any period with no collection has an evidence gap:
+later candles or market summaries may support labeled backfill, but they cannot
+recreate unobserved tick/order-book events. Preserve the gap in coverage and
+exclude it from algorithms that require complete live observations. Current
+production collection state is **not freshly verified by this plan update**;
+the last recorded legacy state was storage-held. Do not infer active production
+collection from a running API service.
+
 ## CP7 collector ownership correction — November 17, 2026
 
 The earlier cross-VM **sole real collector** rule was overbroad. PP and

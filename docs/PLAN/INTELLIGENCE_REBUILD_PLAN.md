@@ -1,5 +1,26 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 PP live profile preparation — November 17, 2026
+
+PR #68 merged the opt-in operator/session source after exact CI passed. A
+separate `runtime.live.compose.yaml` now describes the four existing PP
+application processes reading/writing only `pp-live-pp`: API, serial
+calculation, lifecycle rotation and private operator. The operator alone gets
+the additional app-role DSN and live-control opt-in; collector activation still
+requires its authenticated bounded ON request and a durable lease. The normal
+generated-only CD profile remains unchanged and rejects this overlay.
+
+The normalized live profile is compared field-for-field with the qualified OFF
+profile. Only the reviewed origin/mode, lifecycle opt-in, and operator app-role
+mount/flag may differ. The local real Docker Compose render and 65 PP control
+tests passed, with one existing platform skip. This is **source qualification,
+not a PP release**: no host switch controller, live API acceptance, actual feed
+run, Supabase archive, partition retirement or production action has occurred.
+Next qualify a separately bounded PP-only host transition and recovery path,
+then observe live collection across a real market boundary with cloud sync and
+retirement OFF. The selected 72-hour-or-qualified-size policy remains; no
+short interval is substituted for it.
+
 ## CP7 opt-in live operator runtime source — November 17, 2026
 
 Candidate source connects the private operator's optional ON route to the

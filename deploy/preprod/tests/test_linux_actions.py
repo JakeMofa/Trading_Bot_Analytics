@@ -2,7 +2,10 @@
 from copy import deepcopy
 from dataclasses import replace
 import json
+import os
 from pathlib import Path
+import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -11,6 +14,7 @@ from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import controller as c
 import linux_actions as a
+import live_profile as live_policy
 
 IMAGE='sha256:'+'a'*64
 CID='b'*64
@@ -106,6 +110,49 @@ class OneoffBudget(RecordingBudget):
 
 
 class ConfigTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('docker'), 'Docker Compose unavailable')
+    def test_real_compose_live_overlay_matches_reviewed_profile(self):
+        source=Path(__file__).resolve().parents[3]
+        env={**os.environ,'PP_APP_IMAGE':IMAGE,
+             'PP_SECRET_DIR':str(a.SECRETS),'PP_RUNTIME_SECRET_DIR':str(a.RUNTIME_SECRETS)}
+        def rendered(*overlays):
+            command=['docker','compose','--env-file','/dev/null','--profile','migration',
+                     '--project-directory',str(source/'deploy/preprod'),
+                     '-f',str(source/'deploy/preprod/compose.yaml'),
+                     '-f',str(source/'deploy/preprod/runtime.compose.yaml')]
+            for overlay in overlays:
+                command.extend(('-f',str(source/'deploy/preprod'/overlay)))
+            command.extend(('config','--format','json'))
+            return json.loads(subprocess.run(command,check=True,capture_output=True,
+                                             text=True,timeout=10,env=env).stdout)
+        live_policy.validate_live_profile(rendered(),rendered('runtime.live.compose.yaml'),
+                                          source,IMAGE)
+
+    def test_explicit_live_overlay_changes_only_reviewed_pp_fields(self):
+        source=Path('/private/candidate/source')
+        base=configuration(source)
+        live=deepcopy(base)
+        for name in ('api','calculation','lifecycle'):
+            live['services'][name]['environment'].update(
+                TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
+        live['services']['lifecycle']['environment']['TRADEBOT_PP_LIVE_LIFECYCLE']='true'
+        live['services']['operator']['environment'].update(
+            TRADEBOT_PP_LIVE_CONTROL='true',TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
+        live['services']['operator']['secrets'].append({'source':'app_dsn','target':'app_dsn'})
+        self.assertIs(live_policy.validate_live_profile(base,live,source,IMAGE),live)
+        for mutate in (
+            lambda row:row['services']['api']['environment'].update(ENABLE_OPENAI_ANALYST='true'),
+            lambda row:row['services']['lifecycle']['environment'].update(ENABLE_LOCAL_RETENTION='true'),
+            lambda row:row['services']['operator']['secrets'].pop(),
+            lambda row:row['services']['api']['environment'].update(TRADEBOT_ORIGIN_ID='generated-pp'),
+            lambda row:row['services']['operator']['ports'][0].update(host_ip='0.0.0.0'),
+            lambda row:row['services']['postgres']['environment'].update(POSTGRES_DB='tradebot_prod'),
+        ):
+            changed=deepcopy(live)
+            mutate(changed)
+            with self.assertRaises(c.DeploymentHold):
+                live_policy.validate_live_profile(base,changed,source,IMAGE)
+
     def test_actual_policy_accepts_generated_normalized_shape(self):
         source=Path('/private/candidate/source')
         self.assertEqual(a.validate_config(configuration(source),source,IMAGE)['name'],a.PROJECT)

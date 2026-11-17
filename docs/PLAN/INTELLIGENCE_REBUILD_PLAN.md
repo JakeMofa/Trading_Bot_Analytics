@@ -1,5 +1,27 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 occupied-slot fail-closed preparation — November 17, 2026
+
+The PP-live lifecycle candidate now commits `other_slot_not_retired` and a
+durable collector OFF in the same writer-row transaction. A held B generation
+cannot receive new PP acknowledgements or accept a new ON lease; the lifecycle
+worker exits with a held result. An isolated PostgreSQL test covers A→B
+acknowledgements, occupied-slot OFF across repository restart, refused new
+writes/ON, failed mock archive preserving sealed A, and partition/database/WAL
+measurements. Generated-origin behavior is unchanged. Exact Linux CI and PP
+deployment remain open for this candidate; cloud sync and retirement stay OFF.
+
+**Numeric PP trial trigger blocked:** the generated 24-tick qualification
+measured 81,920/114,688 bytes across A/B and 143,224 WAL bytes. PP's recorded
+resource snapshot had 21 generated raw rows, 57.08 GB free disk, 1.32 GB
+available RAM and 32 MiB WAL. These do not measure live feed cadence,
+core/dedup/outbox growth, WAL amplification or source throttling over a bounded
+session. No safe PP size threshold or guaranteed switch within 1,800 seconds
+can be derived from them. The live Compose profile sets no size trigger; a
+bounded, measured PP live baseline must precede a separate reviewed threshold
+and one-switch trial. A 30-minute trial cannot prove 72-hour rotation, cloud
+archive, partition retirement or sustained lifecycle acceptance.
+
 ## CP7 isolated size-switch qualification candidate — November 17, 2026
 
 A generated-origin, isolated-PostgreSQL test now measures an A→B switch while

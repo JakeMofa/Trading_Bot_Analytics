@@ -161,11 +161,13 @@ class LifecycleRepository:
                 FROM ops.writer_state WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
             if writer is None or writer['collector_enabled'] or str(writer['generation_id']) != expected_generation_id:
                 raise LifecycleHold('collector writer unavailable or generation changed')
-            generation = connection.execute('''SELECT state FROM archive.generations
+            generation = connection.execute('''SELECT state,hold_reason FROM archive.generations
                 WHERE origin_id=%s AND generation_id=%s''',
                 (origin_id, expected_generation_id)).fetchone()
             if generation is None or generation['state'] != 'collecting':
                 raise LifecycleHold('collector generation is not collecting')
+            if generation['hold_reason'] == 'other_slot_not_retired':
+                raise LifecycleHold('occupied generation slot blocks PP collector restart')
             result = connection.execute('''UPDATE ops.writer_state SET collector_enabled=true,
                 collector_session_id=%s::uuid,
                 collector_lease_expires_at=clock_timestamp()+(%s * interval '1 second'),
@@ -280,8 +282,20 @@ class LifecycleRepository:
             if occupied:
                 connection.execute('UPDATE archive.generations SET hold_reason=%s WHERE generation_id=%s',
                                    ('other_slot_not_retired', current['generation_id']))
-                return {'status': 'held', 'reason': 'other_slot_not_retired',
-                        'generation_id': current['generation_id']}
+                result = {'status': 'held', 'reason': 'other_slot_not_retired',
+                          'generation_id': current['generation_id']}
+                if origin_id.startswith('pp-live-'):
+                    # This writer row is already locked FOR UPDATE. Drain any
+                    # in-flight acknowledgement, then commit the hold and OFF
+                    # together so no new PP write can enter the occupied slot.
+                    connection.execute('''UPDATE ops.writer_state
+                        SET collector_enabled=false,collector_session_id=NULL,
+                            collector_lease_expires_at=NULL,epoch=epoch+1,updated_at=%s
+                        WHERE origin_id=%s AND (collector_enabled OR
+                            collector_session_id IS NOT NULL OR collector_lease_expires_at IS NOT NULL)''',
+                        (now, origin_id))
+                    result['collector_enabled'] = False
+                return result
             count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                                        (current['generation_id'],)).fetchone()['count']
             new = self._create(connection, origin_id, slot, now)

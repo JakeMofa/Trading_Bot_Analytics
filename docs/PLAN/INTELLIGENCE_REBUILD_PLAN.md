@@ -1,5 +1,16 @@
 # BTC Intelligence Rebuild Plan
 
+**November 17, 2026 branch note:** The current authoritative execution record
+is the `preprod` branch version of this file. This legacy deployment branch is
+retained for the running SQLite application and its release controls. The
+default-preserving `TRADEBOT_COLLECTOR_ENABLED=false` code candidate makes an
+explicit production OFF setting survive API restarts, while keeping the API
+available. It is tested locally but not installed, configured or qualified as
+a cross-VM sole-collector fence. Before PP live activation, review the exact
+release, apply the OFF setting through protected configuration, restart only
+the API, and verify no collector process or persisted feed advances through a
+restart. PP must still prove its own bounded ownership and durable OFF path.
+
 **Branch:** `codex/lightsail-deployment`
 **Status:** Active implementation plan  
 **Primary focus:** Polymarket US BTC 15-minute markets  

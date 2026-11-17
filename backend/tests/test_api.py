@@ -16,6 +16,22 @@ from live_state import LiveState
 
 
 class FastAPITests(unittest.TestCase):
+    def test_explicit_collector_off_survives_api_recreation(self):
+        with patch.dict('os.environ', {'TRADEBOT_COLLECTOR_ENABLED': 'false'}):
+            for _ in range(2):
+                app = create_app(self.populated_state(), start_collectors=True)
+                with TestClient(app) as client:
+                    self.assertFalse(app.state.start_collectors)
+                    self.assertIsNone(app.state.collector_task)
+                    health = client.get('/health').json()
+                    self.assertFalse(health['collector']['enabled'])
+                    self.assertFalse(health['collector']['running'])
+
+    def test_invalid_collector_setting_fails_closed(self):
+        with patch.dict('os.environ', {'TRADEBOT_COLLECTOR_ENABLED': 'maybe'}):
+            with self.assertRaisesRegex(ValueError, 'invalid TRADEBOT_COLLECTOR_ENABLED'):
+                create_app(self.populated_state())
+
     def test_cleanly_stopped_collector_cannot_report_healthy_cached_state(self):
         from types import SimpleNamespace
         app = create_app(self.populated_state(), start_collectors=False)

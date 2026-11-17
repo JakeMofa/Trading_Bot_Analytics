@@ -65,6 +65,16 @@ def _env_enabled(name, default="false"):
     return str(os.getenv(name, default)).strip().lower() in ("1", "true", "yes", "on")
 
 
+def _collector_start_allowed():
+    """An explicit OFF survives API restarts; absent preserves legacy behavior."""
+    value = os.getenv('TRADEBOT_COLLECTOR_ENABLED', 'true').strip().lower()
+    if value in ('false', '0', 'off'):
+        return False
+    if value in ('true', '1', 'on'):
+        return True
+    raise ValueError('invalid TRADEBOT_COLLECTOR_ENABLED setting')
+
+
 def _read_cloud_status(db_path):
     try:
         status = _read_cloud_datasets(db_path)
@@ -142,6 +152,8 @@ def _read_prediction_history(db_path, limit):
 
 
 def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_path=None):
+    collector_allowed = _collector_start_allowed()
+    start_collectors = bool(start_collectors and collector_allowed)
     state = live_state or LiveState()
     resolved_db_path = db_path or os.getenv('SQLITE_DB_PATH', 'data/btc_intelligence.db')
 

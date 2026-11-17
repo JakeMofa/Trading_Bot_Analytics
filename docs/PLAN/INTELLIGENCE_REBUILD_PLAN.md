@@ -1,5 +1,49 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 collector ownership correction — November 17, 2026
+
+The earlier cross-VM **sole real collector** rule was overbroad. PP and
+production have separate databases, credentials, origin IDs and application
+processes. They may independently consume the same read-only Coinbase and
+Polymarket US market feeds while writing only to their own stores. A PP live
+test does **not** require stopping or changing production. This supersedes the
+cross-VM fence wording in older CP7 sections below and in dated handoffs.
+It does not authorize any production operation.
+
+The enforceable ownership rule is **one active PP collector session per PP
+origin/database**. Its authenticated operator control must bind the PP host,
+origin, active generation, session ID and expiring database lease; start no
+second PP process, acknowledge OFF after draining on stop, and remain OFF after
+restart unless explicitly re-enabled. PP and production must never share a
+database connection, volume, credentials, outbox or archive checkpoint.
+Combined source traffic needs bounded cadence, reconnect backoff and observation
+of 429/throttling or subscription rejection; a source limit failure stops the
+PP trial and preserves truthful stale/unavailable state. Coinbase documents
+[account-level WebSocket subscription limits](https://help.coinbase.com/en/exchange/managing-my-account/market-data-connections);
+the [Polymarket US data guide](https://docs.polymarket.us/data-guide/overview)
+describes read-only REST/gRPC access. Neither document proves an unlimited
+two-VM allowance for the exact PP request profile. Measure it during the trial.
+
+**Revised CP7 execution order:** (1) finish a private PP ON/OFF host process
+controller using the deployed lease and existing bounded source supervisor;
+qualify unauthorized/repeated ON, expiry, crash, restart, in-flight writes and
+confirmed OFF. (2) Verify distinct PP-only identity and PostgreSQL destination,
+source cadence and resource bounds; leave Supabase sync, retirement, paid AI
+and trading OFF. (3) Run one bounded PP live session while leaving production
+untouched. Require advancing Coinbase and Polymarket US 15-minute records,
+correct generation/market, dashboard/API/SSE, a real market boundary, no
+two-second API timeouts, save/heartbeat below one second, and input/feature
+ages within 30 seconds; record rate responses and disk/WAL growth. (4) Turn PP
+OFF, confirm no new acknowledgements or automatic restart, and report PASS,
+FAIL or INCOMPLETE against each measure. A qualified size trigger may test a
+generation switch separately; archive verification still precedes retirement.
+Production PostgreSQL cutover remains a later, separately controlled gate:
+**then** fence the old production writer before the new production writer starts.
+
+Current code remains default-OFF and has no PP ON endpoint or host process
+controller. The pp.7 generated-only deployment passed; a live PP run has not
+occurred. CP6 cloud archival and Phase 1.75/I7 acceptance remain open.
+
 ## CP7 generated-only PP lease release — November 17, 2026
 
 The exact `preprod` source `4eea47b` passed
@@ -410,7 +454,7 @@ networks and environment identities with the same versioned business schema.
 | --- | --- | --- |
 | Production preview | Restricted authenticated production API/SSE | PP collector OFF; PP API/dashboard ON |
 | Isolated development | Generated or approved replay/subset in PP PostgreSQL | Real collector OFF |
-| Bounded live qualification | Official feeds writing only PP data | PP temporarily owns sole real collector after production fencing |
+| Bounded live qualification | Official feeds writing only PP data | One leased PP collector for its own database; production untouched |
 
 PP needs a **visible, operator-controlled mode switch**. The dashboard and API
 report whether they are showing PP live collection, isolated PP test data, or
@@ -429,7 +473,7 @@ trading endpoint is added.
 | Setting | Dashboard/API reads | PP collector | PP database use |
 | --- | --- | --- | --- |
 | `isolated` | PP API backed by PP PostgreSQL | OFF | Generated/replayed records, or a separately identified test subset; all labelled as test data |
-| `pp_live` | PP API backed by PP PostgreSQL | ON only while PP holds the sole-collector fence | Official read-only feed observations and predictions are persisted in PP; no production writes |
+| `pp_live` | PP API backed by PP PostgreSQL | ON only while PP holds its local collector lease | Official read-only feed observations and predictions are persisted in PP; no production writes |
 | `production_preview` | Restricted, authenticated production API/SSE proxied to PP dashboard | OFF and fenced | PP test database remains available for later work but does not supply current production prices |
 
 The private operator setting changes the **PP dashboard's source** and may
@@ -442,16 +486,17 @@ mode, environment, origin and last source time must travel with every API/SSE
 response so a stale PP value cannot masquerade as production.
 
 Transitions are fail closed. `isolated → pp_live` requires the qualified real
-connector, explicit production writer fence, PP ownership lease and bounded
+connector, PP-only writer lease and bounded
 resource preflight. `pp_live → isolated` stops intake, drains/acknowledges in
 flight writes, persists collector OFF, checks processes/ownership after restart
 and keeps PP history queryable. `isolated → production_preview` requires the
 restricted production API route and a confirmed PP collector fence. Preview
 failure reports production unavailable and does not substitute PP values.
 Returning to `isolated` restores PP test views without starting collection.
-The approved production cutover independently verifies PP OFF before production
-takes the lease. Mode changes and failed attempts are recorded with actor,
-time, previous/new mode and fence result, excluding credentials.
+The later approved production cutover independently fences the old production
+writer before starting the new production writer. Mode changes and failed
+attempts are recorded with actor, time, previous/new mode and local lease
+result, excluding credentials.
 
 **Implementation order and proof:** (1) private PP API/dashboard access;
 (2) PostgreSQL live adapters and migrated queries on generated/replayed fixtures;
@@ -556,10 +601,9 @@ do not infer parity from passing generated fixtures or point PP at the legacy
 database. Preserve exact source timestamps, decimals, provenance, market
 identity, stale/unavailable states and the serial calculation worker.
 
-Before enabling that connector, verify production's *actual* collector state
-and establish an explicit, restart-safe production writer fence. Do not treat
-the recorded storage-guard hold as that fence. Run one bounded PP live window
-with PP as the sole real collector. Verify persisted feed acknowledgements,
+Before enabling that connector, verify PP's own collector is OFF, its lease is
+unclaimed and its database destination is PP-only. Leave production unchanged.
+Run one bounded PP live window. Verify persisted feed acknowledgements,
 current-price and history query results/latency, calculations, dashboard and
 SSE advancement, and a real 15-minute market boundary. Measure save/heartbeat
 delay, API timeouts, input/feature ages, disk/WAL growth and core/outbox use

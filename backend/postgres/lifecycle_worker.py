@@ -60,11 +60,18 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--once', action='store_true')
     parser.add_argument('--bootstrap', action='store_true', help='explicitly prepare first generated A generation')
+    operation=parser.add_mutually_exclusive_group()
+    operation.add_argument('--stop-collector', action='store_true', help='durably stop a PP live collector only')
+    operation.add_argument('--collector-status', action='store_true', help='read the PP live collector lease only')
     parser.add_argument('--interval-seconds', type=float, default=30)
     args = parser.parse_args(argv)
+    if (args.stop_collector or args.collector_status) and (args.once or args.bootstrap):
+        parser.error('collector recovery commands cannot run bootstrap or rotation')
     if not 1 <= args.interval_seconds <= 60:
         parser.error('interval must be 1..60 seconds')
     config = configuration(os.environ)
+    if (args.stop_collector or args.collector_status) and config['mode'] != 'pp_live':
+        parser.error('collector recovery commands require explicit PP live mode')
     from .connection import connect
     from .migrate import validate_schema
     dsn = read_dsn(os.environ)
@@ -72,6 +79,19 @@ def main(argv=None):
     with factory() as connection:
         validate_schema(connection, 'preprod')
     repository = LifecycleRepository(factory, pending_outbox_limit=config['pending_outbox_limit'])
+    if args.stop_collector or args.collector_status:
+        if args.stop_collector:
+            result=repository.disable_collector(config['origin_id'])
+            print(json.dumps({'environment':'preprod','origin_id':config['origin_id'],
+                              'collector_enabled':result['collector_enabled'],
+                              'epoch':result['epoch']}),flush=True)
+        else:
+            result=repository.collector_state(config['origin_id'])
+            print(json.dumps({'environment':'preprod','origin_id':config['origin_id'],
+                              'collector_enabled':result['collector_enabled'],
+                              'initialized':result['initialized'],
+                              'epoch':result['epoch']}),flush=True)
+        return 0
     if args.bootstrap:
         if config['mode'] not in ('generated', 'pp_live'):
             parser.error('bootstrap requires a generated or explicitly enabled PP live origin')

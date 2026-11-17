@@ -1,5 +1,17 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 independent PP live OFF recovery path — November 17, 2026
+
+The private operator API is the normal ON/OFF route, but it may be unreachable
+during a container transition. The candidate adds explicit lifecycle-role
+`--stop-collector` and `--collector-status` commands for the PP live origin.
+They cannot run in generated/replay mode or together with bootstrap/rotation;
+they use the existing file-mounted lifecycle credential, report only bounded
+state fields and never enable a collector. The intended host recovery action
+can use the one-off lifecycle container to prove durable OFF even when the
+operator HTTP process is unavailable. Local lifecycle tests pass. This command
+alone does not install a host transition, start feeds, or alter PP/production.
+
 ## CP7 truthful PP live dashboard and health — November 17, 2026
 
 Before activation, review found `Settings.public()` and the dashboard label

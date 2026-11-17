@@ -752,6 +752,21 @@ release or I7 acceptance. The narrow successor keeps the PP operator check
 mandatory and retains the production check set separately. No automatic retry;
 new exact CI, version and one-use authority are required for a second attempt.
 
+**PP operator release accepted (November 17):** PR #55 corrected the
+environment-specific acceptance set and merged as `e907022`. Exact preprod CI
+44026918955 passed; version `v0.2.0-pp.5` published in 44027242158. The
+separate manual CD 44027443677 **passed** its generated-only API, SSE, schema,
+data, disabled-flag, recovery and operator-control checks. A fresh private
+host read found API health 200, dashboard source `generated`, distinct
+`pp-live-pp` operator status with collection OFF, five running PP services and
+no remaining one-use authority. The temporary runner removed itself. The
+earlier failed attempt stays failed. Actual collection interruption was not
+separately measured; PP live market and archival acceptance were not run.
+[Sanitized release evidence](evidence/pp-operator-release-2026-11-17.json).
+Next CP7 gates are an enforceable cross-VM sole-collector fence and an
+authenticated, bounded ON/OFF session control before any PP live collection.
+CP6 cloud permissions/readback still gate retirement. Production is unchanged.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

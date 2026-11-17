@@ -382,9 +382,9 @@ class Store:
         price,_ = self.inputs(market_id,now)
         with self.connection(True) as db:
             feature = db.execute('''SELECT * FROM core.feature_snapshots WHERE origin_id=%s AND market_id=%s AND as_of<=%s
-                ORDER BY as_of DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
+                ORDER BY as_of DESC,snapshot_id DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
             prediction = db.execute('''SELECT * FROM core.predictions WHERE origin_id=%s AND market_id=%s AND as_of<=%s
-                ORDER BY as_of DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
+                ORDER BY as_of DESC,prediction_id DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
             quote = db.execute('''SELECT * FROM raw.events WHERE origin_id=%s AND market_id=%s AND source='polymarket_us'
                 AND kind='quote' AND available_at<=%s AND received_at<=%s ORDER BY received_at DESC,event_id DESC LIMIT 1''',
                 (self.origin,market_id,now,now)).fetchone()
@@ -399,7 +399,7 @@ class Store:
         with self.connection(True) as db:
             return json_value(db.execute('''SELECT prediction_id AS id,market_id,model_version,as_of,created_at,
                seconds_remaining,probability_up,probability_down,abstain_reason FROM core.predictions
-               WHERE origin_id=%s ORDER BY as_of DESC LIMIT %s''',(self.origin,bound(limit))).fetchall())
+               WHERE origin_id=%s ORDER BY as_of DESC,prediction_id DESC LIMIT %s''',(self.origin,bound(limit))).fetchall())
 
     def chart(self, now=None):
         now = timestamp(now or utcnow())
@@ -408,8 +408,10 @@ class Store:
             if not row:
                 return {'status':'missing','market':None,'points':[]}
             points = db.execute('''SELECT source_time,source_epoch,price FROM raw.events WHERE origin_id=%s AND source='coinbase'
-                AND kind='price' AND symbol='BTC-USD' AND source_epoch>=%s AND source_epoch<%s AND available_at<=%s
-                ORDER BY source_epoch DESC LIMIT 5000''',(self.origin,row['start_epoch'],row['end_epoch'],now)).fetchall()
+                AND kind='price' AND symbol='BTC-USD' AND source_epoch>=%s AND source_epoch<%s
+                AND source_epoch<=%s AND received_at<=%s AND available_at<=%s
+                ORDER BY source_epoch DESC,received_at DESC,event_id DESC LIMIT 5000''',
+                (self.origin,row['start_epoch'],row['end_epoch'],Decimal(str(now.timestamp())),now,now)).fetchall()
         buckets = {}
         for point in reversed(points):
             buckets[int(point['source_epoch'])//5] = {'at':point['source_time'],'price_usd':str(point['price'])}

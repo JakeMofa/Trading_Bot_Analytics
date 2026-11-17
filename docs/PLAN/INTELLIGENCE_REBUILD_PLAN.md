@@ -1,5 +1,33 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 occupied-slot fail-closed preparation — November 17, 2026
+
+The PP-live lifecycle candidate now commits `other_slot_not_retired` and a
+durable collector OFF in the same writer-row transaction. A held B generation
+cannot receive new PP acknowledgements or accept a new ON lease; the lifecycle
+worker exits with a held result. An isolated PostgreSQL test covers A→B
+acknowledgements, occupied-slot OFF across repository restart, refused new
+writes/ON, failed mock archive preserving sealed A, and partition/database/WAL
+measurements. Generated-origin behavior is unchanged; cloud sync and retirement
+stay OFF.
+Exact PR CI [44191643671](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44191643671)
+then passed all six jobs. Its isolated PostgreSQL 17 case recorded two
+acknowledgements with zero gaps, 81,920 bytes allocated in each A/B partition,
+70,264 WAL bytes generated and 10,950,323 database bytes. It verified durable
+OFF after restart, refused a new ON lease and preserved sealed A after failed
+mock archive. These are tiny fixture measurements; deployed PP remains untested.
+
+**Numeric PP trial trigger blocked:** the generated 24-tick qualification
+measured 81,920/114,688 bytes across A/B and 143,224 WAL bytes. PP's recorded
+resource snapshot had 21 generated raw rows, 57.08 GB free disk, 1.32 GB
+available RAM and 32 MiB WAL. These do not measure live feed cadence,
+core/dedup/outbox growth, WAL amplification or source throttling over a bounded
+session. No safe PP size threshold or guaranteed switch within 1,800 seconds
+can be derived from them. The live Compose profile sets no size trigger; a
+bounded, measured PP live baseline must precede a separate reviewed threshold
+and one-switch trial. A 30-minute trial cannot prove 72-hour rotation, cloud
+archive, partition retirement or sustained lifecycle acceptance.
+
 ## CP7 isolated PP live query parity candidate — November 17, 2026
 
 An isolated PostgreSQL 17 test now uses known normalized Polymarket US
@@ -19,6 +47,7 @@ passed all required jobs; its isolated PostgreSQL 17 application lifecycle
 suite ran 99 tests with no skips, including the PP live query case. A real PP
 feed session, source cadence and rollover observation remain OPEN. No PP host,
 production, Supabase, trading or paid AI operation is part of this candidate.
+
 ## CP7 PP live host-control candidate — November 17, 2026
 
 A candidate extends the PP forced-command controller with one-use, exact

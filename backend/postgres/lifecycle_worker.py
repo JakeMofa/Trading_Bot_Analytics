@@ -103,6 +103,13 @@ def main(argv=None):
         try:
             result = repository.switch_if_due(config['origin_id'], config['policy'])
             result.update(archive='held_no_qualified_transport', retirement='off')
+            if config['mode'] == 'pp_live' and result.get('reason') == 'other_slot_not_retired':
+                # The repository atomically committed OFF with the hold. The
+                # supervisor must not keep presenting this as normal rotation.
+                if result.get('collector_enabled') is not False:
+                    raise ValueError('PP collector OFF not proven after occupied slot')
+                print(json.dumps(result), flush=True)
+                return 1
             print(json.dumps(result), flush=True)
         except Exception as error:
             # DSN, SQL values, and provider responses never reach process logs.

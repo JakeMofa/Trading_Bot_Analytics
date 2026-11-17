@@ -7,6 +7,7 @@ or cloud-mutation-authority evidence.
 from dataclasses import replace
 import asyncio
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
 import os
 import sys
@@ -285,6 +286,8 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         session = str(uuid.uuid4())
         self.repository.enable_collector(origin, session_id=session,
             expected_generation_id=str(generation['generation_id']), max_seconds=60)
+        with self.factory() as connection:
+            before_wal=connection.execute('SELECT pg_current_wal_lsn() AS lsn').fetchone()['lsn']
 
         def tick(number):
             instant=datetime.now(timezone.utc).isoformat()
@@ -302,19 +305,45 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertFalse(second['duplicate'])
         blocked=self.repository.switch_if_due(origin, RotationPolicy(1))
         self.assertEqual((blocked['status'],blocked['reason']),('held','other_slot_not_retired'))
-        third=live.ingest(tick(3))
-        self.assertEqual(str(third['generation_id']),str(switched['generation_id']))
+        self.assertIs(blocked['collector_enabled'],False)
+        self.assertFalse(self.repository.owns_collector(origin,session))
+        restarted=LifecycleRepository(self.factory)
+        self.assertIs(restarted.collector_state(origin)['stored_enabled'],False)
+        with self.assertRaises(StorageHold):
+            live.ingest(tick(3))
+        with self.assertRaisesRegex(LifecycleHold,'occupied generation slot'):
+            restarted.enable_collector(origin,session_id=str(uuid.uuid4()),
+                expected_generation_id=str(switched['generation_id']),max_seconds=60)
+        transport=ImmutableMemoryTransport()
+        transport.fail_put=True
+        with self.assertRaises(ArchiveUnavailable):
+            ArchiveWorker(restarted,transport).archive_cycle(str(generation['generation_id']))
+        self.assertEqual(restarted.generation(str(generation['generation_id']))['state'],'sealed')
         with self.app_factory() as connection:
             rows=connection.execute('''SELECT generation_id,event_id FROM raw.events
                 WHERE origin_id=%s AND source='coinbase' ''',
                 (origin,)).fetchall()
-            self.assertEqual(len(rows),3)
+            self.assertEqual(len(rows),2)
             actual={row['event_id']:str(row['generation_id']) for row in rows}
             self.assertEqual(actual,{first['event_id']:str(generation['generation_id']),
-                                     second['event_id']:str(switched['generation_id']),
-                                     third['event_id']:str(switched['generation_id'])})
-        self.repository.disable_collector(origin)
-        self.assertFalse(self.repository.owns_collector(origin,session))
+                                     second['event_id']:str(switched['generation_id'])})
+        with self.factory() as connection:
+            b=self.repository.generation(switched['generation_id'])
+            sizes=[connection.execute('SELECT pg_total_relation_size(to_regclass(%s)) AS bytes',
+                ('raw.'+item['partition_name'],)).fetchone()['bytes'] for item in (generation,b)]
+            self.assertIsNotNone(connection.execute('SELECT to_regclass(%s) AS name',
+                ('raw.'+generation['partition_name'],)).fetchone()['name'])
+            wal=connection.execute('SELECT pg_wal_lsn_diff(pg_current_wal_lsn(),%s) AS bytes',
+                (before_wal,)).fetchone()['bytes']
+            database_bytes=connection.execute('SELECT pg_database_size(current_database()) AS bytes').fetchone()['bytes']
+        self.assertTrue(all(size>0 for size in sizes))
+        self.assertGreater(wal,0)
+        print('PP_OCCUPIED_SLOT_STOP='+json.dumps({'scope':'isolated_postgres_fixture',
+            'acknowledged':len(rows),'ack_gaps':0,'partition_bytes':sizes,
+            'wal_generated_bytes':str(wal),'database_bytes':database_bytes,
+            'collector_enabled':False,'restart_enable_blocked':True,
+            'failed_archive_preserved_sealed_a':True,
+            'cloud_enabled':False,'retirement_enabled':False},sort_keys=True),flush=True)
 
     def test_only_one_pp_live_origin_can_own_database_collector(self):
         origins=['pp-live-'+uuid.uuid4().hex for _ in range(2)]

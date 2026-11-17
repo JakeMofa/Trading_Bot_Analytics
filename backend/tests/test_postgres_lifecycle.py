@@ -164,6 +164,29 @@ class RotationConfigurationTests(unittest.TestCase):
             main(['--stop-collector','--bootstrap'])
         read.assert_not_called()
 
+    def test_pp_live_occupied_slot_exits_after_durable_off_result(self):
+        environment={'TRADEBOT_ENVIRONMENT':'preprod','TRADEBOT_DATA_MODE':'pp_live',
+                     'TRADEBOT_ORIGIN_ID':'pp-live-fixture',
+                     'TRADEBOT_PP_LIVE_LIFECYCLE':'true',
+                     'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/lifecycle_dsn'}
+        with patch.dict('os.environ',environment,clear=True), \
+             patch('postgres.lifecycle_worker.read_dsn',return_value='private-placeholder'), \
+             patch('postgres.connection.connect'), \
+             patch('postgres.migrate.validate_schema'), \
+             patch('postgres.lifecycle_worker.LifecycleRepository') as repository, \
+             patch('builtins.print') as output:
+            repository.return_value.switch_if_due.return_value={
+                'status':'held','reason':'other_slot_not_retired',
+                'generation_id':'fixture-generation','collector_enabled':False}
+            self.assertEqual(main(['--once']),1)
+            result=json.loads(output.call_args.args[0])
+            self.assertEqual((result['reason'],result['collector_enabled'],
+                              result['archive'],result['retirement']),
+                             ('other_slot_not_retired',False,'held_no_qualified_transport','off'))
+            repository.return_value.switch_if_due.return_value.pop('collector_enabled')
+            self.assertEqual(main(['--once']),1)
+            self.assertNotIn('private-placeholder',str(output.call_args_list))
+
     def test_shared_environment_flags_and_bounds_fail_before_database_startup(self):
         cases = [{'TRADEBOT_ENVIRONMENT': 'production'}, {'TRADEBOT_ENVIRONMENT': 'wrong'},
                  {'TRADEBOT_DATA_MODE': 'production-preview'}, {'TRADEBOT_COLLECTOR_ENABLED': 'true'},

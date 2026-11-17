@@ -12,6 +12,10 @@ threshold**. The dashboard does not separately label the active writer
 generation. Cloud sync and retirement remain OFF. Exact Linux PostgreSQL CI
 and any deployed PP observation are still separate gates; no PP service,
 production database, or Supabase state changes in this candidate.
+The first isolated CI run caught a concurrent A→B lookup race in the joined
+writer/generation read. The candidate now locks the writer pointer before a
+fresh generation lookup for both ingest and calculation. Repeat CI must prove
+the correction with no missing acknowledgements before this subgate is PASS.
 
 ## CP7 independent PP live OFF recovery path — November 17, 2026
 

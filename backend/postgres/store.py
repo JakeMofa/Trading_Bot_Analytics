@@ -84,6 +84,21 @@ class Store:
         if count+reserve > maximum:
             raise StorageHold('pending outbox bound reached; preserve local evidence until verified sync')
 
+    def _locked_writer(self, db):
+        # Lock the pointer before looking up its generation. A joined SELECT can
+        # start on the old generation snapshot, wait for a concurrent switch,
+        # then find no matching generation for the updated writer row.
+        writer = db.execute('''SELECT generation_id,collector_enabled,
+            collector_lease_expires_at>clock_timestamp() AS lease_valid
+            FROM ops.writer_state WHERE origin_id=%s FOR SHARE''',
+            (self.origin,)).fetchone()
+        if writer:
+            generation = db.execute('''SELECT state FROM archive.generations
+                WHERE origin_id=%s AND generation_id=%s''',
+                (self.origin, writer['generation_id'])).fetchone()
+            writer['state'] = generation['state'] if generation else None
+        return writer
+
     def ingest(self, event):
         """Persist one normalized generated/replay event and derived projections."""
         from .contract import source_timestamp
@@ -123,11 +138,7 @@ class Store:
         immutable = {key: event.get(key) for key in ('source', 'event_id', 'kind', 'market_id', 'symbol', 'source_time', 'price', 'size', 'payload', 'raw_payload', 'provenance')}
         content_hash = digest(immutable)
         with self.connection() as db:
-            writer = db.execute('''SELECT w.generation_id,w.collector_enabled,
-                w.collector_lease_expires_at>clock_timestamp() AS lease_valid,g.state
-                FROM ops.writer_state w
-              JOIN archive.generations g USING(origin_id,generation_id)
-              WHERE w.origin_id=%s FOR SHARE OF w''', (self.origin,)).fetchone()
+            writer = self._locked_writer(db)
             if not writer or writer['state'] != 'collecting':
                 raise ValueError('explicit lifecycle bootstrap required before ingestion')
             if self.settings.data_mode == 'pp_live' and not (writer['collector_enabled'] and writer['lease_valid']):
@@ -308,9 +319,7 @@ class Store:
                 if existing['feature_hash'] != digest(snapshot) or existing['prediction_hash'] != digest(prediction):
                     raise IdentityConflict('conflicting calculation identity')
                 return snapshot_id
-            writer=db.execute('''SELECT w.generation_id,g.state FROM ops.writer_state w
-                JOIN archive.generations g USING(origin_id,generation_id) WHERE w.origin_id=%s FOR SHARE OF w''',
-                (self.origin,)).fetchone()
+            writer=self._locked_writer(db)
             if not writer or writer['state']!='collecting':
                 raise PublicationRejected('no collecting generation for structured acknowledgement')
             output_generation=writer['generation_id']

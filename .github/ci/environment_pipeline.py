@@ -27,6 +27,11 @@ WORKFLOWS = {'preprod': 'cd-pp.yml', 'production': 'cd-prod.yml'}
 REQUIRED_CHECKS = {'api', 'sse', 'schema', 'migration', 'data_correctness',
                    'collector_ownership', 'disabled_flags', 'recovery',
                    'freshness', 'market_identity'}
+PREPROD_REQUIRED_CHECKS = REQUIRED_CHECKS | {'operator_control'}
+
+
+def required_checks(role):
+    return PREPROD_REQUIRED_CHECKS if role == 'preprod' else REQUIRED_CHECKS
 
 
 class PipelineHold(ValueError):
@@ -157,7 +162,7 @@ def preprod_proof(api, run_id, sha, artifact_digest, policy_digest):
             and proof.get('run_id') == int(run_id) and proof.get('run_attempt') == run.get('run_attempt', 1)
             and proof.get('controls_sha') == run.get('head_sha'),
             'PP acceptance bindings mismatch')
-    require(proof.get('checks') == dict.fromkeys(REQUIRED_CHECKS, 'PASS'), 'PP acceptance checks incomplete')
+    require(proof.get('checks') == dict.fromkeys(PREPROD_REQUIRED_CHECKS, 'PASS'), 'PP acceptance checks incomplete')
     require(proof.get('acceptance_scope') == 'production_candidate',
             'generated-only PP checks cannot authorize production promotion')
     validate_result(proof, 'preprod', sha, artifact_digest)
@@ -172,7 +177,7 @@ def validate_result(result, role, sha, digest):
     require(result.get('gate') == 'PASS' and result.get('environment') == role
             and result.get('instance') == TARGETS[role] and result.get('source_sha') == sha
             and result.get('artifact_sha256') == digest, 'controller result mismatch')
-    require(result.get('checks') == dict.fromkeys(REQUIRED_CHECKS, 'PASS'), 'controller acceptance incomplete')
+    require(result.get('checks') == dict.fromkeys(required_checks(role), 'PASS'), 'controller acceptance incomplete')
     require(result.get('paid_ai_enabled') is False and result.get('retention_enabled') is False,
             'paid AI and retention must stay OFF for this release route')
     if role == 'preprod':

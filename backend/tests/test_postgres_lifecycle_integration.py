@@ -21,7 +21,8 @@ from postgres.history import ArchiveHistory
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.live_contract import coinbase_closed_candle, coinbase_ticker, polymarket_bbo, polymarket_market
 from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
-from postgres.store import StorageHold, Store
+from postgres.calculation import calculate, forecast
+from postgres.store import PublicationRejected, StorageHold, Store
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
 
 
@@ -139,14 +140,42 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(price['price_usd'], ticker['price'])
         self.assertEqual(price['source_time'], ticker['source_time'])
         self.assertEqual(candles[-1]['close'], '100000.5')
+        # A fresh book fetch remains visible even if its last trade sample is
+        # absent; that missing source timestamp is retained in the raw event.
+        missing_sample = polymarket_bbo({'marketData': {
+            'marketSlug': market['payload']['slug'],
+            'bestBid': {'value': '0.49'}, 'bestAsk': {'value': '0.51'}}},
+            market, datetime.now(timezone.utc).isoformat())
+        live.ingest(missing_sample)
+        hydrated = live.hydrate(active['id'], datetime.now(timezone.utc))
+        self.assertIsNone(hydrated[1]['source_time'])
+        self.assertEqual(hydrated[1]['best_bid'], '0.49')
+        def calculation(at):
+            current_price, current_candles = live.inputs(active['id'], at)
+            values, quality, evidence = calculate(active, current_price, current_candles, at)
+            snapshot = {'market_id': active['id'], 'as_of': at.isoformat(),
+                        'values': values, 'quality': quality, 'evidence': evidence}
+            return snapshot, forecast(active, snapshot, at)
+        snapshot, prediction = calculation(datetime.now(timezone.utc))
+        self.assertIsNotNone(live.save_calculation(active, snapshot, prediction))
         self.repository.disable_collector(live.origin)
         self.assertFalse(live.collector_enabled())
+        with live.connection(True) as connection:
+            before = connection.execute('''SELECT count(*) AS count FROM core.predictions
+                WHERE origin_id=%s''', (live.origin,)).fetchone()['count']
+        snapshot, prediction = calculation(datetime.now(timezone.utc))
+        with self.assertRaisesRegex(PublicationRejected, 'durably disabled'):
+            live.save_calculation(active, snapshot, prediction)
+        with live.connection(True) as connection:
+            after = connection.execute('''SELECT count(*) AS count FROM core.predictions
+                WHERE origin_id=%s''', (live.origin,)).fetchone()['count']
+        self.assertEqual(after, before)
         with self.assertRaises(StorageHold):
             asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
         with live.connection(True) as connection:
             count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE origin_id=%s',
                                        (live.origin,)).fetchone()['count']
-        self.assertEqual(count, 4)
+        self.assertEqual(count, 5)
 
     def test_durable_stop_waits_for_writer_then_is_idempotent(self):
         # Generated isolated DB only: simulate a previously enabled PP writer.

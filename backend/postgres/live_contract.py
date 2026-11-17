@@ -133,7 +133,9 @@ def polymarket_bbo(raw, market_event, received_at):
     if payload['best_bid'] is None and payload['best_ask'] is None:
         raise ValueError('BBO has no bid or ask')
     return {'source': 'polymarket_us',
-            'event_id': 'bbo-' + market_event['market_id'] + '-' + content_hash(raw),
+            # Each REST response is a distinct observation, even when the
+            # book and its last trade sample are unchanged between polls.
+            'event_id': 'bbo-' + market_event['market_id'] + '-' + content_hash([raw, received_at]),
             'kind': 'quote', 'market_id': market_event['market_id'],
             'source_time': original, 'received_at': received_at,
             'payload': payload, 'raw_payload': canonical_json(raw),

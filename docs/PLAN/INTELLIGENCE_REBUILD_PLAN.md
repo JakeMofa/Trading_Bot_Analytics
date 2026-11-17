@@ -25,6 +25,22 @@ active-writer generation label. This qualifies the generated size-switch
 mechanism only. A PP runtime threshold, deployed live rotation, cloud archive,
 retirement and sustained acceptance remain OPEN.
 
+## CP7 PP live observation and OFF calculation corrections — November 17, 2026
+
+Candidate source separates a Polymarket US REST BBO's local observation time
+from the `lastPriceSample.ts` timestamp, which is not a book update time. Each
+successful poll is retained as a distinct raw observation, including when the
+book content has not changed. The API selects and ages the most recently
+received BBO; the source sample timestamp remains exact and may be missing.
+The dashboard labels the REST bid/ask and its observation age accordingly.
+PP live calculation commits now require a valid ON lease before and after
+their transaction, so a durable OFF cannot be followed by a new calculation
+acknowledgement. Generated-mode calculation remains available. Local generated
+tests cover old/missing sample times, repeated polls and quote ordering. The
+isolated PostgreSQL test covers BBO hydration and calculation ON→OFF; exact
+Linux CI and real-market PP observation remain open. This candidate does not
+activate a collector or change PP/production hosts.
+
 ## CP7 PP host mode-transition core — November 17, 2026
 
 The candidate `LiveTransition` component validates the normalized live Compose

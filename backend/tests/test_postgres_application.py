@@ -135,13 +135,33 @@ class NumericAndStateTests(unittest.TestCase):
             state.publish(market['id'],candidate,None,None,None)
             self.assertEqual(state.snapshot()['coinbase']['price_usd'],price['price_usd'])
 
-    def test_future_and_reordered_quotes_do_not_refresh_health(self):
+    def test_future_and_reordered_book_observations_do_not_refresh_health(self):
         state,current,records = state_fixture()
         market,price,quote,snapshot,prediction = records
         for seconds in (-5,5):
-            candidate=dict(quote,source_time=(NOW+timedelta(seconds=seconds)).isoformat(),up_probability='0.99')
+            candidate=dict(quote,source_time=(NOW+timedelta(seconds=seconds)).isoformat(),
+                           received_at=(NOW+timedelta(seconds=seconds)).isoformat(),up_probability='0.99')
             state.publish(market['id'],None,candidate,None,None)
             self.assertEqual(state.snapshot()['polymarket']['up_probability'],'0.52')
+
+    def test_rest_book_freshness_uses_observation_time_and_preserves_sample_time(self):
+        market,price,_,snapshot,prediction=state_fixture()[2]
+        state=LiveState(Settings(data_mode='pp_live',origin_id='pp-live-fixture'),clock=lambda:NOW)
+        state.discover(market)
+        old_sample=(NOW-timedelta(minutes=5)).isoformat()
+        quote=dict(market_id=market['id'],source_time=old_sample,received_at=NOW.isoformat(),
+                   best_bid='0.510000000000000001',best_ask='0.53')
+        state.publish(market['id'],price,quote,snapshot,prediction)
+        view=state.snapshot()
+        self.assertEqual(view['feeds']['polymarket_rest']['status'],'fresh')
+        self.assertEqual(view['feeds']['polymarket_rest']['freshness_basis'],'received_at')
+        self.assertEqual(view['feeds']['polymarket_rest']['source_sample_at'],old_sample)
+        self.assertEqual(view['polymarket']['source_time'],old_sample)
+        self.assertNotIn('polymarket_quote',view['missing_data'])
+        quote['source_time']=None
+        state.publish(market['id'],None,quote,None,None)
+        self.assertIsNone(state.snapshot()['polymarket']['source_time'])
+        self.assertEqual(state.snapshot()['feeds']['polymarket_rest']['status'],'fresh')
 
     def test_live_config_is_rejected_without_secret_leak(self):
         for mode in ('live','production_preview'):

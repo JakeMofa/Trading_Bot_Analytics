@@ -59,10 +59,13 @@ class LiveState:
                 # Reordered reads cannot rewind the latest accepted event.
                 if self._price is None or timestamp(price['source_time']) >= timestamp(self._price['source_time']):
                     self._price = deepcopy(price)
-            if (quote and quote.get('market_id') == market_id and quote.get('source_time')
-                    and timestamp(quote['source_time']) <= now and timestamp(quote['received_at']) <= now
-                    and (self._quote is None or timestamp(quote['source_time']) >= timestamp(self._quote['source_time']))):
-                self._quote = deepcopy(quote)
+            if quote and quote.get('market_id') == market_id:
+                rest_book = self.settings.data_mode == 'pp_live'
+                order_key = 'received_at' if rest_book else 'source_time'
+                if (quote.get(order_key) and timestamp(quote['received_at']) <= now
+                        and (not quote.get('source_time') or timestamp(quote['source_time']) <= now)
+                        and (self._quote is None or timestamp(quote[order_key]) >= timestamp(self._quote[order_key]))):
+                    self._quote = deepcopy(quote)
             if snapshot and snapshot['market_id'] == market_id and 0 <= (now-timestamp(snapshot['as_of'])).total_seconds() <= 30:
                 if self._snapshot is None or timestamp(snapshot['as_of']) >= timestamp(self._snapshot['as_of']):
                     self._snapshot = deepcopy(snapshot)
@@ -85,12 +88,18 @@ class LiveState:
             elif market.get('target_usd') is None:
                 missing.append('price_to_beat')
             for name, observation in [('coinbase', price), ('polymarket', quote)]:
-                age = (now-timestamp(observation['source_time'])).total_seconds() if observation and observation.get('source_time') else None
+                rest_book = name == 'polymarket' and self.settings.data_mode == 'pp_live'
+                observed_at = observation.get('received_at') if rest_book and observation else None
+                freshness_at = observed_at or (observation.get('source_time') if observation else None)
+                age = (now-timestamp(freshness_at)).total_seconds() if freshness_at else None
                 match = name == 'coinbase' or bool(observation and observation.get('market_id') == (market or {}).get('id'))
                 status = 'fresh' if age is not None and 0 <= age <= 30 and match and active else 'stale' if observation else 'missing'
-                feeds[name+'_stream'] = {'source': name+'_stream', 'status': status,
-                                        'last_data_at': (observation or {}).get('source_time'),
+                feed_name = 'coinbase_stream' if name == 'coinbase' else 'polymarket_rest' if rest_book else 'polymarket_stream'
+                feeds[feed_name] = {'source': feed_name, 'status': status,
+                                        'freshness_basis': 'received_at' if rest_book else 'source_time',
+                                        'last_data_at': freshness_at,
                                         'received_at': (observation or {}).get('received_at'),
+                                        'source_sample_at': (observation or {}).get('source_time') if rest_book else None,
                                         'age_seconds': age, 'market_match': match, 'reconnects': None}
                 if observation:
                     observation['age_seconds'] = age

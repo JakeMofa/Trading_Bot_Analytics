@@ -30,6 +30,15 @@ permits only generated qualification origins. Existing `ArchiveWorker` can
 perform small generated archives with a mock transport, but its generated-only
 retirement proof does not authorize deleting a PP-live partition.
 
+The structured contract also needs a precise importer rule: the local
+`core.snapshot_evidence` outbox envelope carries a content hash, while the
+private `history_v2.snapshot_evidence` edge table stores only its three-key
+identity. An importer must reconcile that hash against the exact edge payload
+before acknowledging it. `markets` and `current_prices` are mutable projections;
+newer revisions can replace their cloud row, so a later readback of an older
+outbox revision cannot be assumed to match. Generation ordering or a durable
+revision record must be qualified before continuous acknowledgements.
+
 The proposed `ScopedArchiveTransport` composes raw and structured clients while
 binding both to one exact origin/generation. It explicitly claims no retirement
 authority. Generated HTTP and isolated PostgreSQL tests are required before its
@@ -61,6 +70,22 @@ The first <=30-minute live session keeps cloud sync and retirement OFF. The
 later full-flow test is not enabled by a passing generated fixture, by the
 schema's presence, or by the published PP code alone. Production and paid AI
 remain unchanged.
+
+## PP history versus production history
+
+PP and production may collect the public read-only feeds concurrently because
+they have separate databases and collector ownership per environment. A scoped
+PP archive namespace and `origin_id` in every private `history_v2` key preserve
+the PP record independently. Same market and time do **not** prove two
+observations, book samples, receipt times or predictions are identical.
+
+If production has a collection gap, a later explicit reconciliation job may
+select PP records whose stable source IDs, source timestamps, content hashes
+and provenance match the intended source. It must compare exact identity and
+content, keep both originals and record conflicts instead of silently
+deduplicating or relabelling PP data as production. Missing PP capture cannot
+be filled by an archive. This proposal is not an automatic import into
+production history, forecasts or training, and it adds no cloud grant here.
 
 Documentation checked: [Storage access control](https://supabase.com/docs/guides/storage/security/access-control),
 [Postgres roles](https://supabase.com/docs/guides/database/postgres/roles), and

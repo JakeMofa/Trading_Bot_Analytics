@@ -68,6 +68,10 @@ under qualification. It cannot authorize retirement. See the dated
 [CP6 PP archive-flow review](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md) for the
 minimal remaining cloud and mutation-authority gates. No cloud or PP runtime
 state changed through this read-only review.
+PP and production may collect concurrently into distinct databases and origins.
+PP archives may preserve evidence during production gaps, but a later explicit
+source-ID/content-hash reconciliation must retain both originals and conflicts;
+no automatic PP→production history or training merge is authorized.
 
 
 ## CP7 PP live host-control candidate — November 17, 2026

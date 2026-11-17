@@ -11,7 +11,7 @@ RUNTIME_SECRETS = Path('/etc/tradebot/pp-runtime')
 
 
 def provision(directory=RUNTIME_SECRETS):
-    f.preflight()
+    f.preflight(allow_existing_application=True)
     if directory.is_symlink():
         raise RuntimeError('unsafe runtime secret directory')
     directory.mkdir(mode=0o700, exist_ok=True)
@@ -63,7 +63,7 @@ def provision(directory=RUNTIME_SECRETS):
     return {'result':'RUNTIME_ROLES_PREPARED','environment':'preprod','credential_values_recorded':False}
 
 def activate_role():
-    f.preflight()
+    f.preflight(allow_existing_application=True)
     f.sql("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='tradebot_lifecycle') THEN CREATE ROLE tradebot_lifecycle NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION; END IF; END $$;", f.SECRET_DIR)
     flags=f.sql("SELECT rolsuper,rolcreatedb,rolcreaterole,rolinherit,rolreplication,rolbypassrls FROM pg_roles WHERE rolname='tradebot_lifecycle';",f.SECRET_DIR)
     if flags!='f|f|f|f|f|f' or f.sql("SELECT count(*) FROM pg_auth_members m JOIN pg_roles r ON r.oid=m.member WHERE r.rolname='tradebot_lifecycle';",f.SECRET_DIR)!='0':

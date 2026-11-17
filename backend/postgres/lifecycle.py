@@ -127,23 +127,63 @@ class LifecycleRepository:
             return connection.execute('SELECT * FROM archive.generations WHERE generation_id=%s',
                                       (generation['generation_id'],)).fetchone()
 
+    def enable_collector(self, origin_id: str, *, session_id: str,
+                         expected_generation_id: str, max_seconds: int) -> dict:
+        """Enable only one finite PP writer lease; host ownership is a separate gate.
+
+        This method is intentionally absent from the operator API and runtime.
+        It cannot establish that production is fenced.
+        """
+        if self.environment != 'preprod' or not origin_id.startswith('pp-live-') or \
+                len(origin_id) <= len('pp-live-') or len(origin_id) > 128:
+            raise LifecycleHold('unsupported collector enable scope')
+        if isinstance(max_seconds, bool) or not isinstance(max_seconds, int) or not 1 <= max_seconds <= 1800:
+            raise LifecycleHold('collector lease duration outside bounded window')
+        for value in (session_id, expected_generation_id):
+            try:
+                canonical = str(uuid.UUID(value)) if isinstance(value, str) else None
+            except (ValueError, AttributeError):
+                canonical = None
+            if canonical != value:
+                raise LifecycleHold('collector lease identity must be canonical UUID')
+        with self.transaction() as connection:
+            writer = connection.execute('''SELECT generation_id,epoch,collector_enabled
+                FROM ops.writer_state WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
+            if writer is None or writer['collector_enabled'] or str(writer['generation_id']) != expected_generation_id:
+                raise LifecycleHold('collector writer unavailable or generation changed')
+            generation = connection.execute('''SELECT state FROM archive.generations
+                WHERE origin_id=%s AND generation_id=%s''',
+                (origin_id, expected_generation_id)).fetchone()
+            if generation is None or generation['state'] != 'collecting':
+                raise LifecycleHold('collector generation is not collecting')
+            result = connection.execute('''UPDATE ops.writer_state SET collector_enabled=true,
+                collector_session_id=%s::uuid,
+                collector_lease_expires_at=clock_timestamp()+(%s * interval '1 second'),
+                epoch=epoch+1,updated_at=clock_timestamp()
+                WHERE origin_id=%s RETURNING epoch,collector_lease_expires_at''',
+                (session_id, max_seconds, origin_id)).fetchone()
+        return {'collector_enabled': True, 'epoch': result['epoch'],
+                'lease_expires_at': result['collector_lease_expires_at']}
+
     def disable_collector(self, origin_id: str, now: datetime | None = None) -> dict:
         """Durably stop new writes after all holders of the writer row finish.
 
-        No corresponding enable operation exists here: cross-VM ownership and
-        operator authorization must be qualified before PP live activation.
+        No operator ON route exists: cross-VM ownership and host control must
+        be qualified before PP live activation.
         """
         if self.environment != 'preprod' or not origin_id or len(origin_id) > 160:
             raise LifecycleHold('unsupported collector stop scope')
         now = now or utcnow()
         with self.transaction() as connection:
-            writer = connection.execute('''SELECT epoch,collector_enabled FROM ops.writer_state
-                WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
+            writer = connection.execute('''SELECT epoch,collector_enabled,collector_session_id,collector_lease_expires_at
+                FROM ops.writer_state WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
             if writer is None:
                 raise LifecycleHold('collector writer identity missing')
-            if writer['collector_enabled']:
+            if writer['collector_enabled'] or writer['collector_session_id'] is not None or \
+                    writer['collector_lease_expires_at'] is not None:
                 updated = connection.execute('''UPDATE ops.writer_state
-                    SET collector_enabled=false,epoch=epoch+1,updated_at=%s
+                    SET collector_enabled=false,collector_session_id=NULL,
+                    collector_lease_expires_at=NULL,epoch=epoch+1,updated_at=%s
                     WHERE origin_id=%s RETURNING epoch''', (now, origin_id)).fetchone()
                 epoch = updated['epoch']
             else:
@@ -155,7 +195,10 @@ class LifecycleRepository:
         if self.environment != 'preprod' or not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
             raise LifecycleHold('unsupported collector status scope')
         with self.connection_factory() as connection:
-            row = connection.execute('''SELECT collector_enabled,epoch,generation_id,updated_at
+            row = connection.execute('''SELECT collector_enabled AND
+                collector_lease_expires_at>clock_timestamp() AS collector_enabled,
+                collector_enabled AS stored_enabled,collector_lease_expires_at,
+                epoch,generation_id,updated_at
                 FROM ops.writer_state WHERE origin_id=%s''', (origin_id,)).fetchone()
         if row is None:
             return {'collector_enabled': False, 'epoch': None,

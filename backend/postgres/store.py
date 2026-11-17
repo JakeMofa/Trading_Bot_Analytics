@@ -42,7 +42,9 @@ class Store:
         if self.settings.environment != 'preprod' or self.settings.data_mode != 'pp_live':
             return False
         with self.connection(True) as db:
-            row = db.execute('SELECT collector_enabled FROM ops.writer_state WHERE origin_id=%s',
+            row = db.execute('''SELECT collector_enabled AND
+                collector_lease_expires_at>clock_timestamp() AS collector_enabled
+                FROM ops.writer_state WHERE origin_id=%s''',
                              (self.origin,)).fetchone()
         return bool(row and row['collector_enabled'])
 
@@ -121,12 +123,14 @@ class Store:
         immutable = {key: event.get(key) for key in ('source', 'event_id', 'kind', 'market_id', 'symbol', 'source_time', 'price', 'size', 'payload', 'raw_payload', 'provenance')}
         content_hash = digest(immutable)
         with self.connection() as db:
-            writer = db.execute('''SELECT w.generation_id,w.collector_enabled,g.state FROM ops.writer_state w
+            writer = db.execute('''SELECT w.generation_id,w.collector_enabled,
+                w.collector_lease_expires_at>clock_timestamp() AS lease_valid,g.state
+                FROM ops.writer_state w
               JOIN archive.generations g USING(origin_id,generation_id)
               WHERE w.origin_id=%s FOR SHARE OF w''', (self.origin,)).fetchone()
             if not writer or writer['state'] != 'collecting':
                 raise ValueError('explicit lifecycle bootstrap required before ingestion')
-            if self.settings.data_mode == 'pp_live' and not writer['collector_enabled']:
+            if self.settings.data_mode == 'pp_live' and not (writer['collector_enabled'] and writer['lease_valid']):
                 raise StorageHold('PP live collector is durably disabled')
             generation_id = writer['generation_id']
             prior = db.execute('SELECT generation_id,content_hash FROM ops.dedup WHERE origin_id=%s AND source=%s AND event_id=%s',
@@ -181,6 +185,14 @@ class Store:
                     self._outbox(db, 'core.outcomes', outcome, ('origin_id','outcome_id'), generation_id)
                 acknowledgement = {'origin_id': self.origin, 'event_id': event['event_id'],
                                    'generation_id': generation_id, 'content_hash': content_hash, 'duplicate': False}
+            if self.settings.data_mode == 'pp_live':
+                # Recheck after all event work while the writer row is still
+                # locked. An expired lease rolls back raw and projections.
+                valid = db.execute('''SELECT collector_enabled AND
+                    collector_lease_expires_at>clock_timestamp() AS valid
+                    FROM ops.writer_state WHERE origin_id=%s''', (self.origin,)).fetchone()
+                if not valid or not valid['valid']:
+                    raise StorageHold('PP live collector lease expired before acknowledgement')
         return acknowledgement
 
     def _market(self, db, event, payload, received, generation_id):

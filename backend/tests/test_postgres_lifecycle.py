@@ -14,7 +14,7 @@ from postgres.archive_codec import (ArchiveIntegrityError, ArchiveLimit, Archive
                                     ArchiveUnavailable, CycleBudget, pack_chunk, sha256,
                                     unpack_chunk, wire)
 from postgres.history import ArchiveHistory, HistoryError
-from postgres.lifecycle import ArchiveWorker, LifecycleHold, RotationPolicy
+from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.lifecycle_worker import configuration, main, read_dsn
 from postgres_lifecycle_fixtures import (ImmutableMemoryTransport, MemoryRepository,
                                          generated_rows, outbox_row)
@@ -81,6 +81,20 @@ class ArchiveCodecTests(unittest.TestCase):
 
 
 class RotationConfigurationTests(unittest.TestCase):
+    def test_collector_lease_rejects_invalid_scope_before_database_access(self):
+        repository = LifecycleRepository(lambda: self.fail('database opened'))
+        generation = '00000000-0000-4000-8000-000000000001'
+        for origin, session, seconds in (
+            ('generated-pp', generation, 60),
+            ('pp-live-test', 'not-a-uuid', 60),
+            ('pp-live-test', generation, 1801),
+            ('pp-live-test', generation, True),
+        ):
+            with self.subTest(origin=origin, session=session, seconds=seconds), self.assertRaises(LifecycleHold):
+                repository.enable_collector(origin, session_id=session,
+                                            expected_generation_id=generation,
+                                            max_seconds=seconds)
+
     def test_72_hours_or_qualified_size_without_second_wait(self):
         now = datetime.now(timezone.utc)
         policy = RotationPolicy(1024)

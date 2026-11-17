@@ -1,0 +1,21 @@
+# Explicit PP-only live qualification overlay. Never used by normal CD.
+# Cloud synchronization and local retirement remain disabled by the base profile.
+services:
+  api:
+    environment:
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp
+  calculation:
+    environment:
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp
+  lifecycle:
+    environment:
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp
+      TRADEBOT_PP_LIVE_LIFECYCLE: 'true'
+  operator:
+    environment:
+      TRADEBOT_PP_LIVE_CONTROL: 'true'
+      TRADEBOT_APP_DSN_FILE: /run/secrets/app_dsn
+    secrets: [lifecycle_dsn, operator_token, app_dsn]

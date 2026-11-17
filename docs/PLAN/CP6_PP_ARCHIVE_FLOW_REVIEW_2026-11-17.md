@@ -79,13 +79,16 @@ PP archive namespace and `origin_id` in every private `history_v2` key preserve
 the PP record independently. Same market and time do **not** prove two
 observations, book samples, receipt times or predictions are identical.
 
-If production has a collection gap, a later explicit reconciliation job may
+**Future option, outside the current PP trial:** if production has a collection
+gap, a later explicit reconciliation job may
 select PP records whose stable source IDs, source timestamps, content hashes
 and provenance match the intended source. It must compare exact identity and
 content, keep both originals and record conflicts instead of silently
 deduplicating or relabelling PP data as production. Missing PP capture cannot
 be filled by an archive. This proposal is not an automatic import into
 production history, forecasts or training, and it adds no cloud grant here.
+There is no automatic failover, and PP is not a production standby in this
+milestone.
 
 Documentation checked: [Storage access control](https://supabase.com/docs/guides/storage/security/access-control),
 [Postgres roles](https://supabase.com/docs/guides/database/postgres/roles), and

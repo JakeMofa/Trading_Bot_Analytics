@@ -26,6 +26,8 @@ def degradation_reasons(snapshot, collector, now=None):
                 add(label + '_stale')
             elif age < -5:
                 add(label + '_future')
+    if collector.get('fenced'):
+        add('collector_fenced')
     if collector.get('enabled') and not collector.get('running'):
         add('collector_not_running')
     if collector.get('error') is not None:

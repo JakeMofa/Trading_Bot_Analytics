@@ -56,6 +56,18 @@ def build_live_session(repository, origin, app_dsn):
     return OperatorSession(run, lambda: repository.disable_collector(origin))
 
 
+def fence_live_startup(repository, origin):
+    """A restarted operator cannot inherit a previous process's ON lease."""
+    state = repository.collector_state(origin)
+    if state['initialized'] and state.get('stored_enabled'):
+        stopped = repository.disable_collector(origin)
+        if stopped.get('collector_enabled') is not False:
+            raise ValueError('PP live startup durable OFF unproven')
+    after = repository.collector_state(origin)
+    if after['collector_enabled'] or after.get('stored_enabled'):
+        raise ValueError('PP live startup collector still enabled')
+
+
 def _secret(directory: Path, name: str, *, expected_uid: int):
     if directory != Path('/run/secrets') and not directory.is_absolute():
         raise ValueError('absolute secret directory required')
@@ -123,6 +135,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
             if connection.execute('SELECT session_user AS login').fetchone()['login'] != 'tradebot_app':
                 raise ValueError('PP live writer requires the app role')
             validate_schema(connection, 'preprod')
+        fence_live_startup(repository, origin)
         session = session_builder(repository, origin, app_dsn)
     return create_operator_app(repository, origin_id=origin, token=token,
                                session=session)

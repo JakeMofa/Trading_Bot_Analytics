@@ -11,6 +11,11 @@ state fields and never enable a collector. The intended host recovery action
 can use the one-off lifecycle container to prove durable OFF even when the
 operator HTTP process is unavailable. Local lifecycle tests pass. This command
 alone does not install a host transition, start feeds, or alter PP/production.
+The opt-in operator also revokes any stored ON lease at startup and verifies
+durable OFF before creating a new session. A container restart therefore cannot
+inherit the previous process's live authority. Local role/runtime tests pass;
+the host restart and isolated PostgreSQL checks still need exact CI and PP
+qualification.
 
 ## CP7 truthful PP live dashboard and health — November 17, 2026
 

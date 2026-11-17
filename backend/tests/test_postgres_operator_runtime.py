@@ -9,7 +9,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.operator_runtime import create_runtime
+from postgres.operator_runtime import create_runtime, fence_live_startup
 
 
 ENV = {'TRADEBOT_ENVIRONMENT': 'preprod', 'TRADEBOT_DATA_MODE': 'pp_live',
@@ -128,14 +128,41 @@ class RuntimeTests(unittest.TestCase):
             async def stop(self):
                 return {'process_running': False}
 
-        with patch('postgres.operator_runtime.validate_schema'):
+        with patch('postgres.operator_runtime.validate_schema'), \
+             patch('postgres.operator_runtime.LifecycleRepository') as repository:
+            repository.return_value.collector_state.return_value={
+                'initialized':False,'collector_enabled':False}
             app = create_runtime(live, secret_dir=self.root, expected_uid=os.getuid(),
                                  connector=connector,
                                  session_builder=lambda repo, origin, dsn: Session())
+            self.assertEqual(repository.return_value.collector_state.call_count,2)
         client = TestClient(app)
         self.assertEqual(client.post('/collector/on').status_code, 401)
         self.assertEqual(client.post('/collector/on',
                           headers={'Authorization':'Bearer '+TOKEN}).status_code, 202)
+
+    def test_live_restart_revokes_prior_lease_before_serving(self):
+        class Repository:
+            def __init__(self):
+                self.enabled=True
+                self.stops=0
+            def collector_state(self, origin):
+                self.asserted_origin=origin
+                return {'initialized':True,'collector_enabled':self.enabled,
+                        'stored_enabled':self.enabled}
+            def disable_collector(self, origin):
+                self.stops+=1
+                self.enabled=False
+                return {'collector_enabled':False}
+        repository=Repository()
+        fence_live_startup(repository,'pp-live-fixture')
+        self.assertEqual((repository.stops,repository.asserted_origin),(1,'pp-live-fixture'))
+        fence_live_startup(repository,'pp-live-fixture')
+        self.assertEqual(repository.stops,1)
+        repository.enabled=True
+        repository.disable_collector=lambda _origin:{'collector_enabled':True}
+        with self.assertRaisesRegex(ValueError,'durable OFF unproven'):
+            fence_live_startup(repository,'pp-live-fixture')
 
 
 if __name__ == '__main__':

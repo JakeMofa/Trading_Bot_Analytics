@@ -1,5 +1,17 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 database-wide PP collector lease correction — November 17, 2026
+
+Review of the live trial found that an origin-row lease alone could admit a
+second `pp-live-*` origin in the same PP database. The candidate serializes
+live admission with a transaction-scoped PostgreSQL advisory lock and rejects
+another active PP-live lease. An isolated PostgreSQL test starts two competing
+origins and requires exactly one winner, then proves the other can start only
+after durable OFF. A separate test covers acknowledged writes and lease
+continuity across A→B, with the occupied-slot hold preserving B writes.
+These tests require isolated Linux PostgreSQL CI; the Mac run skips without
+test DSNs. No PP runtime, cloud, retirement or production state changed.
+
 ## CP7 PP live profile preparation — November 17, 2026
 
 PR #68 merged the opt-in operator/session source after exact CI passed. A

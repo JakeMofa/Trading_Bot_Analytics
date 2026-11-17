@@ -247,6 +247,80 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertFalse(state['stored_enabled'])
         self.assertIsNone(state['collector_lease_expires_at'])
 
+    def test_pp_live_lease_and_acknowledged_writes_survive_a_to_b_switch(self):
+        origin = 'pp-live-' + uuid.uuid4().hex
+        generation = self.repository.bootstrap(origin)
+        live = Store(SimpleNamespace(origin_id=origin, environment='preprod',
+                                     dsn=os.environ['TRADEBOT_TEST_APP_DSN'], data_mode='pp_live',
+                                     outbox_max_pending=10000))
+        session = str(uuid.uuid4())
+        self.repository.enable_collector(origin, session_id=session,
+            expected_generation_id=str(generation['generation_id']), max_seconds=60)
+
+        def tick(number):
+            instant=datetime.now(timezone.utc).isoformat()
+            return coinbase_ticker({'type':'ticker','product_id':'BTC-USD',
+                'trade_id':str(uuid.uuid4()),'time':instant,
+                'price':f'10000.{number:03d}'},instant)
+
+        first=live.ingest(tick(1))
+        switched=self.repository.switch_if_due(origin, RotationPolicy(1))
+        self.assertEqual((switched['status'],switched['slot']),('switched','B'))
+        self.assertEqual(str(first['generation_id']),str(generation['generation_id']))
+        self.assertTrue(self.repository.owns_collector(origin,session))
+        second=live.ingest(tick(2))
+        self.assertEqual(str(second['generation_id']),str(switched['generation_id']))
+        self.assertFalse(second['duplicate'])
+        blocked=self.repository.switch_if_due(origin, RotationPolicy(1))
+        self.assertEqual((blocked['status'],blocked['reason']),('held','other_slot_not_retired'))
+        third=live.ingest(tick(3))
+        self.assertEqual(str(third['generation_id']),str(switched['generation_id']))
+        with self.app_factory() as connection:
+            rows=connection.execute('''SELECT generation_id,event_id FROM raw.events
+                WHERE origin_id=%s AND source='coinbase' ''',
+                (origin,)).fetchall()
+            self.assertEqual(len(rows),3)
+            actual={row['event_id']:str(row['generation_id']) for row in rows}
+            self.assertEqual(actual,{first['event_id']:str(generation['generation_id']),
+                                     second['event_id']:str(switched['generation_id']),
+                                     third['event_id']:str(switched['generation_id'])})
+        self.repository.disable_collector(origin)
+        self.assertFalse(self.repository.owns_collector(origin,session))
+
+    def test_only_one_pp_live_origin_can_own_database_collector(self):
+        origins=['pp-live-'+uuid.uuid4().hex for _ in range(2)]
+        generations=[self.repository.bootstrap(origin) for origin in origins]
+        sessions=[str(uuid.uuid4()) for _ in origins]
+        barrier=threading.Barrier(2)
+        outcomes=[]
+        guard=threading.Lock()
+
+        def enable(index):
+            barrier.wait(timeout=3)
+            try:
+                self.repository.enable_collector(origins[index],session_id=sessions[index],
+                    expected_generation_id=str(generations[index]['generation_id']),max_seconds=60)
+                result='enabled'
+            except LifecycleHold:
+                result='held'
+            with guard:
+                outcomes.append((index,result))
+
+        threads=[threading.Thread(target=enable,args=(index,)) for index in range(2)]
+        for thread in threads:thread.start()
+        for thread in threads:thread.join(timeout=10)
+        self.assertTrue(all(not thread.is_alive() for thread in threads))
+        self.assertEqual(sorted(result for _,result in outcomes),['enabled','held'])
+        winner=next(index for index,result in outcomes if result=='enabled')
+        loser=1-winner
+        self.assertTrue(self.repository.owns_collector(origins[winner],sessions[winner]))
+        self.assertFalse(self.repository.owns_collector(origins[loser],sessions[loser]))
+        self.repository.disable_collector(origins[winner])
+        self.repository.enable_collector(origins[loser],session_id=sessions[loser],
+            expected_generation_id=str(generations[loser]['generation_id']),max_seconds=60)
+        self.assertTrue(self.repository.owns_collector(origins[loser],sessions[loser]))
+        self.repository.disable_collector(origins[loser])
+
     def test_atomic_switch_waits_for_acknowledged_write_then_late_events_use_b(self):
         locked, release, completed = threading.Event(), threading.Event(), threading.Event()
         failures, result = [], []

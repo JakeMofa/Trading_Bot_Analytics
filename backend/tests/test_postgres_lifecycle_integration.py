@@ -287,6 +287,40 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.repository.disable_collector(origin)
         self.assertFalse(self.repository.owns_collector(origin,session))
 
+    def test_only_one_pp_live_origin_can_own_database_collector(self):
+        origins=['pp-live-'+uuid.uuid4().hex for _ in range(2)]
+        generations=[self.repository.bootstrap(origin) for origin in origins]
+        sessions=[str(uuid.uuid4()) for _ in origins]
+        barrier=threading.Barrier(2)
+        outcomes=[]
+        guard=threading.Lock()
+
+        def enable(index):
+            barrier.wait(timeout=3)
+            try:
+                self.repository.enable_collector(origins[index],session_id=sessions[index],
+                    expected_generation_id=str(generations[index]['generation_id']),max_seconds=60)
+                result='enabled'
+            except LifecycleHold:
+                result='held'
+            with guard:
+                outcomes.append((index,result))
+
+        threads=[threading.Thread(target=enable,args=(index,)) for index in range(2)]
+        for thread in threads:thread.start()
+        for thread in threads:thread.join(timeout=10)
+        self.assertTrue(all(not thread.is_alive() for thread in threads))
+        self.assertEqual(sorted(result for _,result in outcomes),['enabled','held'])
+        winner=next(index for index,result in outcomes if result=='enabled')
+        loser=1-winner
+        self.assertTrue(self.repository.owns_collector(origins[winner],sessions[winner]))
+        self.assertFalse(self.repository.owns_collector(origins[loser],sessions[loser]))
+        self.repository.disable_collector(origins[winner])
+        self.repository.enable_collector(origins[loser],session_id=sessions[loser],
+            expected_generation_id=str(generations[loser]['generation_id']),max_seconds=60)
+        self.assertTrue(self.repository.owns_collector(origins[loser],sessions[loser]))
+        self.repository.disable_collector(origins[loser])
+
     def test_atomic_switch_waits_for_acknowledged_write_then_late_events_use_b(self):
         locked, release, completed = threading.Event(), threading.Event(), threading.Event()
         failures, result = [], []

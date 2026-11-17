@@ -208,7 +208,7 @@ def transition(request, controller_path):
     actions = _image_binding(context, budget)
     _owned_runtime(actions, context, budget)
     if request.operation == 'enter':
-        if ACTIVE.exists():
+        if ACTIVE.exists() or ACTIVE.is_symlink():
             active = _read_active()
             require(active['state'] == 'generated_restored', 'unfinished_transition_requires_leave')
             archived = ROOT / ('transition-' + active['nonce'] + '.json')
@@ -327,6 +327,9 @@ def session(command, controller_path):
             if (state.get('origin_id') == 'pp-live-pp'
                     and state.get('collector_enabled') is True
                     and state.get('process_running') is True):
+                expiry = _utc(state['lease_expires_at'])
+                remaining = (expiry - datetime.now(timezone.utc)).total_seconds()
+                require(0 < remaining <= seconds + 15, 'collector_lease_exceeds_session_bound')
                 return {'gate': 'PP_LIVE_ON', 'origin_id': 'pp-live-pp',
                         'collector_enabled': True, 'max_seconds': seconds}
             require(time.monotonic() < deadline, 'collector_on_not_durable')

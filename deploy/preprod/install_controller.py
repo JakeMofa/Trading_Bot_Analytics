@@ -154,7 +154,7 @@ def authorize_live_enter(source,artifact,controller,image):
     request.validate()
     checked_bundle(LIB/'controller.pyz',controller)
     _candidate(request)
-    if ACTIVE.exists():
+    if ACTIVE.exists() or ACTIVE.is_symlink():
         require(_read_active()['state']=='generated_restored','unfinished_transition_requires_leave')
     return _scope_permit(ENTER_AUTHORITY,{**request.bindings(),'scope':'pp_live_ready_off'})
 
@@ -188,7 +188,7 @@ if __name__=='__main__':
         if args.operation=='install':
             require(not any(path.exists() for path in (AUTHORITY/'authorization.json',ENTER_AUTHORITY,ON_AUTHORITY)),
                     'unused_authority_requires_reconciliation')
-            if ACTIVE.exists():
+            if ACTIVE.exists() or ACTIVE.is_symlink():
                 require(_read_active()['state']=='generated_restored','unfinished_transition_requires_leave')
         if args.operation=='install':
             result=install(args.bundle,args.sha256,args.public_key_file)

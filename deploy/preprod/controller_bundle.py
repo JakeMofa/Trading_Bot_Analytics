@@ -46,7 +46,7 @@ def main():
         print(json.dumps(result,sort_keys=True),flush=True)
         return 0 if result.get('gate') in ('PP_LIVE_ON','PP_LIVE_OFF') else 1
     request=Request.parse(command)
-    if ACTIVE.exists():
+    if ACTIVE.exists() or ACTIVE.is_symlink():
         require(_read_active()['state']=='generated_restored','unfinished_transition_blocks_deploy')
     controller=Controller(binding,RootAuthorization("/run/tradebot-pp-deploy/authorization.json"),
                           installed,"/var/lib/tradebot-pp/deployments")

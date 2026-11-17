@@ -39,13 +39,30 @@ class PPLivePipelineTests(unittest.TestCase):
         proof = {'generated_deployment_run_id':123}
         with patch.object(module, 'load_candidate', return_value=(candidate, b'')), \
              patch.object(module, 'generated_deployment', return_value=proof) as deployment, \
-             patch.object(module.pipeline, 'qualify_ci') as ci:
+             patch.object(module, 'exact_deployed_ci') as ci:
             command, result = module.command_for(env, API(), {'controller_sha256':'d'*64})
         deployment.assert_called_once()
         ci.assert_called_once()
         self.assertEqual(command, 'transition-v1 preprod tradebot-preprod-01 enter '
             + 'b'*40 + ' ' + 'c'*64 + ' ' + 'd'*64 + ' sha256:' + 'e'*64)
         self.assertEqual(result['operation'], 'enter')
+
+    def test_enter_rechecks_published_source_ci_after_branch_moves(self):
+        sha, branch = 'a'*40, 'preprod'
+        candidate = {'source_sha':sha, 'source_branch':branch, 'source_ci_run_id':71}
+        class API:
+            def read(self, path):
+                if path == '/actions/runs/71':
+                    return {'event':'push', 'status':'completed', 'conclusion':'success',
+                        'path':'.github/workflows/python-tests.yml', 'head_sha':sha,
+                        'head_branch':branch, 'repository':{'full_name':module.pipeline.REPO}}
+                if path.startswith('/actions/workflows/python-tests.yml/runs?'):
+                    return {'workflow_runs':[{'id':71, 'event':'push', 'status':'completed',
+                        'conclusion':'success', 'head_sha':sha, 'head_branch':branch}]}
+                raise AssertionError(path)
+        self.assertEqual(module.exact_deployed_ci(API(), candidate, branch), 71)
+        with self.assertRaises(module.pipeline.PipelineHold):
+            module.exact_deployed_ci(API(), candidate, 'main')
 
     def test_only_reviewed_result_gates_are_accepted(self):
         for operation, gate, origin, enabled in (

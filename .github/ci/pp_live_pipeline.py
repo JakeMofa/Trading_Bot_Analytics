@@ -48,6 +48,30 @@ def generated_deployment(api, run_id, sha, digest, version, registry, image):
             'generated_deployment_run_id': int(run_id)}
 
 
+def exact_deployed_ci(api, candidate, branch):
+    """Recheck immutable release CI after a controller-only policy commit moves HEAD."""
+    sha = candidate['source_sha']
+    require(branch in ('preprod', 'main') and candidate.get('source_branch') == branch,
+            'published PP source branch mismatch')
+    run_id = candidate.get('source_ci_run_id')
+    require(isinstance(run_id, int) and run_id > 0, 'published exact source CI missing')
+    run = api.read('/actions/runs/' + str(run_id))
+    require(run.get('event') == 'push' and run.get('status') == 'completed'
+            and run.get('conclusion') == 'success'
+            and run.get('path') == '.github/workflows/python-tests.yml'
+            and run.get('head_sha') == sha and run.get('head_branch') == branch
+            and run.get('repository', {}).get('full_name') == pipeline.REPO,
+            'published exact push CI failed or changed')
+    runs = api.read('/actions/workflows/python-tests.yml/runs?event=push&head_sha=' + sha + '&per_page=100')['workflow_runs']
+    matching = [item for item in runs if item.get('head_sha') == sha
+                and item.get('head_branch') == branch and item.get('event') == 'push']
+    require(matching, 'exact source CI run missing')
+    latest = max(matching, key=lambda item: (item['id'], item.get('run_attempt', 1)))
+    require(latest.get('id') == run_id and latest.get('status') == 'completed'
+            and latest.get('conclusion') == 'success', 'newer exact source CI failed or is incomplete')
+    return run_id
+
+
 def command_for(env, api, profile):
     operation = env.get('PP_LIVE_OPERATION')
     require(operation in ('enter', 'leave', 'on', 'off'), 'invalid PP live operation')
@@ -71,8 +95,7 @@ def command_for(env, api, profile):
         candidate['artifact_sha256'], candidate['version'], candidate['registry'], image)
     if operation == 'enter':
         branch = env.get('SOURCE_BRANCH')
-        require(branch in ('main', 'preprod'), 'exact source branch required')
-        pipeline.qualify_ci(api, 'preprod', sha, env)
+        exact_deployed_ci(api, candidate, branch)
     command = 'transition-v1 preprod tradebot-preprod-01 ' + operation + ' ' + sha + ' ' + \
         candidate['artifact_sha256'] + ' ' + profile['controller_sha256'] + ' ' + image
     return command, {**proof, 'operation': operation, 'release_version': candidate['version']}

@@ -1,8 +1,10 @@
 """Generated tests for the root live gate; no PP host access."""
 from datetime import datetime, timedelta, timezone
 import json
+import hashlib
 import os
 from pathlib import Path
+from types import SimpleNamespace
 import sys
 import tempfile
 import unittest
@@ -15,6 +17,45 @@ from controller import DeploymentHold, _secure_file
 
 
 class TransitionGateTests(unittest.TestCase):
+    def test_failed_off_retains_journal_for_permit_free_leave(self):
+        digest = hashlib.sha256(b'controller').hexdigest()
+        enter = gate.TransitionRequest('enter', 'a'*40, 'b'*64, digest, 'sha256:'+'c'*64)
+        leave = gate.TransitionRequest('leave', 'a'*40, 'b'*64, digest, 'sha256:'+'c'*64)
+        active = {}
+        recovery_calls = []
+        class Transition:
+            def __init__(self, *_):
+                pass
+            def enter(self):
+                raise DeploymentHold('simulated_partial_live_start')
+            def leave(self):
+                recovery_calls.append('leave')
+                if len(recovery_calls) == 1:
+                    raise DeploymentHold('simulated_off_unproven')
+                return {'gate':'PP_GENERATED_RESTORED', 'collector_enabled':False}
+        def write(_path, data, **_):
+            active.clear()
+            active.update(data)
+        context = SimpleNamespace(request=SimpleNamespace(source_sha='a'*40), image='sha256:'+'c'*64)
+        with patch.object(gate.HostBinding, 'from_marker', return_value=SimpleNamespace(validate=lambda:None)), \
+             patch.object(gate, '_secure_file', return_value=(b'controller', None)), \
+             patch.object(gate, '_candidate', return_value=context), \
+             patch.object(gate, '_image_binding', return_value=object()), \
+             patch.object(gate, '_owned_runtime'), \
+             patch.object(gate, '_consume', return_value=str(uuid.uuid4())) as consume, \
+             patch.object(gate, '_atomic_json', side_effect=write), \
+             patch.object(gate, '_read_active', side_effect=lambda:dict(active)), \
+             patch.object(gate, 'ACTIVE', Path('/nonexistent-tradebot-transition-journal')), \
+             patch('live_transition.LiveTransition', Transition):
+            with self.assertRaisesRegex(DeploymentHold, 'recovery_unproven'):
+                gate.transition(enter, Path('/trusted/controller.pyz'))
+            self.assertEqual(active['state'], 'recovery_unproven')
+            self.assertEqual(gate.transition(leave, Path('/trusted/controller.pyz'))['gate'],
+                             'PP_GENERATED_RESTORED')
+        self.assertEqual(active['state'], 'generated_restored')
+        self.assertEqual(recovery_calls, ['leave', 'leave'])
+        consume.assert_called_once()
+
     def test_transition_command_has_exact_host_source_artifact_controller_and_image(self):
         command = 'transition-v1 preprod tradebot-preprod-01 enter ' + 'a'*40 + ' ' + 'b'*64 + ' ' + 'c'*64 + ' sha256:' + 'd'*64
         request = gate.TransitionRequest.parse(command)

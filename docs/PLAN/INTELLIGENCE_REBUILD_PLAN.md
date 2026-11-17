@@ -1,5 +1,21 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 isolated PP live query parity candidate — November 17, 2026
+
+An isolated PostgreSQL 17 test now uses known normalized Polymarket US
+15-minute market/BBO and Coinbase ticker/candle events under a disposable PP
+live origin and finite ON lease. It checks current price source ordering,
+complete candle inputs, exact decimal values and provenance, BBO observation
+versus last-price-sample time, feature/prediction evidence, ordered local
+history and bounded chart output. The running API's hydration, health,
+dashboard contract and SSE payload are checked against those committed rows,
+with source-age expiry and next-market isolation asserted separately. The
+PostgreSQL chart now excludes source timestamps ahead of the query clock and
+uses deterministic tie ordering; history and hydration tie ordering are
+explicit. This follows the SQLite dashboard's evidence and freshness meaning
+without copying its SQL or unsupported ensemble fields. Local generated tests
+pass; exact Linux CI and real PP feed observation remain open. No PP host,
+production, Supabase, trading or paid AI operation is part of this candidate.
 ## CP7 PP live host-control candidate — November 17, 2026
 
 A candidate extends the PP forced-command controller with one-use, exact

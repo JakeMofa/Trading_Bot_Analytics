@@ -60,6 +60,34 @@ class OperatorApiTests(unittest.TestCase):
             self.assertEqual(self.client.post(path, headers=self.headers).status_code, 404)
         self.assertEqual(self.repository.calls, [])
 
+    def test_on_is_private_and_reports_acceptance_without_claiming_durable_enable(self):
+        class Session:
+            def __init__(self):
+                self.calls = []
+                self.running = False
+            def state(self):
+                return {'process_running': self.running}
+            async def start(self, *, max_seconds):
+                self.calls.append(max_seconds)
+                self.running = True
+                return self.state()
+            async def stop(self):
+                self.running = False
+                return self.state()
+        session = Session()
+        client = TestClient(create_operator_app(self.repository, origin_id='pp-live-fixture',
+                                                token=TOKEN, session=session))
+        self.assertEqual(client.post('/collector/on').status_code, 401)
+        self.assertEqual(session.calls, [])
+        started = client.post('/collector/on?max_seconds=120', headers=self.headers)
+        self.assertEqual(started.status_code, 202)
+        self.assertEqual(session.calls, [120])
+        self.assertNotIn('collector_enabled', started.json())
+        self.assertTrue(client.get('/collector/status', headers=self.headers).json()['process_running'])
+        stopped = client.post('/collector/off', headers=self.headers)
+        self.assertEqual(stopped.status_code, 200)
+        self.assertFalse(stopped.json()['process_running'])
+
     def test_expired_lease_is_reported_off_without_claiming_process_state(self):
         class Expired(Repository):
             def collector_state(self, origin):

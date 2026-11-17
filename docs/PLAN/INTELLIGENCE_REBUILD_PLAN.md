@@ -1,5 +1,15 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 private ON API seam — November 17, 2026
+
+Candidate code adds an authenticated `/collector/on` route **only when** a
+qualified session controller is injected into the separate PP operator API.
+The current runtime injects none, so deployed PP continues returning 404 for
+ON. The route reports request acceptance, not a durable ON claim; status reads
+the database flag independently. Generated API/session tests pass locally.
+Runtime source/credential binding, process recovery, exact CI, deployment and
+the live market observation remain open. No production or PP service changed.
+
 ## CP7 live rotation preparation — November 17, 2026
 
 The generated-only lifecycle worker previously rejected `pp_live`, so live

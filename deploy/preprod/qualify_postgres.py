@@ -231,6 +231,8 @@ def main():
             runtime_env={**os.environ,'PP_SECRET_DIR':str(CI_FOUNDATION_SECRETS),'PP_RUNTIME_SECRET_DIR':str(CI_RUNTIME_SECRETS),'PP_APP_IMAGE':'tradebot-pg-test'}
             for name,role in [('app_dsn','application'),('lifecycle_dsn','lifecycle'),('migrator_dsn','migrator')]:
                 path=CI_RUNTIME_SECRETS/name;path.write_text(dsns[role].replace('@'+address+':','@postgres:'));path.chmod(0o400);os.chown(path,10001,10001)
+            token=CI_RUNTIME_SECRETS/'operator_token'
+            token.write_text(secrets.token_hex(32));token.chmod(0o400);os.chown(token,10001,10001)
             (CI_FOUNDATION_SECRETS/'lifecycle').write_text(passwords['lifecycle']);(CI_FOUNDATION_SECRETS/'lifecycle').chmod(0o400);os.chown(CI_FOUNDATION_SECRETS/'lifecycle',999,999)
             PHASE='ci_only_postgres_secret_mount_recreation'
             runtime(['up','-d','--force-recreate','--wait','--wait-timeout','60','postgres'],runtime_env)
@@ -239,7 +241,7 @@ def main():
             PHASE='runtime_generated_bootstrap'
             runtime(['run','--rm','--no-deps','lifecycle','python','-m','postgres.lifecycle_worker','--once','--bootstrap'],runtime_env)
             PHASE='runtime_services'
-            runtime(['up','-d','--no-deps','--wait','--wait-timeout','40','api','calculation','lifecycle'],runtime_env)
+            runtime(['up','-d','--no-deps','--wait','--wait-timeout','40','api','calculation','lifecycle','operator'],runtime_env)
             PHASE='runtime_api_sse_acceptance'
             acceptance=json.loads(runtime(['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],runtime_env))
             if acceptance.get('status')!='pass' or acceptance.get('collector_enabled') is not False:

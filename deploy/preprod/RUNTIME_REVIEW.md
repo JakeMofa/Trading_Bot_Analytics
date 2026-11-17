@@ -26,6 +26,19 @@ The operator SSH route to the dynamically resolved internal API address passed;
 Docker did not publish host localhost:8000. This does not certify production
 acceptance or live/cloud behavior.
 
+## Proposed default-OFF operator service (not installed)
+
+The next PP candidate adds a separate operator process on host
+127.0.0.1:8001. Its bearer token is a root-provisioned secret file mounted
+only into that process. The lifecycle DSN is also mounted there; the dashboard
+API cannot read either secret. The controller requires exact Compose service,
+network, port, resource and secret bindings, then checks unauthenticated denial
+and authenticated disabled status before and after its API restart. Provisioning
+must be run explicitly on PP before deployment, and the new controller package
+must be hash-qualified and installed through the dedicated identity. The
+installed controller cannot deploy this overlay as-is. This candidate has no
+ON operation, no live source coordinator and no cross-VM collector fence.
+
 The runtime permits generated/replay data only and has no real collector, cloud
 transport or retirement activation route. A passing generated smoke cannot
 satisfy production-candidate acceptance. No production database is mounted.

@@ -32,13 +32,15 @@ import uuid
 
 INSTANCE = 'tradebot-preprod-01'
 CHECKS = frozenset({'api','sse','schema','migration','data_correctness','collector_ownership',
-                    'disabled_flags','recovery','freshness','market_identity'})
+                    'disabled_flags','recovery','freshness','market_identity','operator_control'})
 COMPRESSED_LIMIT = 16 * 1024**2
 EXPANDED_LIMIT = 64 * 1024**2
 MEMBER_LIMIT = 4096
 FILE_LIMIT = 8 * 1024**2
 REQUIRED_FILES = frozenset({'deploy/preprod/Dockerfile','deploy/preprod/compose.yaml',
-                           'deploy/preprod/runtime.compose.yaml','backend/postgres/api.py','backend/postgres/migrate.py'})
+                           'deploy/preprod/runtime.compose.yaml','backend/postgres/api.py',
+                           'backend/postgres/operator_runtime.py','backend/postgres/operator_api.py',
+                           'backend/postgres/migrate.py'})
 
 
 class DeploymentHold(RuntimeError):

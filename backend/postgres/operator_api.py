@@ -37,6 +37,7 @@ def create_operator_app(repository, *, origin_id: str, token: str):
                 'collector_enabled': bool(durable['collector_enabled']),
                 'epoch': durable['epoch'], 'generation_id': durable['generation_id'],
                 'updated_at': durable['updated_at'],
+                'initialized': durable['initialized'],
                 'process_running': None, 'live_fence_qualified': False}
 
     @app.post('/collector/off')

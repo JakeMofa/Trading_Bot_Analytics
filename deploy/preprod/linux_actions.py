@@ -29,9 +29,9 @@ SECRETS=Path('/etc/tradebot/pp-postgres')
 RUNTIME_SECRETS=Path('/etc/tradebot/pp-runtime')
 PG_IMAGE='postgres:17.12-bookworm@sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536'
 PYTHON_IMAGE='python:3.12-slim-bookworm@sha256:935c3c5b12357a7e10caa9c1e6ca5692344d97cf229832ef584be2cec9fc03df'
-SERVICES=('api','calculation','lifecycle')
-MEMORY={'postgres':512,'api':192,'calculation':192,'lifecycle':128,'migrate':192}
-CPUS={'postgres':1.0,'api':0.5,'calculation':0.5,'lifecycle':0.25}
+SERVICES=('api','calculation','lifecycle','operator')
+MEMORY={'postgres':512,'api':192,'calculation':192,'lifecycle':128,'operator':96,'migrate':192}
+CPUS={'postgres':1.0,'api':0.5,'calculation':0.5,'lifecycle':0.25,'operator':0.25}
 PG_ENV={'POSTGRES_DB':'tradebot_pp','POSTGRES_USER':'postgres','POSTGRES_PASSWORD_FILE':'/run/secrets/admin',
         'POSTGRES_INITDB_ARGS':'--auth-host=scram-sha-256 --data-checksums'}
 PG_COMMAND=['postgres',*sum((['-c',value] for value in (
@@ -45,8 +45,9 @@ SOURCE_LABEL='tradebot.deployment_source'
 COMMANDS={'api':['python','-m','uvicorn','postgres.api:app','--host','0.0.0.0','--port','8000'],
           'calculation':['python','-m','postgres.worker'],
           'lifecycle':['python','-m','postgres.lifecycle_worker'],
+          'operator':['python','-m','postgres.operator_runtime'],
           'migrate':['python','-m','postgres.migrate','--environment','preprod','--dsn-file','/run/secrets/migrator_dsn']}
-ROLE_SECRET={'api':'app_dsn','calculation':'app_dsn','lifecycle':'lifecycle_dsn','migrate':'migrator_dsn'}
+ROLE_SECRET={'api':'app_dsn','calculation':'app_dsn','lifecycle':'lifecycle_dsn','operator':'lifecycle_dsn','migrate':'migrator_dsn'}
 BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_ENVIRONMENT':'preprod',
           'TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false',
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
@@ -61,7 +62,15 @@ def memory_bytes(value):
 
 
 def expected_environment(service):
-    return {**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
+    env={**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
+    if service=='operator':
+        env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp',
+                   TRADEBOT_OPERATOR_TOKEN_FILE='/run/secrets/operator_token')
+    return env
+
+
+def service_secrets(service):
+    return (ROLE_SECRET[service],'operator_token') if service=='operator' else (ROLE_SECRET[service],)
 
 
 def reviewed_secret_mapping(mapping,source,target):
@@ -92,7 +101,7 @@ def validate_config(config,source,image):
             and not config['volumes']['pp_pgdata'].get('driver_opts'),'unsafe_database_volume')
     expected_secrets={name:str(SECRETS/name) for name in ('admin','migrator','application','reader')}
     expected_secrets.update(lifecycle_password=str(SECRETS/'lifecycle'))
-    expected_secrets.update({name:str(RUNTIME_SECRETS/name) for name in ROLE_SECRET.values()})
+    expected_secrets.update({name:str(RUNTIME_SECRETS/name) for name in (*ROLE_SECRET.values(),'operator_token')})
     require(set(config.get('secrets',{}))==set(expected_secrets),'unexpected_secret')
     require(all(config['secrets'][name].get('file')==path and not config['secrets'][name].get('external')
                 for name,path in expected_secrets.items()),'unsafe_secret_path')
@@ -107,15 +116,16 @@ def validate_config(config,source,image):
                 and not service.get('configs') and not service.get('runtime')
                 and not service.get('use_api_socket') and not service.get('post_start') and not service.get('pre_stop')
                 and not service.get('volumes_from'), 'unsafe_service_override')
-        require(set(service.get('networks',{}))==({'database','api_loopback'} if name=='api' else {'database'}),
+        require(set(service.get('networks',{}))==({'database','api_loopback'} if name in ('api','operator') else {'database'}),
                 'unexpected_service_network')
         log=service.get('logging',{})
         require(log.get('driver')=='json-file' and log.get('options')=={'max-size':'5m','max-file':'2'},'unbounded_container_logs')
         require('no-new-privileges:true' in service.get('security_opt',[]),'missing_security_option')
         ports=service.get('ports',[])
-        if name=='api':
-            require(len(ports)==1 and ports[0].get('host_ip')=='127.0.0.1' and int(ports[0].get('target',0))==8000
-                    and str(ports[0].get('published'))=='8000' and ports[0].get('protocol','tcp')=='tcp','unsafe_api_port')
+        if name in ('api','operator'):
+            port=8000 if name=='api' else 8001
+            require(len(ports)==1 and ports[0].get('host_ip')=='127.0.0.1' and int(ports[0].get('target',0))==port
+                    and str(ports[0].get('published'))==str(port) and ports[0].get('protocol','tcp')=='tcp','unsafe_loopback_port')
         else:require(not ports,'unexpected_published_port')
         if name=='postgres':
             require(service.get('environment',{})==PG_ENV,'wrong_postgres_environment')
@@ -147,7 +157,9 @@ def validate_config(config,source,image):
             require(set(env)<=set(expected_environment(name))|OPTIONAL_DISABLED
                     and all(env.get(key,'false')=='false' for key in OPTIONAL_DISABLED),'unexpected_application_environment')
             secrets=service.get('secrets',[])
-            require(len(secrets)==1 and reviewed_secret_mapping(secrets[0],ROLE_SECRET[name],ROLE_SECRET[name]),
+            wanted=service_secrets(name)
+            require(len(secrets)==len(wanted) and {item.get('source') for item in secrets if isinstance(item,dict)}==set(wanted)
+                    and all(reviewed_secret_mapping(item,item['source'],item['source']) for item in secrets),
                     'unexpected_application_secret')
     return config
 
@@ -335,6 +347,10 @@ class LinuxActions:
             require(parsed.scheme=='postgresql' and parsed.hostname=='postgres' and parsed.port==5432
                     and parsed.path=='/tradebot_pp' and parsed.username==role and not parsed.query and not parsed.fragment
                     and bool(re.fullmatch('[0-9a-f]{64}',urllib.parse.unquote(parsed.password or ''))),'runtime_secret_binding_mismatch')
+        token=RUNTIME_SECRETS/'operator_token';info=token.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o400
+                and info.st_nlink==1 and info.st_size<=65 and bool(re.fullmatch('[0-9a-f]{64}',token.read_text().strip())),
+                'unsafe_operator_token')
 
     def _postgres(self,context,budget):
         ids=self._ids(context,budget,['postgres'])
@@ -456,18 +472,24 @@ class LinuxActions:
                     and all(env.get(key,'false')=='false' for key in OPTIONAL_DISABLED)
                     and not env.get('TRADEBOT_DATABASE_DSN'),'runtime_flag_mismatch')
             network_settings=row['NetworkSettings']
-            require(set(network_settings['Networks'])==({NETWORK,API_NETWORK} if service=='api' else {NETWORK}),
+            require(set(network_settings['Networks'])==({NETWORK,API_NETWORK} if service in ('api','operator') else {NETWORK}),
                     'runtime_network_mismatch')
             mounts=row.get('Mounts',[])
-            secret=[item for item in mounts if item.get('Destination')=='/run/secrets/'+ROLE_SECRET[service]]
-            require(len(secret)==1 and secret[0].get('Source')==str(RUNTIME_SECRETS/ROLE_SECRET[service])
-                    and secret[0].get('RW') is False and all(item.get('Destination') in ('/tmp','/run/secrets/'+ROLE_SECRET[service])
-                        for item in mounts),'runtime_unexpected_data_mount')
+            wanted=set(service_secrets(service))
+            secrets={item.get('Destination'):item for item in mounts if item.get('Destination','').startswith('/run/secrets/')}
+            require(set(secrets)=={'/run/secrets/'+name for name in wanted}
+                    and all(secrets['/run/secrets/'+name].get('Source')==str(RUNTIME_SECRETS/name)
+                            and secrets['/run/secrets/'+name].get('RW') is False for name in wanted)
+                    and all(item.get('Destination') in {'/tmp',*secrets} for item in mounts),
+                    'runtime_unexpected_data_mount')
             ports=host.get('PortBindings') or {}
-            require(ports==({'8000/tcp':[{'HostIp':'127.0.0.1','HostPort':'8000'}]} if service=='api' else {}),'runtime_public_port')
+            port=8000 if service=='api' else 8001 if service=='operator' else None
+            expected={f'{port}/tcp':[{'HostIp':'127.0.0.1','HostPort':str(port)}]} if port else {}
+            require(ports==expected,'runtime_public_port')
+            if port:
+                require(network_settings.get('Ports',{}).get(f'{port}/tcp')==ports[f'{port}/tcp'],
+                        'loopback_port_not_published')
             if service=='api':
-                require(network_settings.get('Ports',{}).get('8000/tcp')==ports['8000/tcp'],
-                        'api_loopback_port_not_published')
                 require(row['State'].get('Health',{}).get('Status')=='healthy','api_not_healthy')
 
     @staticmethod
@@ -484,6 +506,31 @@ class LinuxActions:
         except (OSError,ValueError,KeyError) as error:
             raise DeploymentHold('host_api_loopback_unavailable') from None
 
+    @staticmethod
+    def _host_operator():
+        """Prove authenticated host loopback status and deny unauthenticated use."""
+        from urllib.error import HTTPError
+        endpoint='http://127.0.0.1:8001/collector/status'
+        opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        try:
+            try:
+                opener.open(endpoint,timeout=2)
+                raise DeploymentHold('operator_without_auth_accepted')
+            except HTTPError as error:
+                require(error.code==401,'operator_unauthorized_response_mismatch')
+            token=(RUNTIME_SECRETS/'operator_token').read_text().strip()
+            request=urllib.request.Request(endpoint,headers={'Authorization':'Bearer '+token})
+            with opener.open(request,timeout=2) as response:
+                raw=response.read(8193)
+            require(len(raw)<=8192,'operator_response_too_large')
+            state=json.loads(raw)
+            require(state.get('environment')=='preprod' and state.get('origin_id')=='pp-live-pp'
+                    and state.get('collector_enabled') is False and isinstance(state.get('initialized'),bool)
+                    and state.get('process_running') is None and state.get('live_fence_qualified') is False,
+                    'operator_not_default_off')
+        except (OSError,ValueError,KeyError):
+            raise DeploymentHold('host_operator_loopback_unavailable') from None
+
     def _probe(self,context,budget,expected=None):
         return self._json(self._compose(context,budget,['exec','-T','api','python','-c',PROBE],input=json.dumps(expected or {}).encode(),timeout=20))
 
@@ -498,6 +545,8 @@ class LinuxActions:
         self._runtime(context,budget)
         self.smoke_phase='host_api_precheck'
         self._host_api()
+        self.smoke_phase='host_operator_precheck'
+        self._host_operator()
         def accept_generated():
             self.smoke_phase='generated_acceptance'
             accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))
@@ -539,6 +588,8 @@ class LinuxActions:
         self._runtime(context,budget)
         self.smoke_phase='host_api_postcheck'
         self._host_api()
+        self.smoke_phase='host_operator_postcheck'
+        self._host_operator()
         self.smoke_phase='complete'
         return {'checks':dict.fromkeys(CHECKS,'PASS'),'acceptance_scope':'generated_only','live_collector_enabled':False,
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}

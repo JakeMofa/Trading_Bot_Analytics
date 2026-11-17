@@ -6,6 +6,11 @@ authoritative; this handoff only points to the current checkpoint. Preserve the
 dirty original checkout on `codex/phase1-75-retention-enable`, including all
 unrelated edits and secrets. Small reviewed PRs target `preprod`.
 
+November 16 source candidate: a separate loopback-bound PP operator status/OFF
+service and exact generated deployment checks are being qualified on a small
+PR. It does not add ON, start live collection or deploy the service. The
+installed controller still requires a separately reviewed update.
+
 ## Current PP checkpoint — November 15, 2026
 
 The private PP API route is **PASS in generated-only scope**. Source `b50861d`

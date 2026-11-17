@@ -37,6 +37,15 @@ class Store:
         with self.connection(True) as db:
             validate_schema(db, self.settings.environment)
 
+    def collector_enabled(self):
+        """Read the durable PP flag; ingest locks and rechecks it at commit time."""
+        if self.settings.environment != 'preprod' or self.settings.data_mode != 'pp_live':
+            return False
+        with self.connection(True) as db:
+            row = db.execute('SELECT collector_enabled FROM ops.writer_state WHERE origin_id=%s',
+                             (self.origin,)).fetchone()
+        return bool(row and row['collector_enabled'])
+
     @staticmethod
     def _insert(db, table, record, keys, immutable=True):
         from psycopg import sql

@@ -1,5 +1,17 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 opt-in live operator runtime source — November 17, 2026
+
+Candidate source connects the private operator's optional ON route to the
+existing PP lease and bounded read-only source supervisor. It requires explicit
+`TRADEBOT_PP_LIVE_CONTROL=true`, a separate mounted app-role DSN, the existing
+lifecycle role and a PP origin. Startup validates both roles and schema; the
+operator requests durable OFF on shutdown. Without the opt-in and secret mount,
+the deployed operator still returns 404 for ON. Generated runtime/API/session
+tests pass locally. The deployed PP Compose profile and CD controller do **not**
+yet permit the new mount/flag; no live PP run or archive is claimed. Exact CI,
+host qualification and live observation remain open.
+
 ## CP7 private ON API seam — November 17, 2026
 
 Candidate code adds an authenticated `/collector/on` route **only when** a

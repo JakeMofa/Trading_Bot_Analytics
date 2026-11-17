@@ -205,6 +205,23 @@ class LifecycleRepository:
                     'generation_id': None, 'updated_at': None, 'initialized': False}
         return {**dict(row), 'initialized': True}
 
+    def owns_collector(self, origin_id: str, session_id: str) -> bool:
+        """Check this exact PP session's unexpired lease, never another origin's."""
+        if self.environment != 'preprod' or not origin_id.startswith('pp-live-'):
+            return False
+        try:
+            if str(uuid.UUID(session_id)) != session_id:
+                return False
+        except (ValueError, TypeError, AttributeError):
+            return False
+        with self.connection_factory() as connection:
+            row = connection.execute('''SELECT collector_enabled AND
+                collector_session_id=%s::uuid AND
+                collector_lease_expires_at>clock_timestamp() AS owned
+                FROM ops.writer_state WHERE origin_id=%s''',
+                (session_id, origin_id)).fetchone()
+        return bool(row and row['owned'])
+
     @staticmethod
     def _create(connection, origin_id, slot, now):
         generation_id = str(uuid.uuid4())

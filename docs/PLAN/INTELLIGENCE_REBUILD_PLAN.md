@@ -651,6 +651,17 @@ OFF transaction rejects further writes. This is test-only activation; it
 neither supplies production fencing nor starts a PP service. Exact-source Linux
 CI is required before calling this checkpoint PASS.
 
+**CP7 operator-control code candidate:** A separately instantiated private
+FastAPI surface exposes authenticated status and durable OFF for one fixed
+`pp-live-` origin. It uses the lifecycle role's existing stop transaction;
+unauthenticated calls do not touch the repository, errors reveal no database
+details, and it reports process liveness as unknown rather than inferring it
+from the durable flag. ON, mode changes, cloud controls, docs and public API
+mounting are absent. This surface is not in the PP Compose deployment, has no
+runtime token/role binding, and is not a live activation route. Host-side
+binding, operator identity, production fence, process drainage/restart proof
+and exact CI remain required before PP collector activation.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

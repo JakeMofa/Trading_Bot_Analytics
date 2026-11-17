@@ -181,6 +181,21 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
                 WHERE origin_id=%s''', (self.origin,)).fetchone()
         self.assertEqual(state, results[0])
 
+    def test_operator_status_reads_durable_flag_without_claiming_process_liveness(self):
+        origin = 'pp-live-' + uuid.uuid4().hex
+        self.repository.bootstrap(origin)
+        state = self.repository.collector_state(origin)
+        self.assertFalse(state['collector_enabled'])
+        self.assertEqual(state['epoch'], 1)
+        with self.factory() as connection:
+            connection.execute('UPDATE ops.writer_state SET collector_enabled=true WHERE origin_id=%s',
+                               (origin,))
+        self.assertTrue(self.repository.collector_state(origin)['collector_enabled'])
+        self.repository.disable_collector(origin)
+        self.assertFalse(self.repository.collector_state(origin)['collector_enabled'])
+        with self.assertRaises(LifecycleHold):
+            self.repository.collector_state('generated-pp')
+
     def test_atomic_switch_waits_for_acknowledged_write_then_late_events_use_b(self):
         locked, release, completed = threading.Event(), threading.Event(), threading.Event()
         failures, result = [], []

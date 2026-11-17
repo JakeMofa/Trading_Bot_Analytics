@@ -150,6 +150,17 @@ class LifecycleRepository:
                 epoch = writer['epoch']
             return {'collector_enabled': False, 'epoch': epoch}
 
+    def collector_state(self, origin_id: str) -> dict:
+        """Read the durable writer flag; no process-liveness claim is implied."""
+        if self.environment != 'preprod' or not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
+            raise LifecycleHold('unsupported collector status scope')
+        with self.connection_factory() as connection:
+            row = connection.execute('''SELECT collector_enabled,epoch,generation_id,updated_at
+                FROM ops.writer_state WHERE origin_id=%s''', (origin_id,)).fetchone()
+        if row is None:
+            raise LifecycleHold('collector writer identity missing')
+        return dict(row)
+
     @staticmethod
     def _create(connection, origin_id, slot, now):
         generation_id = str(uuid.uuid4())

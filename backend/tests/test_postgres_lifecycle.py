@@ -112,6 +112,21 @@ class RotationConfigurationTests(unittest.TestCase):
             with self.subTest(values=values), self.assertRaises(ValueError):
                 configuration(values)
 
+    def test_pp_live_rotation_is_explicit_and_keeps_cloud_and_retirement_off(self):
+        live = {'TRADEBOT_DATA_MODE': 'pp_live',
+                'TRADEBOT_ORIGIN_ID': 'pp-live-fixture',
+                'TRADEBOT_PP_LIVE_LIFECYCLE': 'true'}
+        for missing in ('TRADEBOT_ORIGIN_ID', 'TRADEBOT_PP_LIVE_LIFECYCLE'):
+            with self.subTest(missing=missing), self.assertRaises(ValueError):
+                configuration({key: value for key, value in live.items() if key != missing})
+        self.assertEqual(configuration(live)['origin_id'], 'pp-live-fixture')
+        for flag in ('TRADEBOT_COLLECTOR_ENABLED', 'TRADEBOT_CLOUD_ENABLED',
+                     'TRADEBOT_RETIREMENT_ENABLED'):
+            with self.subTest(flag=flag), self.assertRaises(ValueError):
+                configuration({**live, flag: 'true'})
+        with self.assertRaises(ValueError):
+            configuration({'TRADEBOT_ORIGIN_ID': 'pp-live-fixture'})
+
     def test_shared_environment_flags_and_bounds_fail_before_database_startup(self):
         cases = [{'TRADEBOT_ENVIRONMENT': 'production'}, {'TRADEBOT_ENVIRONMENT': 'wrong'},
                  {'TRADEBOT_DATA_MODE': 'production-preview'}, {'TRADEBOT_COLLECTOR_ENABLED': 'true'},

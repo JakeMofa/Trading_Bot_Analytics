@@ -1,4 +1,4 @@
-"""Default-off CP4 lifecycle process. No real feeds, cloud I/O, or retirement."""
+"""Default-off PP generation switcher. No feed intake, cloud I/O, or retirement."""
 from __future__ import annotations
 
 import argparse
@@ -15,8 +15,8 @@ def configuration(environ):
     if environ.get('TRADEBOT_ENVIRONMENT', 'preprod') != 'preprod':
         raise ValueError('CP4 worker supports isolated preprod only')
     mode = environ.get('TRADEBOT_DATA_MODE', 'generated')
-    if mode not in ('generated', 'replay'):
-        raise ValueError('CP4 worker supports generated/replay mode only')
+    if mode not in ('generated', 'replay', 'pp_live'):
+        raise ValueError('unsupported PP lifecycle mode')
     disabled = {'false', '0', 'off'}
     if environ.get('TRADEBOT_COLLECTOR_ENABLED', 'false').lower() not in disabled:
         raise ValueError('real collector must remain OFF')
@@ -29,6 +29,12 @@ def configuration(environ):
         raise ValueError('origin identity required and bounded')
     if mode == 'generated' and not origin.startswith('generated-'):
         raise ValueError('generated mode requires generated- origin namespace')
+    if mode == 'pp_live' and (not origin.startswith('pp-live-') or
+                              len(origin) <= len('pp-live-') or
+                              environ.get('TRADEBOT_PP_LIVE_LIFECYCLE') != 'true'):
+        raise ValueError('PP live lifecycle requires explicit origin and opt-in')
+    if mode != 'pp_live' and origin.startswith('pp-live-'):
+        raise ValueError('PP live origin cannot be used for test lifecycle')
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')
     pending = int(environ.get('TRADEBOT_OUTBOX_MAX_PENDING', '10000'))
     if not 10 <= pending <= 100000:
@@ -67,8 +73,8 @@ def main(argv=None):
         validate_schema(connection, 'preprod')
     repository = LifecycleRepository(factory, pending_outbox_limit=config['pending_outbox_limit'])
     if args.bootstrap:
-        if config['mode'] != 'generated':
-            parser.error('bootstrap flag is only for isolated generated qualification')
+        if config['mode'] not in ('generated', 'pp_live'):
+            parser.error('bootstrap requires a generated or explicitly enabled PP live origin')
         repository.bootstrap(config['origin_id'])
     stop = threading.Event()
     for name in ('SIGINT', 'SIGTERM'):

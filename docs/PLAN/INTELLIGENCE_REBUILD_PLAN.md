@@ -1,5 +1,16 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 live rotation preparation — November 17, 2026
+
+The generated-only lifecycle worker previously rejected `pp_live`, so live
+collection could not exercise the 72-hour-or-qualified-size A/B switch. The
+candidate adds an explicit PP-live lifecycle mode with distinct origin and
+opt-in; collector, cloud sync and retirement flags remain OFF in that worker.
+Focused generated configuration tests pass. This is code preparation only:
+the PP Compose service still runs generated mode, and no live process, ON
+control, cloud archive or production change is included. The live session and
+rolling-window observation remain unperformed.
+
 ## CP7 local session-control component — November 17, 2026
 
 The first implementation slice adds an **unwired** one-task PP operator session

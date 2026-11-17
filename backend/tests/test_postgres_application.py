@@ -147,9 +147,24 @@ class NumericAndStateTests(unittest.TestCase):
         for mode in ('live','production_preview'):
             with self.assertRaises(ValueError):
                 Settings(data_mode=mode)
+        prepared = Settings(data_mode='pp_live', origin_id='pp-live-fixture')
+        self.assertFalse(prepared.public()['collector']['enabled'])
+        self.assertEqual(prepared.public()['data_mode'], 'pp_live')
+        for mode, origin in (('pp_live','generated-pp'), ('pp_live','pp-live-'),
+                             ('generated','pp-live-fixture'), ('replay','pp-live-fixture')):
+            with self.subTest(mode=mode, origin=origin):
+                with self.assertRaises(ValueError):
+                    Settings(data_mode=mode, origin_id=origin)
         with patch.dict(os.environ,{'TRADEBOT_COLLECTOR_ENABLED':'true'}):
             with self.assertRaises(ValueError):
                 Settings.from_env()
+        with patch.dict(os.environ, {'TRADEBOT_ENVIRONMENT':'preprod',
+                                    'TRADEBOT_DATA_MODE':'pp_live',
+                                    'TRADEBOT_ORIGIN_ID':'pp-live-fixture',
+                                    'TRADEBOT_COLLECTOR_ENABLED':'false'}, clear=True):
+            configured = Settings.from_env()
+            self.assertEqual(configured.data_mode, 'pp_live')
+            self.assertFalse(configured.public()['collector']['enabled'])
         self.assertNotIn('dsn',Settings(dsn='secret').public())
 
 

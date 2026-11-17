@@ -36,8 +36,10 @@ class LiveWriteFenceTests(unittest.TestCase):
         store.connection = connected
         with self.assertRaisesRegex(StorageHold, 'durably disabled'):
             store.ingest(event)
-        self.assertEqual(len(connection.statements), 1)
+        self.assertEqual(len(connection.statements), 2)
         self.assertIn('collector_enabled', connection.statements[0])
+        self.assertIn('FOR SHARE', connection.statements[0])
+        self.assertIn('archive.generations', connection.statements[1])
 
     def test_wrong_mode_rejects_before_connection(self):
         event = coinbase_ticker({'type': 'ticker', 'product_id': 'BTC-USD', 'trade_id': 12,

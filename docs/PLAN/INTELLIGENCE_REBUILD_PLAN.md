@@ -1,5 +1,17 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 local session-control component — November 17, 2026
+
+The first implementation slice adds an **unwired** one-task PP operator session
+controller. Generated tests verify duplicate start rejection, bounded duration,
+explicit OFF, failed-session hold and refusal to restart after unproven OFF.
+It has no ON route, host process binding, live credentials or source startup.
+Focused local tests pass; exact Linux CI and runtime integration remain required.
+This component does not change deployed PP or production and does not qualify
+live collection. Continue with the private host-bound control and tests before
+the bounded PP live trial. The selected dashboard/cloud/experiment data paths
+below remain unchanged.
+
 ## PP dashboard and data-mode clarification — November 17, 2026
 
 **User-selected workflow:** PP normally previews production through a

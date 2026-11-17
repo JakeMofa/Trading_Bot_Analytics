@@ -5,7 +5,7 @@ is the `preprod` branch version of this file. This legacy deployment branch is
 retained for the running SQLite application and its release controls. The
 default-preserving `TRADEBOT_COLLECTOR_ENABLED=false` code candidate makes an
 explicit production OFF setting survive API restarts, while keeping the API
-available. It is tested locally but not installed, configured or qualified as
+available and reporting `collector_fenced` degradation. It is tested locally but not installed, configured or qualified as
 a cross-VM sole-collector fence. Before PP live activation, review the exact
 release, apply the OFF setting through protected configuration, restart only
 the API, and verify no collector process or persisted feed advances through a

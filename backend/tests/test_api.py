@@ -26,6 +26,9 @@ class FastAPITests(unittest.TestCase):
                     health = client.get('/health').json()
                     self.assertFalse(health['collector']['enabled'])
                     self.assertFalse(health['collector']['running'])
+                    self.assertTrue(health['collector']['fenced'])
+                    self.assertEqual(health['status'], 'degraded')
+                    self.assertIn('collector_fenced', health['diagnostic_reasons'])
 
     def test_invalid_collector_setting_fails_closed(self):
         with patch.dict('os.environ', {'TRADEBOT_COLLECTOR_ENABLED': 'maybe'}):

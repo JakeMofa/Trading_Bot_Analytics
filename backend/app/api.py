@@ -39,9 +39,10 @@ def _saved_dashboard(db_path, chart=False):
         return {'status': 'unavailable', 'points': [], 'market': None} if chart else {'status': 'unavailable'}
 
 
-def _collector_status(task):
+def _collector_status(task, *, fenced=False):
     if task is None:
-        return {'enabled': False, 'running': False, 'error': None}
+        return {'enabled': False, 'running': False, 'error': None,
+                'fenced': fenced}
     if not task.done():
         return {'enabled': True, 'running': True, 'error': None}
     if task.cancelled():
@@ -203,6 +204,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     app.state.live_state = state
     app.state.db_path = resolved_db_path
     app.state.start_collectors = start_collectors
+    app.state.collector_fenced = not collector_allowed
     app.state.collector_task = None
 
     @app.middleware('http')
@@ -258,7 +260,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
             feeds[name] = {'status': effective_status, 'reported_status': reported_status,
                            'age_seconds': age_seconds,
                            'reconnects_cumulative': feed.get('reconnects')}
-        collector = _collector_status(app.state.collector_task)
+        collector = _collector_status(app.state.collector_task, fenced=app.state.collector_fenced)
         result.update({'api': 'responding', 'live_engine_status': _live_health(snapshot, collector),
                        'diagnostic_reasons': degradation_reasons(snapshot, collector),
                        'collector': collector, 'feeds': feeds,
@@ -299,7 +301,7 @@ def create_app(live_state=None, db_path=None, start_collectors=True, telemetry_p
     @app.get('/health')
     async def health():
         snapshot = state.snapshot()
-        collector = _collector_status(app.state.collector_task)
+        collector = _collector_status(app.state.collector_task, fenced=app.state.collector_fenced)
         cloud = await asyncio.to_thread(_read_cloud_status, resolved_db_path)
         reasons = degradation_reasons(snapshot, collector)
         status = 'degraded' if reasons else 'ok'

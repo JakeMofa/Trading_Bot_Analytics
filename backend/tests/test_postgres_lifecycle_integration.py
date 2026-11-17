@@ -5,6 +5,7 @@ owns disposal of its generated Compose project. Small fixtures are not capacity
 or cloud-mutation-authority evidence.
 """
 from dataclasses import replace
+import asyncio
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import os
@@ -12,11 +13,15 @@ import sys
 import threading
 import unittest
 import uuid
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded, wire
 from postgres.history import ArchiveHistory
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
+from postgres.live_contract import coinbase_ticker, polymarket_bbo, polymarket_market
+from postgres.live_ingest import coinbase_session, polymarket_cycle
+from postgres.store import StorageHold, Store
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
 
 
@@ -76,6 +81,62 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         with self.factory() as connection:
             self.assertIsNotNone(connection.execute('SELECT to_regclass(%s) AS name',
                                                      ('raw.' + generation['partition_name'],)).fetchone()['name'])
+
+    def test_default_off_live_bridge_then_generated_enable_and_durable_stop(self):
+        """Only the isolated generated CI database simulates an enabled writer."""
+        now = datetime.now(timezone.utc)
+        start = now.replace(minute=(now.minute // 15) * 15, second=0, microsecond=0)
+        end = start + timedelta(minutes=15)
+        received = now.isoformat()
+        market = polymarket_market({
+            'id': 'fixture-' + uuid.uuid4().hex, 'slug': 'fixture-btc-15m',
+            'status': 'MARKET_STATUS_OPEN', 'updatedAt': received,
+            'assetPriceTerms': {'asset': {'symbol': 'btc'},
+                                'marketType': 'ASSET_PRICE_MARKET_TYPE_UP_DOWN',
+                                'horizon': '15m', 'windowStart': start.isoformat(),
+                                'windowEnd': end.isoformat(),
+                                'priceToBeat': {'value': '100000.1234567890123456789'}}
+        }, received)
+        quote = polymarket_bbo({'marketData': {
+            'marketSlug': market['payload']['slug'], 'lastPriceSample': {'ts': received},
+            'bestBid': {'value': '0.49'}, 'bestAsk': {'value': '0.51'}}}, market, received)
+        ticker = coinbase_ticker({'type': 'ticker', 'product_id': 'BTC-USD',
+                                  'trade_id': uuid.uuid4().hex, 'time': received,
+                                  'price': '100000.1234567890123456789'}, received)
+        live_origin = 'pp-live-' + uuid.uuid4().hex
+        live = Store(SimpleNamespace(origin_id=live_origin, environment='preprod',
+                                     dsn=os.environ['TRADEBOT_TEST_APP_DSN'], data_mode='pp_live',
+                                     outbox_max_pending=10000))
+        async def discover(_client, _now):
+            return market
+        async def fetch(_client, _market):
+            return quote
+        async def source(_stop):
+            yield ticker
+        # Only the scoped PP live identity may use the bridge.
+        self.repository.bootstrap(live.origin, now)
+        async def cycle():
+            await polymarket_cycle(live, None, asyncio.Event(), discover=discover, fetch=fetch)
+        with self.assertRaises(StorageHold):
+            asyncio.run(cycle())
+        with self.factory() as connection:
+            connection.execute('UPDATE ops.writer_state SET collector_enabled=true WHERE origin_id=%s',
+                               (live.origin,))
+        asyncio.run(cycle())
+        asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
+        query_now = datetime.now(timezone.utc)
+        active = live.active_market(query_now)
+        self.assertEqual(active['id'], market['market_id'])
+        price, _ = live.inputs(active['id'], query_now)
+        self.assertEqual(price['price_usd'], ticker['price'])
+        self.assertEqual(price['source_time'], ticker['source_time'])
+        self.repository.disable_collector(live.origin)
+        with self.assertRaises(StorageHold):
+            asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
+        with live.connection(True) as connection:
+            count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE origin_id=%s',
+                                       (live.origin,)).fetchone()['count']
+        self.assertEqual(count, 3)
 
     def test_durable_stop_waits_for_writer_then_is_idempotent(self):
         # Generated isolated DB only: simulate a previously enabled PP writer.

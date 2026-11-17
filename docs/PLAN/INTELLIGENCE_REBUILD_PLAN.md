@@ -8,8 +8,14 @@ cannot receive new PP acknowledgements or accept a new ON lease; the lifecycle
 worker exits with a held result. An isolated PostgreSQL test covers A→B
 acknowledgements, occupied-slot OFF across repository restart, refused new
 writes/ON, failed mock archive preserving sealed A, and partition/database/WAL
-measurements. Generated-origin behavior is unchanged. Exact Linux CI and PP
-deployment remain open for this candidate; cloud sync and retirement stay OFF.
+measurements. Generated-origin behavior is unchanged; cloud sync and retirement
+stay OFF.
+Exact PR CI [44191643671](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44191643671)
+then passed all six jobs. Its isolated PostgreSQL 17 case recorded two
+acknowledgements with zero gaps, 81,920 bytes allocated in each A/B partition,
+70,264 WAL bytes generated and 10,950,323 database bytes. It verified durable
+OFF after restart, refused a new ON lease and preserved sealed A after failed
+mock archive. These are tiny fixture measurements; deployed PP remains untested.
 
 **Numeric PP trial trigger blocked:** the generated 24-tick qualification
 measured 81,920/114,688 bytes across A/B and 143,224 WAL bytes. PP's recorded

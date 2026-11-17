@@ -765,6 +765,15 @@ separately measured; PP live market and archival acceptance were not run.
 [Sanitized release evidence](evidence/pp-operator-release-2026-11-17.json).
 Next CP7 gates are an enforceable cross-VM sole-collector fence and an
 authenticated, bounded ON/OFF session control before any PP live collection.
+
+**CP7 offline activation orchestration candidate (November 17):** A separate,
+unwired session function checks ownership before and after durable enable,
+runs the existing bounded supervisor, and requires durable OFF on every exit.
+Generated tests cover rejected ownership, ambiguous enable, ownership loss,
+source failure, cancellation and unproven OFF. This does not provide a
+qualified ownership proof, a durable enable implementation, an ON API or a
+host process controller. PP and production remain unchanged; live collection
+is still blocked on those controls and the cross-VM fence.
 CP6 cloud permissions/readback still gate retirement. Production is unchanged.
 
 Cutover, first sealed-generation verification and retirement enablement are

@@ -152,9 +152,9 @@ class LifecycleRepository:
             # cannot start a second collector behind the operator's lease.
             connection.execute("SELECT pg_advisory_xact_lock(hashtextextended('tradebot-pp-live-collector',0))")
             other = connection.execute('''SELECT 1 FROM ops.writer_state
-                WHERE origin_id LIKE 'pp-live-%' AND origin_id<>%s
+                WHERE origin_id LIKE %s AND origin_id<>%s
                   AND collector_enabled AND collector_lease_expires_at>clock_timestamp()
-                LIMIT 1''', (origin_id,)).fetchone()
+                LIMIT 1''', ('pp-live-%', origin_id)).fetchone()
             if other:
                 raise LifecycleHold('another PP live collector owns this database')
             writer = connection.execute('''SELECT generation_id,epoch,collector_enabled

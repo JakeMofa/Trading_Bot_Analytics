@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.live_ingest import coinbase_session, polymarket_cycle
+from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
 
 
 class FakeStore:
@@ -98,6 +98,15 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
             yield {'event_id': '2'}
         await coinbase_session(store, stop, source=two)
         self.assertEqual([e['event_id'] for e in store.events], ['1', '2'])
+
+    async def test_closed_candle_cycle_preserves_gaps_and_stop(self):
+        store, stop = FakeStore(), asyncio.Event()
+        async def fetch(_client, _now):
+            return [{'event_id': 'minute-1'}, {'event_id': 'minute-3'}]
+        self.assertEqual(await coinbase_candle_cycle(store, None, stop, fetch=fetch), 2)
+        self.assertEqual([e['event_id'] for e in store.events], ['minute-1', 'minute-3'])
+        stop.set()
+        self.assertEqual(await coinbase_candle_cycle(store, None, stop, fetch=fetch), 0)
 
 
 if __name__ == '__main__':

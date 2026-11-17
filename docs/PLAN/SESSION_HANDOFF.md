@@ -50,11 +50,14 @@ sole-collector fence. CP6 cloud identity/grants and actual readback must pass
 before archival/retirement is enabled. Keep PP generated-only, production
 legacy SQLite held, and retirement/paid AI OFF until their separate gates.
 
-The November 16 default-off ingestion bridge connects the read-only source
-clients to acknowledged `Store.ingest` calls in offline tests. Its code is not
-started by PP and does not authorize live collection. Next qualify the bridge
-with generated PostgreSQL, then implement the operator control and cross-VM
-fence before any bounded live run.
+November 16 CP7 progress: PRs #45-#48 merged into `preprod`. The default-off
+source bridge, generated PostgreSQL write/read/stop qualification, unstarted
+authenticated status/OFF operator surface, and prepared-OFF `pp_live` origin
+configuration passed their PR CI. None was deployed to PP or enables a live
+collector. The current next code candidate adds bounded closed Coinbase
+candles; exact CI and merge are pending. Then qualify the actual collector
+process, host-bound operator control and cross-VM fence before any bounded
+live run. PP remains generated-only and production is unchanged.
 
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access

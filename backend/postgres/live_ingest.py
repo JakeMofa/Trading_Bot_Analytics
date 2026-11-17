@@ -8,7 +8,8 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
-from .live_sources import coinbase_once, discover_polymarket_15m, fetch_polymarket_bbo
+from .live_sources import (coinbase_once, discover_polymarket_15m,
+                           fetch_coinbase_closed_candles, fetch_polymarket_bbo)
 
 
 def _live_store(store):
@@ -24,6 +25,22 @@ async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once):
         if stop.is_set():
             break
         await asyncio.to_thread(store.ingest, event)
+
+
+async def coinbase_candle_cycle(store, client, stop: asyncio.Event, *, now=None,
+                                fetch=fetch_coinbase_closed_candles):
+    """Persist only returned closed candles; scheduling must be low frequency."""
+    _live_store(store)
+    if stop.is_set():
+        return 0
+    events = await fetch(client, now or datetime.now(timezone.utc))
+    acknowledged = 0
+    for event in events:
+        if stop.is_set():
+            break
+        await asyncio.to_thread(store.ingest, event)
+        acknowledged += 1
+    return acknowledged
 
 
 async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,

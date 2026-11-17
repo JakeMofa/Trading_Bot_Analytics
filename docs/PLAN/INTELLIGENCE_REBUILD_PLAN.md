@@ -671,6 +671,17 @@ controller still require generated mode; this code cannot activate collection
 or change the deployed PP mode. Exact CI and a separate reviewed mode/runtime
 release remain required.
 
+**CP7 closed-candle input candidate:** A bounded Coinbase Exchange REST read
+requests only the 17 completed one-minute buckets needed by the current
+calculation window. It bounds the decoded response, rejects duplicate or
+inconsistent OHLC rows, keeps exact decimal text and bucket-start provenance,
+and omits missing intervals rather than filling them. The ingestion bridge
+acknowledges each returned candle through PostgreSQL. Coinbase's
+[official contract](https://docs.cdp.coinbase.com/api-reference/exchange-api/rest-api/products/get-product-candles)
+warns that historical intervals may be absent and should not be polled
+frequently. Poll cadence, end-to-end features and PP live performance remain
+unqualified; no runtime starts this client or schedules requests.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

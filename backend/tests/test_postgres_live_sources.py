@@ -10,7 +10,8 @@ import unittest
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.live_sources import coinbase_once, discover_polymarket_15m, fetch_polymarket_bbo
+from postgres.live_sources import (coinbase_once, discover_polymarket_15m,
+                                   fetch_coinbase_closed_candles, fetch_polymarket_bbo)
 
 
 NOW = datetime(2026, 11, 15, 12, 5, tzinfo=timezone.utc)
@@ -46,6 +47,42 @@ class FakeWebsocket:
 
 
 class SourceClientTests(unittest.IsolatedAsyncioTestCase):
+    async def test_bounded_closed_candles_keep_exact_values_and_missing_intervals(self):
+        calls = []
+        def handler(request):
+            calls.append(request)
+            # The current/open bucket and a pre-range bucket are excluded.
+            return httpx.Response(200, json=[
+                [1763208300, '100.01', '101.09', '100.10', '100.99', '0.1234567890123456789'],
+                [1763208240, '99', '101', '100', '100.5', '0.2'],
+                [1763208300 - 18 * 60, '90', '91', '90', '91', '1'],
+            ])
+        at = datetime.fromtimestamp(1763208300, timezone.utc)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            events = await fetch_coinbase_closed_candles(client, at)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0].url.params['granularity'], '60')
+        self.assertEqual(len(events), 1)
+        event = events[0]
+        self.assertEqual(event['payload']['close'], '100.5')
+        self.assertEqual(event['provenance']['source_time_role'], 'bucket_start_not_last_trade')
+        self.assertEqual(event['provenance']['price_role'], 'reference_not_settlement')
+
+    async def test_candle_corruption_and_response_bounds_fail_closed(self):
+        at = datetime.fromtimestamp(1763208300, timezone.utc)
+        for rows in ([[1763208240, '100', '101', '102', '100', '1']],
+                     [[1763208240, '100', '101', '100', '100', '1']] * 2,
+                     [[1763208240, '100', '101', '100', '100', '1']] * 26):
+            with self.subTest(rows=len(rows)):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(
+                        lambda _request: httpx.Response(200, json=rows))) as client:
+                    with self.assertRaises(ValueError):
+                        await fetch_coinbase_closed_candles(client, at)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: httpx.Response(200, content=b'x' * (1024 * 1024 + 1)))) as client:
+            with self.assertRaisesRegex(ValueError, 'exceeds bound'):
+                await fetch_coinbase_closed_candles(client, at)
+
     async def test_coinbase_subscription_preserves_exact_price_and_provenance(self):
         ws = FakeWebsocket([json.dumps({'type': 'ticker', 'product_id': 'BTC-USD',
                                         'trade_id': 42, 'time': '2026-11-15T12:05:00.123456789Z',

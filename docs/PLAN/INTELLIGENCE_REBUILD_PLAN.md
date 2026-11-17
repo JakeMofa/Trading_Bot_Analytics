@@ -13,8 +13,11 @@ with source-age expiry and next-market isolation asserted separately. The
 PostgreSQL chart now excludes source timestamps ahead of the query clock and
 uses deterministic tie ordering; history and hydration tie ordering are
 explicit. This follows the SQLite dashboard's evidence and freshness meaning
-without copying its SQL or unsupported ensemble fields. Local generated tests
-pass; exact Linux CI and real PP feed observation remain open. No PP host,
+without copying its SQL or unsupported ensemble fields. Exact Linux push CI
+[44191706794](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44191706794)
+passed all required jobs; its isolated PostgreSQL 17 application lifecycle
+suite ran 99 tests with no skips, including the PP live query case. A real PP
+feed session, source cadence and rollover observation remain OPEN. No PP host,
 production, Supabase, trading or paid AI operation is part of this candidate.
 ## CP7 PP live host-control candidate — November 17, 2026
 

@@ -2,6 +2,12 @@
 
 ## Current architecture pointer — November 12, 2026
 
+November 17 clarification: one active collector is required **per environment
+database**, not globally across PP and production. Both isolated VMs may read
+the public feeds concurrently; a PP live trial does not require a production
+pause. The opening CP7 correction in `INTELLIGENCE_REBUILD_PLAN.md` is the
+authoritative execution policy.
+
 The authoritative master roadmap selects local PostgreSQL on the existing PP
 and production VMs, qualified in PP first. It replaces the SQLite A/B
 implementation while preserving the 72-hour-or-qualified-size A/B lifecycle

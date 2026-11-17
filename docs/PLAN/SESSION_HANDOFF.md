@@ -1,5 +1,13 @@
 # Resume here
 
+CP7 policy correction (November 17): PP and production may independently read
+the read-only market feeds into their separate databases. Do not stop or change
+production for a PP live trial. Qualify one leased collector per **PP database**,
+the private ON/OFF host process control, bounded request cadence and truthful
+source health first. The master roadmap's opening section supersedes older
+cross-VM sole-collector language below. Production cutover still requires its
+own old-writer fence. PP remains live-collector OFF as of the pp.7 release.
+
 Current CP7 runtime (November 17): `preprod` source `4eea47b` passed exact
 CI 44166604082 and was deployed as `v0.2.0-pp.7` in manual CD 44167381155.
 Migration 0002 and generated-only acceptance passed. PP has five running

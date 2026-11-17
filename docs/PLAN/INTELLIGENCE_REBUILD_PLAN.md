@@ -682,6 +682,19 @@ warns that historical intervals may be absent and should not be polled
 frequently. Poll cadence, end-to-end features and PP live performance remain
 unqualified; no runtime starts this client or schedules requests.
 
+**CP7 supervised-session candidate:** A bounded coordinator runs Coinbase
+streaming, Polymarket discovery/BBO and low-frequency closed-candle reads as
+independent tasks. Before opening any source and at one-second intervals it
+requires both a caller-supplied ownership proof and the durable PostgreSQL
+collector flag. Any lost proof, source failure or session deadline cancels all
+tasks and invokes a required durable-OFF callback; a failed OFF acknowledgement
+is reported as a hold. No automatic retry hides stale inputs. The flag is also
+rechecked by each ingest transaction. Network-free concurrent tests and a
+generated Linux database readback case cover these mechanics. This code has
+**no process entry point, actual host lease, service binding or ON operation**.
+Host control must supply the real lifecycle-role OFF callback and verify
+process exit; those bindings remain open gates.
+
 Cutover, first sealed-generation verification and retirement enablement are
 separate checkpoints. Do not assume a 72-hour seal fits inside cutover. After
 new PostgreSQL acknowledgements, recovery must preserve them; restarting the old

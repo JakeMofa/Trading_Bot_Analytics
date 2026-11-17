@@ -50,14 +50,16 @@ sole-collector fence. CP6 cloud identity/grants and actual readback must pass
 before archival/retirement is enabled. Keep PP generated-only, production
 legacy SQLite held, and retirement/paid AI OFF until their separate gates.
 
-November 16 CP7 progress: PRs #45-#48 merged into `preprod`. The default-off
+November 16 CP7 progress: PRs #45-#49 merged into `preprod`. The default-off
 source bridge, generated PostgreSQL write/read/stop qualification, unstarted
 authenticated status/OFF operator surface, and prepared-OFF `pp_live` origin
-configuration passed their PR CI. None was deployed to PP or enables a live
-collector. The current next code candidate adds bounded closed Coinbase
-candles; exact CI and merge are pending. Then qualify the actual collector
-process, host-bound operator control and cross-VM fence before any bounded
-live run. PP remains generated-only and production is unchanged.
+configuration and bounded closed Coinbase candles passed their PR CI and
+preprod merge CI. None was deployed to PP or enables a live collector. The
+current next code candidate adds a supervised, bounded coordinator with
+independent source tasks and one-second durable-flag/owner checks. It has no
+process entry point. Qualify host-bound operator control and the cross-VM fence
+before any bounded live run. PP remains generated-only and production is
+unchanged.
 
 Keep the selected 72-hour-or-qualified-size A/B generation policy inside
 PostgreSQL. Archive verification precedes local retirement. Current PP access

@@ -115,6 +115,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
             yield ticker
         # Only the scoped PP live identity may use the bridge.
         self.repository.bootstrap(live.origin, now)
+        self.assertFalse(live.collector_enabled())
         async def cycle():
             await polymarket_cycle(live, None, asyncio.Event(), discover=discover, fetch=fetch)
         with self.assertRaises(StorageHold):
@@ -122,6 +123,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         with self.factory() as connection:
             connection.execute('UPDATE ops.writer_state SET collector_enabled=true WHERE origin_id=%s',
                                (live.origin,))
+        self.assertTrue(live.collector_enabled())
         asyncio.run(cycle())
         asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
         minute = int(now.timestamp()) // 60 * 60 - 60
@@ -138,6 +140,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(price['source_time'], ticker['source_time'])
         self.assertEqual(candles[-1]['close'], '100000.5')
         self.repository.disable_collector(live.origin)
+        self.assertFalse(live.collector_enabled())
         with self.assertRaises(StorageHold):
             asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
         with live.connection(True) as connection:

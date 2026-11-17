@@ -1,5 +1,24 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 PP live host-control candidate — November 17, 2026
+
+A candidate extends the PP forced-command controller with one-use, exact
+source/artifact/controller/image authority to enter the reviewed live profile
+in durable OFF state. A root-owned persistent transition journal permits
+separate authenticated OFF and generated-profile restoration after the enter
+permit is consumed, including when operator HTTP is unavailable. A separate
+one-use session permit binds that journal and caps ON at 1–1800 seconds; the
+host command reads the private token without returning it. The manual PP
+workflow uses the existing pinned key, host pin and private runner, requires a
+published source and successful generated PP deployment before entering, and
+records sanitized results. Local PP control tests and workflow lint pass.
+The host enter path has a 600-second work budget and a fresh 180-second
+recovery budget; a failed entry cannot report success after restoration.
+This is source preparation only: the new controller is not installed, no PP
+live profile or feed session has run, and production is unchanged. Exact push
+CI, installed-hash qualification, one-use host authorization and the bounded
+real-market trial remain open.
+
 ## CP7 isolated size-switch qualification candidate — November 17, 2026
 
 A generated-origin, isolated-PostgreSQL test now measures an A→B switch while

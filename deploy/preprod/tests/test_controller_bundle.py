@@ -16,7 +16,8 @@ class BundleTests(unittest.TestCase):
             a,b=Path(folder)/'a.pyz',Path(folder)/'b.pyz'
             self.assertEqual(builder.build(a),builder.build(b))
             with zipfile.ZipFile(a) as archive:
-                self.assertEqual(set(archive.namelist()),{'__main__.py','controller.py','linux_actions.py'})
+                self.assertEqual(set(archive.namelist()),{'__main__.py','controller.py','linux_actions.py',
+                    'live_profile.py','live_transition.py','transition_control.py'})
             result=subprocess.run([sys.executable,'-IS',str(a)],cwd=folder,env={},capture_output=True,text=True,timeout=3)
             self.assertEqual(result.returncode,1)
             self.assertIn('entrypoint_precondition_failed',result.stdout)

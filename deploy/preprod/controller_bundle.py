@@ -10,6 +10,7 @@ ENTRY='''import fcntl,hashlib,json,os,signal,stat,sys
 from pathlib import Path
 from controller import Controller,DeploymentHold,HostBinding,Request,RootAuthorization,_secure_file,require
 from linux_actions import LinuxActions
+from transition_control import ACTIVE,_read_active,session,transition,TransitionRequest
 
 def interrupted(signum,frame):
     raise DeploymentHold("operator_connection_interrupted")
@@ -27,7 +28,7 @@ def main():
         print(json.dumps({'gate':'IDENTITY_PASS','environment':'preprod','instance':'tradebot-preprod-01',
                           'controller_sha256':digest,'runtime_qualified':False,'database_changed':False}),flush=True)
         return 0
-    request=Request.parse(sys.argv[1])
+    command=sys.argv[1]
     lock=os.open("/run/tradebot-pp-deploy/controller.lock",os.O_CREAT|os.O_RDWR|os.O_NOFOLLOW,0o600)
     info=os.fstat(lock)
     if info.st_uid!=0 or not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
@@ -35,8 +36,20 @@ def main():
     fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     for name in ("SIGTERM","SIGINT","SIGHUP"):
         signal.signal(getattr(signal,name),interrupted)
+    installed=Path(sys.argv[0]).resolve()
+    if command.startswith('transition-v1 '):
+        result=transition(TransitionRequest.parse(command),installed)
+        print(json.dumps(result,sort_keys=True),flush=True)
+        return 0 if result.get('gate') in ('PP_LIVE_READY_OFF','PP_GENERATED_RESTORED') else 1
+    if command.startswith('session-v1 '):
+        result=session(command,installed)
+        print(json.dumps(result,sort_keys=True),flush=True)
+        return 0 if result.get('gate') in ('PP_LIVE_ON','PP_LIVE_OFF') else 1
+    request=Request.parse(command)
+    if ACTIVE.exists():
+        require(_read_active()['state']=='generated_restored','unfinished_transition_blocks_deploy')
     controller=Controller(binding,RootAuthorization("/run/tradebot-pp-deploy/authorization.json"),
-                          Path(sys.argv[0]).resolve(),"/var/lib/tradebot-pp/deployments")
+                          installed,"/var/lib/tradebot-pp/deployments")
     result=controller.deploy(request,sys.stdin.buffer,LinuxActions())
     print(json.dumps(result,sort_keys=True),flush=True)
     return 0 if result.get("gate")=="PASS" else 1
@@ -52,7 +65,7 @@ except (DeploymentHold,OSError,ValueError):
 def build(destination):
     target=Path(destination)
     files={'__main__.py':ENTRY.encode()}
-    for name in ('controller.py','linux_actions.py'):
+    for name in ('controller.py','linux_actions.py','live_profile.py','live_transition.py','transition_control.py'):
         files[name]=(HERE/name).read_bytes()
     with target.open('xb') as output:
         with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as bundle:

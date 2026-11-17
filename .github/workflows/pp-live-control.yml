@@ -1,0 +1,111 @@
+name: PP live control
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Enter or leave the OFF live profile, or control one bounded session
+        required: true
+        type: choice
+        options: [enter, leave, on, off]
+      source_branch:
+        description: Exact source branch for enter; leave uses prior deployment proof
+        required: false
+        type: choice
+        options: [preprod, main]
+      version:
+        description: Published candidate used by the generated PP deployment
+        required: false
+        type: string
+      revision:
+        description: Exact generated PP deployment source SHA
+        required: false
+        type: string
+      deployment_run_id:
+        description: Successful generated CD Preprod run ID
+        required: false
+        type: string
+      image_id:
+        description: Exact generated PP runtime image ID
+        required: false
+        type: string
+      max_seconds:
+        description: Session ON duration, 1 to 1800 seconds
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tradebot-preprod
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PP_LIVE_OPERATION: ${{ inputs.operation }}
+      SOURCE_BRANCH: ${{ inputs.source_branch }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      APPROVED_REVISION: ${{ inputs.revision }}
+      PP_DEPLOYMENT_RUN_ID: ${{ inputs.deployment_run_id }}
+      PP_LIVE_IMAGE_ID: ${{ inputs.image_id }}
+      PP_LIVE_SECONDS: ${{ inputs.max_seconds }}
+      GH_TOKEN: ${{ github.token }}
+      PIPELINE_REPORT: ci-evidence/pp-live/preflight.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+      - name: Require published exact source, generated PP deployment and bounded operation
+        run: python .github/ci/pp_live_pipeline.py preflight
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: pp-live-preflight-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 90
+
+  execute:
+    needs: preflight
+    environment: preprod
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 15
+    env:
+      PP_LIVE_OPERATION: ${{ inputs.operation }}
+      SOURCE_BRANCH: ${{ inputs.source_branch }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      APPROVED_REVISION: ${{ inputs.revision }}
+      PP_DEPLOYMENT_RUN_ID: ${{ inputs.deployment_run_id }}
+      PP_LIVE_IMAGE_ID: ${{ inputs.image_id }}
+      PP_LIVE_SECONDS: ${{ inputs.max_seconds }}
+      GH_TOKEN: ${{ github.token }}
+      PP_DEPLOY_KEY: ${{ secrets.PP_DEPLOY_KEY }}
+      PP_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_DEPLOY_KNOWN_HOSTS }}
+      PIPELINE_REPORT: ci-evidence/pp-live/result.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate existing operator Python 3.12
+        run: /opt/homebrew/bin/python3.12 -I -c "import sys; assert sys.version_info[:2] == (3, 12)"
+      - name: Execute one pinned PP-only host command
+        run: /opt/homebrew/bin/python3.12 .github/ci/pp_live_pipeline.py execute
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: pp-live-result-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 90

@@ -48,6 +48,28 @@ suite ran 99 tests with no skips, including the PP live query case. A real PP
 feed session, source cadence and rollover observation remain OPEN. No PP host,
 production, Supabase, trading or paid AI operation is part of this candidate.
 
+## CP6 PP full archive-flow distinction — November 17, 2026
+
+The user's requested functional PP proof is a bounded A→B switch followed by
+sealed-A structured sync to private `history_v2`, create-only raw upload to
+private Supabase Storage, exact authenticated readback, protected-reference and
+reader checks, then separately authorized local partition retirement while B
+continues writing. No extra 72-hour wait follows sealing. The first <=30-minute
+PP live collector/query session is a **different checkpoint**: cloud sync and
+retirement stay OFF, and no PP live size threshold is qualified yet. Neither A
+nor B is assigned a 30-minute rotation timer.
+
+Fresh read-only Supabase inventory found ten `history_v2` tables but no runtime
+grants or policies; `market-raw` is private with no Storage object policies.
+The existing Storage adapter cannot sync structured rows, and the SQL
+retirement function rejects non-generated origins. A default-off origin-bound
+raw/structured transport with generated HTTP and isolated PostgreSQL tests is
+under qualification. It cannot authorize retirement. See the dated
+[CP6 PP archive-flow review](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md) for the
+minimal remaining cloud and mutation-authority gates. No cloud or PP runtime
+state changed through this read-only review.
+
+
 ## CP7 PP live host-control candidate — November 17, 2026
 
 A candidate extends the PP forced-command controller with one-use, exact

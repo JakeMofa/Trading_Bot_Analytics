@@ -279,7 +279,7 @@ class PostgreSQLSchemaTests(unittest.TestCase):
             with self.assertRaises(Exception),self.db.transaction():
                 self.db.execute("""INSERT INTO archive.generations(origin_id,generation_id,slot,state,partition_name,created_at)
                     VALUES('generated-cp2-schema',%s,'A','prepared',%s,now())""",(third,partition_name(third)))
-            self.assertEqual(validate_schema(self.db),1)
+            self.assertEqual(validate_schema(self.db),len(load_migrations()))
             from psycopg import sql
             for statement in [sql.SQL('ALTER TABLE raw.{} ADD CONSTRAINT extra CHECK(length(event_id)>0)').format(sql.Identifier(name)),
                               sql.SQL('CREATE INDEX extra ON raw.{}(source)').format(sql.Identifier(name)),
@@ -290,7 +290,7 @@ class PostgreSQLSchemaTests(unittest.TestCase):
                         self.db.execute(statement)
                         with self.assertRaises(SchemaDrift): validate_schema(self.db)
                         raise RevertMutation()
-                self.assertEqual(validate_schema(self.db),1)
+                self.assertEqual(validate_schema(self.db),len(load_migrations()))
 
     @unittest.skipUnless(_APP_FILE,'application DSN fixture not configured')
     def test_app_no_ddl_owner_or_ledger_mutation(self):
@@ -299,7 +299,7 @@ class PostgreSQLSchemaTests(unittest.TestCase):
             connect_migrator(app_dsn,'preprod')
         with connect(app_dsn,'preprod') as app:
             self.assertEqual(app.execute('SELECT current_user AS role').fetchone()['role'],'tradebot_app')
-            self.assertEqual(validate_schema(app),1)
+            self.assertEqual(validate_schema(app),len(load_migrations()))
             app.rollback()
             for sql in ['CREATE TABLE core.unreviewed(id int)','SET ROLE tradebot_owner',
                         'DELETE FROM ops.schema_migrations','DELETE FROM core.protected_evidence']:

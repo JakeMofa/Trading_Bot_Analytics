@@ -802,6 +802,9 @@ The first exact CI on `609713f` failed because generated schema tests hardcoded
 version 1 and reused migration number 2 for their synthetic upgrade. The
 successor makes those expectations follow the actual migration count; that
 failure remains recorded until the successor passes Linux integration.
+Successor `a9fd4bb` still failed on three remaining version-1 assertions in
+the generated catalog tests. Those assertions are corrected in the next
+candidate; neither failed CI run qualifies this migration.
 CP6 cloud permissions/readback still gate retirement. Production is unchanged.
 
 Cutover, first sealed-generation verification and retirement enablement are

@@ -29,6 +29,33 @@ def envelope(outbox_id, table, payload, generation_id):
 
 @unittest.skipUnless(DSN, 'isolated generated history_v2 DSN not supplied')
 class HistoryV2TransportPostgresTests(unittest.TestCase):
+    def test_generated_a_pending_blocks_b_until_acknowledged(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda: psycopg.connect(DSN, row_factory=dict_row,
+                                          connect_timeout=5)
+        repository = LifecycleRepository(factory)
+        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        now = datetime.now(timezone.utc)
+        first = repository.bootstrap(origin, now - timedelta(hours=73))
+        switched = repository.switch_if_due(origin, now=now)
+        self.assertEqual(switched['status'], 'switched')
+        first_id = str(first['generation_id'])
+        second_id = str(switched['generation_id'])
+        with factory() as connection:
+            old_id = connection.execute('''INSERT INTO ops.outbox
+                (origin_id,generation_id,entity_type,entity_id,content_hash,
+                 payload,created_at) VALUES(%s,%s,'core.current_prices','old',%s,
+                 '{}'::jsonb,%s) RETURNING id''',
+                (origin, first_id, 'a' * 64, now)).fetchone()['id']
+        self.assertTrue(repository.has_other_pending(origin, second_id))
+        self.assertFalse(repository.has_other_pending(origin, first_id))
+        with factory() as connection:
+            connection.execute('UPDATE ops.outbox SET acknowledged_at=%s WHERE id=%s',
+                               (now, old_id))
+        self.assertFalse(repository.has_other_pending(origin, second_id))
+
     def test_pg17_whole_transaction_timeout_and_slow_connection_hold(self):
         import psycopg
         from psycopg.rows import dict_row

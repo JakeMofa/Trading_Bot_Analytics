@@ -24,6 +24,8 @@ class ActiveStructuredWorker:
             generation = self.repository.generation(generation_id)
             if generation['origin_id'] != self.origin_id or generation['state'] != 'collecting':
                 raise LifecycleHold('active structured generation is not collecting')
+            if self.repository.has_other_pending(self.origin_id, generation_id):
+                raise LifecycleHold('another generation has pending structured evidence')
             rows = self.repository.outbox(generation_id, self.limits.max_rows,
                                           self.limits.max_decoded_bytes)
             if not rows:

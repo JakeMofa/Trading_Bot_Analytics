@@ -14,18 +14,19 @@ from postgres.lifecycle import LifecycleHold
 
 ORIGIN = 'pp-live-fixture'
 GENERATION = '00000000-0000-4000-8000-000000000001'
+NEXT_GENERATION = '00000000-0000-4000-8000-000000000002'
 
 
-def price(outbox_id, source_epoch, *, digest=None):
+def price(outbox_id, source_epoch, *, digest=None, generation_id=GENERATION):
     row = dict(origin_id=ORIGIN, source='coinbase', symbol='BTC-USD',
-               event_id=f'tick-{outbox_id}', generation_id=GENERATION,
+               event_id=f'tick-{outbox_id}', generation_id=generation_id,
                source_time=f'2026-11-18T00:00:{outbox_id:02d}Z',
                source_epoch=str(source_epoch),
                received_at=f'2026-11-18T00:00:{outbox_id:02d}Z',
                available_at=f'2026-11-18T00:00:{outbox_id:02d}Z',
                price='100.2300', size=None, payload={'source': 'fixture'},
                content_hash=digest or f'{outbox_id:064x}')
-    return {'id': outbox_id, 'origin_id': ORIGIN, 'generation_id': GENERATION,
+    return {'id': outbox_id, 'origin_id': ORIGIN, 'generation_id': generation_id,
             'entity_type': 'core.current_prices',
             'entity_id': encoded([ORIGIN, 'coinbase', 'BTC-USD']).decode(),
             'content_hash': row['content_hash'], 'payload': row}
@@ -35,10 +36,16 @@ class Repository:
     def __init__(self, rows):
         self.rows, self.acknowledged = rows, []
         self.state, self.origin = 'collecting', ORIGIN
+        self.generation_id = GENERATION
+        self.other_rows = []
 
     def generation(self, generation_id):
-        assert generation_id == GENERATION
+        assert generation_id == self.generation_id
         return {'origin_id': self.origin, 'state': self.state}
+
+    def has_other_pending(self, origin_id, generation_id):
+        assert origin_id == self.origin and generation_id == self.generation_id
+        return bool(self.other_rows)
 
     def outbox(self, generation_id, limit, max_bytes):
         return deepcopy(self.rows[:limit])
@@ -70,6 +77,25 @@ class Transport:
 
 
 class ActiveStructuredTests(unittest.TestCase):
+    def test_newer_b_waits_for_pending_a_before_any_cloud_projection(self):
+        pending_a = [price(10, '1794960010')]
+        repository = Repository([price(11, '1794960011',
+                                       generation_id=NEXT_GENERATION)])
+        repository.generation_id = NEXT_GENERATION
+        repository.other_rows = pending_a
+        transport = Transport()
+        with self.assertRaises(LifecycleHold):
+            ActiveStructuredWorker(repository, transport,
+                                   origin_id=ORIGIN).cycle(NEXT_GENERATION)
+        self.assertEqual(transport.calls, [])
+        self.assertEqual(repository.acknowledged, [])
+        self.assertEqual([row['id'] for row in repository.other_rows], [10])
+        repository.other_rows = []  # A's separate verified sync drained.
+        result = ActiveStructuredWorker(repository, transport,
+                                        origin_id=ORIGIN).cycle(NEXT_GENERATION)
+        self.assertEqual(result['acknowledged'], 1)
+        self.assertEqual(repository.acknowledged, [11])
+
     def test_multiple_mutable_revisions_keep_order_and_ack_after_readback(self):
         rows = [price(1, '1794960001'), price(2, '1794960002')]
         self.assertEqual([row['id'] for row in validate_outbox_stream(

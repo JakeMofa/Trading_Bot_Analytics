@@ -26,13 +26,17 @@ collects. That import does not authorize raw retirement.
 - Ordered outbox validation permits monotonic revisions of `markets` and
   `current_prices`, holds stale/equal-time conflicts, and rejects changed
   immutable identities. It preserves outbox order and source text/decimals.
+- Active B sync holds before any cloud request if the same origin has pending
+  rows in another generation. This prevents B's newer mutable projection from
+  overtaking A's unsynced older revision. It does not drain A by itself.
 - A new **unapplied** additive private migration creates one immutable hash
   receipt per structured outbox revision. It grants no runtime role and enables
   RLS. In the prepared direct-PostgreSQL adapter, projection updates,
   per-revision receipts and a generation-scoped checkpoint commit atomically.
   Fresh readback verifies every receipt plus the current projection before
   local acknowledgement. An ambiguous post-commit result is safe to retry;
-  changed receipt contents hold.
+  changed receipt contents hold. Readback requires an **exact** projection
+  match; a newer-looking value without a proven receipt cannot authorize ACK.
 - The adapter is constructed only from an injected connection factory with
   exact database and role binding. No deployed service constructs it.
 
@@ -61,6 +65,13 @@ still need a qualified wall-clock deadline before any PP runtime wiring.
 The follow-up generated PostgreSQL regressions cover parent-before-dependent
 imports, changed projections/receipts, and a receipt missing below an
 advanced checkpoint; their exact successor CI result is pending.
+
+Review also exposed the A-pending/B-newer ordering hazard. A generated
+two-generation regression now requires B to HOLD without a cloud request until
+A's pending rows drain. Sealed A drainage with ordered revisions, cross-worker
+serialization and replay of an older batch after a later valid projection are
+not yet qualified. This remains a runtime **NO-GO**, even if this PR's offline
+tests pass.
 
 For the later PP runtime, use a reviewed direct or session-mode PostgreSQL
 connection with TLS and a small explicit pool. Supabase documents direct

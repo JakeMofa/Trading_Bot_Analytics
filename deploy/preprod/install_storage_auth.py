@@ -75,15 +75,20 @@ def _read_exact(path, owner, mode, *, maximum=MAX_SIZE):
         os.close(descriptor)
 
 
-def _line(value):
-    _check(value.endswith(b'\n') and value.count(b'\n') == 1
-           and b'\r' not in value and b'\x00' not in value,
+def _line(value, *, allow_no_lf=False):
+    _check(b'\r' not in value and b'\x00' not in value,
+           'invalid_secret_format')
+    if allow_no_lf and b'\n' not in value:
+        return value
+    _check(value.endswith(b'\n') and value.count(b'\n') == 1,
            'invalid_secret_format')
     return value[:-1]
 
 
 def _validate_values(values, expected_uid):
-    key = _line(values['pp_storage_api_key'])
+    # The separately staged publishable key may be an exact token file with
+    # no terminal LF. Auth files originate from the provisioner with one LF.
+    key = _line(values['pp_storage_api_key'], allow_no_lf=True)
     email = _line(values['supabase_auth_email'])
     password = _line(values['supabase_auth_password'])
     uid = _line(values['supabase_auth_uid'])

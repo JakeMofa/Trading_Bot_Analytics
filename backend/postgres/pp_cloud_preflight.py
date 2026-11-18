@@ -1,9 +1,9 @@
 """Read-only PP cloud binding preflight; never starts a sync worker.
 
 The Storage Auth files are produced by the separate operator provisioner.
-The structured PostgreSQL credential is a different identity and remains
-unusable while tradebot_pp_history is NOLOGIN. This module reads no file data,
-opens no network connection, and intentionally has no enable path.
+The structured PostgreSQL credential is a different identity. The operator
+login has been verified, but no service has been bound to it. This module
+reads no file data, opens no network connection, and has no enable path.
 """
 from __future__ import annotations
 
@@ -20,6 +20,7 @@ EXPECTED_FILES = {
     'storage_auth_password': '/run/secrets/supabase_auth_password',
     'storage_auth_uid': '/run/secrets/supabase_auth_uid',
     'structured_dsn': '/run/secrets/pp_history_dsn',
+    'structured_ca': '/run/secrets/pp_history_ca',
     'local_lifecycle_dsn': '/run/secrets/lifecycle_dsn',
 }
 FILE_ENV = {
@@ -28,14 +29,14 @@ FILE_ENV = {
     'storage_auth_password': 'TRADEBOT_PP_STORAGE_AUTH_PASSWORD_FILE',
     'storage_auth_uid': 'TRADEBOT_PP_STORAGE_AUTH_UID_FILE',
     'structured_dsn': 'TRADEBOT_PP_HISTORY_DSN_FILE',
+    'structured_ca': 'TRADEBOT_PP_HISTORY_CA_FILE',
     'local_lifecycle_dsn': 'TRADEBOT_DATABASE_DSN_FILE',
 }
 OFF_FLAGS = ('ENABLE_SUPABASE_SYNC', 'ENABLE_LOCAL_RETENTION',
              'ENABLE_OPENAI_ANALYST', 'TRADEBOT_CLOUD_ENABLED',
              'TRADEBOT_RETIREMENT_ENABLED')
-HOLDS = ('structured_role_login_unqualified',
-         'structured_receipts_grants_unqualified',
-         'cloud_worker_not_wired', 'retirement_off')
+HOLDS = ('cloud_worker_not_wired', 'actual_structured_readback_unqualified',
+         'retirement_off')
 
 
 @dataclass(frozen=True)
@@ -61,14 +62,17 @@ class PPCloudBinding:
     def check_file_metadata(self) -> None:
         """Check mounted-file safety without reading credentials or identifiers."""
         identities = set()
-        for path in self.files.values():
+        for purpose, path in self.files.items():
             try:
                 info = path.lstat()
             except OSError:
                 raise ValueError('PP binding file unavailable') from None
+            mode = stat.S_IMODE(info.st_mode)
+            unsafe_mode = (mode & 0o022 if purpose == 'structured_ca'
+                           else mode & 0o077)
             if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or
                     info.st_uid not in (0, os.geteuid()) or
-                    info.st_mode & 0o077 or not 1 <= info.st_size <= 4096):
+                    unsafe_mode or not 1 <= info.st_size <= 4096):
                 raise ValueError('unsafe PP binding file')
             identity = (info.st_dev, info.st_ino)
             if identity in identities:

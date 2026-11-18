@@ -81,9 +81,24 @@ class PPCloudPreflightTests(unittest.TestCase):
                     patch('builtins.print') as output:
                 self.assertEqual(main(), 1)
             status = output.call_args.args[0]
-            self.assertIn('structured_role_login_unqualified', status)
-            self.assertIn('structured_receipts_grants_unqualified', status)
+            self.assertIn('actual_structured_readback_unqualified', status)
+            self.assertIn('cloud_worker_not_wired', status)
             self.assertNotIn(temporary, status)
+
+    def test_public_ca_is_allowed_but_writable_ca_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            paths = {}
+            for name in EXPECTED_FILES:
+                path = Path(temporary) / name
+                path.write_bytes(b'x')
+                path.chmod(0o400)
+                paths[name] = path
+            binding = PPCloudBinding(paths)
+            paths['structured_ca'].chmod(0o644)
+            binding.check_file_metadata()
+            paths['structured_ca'].chmod(0o666)
+            with self.assertRaises(ValueError):
+                binding.check_file_metadata()
 
 
 if __name__ == '__main__':

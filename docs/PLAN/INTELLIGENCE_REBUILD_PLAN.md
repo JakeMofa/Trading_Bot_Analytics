@@ -1,5 +1,19 @@
 # BTC Intelligence Rebuild Plan
 
+## CP7 bounded PP live API observer — November 17, 2026
+
+The local-only deploy/preprod/live_observe.py candidate samples the private
+PP API through a caller-supplied loopback tunnel and cannot enable/disable
+collection. It records a bounded 25-minute session at five-second cadence,
+checks dashboard/history/SSE at one-minute cadence, and reports PASS, FAIL or
+INCOMPLETE against API latency, feed freshness, input/feature age, distinct
+calculation/prediction IDs and a real market boundary. The report excludes
+prices, credentials and response bodies. Fake-HTTP and pure-result tests pass
+locally; exact Linux CI and any actual PP observation remain separate gates.
+See deploy/preprod/LIVE_OBSERVATION.md. Raw-row acknowledgements, disk/WAL
+growth, Supabase archive/retirement and 72-hour operation require independent
+evidence.
+
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 
 Exact `preprod` source `9dbeec6` passed push CI

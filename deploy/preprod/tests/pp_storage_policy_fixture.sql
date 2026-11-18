@@ -29,6 +29,10 @@ CREATE FUNCTION storage.allow_only_operation(value text) RETURNS boolean
 LANGUAGE sql STABLE AS $fn$
   SELECT current_setting('storage.operation',true)=value
 $fn$;
+CREATE FUNCTION storage.allow_any_operation(operations text[]) RETURNS boolean
+LANGUAGE sql STABLE AS $fn$
+  SELECT current_setting('storage.operation',true)=ANY(operations)
+$fn$;
 
 CREATE TABLE storage.buckets (id text PRIMARY KEY,public boolean NOT NULL);
 INSERT INTO storage.buckets VALUES ('market-raw',false),('knowledge',false);

@@ -6,7 +6,9 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from postgres.archive_codec import ArchiveIntegrityError, encoded
-from postgres.history_v2_envelope import IMPORT_ORDER, TABLE_KEYS, validate_outbox_batch
+from postgres.domain import digest
+from postgres.history_v2_envelope import (CLOUD_COLUMNS, IMPORT_ORDER, TABLE_KEYS,
+    cloud_row, cloud_row_matches, projection_order, validate_outbox_batch)
 
 
 ORIGIN = 'generated-pp'
@@ -55,12 +57,77 @@ class HistoryV2EnvelopeTests(unittest.TestCase):
         second = item('core.markets', row_id=2, digest='b' * 64)
         with self.assertRaises(ArchiveIntegrityError):
             self.check([first, second])
+        same_hash_changed_body = item('core.candles', row_id=3)
+        same_hash_changed_body['payload']['close'] = '100.01'
+        with self.assertRaises(ArchiveIntegrityError):
+            self.check([item('core.candles'), same_hash_changed_body])
 
     def test_bounds_and_unexpected_envelope_fields_hold(self):
         with self.assertRaises(ArchiveIntegrityError):
             self.check([item('core.markets')] * 501)
         with self.assertRaises(ArchiveIntegrityError):
             self.check([{**item('core.markets'), 'extra': True}])
+        with self.assertRaises(ArchiveIntegrityError):
+            self.check([{**item('core.markets'), 'id': True}])
+
+    def test_cloud_columns_match_applied_private_schema(self):
+        import re
+        schema = (Path(__file__).resolve().parents[2] / 'supabase' / 'migrations' /
+                  '20261116050000_history_v2_private.sql').read_text()
+        for table, columns in CLOUD_COLUMNS.items():
+            name = table.split('.')[1]
+            body = re.search(r'CREATE TABLE history_v2\.' + name + r' \((.*?)\n\);',
+                             schema, re.DOTALL)
+            self.assertIsNotNone(body, name)
+            actual = re.findall(r'(?:^|,)\s*([a-z_]+) (?:text|integer|bigint|timestamptz|jsonb|history_v2\.)',
+                                body.group(1))
+            self.assertEqual(set(columns), set(actual), name)
+
+    def test_snapshot_edge_hash_is_derived_but_not_a_cloud_column(self):
+        row = dict(origin_id=ORIGIN, snapshot_id='snapshot-1', evidence_id='evidence-1')
+        record = item('core.snapshot_evidence', digest=digest(row))
+        self.assertEqual(cloud_row(record), row)
+        self.assertTrue(cloud_row_matches(record, row))
+        with self.assertRaises(ArchiveIntegrityError):
+            cloud_row({**record, 'content_hash': 'b' * 64})
+        with self.assertRaises(ArchiveIntegrityError):
+            cloud_row({**record, 'payload': {**record['payload'], 'evidence_id': 'wrong'}})
+        self.assertFalse(cloud_row_matches(record, {**row, 'content_hash': record['content_hash']}))
+
+    def test_exact_cloud_readback_preserves_decimal_scale_and_source_timestamp(self):
+        record = item('core.current_prices')
+        record['payload'] = dict(origin_id=ORIGIN, source='coinbase', symbol='BTC-USD',
+            event_id='tick-1', generation_id=GENERATION,
+            source_time='2026-11-17T12:00:00.123456789Z', source_epoch='1794916800.123456789',
+            received_at='2026-11-17T12:00:01+00:00',
+            available_at='2026-11-17T12:00:01+00:00', price='100.2300', size='0.0100',
+            payload={'price': '100.2300', 'feed': 'coinbase'}, content_hash=record['content_hash'])
+        row = cloud_row(record)
+        self.assertTrue(cloud_row_matches(record, {**row, 'received_at': '2026-11-17T07:00:01-05:00'}))
+        self.assertFalse(cloud_row_matches(record, {**row, 'price': '100.23'}))
+        self.assertFalse(cloud_row_matches(record, {**row, 'source_time': '2026-11-17T12:00:00.123456789+00:00'}))
+        self.assertFalse(cloud_row_matches(record, {**row, 'payload': {'price': '100.23'}}))
+
+    def test_mutable_revision_order_is_monotonic_and_conflict_safe(self):
+        first = item('core.current_prices')
+        first['payload']['source_epoch'] = '1794916800.1'
+        first['payload']['received_at'] = '2026-11-17T12:00:01+00:00'
+        newer = item('core.current_prices', row_id=2, digest='b' * 64)
+        newer['payload'].update(source_epoch='1794916800.2',
+                                received_at='2026-11-17T12:00:02+00:00')
+        self.assertEqual(projection_order(first, first), 'identical')
+        self.assertEqual(projection_order(first, newer), 'newer_requires_atomic_cloud_update')
+        with self.assertRaises(ArchiveIntegrityError):
+            projection_order(newer, first)
+        with self.assertRaises(ArchiveIntegrityError):
+            projection_order(first, {**newer, 'payload': {**newer['payload'],
+                'source_epoch': first['payload']['source_epoch'],
+                'received_at': first['payload']['received_at']}})
+        market = item('core.markets')
+        market['payload']['last_seen'] = '2026-11-17T12:00:01Z'
+        updated = item('core.markets', row_id=2, digest='c' * 64)
+        updated['payload']['last_seen'] = '2026-11-17T12:00:02Z'
+        self.assertEqual(projection_order(market, updated), 'newer_requires_atomic_cloud_update')
 
 
 if __name__ == '__main__':

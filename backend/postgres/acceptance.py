@@ -13,6 +13,33 @@ from .store import IdentityConflict, Store
 from .worker import CalculationWorker
 
 
+def current_chart(client,store,worker,state,price_event,deadline,await_snapshot):
+    """Require the generated input in the API's actual current market chart."""
+    chart=client.get('/history/coinbase-chart')
+    chart.raise_for_status()
+    data=chart.json()
+    extra=[]
+    if not data['points'] and (data.get('market') or {}).get('id')!=(state.get('market') or {}).get('id'):
+        # The chart correctly follows the new 15-minute market. Seed that
+        # generated market rather than accepting an empty current chart.
+        if time.monotonic()>=deadline:
+            raise AssertionError('generated chart rollover exceeded acceptance deadline')
+        events=generated_events(utcnow())
+        extra=[store.ingest(event) for event in events]
+        price_event=next(event for event in events if event['kind']=='price')
+        worker.discover_once()
+        if worker.calculate_once() is None:
+            raise AssertionError('no publishable generated rollover snapshot')
+        state=await_snapshot(price_event)
+        chart=client.get('/history/coinbase-chart')
+        chart.raise_for_status()
+        data=chart.json()
+    if (not data['points'] or (data.get('market') or {}).get('id')!=(state.get('market') or {}).get('id')
+            or not any(point['price_usd']==price_event['price'] for point in data['points'])):
+        raise AssertionError('bounded chart missing current input')
+    return state,price_event,extra
+
+
 def qualify(base_url, timeout=20):
     settings=Settings.from_env()
     if settings.data_mode!='generated' or not settings.origin_id.startswith('generated-'):
@@ -43,20 +70,24 @@ def qualify(base_url, timeout=20):
     deadline=time.monotonic()+timeout
     latencies=[]
     with httpx.Client(base_url=base_url,timeout=2,trust_env=False) as client:
-        while True:
-            started=time.monotonic()
-            response=client.get('/state/current')
-            response.raise_for_status()
-            latencies.append(time.monotonic()-started)
-            state=response.json()
-            feature=state.get('feature_snapshot') or {}
-            if (feature.get('quality',{}).get('price',{}).get('input_id')==price_event['event_id']
-                    and timestamp(feature['as_of'])>=now
-                    and (state.get('coinbase') or {}).get('event_id')==price_event['event_id']):
-                break
-            if time.monotonic()>=deadline:
-                raise AssertionError('running API did not publish acknowledged snapshot')
-            time.sleep(.1)
+        def await_snapshot(input_event):
+            while True:
+                started=time.monotonic()
+                response=client.get('/state/current')
+                response.raise_for_status()
+                latencies.append(time.monotonic()-started)
+                current=response.json()
+                feature=current.get('feature_snapshot') or {}
+                if (feature.get('quality',{}).get('price',{}).get('input_id')==input_event['event_id']
+                        and timestamp(feature['as_of'])>=timestamp(input_event['received_at'])
+                        and (current.get('coinbase') or {}).get('event_id')==input_event['event_id']):
+                    return current
+                if time.monotonic()>=deadline:
+                    raise AssertionError('running API did not publish acknowledged snapshot')
+                time.sleep(.1)
+        state=await_snapshot(price_event)
+        state,price_event,extra=current_chart(client,store,worker,state,price_event,deadline,await_snapshot)
+        acknowledgements.extend(extra)
         if state['coinbase']['price_usd']!=price_event['price'] or state['collector']['enabled']:
             raise AssertionError('current price precision/collector invariant failed')
         if state['data_mode']!='generated' or state['origin_id']!=settings.origin_id:
@@ -69,10 +100,6 @@ def qualify(base_url, timeout=20):
         dashboard.raise_for_status()
         if "new EventSource('/events')" not in dashboard.text or 'environment-label' not in dashboard.text:
             raise AssertionError('deployed dashboard contract missing')
-        chart=client.get('/history/coinbase-chart')
-        chart.raise_for_status()
-        if not chart.json()['points']:
-            raise AssertionError('bounded chart missing current input')
         for reconnect in range(2):
             with client.stream('GET','/events') as stream:
                 stream.raise_for_status()

@@ -49,6 +49,7 @@ class OperatorApiTests(unittest.TestCase):
         self.assertTrue(state.json()['collector_enabled'])
         self.assertTrue(state.json()['initialized'])
         self.assertIsNone(state.json()['process_running'])
+        self.assertIsNone(state.json()['session_failure_code'])
         off = self.client.post('/collector/off', headers=self.headers)
         self.assertEqual(off.status_code, 200)
         self.assertFalse(off.json()['collector_enabled'])
@@ -59,6 +60,16 @@ class OperatorApiTests(unittest.TestCase):
         for path in ('/collector/on', '/mode', '/docs', '/openapi.json'):
             self.assertEqual(self.client.post(path, headers=self.headers).status_code, 404)
         self.assertEqual(self.repository.calls, [])
+
+    def test_bounded_diagnostic_only_on_authenticated_private_status(self):
+        class FailedSession:
+            def state(self):
+                return {'process_running': False, 'failure_code': 'polymarket_bbo.http_404'}
+        client = TestClient(create_operator_app(self.repository, origin_id='pp-live-fixture',
+                                                token=TOKEN, session=FailedSession()))
+        self.assertEqual(client.get('/collector/status').status_code, 401)
+        response = client.get('/collector/status', headers=self.headers)
+        self.assertEqual(response.json()['session_failure_code'], 'polymarket_bbo.http_404')
 
     def test_on_is_private_and_reports_acceptance_without_claiming_durable_enable(self):
         class Session:

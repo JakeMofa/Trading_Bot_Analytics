@@ -11,10 +11,7 @@ from datetime import datetime, timezone
 
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
-
-
-class CollectorHold(RuntimeError):
-    pass
+from .live_diagnostics import CollectorHold, LiveDiagnostic, diagnose
 
 
 async def _pause_or_stop(stop: asyncio.Event, seconds: float):
@@ -44,17 +41,20 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
 
     def assert_fence():
         if owner_check() is not True or store.collector_enabled() is not True:
-            raise CollectorHold('PP collector ownership or durable writer flag lost')
+            raise LiveDiagnostic('ownership', 'lease_lost')
 
     async def watch_fence():
         while not stop.is_set():
-            await asyncio.wait_for(asyncio.to_thread(assert_fence), timeout=2)
+            try:
+                await asyncio.wait_for(asyncio.to_thread(assert_fence), timeout=2)
+            except Exception:
+                raise LiveDiagnostic('ownership', 'lease_lost') from None
             await _pause_or_stop(stop, 1)
 
     async def coinbase_stream():
         await coinbase(store, stop)
         if not stop.is_set():
-            raise CollectorHold('Coinbase stream ended without a stop')
+            raise LiveDiagnostic('coinbase_stream', 'ended')
 
     async def market_loop():
         while not stop.is_set():
@@ -70,20 +70,28 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     stop_task = None
     try:
         await asyncio.wait_for(asyncio.to_thread(assert_fence), timeout=2)  # No source opens first.
-        tasks = [asyncio.create_task(task()) for task in
-                 (watch_fence, coinbase_stream, market_loop, candle_loop)]
+        named = {'ownership': watch_fence, 'coinbase_stream': coinbase_stream,
+                 'polymarket_loop': market_loop, 'coinbase_candle_loop': candle_loop}
+        tasks = [asyncio.create_task(task()) for task in named.values()]
+        names = dict(zip(tasks, named))
         stop_task = asyncio.create_task(stop.wait())
         done, _ = await asyncio.wait([*tasks, stop_task], timeout=max_seconds,
                                      return_when=asyncio.FIRST_COMPLETED)
         if not done:
-            raise CollectorHold('bounded PP collector session reached deadline')
+            raise LiveDiagnostic('session', 'deadline_reached')
         for task in tasks:
             if task in done:
+                if task.cancelled():
+                    if not stop.is_set():
+                        raise LiveDiagnostic(names[task], 'ended')
+                    continue
                 error = task.exception()
                 if error:
-                    raise error
+                    if isinstance(error, LiveDiagnostic):
+                        raise error from None
+                    raise diagnose(names[task], error) from None
                 if not stop.is_set():
-                    raise CollectorHold('collector task ended unexpectedly')
+                    raise LiveDiagnostic(names[task], 'ended')
         return 'stopped'
     finally:
         pending = [*tasks, *([stop_task] if stop_task else [])]
@@ -95,4 +103,4 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             if result is not False and not (isinstance(result, dict) and result.get('collector_enabled') is False):
                 raise ValueError('durable OFF acknowledgement missing')
         except Exception:
-            raise CollectorHold('durable PP collector stop unproven') from None
+            raise LiveDiagnostic('session', 'durable_off_unproven') from None

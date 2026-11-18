@@ -17,6 +17,7 @@ from websockets.asyncio.client import connect as websocket_connect
 
 from .contract import source_timestamp
 from .live_contract import coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
+from .live_diagnostics import SourceHTTPFailure, SourceTransportFailure
 
 
 COINBASE_WS = 'wss://ws-feed.exchange.coinbase.com'
@@ -43,14 +44,15 @@ async def fetch_coinbase_closed_candles(client: httpx.AsyncClient, now: datetime
                                  headers={'Accept': 'application/json'},
                                  timeout=4, follow_redirects=False) as response:
             if response.status_code != 200:
-                raise ValueError('Coinbase candles unavailable')
+                raise SourceHTTPFailure(response.status_code, 'Coinbase candles unavailable')
             body = bytearray()
             async for chunk in response.aiter_bytes():
                 body.extend(chunk)
                 if len(body) > MAX_RESPONSE_BYTES:
                     raise ValueError('Coinbase candle response exceeds bound')
-    except httpx.HTTPError:
-        raise ValueError('Coinbase candles unavailable') from None
+    except httpx.HTTPError as error:
+        raise SourceTransportFailure(timeout=isinstance(error, httpx.TimeoutException),
+                                     message='Coinbase candles unavailable') from None
     rows = json.loads(body, parse_float=Decimal)
     if not isinstance(rows, list) or len(rows) > 25:
         raise ValueError('invalid Coinbase candle response')
@@ -117,7 +119,8 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                                      headers={'Accept': 'application/json'},
                                      timeout=min(4, remaining), follow_redirects=False) as response:
                 if response.status_code != 200:
-                    raise ValueError('Polymarket discovery HTTP failure')
+                    raise SourceHTTPFailure(response.status_code,
+                                            'Polymarket discovery HTTP failure')
                 body = bytearray()
                 try:
                     async for chunk in response.aiter_bytes():
@@ -129,8 +132,9 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                     body = bytearray(response.content)
                     if len(body) > MAX_RESPONSE_BYTES:
                         raise ValueError('Polymarket discovery response exceeds bound')
-        except httpx.HTTPError:
-            raise ValueError('Polymarket discovery unavailable') from None
+        except httpx.HTTPError as error:
+            raise SourceTransportFailure(timeout=isinstance(error, httpx.TimeoutException),
+                                         message='Polymarket discovery unavailable') from None
         payload = json.loads(body, parse_float=Decimal)
         markets = payload.get('markets') if isinstance(payload, dict) else None
         if not isinstance(markets, list) or len(markets) > 100:
@@ -166,7 +170,7 @@ async def fetch_polymarket_bbo(client: httpx.AsyncClient, market_event: dict):
                 if response.status_code == 404 and route == 'bbo':
                     continue
                 if response.status_code != 200:
-                    raise ValueError('Polymarket BBO unavailable')
+                    raise SourceHTTPFailure(response.status_code, 'Polymarket BBO unavailable')
                 body = bytearray()
                 try:
                     async for chunk in response.aiter_bytes():
@@ -177,8 +181,9 @@ async def fetch_polymarket_bbo(client: httpx.AsyncClient, market_event: dict):
                     body = bytearray(response.content)
                     if len(body) > MAX_RESPONSE_BYTES:
                         raise ValueError('Polymarket BBO exceeds byte bound')
-        except httpx.HTTPError:
-            raise ValueError('Polymarket BBO unavailable') from None
+        except httpx.HTTPError as error:
+            raise SourceTransportFailure(timeout=isinstance(error, httpx.TimeoutException),
+                                         message='Polymarket BBO unavailable') from None
         return polymarket_bbo(json.loads(body, parse_float=Decimal), market_event,
                               datetime.now(timezone.utc).isoformat())
     raise ValueError('Polymarket BBO unavailable')

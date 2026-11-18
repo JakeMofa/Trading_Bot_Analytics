@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import asyncio
 
+from .live_diagnostics import LiveDiagnostic
+
 
 class SessionBusy(RuntimeError):
     pass
@@ -22,10 +24,12 @@ class OperatorSession:
         self._task: asyncio.Task | None = None
         self._stop: asyncio.Event | None = None
         self._last_error: str | None = None
+        self._last_failure_code: str | None = None
 
     def state(self):
         return {'process_running': self._task is not None and not self._task.done(),
-                'last_error': self._last_error}
+                'last_error': self._last_error,
+                'failure_code': self._last_failure_code}
 
     async def start(self, *, max_seconds: int):
         if not isinstance(max_seconds, int) or isinstance(max_seconds, bool) or not 1 <= max_seconds <= 1800:
@@ -37,6 +41,7 @@ class OperatorSession:
             # Recovery requires an explicit OFF acknowledgement before re-entry.
             if self._last_error is not None:
                 raise SessionStopUnproven('previous session requires explicit OFF')
+            self._last_failure_code = None
             self._stop = asyncio.Event()
             self._task = asyncio.create_task(self._execute(self._stop, max_seconds))
             return self.state()
@@ -44,15 +49,20 @@ class OperatorSession:
     async def _execute(self, stop, max_seconds):
         try:
             await self._run(stop, max_seconds)
-        except BaseException:
+        except BaseException as error:
             self._last_error = 'session_failed_or_cancelled'
+            self._last_failure_code = (error.code if isinstance(error, LiveDiagnostic)
+                                       else 'session.cancelled' if isinstance(error, asyncio.CancelledError)
+                                       else 'session.unclassified')
         finally:
             try:
                 result = await asyncio.to_thread(self._durable_off)
                 if not isinstance(result, dict) or result.get('collector_enabled') is not False:
                     self._last_error = 'durable_off_unproven'
+                    self._last_failure_code = 'session.durable_off_unproven'
             except BaseException:
                 self._last_error = 'durable_off_unproven'
+                self._last_failure_code = 'session.durable_off_unproven'
 
     async def stop(self, *, timeout_seconds: float = 5):
         if not 0 < timeout_seconds <= 5:
@@ -69,9 +79,11 @@ class OperatorSession:
                     # Cancellation does not prove the callback finished. The
                     # DB lease remains the final write guard until expiry.
                     self._last_error = 'session_stop_timed_out'
+                    self._last_failure_code = 'session.stop_timed_out'
             result = await asyncio.to_thread(self._durable_off)
             if not isinstance(result, dict) or result.get('collector_enabled') is not False:
                 self._last_error = 'durable_off_unproven'
+                self._last_failure_code = 'session.durable_off_unproven'
                 raise SessionStopUnproven('durable OFF acknowledgement missing')
             if task is None or task.done():
                 self._last_error = None

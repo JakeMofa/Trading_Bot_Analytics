@@ -12,6 +12,7 @@ import httpx
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.live_sources import (coinbase_once, discover_polymarket_15m,
                                    fetch_coinbase_closed_candles, fetch_polymarket_bbo)
+from postgres.live_diagnostics import SourceHTTPFailure, SourceTransportFailure
 
 
 NOW = datetime(2026, 11, 15, 12, 5, tzinfo=timezone.utc)
@@ -126,6 +127,30 @@ class SourceClientTests(unittest.IsolatedAsyncioTestCase):
                 lambda _request: httpx.Response(200, json={'markets': [market()] * 100}))) as client:
             with self.assertRaisesRegex(ValueError, 'pagination limit'):
                 await discover_polymarket_15m(client, NOW, max_pages=1)
+
+    async def test_source_status_and_timeout_are_classified_without_response_text(self):
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: httpx.Response(429, text='secret-provider-body'))) as client:
+            with self.assertRaises(SourceHTTPFailure) as caught:
+                await discover_polymarket_15m(client, NOW)
+        self.assertEqual(caught.exception.category, 'http_429')
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: httpx.Response(503, text='secret-provider-body'))) as client:
+            with self.assertRaises(SourceHTTPFailure) as caught:
+                await fetch_coinbase_closed_candles(client, NOW)
+        self.assertEqual(caught.exception.category, 'http_5xx')
+        event = {'market_id': 'one', 'payload': {'slug': 'btc-up-down-one'}}
+        async with httpx.AsyncClient(transport=httpx.MockTransport(
+                lambda _request: httpx.Response(404, text='secret-provider-body'))) as client:
+            with self.assertRaises(SourceHTTPFailure) as caught:
+                await fetch_polymarket_bbo(client, event)
+        self.assertEqual(caught.exception.category, 'http_404')
+        def timed_out(_request):
+            raise httpx.ReadTimeout('private-url-and-query')
+        async with httpx.AsyncClient(transport=httpx.MockTransport(timed_out)) as client:
+            with self.assertRaises(SourceTransportFailure) as caught:
+                await discover_polymarket_15m(client, NOW)
+        self.assertEqual(caught.exception.category, 'timeout')
 
     async def test_compressed_json_is_decoded_then_bounded(self):
         def compressed(payload):

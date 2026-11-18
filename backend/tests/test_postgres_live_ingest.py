@@ -8,6 +8,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
+from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
 
 
 class FakeStore:
@@ -69,7 +70,7 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
             return {'market_id': 'm', 'event_id': 'market'}
         async def fetch(*_):
             self.fail('quote cannot run after failed market acknowledgement')
-        with self.assertRaisesRegex(RuntimeError, 'durable collector hold'):
+        with self.assertRaisesRegex(LiveDiagnostic, 'polymarket_market_write.unexpected'):
             await polymarket_cycle(store, None, asyncio.Event(), discover=discover, fetch=fetch)
         self.assertEqual(store.events, [])
 
@@ -79,9 +80,21 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
             return {'market_id': 'current', 'event_id': 'market'}
         async def fetch(*_):
             return {'market_id': 'ended', 'event_id': 'quote'}
-        with self.assertRaisesRegex(ValueError, 'quote market identity'):
+        with self.assertRaisesRegex(LiveDiagnostic, 'polymarket_bbo.identity_mismatch'):
             await polymarket_cycle(store, None, asyncio.Event(), discover=discover, fetch=fetch)
         self.assertEqual([e['event_id'] for e in store.events], ['market'])
+
+    async def test_discovery_http_status_and_missing_market_are_distinct(self):
+        store = FakeStore()
+        async def missing(*_):
+            return None
+        self.assertIsNone(await polymarket_cycle(store, None, asyncio.Event(), discover=missing))
+        async def rejected(*_):
+            raise SourceHTTPFailure(503, 'private-response-body')
+        with self.assertRaises(LiveDiagnostic) as caught:
+            await polymarket_cycle(store, None, asyncio.Event(), discover=rejected)
+        self.assertEqual(caught.exception.code, 'polymarket_discovery.http_5xx')
+        self.assertNotIn('private', str(caught.exception))
 
     async def test_coinbase_backpressure_and_stop(self):
         store, stop = FakeStore(), asyncio.Event()
@@ -107,6 +120,14 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual([e['event_id'] for e in store.events], ['minute-1', 'minute-3'])
         stop.set()
         self.assertEqual(await coinbase_candle_cycle(store, None, stop, fetch=fetch), 0)
+
+    async def test_candle_failure_keeps_operation_without_source_body(self):
+        async def failed(_client, _now):
+            raise SourceHTTPFailure(429, 'private-url-and-response')
+        with self.assertRaises(LiveDiagnostic) as caught:
+            await coinbase_candle_cycle(FakeStore(), None, asyncio.Event(), fetch=failed)
+        self.assertEqual(caught.exception.code, 'coinbase_candles.http_429')
+        self.assertNotIn('private', str(caught.exception))
 
 
 if __name__ == '__main__':

@@ -1,0 +1,34 @@
+# Explicit PP-only one-shot diagnostic overlay. Normal CD never loads this file.
+# The extra service is profile-gated and does not alter the persistent lifecycle.
+services:
+  structured_probe:
+    extends:
+      file: runtime.compose.yaml
+      service: lifecycle
+    profiles: [structured_probe]
+    command: [python, -m, postgres.pp_structured_probe]
+    user: '0:0' # read root-owned, single-file secrets in this one-shot container
+    restart: 'no'
+    environment:
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp
+      TRADEBOT_COLLECTOR_ENABLED: 'false'
+      TRADEBOT_CLOUD_ENABLED: 'false'
+      TRADEBOT_RETIREMENT_ENABLED: 'false'
+      ENABLE_SUPABASE_SYNC: 'false'
+      ENABLE_LOCAL_RETENTION: 'false'
+      ENABLE_OPENAI_ANALYST: 'false'
+      TRADEBOT_PP_HISTORY_DSN_FILE: /run/secrets/pp_history_dsn
+      TRADEBOT_PP_HISTORY_CA_FILE: /run/secrets/pp_history_ca
+      TRADEBOT_PP_STRUCTURED_ONE_SHOT: 'true'
+    secrets: [lifecycle_dsn, pp_history_dsn, pp_history_ca]
+    networks: [database, structured_probe_egress]
+    ports: []
+secrets:
+  pp_history_dsn:
+    file: /etc/tradebot/cloud/pp_history_dsn
+  pp_history_ca:
+    file: /etc/tradebot/cloud/pp_history_ca
+networks:
+  structured_probe_egress:
+    driver: bridge

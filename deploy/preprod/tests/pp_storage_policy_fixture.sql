@@ -12,6 +12,13 @@ END $roles$;
 CREATE SCHEMA auth;
 CREATE SCHEMA storage;
 CREATE SCHEMA test_fixture;
+CREATE TABLE auth.users (
+  id uuid PRIMARY KEY,email text NOT NULL,role text NOT NULL,
+  email_confirmed_at timestamptz,
+  raw_app_meta_data jsonb NOT NULL);
+INSERT INTO auth.users VALUES
+ ('00000000-0000-4000-8000-0000000000aa','pp-storage-archive@example.invalid',
+  'authenticated',now(),'{"tradebot_role":"pp_storage_archive","tradebot_origin":"pp-live-pp"}');
 GRANT USAGE ON SCHEMA auth,storage TO anon,authenticated;
 GRANT USAGE ON SCHEMA test_fixture TO anon,authenticated;
 

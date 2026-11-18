@@ -9,6 +9,15 @@ BEGIN
       '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
     RAISE EXCEPTION 'reviewed PP Storage machine UID is required';
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM auth.users
+                 WHERE id='__PP_STORAGE_AUTH_UID__'::uuid
+                   AND email='__PP_STORAGE_AUTH_EMAIL__'
+                   AND role='authenticated'
+                   AND email_confirmed_at IS NOT NULL
+                   AND raw_app_meta_data->>'tradebot_role'='pp_storage_archive'
+                   AND raw_app_meta_data->>'tradebot_origin'='pp-live-pp') THEN
+    RAISE EXCEPTION 'reviewed PP Storage Auth identity binding changed';
+  END IF;
   IF NOT EXISTS (SELECT 1 FROM storage.buckets
                  WHERE id='market-raw' AND public=false) THEN
     RAISE EXCEPTION 'private market-raw bucket binding changed';

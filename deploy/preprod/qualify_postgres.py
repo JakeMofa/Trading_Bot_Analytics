@@ -216,7 +216,9 @@ def qualify_pp_storage_policy(secret_dir):
     fixture=(REPO/'deploy/preprod/tests/pp_storage_policy_fixture.sql').read_text()
     template=(REPO/'supabase/review/pp_market_raw_storage_policies.sql.in').read_text()
     marker='__PP_STORAGE_AUTH_UID__'
-    if template.count(marker)!=3 or 'storage.object.upload' not in template or \
+    email_marker='__PP_STORAGE_AUTH_EMAIL__'
+    if template.count(marker)!=4 or template.count(email_marker)!=1 or \
+            'storage.object.upload' not in template or \
             'storage.object.get_authenticated' not in template:
         raise RuntimeError('PP Storage review template scope changed')
     f.sql(fixture,secret_dir,timeout=20)
@@ -231,7 +233,29 @@ def qualify_pp_storage_policy(secret_dir):
         raise RuntimeError('unbound PP Storage template left a policy')
     # This UUID belongs only to the generated fixture. It is not a credential
     # or a proposed live Auth user, and the unfilled template is never applied.
-    candidate=template.replace(marker,'00000000-0000-4000-8000-0000000000aa')
+    candidate=(template.replace(marker,'00000000-0000-4000-8000-0000000000aa')
+              .replace(email_marker,'pp-storage-archive@example.invalid'))
+    f.sql("UPDATE auth.users SET raw_app_meta_data='{}'::jsonb;",secret_dir)
+    try:
+        f.sql(candidate,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('wrong Auth metadata admitted PP Storage policy')
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0':
+        raise RuntimeError('failed Auth binding left a Storage policy')
+    f.sql("UPDATE auth.users SET raw_app_meta_data="
+          "'{\"tradebot_role\":\"pp_storage_archive\",\"tradebot_origin\":\"pp-live-pp\"}'::jsonb;",
+          secret_dir)
+    f.sql("UPDATE auth.users SET email_confirmed_at=NULL;",secret_dir)
+    try:
+        f.sql(candidate,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('unconfirmed Auth user admitted PP Storage policy')
+    f.sql("UPDATE auth.users SET email_confirmed_at=now();",secret_dir)
     f.sql(candidate,secret_dir,timeout=20)
     proof=json.loads(f.sql("""SELECT json_build_object(
       'private_bucket', (SELECT NOT public FROM storage.buckets WHERE id='market-raw'),
@@ -249,6 +273,15 @@ def qualify_pp_storage_policy(secret_dir):
         raise RuntimeError('PP Storage policy metadata mismatch')
     f.sql((REPO/'deploy/preprod/tests/pp_storage_policy_denials.sql').read_text(),
           secret_dir,timeout=20)
+    from bind_market_raw_policy import render_rollback
+    rollback=render_rollback('00000000-0000-4000-8000-0000000000aa',
+                             'pp-storage-archive@example.invalid',
+                             project_ref='xttdqeimdujweijxcuro',bucket='market-raw')
+    f.sql(rollback.decode('ascii'),secret_dir,timeout=20)
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0' or \
+       f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='2':
+        raise RuntimeError('policy-only rollback changed generated objects or left policies')
     return proof
 
 

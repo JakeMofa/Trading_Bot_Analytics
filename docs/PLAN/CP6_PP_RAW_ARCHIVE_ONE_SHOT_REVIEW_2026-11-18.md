@@ -11,7 +11,14 @@ those facts before any cloud I/O. It uses the existing create-only Supabase
 Storage transport and restricted Auth identity for raw objects, plus the
 separate TLS-verified `history_v2` transport for structured rows. A
 same-origin advisory lock prevents competing structured sync during this one
-cycle. Its limits are 25 raw and 25 outbox rows, 256 KiB decoded/object bytes,
+cycle. Two callers of this entry point also exclude each other. An older
+direct `ArchiveWorker` caller does not take that lock, so it must not be
+enabled concurrently. If such a caller changes manifest progress after the
+one-shot's review, the one-shot rechecks before raw upload; a still later
+conflicting manifest is rejected by the existing transactional manifest
+identity check, leaving local raw intact. This is fail-closed reconciliation,
+not a claim of exclusive authority over every future archive entry point.
+Its limits are 25 raw and 25 outbox rows, 256 KiB decoded/object bytes,
 1 MiB aggregate cycle bytes, eight cloud operations and 20 seconds. Errors
 report a sanitized HOLD; the raw generation remains locally available.
 
@@ -21,7 +28,8 @@ structured rows are acknowledged or authorize local deletion. The existing
 partition-retirement method still rejects real Supabase transport.
 
 Generated tests cover exact PP identity and secret paths, OFF flags, changed
-seal/progress rejection before the archive worker, bounded result scope and
+seal/progress rejection before the archive worker, a changed-progress race
+before raw upload, bounded result scope and
 the explicit execute gate. An isolated PostgreSQL test also exercises the
 wrapper over an actual sealed generation and mock authenticated readback.
 Linux PostgreSQL CI is required for that case.

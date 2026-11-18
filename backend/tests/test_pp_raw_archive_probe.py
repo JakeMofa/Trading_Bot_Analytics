@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from postgres.lifecycle import LifecycleHold
 from postgres import pp_raw_archive_probe as probe
+from postgres_lifecycle_fixtures import ImmutableMemoryTransport, MemoryRepository
 
 
 GENERATION = '00000000-0000-4000-8000-000000000001'
@@ -98,6 +99,32 @@ class ProbeTests(unittest.TestCase):
         fake.archive_cycle.assert_called_once_with(GENERATION)
         fake.retire_generated.assert_not_called()
         self.assertIn(('lock', probe.ORIGIN), repo.calls)
+
+    def test_progress_race_after_initial_review_stops_before_raw_upload(self):
+        class RacingRepository(MemoryRepository):
+            @contextmanager
+            def structured_sync_lock(self, origin):
+                self.lock_origin = origin
+                yield
+
+            def outbox(self, generation_id, limit, max_bytes=None):
+                # A separate, older direct archive caller changed progress
+                # after the one-shot's first review but before raw upload.
+                self.catalog.append({'manifest_id': 'unexpected'})
+                return []
+
+        repository = RacingRepository()
+        raw = ImmutableMemoryTransport()
+        with patch.object(probe, 'ORIGIN', repository.record['origin_id']):
+            with self.assertRaises(LifecycleHold):
+                probe.archive_once(repository, raw,
+                    generation_id=repository.generation_id,
+                    expected_seal_count=len(repository.rows),
+                    expected_manifest_count=0)
+        self.assertEqual(repository.lock_origin, repository.record['origin_id'])
+        self.assertEqual(raw.calls, [])
+        self.assertEqual(len(repository.rows), 5)
+        self.assertEqual(repository.record['state'], 'sealed')
 
     def test_no_execute_never_opens_secrets_or_cloud(self):
         with patch.object(probe, 'private_dsn') as local, redirect_stdout(io.StringIO()) as output:

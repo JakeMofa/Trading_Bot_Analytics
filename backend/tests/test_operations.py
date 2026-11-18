@@ -93,6 +93,15 @@ asyncio.run(run())
                         child.kill()
                         child.wait()
 
+    def test_new_lock_owner_removes_stale_control_socket_before_readiness(self):
+        with tempfile.TemporaryDirectory() as folder:
+            database = Path(folder) / 'evidence.db'
+            _, socket_path = paths(database)
+            socket_path.write_text('stale path from killed collector')
+            with collector_lock(database):
+                self.assertFalse(socket_path.exists())
+                self.assertTrue(status(database)['running'])
+
     def test_legacy_heartbeat_prevents_duplicate_and_false_stop(self):
         with tempfile.TemporaryDirectory() as folder:
             database = Path(folder) / 'legacy.db'

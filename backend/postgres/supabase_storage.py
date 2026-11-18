@@ -106,7 +106,7 @@ class _MachineSession:
         self._expires = 0.0
         self._blocked = False
 
-    def _validate_access(self, access: str) -> None:
+    def _validate_access(self, access: str) -> float:
         """Sanity-check restricted claims; Storage still verifies the signature."""
         try:
             parts = access.split('.')
@@ -120,6 +120,7 @@ class _MachineSession:
                     not isinstance(claims.get('exp'), int) or
                     claims['exp'] <= time.time() + 20):
                 raise ValueError('unexpected token claims')
+            return claims['exp'] - time.time()
         except (ValueError, TypeError, UnicodeError, binascii.Error):
             raise ValueError('invalid restricted Auth token') from None
 
@@ -152,6 +153,8 @@ class _MachineSession:
                         'POST', f'{PROJECT_URL}/auth/v1/token?grant_type={grant}',
                         headers={'apikey': self._api_key, 'Cache-Control': 'no-store'},
                         json=payload, timeout=timeout, follow_redirects=False) as response:
+                    if response.status_code >= 500:
+                        raise ArchiveUnavailable('Supabase Auth temporarily unavailable')
                     if response.status_code != 200:
                         raise ValueError('Auth rejected')
                     session = json.loads(SupabaseStorageTransport._bounded_body(
@@ -167,13 +170,17 @@ class _MachineSession:
                         not isinstance(expires, int) or not 30 <= expires <= 86400 or
                         access in (self._api_key, self._password)):
                     raise ValueError('invalid Auth response')
-                self._validate_access(access)
-            except (httpx.HTTPError, ValueError, TypeError, AttributeError, ArchiveLimit):
+                jwt_remaining = self._validate_access(access)
+            except httpx.HTTPError:
+                raise ArchiveUnavailable('Supabase Auth temporarily unavailable') from None
+            except (ValueError, TypeError, AttributeError, ArchiveLimit):
                 self._blocked = True
                 self._access = self._refresh = None
                 raise ArchiveUnavailable('Supabase Auth session rejected') from None
             self._access, self._refresh = access, refresh
-            self._expires = time.monotonic() + expires - min(30, expires / 4)
+            effective_lifetime = min(expires, jwt_remaining)
+            self._expires = (time.monotonic() + effective_lifetime -
+                             min(30, effective_lifetime / 4))
             return access
         finally:
             self._lock.release()

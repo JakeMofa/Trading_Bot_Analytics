@@ -189,6 +189,24 @@ class SupabaseMachineAuthTests(unittest.TestCase):
         finally:
             machine._machine._lock.release()
 
+    def test_transient_auth_failure_stops_current_work_then_later_cycle_recovers(self):
+        calls = []
+        def handle(request):
+            calls.append(request.url.path)
+            if request.url.path == '/auth/v1/token':
+                if calls.count('/auth/v1/token') == 1:
+                    raise httpx.ReadTimeout('secret=' + PASSWORD)
+                return self.auth_response()
+            return httpx.Response(200, content=b'archive')
+        machine, _ = self.machine(handle)
+        with self.assertRaises(ArchiveUnavailable) as error:
+            machine.put_if_absent(KEY, b'archive', timeout_seconds=2)
+        self.assertNotIn(PASSWORD, str(error.exception))
+        self.assertEqual(calls, ['/auth/v1/token'])
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        self.assertEqual(calls.count('/auth/v1/token'), 2)
+
 
 if __name__ == '__main__':
     unittest.main()

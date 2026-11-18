@@ -9,12 +9,25 @@ sync service, enable local retirement, or alter production.
 
 The two staged PP files stay at `/etc/tradebot/cloud/pp_history_dsn` (root,
 0600) and `/etc/tradebot/cloud/pp_history_ca` (root, 0644). Only the new
-`structured_probe` Compose profile mounts them. The persistent API,
+`structured_probe` Compose profile mounts them. A one-shot root-only copy of
+the existing PP lifecycle credential is staged under `/run/tradebot-pp-deploy`
+at mode 0600, then removed after the container exits or fails. This is a
+credential copy in the host's `/run` staging area, **not a database
+copy**; no credential bytes enter logs or evidence. The persistent API,
 calculation, lifecycle and operator services keep their original secrets,
 users, network and restart policies. The one-shot container runs as root only
 to read the root-owned DSN. It has a read-only filesystem, `cap_drop: ALL`,
 `no-new-privileges`, bounded memory/PIDs/logs, no host port and no Docker
 socket. Its additional egress bridge is restricted to that one-shot service.
+
+**Successor correction:** The first merged mount candidate (`4f66635`, PR
+#114) could not read the PP lifecycle file: it is owned by UID 10001 at mode
+0400, while container UID 0 had all capabilities dropped. An isolated Linux
+reproduction returned permission denied. A separate generated root0600 file
+was readable with all capabilities dropped. The successor stages exactly that
+short-lived local credential and mounts it only on the one-shot container.
+It refuses stale staging files; an uncatchable host termination leaves a
+root-only file that blocks later preflight pending explicit reconciliation.
 
 ## Host control and command
 
@@ -51,8 +64,9 @@ unexpected services and secrets.
 The normalized Compose profile and operator tests cover wrong host, wrong
 file permissions, secret aliasing, unauthorized service mounts, unsafe
 network/volume/restart/capabilities, cloud flags, no accidental activation,
-one-use permit targeting and container cleanup on child deadline. Local PP
-controls: **113 tests passed, one platform skip**. This is source-level
+one-use permit targeting, root-only temporary credential staging, cleanup
+failure reporting and container cleanup on child deadline. Local PP
+controls: **116 tests passed, one platform skip**. This is source-level
 qualification. Exact-commit Linux CI and review are required before any
 installation.
 

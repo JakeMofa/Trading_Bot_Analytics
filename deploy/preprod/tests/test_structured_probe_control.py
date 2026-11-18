@@ -1,10 +1,12 @@
 """Generated PP one-shot mount controls; no host files or cloud writes."""
 from copy import deepcopy
+from contextlib import nullcontext
 import json
 import os
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
@@ -82,6 +84,68 @@ class ProfileTests(unittest.TestCase):
 
 
 class ControlTests(unittest.TestCase):
+    def test_ephemeral_local_credential_is_root_only_and_removed(self):
+        original_fstat = control.os.fstat
+        original_lstat = Path.lstat
+        count = 0
+        def fstat(fd):
+            nonlocal count
+            count += 1
+            result = original_fstat(fd)
+            owner = 10001 if count <= 2 else 0
+            return SimpleNamespace(st_mode=result.st_mode, st_uid=owner,
+                st_nlink=result.st_nlink, st_size=result.st_size,
+                st_dev=result.st_dev, st_ino=result.st_ino,
+                st_mtime_ns=result.st_mtime_ns)
+        def lstat(path):
+            result = original_lstat(path)
+            if path == source.parent:
+                return SimpleNamespace(st_mode=0o040700, st_uid=0)
+            return result
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / 'lifecycle_dsn'
+            staged = Path(folder) / 'probe-local-dsn'
+            source.write_bytes(b'generated-local-credential')
+            source.chmod(0o400)
+            with patch.object(control.os, 'fstat', side_effect=fstat), \
+                 patch.object(Path, 'lstat', lstat):
+                with control._stage_local_secret(source, staged):
+                    self.assertEqual(staged.read_bytes(), b'generated-local-credential')
+                    self.assertEqual(staged.stat().st_mode & 0o777, 0o600)
+                self.assertFalse(staged.exists())
+
+    def test_ephemeral_secret_cleanup_failure_reports_stop(self):
+        original_fstat = control.os.fstat
+        original_lstat = Path.lstat
+        original_unlink = Path.unlink
+        count = 0
+        def fstat(fd):
+            nonlocal count
+            count += 1
+            result = original_fstat(fd)
+            return SimpleNamespace(st_mode=result.st_mode,
+                st_uid=10001 if count <= 2 else 0,
+                st_nlink=result.st_nlink, st_size=result.st_size,
+                st_dev=result.st_dev, st_ino=result.st_ino,
+                st_mtime_ns=result.st_mtime_ns)
+        def lstat(path):
+            result = original_lstat(path)
+            return SimpleNamespace(st_mode=0o040700, st_uid=0) if path == source.parent else result
+        def unlink(path, *args, **kwargs):
+            if path == staged: raise OSError('injected cleanup failure')
+            return original_unlink(path, *args, **kwargs)
+        with tempfile.TemporaryDirectory() as folder:
+            source = Path(folder) / 'lifecycle_dsn'
+            staged = Path(folder) / 'probe-local-dsn'
+            source.write_bytes(b'generated-local-credential')
+            source.chmod(0o400)
+            with patch.object(control.os, 'fstat', side_effect=fstat), \
+                 patch.object(Path, 'lstat', lstat), \
+                 patch.object(Path, 'unlink', unlink):
+                with self.assertRaisesRegex(DeploymentHold, 'probe_local_secret_cleanup_failed'):
+                    with control._stage_local_secret(source, staged): pass
+            original_unlink(staged)
+
     def test_wrong_host_stops_before_any_file_or_docker_check(self):
         with patch.object(control.HostBinding, 'from_marker', side_effect=DeploymentHold('wrong_host')):
             with patch.object(control, '_files') as files:
@@ -100,7 +164,8 @@ class ControlTests(unittest.TestCase):
             'cloud': SimpleNamespace(st_mode=0o040700, st_uid=0),
             'pp_history_dsn': SimpleNamespace(st_mode=regular | 0o600, st_uid=0, st_nlink=1, st_size=100, st_dev=1, st_ino=1),
             'pp_history_ca': SimpleNamespace(st_mode=regular | 0o644, st_uid=0, st_nlink=1, st_size=100, st_dev=1, st_ino=2),
-            'lifecycle_dsn': SimpleNamespace(st_mode=regular | 0o400, st_uid=10001),
+            'lifecycle_dsn': SimpleNamespace(st_mode=regular | 0o400, st_uid=10001,
+                                             st_nlink=1, st_size=100),
         }
         with patch.object(control, 'CLOUD_DIR', FakePath('cloud')), \
              patch.object(control, 'RUNTIME_SECRETS', FakePath('runtime')):
@@ -126,6 +191,7 @@ class ControlTests(unittest.TestCase):
         installed = Path('/installed/controller.pyz')
         with patch.object(control, 'preflight', return_value=(context, actions, 'd'*64)), \
              patch.object(control, '_consume') as consume, \
+             patch.object(control, '_stage_local_secret', return_value=nullcontext()), \
              patch.object(control, '_secure_file', return_value=(json.dumps({
                  'generation_id': '11111111-1111-4111-8111-111111111111',
                  'expected_state': 'sealed', 'expected_first_outbox_id': 7}), None)), \
@@ -150,6 +216,7 @@ class ControlTests(unittest.TestCase):
         actions = Mock(attempt_id='c'*32, oneoffs={})
         with patch.object(control, 'preflight', return_value=(context, actions, 'd'*64)), \
              patch.object(control, '_consume'), \
+             patch.object(control, '_stage_local_secret', return_value=nullcontext()), \
              patch.object(control, '_secure_file', return_value=(json.dumps({
                  'generation_id': '11111111-1111-4111-8111-111111111111',
                  'expected_state': 'sealed', 'expected_first_outbox_id': 7}), None)), \
@@ -167,6 +234,7 @@ class ControlTests(unittest.TestCase):
                   'expected_state': 'sealed', 'expected_first_outbox_id': 7}
         with patch.object(control, 'preflight', return_value=(context, actions, 'd'*64)), \
              patch.object(control, '_consume'), \
+             patch.object(control, '_stage_local_secret', return_value=nullcontext()), \
              patch.object(control, '_secure_file', return_value=(json.dumps(permit), None)), \
              patch.object(control, '_compose', return_value=b'{"status":"idle","origin_id":"pp-live-pp","retirement":"off","raw_archive":"not_started","acknowledged":0}'):
             with self.assertRaises(DeploymentHold):

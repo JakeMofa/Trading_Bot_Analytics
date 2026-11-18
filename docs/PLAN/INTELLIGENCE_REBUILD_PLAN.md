@@ -215,8 +215,10 @@ OPEN; retirement and paid AI remain OFF.
 profile and root controller route prepare a bounded diagnostic without changing
 normal generated CD or mounting cloud credentials on persistent services.
 The profile is default OFF; dry-run preflight sends no cloud requests, and an
-exact-page execute requires its own one-use root permit. Local deployment
-controls passed 113 tests with one platform skip. The controller is **not
+exact-page execute requires its own one-use root permit. A short-lived root
+0600 copy of the PP lifecycle credential is staged in `/run` only for this
+capability-free one-shot container and removed on every result path. Local
+deployment controls passed 116 tests with one platform skip. The controller is **not
 installed**, the new image is **not deployed**, and no probe ran. Exact Linux
 CI, reviewed PP controller replacement, dry-run host preflight and separately
 bounded cloud execution remain gates. [Mount review](CP6_PP_STRUCTURED_ONE_SHOT_MOUNT_REVIEW_2026-11-18.md).

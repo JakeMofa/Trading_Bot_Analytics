@@ -213,6 +213,10 @@ def qualify_pp_history_role(secret_dir):
 
 def qualify_pp_receipt_grants(secret_dir):
     """Exercise the receipt extension only in disposable generated PostgreSQL."""
+    # PG17/Supabase can auto-grant an inbound ADMIN-only edge to its creator.
+    # Exercise that exact cloud-catalog shape without any PP privilege gain.
+    f.sql('GRANT tradebot_pp_history TO postgres WITH ADMIN TRUE, INHERIT FALSE, SET FALSE;',
+          secret_dir)
     receipt=REPO/'supabase/migrations/20261118012340_structured_receipts_v2.sql'
     source=receipt if receipt.exists() else REPO/'deploy/preprod/tests/pp_structured_receipt_fixture.sql'
     table_ddl=source.read_text()

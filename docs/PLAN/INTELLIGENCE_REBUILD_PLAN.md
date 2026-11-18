@@ -6,8 +6,11 @@ A generated-only candidate extends the already applied `tradebot_pp_history`
 NOLOGIN role with `SELECT`/`INSERT` on `history_v2.structured_receipts`
 and exact `origin_id = 'pp-live-pp'` RLS policies. The migration fails if PR
 #92's receipt table is absent, its columns/RLS differ, the role has a login or
-membership, or the role has table privileges on an existing `public` relation. It does not
-set a password, enable LOGIN, grant UPDATE/DELETE, apply cloud DDL, or enable
+unreviewed membership, or the role has table privileges on an existing
+`public` relation. A read-only cloud catalog check found only the expected
+inbound `postgres` ADMIN membership (`INHERIT`/`SET` false), zero accessible
+public relations and no receipt table. The candidate does not set a password,
+enable LOGIN, grant UPDATE/DELETE, apply cloud DDL, or enable
 sync/retirement. A disposable PostgreSQL 17 test passed the PP insert/read and
 wrong-origin, mutation, row-lock and public-table denials. The unmerged PR #92
 importer uses `SELECT ... FOR UPDATE` on immutable tables and receipts; that

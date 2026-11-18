@@ -12,8 +12,16 @@ BEGIN
   IF role_oid IS NULL OR receipt_oid IS NULL THEN
     RAISE EXCEPTION 'reviewed PP role and receipt table required';
   END IF;
-  IF EXISTS (SELECT 1 FROM pg_auth_members
-             WHERE roleid = role_oid OR member = role_oid) THEN
+  -- Supabase/PG17 may give the creating postgres administrator an inbound
+  -- ADMIN-only membership. It cannot inherit or SET ROLE. The PP role must
+  -- have no outbound membership and no other inbound member.
+  IF EXISTS (
+      SELECT 1 FROM pg_auth_members m
+        LEFT JOIN pg_roles member_role ON member_role.oid = m.member
+       WHERE m.member = role_oid
+          OR (m.roleid = role_oid AND NOT (
+                member_role.rolname = 'postgres' AND m.admin_option
+                AND NOT m.inherit_option AND NOT m.set_option))) THEN
     RAISE EXCEPTION 'unexpected PP role membership';
   END IF;
   IF NOT EXISTS (

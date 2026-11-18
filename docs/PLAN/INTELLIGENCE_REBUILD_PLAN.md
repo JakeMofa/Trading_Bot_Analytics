@@ -949,6 +949,15 @@ parents before dependents. It rejects conflicting revisions within one batch.
 This is pre-import validation only; mutable projection ordering, narrow cloud
 grants, actual writes/readback and durable acknowledgement remain open.
 
+**CP6 PP SQL role candidate (November 17):** A separate small PR prepares a
+NOLOGIN, exact-`pp-live-pp` `history_v2` role migration and isolated PostgreSQL
+permission/denial tests. It does not grant Storage HTTP access, include PR #92's
+unapplied receipt table, apply cloud SQL, enable runtime sync or authorize raw
+retirement. Receipt grants, a dedicated Storage bearer and exact operation
+policies, PP network/TLS/deadline qualification, and privileged mutation
+protection remain separate gates. See
+[role review](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md).
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

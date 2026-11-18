@@ -971,6 +971,16 @@ policies, PP network/TLS/deadline qualification, and privileged mutation
 protection remain separate gates. See
 [role review](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md).
 
+**CP6 PP Storage policy review (November 17):** A separate non-applied SQL
+template outside `supabase/migrations` proposes exact PP Auth-user, bucket,
+object-path and operation policies for create-only raw upload and authenticated
+GET. A generated PostgreSQL fixture exercises allowed upload/readback and
+denials for other identity, origin, bucket, key, list, copy, signed upload,
+move, update, delete and anon access. The dedicated Auth user UUID does not
+exist in this candidate; template preflight fails while unfilled. Live Storage
+HTTP, token lifecycle, privileged mutation authority and retirement remain
+OPEN. See [Storage policy review](CP6_PP_STORAGE_POLICY_REVIEW_2026-11-17.md).
+
 ### Fixed architecture and policy
 
 Each VM eventually runs an independent Compose deployment: API/collector/RAM

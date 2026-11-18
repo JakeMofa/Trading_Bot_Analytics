@@ -20,7 +20,7 @@ class AuthorizedKeyAccess(unittest.TestCase):
             source=base/'lifecycle_dsn'
             staged=base/'probe-local-dsn'
             source.write_bytes(b'generated-pp-local-dsn')
-            source.chown(10001,10001)
+            os.chown(source,10001,10001)
             source.chmod(0o400)
             with raw_probe._stage_local_secret(source,staged):
                 self.assertEqual(staged.read_bytes(),b'generated-pp-local-dsn')

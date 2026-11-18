@@ -7,6 +7,7 @@ import stat
 import uuid
 
 from controller import Budget, DeploymentHold, _secure_file, require
+from linux_actions import PROJECT
 from raw_archive_probe_profile import CLOUD_FILES, validate_raw_archive_profile
 from structured_probe_control import (_stage_local_secret,
                                       preflight as structured_preflight)
@@ -48,7 +49,7 @@ def _storage_files():
 def _compose(actions, context, budget, files, args, timeout):
     folder = context.source / 'deploy/preprod'
     command = ['docker', 'compose', '--env-file', '/dev/null',
-               '--project-name', 'tradebot-pp-foundation',
+               '--project-name', PROJECT,
                '--project-directory', str(folder)]
     for name in ('compose.yaml', 'runtime.compose.yaml', *files):
         command += ['-f', str(folder / name)]

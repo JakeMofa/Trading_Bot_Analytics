@@ -95,6 +95,8 @@ class ControlTests(unittest.TestCase):
         with patch.object(control, 'CLOUD_DIR', FakePath('cloud')), \
              patch.object(control, 'Path', side_effect=lambda path: FakePath(Path(path).name)):
             control._storage_files()
+            with patch.object(FakePath, 'read_text', return_value='wrong-auth-uid'):
+                with self.assertRaises(ValueError): control._storage_files()
             for name, field, bad in (('supabase_auth_password','st_mode',regular | 0o644),
                                      ('supabase_auth_uid','st_uid',10001),
                                      ('supabase_auth_email','st_nlink',2),
@@ -152,6 +154,22 @@ class ControlTests(unittest.TestCase):
             with self.assertRaises(DeploymentHold):
                 control.run('raw-archive-probe-v1 execute', Path('/installed/controller.pyz'))
         actions._cleanup_oneoffs.assert_called_once()
+
+    def test_cleanup_failure_cannot_be_reported_as_pass(self):
+        context = SimpleNamespace(request=SimpleNamespace(source_sha='a'*40,
+            artifact_sha256='b'*64), image=IMAGE, source=ROOT)
+        actions = Mock(attempt_id='c'*32, oneoffs={})
+        actions._json.side_effect = lambda raw: json.loads(raw)
+        actions._cleanup_oneoffs.side_effect = DeploymentHold('owned_container_still_running')
+        with patch.object(control, 'preflight', return_value=(context, actions, 'd'*64)), \
+             patch.object(control, '_consume'), \
+             patch.object(control, '_stage_local_secret', return_value=nullcontext()), \
+             patch.object(control, '_secure_file', return_value=(json.dumps({
+                 'generation_id': GENERATION, 'expected_seal_count': 25,
+                 'expected_manifest_count': 0}), None)), \
+             patch.object(control, '_compose', return_value=b'{}'):
+            with self.assertRaises(DeploymentHold):
+                control.run('raw-archive-probe-v1 execute', Path('/installed/controller.pyz'))
 
     def test_ambiguous_result_stops_even_after_container_exits(self):
         context = SimpleNamespace(request=SimpleNamespace(source_sha='a'*40,

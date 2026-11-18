@@ -106,6 +106,43 @@ def qualify_controller(root):
             'one_use_replay_rejected':True,'api_restart_persisted_acknowledgement':True,'recovery':recovery}
 
 
+def controller_fixture_owned(owned):
+    if {path for path,_,_ in owned}!={CI_FOUNDATION_SECRETS,CI_RUNTIME_SECRETS}:
+        return False
+    for path,device,inode in owned:
+        info=path.lstat()
+        if path.is_symlink() or (info.st_dev,info.st_ino)!=(device,inode) or info.st_uid!=0:
+            return False
+    return True
+
+
+def isolate_controller_fixture(runtime_env,owned):
+    """Reset only this CI-owned generated volume before real controller proof.
+
+    Earlier integration suites intentionally use arbitrary fixture origins. A
+    production controller must not learn those origins just to pass CI. The
+    main harness already owns this disposable project and removes it on exit.
+    """
+    if (os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or
+            f.MARKER.exists() or f.MARKER.is_symlink() or
+            not CI_FOUNDATION_SECRETS.is_dir() or not CI_RUNTIME_SECRETS.is_dir() or
+            not controller_fixture_owned(owned)):
+        raise RuntimeError('controller fixture reset requires isolated root CI')
+    runtime(['down','--volumes','--remove-orphans'],runtime_env)
+    if f.run(['docker','volume','ls','--filter','name=^tradebot_pp_pgdata$','--format','{{.Name}}']):
+        raise RuntimeError('generated controller volume was not removed')
+    f.start(CI_FOUNDATION_SECRETS)
+    # The reviewed runtime overlay mounts the existing generated lifecycle
+    # secret. No credential value is read into this helper or logged.
+    runtime(['up','-d','--force-recreate','--wait','--wait-timeout','60','postgres'],runtime_env)
+    f.sql("CREATE ROLE tradebot_lifecycle LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; "
+          "DO $$ BEGIN EXECUTE format('ALTER ROLE tradebot_lifecycle PASSWORD %L',"
+          "btrim(pg_read_file('/run/secrets/lifecycle'),E'\\n\\r ')); END $$; "
+          "GRANT CONNECT ON DATABASE tradebot_pp TO tradebot_lifecycle;",CI_FOUNDATION_SECRETS)
+    if f.sql("SELECT to_regclass('ops.outbox') IS NULL;",CI_FOUNDATION_SECRETS)!='t':
+        raise RuntimeError('controller fixture is not fresh')
+
+
 def command(args,env=None,timeout=120):
     remaining=min(timeout,DEADLINE-time.monotonic())
     if remaining<=0:raise RuntimeError('qualification deadline exceeded')
@@ -487,12 +524,14 @@ def main():
             acceptance=json.loads(runtime(['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],runtime_env))
             if acceptance.get('status')!='pass' or acceptance.get('collector_enabled') is not False:
                 raise RuntimeError('runtime acceptance incomplete')
+            PHASE='controller_fixture_isolation'
+            isolate_controller_fixture(runtime_env,owned)
             PHASE='real_linux_controller'
             controller_proof=qualify_controller(root)
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'pp_receipt_grants':pp_receipt_grants,'pp_storage_policy':pp_storage_policy,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'controller_fixture_isolated':True,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'pp_receipt_grants':pp_receipt_grants,'pp_storage_policy':pp_storage_policy,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

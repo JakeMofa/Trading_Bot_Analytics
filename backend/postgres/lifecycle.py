@@ -180,8 +180,8 @@ class LifecycleRepository:
     def disable_collector(self, origin_id: str, now: datetime | None = None) -> dict:
         """Stop writes, or prove a never-bootstrapped PP live origin is empty.
 
-        No operator ON route exists: cross-VM ownership and host control must
-        be qualified before PP live activation.
+        This method does not grant an ON lease. Host ownership and operator
+        admission remain separate from the durable OFF proof.
         """
         if self.environment != 'preprod' or not origin_id or len(origin_id) > 160:
             raise LifecycleHold('unsupported collector stop scope')

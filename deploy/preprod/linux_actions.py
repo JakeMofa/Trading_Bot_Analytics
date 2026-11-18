@@ -519,10 +519,21 @@ class LinuxActions:
 
     def _ack_state(self,budget):
         """Bounded exact outbox ACK-state proof for pre-migration restoration."""
-        row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY id),''))) FROM (SELECT id,jsonb_build_array(id,origin_id,generation_id,entity_type,entity_id,content_hash,acknowledged_at)::text AS fingerprint FROM ops.outbox ORDER BY id LIMIT 10001) bounded"))
-        require(isinstance(row,dict) and 0<=row.get('count',10001)<=10000
-                and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'prior_ack_state_unproven')
-        return row
+        # Keep the same complete, approved-origin coverage as _inventory.
+        # A whole-table sentinel would reject the measured 7,511 + 5,268 rows.
+        groups={}
+        for origin in self._approved_outbox_origins(budget):
+            row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',"
+                "md5(coalesce(string_agg(fingerprint,',' ORDER BY id),''))) FROM "
+                "(SELECT id,jsonb_build_array(id,origin_id,generation_id,entity_type,entity_id,"
+                "content_hash,acknowledged_at)::text AS fingerprint FROM ops.outbox "
+                "WHERE origin_id='"+origin+"' ORDER BY id LIMIT 10001) bounded"))
+            require(isinstance(row,dict) and type(row.get('count')) is int
+                    and 0<row['count']<=10000
+                    and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),
+                    'prior_ack_state_unproven')
+            groups[origin]=row
+        return groups
 
     def _capture_prior_runtime(self,context,budget):
         """Only the already-running generated/off containers may be restored."""

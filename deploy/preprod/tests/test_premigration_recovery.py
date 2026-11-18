@@ -18,7 +18,8 @@ IMAGE='sha256:'+'a'*64
 PG_ID='f'*64
 IDS={service:str(index+1)*64 for index,service in enumerate(a.SERVICES)}
 SCHEMA={'count':2,'digest':'a'*32}
-ACK_STATE={'count':2,'digest':'c'*32}
+ACK_STATE={'generated-pp':{'count':7511,'digest':'c'*32},
+           'pp-live-pp':{'count':5268,'digest':'d'*32}}
 
 
 class DockerBudget:
@@ -144,7 +145,8 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(self.budget.calls,[])
 
     def test_ack_change_during_fence_blocks_prior_restart(self):
-        changed={'count':2,'digest':'d'*32}
+        changed=deepcopy(ACK_STATE)
+        changed['pp-live-pp']['digest']='e'*32
         with patch.object(self.actions,'_ids',side_effect=self.ids), \
              patch.object(self.actions,'_inspect',side_effect=self.inspect), \
              patch.object(self.actions,'_postgres'), \
@@ -155,13 +157,29 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(self.budget.calls,[])
 
     def test_ack_proof_is_bounded_and_includes_ack_timestamp(self):
-        with patch.object(self.actions,'_sql',return_value=json.dumps(ACK_STATE)) as query:
+        def sql(_,query):
+            if 'SELECT coalesce(json_agg(origin_id' in query:
+                return '["generated-pp","pp-live-pp"]'
+            if "WHERE origin_id='generated-pp'" in query:
+                return json.dumps(ACK_STATE['generated-pp'])
+            if "WHERE origin_id='pp-live-pp'" in query:
+                return json.dumps(ACK_STATE['pp-live-pp'])
+            raise AssertionError('unexpected ACK proof query')
+        with patch.object(self.actions,'_sql',side_effect=sql) as query:
             self.assertEqual(self.actions._ack_state(self.budget),ACK_STATE)
-        text=query.call_args.args[1]
-        self.assertIn('acknowledged_at',text)
-        self.assertIn('LIMIT 10001',text)
-        with patch.object(self.actions,'_sql',return_value=json.dumps({'count':10001,'digest':'a'*32})):
+        queries=[call.args[1] for call in query.call_args_list]
+        self.assertEqual(len(queries),3)
+        self.assertTrue(all('acknowledged_at' in text and 'LIMIT 10001' in text
+                            for text in queries[1:]))
+        self.assertTrue(all(text.startswith('SELECT ') for text in queries))
+        def overbound(_,query):
+            if 'SELECT coalesce(json_agg(origin_id' in query:return '["generated-pp"]'
+            return json.dumps({'count':10001,'digest':'a'*32})
+        with patch.object(self.actions,'_sql',side_effect=overbound):
             with self.assertRaisesRegex(c.DeploymentHold,'prior_ack_state_unproven'):
+                self.actions._ack_state(self.budget)
+        with patch.object(self.actions,'_sql',return_value='["third-origin"]'):
+            with self.assertRaisesRegex(c.DeploymentHold,'unexpected_outbox_origin'):
                 self.actions._ack_state(self.budget)
 
     def test_marker_or_attempted_oneoff_forbids_prior_restore(self):

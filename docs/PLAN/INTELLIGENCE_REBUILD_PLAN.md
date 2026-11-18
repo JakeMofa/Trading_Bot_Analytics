@@ -139,8 +139,30 @@ gate. Structured `history_v2` write/readback, full sealed-generation archival,
 privileged mutation protection, local retirement and production remain OPEN;
 retirement is OFF. See [readback outcome](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md).
 
+### CP6 private structured receipt foundation — November 18 UTC
+
+Default-OFF code [PR #92](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/92)
+merged into `preprod` as `ac32805`; the scoped receipt-grant
+[PR #106](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/106) merged
+as `ddc5d29`; sealed-generation runtime-safety
+[PR #97](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/97) merged as
+`0efb3dc`. The reviewed additive migrations
+`structured_receipts_v2_20261118` and
+`pp_structured_receipt_grants_20261118` were applied through the Supabase
+connector. Post-check: private `history_v2.structured_receipts` exists with
+**zero rows**; `tradebot_pp_history` remains **NOLOGIN** and has only
+SELECT/INSERT on that table. Exactly one `pp-live-pp` SELECT policy and one
+INSERT policy exist; UPDATE/DELETE grants are absent, and
+anon/authenticated/service-role SELECT is denied. This is a permission
+foundation, **not** a PP runtime login, cloud structured write/readback,
+outbox acknowledgement or sustained archive result. Runtime sync, local
+retirement and production remain OPEN; retirement is OFF.
+
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 
+The following role checkpoint predates the receipt migrations above; its
+draft/unmerged references are historical and superseded by the current CP6
+foundation result.
 Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)
 merged to `preprod` as `2c6ffd2`; exact source `6d44201` passed
 [push CI 44221712030](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221712030)

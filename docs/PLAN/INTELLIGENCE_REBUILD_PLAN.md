@@ -1,5 +1,49 @@
 # BTC Intelligence Rebuild Plan
 
+## Current PP release checkpoint — November 18, 2026 CST
+
+**PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**
+Small, default-OFF source milestones [#117](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/117)–[#123](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/123)
+merged into `preprod`. Their exact merge-commit CI passed: #117
+[44241469067](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44241469067),
+#118 [44241991946](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44241991946),
+#119 [44243636850](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44243636850),
+#120 [44406648903](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44406648903),
+#121 [44409060049](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44409060049),
+#122 [44409967915](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44409967915),
+and #123 [44411764423](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44411764423).
+The merged `preprod` tip is `01c726a6ada7031c7e4681988b03caf392153e58`.
+The combined PP controller SHA-256
+`c3fac37cb56945ad74d41188b8e22013a199fe8d656b87be4f4154676d3c9479`
+was installed and its dedicated-identity
+[run 44407788335](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44407788335)
+passed. This verifies controller identity, not application or cloud acceptance.
+
+Candidate `v0.2.0-pp.10` was published in
+[run 44410565795](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44410565795).
+The one manual [PP CD 44411133302](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44411133302)
+**FAILED** after its GitHub preflight passed. Its migrate-stage inventory
+incorrectly applied a 10,000-row bound to the whole `ops.outbox`: the two
+isolated origins held 12,779 rows together (7,511 generated and 5,268
+`pp-live-pp`), although each origin was below its own 10,000-row bound.
+Controller recovery was unproven. A subsequent bounded manual restoration
+returned the four application services to the exact prior image
+`sha256:8b3912fd131fec1e6987a7d8cf4242896fbe62f64472aa4600612ca6c7778566`.
+Docker timestamps show the PP API stopped at 22:25:29.713719463 UTC and
+restarted at 22:31:11.439103596 UTC, an approximately **341.725-second PP
+API interruption**. API, dashboard and state returned HTTP 200 afterward;
+PostgreSQL remained healthy, and the collector is OFF. No production service
+was interrupted. The per-origin inventory correction is under review and
+**not deployed**. The failed release remains failed despite manual recovery.
+
+PR #122 prepared a fail-closed PP Storage Auth installer; #123 corrected its
+publishable-key newline check after the first credential installation stopped
+before writing any destination files. Neither merge enables cloud sync. No
+PP structured `history_v2` runtime write/readback, sealed-generation raw
+archive, local retirement, paid AI, or production PostgreSQL cutover has passed.
+The five gates in the next section remain the execution order; dated sections
+below preserve earlier evidence.
+
 ## PP live convergence checkpoint — November 17 CST / November 18 UTC
 
 **Current result: PP live and Supabase runtime sync are not yet accepted.**

@@ -264,7 +264,7 @@ class TransferControls(unittest.TestCase):
                     transfer.public_key(path)
 
     def test_exact_source_and_bundle_constants_are_real(self):
-        # Local-only assertion: the pinned source cannot drift with this PR.
+        # Works in shallow CI; pinned digests prevent local edits from shipping.
         repo = Path(__file__).parents[3]
         with tempfile.TemporaryDirectory() as folder:
             bundle = Path(folder) / 'bundle.pyz'
@@ -283,6 +283,25 @@ class TransferControls(unittest.TestCase):
             bundle.write_bytes(b'changed')
             with self.assertRaises(transfer.TransferStop):
                 transfer.payload_for(bundle, repo)
+
+    def test_changed_checkout_source_cannot_enter_payload(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            source = root / 'deploy' / 'preprod'
+            source.mkdir(parents=True)
+            real_source = Path(__file__).parents[1]
+            for name in transfer.FILES:
+                (source / name).write_bytes((real_source / name).read_bytes())
+            bundle = root / 'controller.pyz'
+            bundle.write_bytes(self.valid_bundle)
+            transfer.payload_for(bundle, root)
+            (source / 'install_controller.py').write_bytes(b'changed')
+            with self.assertRaises(transfer.TransferStop):
+                transfer.payload_for(bundle, root)
+            (source / 'install_controller.py').unlink()
+            (source / 'install_controller.py').symlink_to(real_source / 'install_controller.py')
+            with self.assertRaises(transfer.TransferStop):
+                transfer.payload_for(bundle, root)
 
 
 if __name__ == '__main__':

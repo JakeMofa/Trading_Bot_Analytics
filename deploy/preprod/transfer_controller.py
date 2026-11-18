@@ -64,14 +64,15 @@ def digest(data):
 
 
 def payload_for(bundle, repo):
-    """Export exact tracked source; local edits cannot enter the transfer."""
+    """Export exact reviewed source bytes; local edits cannot enter transfer."""
     blob = Path(bundle).read_bytes()
     contents = {'controller.pyz': blob}
     for name in FILES:
-        result = subprocess.run(
-            ['git', 'show', f'{SOURCE}:deploy/preprod/{name}'], cwd=repo,
-            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10, check=True)
-        contents[name] = result.stdout
+        path = Path(repo) / 'deploy' / 'preprod' / name
+        info = path.lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_size <= MAX_FILE,
+                'unsafe_local_source')
+        contents[name] = path.read_bytes()
     output = bytearray(MAGIC)
     total = 0
     for name in ORDER:

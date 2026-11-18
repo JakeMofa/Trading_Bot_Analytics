@@ -41,8 +41,8 @@ python3 deploy/preprod/transfer_controller.py --send \
   --known-hosts /absolute/path/to/existing/pinned-known-hosts
 ```
 
-The tool exports the four installer dependencies with `git show` from the exact
-commit, validates every digest and byte bound, then sends them with the bundle
+The tool reads the four installer dependencies from the reviewed checkout,
+validates their pinned source digests and byte bounds, then sends them with the bundle
 over strict pinned SSH. The root receiver verifies all bytes before staging,
 uses exclusive no-follow files in root-only `/run`, checks the prior controller
 and existing forced-command public key, and invokes the existing installer with

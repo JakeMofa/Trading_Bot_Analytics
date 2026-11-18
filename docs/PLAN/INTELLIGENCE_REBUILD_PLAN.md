@@ -111,6 +111,27 @@ See deploy/preprod/LIVE_OBSERVATION.md. Raw-row acknowledgements, disk/WAL
 growth, Supabase archive/retirement and 72-hour operation require independent
 evidence.
 
+## CP7 generated market-boundary smoke candidate — November 17, 2026
+
+An isolated candidate combines the PP supervisor, Polymarket cycle and operator
+session across a simulated 15-minute boundary. Generated missing-market and
+404/429/timeout/invalid faults assert independent Coinbase progress, no old
+quote replay, fixed private failure codes, durable OFF and no automatic ON.
+The adjacent 34 local tests passed. Exact source `448cd1f` passed
+[push CI 44217282644](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217282644)
+and [PR CI 44217319889](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217319889);
+the isolated PostgreSQL logs confirm both new smoke methods ran. This does not
+identify the first PP live session's lost exception or qualify live A→B.
+See [bounded smoke scope](CP7_BOUNDARY_SMOKE_2026-11-17.md).
+
+The subsequent PP diagnostic checkpoint reported `coinbase_stream.unexpected`
+before the market boundary, leaving the WebSocket exception subtype unknown.
+A default-OFF successor to draft PR #93 classifies pinned `websockets==15.0.1`
+closure, handshake status, protocol and transport failures into fixed private
+codes. Generated fake-socket tests verify durable OFF and no payload/URL text;
+35 affected local tests passed. No runtime reconnect, PP release or live
+continuity result follows from this candidate. Exact successor CI is pending.
+
 ## CP6 structured import preparation — November 17, 2026
 
 An isolated, default-off preparation now pins all eight structured cloud row

@@ -112,6 +112,39 @@ class SupabaseMachineAuthTests(unittest.TestCase):
         self.assertTrue(all(r.headers['authorization'] ==
                             'Bearer ' + token(suffix='refreshed') for r in calls[-6:]))
 
+    def test_twelve_character_opaque_refresh_token_can_rotate(self):
+        refresh = 'shorttok1234'
+        self.assertEqual(len(refresh), 12)
+        grants = []
+        def handle(request):
+            if request.url.path == '/auth/v1/token':
+                grants.append(request.url.params['grant_type'])
+                if grants[-1] == 'refresh_token':
+                    self.assertEqual(json.loads(request.content)['refresh_token'], refresh)
+                return self.auth_response(refresh=refresh)
+            return httpx.Response(200, content=b'archive')
+        machine, _ = self.machine(handle)
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        machine._machine._expires = 0
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        self.assertEqual(grants, ['password', 'refresh_token'])
+
+    def test_empty_oversized_or_whitespace_refresh_token_fails_closed(self):
+        for refresh in ('', 'x' * 4097, 'a b'):
+            with self.subTest(length=len(refresh)):
+                paths = []
+                def handle(request):
+                    paths.append(request.url.path)
+                    return self.auth_response(refresh=refresh)
+                machine, _ = self.machine(handle)
+                with self.assertRaises(ArchiveUnavailable):
+                    machine.put_if_absent(KEY, b'archive', timeout_seconds=2)
+                with self.assertRaises(ArchiveUnavailable):
+                    machine.read_authenticated(KEY, max_bytes=32, timeout_seconds=2)
+                self.assertEqual(paths, ['/auth/v1/token'])
+
     def test_rejected_refresh_and_storage_unauthorized_fail_closed(self):
         calls = []
         def handle(request):

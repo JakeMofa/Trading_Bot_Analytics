@@ -5,8 +5,10 @@
 **Current state, November 17 CST / November 18 UTC:** PR #100 merged the
 tested, exact-origin `MARKET-RAW` Storage policy **template** into `preprod`.
 It is outside migrations and has **not** been applied. The PP Auth identity,
-credential, renewable token path, synthetic cloud readback, and PP runtime
-wiring do not yet exist. The previously applied `history_v2` NOLOGIN role is
+credential, synthetic cloud readback, and PP runtime wiring remained open at
+that checkpoint. The renewable-token adapter has since merged as PR #103;
+its live runtime qualification is still open. The previously applied
+`history_v2` NOLOGIN role is
 for structured PostgreSQL history, not Storage HTTP. The existing public
 Supabase tables contain historical rows; private `history_v2` remains empty.
 PP collection, cloud sync, retirement and paid AI remain OFF at the last
@@ -43,6 +45,19 @@ The first three coding parts are delegated in isolated worktrees. The master
 roadmap records their tested commits, CI and actual cloud results after each
 gate. A passing policy fixture or applied permission alone is not archive
 acceptance. No production deployment or Phase 2 work follows from this scope.
+
+### PP Auth refresh-token compatibility — November 18 UTC
+
+A bounded live Auth sign-in returned HTTP 200 with the reviewed identity and
+restricted access-token claims. The opaque refresh token was **12 characters**;
+the PR #103 adapter incorrectly required at least 20, so it rejected an
+otherwise valid session before any Storage operation. The token value is not
+recorded. This is a client-validation defect, not evidence of failed Storage
+permission or archive verification. A narrow default-OFF successor removes
+the guessed lower length bound while still rejecting empty, whitespace and
+oversized tokens. Generated sign-in/rotation and failure regressions are the
+next gate; fresh authenticated Storage readback and local-retirement HOLD
+remain unchanged. No production change follows from this correction.
 
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 

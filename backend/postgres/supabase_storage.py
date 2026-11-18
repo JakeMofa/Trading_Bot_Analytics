@@ -166,7 +166,8 @@ class _MachineSession:
                 if (not isinstance(user, dict) or user.get('id') != self._uid or
                         session.get('token_type', '').lower() != 'bearer' or
                         not isinstance(access, str) or not 20 <= len(access) <= 8192 or
-                        not isinstance(refresh, str) or not 20 <= len(refresh) <= 4096 or
+                        not isinstance(refresh, str) or not refresh or
+                        len(refresh) > 4096 or any(c.isspace() for c in refresh) or
                         not isinstance(expires, int) or not 30 <= expires <= 86400 or
                         access in (self._api_key, self._password)):
                     raise ValueError('invalid Auth response')

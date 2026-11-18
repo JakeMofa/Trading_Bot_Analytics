@@ -233,6 +233,49 @@ def qualify_pp_history_role(secret_dir):
     return proof
 
 
+def qualify_pp_receipt_grants(secret_dir):
+    """Exercise the receipt extension only in disposable generated PostgreSQL."""
+    # PG17/Supabase can auto-grant an inbound ADMIN-only edge to its creator.
+    # Exercise that exact cloud-catalog shape without any PP privilege gain.
+    f.sql('GRANT tradebot_pp_history TO postgres WITH ADMIN TRUE, INHERIT FALSE, SET FALSE;',
+          secret_dir)
+    # qualify_structured_receipts applied the reviewed table migration first.
+    ddl=(REPO/'supabase/migrations/20261118031407_pp_structured_receipt_grants.sql').read_text()
+    if ('GRANT SELECT, INSERT ON history_v2.structured_receipts TO tradebot_pp_history' not in ddl or
+            'ALTER ROLE' in ddl or 'CREATE ROLE' in ddl):
+        raise RuntimeError('PP receipt grant scope changed')
+    f.sql('BEGIN;\n'+ddl+'\nCOMMIT;',secret_dir,timeout=40)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'role_no_login', NOT r.rolcanlogin,
+      'receipt_select', has_table_privilege('tradebot_pp_history',
+        'history_v2.structured_receipts','SELECT'),
+      'receipt_insert', has_table_privilege('tradebot_pp_history',
+        'history_v2.structured_receipts','INSERT'),
+      'receipt_update', has_table_privilege('tradebot_pp_history',
+        'history_v2.structured_receipts','UPDATE'),
+      'receipt_delete', has_table_privilege('tradebot_pp_history',
+        'history_v2.structured_receipts','DELETE'),
+      'receipt_policies', (SELECT count(*) FROM pg_policies
+        WHERE schemaname='history_v2' AND tablename='structured_receipts'
+          AND 'tradebot_pp_history'=ANY(roles)),
+      'anon_access', has_table_privilege('anon',
+        'history_v2.structured_receipts','SELECT'),
+      'authenticated_access', has_table_privilege('authenticated',
+        'history_v2.structured_receipts','SELECT'),
+      'service_access', has_table_privilege('service_role',
+        'history_v2.structured_receipts','SELECT'))
+      FROM pg_roles r WHERE r.rolname='tradebot_pp_history';""",secret_dir))
+    if (not all(proof[key] for key in ('role_no_login','receipt_select','receipt_insert')) or
+            proof['receipt_policies']!=2 or
+            any(proof[key] for key in ('receipt_update','receipt_delete',
+                                      'anon_access','authenticated_access','service_access'))):
+        raise RuntimeError('PP private receipt privilege check failed')
+    f.sql((REPO/'deploy/preprod/tests/pp_structured_receipt_grants.sql').read_text(),
+          secret_dir,timeout=20)
+    proof['receipt_schema_source']='supabase/migrations/20261118012340_structured_receipts_v2.sql'
+    return proof
+
+
 def qualify_pp_storage_policy(secret_dir):
     """Exercise a substituted review template against disposable Storage RLS."""
     fixture=(REPO/'deploy/preprod/tests/pp_storage_policy_fixture.sql').read_text()
@@ -241,7 +284,9 @@ def qualify_pp_storage_policy(secret_dir):
     email_marker='__PP_STORAGE_AUTH_EMAIL__'
     if template.count(marker)!=4 or template.count(email_marker)!=1 or \
             'storage.object.upload' not in template or \
-            'storage.object.get_authenticated' not in template:
+            'storage.object.get_authenticated' not in template or \
+            'object.get_authenticated_info' not in template or \
+            'storage.allow_any_operation' not in template:
         raise RuntimeError('PP Storage review template scope changed')
     f.sql(fixture,secret_dir,timeout=20)
     try:
@@ -295,7 +340,7 @@ def qualify_pp_storage_policy(secret_dir):
         raise RuntimeError('PP Storage policy metadata mismatch')
     f.sql((REPO/'deploy/preprod/tests/pp_storage_policy_denials.sql').read_text(),
           secret_dir,timeout=20)
-    from bind_market_raw_policy import render_rollback
+    from bind_market_raw_policy import render_rollback,render_readback_patch
     rollback=render_rollback('00000000-0000-4000-8000-0000000000aa',
                              'pp-storage-archive@example.invalid',
                              project_ref='xttdqeimdujweijxcuro',bucket='market-raw')
@@ -304,6 +349,45 @@ def qualify_pp_storage_policy(secret_dir):
              secret_dir).strip()!='0' or \
        f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='2':
         raise RuntimeError('policy-only rollback changed generated objects or left policies')
+    current_readback=("storage.allow_any_operation(ARRAY[\n"
+                      "      'storage.object.get_authenticated','object.get_authenticated_info'])")
+    old_readback="storage.allow_only_operation('storage.object.get_authenticated')"
+    if candidate.count(current_readback)!=1:
+        raise RuntimeError('reviewed readback policy expression changed')
+    f.sql("INSERT INTO storage.objects(bucket_id,name,owner_id) VALUES ("
+          "'market-raw',"
+          "'raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/"
+          "500b0871-6f59-46de-a17c-537f6b0aee5d/"
+          "5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf.jsonl.gz',"
+          "'00000000-0000-4000-8000-0000000000aa');",secret_dir)
+    legacy_candidate=candidate.replace(current_readback,old_readback)
+    f.sql(legacy_candidate,secret_dir,timeout=20)
+    hash_sql=("SELECT encode(sha256(convert_to(jsonb_agg(to_jsonb(p) ORDER BY p.policyname)::text,"
+              "'UTF8')),'hex') FROM pg_policies p WHERE p.schemaname='storage'"
+              " AND p.tablename='objects';")
+    catalog_hash=f.sql(hash_sql,secret_dir).strip()
+    patch=render_readback_patch('00000000-0000-4000-8000-0000000000aa',
+                                'pp-storage-archive@example.invalid',
+                                project_ref='xttdqeimdujweijxcuro',bucket='market-raw',
+                                expected_policy_sha256=catalog_hash).decode('ascii')
+    try:
+        f.sql(patch.replace(catalog_hash,'f'*64),secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('wrong policy catalog hash admitted readback amendment')
+    if f.sql(hash_sql,secret_dir).strip()!=catalog_hash:
+        raise RuntimeError('failed readback amendment changed policy catalog')
+    f.sql(patch,secret_dir,timeout=20)
+    f.sql((REPO/'deploy/preprod/tests/pp_storage_readback_patch_denials.sql').read_text(),
+          secret_dir,timeout=20)
+    if f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='3':
+        raise RuntimeError('readback amendment changed generated objects')
+    f.sql(rollback.decode('ascii'),secret_dir,timeout=20)
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0' or \
+       f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='3':
+        raise RuntimeError('amended policy rollback changed objects or left policies')
     return proof
 
 
@@ -372,10 +456,12 @@ def main():
             cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
             PHASE='generated_pp_history_role'
             pp_history_role=qualify_pp_history_role(CI_FOUNDATION_SECRETS)
-            PHASE='generated_pp_storage_policy'
-            pp_storage_policy=qualify_pp_storage_policy(CI_FOUNDATION_SECRETS)
             PHASE='generated_structured_receipts'
             receipt_contract=qualify_structured_receipts(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_receipt_grants'
+            pp_receipt_grants=qualify_pp_receipt_grants(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_storage_policy'
+            pp_storage_policy=qualify_pp_storage_policy(CI_FOUNDATION_SECRETS)
             env['TRADEBOT_TEST_HISTORY_V2_DSN']=dsns['admin']
             command([sys.executable,'-m','unittest','backend.tests.test_history_v2_transport_pg','-v'],
                     env,timeout=90)
@@ -404,7 +490,7 @@ def main():
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'pp_storage_policy':pp_storage_policy,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'pp_receipt_grants':pp_receipt_grants,'pp_storage_policy':pp_storage_policy,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

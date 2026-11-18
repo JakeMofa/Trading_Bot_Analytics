@@ -1,5 +1,31 @@
 # BTC Intelligence Rebuild Plan
 
+## CP6 private structured receipt grant candidate — November 17 CST / November 18 UTC
+
+A generated-only candidate extends the already applied `tradebot_pp_history`
+NOLOGIN role with `SELECT`/`INSERT` on `history_v2.structured_receipts`
+and exact `origin_id = 'pp-live-pp'` RLS policies. The migration fails if PR
+#92's receipt table is absent, its columns/RLS differ, the role has a login or
+unreviewed membership, or the role has table privileges on an existing
+`public` relation. A read-only cloud catalog check found only the expected
+inbound `postgres` ADMIN membership (`INHERIT`/`SET` false), zero accessible
+public relations and no receipt table. The candidate does not set a password,
+enable LOGIN, grant UPDATE/DELETE, apply cloud DDL, or enable
+sync/retirement. A disposable PostgreSQL 17 test passed the PP insert/read and
+wrong-origin, mutation, row-lock and public-table denials. PR #92 merged as
+`ac32805` with advisory serialization and no row locks on immutable tables or
+receipts. The grant qualification applies the reviewed receipt table once
+before the grant migration and generated transport test.
+The later operator-only connection gate must verify the exact
+[Supabase session pooler endpoint](https://supabase.com/docs/guides/database/connecting-to-postgres)
+and TLS certificate, set a fresh password with interactive
+`psql \password tradebot_pp_history`, and enable LOGIN only after a fresh
+role/grant inventory. A credential never belongs in this migration, Git,
+shell arguments or logs. Failure closes the role with `NOLOGIN PASSWORD NULL`
+while sync stays OFF. Credential creation, TLS/host reachability, actual cloud
+readback and the 5,268/10,000 PP outbox drain remain separate gates. The
+candidate is not an archive acceptance or retirement authority.
+
 ## Active CP6 execution — PP archive identity and private Storage
 
 **Current state, November 17 CST / November 18 UTC:** PR #100 merged the
@@ -64,6 +90,32 @@ sign-in/rotation, compression and failure regressions are the next gate;
 fresh authenticated Storage readback and local-retirement HOLD remain
 unchanged. No production change follows from this correction.
 
+### PP raw Storage first live probe and readback amendment — November 18 UTC
+
+The first private `market-raw` policy migration is recorded as ledger
+`20261118031950` (`pp_market_raw_storage_auth_20261118`), rendered SQL SHA-256
+`560e472b8997092961beaaca93c0a2fcb1af36bca853c59c24e8a651f19f3ac5`.
+It binds dedicated Auth UID `600b06fc-f121-4a96-a21c-6278b0f38be6` and
+the exact `pp-live-pp` origin. Live inventory found two policies, zero mutation
+grants and a private bucket. One create-only probe POST returned HTTP 200 and
+left a 126-byte synthetic object. Its authenticated GET returned HTTP 400
+`NoSuchKey`; **remote bytes and archive readback are NOT VERIFIED**. Read-only
+Storage logs recorded `storage.object.upload` for POST and legacy
+`object.get_authenticated_info` for GET, while the installed readback policy
+permits only `storage.object.get_authenticated`. The exact object row, UID,
+bucket and PP prefix matched. This supports a narrow operation-name amendment;
+it does not establish a successful readback.
+
+The successor candidate extends only the authenticated readback policy to
+those two operation names. It requires a fresh SHA-256 of the existing two
+catalog policies, exact UID/metadata, private bucket and the retained object
+before one transactional `ALTER POLICY`. A reconcile-only probe reconstructs
+the same key, 126 bytes and SHA-256 locally, then performs authenticated GET
+and public-denial GET with **zero POST**. The candidate has generated tests;
+no live policy amendment or second probe has run. Local retirement remains
+OFF; PP collection and production are unchanged by this candidate. See
+[readback amendment review](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md).
+
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 
 Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)
@@ -85,8 +137,9 @@ the bounded Coinbase reconnect and generated-profile leave changes are **not
 deployed** to PP. The last observed PP collector state remains generated/OFF
 after the failed diagnostic live trial; its 5,268/10,000 pending outbox is a
 separate long-session gate. CP6 PR #92 merged code-only as `ac32805`; its
-active structured sync remains default OFF and runtime NO-GO. PR #97's sealed
-generation drainage remains unmerged. Live A→B rotation, raw Storage archival/readback, and local
+default-OFF active structured sync remains runtime NO-GO. PR #97's sealed
+generation drainage remains unmerged. Live A→B rotation, raw Storage
+archival/readback, and local
 retirement remain unproven. Production remains unchanged; I7 and Phase 1.75
 remain OPEN.
 

@@ -46,7 +46,8 @@ CREATE POLICY tradebot_pp_raw_readback ON storage.objects FOR SELECT
     auth.uid() = '__PP_STORAGE_AUTH_UID__'::uuid
     AND bucket_id = 'market-raw'
     AND name ~ '^raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
-    AND storage.allow_only_operation('storage.object.get_authenticated'));
+    AND storage.allow_any_operation(ARRAY[
+      'storage.object.get_authenticated','object.get_authenticated_info']));
 
 -- No UPDATE/DELETE policies; listing, copy, move, signed or public retrieval
 -- are not granted. Exact upload/download behavior still needs a live API test.

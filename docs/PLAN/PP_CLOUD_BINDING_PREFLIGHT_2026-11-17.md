@@ -24,6 +24,14 @@ checks, direct PostgreSQL network/TLS/deadline qualification, sustained backlog
 drain, and privileged mutation authority remain separate gates. A private file
 check alone proves neither the file content nor the remote principal.
 
+The draft #92 importer also uses `SELECT ... FOR UPDATE` on immutable
+`structured_receipts` and on history rows in its common insert/update path.
+PostgreSQL 17 requires UPDATE privilege for those locks, conflicting with the
+intended SELECT/INSERT-only receipt and immutable-table grants. The importer
+must use its stream/entity advisory locks or another reviewed design for those
+reads, with actual PostgreSQL regression tests; widening UPDATE grants is not
+an implicit runtime fix.
+
 Five offline focused tests cover exact identity and OFF flags, path separation,
 private file metadata, invalid binding STOP, and valid synthetic files still
 returning STOP. No real secret, cloud write, deployment, or production change

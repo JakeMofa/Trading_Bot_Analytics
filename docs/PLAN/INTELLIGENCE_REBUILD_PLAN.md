@@ -1032,7 +1032,9 @@ structured DSN and local lifecycle DSN, and OFF sync/retirement/paid-AI flags.
 It checks file metadata without reading values and always returns STOP; it
 does not mount a service or start cloud I/O. The structured role is still
 NOLOGIN, PR #92 receipts/grants and PR #97 worker are draft, and live Storage
-and direct PostgreSQL authority/network gates remain open. See
+and direct PostgreSQL authority/network gates remain open. PR #92's receipt
+and immutable-row `SELECT ... FOR UPDATE` also require UPDATE privileges under
+PostgreSQL 17 and must be corrected under the narrow grant before execution. See
 [binding preflight review](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md).
 
 **CP6 structured-import preparation:** A separate, offline envelope validator

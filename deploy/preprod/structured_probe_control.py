@@ -7,6 +7,7 @@ one-use root authority for the exact reviewed outbox page.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from contextlib import contextmanager
 import hashlib
 import os
 from pathlib import Path
@@ -17,11 +18,12 @@ import uuid
 
 from controller import Budget, DeploymentHold, HostBinding, _secure_file, require
 from linux_actions import LinuxActions, PROJECT, RUNTIME_SECRETS
-from structured_probe_profile import CLOUD_FILES, validate_probe_profile
+from structured_probe_profile import LOCAL_STAGED, validate_probe_profile
 from transition_control import ACTIVE, _candidate, _consume, _image_binding, _owned_runtime, _read_active, TransitionRequest
 
 AUTHORITY = Path('/run/tradebot-pp-deploy/structured-probe.json')
 CLOUD_DIR = Path('/etc/tradebot/cloud')
+STAGED_LOCAL = Path(LOCAL_STAGED)
 CA_SHA256 = '807025ad50d4ed219d2c9c7d299c004f824eb00cf7f65afef607d07b72e6cafa'
 EXPECTED_MODULES = ('backend/postgres/pp_structured_probe.py',
                     'backend/postgres/pp_history_connection.py')
@@ -51,8 +53,82 @@ def _files():
     # The local lifecycle credential must remain separate from cloud secrets.
     local = (RUNTIME_SECRETS / 'lifecycle_dsn').lstat()
     require(stat.S_ISREG(local.st_mode) and local.st_uid == 10001
-            and stat.S_IMODE(local.st_mode) == 0o400,
+            and stat.S_IMODE(local.st_mode) == 0o400 and local.st_nlink == 1
+            and 0 < local.st_size <= 4096,
             'unsafe_local_lifecycle_file')
+    require(not STAGED_LOCAL.exists() and not STAGED_LOCAL.is_symlink(),
+            'stale_probe_local_secret_requires_reconciliation')
+
+
+@contextmanager
+def _stage_local_secret(source=None, staged=None):
+    """Give the capability-free root container a root0600 PP local DSN.
+
+    The original lifecycle file is UID10001/0400 and cannot be read by UID0
+    after cap_drop ALL. This short-lived credential copy is in root-only /run;
+    it is never a database copy, configuration change or persistent mount.
+    """
+    source = source or RUNTIME_SECRETS / 'lifecycle_dsn'
+    staged = staged or STAGED_LOCAL
+    parent = staged.parent.lstat()
+    require(stat.S_ISDIR(parent.st_mode) and parent.st_uid == 0
+            and stat.S_IMODE(parent.st_mode) == 0o700,
+            'unsafe_probe_staging_directory')
+    path_before = source.lstat()
+    source_fd = os.open(source, os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+    try:
+        before = os.fstat(source_fd)
+        require(stat.S_ISREG(before.st_mode) and before.st_uid == 10001
+                and stat.S_IMODE(before.st_mode) == 0o400
+                and before.st_nlink == 1 and 0 < before.st_size <= 4096,
+                'unsafe_local_lifecycle_file')
+        require((path_before.st_dev, path_before.st_ino) ==
+                (before.st_dev, before.st_ino),
+                'local_lifecycle_file_changed')
+        value = os.read(source_fd, 4097)
+        after = os.fstat(source_fd)
+        path_after = source.lstat()
+        require(len(value) == before.st_size and len(value) <= 4096
+                and (before.st_dev, before.st_ino, before.st_mtime_ns,
+                     before.st_size) ==
+                    (after.st_dev, after.st_ino, after.st_mtime_ns, after.st_size)
+                and (path_after.st_dev, path_after.st_ino, path_after.st_mtime_ns,
+                     path_after.st_size) ==
+                    (after.st_dev, after.st_ino, after.st_mtime_ns, after.st_size),
+                'local_lifecycle_file_changed')
+    finally:
+        os.close(source_fd)
+    descriptor = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_EXCL |
+                         os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
+    identity = None
+    try:
+        info = os.fstat(descriptor)
+        identity = (info.st_dev, info.st_ino)
+        require(info.st_uid == 0 and stat.S_IMODE(info.st_mode) == 0o600,
+                'unsafe_probe_staged_file')
+        with os.fdopen(descriptor, 'wb') as output:
+            descriptor = -1
+            output.write(value)
+            output.flush()
+            os.fsync(output.fileno())
+        yield
+    finally:
+        if descriptor != -1:
+            os.close(descriptor)
+        # Stop the one-shot container before exiting this context. Even if
+        # that stop failed, unlink the pathname and report cleanup failure.
+        try:
+            current = staged.lstat()
+            require(identity is not None and
+                    (current.st_dev, current.st_ino) == identity,
+                    'probe_staged_file_replaced')
+            staged.unlink()
+            directory = os.open(staged.parent,
+                                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            try: os.fsync(directory)
+            finally: os.close(directory)
+        except (OSError, DeploymentHold):
+            raise DeploymentHold('probe_local_secret_cleanup_failed') from None
 
 
 def _compose(actions, context, budget, extra, args, timeout):
@@ -136,17 +212,18 @@ def run(command: str, installed: Path):
     actions.oneoffs[name] = 'structured_probe'
     result = None
     error = None
-    try:
-        raw = _compose(actions, context, Budget(30),
-            ('runtime.live.compose.yaml', 'runtime.structured-probe.compose.yaml'),
-            args, 25)
-        result = actions._json(raw)
-    except Exception as caught:
-        error = caught
-    finally:
-        # Docker may keep the container running after its CLI child times out.
-        # A fresh recovery budget proves it has exited or reports STOP.
-        actions._cleanup_oneoffs(context, Budget(30))
+    with _stage_local_secret():
+        try:
+            raw = _compose(actions, context, Budget(30),
+                ('runtime.live.compose.yaml', 'runtime.structured-probe.compose.yaml'),
+                args, 25)
+            result = actions._json(raw)
+        except Exception as caught:
+            error = caught
+        finally:
+            # Docker may keep the container running after its CLI child times
+            # out. A fresh recovery budget proves exit or reports STOP.
+            actions._cleanup_oneoffs(context, Budget(30))
     if error is not None:
         raise DeploymentHold('pp_structured_probe_failed') from None
     count = result.get('acknowledged')

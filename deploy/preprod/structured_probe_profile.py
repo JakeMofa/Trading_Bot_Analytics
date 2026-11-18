@@ -15,6 +15,7 @@ CLOUD_FILES = {
     'pp_history_dsn': '/etc/tradebot/cloud/pp_history_dsn',
     'pp_history_ca': '/etc/tradebot/cloud/pp_history_ca',
 }
+LOCAL_STAGED = '/run/tradebot-pp-deploy/probe-local-dsn'
 EGRESS = 'structured_probe_egress'
 OFF = {
     'TRADEBOT_COLLECTOR_ENABLED': 'false',
@@ -36,15 +37,18 @@ def validate_probe_profile(base: dict, live: dict, probe: dict, source, image):
     require(network == {'name': PROJECT + '_' + EGRESS,
                         'driver': 'bridge', 'ipam': {}},
             'unsafe_probe_egress')
-    require(set(probe.get('secrets', {})) == set(live['secrets']) | set(CLOUD_FILES),
+    require(set(probe.get('secrets', {})) == set(live['secrets']) | set(CLOUD_FILES) | {'probe_local_dsn'},
             'unexpected_probe_secret')
     for name, path in CLOUD_FILES.items():
         require(probe['secrets'][name] == {'name': PROJECT + '_' + name,
                                          'file': path}, 'unsafe_probe_secret_path')
+    require(probe['secrets']['probe_local_dsn'] ==
+            {'name': PROJECT + '_probe_local_dsn', 'file': LOCAL_STAGED},
+            'unsafe_probe_local_secret_path')
 
     expected = deepcopy(live)
     expected['networks'][EGRESS] = deepcopy(network)
-    for name in CLOUD_FILES:
+    for name in (*CLOUD_FILES, 'probe_local_dsn'):
         expected['secrets'][name] = deepcopy(probe['secrets'][name])
     service = deepcopy(base['services']['lifecycle'])
     service['command'] = ['python', '-m', 'postgres.pp_structured_probe']
@@ -56,10 +60,11 @@ def validate_probe_profile(base: dict, live: dict, probe: dict, source, image):
         TRADEBOT_PP_HISTORY_DSN_FILE='/run/secrets/pp_history_dsn',
         TRADEBOT_PP_HISTORY_CA_FILE='/run/secrets/pp_history_ca',
         TRADEBOT_PP_STRUCTURED_ONE_SHOT='true', **OFF)
-    service['secrets'].extend([
-        {'source': name, 'target': '/run/secrets/' + name}
-        for name in CLOUD_FILES
-    ])
+    service['secrets'] = [
+        {'source': 'probe_local_dsn', 'target': '/run/secrets/lifecycle_dsn'},
+        *({'source': name, 'target': '/run/secrets/' + name}
+          for name in CLOUD_FILES),
+    ]
     service['networks'][EGRESS] = None
     expected['services']['structured_probe'] = service
     require(probe == expected, 'unreviewed_probe_profile_difference')

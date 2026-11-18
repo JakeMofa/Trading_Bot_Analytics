@@ -1,20 +1,57 @@
 # BTC Intelligence Rebuild Plan
 
+## Current PP release checkpoint — November 18, 2026 CST
+
+**PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**
+PRs [#124](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/124)–[#126](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/126)
+merged into `preprod`; their merge-commit CI passed
+[44413475851](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44413475851),
+[44416354874](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44416354874), and
+[44417550120](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44417550120), respectively.
+The pp.11 release source was `56e4de51ecaddbe4873945629ee2c24cccb3b6a3`.
+Candidate [`v0.2.0-pp.11`](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.11)
+was published in [run 44418143697](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44418143697)
+with artifact SHA-256 `0be732be355ee9716d518219c34015855d564f69b299fe6fffaf0b55239d4a90`.
+The successor controller SHA-256
+`acec846b8876df991026c0437b971d525beef398ff43afa6f7a8e01ac5b80a7d`
+was installed; [identity run 44418190583](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44418190583)
+passed.
+
+Manual [PP CD 44418602445](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44418602445)
+**FAILED before authority consumption**. Source extraction and read-only
+preflight passed, but the deployment target profile still expected the old
+controller hash `c3fac37cb56945ad74d41188b8e22013a199fe8d656b87be4f4154676d3c9479`;
+the installed controller is `acec846b…`. No candidate journal was created.
+The unused permit was revoked. The prior four application containers and
+PostgreSQL remained healthy; the API returned HTTP 200. No PP application
+rollout, collection restart, cloud sync, local retirement, or production change
+occurred. GitHub's Node 20 and `ubuntu-latest` notices were warnings, not the
+deployment failure. [PR #128](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/128)
+subsequently fixed the exact PP controller binding and sanitized future
+failure codes; it merged as `f09987c5d4c408bc61ae619bbf8e276d279fe5f4`
+with [CI 44421342321](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44421342321)
+PASS. [PR #129](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/129)
+separately pinned Node 24 Actions and Ubuntu 24.04; it merged as
+`2d0a449c9c393b50ba9ccd45e41cb4f326259b70` with
+[CI 44421906498](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44421906498)
+PASS. Neither merge retried pp.11
+or deployed PP. A new exact candidate, controller/profile binding and manual
+release remain to be qualified.
+
 ## CI runtime annotation correction — November 18, 2026
 
 The failed PP CD run 44418602445 had a deployment-control error and separate
 GitHub runner warnings: old pinned actions targeted Node.js 20, and
-`ubuntu-latest` was moving from Ubuntu 24.04 to 26.04. The warning correction
-uses verified Node.js 24 action commits and explicit `ubuntu-24.04` for hosted
-jobs; the private PP runner selector remains unchanged. The action versions
-require runner 2.327.1 or later, and the observed PP ephemeral runner was
-2.338.2. Local actionlint and pin regressions passed. This is CI maintenance,
-not a fix for the PP deployment error, and creates no database or host change.
-Exact candidate and CI/PR evidence will be recorded after qualification.
+`ubuntu-latest` was moving from Ubuntu 24.04 to 26.04. PR #129 uses reviewed
+Node.js 24 action commits and explicit `ubuntu-24.04` for hosted jobs; the
+private PP runner selector remains unchanged. The action versions require
+runner 2.327.1 or later, and the observed PP ephemeral runner was 2.338.2.
+Local actionlint and pin regressions passed. This is CI maintenance, not the
+fix for pp.11's failed controller binding, and creates no database or host
+change.
 
-## Current PP release checkpoint — November 18, 2026 CST
+### Earlier pp.10 checkpoint
 
-**PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**
 Small, default-OFF source milestones [#117](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/117)–[#123](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/123)
 merged into `preprod`. Their exact merge-commit CI passed: #117
 [44241469067](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44241469067),
@@ -24,7 +61,7 @@ merged into `preprod`. Their exact merge-commit CI passed: #117
 #121 [44409060049](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44409060049),
 #122 [44409967915](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44409967915),
 and #123 [44411764423](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44411764423).
-The merged `preprod` tip is `01c726a6ada7031c7e4681988b03caf392153e58`.
+The `preprod` tip at that checkpoint was `01c726a6ada7031c7e4681988b03caf392153e58`.
 The combined PP controller SHA-256
 `c3fac37cb56945ad74d41188b8e22013a199fe8d656b87be4f4154676d3c9479`
 was installed and its dedicated-identity
@@ -45,8 +82,8 @@ Docker timestamps show the PP API stopped at 22:25:29.713719463 UTC and
 restarted at 22:31:11.439103596 UTC, an approximately **341.725-second PP
 API interruption**. API, dashboard and state returned HTTP 200 afterward;
 PostgreSQL remained healthy, and the collector is OFF. No production service
-was interrupted. The per-origin inventory correction is under review and
-**not deployed**. The failed release remains failed despite manual recovery.
+was interrupted. The per-origin inventory correction later merged in #125,
+but is **not deployed**. The failed release remains failed despite manual recovery.
 
 PR #122 prepared a fail-closed PP Storage Auth installer; #123 corrected its
 publishable-key newline check after the first credential installation stopped

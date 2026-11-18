@@ -12,10 +12,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.active_structured import ActiveStructuredWorker, SealedStructuredWorker
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveLimits, ArchiveUnavailable, encoded
 from postgres.history_v2_envelope import validate_outbox_stream
+from postgres.history_v2_transport import HistoryV2PostgresTransport
 from postgres.lifecycle import LifecycleHold
 
 
-ORIGIN = 'pp-live-fixture'
+ORIGIN = 'pp-live-pp'
 GENERATION = '00000000-0000-4000-8000-000000000001'
 NEXT_GENERATION = '00000000-0000-4000-8000-000000000002'
 
@@ -281,6 +282,14 @@ class ActiveStructuredTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ActiveStructuredWorker(repository, transport,
                                    origin_id='production')
+        with self.assertRaises(ValueError):
+            ActiveStructuredWorker(repository, transport,
+                                   origin_id='pp-live-pp-other')
+        for origin in ('pp-live-other', 'pp-live-pp-other', 'production', ''):
+            with self.subTest(origin=origin), self.assertRaises(ValueError):
+                HistoryV2PostgresTransport(lambda **_: None, origin_id=origin,
+                    generation_id=GENERATION, expected_database='postgres',
+                    expected_role='tradebot_pp_history')
         self.assertEqual(transport.calls, [])
 
 

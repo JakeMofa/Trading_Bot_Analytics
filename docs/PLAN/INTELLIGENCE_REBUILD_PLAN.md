@@ -1,5 +1,132 @@
 # BTC Intelligence Rebuild Plan
 
+## Active CP6 execution — PP archive identity and private Storage
+
+**Current state, November 17 CST / November 18 UTC:** PR #100 merged the
+tested, exact-origin `MARKET-RAW` Storage policy **template** into `preprod`.
+It is outside migrations and has **not** been applied. The PP Auth identity,
+credential, renewable token path, synthetic cloud readback, and PP runtime
+wiring do not yet exist. The previously applied `history_v2` NOLOGIN role is
+for structured PostgreSQL history, not Storage HTTP. The existing public
+Supabase tables contain historical rows; private `history_v2` remains empty.
+PP collection, cloud sync, retirement and paid AI remain OFF at the last
+observed host checkpoint; production remains unchanged.
+
+This is one bounded sequence with independent small PRs and exact CI:
+
+1. **Operator-only identity provisioning:** Use Supabase Auth Admin API with a
+   privileged key held only in a private operator secret file. Create one
+   dedicated PP project Auth identity with a generated credential, report only
+   its UID and sanitized outcome, and stop on an existing/conflicting identity
+   or ambiguous response. No invitation or human dashboard password is used.
+2. **Renewable runtime bearer:** Replace the fixed-token-only PP Storage path
+   with bounded sign-in/refresh for that identity. Keep the publishable API key
+   separate; never install a service-role/admin key on PP. Expiry, revocation,
+   timeout, restart and concurrent archive calls must fail closed without
+   deleting raw data or exposing credentials.
+3. **Exact UID binding:** Render PR #100's reviewed policy only for the
+   independently verified PP UID and exact `pp-live-pp` object namespace.
+   Confirm private bucket, zero unexpected policies and operation semantics.
+   Apply one reviewed migration, then prove a bounded synthetic create-only
+   upload, fresh authenticated readback, and denials for wrong UID, bucket,
+   origin, listing, overwrite and deletion. Keep all test objects retained for
+   evidence unless a separate cleanup scope is reviewed.
+4. **PP integration:** Merge the qualified structured-sync/drain changes,
+   add the narrowly required `history_v2` receipt grants and cloud connection
+   binding, and first drain the measured 5,268/10,000 pending PP outbox without
+   collector interference. Then release the exact PP artifact and observe a
+   bounded live A→B seal/archive/readback cycle. Do not infer 72-hour capacity
+   from a short size-trigger test. Keep local retirement OFF until its separate
+   mutation-authority, reference, reader-drain and recovery gates pass.
+
+The first three coding parts are delegated in isolated worktrees. The master
+roadmap records their tested commits, CI and actual cloud results after each
+gate. A passing policy fixture or applied permission alone is not archive
+acceptance. No production deployment or Phase 2 work follows from this scope.
+
+## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
+
+Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)
+merged to `preprod` as `2c6ffd2`; exact source `6d44201` passed
+[push CI 44221712030](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221712030)
+and [PR CI 44221718737](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221718737).
+The reviewed SQL was applied to the connected Supabase project as migration
+`20261118021900` (`pp_history_v2_role_20261118`). Readback verified a
+NOLOGIN/NOINHERIT/NOBYPASSRLS role, 21 exact `pp-live-pp` policies, nine
+SELECT/INSERT tables and three UPDATE tables. DELETE, `coverage`, and
+anon/authenticated/service-role schema access remain denied. The existing
+private `history_v2` tables still contain zero rows. This is a permission
+foundation, **not** runtime enablement: no PP cloud login, Storage identity,
+structured receipt grant, host credential, live cloud write or retirement
+was enabled. See [the reviewed scope and remaining gates](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md).
+
+CP7 code-only PRs #93, #95 and #96 have merged into `preprod` after exact CI;
+the bounded Coinbase reconnect and generated-profile leave changes are **not
+deployed** to PP. The last observed PP collector state remains generated/OFF
+after the failed diagnostic live trial; its 5,268/10,000 pending outbox is a
+separate long-session gate. Draft CP6 PR #92 and stacked PR #97 address active
+structured sync and sealed-generation drainage, but remain unmerged and
+runtime NO-GO. Live A→B rotation, raw Storage archival/readback, and local
+retirement remain unproven. Production remains unchanged; I7 and Phase 1.75
+remain OPEN.
+
+## PP leave readiness candidate — November 17 CST / November 18 UTC
+
+After the pp.9 diagnostic trial, first leave-to-generated failed with a generic
+entrypoint code after service recreation; later generated API/operator checks
+and one bounded permit-free recovery leave passed. The exact failed subcheck
+is unknown. A small offline candidate now waits only for transient API/operator
+loopback unavailability within the original 180-second leave budget, reports
+fixed post-recreation failure stages, and leaves durable OFF plus the `leaving`
+journal fail-closed. Generated regressions pass locally; Linux CI and any PP
+controller release remain separate. See the
+[leave review](PP_LEAVE_READINESS_REVIEW_2026-11-17.md). No live collection,
+cloud sync, retirement or production operation follows from this candidate.
+
+## Current CP7 result — diagnostic PP live release and trial, November 17 CST / November 18 UTC
+
+**FAIL; PP recovered to generated mode, collector OFF.** Exact `preprod`
+source `437d0a4` passed [CI 44214616202](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44214616202),
+immutable candidate `v0.2.0-pp.9` passed
+[publish workflow 44215401524](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44215401524),
+and [manual PP CD 44216017150](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44216017150)
+passed generated-mode acceptance. The bounded PP live session then stopped
+after about 282 seconds with private code `coinbase_stream.unexpected`,
+captured before OFF and profile restart. The exact WebSocket exception is
+unknown. During 53 ON samples, API had zero errors (maximum successful latency
+190.6 ms), but Coinbase input age reached 33.145 seconds near failure. Only
+one market ID was seen; no boundary, A/B switch, cloud archive or retirement
+was qualified. Raw A grew from 1,389 to 4,845 rows, and pending local outbox
+from 1,530 to 5,268 (below the unchanged 10,000 cap).
+
+Explicit OFF passed. The first generated-profile leave failed after service
+recreation; its exact post-recreation subcheck was not logged. The existing
+bounded permit-free recovery leave passed, and the journal records
+`generated_restored`. All application services run the exact image with zero
+automatic restarts; API reports generated mode and collector OFF; PostgreSQL
+was not recreated. Ten API transport errors occurred during the two profile
+recreations, none during ON or the intervening OFF period. The failed first
+leave and failed trial remain failures. [Full sanitized evidence and limits](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md).
+
+**Next CP7 action:** classify Coinbase WebSocket exceptions into specific
+sanitized codes and fix the generated-profile readiness race offline before
+any new live attempt. Keep the PP size trigger and outbox cap unchanged until
+separately qualified. Production, cloud sync, retirement and paid AI remain
+unchanged/OFF. I7 and Phase 1.75 remain OPEN.
+
+## CP7 Coinbase reconnect candidate — November 17, 2026
+
+An isolated, default-off successor to PR #93 retries only classified Coinbase
+WebSocket closure, transport and timeout failures, with 1/2/4-second backoff,
+three reconnects per 60 seconds and 12 reconnects per bounded session. Storage
+and ownership holds, invalid data and handshake/protocol failures remain
+fail-closed; no ticks are synthesized or backfilled. The 42 affected local
+tests pass, including cancellation, replay and sanitized diagnostics. Exact
+Linux CI and any PP release remain separate. This does **not** explain the
+historical `coinbase_stream.unexpected` PP failure. Outbox headroom and
+structured drain remain independent PP live-run gates. See the
+[candidate scope](CP7_COINBASE_RECONNECT_CANDIDATE_2026-11-17.md).
+
 ## Legacy collector control CI correction — November 17 CST / November 18 UTC
 
 PR #83 successor [push CI 44213027544](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44213027544)
@@ -79,6 +206,27 @@ locally; exact Linux CI and any actual PP observation remain separate gates.
 See deploy/preprod/LIVE_OBSERVATION.md. Raw-row acknowledgements, disk/WAL
 growth, Supabase archive/retirement and 72-hour operation require independent
 evidence.
+
+## CP7 generated market-boundary smoke candidate — November 17, 2026
+
+An isolated candidate combines the PP supervisor, Polymarket cycle and operator
+session across a simulated 15-minute boundary. Generated missing-market and
+404/429/timeout/invalid faults assert independent Coinbase progress, no old
+quote replay, fixed private failure codes, durable OFF and no automatic ON.
+The adjacent 34 local tests passed. Exact source `448cd1f` passed
+[push CI 44217282644](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217282644)
+and [PR CI 44217319889](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217319889);
+the isolated PostgreSQL logs confirm both new smoke methods ran. This does not
+identify the first PP live session's lost exception or qualify live A→B.
+See [bounded smoke scope](CP7_BOUNDARY_SMOKE_2026-11-17.md).
+
+The subsequent PP diagnostic checkpoint reported `coinbase_stream.unexpected`
+before the market boundary, leaving the WebSocket exception subtype unknown.
+A default-OFF successor to draft PR #93 classifies pinned `websockets==15.0.1`
+closure, handshake status, protocol and transport failures into fixed private
+codes. Generated fake-socket tests verify durable OFF and no payload/URL text;
+35 affected local tests passed. No runtime reconnect, PP release or live
+continuity result follows from this candidate. Exact successor CI is pending.
 
 ## CP6 structured import preparation — November 17, 2026
 
@@ -913,12 +1061,43 @@ no such credential is wired into PP. A scoped authenticated identity, reviewed
 Storage policies, actual deny tests and privileged-mutation fencing remain
 required before any cloud-enabled runtime or retirement gate.
 
+**CP6 PP cloud binding preflight (November 17):** A separate offline module
+checks exact `preprod`/`pp_live`/`pp-live-pp`, six distinct private file paths
+for the Storage publishable key, dedicated Auth machine identity, independent
+structured DSN and local lifecycle DSN, and OFF sync/retirement/paid-AI flags.
+It checks file metadata without reading values and always returns STOP; it
+does not mount a service or start cloud I/O. The structured role is still
+NOLOGIN, PR #92 receipts/grants and PR #97 worker are draft, and live Storage
+and direct PostgreSQL authority/network gates remain open. PR #92's receipt
+and immutable-row `SELECT ... FOR UPDATE` also require UPDATE privileges under
+PostgreSQL 17 and must be corrected under the narrow grant before execution. See
+[binding preflight review](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md).
+
 **CP6 structured-import preparation:** A separate, offline envelope validator
 now recognizes only the eight versioned structured datasets, binds origin and
 generation, compares exact primary identities/content hashes and orders FK
 parents before dependents. It rejects conflicting revisions within one batch.
 This is pre-import validation only; mutable projection ordering, narrow cloud
 grants, actual writes/readback and durable acknowledgement remain open.
+
+**CP6 PP SQL role candidate (November 17):** A separate small PR prepares a
+NOLOGIN, exact-`pp-live-pp` `history_v2` role migration and isolated PostgreSQL
+permission/denial tests. It does not grant Storage HTTP access, include PR #92's
+unapplied receipt table, apply cloud SQL, enable runtime sync or authorize raw
+retirement. Receipt grants, a dedicated Storage bearer and exact operation
+policies, PP network/TLS/deadline qualification, and privileged mutation
+protection remain separate gates. See
+[role review](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md).
+
+**CP6 PP Storage policy review (November 17):** A separate non-applied SQL
+template outside `supabase/migrations` proposes exact PP Auth-user, bucket,
+object-path and operation policies for create-only raw upload and authenticated
+GET. A generated PostgreSQL fixture exercises allowed upload/readback and
+denials for other identity, origin, bucket, key, list, copy, signed upload,
+move, update, delete and anon access. The dedicated Auth user UUID does not
+exist in this candidate; template preflight fails while unfilled. Live Storage
+HTTP, token lifecycle, privileged mutation authority and retirement remain
+OPEN. See [Storage policy review](CP6_PP_STORAGE_POLICY_REVIEW_2026-11-17.md).
 
 ### Fixed architecture and policy
 

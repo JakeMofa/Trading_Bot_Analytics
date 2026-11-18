@@ -17,6 +17,36 @@ from controller import DeploymentHold, _secure_file
 
 
 class TransitionGateTests(unittest.TestCase):
+    def test_failed_generated_readiness_keeps_leaving_journal_until_recovery(self):
+        digest=hashlib.sha256(b'controller').hexdigest()
+        request=gate.TransitionRequest('leave','a'*40,'b'*64,digest,'sha256:'+'c'*64)
+        active={**request.bindings(),'version':1,'nonce':str(uuid.uuid4()),'state':'ready_off'}
+        calls=[]
+        class Transition:
+            def __init__(self,*_):pass
+            def leave(self):
+                calls.append('leave')
+                if len(calls)==1:
+                    raise DeploymentHold('generated_api_readiness_timeout')
+                return {'gate':'PP_GENERATED_RESTORED','collector_enabled':False}
+        def write(_path,data,**_):
+            active.clear();active.update(data)
+        with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(validate=lambda:None)), \
+             patch.object(gate,'_secure_file',return_value=(b'controller',None)), \
+             patch.object(gate,'_candidate',return_value=SimpleNamespace(image=request.image_id)), \
+             patch.object(gate,'_image_binding',return_value=object()), \
+             patch.object(gate,'_owned_runtime'), \
+             patch.object(gate,'_atomic_json',side_effect=write), \
+             patch.object(gate,'_read_active',side_effect=lambda:dict(active)), \
+             patch('live_transition.LiveTransition',Transition):
+            with self.assertRaisesRegex(DeploymentHold,'generated_api_readiness_timeout'):
+                gate.transition(request,Path('/trusted/controller.pyz'))
+            self.assertEqual(active['state'],'leaving')
+            self.assertEqual(gate.transition(request,Path('/trusted/controller.pyz'))['gate'],
+                             'PP_GENERATED_RESTORED')
+        self.assertEqual(active['state'],'generated_restored')
+        self.assertEqual(calls,['leave','leave'])
+
     def test_failed_off_retains_journal_for_permit_free_leave(self):
         digest = hashlib.sha256(b'controller').hexdigest()
         enter = gate.TransitionRequest('enter', 'a'*40, 'b'*64, digest, 'sha256:'+'c'*64)

@@ -92,7 +92,7 @@ class HistoryV2PostgresTransport:
     def _receipt(self, connection, record):
         return connection.execute('''SELECT entity_type,entity_id,content_hash,
             payload_hash,envelope_hash FROM history_v2.structured_receipts
-            WHERE origin_id=%s AND generation_id=%s AND outbox_id=%s FOR UPDATE''',
+            WHERE origin_id=%s AND generation_id=%s AND outbox_id=%s''',
             (self.origin_id, self.generation_id, record['id'])).fetchone()
 
     @staticmethod
@@ -109,8 +109,13 @@ class HistoryV2PostgresTransport:
     def _insert_or_update(connection, record):
         row = cloud_row(record)
         table, condition, keys = HistoryV2PostgresTransport._table_and_condition(record)
+        # The entity advisory lock serializes immutable inserts and replays
+        # across generations. Only mutable projections need a row lock; the
+        # private importer has no UPDATE privilege on immutable tables.
+        row_lock = (sql.SQL(' FOR UPDATE') if record['entity_type'] in MUTABLE_PROJECTIONS
+                    else sql.SQL(''))
         existing = connection.execute(
-            sql.SQL('SELECT * FROM {} WHERE {} FOR UPDATE').format(table, condition),
+            sql.SQL('SELECT * FROM {} WHERE {}{}').format(table, condition, row_lock),
             keys).fetchone()
         if existing is not None:
             if record['entity_type'] not in MUTABLE_PROJECTIONS:

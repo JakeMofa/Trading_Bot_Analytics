@@ -1,6 +1,7 @@
 # CP6 PP private-history SQL role review — November 17, 2026
 
-Status: **generated SQL qualification pending; live Supabase unchanged**.
+Status: **isolated PostgreSQL 17 role qualification PASS; exact CI pending;
+live Supabase unchanged**.
 This is one small permission candidate for draft PR review. It does not turn on
 structured sync, Storage upload, or local partition retirement.
 
@@ -47,6 +48,11 @@ migration and SQL denial probes in a disposable database. It must prove a PP
 checkpoint insert/read/update, hide and reject production-origin rows, and
 reject deletion, immutable-row update and unqualified coverage access. It
 also checks that anon/authenticated/service-role remain outside `history_v2`.
+The local, network-isolated PostgreSQL 17 fixture applied both migrations and
+passed those actual SQL role probes. Its grants resolved to nine SELECT/INSERT
+tables and three UPDATE tables; the fixture was removed afterward. Local PP
+controls passed 90 tests with one platform skip; eight history-envelope tests
+passed. The full exact-source CI integration gate remains pending.
 
 This role is deliberately incomplete for PR #92: `structured_receipts` does
 not exist on `preprod`. After PR #92 is reviewed and merged, a separate

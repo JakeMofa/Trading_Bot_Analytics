@@ -31,7 +31,7 @@ extend the leave deadline, change PostgreSQL or enable collection.
 Generated regressions cover delayed API and operator binding, permanent
 unavailability, reachable wrong state, operator authentication mismatch,
 runtime mismatch, durable OFF ordering and failed-leave
-journal recovery. All PP control tests pass locally (88 tests, one existing
+journal recovery. All PP control tests pass locally (90 tests, one existing
 platform skip). Linux exact-commit CI and a PP release remain separate gates.
 
 ## Release boundary

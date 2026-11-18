@@ -2,6 +2,11 @@
 
 ## CP6 private structured receipt grant candidate — November 17 CST / November 18 UTC
 
+**Historical candidate:** the later bounded operator connection check enabled
+the restricted role's LOGIN and passed a rolled-back PP receipt transaction;
+see the current CP6 login checkpoint below. The NOLOGIN state and proposed
+steps in this section describe the earlier grant-only review.
+
 A generated-only candidate extends the already applied `tradebot_pp_history`
 NOLOGIN role with `SELECT`/`INSERT` on `history_v2.structured_receipts`
 and exact `origin_id = 'pp-live-pp'` RLS policies. The migration fails if PR
@@ -34,9 +39,10 @@ and #108 amended its authenticated readback operation. Both reviewed policy
 transactions were applied to Supabase. A bounded synthetic create-only upload
 and later reconcile-only authenticated readback **passed**; the object remains
 private and retained. The renewable-token adapter merged as PR #103; complete
-PP runtime archival qualification remains open. The previously applied
-`history_v2` NOLOGIN role is
-for structured PostgreSQL history, not Storage HTTP. The existing public
+PP runtime archival qualification remains open. The structured `history_v2`
+role is separate from Storage HTTP. Its earlier NOLOGIN state was superseded
+by the bounded PP database login check below; no application service uses
+that connection yet. The existing public
 Supabase tables contain historical rows; private `history_v2` remains empty.
 PP collection, cloud sync, retirement and paid AI were OFF at the last
 observed host checkpoint; the cloud probes did not alter that host state.
@@ -150,13 +156,37 @@ as `ddc5d29`; sealed-generation runtime-safety
 `structured_receipts_v2_20261118` and
 `pp_structured_receipt_grants_20261118` were applied through the Supabase
 connector. Post-check: private `history_v2.structured_receipts` exists with
-**zero rows**; `tradebot_pp_history` remains **NOLOGIN** and has only
-SELECT/INSERT on that table. Exactly one `pp-live-pp` SELECT policy and one
-INSERT policy exist; UPDATE/DELETE grants are absent, and
+**zero rows**; `tradebot_pp_history` had **NOLOGIN** at this grant-only
+checkpoint and had only SELECT/INSERT on that table. Exactly one `pp-live-pp`
+SELECT policy and one INSERT policy exist; UPDATE/DELETE grants are absent, and
 anon/authenticated/service-role SELECT is denied. This is a permission
-foundation, **not** a PP runtime login, cloud structured write/readback,
+foundation, **not** cloud runtime structured write/readback,
 outbox acknowledgement or sustained archive result. Runtime sync, local
 retirement and production remain OPEN; retirement is OFF.
+
+### CP6 bounded PP structured-history login — November 18 UTC
+
+After the grant-only checkpoint, the selected operator procedure enabled
+`tradebot_pp_history` LOGIN with a random SCRAM credential. The exact Supabase
+session-pooler endpoint and Root 2021 CA were obtained from the project
+dashboard. From the existing PP VM over its pinned operator connection, the
+PostgreSQL container established a TLS `verify-full` session as that role.
+The root-owned PP connection file (mode 0600) and CA file (mode 0644) are
+staged outside the containers; no service mount or cloud sync was enabled.
+
+A bounded transaction read an empty `history_v2.structured_receipts`, inserted
+and read one exact `pp-live-pp` receipt, rejected a wrong-origin insert, then
+rolled back. Final cloud post-check confirmed **zero persisted rows**, LOGIN
+enabled, SELECT/INSERT true, UPDATE/DELETE false, and exactly two receipt
+policies. The temporary PP test credential file and local credential copies
+were removed. Existing PP API, calculation, lifecycle, operator and PostgreSQL
+containers remained running.
+
+This proves the restricted **operator connection and transaction**, not the
+application path. Runtime sync is **NO-GO** until the exact-origin constructor,
+service wiring, actual importer/write/readback, and bounded backlog handling
+are qualified. Archival acceptance, local retirement and production remain
+OPEN; retirement and paid AI remain OFF.
 
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 

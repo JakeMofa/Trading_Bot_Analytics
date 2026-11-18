@@ -18,6 +18,7 @@ IMAGE='sha256:'+'a'*64
 PG_ID='f'*64
 IDS={service:str(index+1)*64 for index,service in enumerate(a.SERVICES)}
 SCHEMA={'count':2,'digest':'a'*32}
+ACK_STATE={'count':2,'digest':'c'*32}
 
 
 class DockerBudget:
@@ -59,7 +60,8 @@ class RecoveryTests(unittest.TestCase):
         self.budget=DockerBudget()
         self.rows={service:self.row(service) for service in a.SERVICES}
         self.actions.prior_runtime={'ids':IDS,'rows':deepcopy(self.rows),'image':IMAGE,
-                                    'pg_id':PG_ID,'pg_volume':a.PG_VOLUME,'schema':SCHEMA}
+                                    'pg_id':PG_ID,'pg_volume':a.PG_VOLUME,
+                                    'schema':SCHEMA,'ack_state':ACK_STATE}
 
     @staticmethod
     def row(service):
@@ -92,6 +94,7 @@ class RecoveryTests(unittest.TestCase):
              patch.object(self.actions,'_inspect',side_effect=self.inspect), \
              patch.object(self.actions,'_postgres'), \
              patch.object(self.actions,'_schema_ledger',return_value=SCHEMA), \
+             patch.object(self.actions,'_ack_state',return_value=ACK_STATE), \
              patch.object(self.actions,'_runtime',side_effect=self.runtime), \
              patch.object(self.actions,'_host_api'),patch.object(self.actions,'_host_operator'):
             return self.actions.recover(self.context,self.budget)
@@ -123,7 +126,8 @@ class RecoveryTests(unittest.TestCase):
         with patch.object(self.actions,'_ids',side_effect=self.ids), \
              patch.object(self.actions,'_inspect',side_effect=self.inspect), \
              patch.object(self.actions,'_postgres'), \
-             patch.object(self.actions,'_schema_ledger',return_value={'count':3,'digest':'b'*32}):
+             patch.object(self.actions,'_schema_ledger',return_value={'count':3,'digest':'b'*32}), \
+             patch.object(self.actions,'_ack_state',return_value=ACK_STATE):
             with self.assertRaisesRegex(c.DeploymentHold,'pre_migration_database_changed'):
                 self.actions.recover(self.context,self.budget)
         self.assertEqual(self.budget.calls,[])
@@ -133,10 +137,32 @@ class RecoveryTests(unittest.TestCase):
         with patch.object(self.actions,'_ids',side_effect=self.ids), \
              patch.object(self.actions,'_inspect',side_effect=self.inspect), \
              patch.object(self.actions,'_postgres',side_effect=changed), \
-             patch.object(self.actions,'_schema_ledger',return_value=SCHEMA):
+             patch.object(self.actions,'_schema_ledger',return_value=SCHEMA), \
+             patch.object(self.actions,'_ack_state',return_value=ACK_STATE):
             with self.assertRaisesRegex(c.DeploymentHold,'pre_migration_database_changed'):
                 self.actions.recover(self.context,self.budget)
         self.assertEqual(self.budget.calls,[])
+
+    def test_ack_change_during_fence_blocks_prior_restart(self):
+        changed={'count':2,'digest':'d'*32}
+        with patch.object(self.actions,'_ids',side_effect=self.ids), \
+             patch.object(self.actions,'_inspect',side_effect=self.inspect), \
+             patch.object(self.actions,'_postgres'), \
+             patch.object(self.actions,'_schema_ledger',return_value=SCHEMA), \
+             patch.object(self.actions,'_ack_state',return_value=changed):
+            with self.assertRaisesRegex(c.DeploymentHold,'pre_migration_database_changed'):
+                self.actions.recover(self.context,self.budget)
+        self.assertEqual(self.budget.calls,[])
+
+    def test_ack_proof_is_bounded_and_includes_ack_timestamp(self):
+        with patch.object(self.actions,'_sql',return_value=json.dumps(ACK_STATE)) as query:
+            self.assertEqual(self.actions._ack_state(self.budget),ACK_STATE)
+        text=query.call_args.args[1]
+        self.assertIn('acknowledged_at',text)
+        self.assertIn('LIMIT 10001',text)
+        with patch.object(self.actions,'_sql',return_value=json.dumps({'count':10001,'digest':'a'*32})):
+            with self.assertRaisesRegex(c.DeploymentHold,'prior_ack_state_unproven'):
+                self.actions._ack_state(self.budget)
 
     def test_marker_or_attempted_oneoff_forbids_prior_restore(self):
         marker=self.context.staging/'migration-oneoff-attempted.json'

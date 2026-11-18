@@ -517,6 +517,13 @@ class LinuxActions:
                 and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'prior_schema_ledger_unproven')
         return row
 
+    def _ack_state(self,budget):
+        """Bounded exact outbox ACK-state proof for pre-migration restoration."""
+        row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY id),''))) FROM (SELECT id,jsonb_build_array(id,origin_id,generation_id,entity_type,entity_id,content_hash,acknowledged_at)::text AS fingerprint FROM ops.outbox ORDER BY id LIMIT 10001) bounded"))
+        require(isinstance(row,dict) and 0<=row.get('count',10001)<=10000
+                and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'prior_ack_state_unproven')
+        return row
+
     def _capture_prior_runtime(self,context,budget):
         """Only the already-running generated/off containers may be restored."""
         require(self.pg_id is not None and self.pg_volume==PG_VOLUME,'prior_postgres_not_bound')
@@ -537,7 +544,7 @@ class LinuxActions:
         self._host_api();self._host_operator()
         self.prior_runtime={'ids':ids,'rows':rows,'image':prior_image,
                             'pg_id':self.pg_id,'pg_volume':self.pg_volume,
-                            'schema':self._schema_ledger(budget)}
+                            'schema':self._schema_ledger(budget),'ack_state':self._ack_state(budget)}
 
     @staticmethod
     def _unchanged_container(prior,current):
@@ -736,7 +743,8 @@ class LinuxActions:
         old_pg=self.pg_id
         self._postgres(context,budget)
         require(self.pg_id==old_pg==prior['pg_id'] and self.pg_volume==prior['pg_volume']
-                and self._schema_ledger(budget)==prior['schema'],'pre_migration_database_changed')
+                and self._schema_ledger(budget)==prior['schema']
+                and self._ack_state(budget)==prior['ack_state'],'pre_migration_database_changed')
         originals=list(ids.values())
         try:
             budget.run(['docker','update','--restart=unless-stopped',*originals],

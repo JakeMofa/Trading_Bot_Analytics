@@ -1,6 +1,6 @@
 # PP Storage authenticated-readback operation amendment
 
-Status: **review candidate; no live amendment or second probe executed**.
+Status: **bounded synthetic authenticated readback PASS; full archival OPEN**.
 The authoritative roadmap remains `docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md`.
 
 ## Observed checkpoint
@@ -12,13 +12,14 @@ The dedicated PP Auth UID is `600b06fc-f121-4a96-a21c-6278b0f38be6`.
 The private `market-raw` bucket has the two reviewed policies and no mutation
 grant. No credentials, token values or request headers belong in this report.
 
-The bounded live probe's create-only POST returned HTTP 200. Its authenticated
-GET returned HTTP 400 `NoSuchKey`, so **readback is NOT VERIFIED**. Read-only
+The first bounded live probe's create-only POST returned HTTP 200. Its
+authenticated GET returned HTTP 400 `NoSuchKey`, so readback **failed at that
+initial checkpoint**. Read-only
 Storage logs recorded upload operation `storage.object.upload` and GET operation
 `object.get_authenticated_info`. The current readback policy permits only
 `storage.object.get_authenticated`. The exact object row, UID, bucket and PP
-prefix are present. The operation mismatch is the supported explanation for
-the read failure; the replacement still requires a live readback result.
+prefix were present. The operation mismatch was the supported explanation for
+that failed read; the later successful result is recorded below.
 
 One synthetic object remains retained:
 
@@ -26,8 +27,8 @@ One synthetic object remains retained:
 
 The two deterministic synthetic records reconstruct locally to **126 bytes**
 and SHA-256 `5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf`.
-That local reconstruction does not verify the remote bytes. PP retirement stays
-OFF. No structured history claim follows from this synthetic probe.
+That local reconstruction alone did not verify the remote bytes. PP retirement
+stays OFF. No structured history claim follows from this synthetic probe.
 The first exact CI on this successor failed one backend test: Python/zlib
 produced different gzip bytes for the same two records on Linux. The reviewed
 126-byte synthetic blob is now pinned in code and independently checked by
@@ -62,9 +63,9 @@ WHERE p.schemaname='storage' AND p.tablename='objects';
 
 The operator must independently verify that the connected Supabase project is
 `xttdqeimdujweijxcuro`. The local renderer cannot attest connector selection.
-The amendment remains review-only until the exact release, policy hash and
-live current state are confirmed. On any drift, stop; do not substitute a new
-hash without reviewing the changed policies.
+This was the review procedure used for the applied amendment. Any future
+policy change needs a new reviewed catalog hash and migration; the prior hash
+cannot be reused.
 
 ## Reconcile-only probe
 
@@ -83,6 +84,36 @@ timeout or inconclusive denial is a failure, with no automatic retry.
 
 The generated PostgreSQL fixture proves both authenticated operation names
 can select only the exact PP object while list, wrong UID, update and delete
-remain denied. It cannot prove the live Storage HTTP route; the reconcile-only
-live result is the next evidence checkpoint. Even a successful readback would
-not authorize local retirement or full archival throughput.
+remain denied. Its SQL approximation does not by itself prove live Storage
+HTTP behavior.
+
+## Applied amendment and bounded live outcome — November 18 UTC
+
+[PR #108](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/108) merged to
+`preprod` as `83f6a41` after exact [push CI 44232805427](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44232805427)
+and [PR CI 44232810997](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44232810997)
+passed. The catalog-bound rendered patch had SHA-256
+`2527e7642139bb8a04d50a50baf34b1cc5a4cfd261596e380330ddd5283b1d22`.
+It was applied as migration `pp_market_raw_legacy_readback_20261118`, ledger
+`20261118035125`. Post-checks retained the private bucket and exactly two
+policies bound to the dedicated UID: upload and authenticated readback, with
+zero update/delete grants. The upload policy and existing object rows were
+preserved.
+
+The reviewed reconcile-only probe used **three HTTP attempts and zero POST**.
+Authenticated readback matched all **126 bytes**, object SHA-256
+`5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf`,
+both synthetic records and their generation identity. Public retrieval was
+denied. The object remains retained. Read-only Storage logs showed legacy
+`object.get_authenticated_info` returning HTTP 200 followed by
+`storage.object.get_authenticated` returning HTTP 200; anonymous legacy info
+returned HTTP 400. The ephemeral bearer used for the attempt was removed.
+No credential, request header or secret path is included in this report.
+
+**Gate disposition:** The bounded synthetic private-Storage upload and exact
+authenticated readback gate is PASS. This is one 126-byte object, not a full
+sealed generation or sustained Supabase-throughput test. Structured
+`history_v2` write/readback, full archive coverage, privileged mutation
+protection, local retirement, PP runtime lifecycle integration and production
+remain OPEN. Local retirement is OFF; no production change follows from this
+probe.

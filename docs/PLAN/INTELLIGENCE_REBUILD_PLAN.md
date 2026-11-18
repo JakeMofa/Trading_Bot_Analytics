@@ -2,17 +2,19 @@
 
 ## Active CP6 execution — PP archive identity and private Storage
 
-**Current state, November 17 CST / November 18 UTC:** PR #100 merged the
-tested, exact-origin `MARKET-RAW` Storage policy **template** into `preprod`.
-It is outside migrations and has **not** been applied. The PP Auth identity,
-credential, synthetic cloud readback, and PP runtime wiring remained open at
-that checkpoint. The renewable-token adapter has since merged as PR #103;
-its live runtime qualification is still open. The previously applied
+**Current state, November 18 UTC:** PR #100 supplied the exact-origin
+`market-raw` policy template; #104 bound it to the dedicated PP Auth identity,
+and #108 amended its authenticated readback operation. Both reviewed policy
+transactions were applied to Supabase. A bounded synthetic create-only upload
+and later reconcile-only authenticated readback **passed**; the object remains
+private and retained. The renewable-token adapter merged as PR #103; complete
+PP runtime archival qualification remains open. The previously applied
 `history_v2` NOLOGIN role is
 for structured PostgreSQL history, not Storage HTTP. The existing public
 Supabase tables contain historical rows; private `history_v2` remains empty.
-PP collection, cloud sync, retirement and paid AI remain OFF at the last
-observed host checkpoint; production remains unchanged.
+PP collection, cloud sync, retirement and paid AI were OFF at the last
+observed host checkpoint; the cloud probes did not alter that host state.
+Production remains unchanged.
 
 This is one bounded sequence with independent small PRs and exact CI:
 
@@ -41,10 +43,11 @@ This is one bounded sequence with independent small PRs and exact CI:
    from a short size-trigger test. Keep local retirement OFF until its separate
    mutation-authority, reference, reader-drain and recovery gates pass.
 
-The first three coding parts are delegated in isolated worktrees. The master
-roadmap records their tested commits, CI and actual cloud results after each
-gate. A passing policy fixture or applied permission alone is not archive
-acceptance. No production deployment or Phase 2 work follows from this scope.
+The first three coding parts have separate evidence below; bounded synthetic
+Storage readback now passes. Generated policy denials and one live public
+denial do not establish every cross-identity live denial. A passing policy
+fixture or synthetic object alone is not full archive acceptance. No
+production deployment or Phase 2 work follows from this scope.
 
 ### PP Auth refresh-token compatibility — November 18 UTC
 
@@ -73,7 +76,7 @@ It binds dedicated Auth UID `600b06fc-f121-4a96-a21c-6278b0f38be6` and
 the exact `pp-live-pp` origin. Live inventory found two policies, zero mutation
 grants and a private bucket. One create-only probe POST returned HTTP 200 and
 left a 126-byte synthetic object. Its authenticated GET returned HTTP 400
-`NoSuchKey`; **remote bytes and archive readback are NOT VERIFIED**. Read-only
+`NoSuchKey`; remote bytes were **NOT VERIFIED at that first attempt**. Read-only
 Storage logs recorded `storage.object.upload` for POST and legacy
 `object.get_authenticated_info` for GET, while the installed readback policy
 permits only `storage.object.get_authenticated`. The exact object row, UID,
@@ -86,9 +89,29 @@ catalog policies, exact UID/metadata, private bucket and the retained object
 before one transactional `ALTER POLICY`. A reconcile-only probe reconstructs
 the same key, 126 bytes and SHA-256 locally, then performs authenticated GET
 and public-denial GET with **zero POST**. The candidate has generated tests;
-no live policy amendment or second probe has run. Local retirement remains
-OFF; PP collection and production are unchanged by this candidate. See
+at that candidate checkpoint no live policy amendment or second probe had run.
+Local retirement remained OFF; PP collection and production were unchanged by
+the candidate. See
 [readback amendment review](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md).
+
+**Bounded PP Storage readback PASS (November 18 UTC):** PR
+[#108](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/108) merged as
+`83f6a41` after exact-source [push CI 44232805427](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44232805427)
+and [PR CI 44232810997](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44232810997)
+passed. The catalog-bound patch SHA-256 was
+`2527e7642139bb8a04d50a50baf34b1cc5a4cfd261596e380330ddd5283b1d22`;
+it was applied as migration `pp_market_raw_legacy_readback_20261118`, ledger
+`20261118035125`. Post-checks found the same two exact-UID upload/read
+policies and zero mutation grants. A reconcile-only probe of the retained
+126-byte synthetic object used **three HTTP attempts, zero POST**, matched
+SHA-256 `5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf`
+and both records, denied public retrieval, and retained the object. Storage
+logs showed authenticated legacy info and authenticated object GET returning
+200, while anonymous legacy info returned 400. The ephemeral bearer was
+removed. This clears only the **bounded synthetic private Storage readback**
+gate. Structured `history_v2` write/readback, full sealed-generation archival,
+privileged mutation protection, local retirement and production remain OPEN;
+retirement is OFF. See [readback outcome](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md).
 
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 

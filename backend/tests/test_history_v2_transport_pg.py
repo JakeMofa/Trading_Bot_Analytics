@@ -109,9 +109,26 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         with self.assertRaises(ArchiveIntegrityError):
             transport.read_structured_authenticated(records,
                 max_bytes=4 * 1024 * 1024, timeout_seconds=5)
+        forged_time = start + timedelta(seconds=3)
         with factory() as connection:
-            connection.execute('''UPDATE history_v2.current_prices SET price='100.2400'
-                WHERE origin_id=%s''', (origin,))
+            connection.execute('''UPDATE history_v2.current_prices SET
+                event_id='tick-forged',source_time=%s,source_epoch=%s,
+                received_at=%s,available_at=%s,price='100.2500',content_hash=%s
+                WHERE origin_id=%s''',
+                (forged_time.isoformat().replace('+00:00','Z'),
+                 str(int(forged_time.timestamp())), forged_time, forged_time,
+                 'd' * 64, origin))
+        with self.assertRaises(ArchiveIntegrityError):
+            transport.read_structured_authenticated(records,
+                max_bytes=4 * 1024 * 1024, timeout_seconds=5)
+        with factory() as connection:
+            connection.execute('''UPDATE history_v2.current_prices SET
+                event_id=%s,source_time=%s,source_epoch=%s,
+                received_at=%s,available_at=%s,price=%s,content_hash=%s
+                WHERE origin_id=%s''',
+                (second['event_id'], second['source_time'], second['source_epoch'],
+                 second['received_at'], second['available_at'],
+                 second['price'], second['content_hash'], origin))
             connection.execute('''UPDATE history_v2.structured_receipts
                 SET envelope_hash=%s WHERE origin_id=%s AND outbox_id=2''',
                 ('f' * 64, origin))

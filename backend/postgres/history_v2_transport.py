@@ -224,15 +224,11 @@ class HistoryV2PostgresTransport:
                         if row is None:
                             raise ArchiveIntegrityError('private structured projection missing')
                         if not cloud_row_matches(record, wire(row)):
-                            if record['entity_type'] not in MUTABLE_PROJECTIONS:
-                                raise ArchiveIntegrityError('private structured projection changed')
-                            later = {'entity_type': record['entity_type'],
-                                     'entity_id': record['entity_id'],
-                                     'origin_id': record['origin_id'],
-                                     'content_hash': row['content_hash'],
-                                     'payload': wire(row)}
-                            if projection_order(record, later) != 'newer_requires_atomic_cloud_update':
-                                raise ArchiveIntegrityError('private structured projection changed')
+                            # A newer-looking mutable row is not proof it was
+                            # imported through this receipt stream. Do not
+                            # acknowledge local evidence without an exact
+                            # fresh projection match.
+                            raise ArchiveIntegrityError('private structured projection changed')
                     return records
         except (ArchiveIntegrityError, ArchiveLimit):
             raise

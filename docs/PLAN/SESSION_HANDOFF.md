@@ -1,17 +1,23 @@
 # Resume here
 
 **Current checkpoint (November 18 CST):** Follow the opening section of
-[INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). PRs #117–#123
-are merged to `preprod` at `01c726a`; exact merge CI passed. The combined PP
-controller identity passed, but candidate `v0.2.0-pp.10` failed manual PP CD
-44411133302 at a whole-table 10,000-row outbox inventory check. The two
-origins total 12,779 rows; each is below its own limit. Recovery was unproven,
-then the prior application image was manually restored. PP API interruption
-was approximately 341.725 seconds; API/dashboard/state recovered, PostgreSQL
-is healthy, and the collector remains OFF. A per-origin inventory correction
-is under review and not deployed. Structured cloud sync, raw archival,
-retirement and production cutover remain OPEN. Older handoff entries below
-are dated history, not current instructions.
+[INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). PRs #124–#126
+merged to `preprod` at `56e4de5`; exact merge CI passed. Candidate
+`v0.2.0-pp.11` published in run 44418143697; installed successor controller
+`acec846b…` passed identity run 44418190583. Manual PP CD
+[44418602445](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44418602445)
+**FAILED before authority consumption** because the target profile still
+expected old controller `c3fac37c…`. Source extraction and read-only preflight
+passed. No candidate journal was created; the unused permit was revoked.
+Prior application containers and PostgreSQL are healthy, API HTTP 200,
+collector OFF. Node 20 and `ubuntu-latest` warnings did not cause the failure.
+PR #128 corrected the exact target-profile binding and merged as `f09987c5`
+with merge CI 44421342321 PASS. PR #129 separately pinned Node 24 Actions
+and Ubuntu 24.04 and merged as `2d0a449` with CI 44421906498 PASS; neither
+merge retried pp.11 or deployed PP. Qualify a new exact release before
+another manual attempt.
+Structured cloud sync, raw archival, retirement and production cutover remain
+OPEN. Older entries below are dated history, not current instructions.
 
 Latest CP6 permission checkpoint (November 18 UTC): PR #98 merged to
 `preprod` as `2c6ffd2` and its exact PP-only NOLOGIN `history_v2` role was

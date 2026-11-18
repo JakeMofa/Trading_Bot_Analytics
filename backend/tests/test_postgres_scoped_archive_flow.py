@@ -9,6 +9,7 @@ from pathlib import Path
 import sys
 import unittest
 import uuid
+from unittest.mock import patch
 
 import httpx
 
@@ -21,6 +22,7 @@ from postgres.config import Settings
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.store import Store
 from postgres.supabase_storage import SupabaseStorageTransport
+from postgres import pp_raw_archive_probe
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
 
 
@@ -81,7 +83,14 @@ class ScopedArchivePostgresFlowTests(unittest.TestCase):
             self.assertEqual(repository.generation(first_id)['state'], 'sealed')
             self.assertEqual(repository.generation(second_id)['state'], 'collecting')
         raw.corrupt = False
-        self.assertEqual(worker.archive_cycle(first_id)['status'], 'archived')
+        # Exercise the default-off one-shot wrapper against actual PostgreSQL
+        # sealing, cloud-mock readback, and manifest persistence.
+        with patch.object(pp_raw_archive_probe, 'ORIGIN', origin):
+            outcome = pp_raw_archive_probe.archive_once(repository,
+                worker.transport, generation_id=first_id,
+                expected_seal_count=1, expected_manifest_count=0)
+        self.assertEqual(outcome['raw_coverage'], 'archived')
+        self.assertEqual(outcome['retirement'], 'off')
         self.assertEqual(repository.generation(first_id)['state'], 'verified')
         with self.assertRaisesRegex(LifecycleHold, 'runtime retirement disabled'):
             worker.retire_generated(first_id, qualification_enabled=True)

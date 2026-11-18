@@ -7,7 +7,7 @@ entrypoint code after service recreation; later generated API/operator checks
 and one bounded permit-free recovery leave passed. The exact failed subcheck
 is unknown. A small offline candidate now waits only for transient API/operator
 loopback unavailability within the original 180-second leave budget, reports
-fixed readiness-timeout stages, and leaves durable OFF plus the `leaving`
+fixed post-recreation failure stages, and leaves durable OFF plus the `leaving`
 journal fail-closed. Generated regressions pass locally; Linux CI and any PP
 controller release remain separate. See the
 [leave review](PP_LEAVE_READINESS_REVIEW_2026-11-17.md). No live collection,

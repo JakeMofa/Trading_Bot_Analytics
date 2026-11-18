@@ -19,8 +19,9 @@ their fixed connection-unavailable codes. Reachable wrong state, wrong origin,
 authentication mismatch, runtime mismatch and other failures stop immediately.
 Each two-second host probe starts only with at least two seconds remaining in
 both the readiness window and the existing 180-second leave budget. The
-entrypoint exposes only fixed API/operator readiness-timeout codes; all other
-failures retain the generic public code.
+entrypoint exposes only fixed generated-runtime, API and operator stage codes
+for these post-recreation checks; child diagnostics and all other failures
+retain the generic public code.
 
 Durable OFF still precedes any generated service recreation. A failed leave
 keeps the fail-closed `leaving` journal; a later permit-free recovery is a
@@ -28,7 +29,8 @@ separate bounded command. This candidate does not add an unconditional retry,
 extend the leave deadline, change PostgreSQL or enable collection.
 
 Generated regressions cover delayed API and operator binding, permanent
-unavailability, reachable wrong state, durable OFF ordering and failed-leave
+unavailability, reachable wrong state, operator authentication mismatch,
+runtime mismatch, durable OFF ordering and failed-leave
 journal recovery. All PP control tests pass locally (88 tests, one existing
 platform skip). Linux exact-commit CI and a PP release remain separate gates.
 

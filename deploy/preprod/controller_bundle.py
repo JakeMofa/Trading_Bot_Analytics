@@ -60,8 +60,11 @@ except (DeploymentHold,OSError,ValueError) as error:
     # Publish only these fixed, non-sensitive leave-stage codes. All other
     # adapter/child diagnostics retain the existing generic public result.
     reason=str(error)
-    if reason not in ('generated_api_readiness_timeout',
-                      'generated_operator_readiness_timeout'):
+    if reason not in ('generated_runtime_check_failed',
+                      'generated_api_readiness_timeout',
+                      'generated_operator_readiness_timeout',
+                      'generated_api_state_check_failed',
+                      'generated_operator_state_check_failed'):
         reason='entrypoint_precondition_failed'
     print(json.dumps({"gate":"BLOCKED","environment":"preprod","reason":reason}),flush=True)
     raise SystemExit(1)

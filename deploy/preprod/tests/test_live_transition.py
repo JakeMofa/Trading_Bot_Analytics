@@ -140,7 +140,29 @@ class LiveTransitionTests(unittest.TestCase):
             raise DeploymentHold('host_api_wrong_state')
         self.actions._host_api=wrong_state
         with patch('live_transition.time.sleep') as sleep:
-            with self.assertRaisesRegex(DeploymentHold,'host_api_wrong_state'):
+            with self.assertRaisesRegex(DeploymentHold,'generated_api_state_check_failed'):
                 self.transition.leave()
         self.assertEqual(attempts,['api'])
+        sleep.assert_not_called()
+
+    def test_generated_restore_reports_runtime_phase_without_host_retry(self):
+        def invalid_runtime(*_,live=False):
+            self.actions.calls.append('runtime_invalid')
+            raise DeploymentHold('private_binding_changed')
+        self.actions._runtime=invalid_runtime
+        with patch('live_transition.time.sleep') as sleep:
+            with self.assertRaisesRegex(DeploymentHold,'generated_runtime_check_failed'):
+                self.transition.leave()
+        self.assertNotIn('api_generated',self.actions.calls)
+        sleep.assert_not_called()
+
+    def test_generated_restore_rejects_operator_auth_mismatch_immediately(self):
+        def wrong_auth(*,live=False):
+            self.actions.calls.append('operator_wrong_auth')
+            raise DeploymentHold('host_operator_unauthenticated_control_allowed')
+        self.actions._host_operator=wrong_auth
+        with patch('live_transition.time.sleep') as sleep:
+            with self.assertRaisesRegex(DeploymentHold,'generated_operator_state_check_failed'):
+                self.transition.leave()
+        self.assertEqual(self.actions.calls[-1],'operator_wrong_auth')
         sleep.assert_not_called()

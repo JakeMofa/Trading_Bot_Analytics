@@ -6,6 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.operator_session import OperatorSession, SessionBusy, SessionStopUnproven
+from postgres.live_diagnostics import LiveDiagnostic
 
 
 class OperatorSessionTests(unittest.IsolatedAsyncioTestCase):
@@ -39,10 +40,34 @@ class OperatorSessionTests(unittest.IsolatedAsyncioTestCase):
         await entered.wait()
         await asyncio.wait_for(control._task, 2)
         self.assertEqual(control.state()['last_error'], 'session_failed_or_cancelled')
+        self.assertEqual(control.state()['failure_code'], 'session.unclassified')
         with self.assertRaises(SessionStopUnproven):
             await control.start(max_seconds=5)
         await control.stop()
         self.assertIsNone(control.state()['last_error'])
+        self.assertEqual(control.state()['failure_code'], 'session.unclassified')
+
+    async def test_specific_failure_code_survives_off_and_resets_on_new_start(self):
+        async def failed(_stop, _seconds):
+            raise LiveDiagnostic('polymarket_discovery', 'http_429')
+        control = OperatorSession(failed, lambda: {'collector_enabled': False})
+        await control.start(max_seconds=5)
+        await asyncio.wait_for(control._task, 2)
+        self.assertEqual(control.state()['failure_code'], 'polymarket_discovery.http_429')
+        await control.stop()
+        self.assertEqual(control.state()['failure_code'], 'polymarket_discovery.http_429')
+        await control.start(max_seconds=5)
+        self.assertIsNone(control.state()['failure_code'])
+        await control.stop()
+
+    async def test_cancellation_reports_fixed_code(self):
+        async def cancelled(_stop, _seconds):
+            raise asyncio.CancelledError('secret-url-and-token')
+        control = OperatorSession(cancelled, lambda: {'collector_enabled': False})
+        await control.start(max_seconds=5)
+        await asyncio.wait_for(control._task, 2)
+        self.assertEqual(control.state()['failure_code'], 'session.cancelled')
+        self.assertNotIn('secret', str(control.state()))
 
     async def test_unproven_off_blocks_restart(self):
         entered = asyncio.Event()

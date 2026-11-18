@@ -52,6 +52,7 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None)
                 'lease_expires_at': durable.get('collector_lease_expires_at'),
                 'lease_expired': bool(durable.get('stored_enabled') and not durable['collector_enabled']),
                 'process_running': session.state()['process_running'] if session else None,
+                'session_failure_code': session.state().get('failure_code') if session else None,
                 'live_fence_qualified': False}
 
     if session is not None:

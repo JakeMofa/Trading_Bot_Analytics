@@ -17,19 +17,24 @@ measured 43,267,763 database bytes, 2,711,552 A-relation bytes, 33,554,432
 allocated WAL bytes, 56,830,771,200 free filesystem bytes and 1,202,831,360
 available RAM bytes. These are one short-session measurements, not a 72-hour
 capacity result. Cloud sync and retirement stayed OFF; 1,530 pending PP outbox
-rows are local. Production and paid AI were not changed. See the dated
+rows are local. The default pending-outbox cap is 10,000 rows; whether a
+20-minute cloud-OFF trial fits that cap is unqualified and must be measured.
+Production and paid AI were not changed. See the dated
 [first-trial evidence](PP_LIVE_FIRST_TRIAL_2026-11-17.md).
 
 The [READY_OFF workflow](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44209122389)
 is **FAILED** although its host artifact recorded `PP_LIVE_READY_OFF`: the
 reporter overwrote its PASS gate before returning exit code 1. [PR #85](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/85)
-fixes future reporting; it does not retroactively pass that run. Initial OFF
+merged a future reporting fix; it does not retroactively pass that run. Initial OFF
 also failed on the uninitialized PP live origin; explicit empty-A bootstrap
-then allowed verified OFF. Clean-start OFF needs a code fix before another ON.
+then allowed verified OFF. Source/task failure codes in [PR #88](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/88)
+and clean-start OFF in [PR #89](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/89)
+have passed source qualification and merged to `preprod`; neither is deployed
+to PP. The original source failure remains unknown.
 
-**Next CP7 checkpoint:** add sanitized source/task failure diagnostics and
-clean-start OFF handling, qualify exact CI, then run one new bounded PP-only
-trial. A qualified size trigger, A/B switch, Supabase verification and local
+**Next CP7 checkpoint:** release the qualified diagnostics and clean-start OFF
+controls to PP, then run one new bounded PP-only trial with outbox-cap and
+resource observation. A qualified size trigger, A/B switch, Supabase verification and local
 retirement are separate later gates. I7 and Phase 1.75 remain OPEN.
 
 **CP7 read-only resource observer candidate (November 17):** A separate PP
@@ -67,6 +72,14 @@ policy or retirement authorization occurred. Runtime grants remain absent;
 atomic mutable revision plus checkpoint writes and privileged mutation fencing
 remain separate CP6 gates. See
 [preparation evidence](CP6_STRUCTURED_IMPORT_PREPARATION_2026-11-17.md).
+
+PR #83's refreshed [exact CI 44212187026](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44212187026)
+**FAILED** in generated PostgreSQL acceptance. It seeded a price before a
+15-minute boundary and queried the current-market chart after rollover; the
+correct empty chart tripped the fixture assertion. The structured envelope
+diff does not change that query. A bounded generated-only acceptance fix
+requires the new market's exact price to appear after reseeding; an empty or
+wrong-price chart still fails. Successor exact CI is required before merge.
 
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 

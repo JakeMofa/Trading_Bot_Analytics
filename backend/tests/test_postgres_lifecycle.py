@@ -151,6 +151,18 @@ class RotationConfigurationTests(unittest.TestCase):
             stopped=json.loads(output.call_args.args[0])
             self.assertEqual(stopped,{'environment':'preprod','origin_id':'pp-live-fixture',
                                       'collector_enabled':False,'epoch':3})
+            repository.return_value.collector_state.return_value={
+                'collector_enabled':False,'initialized':False,'epoch':None}
+            repository.return_value.disable_collector.return_value={
+                'collector_enabled':False,'epoch':None}
+            self.assertEqual(main(['--collector-status']),0)
+            self.assertEqual(json.loads(output.call_args.args[0]),{
+                'environment':'preprod','origin_id':'pp-live-fixture',
+                'collector_enabled':False,'initialized':False,'epoch':None})
+            self.assertEqual(main(['--stop-collector']),0)
+            self.assertEqual(json.loads(output.call_args.args[0]),{
+                'environment':'preprod','origin_id':'pp-live-fixture',
+                'collector_enabled':False,'epoch':None})
             self.assertNotIn('private-placeholder',str(output.call_args_list))
             connector.assert_called()
         with patch.dict('os.environ',{},clear=True), \

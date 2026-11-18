@@ -10,6 +10,16 @@ from datetime import datetime, timezone
 
 from .live_sources import (coinbase_once, discover_polymarket_15m,
                            fetch_coinbase_closed_candles, fetch_polymarket_bbo)
+from .live_diagnostics import LiveDiagnostic, diagnose
+
+
+async def _step(operation, awaitable):
+    try:
+        return await awaitable
+    except LiveDiagnostic:
+        raise
+    except Exception as error:
+        raise diagnose(operation, error) from None
 
 
 def _live_store(store):
@@ -21,10 +31,15 @@ def _live_store(store):
 async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once):
     """Persist each ticker before reading the next; propagate holds and failures."""
     _live_store(store)
-    async for event in source(stop):
-        if stop.is_set():
-            break
-        await asyncio.to_thread(store.ingest, event)
+    try:
+        async for event in source(stop):
+            if stop.is_set():
+                break
+            await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
+    except LiveDiagnostic:
+        raise
+    except Exception as error:
+        raise diagnose('coinbase_stream', error) from None
 
 
 async def coinbase_candle_cycle(store, client, stop: asyncio.Event, *, now=None,
@@ -33,12 +48,12 @@ async def coinbase_candle_cycle(store, client, stop: asyncio.Event, *, now=None,
     _live_store(store)
     if stop.is_set():
         return 0
-    events = await fetch(client, now or datetime.now(timezone.utc))
+    events = await _step('coinbase_candles', fetch(client, now or datetime.now(timezone.utc)))
     acknowledged = 0
     for event in events:
         if stop.is_set():
             break
-        await asyncio.to_thread(store.ingest, event)
+        await _step('coinbase_candle_write', asyncio.to_thread(store.ingest, event))
         acknowledged += 1
     return acknowledged
 
@@ -55,16 +70,17 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     _live_store(store)
     if stop.is_set():
         return None
-    market = await discover(client, now or datetime.now(timezone.utc))
+    market = await _step('polymarket_discovery',
+                         discover(client, now or datetime.now(timezone.utc)))
     if market is None or stop.is_set():
         return None
-    await asyncio.to_thread(store.ingest, market)
+    await _step('polymarket_market_write', asyncio.to_thread(store.ingest, market))
     if stop.is_set():
         return None
-    quote = await fetch(client, market)
+    quote = await _step('polymarket_bbo', fetch(client, market))
     if stop.is_set():
         return None
     if quote.get('market_id') != market['market_id']:
-        raise ValueError('quote market identity changed before persistence')
-    await asyncio.to_thread(store.ingest, quote)
+        raise LiveDiagnostic('polymarket_bbo', 'identity_mismatch')
+    await _step('polymarket_bbo_write', asyncio.to_thread(store.ingest, quote))
     return market['market_id']

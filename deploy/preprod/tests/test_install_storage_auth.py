@@ -28,7 +28,7 @@ class StorageAuthInstallTests(unittest.TestCase):
         self.lock.chmod(0o600)
         self.uid = str(uuid.uuid4())
         self.values = {
-            'pp_storage_api_key': b'sb_publishable_' + b'p' * 32 + b'\n',
+            'pp_storage_api_key': b'sb_publishable_' + b'p' * 32,
             'supabase_auth_email': b'archive-pp@example.invalid\n',
             'supabase_auth_password': b'a' * 64 + b'\n',
             'supabase_auth_uid': self.uid.encode() + b'\n',
@@ -83,6 +83,33 @@ class StorageAuthInstallTests(unittest.TestCase):
         for name in self.values:
             self.assertFalse((self.cloud / name).exists())
         self.assert_history()
+
+    def test_publishable_key_lf_optional_but_embedded_lf_rejected(self):
+        key = self.stage / 'pp_storage_api_key'
+        key.chmod(0o600)
+        key.write_bytes(self.values['pp_storage_api_key'] + b'\n')
+        key.chmod(0o400)
+        self.assertEqual(self.run_install()['files'], 4)
+        self.assertEqual((self.cloud / 'pp_storage_api_key').read_bytes(),
+                         self.values['pp_storage_api_key'] + b'\n')
+
+    def test_publishable_key_interior_lf_stops_before_write(self):
+        key = self.stage / 'pp_storage_api_key'
+        key.chmod(0o600)
+        key.write_bytes(b'sb_publishable_prefix\ninvalid')
+        key.chmod(0o400)
+        with self.assertRaises(target.InstallStop):
+            self.run_install()
+        self.assertFalse((self.cloud / 'pp_storage_api_key').exists())
+
+    def test_auth_files_still_require_single_terminal_lf(self):
+        email = self.stage / 'supabase_auth_email'
+        email.chmod(0o600)
+        email.write_bytes(self.values['supabase_auth_email'].rstrip(b'\n'))
+        email.chmod(0o400)
+        with self.assertRaises(target.InstallStop):
+            self.run_install()
+        self.assertFalse((self.cloud / 'pp_storage_api_key').exists())
 
     def test_unconfirmed_creation_stops_before_install(self):
         (self.stage / 'status').chmod(0o600)

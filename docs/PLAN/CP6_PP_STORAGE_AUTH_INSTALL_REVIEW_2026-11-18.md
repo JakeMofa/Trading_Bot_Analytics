@@ -22,7 +22,9 @@ path. No PP credential or cloud state was changed by this review.
    temporary directories. The three Auth input files and status are mode
    `0400` in a `0700` stage. The existing separate publishable-key source is
    mode `0600`; its remote stage copy is renamed `pp_storage_api_key` and
-   tightened to `0400` before installation.
+   tightened to `0400` before installation. The publishable-key file may
+   contain the exact token without a trailing newline; the Auth files and
+   status still require the provisioner's single trailing newline.
 3. Verify the current PP IP and pinned SSH host key through the existing
    approved operator route. The target must be `tradebot-preprod-01`, not
    production. Confirm the root host marker, `/etc/tradebot/cloud` mode `0700`,

@@ -7,11 +7,16 @@ authenticated readback before recording coverage.
 from __future__ import annotations
 
 import json
+import base64
+import binascii
 import os
 from pathlib import Path
 import re
 import stat
+import threading
+import time
 from urllib.parse import quote
+from uuid import UUID
 
 import httpx
 
@@ -52,26 +57,167 @@ def read_token_file(path: str | Path) -> str:
         os.close(descriptor)
 
 
+def _read_machine_file(path: str | Path, *, minimum: int = 1) -> str:
+    """Read a private machine-identity field without exposing its contents."""
+    try:
+        descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        raise ValueError('invalid Supabase machine credential file') from None
+    try:
+        info = os.fstat(descriptor)
+        if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or
+                info.st_uid not in (0, os.geteuid()) or info.st_mode & 0o077 or
+                not minimum <= info.st_size <= 4096):
+            raise ValueError('invalid Supabase machine credential file')
+        raw = os.read(descriptor, 4097)
+        if len(raw) != info.st_size:
+            raise ValueError('invalid Supabase machine credential file')
+        value = raw.decode('ascii').strip()
+        if not value or any(character.isspace() for character in value):
+            raise ValueError('invalid Supabase machine credential file')
+        return value
+    except (OSError, UnicodeError):
+        raise ValueError('invalid Supabase machine credential file') from None
+    finally:
+        os.close(descriptor)
+
+
+class _MachineSession:
+    """One in-memory, restricted Auth session; failed refresh requires restart."""
+
+    def __init__(self, api_key: str, email: str, password: str, uid: str,
+                 client: httpx.Client):
+        try:
+            canonical_uid = str(UUID(uid))
+        except (ValueError, AttributeError):
+            raise ValueError('invalid Supabase machine identity') from None
+        if (canonical_uid != uid or not email or '@' not in email or
+                any(c.isspace() for c in email) or not password or
+                any(c.isspace() for c in password) or api_key == password):
+            raise ValueError('invalid Supabase machine identity')
+        self._api_key = api_key
+        self._email = email
+        self._password = password
+        self._uid = uid
+        self._client = client
+        self._lock = threading.Lock()
+        self._access: str | None = None
+        self._refresh: str | None = None
+        self._expires = 0.0
+        self._blocked = False
+
+    def _validate_access(self, access: str) -> None:
+        """Sanity-check restricted claims; Storage still verifies the signature."""
+        try:
+            parts = access.split('.')
+            if len(parts) != 3 or len(parts[1]) > 4096:
+                raise ValueError('invalid token shape')
+            claims = json.loads(base64.urlsafe_b64decode(
+                parts[1] + '=' * (-len(parts[1]) % 4)))
+            if (not isinstance(claims, dict) or claims.get('sub') != self._uid or
+                    claims.get('role') != 'authenticated' or
+                    claims.get('iss') != PROJECT_URL + '/auth/v1' or
+                    not isinstance(claims.get('exp'), int) or
+                    claims['exp'] <= time.time() + 20):
+                raise ValueError('unexpected token claims')
+        except (ValueError, TypeError, UnicodeError, binascii.Error):
+            raise ValueError('invalid restricted Auth token') from None
+
+    def block(self) -> None:
+        with self._lock:
+            self._blocked = True
+            self._access = None
+            self._refresh = None
+
+    def token(self, deadline: float) -> str:
+        if not self._lock.acquire(timeout=max(0.0, deadline - time.monotonic())):
+            raise ArchiveUnavailable('Supabase Auth deadline exceeded')
+        try:
+            if self._blocked:
+                raise ArchiveUnavailable('Supabase Auth session rejected')
+            now = time.monotonic()
+            if now >= deadline:
+                raise ArchiveUnavailable('Supabase Auth deadline exceeded')
+            if self._access and now < self._expires:
+                return self._access
+            grant = 'refresh_token' if self._refresh else 'password'
+            payload = ({'refresh_token': self._refresh} if self._refresh else
+                       {'email': self._email, 'password': self._password})
+            budget = ACTIVE_BUDGET.get()
+            timeout = deadline - now
+            if budget:
+                timeout = min(timeout, budget.request(0))
+            try:
+                with self._client.stream(
+                        'POST', f'{PROJECT_URL}/auth/v1/token?grant_type={grant}',
+                        headers={'apikey': self._api_key, 'Cache-Control': 'no-store'},
+                        json=payload, timeout=timeout, follow_redirects=False) as response:
+                    if response.status_code != 200:
+                        raise ValueError('Auth rejected')
+                    session = json.loads(SupabaseStorageTransport._bounded_body(
+                        response, 8192))
+                user = session.get('user')
+                access = session.get('access_token')
+                refresh = session.get('refresh_token')
+                expires = session.get('expires_in')
+                if (not isinstance(user, dict) or user.get('id') != self._uid or
+                        session.get('token_type', '').lower() != 'bearer' or
+                        not isinstance(access, str) or not 20 <= len(access) <= 8192 or
+                        not isinstance(refresh, str) or not 20 <= len(refresh) <= 4096 or
+                        not isinstance(expires, int) or not 30 <= expires <= 86400 or
+                        access in (self._api_key, self._password)):
+                    raise ValueError('invalid Auth response')
+                self._validate_access(access)
+            except (httpx.HTTPError, ValueError, TypeError, AttributeError, ArchiveLimit):
+                self._blocked = True
+                self._access = self._refresh = None
+                raise ArchiveUnavailable('Supabase Auth session rejected') from None
+            self._access, self._refresh = access, refresh
+            self._expires = time.monotonic() + expires - min(30, expires / 4)
+            return access
+        finally:
+            self._lock.release()
+
+
 class SupabaseStorageTransport:
     """Create-only Storage transport. Privileged mutation authority is unproven."""
 
     authority_scope = 'supabase-unqualified'
 
-    def __init__(self, api_key: str, access_token: str, *, client: httpx.Client | None = None,
-                 project_url: str = PROJECT_URL, bucket: str = BUCKET):
-        if (project_url != PROJECT_URL or bucket != BUCKET or not api_key or not access_token or
-                api_key == access_token or any(c.isspace() for c in api_key + access_token)):
+    def __init__(self, api_key: str, access_token: str | None, *, client: httpx.Client | None = None,
+                 project_url: str = PROJECT_URL, bucket: str = BUCKET,
+                 _machine_mode: bool = False):
+        if (project_url != PROJECT_URL or bucket != BUCKET or not api_key or
+                (access_token is None and not _machine_mode) or
+                (access_token is not None and (not access_token or api_key == access_token)) or
+                any(c.isspace() for c in api_key + (access_token or ''))):
             raise ValueError('unreviewed Supabase project, bucket or credential separation')
         self._api_key = api_key
         self._access_token = access_token
         self._client = client or httpx.Client(trust_env=False)
         self._owns_client = client is None
+        self._machine: _MachineSession | None = None
 
     @classmethod
     def from_token_files(cls, api_key_path: str | Path, access_token_path: str | Path,
                          **kwargs):
         return cls(read_token_file(api_key_path), read_token_file(access_token_path),
                    **kwargs)
+
+    @classmethod
+    def from_machine_files(cls, api_key_path: str | Path, email_path: str | Path,
+                           password_path: str | Path, uid_path: str | Path, **kwargs):
+        """Use restricted PP Auth files; refresh tokens remain process-local."""
+        api_key = read_token_file(api_key_path)
+        if not api_key.startswith('sb_publishable_'):
+            raise ValueError('PP requires a Supabase publishable key')
+        email = _read_machine_file(email_path)
+        password = _read_machine_file(password_path, minimum=20)
+        uid = _read_machine_file(uid_path, minimum=36)
+        transport = cls(api_key, None, _machine_mode=True, **kwargs)
+        transport._machine = _MachineSession(api_key, email, password, uid,
+                                             transport._client)
+        return transport
 
     def close(self):
         if self._owns_client:
@@ -83,8 +229,10 @@ class SupabaseStorageTransport:
         route = 'object/authenticated' if authenticated else 'object'
         return f'{PROJECT_URL}/storage/v1/{route}/{BUCKET}/{quote(key, safe="/")}'
 
-    def _headers(self, *, upload: bool = False) -> dict[str, str]:
-        headers = {'apikey': self._api_key, 'Authorization': 'Bearer ' + self._access_token,
+    def _headers(self, *, upload: bool = False, deadline: float | None = None) -> dict[str, str]:
+        token = (self._machine.token(deadline) if self._machine and deadline is not None
+                 else self._access_token)
+        headers = {'apikey': self._api_key, 'Authorization': 'Bearer ' + token,
                    'Cache-Control': 'no-store', 'Accept-Encoding': 'identity'}
         if upload:
             headers.update({'Content-Type': 'application/gzip', 'x-upsert': 'false'})
@@ -115,11 +263,18 @@ class SupabaseStorageTransport:
                            timeout_seconds: float) -> bytes:
         url = self._url(key, authenticated=True)
         timeout = self._timeout(timeout_seconds)
+        deadline = time.monotonic() + timeout
         if not 0 < max_bytes <= MAX_OBJECT_BYTES:
             raise ArchiveLimit('invalid archive read bound')
         try:
-            with self._client.stream('GET', url, headers=self._headers(),
-                                     timeout=timeout, follow_redirects=False) as response:
+            headers = self._headers(deadline=deadline)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ArchiveUnavailable('authenticated archive read deadline exceeded')
+            with self._client.stream('GET', url, headers=headers,
+                                     timeout=remaining, follow_redirects=False) as response:
+                if response.status_code in (401, 403) and self._machine:
+                    self._machine.block()
                 if response.status_code != 200:
                     raise ArchiveUnavailable('authenticated archive read failed')
                 length = response.headers.get('content-length')
@@ -132,11 +287,18 @@ class SupabaseStorageTransport:
     def put_if_absent(self, key: str, data: bytes, *, timeout_seconds: float) -> None:
         url = self._url(key, authenticated=False)
         timeout = self._timeout(timeout_seconds)
+        deadline = time.monotonic() + timeout
         if not isinstance(data, bytes) or not 0 < len(data) <= MAX_OBJECT_BYTES:
             raise ArchiveLimit('invalid archive upload bound')
         try:
-            with self._client.stream('POST', url, headers=self._headers(upload=True),
-                                     content=data, timeout=timeout, follow_redirects=False) as response:
+            headers = self._headers(upload=True, deadline=deadline)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ArchiveUnavailable('create-only archive upload deadline exceeded')
+            with self._client.stream('POST', url, headers=headers,
+                                     content=data, timeout=remaining, follow_redirects=False) as response:
+                if response.status_code in (401, 403) and self._machine:
+                    self._machine.block()
                 if response.status_code in (200, 201):
                     return
                 if response.status_code not in (400, 409):

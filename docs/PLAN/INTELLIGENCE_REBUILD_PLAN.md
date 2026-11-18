@@ -1040,6 +1040,18 @@ no such credential is wired into PP. A scoped authenticated identity, reviewed
 Storage policies, actual deny tests and privileged-mutation fencing remain
 required before any cloud-enabled runtime or retirement gate.
 
+**CP6 PP cloud binding preflight (November 17):** A separate offline module
+checks exact `preprod`/`pp_live`/`pp-live-pp`, six distinct private file paths
+for the Storage publishable key, dedicated Auth machine identity, independent
+structured DSN and local lifecycle DSN, and OFF sync/retirement/paid-AI flags.
+It checks file metadata without reading values and always returns STOP; it
+does not mount a service or start cloud I/O. The structured role is still
+NOLOGIN, PR #92 receipts/grants and PR #97 worker are draft, and live Storage
+and direct PostgreSQL authority/network gates remain open. PR #92's receipt
+and immutable-row `SELECT ... FOR UPDATE` also require UPDATE privileges under
+PostgreSQL 17 and must be corrected under the narrow grant before execution. See
+[binding preflight review](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md).
+
 **CP6 structured-import preparation:** A separate, offline envelope validator
 now recognizes only the eight versioned structured datasets, binds origin and
 generation, compares exact primary identities/content hashes and orders FK

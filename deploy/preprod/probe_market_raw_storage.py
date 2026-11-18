@@ -1,7 +1,7 @@
-"""One bounded, synthetic PP Storage upload/readback probe; never retire data.
+"""Bounded PP Storage create/readback or reconcile-only probe; never retire data.
 
 Run only after the exact policy and dedicated Auth identity have been reviewed
-and applied. The random object is intentionally retained as audit evidence.
+and applied. Reconcile-only never uploads and requires an exact retained key.
 """
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ import gzip
 import hashlib
 import json
 from pathlib import Path
+import re
 import time
 import uuid
 
@@ -22,6 +23,9 @@ ORIGIN = 'pp-live-pp'
 ORIGIN_HASH = hashlib.sha256(ORIGIN.encode()).hexdigest()
 MAX_BODY = 64 * 1024
 MAX_ATTEMPTS = 5  # Auth identity, create, optional ambiguous reconciliation, readback, public denial.
+KEY = re.compile(r'raw-v1/' + ORIGIN_HASH +
+                 r'/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/'
+                 r'([0-9a-f]{64})[.]jsonl[.]gz\Z')
 
 
 class ProbeFailure(RuntimeError):
@@ -68,7 +72,10 @@ class BoundedClient:
 
 def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
               client: httpx.Client, deadline_seconds: float = 30,
-              generation_id: uuid.UUID | None = None) -> dict:
+              generation_id: uuid.UUID | None = None,
+              reconcile_key: str | None = None,
+              expected_bytes: int | None = None,
+              expected_sha256: str | None = None) -> dict:
     try:
         parsed_uid = uuid.UUID(uid)
     except (TypeError, ValueError, AttributeError):
@@ -82,6 +89,37 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
             api_key == access_token or access_token.startswith('sb_secret_') or
             access_token.startswith('sb_publishable_')):
         raise ProbeFailure('publishable project key and separate Auth bearer required')
+    if reconcile_key is not None:
+        if generation_id is not None or not isinstance(reconcile_key, str):
+            raise ProbeFailure('reconcile-only key binding invalid')
+        match = KEY.fullmatch(reconcile_key)
+        if match is None:
+            raise ProbeFailure('reviewed PP object key required')
+        generation_id = uuid.UUID(match.group(1))
+        if generation_id.version != 4:
+            raise ProbeFailure('reviewed generation UUID invalid')
+        if (not isinstance(expected_bytes, int) or expected_bytes <= 0 or
+                not isinstance(expected_sha256, str) or
+                not re.fullmatch(r'[0-9a-f]{64}', expected_sha256) or
+                match.group(2) != expected_sha256):
+            raise ProbeFailure('reviewed byte count or SHA-256 mismatch')
+    elif expected_bytes is not None or expected_sha256 is not None:
+        raise ProbeFailure('reconcile bounds require an exact object key')
+    generation = generation_id or uuid.uuid4()
+    if generation.version != 4:
+        raise ProbeFailure('synthetic generation UUID invalid')
+    records = [{'probe': 'pp-storage-v1', 'origin': ORIGIN, 'generation': str(generation),
+                'sequence': i} for i in (1, 2)]
+    body = gzip.compress((''.join(json.dumps(row, sort_keys=True, separators=(',', ':')) + '\n'
+                                  for row in records)).encode(), mtime=0)
+    if len(body) > MAX_BODY:
+        raise ProbeFailure('synthetic object exceeds bound')
+    digest = hashlib.sha256(body).hexdigest()
+    key = f'raw-v1/{ORIGIN_HASH}/{generation}/{digest}.jsonl.gz'
+    if reconcile_key is not None and (key != reconcile_key or
+                                      len(body) != expected_bytes or
+                                      digest != expected_sha256):
+        raise ProbeFailure('reviewed object does not match reconstructed bytes')
     bounded = BoundedClient(client, deadline=time.monotonic() + deadline_seconds)
     auth = bounded.request('GET', PROJECT_URL + '/auth/v1/user', headers={
         'apikey': api_key, 'Authorization': 'Bearer ' + access_token,
@@ -98,17 +136,6 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
             metadata.get('tradebot_role') != 'pp_storage_archive' or
             metadata.get('tradebot_origin') != ORIGIN):
         raise ProbeFailure('Auth identity binding changed')
-    generation = generation_id or uuid.uuid4()
-    if generation.version != 4:
-        raise ProbeFailure('synthetic generation UUID invalid')
-    records = [{'probe': 'pp-storage-v1', 'origin': ORIGIN, 'generation': str(generation),
-                'sequence': i} for i in (1, 2)]
-    body = gzip.compress((''.join(json.dumps(row, sort_keys=True, separators=(',', ':')) + '\n'
-                                  for row in records)).encode(), mtime=0)
-    if len(body) > MAX_BODY:
-        raise ProbeFailure('synthetic object exceeds bound')
-    digest = hashlib.sha256(body).hexdigest()
-    key = f'raw-v1/{ORIGIN_HASH}/{generation}/{digest}.jsonl.gz'
     url = PROJECT_URL + f'/storage/v1/object/{BUCKET}/' + key
     headers = {'apikey': api_key, 'Authorization': 'Bearer ' + access_token,
                'Content-Type': 'application/gzip', 'x-upsert': 'false',
@@ -116,18 +143,19 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
     # Never retry the POST. A timeout may have committed the object; GET
     # reconciles that ambiguity using the exact random key and byte digest.
     ambiguous = False
-    try:
-        uploaded = bounded.request('POST', url, headers=headers, content=body)
-        if uploaded.status_code not in (200, 201):
-            # A duplicate random key is not a clean success; exact GET below
-            # can prove the contents, but still reports an ambiguous upload.
-            if uploaded.status_code not in (400, 409):
-                raise ProbeFailure('create-only upload rejected')
+    if reconcile_key is None:
+        try:
+            uploaded = bounded.request('POST', url, headers=headers, content=body)
+            if uploaded.status_code not in (200, 201):
+                # A duplicate random key is not a clean success; exact GET below
+                # can prove the contents, but still reports an ambiguous upload.
+                if uploaded.status_code not in (400, 409):
+                    raise ProbeFailure('create-only upload rejected')
+                ambiguous = True
+        except ProbeFailure as error:
+            if str(error) != 'probe HTTP request failed':
+                raise
             ambiguous = True
-    except ProbeFailure as error:
-        if str(error) != 'probe HTTP request failed':
-            raise
-        ambiguous = True
     get_headers = {'apikey': api_key, 'Authorization': 'Bearer ' + access_token,
                    'Cache-Control': 'no-store', 'Accept-Encoding': 'identity'}
     readback = bounded.request('GET', PROJECT_URL +
@@ -144,7 +172,8 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
     return {'result': 'PASS', 'object_key': key, 'bytes': len(body),
             'sha256': digest, 'records': len(records), 'http_attempts': bounded.attempts,
             'ambiguous_upload_reconciled': ambiguous,
-            'public_read_denied': True, 'object_retained': True}
+            'public_read_denied': True, 'object_retained': True,
+            'mode': 'reconcile-only' if reconcile_key is not None else 'create-and-readback'}
 
 
 def main() -> None:
@@ -156,6 +185,9 @@ def main() -> None:
     parser.add_argument('--access-token-file', type=Path, required=True)
     parser.add_argument('--uid', required=True)
     parser.add_argument('--email', required=True)
+    parser.add_argument('--reconcile-key')
+    parser.add_argument('--expected-bytes', type=int)
+    parser.add_argument('--expected-sha256')
     args = parser.parse_args()
     if args.project_url != PROJECT_URL or args.bucket != BUCKET:
         raise SystemExit('unreviewed Supabase project or bucket')
@@ -164,7 +196,10 @@ def main() -> None:
     # No service-role bearer can be accepted as the reviewed Auth user; the
     # /auth/v1/user preflight checks the exact UID and metadata before writes.
     with httpx.Client(trust_env=False) as client:
-        result = run_probe(api_key, access_token, args.uid, args.email, client=client)
+        result = run_probe(api_key, access_token, args.uid, args.email, client=client,
+                           reconcile_key=args.reconcile_key,
+                           expected_bytes=args.expected_bytes,
+                           expected_sha256=args.expected_sha256)
     print(json.dumps(result, sort_keys=True))
 
 

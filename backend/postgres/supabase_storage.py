@@ -15,6 +15,7 @@ import re
 import stat
 import threading
 import time
+import zlib
 from urllib.parse import quote
 from uuid import UUID
 
@@ -29,6 +30,8 @@ BUCKET = 'market-raw'
 KEY = re.compile(r'raw-v1/[0-9a-f]{64}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}\.jsonl\.gz\Z')
 MAX_OBJECT_BYTES = 2 * 1024 * 1024
 ERROR_BODY_BYTES = 4096
+AUTH_BODY_BYTES = 8192
+AUTH_WIRE_BYTES = 16384
 EXISTS_CODES = frozenset({'KeyAlreadyExists', 'ResourceAlreadyExists', 'Duplicate'})
 
 
@@ -151,14 +154,15 @@ class _MachineSession:
             try:
                 with self._client.stream(
                         'POST', f'{PROJECT_URL}/auth/v1/token?grant_type={grant}',
-                        headers={'apikey': self._api_key, 'Cache-Control': 'no-store'},
+                        headers={'apikey': self._api_key, 'Cache-Control': 'no-store',
+                                 'Accept-Encoding': 'identity'},
                         json=payload, timeout=timeout, follow_redirects=False) as response:
                     if response.status_code >= 500:
                         raise ArchiveUnavailable('Supabase Auth temporarily unavailable')
                     if response.status_code != 200:
                         raise ValueError('Auth rejected')
-                    session = json.loads(SupabaseStorageTransport._bounded_body(
-                        response, 8192, deadline=deadline))
+                    session = json.loads(SupabaseStorageTransport._bounded_auth_body(
+                        response, deadline=deadline))
                 user = session.get('user')
                 access = session.get('access_token')
                 refresh = session.get('refresh_token')
@@ -174,7 +178,8 @@ class _MachineSession:
                 jwt_remaining = self._validate_access(access)
             except httpx.HTTPError:
                 raise ArchiveUnavailable('Supabase Auth temporarily unavailable') from None
-            except (ValueError, TypeError, AttributeError, ArchiveLimit):
+            except (ValueError, TypeError, AttributeError, ArchiveLimit,
+                    zlib.error):
                 self._blocked = True
                 self._access = self._refresh = None
                 raise ArchiveUnavailable('Supabase Auth session rejected') from None
@@ -247,6 +252,46 @@ class SupabaseStorageTransport:
         if upload:
             headers.update({'Content-Type': 'application/gzip', 'x-upsert': 'false'})
         return headers
+
+    @staticmethod
+    def _bounded_auth_body(response: httpx.Response, *, deadline: float) -> bytes:
+        """Decode Auth JSON with separate wire/decompressed caps, even for gzip."""
+        encoding = response.headers.get('content-encoding', 'identity').lower().strip()
+        if encoding not in ('identity', 'gzip'):
+            raise ArchiveLimit('unsupported Supabase Auth encoding')
+        decoder = zlib.decompressobj(16 + zlib.MAX_WBITS) if encoding == 'gzip' else None
+        wire_bytes = 0
+        body = bytearray()
+        try:
+            for chunk in response.iter_raw():
+                if time.monotonic() >= deadline:
+                    raise ArchiveUnavailable('Supabase Auth deadline exceeded')
+                wire_bytes += len(chunk)
+                if wire_bytes > AUTH_WIRE_BYTES:
+                    raise ArchiveLimit('Supabase Auth wire response exceeds byte limit')
+                part = (decoder.decompress(chunk, AUTH_BODY_BYTES - len(body) + 1)
+                        if decoder else chunk)
+                body.extend(part)
+                if len(body) > AUTH_BODY_BYTES or (decoder and decoder.unconsumed_tail):
+                    raise ArchiveLimit('Supabase Auth decoded response exceeds byte limit')
+        except httpx.StreamConsumed:
+            # MockTransport may return an already-decoded, fully buffered body.
+            if wire_bytes:
+                raise ArchiveLimit('Supabase Auth response stream changed') from None
+            buffered = response.content
+            if len(buffered) > AUTH_BODY_BYTES:
+                raise ArchiveLimit('Supabase Auth decoded response exceeds byte limit')
+            if time.monotonic() >= deadline:
+                raise ArchiveUnavailable('Supabase Auth deadline exceeded')
+            return buffered
+        if decoder:
+            body.extend(decoder.flush(AUTH_BODY_BYTES - len(body) + 1))
+            if (len(body) > AUTH_BODY_BYTES or not decoder.eof or
+                    decoder.unused_data):
+                raise ArchiveLimit('invalid Supabase Auth gzip response')
+        if time.monotonic() >= deadline:
+            raise ArchiveUnavailable('Supabase Auth deadline exceeded')
+        return bytes(body)
 
     @staticmethod
     def _bounded_body(response: httpx.Response, limit: int,

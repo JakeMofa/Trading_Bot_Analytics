@@ -49,15 +49,20 @@ acceptance. No production deployment or Phase 2 work follows from this scope.
 ### PP Auth refresh-token compatibility — November 18 UTC
 
 A bounded live Auth sign-in returned HTTP 200 with the reviewed identity and
-restricted access-token claims. The opaque refresh token was **12 characters**;
-the PR #103 adapter incorrectly required at least 20, so it rejected an
-otherwise valid session before any Storage operation. The token value is not
-recorded. This is a client-validation defect, not evidence of failed Storage
+restricted access-token claims. Two adapter compatibility gaps were found:
+the opaque refresh token was **12 characters**, while PR #103 required at
+least 20; and the Auth response could be gzip encoded, while the adapter
+parsed raw compressed bytes as JSON. A separate bounded diagnostic with
+`Accept-Encoding: identity` returned uncompressed, valid JSON. The token
+value is not recorded. Either gap can prevent the adapter from accepting an
+otherwise valid response; the earlier failure is **not** attributed to just
+one. These are client-validation defects, not evidence of failed Storage
 permission or archive verification. A narrow default-OFF successor removes
-the guessed lower length bound while still rejecting empty, whitespace and
-oversized tokens. Generated sign-in/rotation and failure regressions are the
-next gate; fresh authenticated Storage readback and local-retirement HOLD
-remain unchanged. No production change follows from this correction.
+the guessed refresh-token lower bound and requests identity encoding, while
+strictly bounding and decoding unexpected gzip responses. Generated
+sign-in/rotation, compression and failure regressions are the next gate;
+fresh authenticated Storage readback and local-retirement HOLD remain
+unchanged. No production change follows from this correction.
 
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 

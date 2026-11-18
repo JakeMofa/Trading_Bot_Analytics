@@ -102,6 +102,39 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         with self.assertRaises(ArchiveIntegrityError):
             wrong.put_structured([records[0]], timeout_seconds=5)
 
+    def test_parent_import_precedes_lower_id_dependent(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
+                                          options='-c timezone=UTC')
+        with factory() as connection:
+            binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
+        origin, generation = 'pp-live-ci-' + uuid.uuid4().hex, str(uuid.uuid4())
+        transport = HistoryV2PostgresTransport(factory, origin_id=origin,
+            generation_id=generation, expected_database=binding['database'],
+            expected_role=binding['role'])
+        start = datetime(2026, 11, 18, 0, 0, tzinfo=timezone.utc)
+        end = start + timedelta(minutes=15)
+        market = dict(origin_id=origin, market_id='market-1', source='polymarket-us',
+            slug='market-1', duration=900,
+            start_time=start.isoformat().replace('+00:00','Z'),
+            end_time=end.isoformat().replace('+00:00','Z'),
+            start_epoch=str(int(start.timestamp())),
+            end_epoch=str(int(end.timestamp())), target='100.0000', final=None,
+            result=None, status='open', index_symbol='BTC-USD', rules=None,
+            first_seen=start.isoformat(), last_seen=start.isoformat(),
+            payload={'source':'generated'}, content_hash='f' * 64)
+        feature = dict(origin_id=origin, snapshot_id='snapshot-1',
+            market_id='market-1', as_of=(start + timedelta(seconds=1)).isoformat(),
+            version=1, values_json={'price':'100.0000'}, quality_json={},
+            evidence_json={}, content_hash='e' * 64)
+        records = [envelope(1, 'core.feature_snapshots', feature, generation),
+                   envelope(2, 'core.markets', market, generation)]
+        transport.put_structured(records, timeout_seconds=5)
+        self.assertEqual(transport.read_structured_authenticated(
+            records, max_bytes=4 * 1024 * 1024, timeout_seconds=5), records)
+
 
 if __name__ == '__main__':
     unittest.main()

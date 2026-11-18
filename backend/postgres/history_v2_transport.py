@@ -14,7 +14,7 @@ from psycopg.types.json import Jsonb
 
 from .archive_codec import (ArchiveIntegrityError, ArchiveLimit,
                             ArchiveUnavailable, encoded, sha256, wire)
-from .history_v2_envelope import (CLOUD_COLUMNS, MUTABLE_PROJECTIONS,
+from .history_v2_envelope import (CLOUD_COLUMNS, IMPORT_ORDER, MUTABLE_PROJECTIONS,
                                   TABLE_KEYS, cloud_row, cloud_row_matches,
                                   projection_order, validate_outbox_stream)
 
@@ -143,7 +143,11 @@ class HistoryV2PostgresTransport:
                         generation_id=%s AND dataset='structured:outbox' FOR UPDATE''',
                         (self.origin_id, self.generation_id)).fetchone()
                     inserted = 0
-                    for record in records:
+                    # Outbox IDs reflect concurrent local transactions, not
+                    # a guaranteed FK topological order. Preserve revision
+                    # order within each table while importing parents first.
+                    for record in sorted(records, key=lambda item:
+                                         (IMPORT_ORDER.index(item['entity_type']), item['id'])):
                         self._entity_lock(connection, record)
                         receipt = self._receipt(connection, record)
                         if receipt is not None:

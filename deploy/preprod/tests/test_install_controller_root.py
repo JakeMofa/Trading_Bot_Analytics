@@ -10,10 +10,29 @@ import unittest
 sys.path.insert(0,str(Path(__file__).parents[1]))
 import install_controller as installer
 import raw_archive_probe_control as raw_probe
+import transfer_controller as transfer
 
 
 @unittest.skipUnless(sys.platform=='linux' and os.geteuid()==0,'requires isolated Linux root fixture')
 class AuthorizedKeyAccess(unittest.TestCase):
+    def test_transfer_stage_is_root_only_and_exclusive(self):
+        with tempfile.TemporaryDirectory(prefix='tradebot-pp-transfer-') as folder:
+            base=Path(folder);base.chmod(0o700)
+            transfer.root_directory(base)
+            stage=base/'stage'
+            os.mkdir(stage,0o700)
+            self.assertTrue(transfer.stage_is_safe(stage))
+            target=stage/'controller.pyz'
+            transfer.write_exclusive(target,b'generated-controller-code')
+            self.assertEqual(target.stat().st_uid,0)
+            self.assertEqual(stat.S_IMODE(target.stat().st_mode),0o600)
+            with self.assertRaises(FileExistsError):
+                transfer.write_exclusive(target,b'other')
+            alias=stage/'alias.pyz';alias.symlink_to(target)
+            with self.assertRaises(FileExistsError):
+                transfer.write_exclusive(alias,b'other')
+            self.assertEqual(target.read_bytes(),b'generated-controller-code')
+
     def test_raw_probe_local_credential_staging_is_root_only_and_short_lived(self):
         with tempfile.TemporaryDirectory(prefix='tradebot-raw-secret-') as folder:
             base=Path(folder);base.chmod(0o700)

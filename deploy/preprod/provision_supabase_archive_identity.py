@@ -70,8 +70,21 @@ def _write_private(directory, name, content):
     descriptor = os.open(directory / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o400)
     try:
         os.fchmod(descriptor, 0o400)
-        os.write(descriptor, content)
+        remaining = memoryview(content)
+        while remaining:
+            written = os.write(descriptor, remaining)
+            if written <= 0:
+                raise OSError("private file write made no progress")
+            remaining = remaining[written:]
         os.fsync(descriptor)
+    except BaseException:
+        # A short write or failed sync must never leave a usable partial
+        # credential or UID file behind.
+        try:
+            (directory / name).unlink()
+        except OSError:
+            pass
+        raise
     finally:
         os.close(descriptor)
 
@@ -81,7 +94,10 @@ def _replace_status(directory, value):
     # transition from staged to created or unconfirmed.
     temporary = directory / ".status-new"
     _write_private(directory, temporary.name, (value + "\n").encode())
-    os.replace(temporary, directory / "status")
+    try:
+        os.replace(temporary, directory / "status")
+    finally:
+        temporary.unlink(missing_ok=True)
     dirfd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
         os.fsync(dirfd)
@@ -134,18 +150,19 @@ def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, 
     try:
         _write_private(output_dir, "supabase_auth_email", (email + "\n").encode())
         _write_private(output_dir, "supabase_auth_password", (password + "\n").encode())
-        _replace_status(output_dir, "STAGED_BEFORE_POST")
+        # Persist the uncertain state *before* the external POST. If Auth
+        # succeeds but the response or subsequent local write fails, a restart
+        # cannot mistake this stage for one that was never submitted.
+        _replace_status(output_dir, "UNCONFIRMED_CREATE")
         try:
             attempted = True
             status, body = (request_fn or _default_request)(payload, key)
         except Exception:
-            _replace_status(output_dir, "UNCONFIRMED_CREATE")
             raise ProvisionError("Auth request outcome uncertain; reconcile staged identity") from None
         if status in (400, 401, 403, 404, 409, 422):
             _discard_stage(output_dir)
             raise ProvisionError("Auth Admin rejected identity creation; no automatic retry")
         if status not in (200, 201) or len(body) > 16384:
-            _replace_status(output_dir, "UNCONFIRMED_CREATE")
             raise ProvisionError("Auth request outcome uncertain; reconcile staged identity")
         try:
             result = json.loads(body)
@@ -154,7 +171,6 @@ def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, 
                     or any(result["app_metadata"][k] != v for k, v in metadata.items())):
                 raise ValueError("binding mismatch")
         except (ValueError, KeyError, TypeError, AttributeError):
-            _replace_status(output_dir, "UNCONFIRMED_CREATE")
             raise ProvisionError("Auth response binding uncertain; reconcile staged identity") from None
         _write_private(output_dir, "supabase_auth_uid", (uid + "\n").encode())
         _replace_status(output_dir, "CREATED_VERIFIED_RESPONSE")
@@ -168,6 +184,13 @@ def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, 
             try:
                 _discard_stage(output_dir)
             except OSError:
+                pass
+        elif output_dir.exists():
+            try:
+                _replace_status(output_dir, "UNCONFIRMED_CREATE")
+            except OSError:
+                # Keep the private stage even if the local disk itself failed.
+                # The command still stops and never authorizes installation.
                 pass
         raise ProvisionError("identity stage requires operator reconciliation") from None
 

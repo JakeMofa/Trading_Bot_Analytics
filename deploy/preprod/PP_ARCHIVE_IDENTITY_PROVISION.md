@@ -36,10 +36,13 @@ input file and is never copied into the stage. A separate reviewed installation
 step will transfer the email, password and UUID to PP's runtime identity as
 private files. The Storage runtime must never receive the admin key.
 
-The command makes **one HTTP POST with a ten-second deadline and no redirect or
-proxy**. A definite Auth rejection removes the new stage. A timeout, server
-error, malformed success or identity mismatch leaves the private credential
-and `UNCONFIRMED_CREATE` status for operator reconciliation. **Do not rerun
+The command durably writes `UNCONFIRMED_CREATE` **before** its one HTTP POST,
+which has a ten-second deadline and no redirect or proxy. Short local writes
+are completed or the partial file is removed before any request. A definite
+Auth rejection removes the new stage. A timeout, server error, malformed
+success, identity mismatch, or post-success local write failure leaves the
+private credential and `UNCONFIRMED_CREATE` status for operator reconciliation.
+**Do not rerun
 after an uncertain result.** Inspect the intended project's Auth Admin record
 for the exact email, UUID and metadata, then decide whether to complete or
 discard the stage. An existing stage blocks another request. No automatic

@@ -47,7 +47,7 @@ class ProvisionTests(unittest.TestCase):
             "tradebot_role": "pp_storage_archive", "tradebot_origin": "pp-live-pp"})
         self.assertEqual(len(body["password"]), 64)
         self.assertEqual(body["password"], (self.stage / "supabase_auth_password").read_text().strip())
-        self.assertEqual((self.stage / "status").read_text().strip(), "STAGED_BEFORE_POST")
+        self.assertEqual((self.stage / "status").read_text().strip(), "UNCONFIRMED_CREATE")
         return 201, json.dumps({"id": UID, "email": EMAIL,
                                 "app_metadata": body["app_metadata"]}).encode()
 
@@ -136,6 +136,66 @@ class ProvisionTests(unittest.TestCase):
                 self.invoke(lambda *_: self.fail("request must not be sent"))
         self.assertFalse(self.stage.exists())
         self.assertNotIn("test-only failure", str(caught.exception))
+
+    def test_short_file_writes_complete_or_remove_partial_file(self):
+        private = self.root / "private"
+        private.mkdir(mode=0o700)
+        original = os.write
+        def short_write(descriptor, content):
+            return original(descriptor, content[:3])
+        with patch.object(module.os, "write", side_effect=short_write):
+            module._write_private(private, "complete", b"abcdefghi")
+        self.assertEqual((private / "complete").read_bytes(), b"abcdefghi")
+
+        calls = 0
+        def stall_write(descriptor, content):
+            nonlocal calls
+            calls += 1
+            return original(descriptor, content[:3]) if calls == 1 else 0
+        with patch.object(module.os, "write", side_effect=stall_write):
+            with self.assertRaises(OSError):
+                module._write_private(private, "incomplete", b"abcdefghi")
+        self.assertFalse((private / "incomplete").exists())
+
+    def test_post_success_uid_write_failure_keeps_uncertain_stage(self):
+        original = module._write_private
+        def fail_uid(directory, name, content):
+            if name == "supabase_auth_uid":
+                raise OSError("test-only UID write failure")
+            return original(directory, name, content)
+        with patch.object(module, "_write_private", side_effect=fail_uid):
+            with self.assertRaises(module.ProvisionError) as caught:
+                self.invoke(self.success)
+        self.assertEqual(self.calls, 1)
+        self.assertEqual((self.stage / "status").read_text().strip(), "UNCONFIRMED_CREATE")
+        self.assertFalse((self.stage / "supabase_auth_uid").exists())
+        self.assertNotIn("test-only UID", str(caught.exception))
+
+    def test_post_success_status_write_failure_keeps_uncertain_stage(self):
+        original = module._replace_status
+        def fail_created(directory, value):
+            if value == "CREATED_VERIFIED_RESPONSE":
+                raise OSError("test-only status failure")
+            return original(directory, value)
+        with patch.object(module, "_replace_status", side_effect=fail_created):
+            with self.assertRaises(module.ProvisionError) as caught:
+                self.invoke(self.success)
+        self.assertEqual(self.calls, 1)
+        self.assertEqual((self.stage / "status").read_text().strip(), "UNCONFIRMED_CREATE")
+        self.assertEqual((self.stage / "supabase_auth_uid").read_text().strip(), UID)
+        self.assertNotIn("test-only status", str(caught.exception))
+
+    def test_post_success_status_sync_failure_restores_uncertain_stage(self):
+        original = module._replace_status
+        def fail_after_replace(directory, value):
+            original(directory, value)
+            if value == "CREATED_VERIFIED_RESPONSE":
+                raise OSError("test-only post-rename sync failure")
+        with patch.object(module, "_replace_status", side_effect=fail_after_replace):
+            with self.assertRaises(module.ProvisionError):
+                self.invoke(self.success)
+        self.assertEqual(self.calls, 1)
+        self.assertEqual((self.stage / "status").read_text().strip(), "UNCONFIRMED_CREATE")
 
     def test_request_never_redirects_or_uses_proxy(self):
         class Response:

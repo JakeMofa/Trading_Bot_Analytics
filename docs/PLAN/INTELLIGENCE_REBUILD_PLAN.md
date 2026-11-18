@@ -52,6 +52,12 @@ resource observation. A qualified size trigger, A/B switch, Supabase
 verification and local retirement are separate later gates. I7 and Phase 1.75
 remain OPEN.
 
+The intended size-triggered 30–45 minute PP A→B qualification has **not run**:
+the first live session ended after 159 seconds, before any switch. A→B with
+archive readback requires a qualified size trigger and cloud path. B→A slot
+reuse additionally requires separately qualified retirement authorization,
+which remains OFF. The production policy stays 72 hours or qualified size.
+
 **CP7 read-only resource observer candidate (November 17):** A separate PP
 host script now takes bounded read-only samples of the PP live origin's writer
 generation, up to 10,001 raw records per active generation, relation/database

@@ -7,7 +7,9 @@ from pathlib import Path
 import unittest
 
 from deploy.preprod.bind_market_raw_policy import (BUCKET, PROJECT_REF, TEMPLATE,
-                                                    render, render_rollback, write_new)
+                                                    READBACK_PATCH, render,
+                                                    render_readback_patch,
+                                                    render_rollback, write_new)
 
 
 UID = '00000000-0000-4000-8000-0000000000aa'
@@ -47,6 +49,27 @@ class PolicyBindingTests(unittest.TestCase):
         self.assertNotIn(b'DELETE USER', sql)
         with self.assertRaises(ValueError):
             render_rollback(UID, EMAIL, project_ref='wrong', bucket=BUCKET)
+
+    def test_legacy_readback_patch_is_exact_and_preserves_upload(self):
+        sql = render_readback_patch(UID, EMAIL, project_ref=PROJECT_REF,
+                                    bucket=BUCKET, expected_policy_sha256='a' * 64)
+        self.assertIn(b"'object.get_authenticated_info'", sql)
+        self.assertIn(b"'storage.object.get_authenticated'", sql)
+        self.assertIn(b'ALTER POLICY tradebot_pp_raw_readback', sql)
+        self.assertNotIn(b'ALTER POLICY tradebot_pp_raw_upload', sql)
+        self.assertNotIn(b'DROP POLICY', sql)
+        self.assertNotIn(b'DELETE FROM', sql)
+        self.assertNotIn(b'__EXPECTED_POLICY_SHA256__', sql)
+        for changes in ({'expected_policy_sha256': '0' * 64},
+                        {'expected_policy_sha256': 'wrong'},
+                        {'project_ref': 'wrong'},
+                        {'bucket': 'knowledge'},
+                        {'template': READBACK_PATCH.read_bytes() + b'-- changed\n'}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                render_readback_patch(**(dict(uid=UID, email=EMAIL,
+                                              project_ref=PROJECT_REF,
+                                              bucket=BUCKET,
+                                              expected_policy_sha256='a' * 64) | changes))
 
 
 if __name__ == '__main__':

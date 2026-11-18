@@ -284,7 +284,9 @@ def qualify_pp_storage_policy(secret_dir):
     email_marker='__PP_STORAGE_AUTH_EMAIL__'
     if template.count(marker)!=4 or template.count(email_marker)!=1 or \
             'storage.object.upload' not in template or \
-            'storage.object.get_authenticated' not in template:
+            'storage.object.get_authenticated' not in template or \
+            'object.get_authenticated_info' not in template or \
+            'storage.allow_any_operation' not in template:
         raise RuntimeError('PP Storage review template scope changed')
     f.sql(fixture,secret_dir,timeout=20)
     try:
@@ -338,7 +340,7 @@ def qualify_pp_storage_policy(secret_dir):
         raise RuntimeError('PP Storage policy metadata mismatch')
     f.sql((REPO/'deploy/preprod/tests/pp_storage_policy_denials.sql').read_text(),
           secret_dir,timeout=20)
-    from bind_market_raw_policy import render_rollback
+    from bind_market_raw_policy import render_rollback,render_readback_patch
     rollback=render_rollback('00000000-0000-4000-8000-0000000000aa',
                              'pp-storage-archive@example.invalid',
                              project_ref='xttdqeimdujweijxcuro',bucket='market-raw')
@@ -347,6 +349,45 @@ def qualify_pp_storage_policy(secret_dir):
              secret_dir).strip()!='0' or \
        f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='2':
         raise RuntimeError('policy-only rollback changed generated objects or left policies')
+    current_readback=("storage.allow_any_operation(ARRAY[\n"
+                      "      'storage.object.get_authenticated','object.get_authenticated_info'])")
+    old_readback="storage.allow_only_operation('storage.object.get_authenticated')"
+    if candidate.count(current_readback)!=1:
+        raise RuntimeError('reviewed readback policy expression changed')
+    f.sql("INSERT INTO storage.objects(bucket_id,name,owner_id) VALUES ("
+          "'market-raw',"
+          "'raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/"
+          "500b0871-6f59-46de-a17c-537f6b0aee5d/"
+          "5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf.jsonl.gz',"
+          "'00000000-0000-4000-8000-0000000000aa');",secret_dir)
+    legacy_candidate=candidate.replace(current_readback,old_readback)
+    f.sql(legacy_candidate,secret_dir,timeout=20)
+    hash_sql=("SELECT encode(sha256(convert_to(jsonb_agg(to_jsonb(p) ORDER BY p.policyname)::text,"
+              "'UTF8')),'hex') FROM pg_policies p WHERE p.schemaname='storage'"
+              " AND p.tablename='objects';")
+    catalog_hash=f.sql(hash_sql,secret_dir).strip()
+    patch=render_readback_patch('00000000-0000-4000-8000-0000000000aa',
+                                'pp-storage-archive@example.invalid',
+                                project_ref='xttdqeimdujweijxcuro',bucket='market-raw',
+                                expected_policy_sha256=catalog_hash).decode('ascii')
+    try:
+        f.sql(patch.replace(catalog_hash,'f'*64),secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('wrong policy catalog hash admitted readback amendment')
+    if f.sql(hash_sql,secret_dir).strip()!=catalog_hash:
+        raise RuntimeError('failed readback amendment changed policy catalog')
+    f.sql(patch,secret_dir,timeout=20)
+    f.sql((REPO/'deploy/preprod/tests/pp_storage_readback_patch_denials.sql').read_text(),
+          secret_dir,timeout=20)
+    if f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='3':
+        raise RuntimeError('readback amendment changed generated objects')
+    f.sql(rollback.decode('ascii'),secret_dir,timeout=20)
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0' or \
+       f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='3':
+        raise RuntimeError('amended policy rollback changed objects or left policies')
     return proof
 
 

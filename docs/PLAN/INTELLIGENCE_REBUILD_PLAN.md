@@ -90,6 +90,32 @@ sign-in/rotation, compression and failure regressions are the next gate;
 fresh authenticated Storage readback and local-retirement HOLD remain
 unchanged. No production change follows from this correction.
 
+### PP raw Storage first live probe and readback amendment — November 18 UTC
+
+The first private `market-raw` policy migration is recorded as ledger
+`20261118031950` (`pp_market_raw_storage_auth_20261118`), rendered SQL SHA-256
+`560e472b8997092961beaaca93c0a2fcb1af36bca853c59c24e8a651f19f3ac5`.
+It binds dedicated Auth UID `600b06fc-f121-4a96-a21c-6278b0f38be6` and
+the exact `pp-live-pp` origin. Live inventory found two policies, zero mutation
+grants and a private bucket. One create-only probe POST returned HTTP 200 and
+left a 126-byte synthetic object. Its authenticated GET returned HTTP 400
+`NoSuchKey`; **remote bytes and archive readback are NOT VERIFIED**. Read-only
+Storage logs recorded `storage.object.upload` for POST and legacy
+`object.get_authenticated_info` for GET, while the installed readback policy
+permits only `storage.object.get_authenticated`. The exact object row, UID,
+bucket and PP prefix matched. This supports a narrow operation-name amendment;
+it does not establish a successful readback.
+
+The successor candidate extends only the authenticated readback policy to
+those two operation names. It requires a fresh SHA-256 of the existing two
+catalog policies, exact UID/metadata, private bucket and the retained object
+before one transactional `ALTER POLICY`. A reconcile-only probe reconstructs
+the same key, 126 bytes and SHA-256 locally, then performs authenticated GET
+and public-denial GET with **zero POST**. The candidate has generated tests;
+no live policy amendment or second probe has run. Local retirement remains
+OFF; PP collection and production are unchanged by this candidate. See
+[readback amendment review](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md).
+
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 
 Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)

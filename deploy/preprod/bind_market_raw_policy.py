@@ -16,9 +16,12 @@ import uuid
 PROJECT_REF = 'xttdqeimdujweijxcuro'
 BUCKET = 'market-raw'
 TEMPLATE = Path(__file__).resolve().parents[2] / 'supabase/review/pp_market_raw_storage_policies.sql.in'
-TEMPLATE_SHA256 = '8dc82605d011496c61f049ec06faebc70c6b6522a36b463eba4c63c418b50e10'
+TEMPLATE_SHA256 = '5abe6f03ee330e1f9e9f35488f5f1c21d02d0874296b1d6128f039a1c248337e'
+READBACK_PATCH = Path(__file__).resolve().parents[2] / 'supabase/review/pp_market_raw_readback_legacy_patch.sql.in'
+READBACK_PATCH_SHA256 = 'fcad352555f110a4c0adeca6f77a99fda310f7216c28743dc904491fb0be7002'
 UID_MARKER = '__PP_STORAGE_AUTH_UID__'
 EMAIL_MARKER = '__PP_STORAGE_AUTH_EMAIL__'
+POLICY_HASH_MARKER = '__EXPECTED_POLICY_SHA256__'
 EMAIL = re.compile(r'[a-z0-9._+\-]+@[a-z0-9.\-]+\Z')
 
 
@@ -82,6 +85,29 @@ COMMIT;
 """.encode('ascii')
 
 
+def render_readback_patch(uid: str, email: str, *, project_ref: str, bucket: str,
+                          expected_policy_sha256: str,
+                          template: bytes | None = None) -> bytes:
+    """Render one reviewed, catalog-hash-bound readback-only amendment."""
+    render(uid, email, project_ref=project_ref, bucket=bucket)
+    if (not isinstance(expected_policy_sha256, str) or
+            not re.fullmatch(r'[0-9a-f]{64}', expected_policy_sha256) or
+            expected_policy_sha256 == '0' * 64):
+        raise ValueError('fresh reviewed policy catalog SHA-256 required')
+    source = READBACK_PATCH.read_bytes() if template is None else template
+    if hashlib.sha256(source).hexdigest() != READBACK_PATCH_SHA256:
+        raise ValueError('reviewed readback patch template changed')
+    text = source.decode('ascii')
+    if (text.count(UID_MARKER) != 6 or text.count(EMAIL_MARKER) != 1 or
+            text.count(POLICY_HASH_MARKER) != 2):
+        raise ValueError('readback patch bindings changed')
+    result = (text.replace(UID_MARKER, uid).replace(EMAIL_MARKER, email)
+              .replace(POLICY_HASH_MARKER, expected_policy_sha256))
+    if '__PP_STORAGE_' in result or POLICY_HASH_MARKER in result:
+        raise ValueError('unbound policy marker remains')
+    return result.encode('ascii')
+
+
 def write_new(path: Path, sql: bytes) -> str:
     """Create a private, non-overwriting candidate file and return its digest."""
     descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -103,10 +129,20 @@ def main() -> None:
     parser.add_argument('--project-ref', required=True)
     parser.add_argument('--bucket', required=True)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--mode', choices=('apply', 'rollback'), default='apply')
+    parser.add_argument('--mode', choices=('apply', 'rollback', 'readback-patch'),
+                        default='apply')
+    parser.add_argument('--expected-policy-sha256')
     args = parser.parse_args()
-    renderer = render if args.mode == 'apply' else render_rollback
-    sql = renderer(args.uid, args.email, project_ref=args.project_ref, bucket=args.bucket)
+    if args.mode == 'readback-patch':
+        sql = render_readback_patch(
+            args.uid, args.email, project_ref=args.project_ref, bucket=args.bucket,
+            expected_policy_sha256=args.expected_policy_sha256)
+    else:
+        if args.expected_policy_sha256 is not None:
+            parser.error('--expected-policy-sha256 is only for readback-patch')
+        renderer = render if args.mode == 'apply' else render_rollback
+        sql = renderer(args.uid, args.email, project_ref=args.project_ref,
+                       bucket=args.bucket)
     digest = write_new(args.output, sql)
     print(f'policy candidate rendered; SHA-256 {digest}; no Supabase changes')
 

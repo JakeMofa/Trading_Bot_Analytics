@@ -3,16 +3,31 @@ from __future__ import annotations
 
 import unittest
 import httpx
+import gzip
+import hashlib
+import json
+from pathlib import Path
+import subprocess
+import sys
+import uuid
 
-from deploy.preprod.probe_market_raw_storage import ProbeFailure, run_probe
+from deploy.preprod.probe_market_raw_storage import (ORIGIN_HASH, ProbeFailure,
+                                                     RETAINED_BLOB, run_probe)
 
 UID = '00000000-0000-4000-8000-0000000000aa'
 EMAIL = 'pp-storage-archive@example.invalid'
+LIVE_GENERATION = uuid.UUID('500b0871-6f59-46de-a17c-537f6b0aee5d')
+LIVE_DIGEST = '5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf'
+LIVE_KEY = f'raw-v1/{ORIGIN_HASH}/{LIVE_GENERATION}/{LIVE_DIGEST}.jsonl.gz'
+LIVE_RECORDS = [{'probe': 'pp-storage-v1', 'origin': 'pp-live-pp',
+                 'generation': str(LIVE_GENERATION), 'sequence': i} for i in (1, 2)]
+LIVE_BLOB = RETAINED_BLOB
 
 
 class ProbeTests(unittest.TestCase):
-    def probe(self, *, upload='success', read='exact', public=403, auth='correct'):
-        state = {'calls': [], 'data': None, 'key': None}
+    def probe(self, *, upload='success', read='exact', public=403, auth='correct',
+              stored_data=None):
+        state = {'calls': [], 'data': stored_data, 'key': None}
 
         def handler(request):
             state['calls'].append((request.method, str(request.url)))
@@ -78,6 +93,47 @@ class ProbeTests(unittest.TestCase):
         with self.assertRaises(ProbeFailure):
             run_probe('sb_secret_test', 'bearer', UID, EMAIL, client=client)
         self.assertEqual(state['calls'], [])
+
+    def test_reconcile_only_retained_object_has_zero_post(self):
+        self.assertEqual(len(LIVE_BLOB), 126)
+        self.assertEqual(hashlib.sha256(LIVE_BLOB).hexdigest(), LIVE_DIGEST)
+        self.assertEqual([json.loads(line) for line in gzip.decompress(LIVE_BLOB).splitlines()],
+                         LIVE_RECORDS)
+        _, state, client = self.probe(stored_data=LIVE_BLOB)
+        result = run_probe('sb_publishable_test', 'bearer', UID, EMAIL,
+                           client=client, reconcile_key=LIVE_KEY,
+                           expected_bytes=126, expected_sha256=LIVE_DIGEST)
+        self.assertEqual(result['mode'], 'reconcile-only')
+        self.assertEqual(result['http_attempts'], 3)
+        self.assertEqual([method for method, _ in state['calls']], ['GET'] * 3)
+
+    def test_reconcile_only_wrong_key_digest_size_and_corruption_fail_closed(self):
+        _, state, client = self.probe(stored_data=LIVE_BLOB)
+        for key, size, digest in (
+            (LIVE_KEY.replace(ORIGIN_HASH, 'f' * 64), 126, LIVE_DIGEST),
+            (LIVE_KEY, 127, LIVE_DIGEST),
+            (LIVE_KEY, 126, 'f' * 64),
+        ):
+            with self.subTest(key=key, size=size, digest=digest):
+                with self.assertRaises(ProbeFailure):
+                    run_probe('sb_publishable_test', 'bearer', UID, EMAIL,
+                              client=client, reconcile_key=key,
+                              expected_bytes=size, expected_sha256=digest)
+        self.assertEqual(state['calls'], [])
+        _, state, client = self.probe(stored_data=LIVE_BLOB, read='corrupt')
+        with self.assertRaises(ProbeFailure):
+            run_probe('sb_publishable_test', 'bearer', UID, EMAIL,
+                      client=client, reconcile_key=LIVE_KEY,
+                      expected_bytes=126, expected_sha256=LIVE_DIGEST)
+        self.assertEqual(sum(method == 'POST' for method, _ in state['calls']), 0)
+
+    def test_module_cli_loads_from_repository_root(self):
+        root = Path(__file__).resolve().parents[2]
+        result = subprocess.run([sys.executable, '-m',
+                                 'deploy.preprod.probe_market_raw_storage', '--help'],
+                                cwd=root, text=True, capture_output=True, timeout=5)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--reconcile-key', result.stdout)
 
 
 if __name__ == '__main__':

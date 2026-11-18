@@ -163,6 +163,28 @@ def qualify_cloud_contract(secret_dir):
     return proof
 
 
+def qualify_structured_receipts(secret_dir):
+    """Apply the additive receipt table only to disposable generated CI data."""
+    ddl=(REPO/'supabase/migrations/20261118012340_structured_receipts_v2.sql').read_text()
+    if ('CREATE TABLE history_v2.structured_receipts' not in ddl or
+            'ALTER TABLE history_v2.structured_receipts ENABLE ROW LEVEL SECURITY' not in ddl or
+            'GRANT ' in ddl or 'CREATE TABLE public.' in ddl):
+        raise RuntimeError('private structured receipt migration scope changed')
+    f.sql('BEGIN;\n'+ddl+'\nCOMMIT;',secret_dir,timeout=40)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'private_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                         WHERE n.nspname='history_v2' AND c.relkind='r'),
+      'rls', (SELECT relrowsecurity FROM pg_class WHERE oid='history_v2.structured_receipts'::regclass),
+      'anon_access', has_table_privilege('anon','history_v2.structured_receipts','SELECT'),
+      'authenticated_access', has_table_privilege('authenticated','history_v2.structured_receipts','SELECT'),
+      'service_access', has_table_privilege('service_role','history_v2.structured_receipts','SELECT'));
+      """,secret_dir))
+    if (proof['private_tables']!=11 or proof['rls'] is not True or
+            any(proof[key] for key in ('anon_access','authenticated_access','service_access'))):
+        raise RuntimeError('generated receipt privacy check failed')
+    return proof
+
+
 def main():
     global DEADLINE, PHASE
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or f.MARKER.exists() or f.MARKER.is_symlink():
@@ -226,6 +248,11 @@ def main():
                 command([sys.executable,'-c',code],env,timeout=180)
             PHASE='generated_cloud_contract'
             cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
+            PHASE='generated_structured_receipts'
+            receipt_contract=qualify_structured_receipts(CI_FOUNDATION_SECRETS)
+            env['TRADEBOT_TEST_HISTORY_V2_DSN']=dsns['admin']
+            command([sys.executable,'-m','unittest','backend.tests.test_history_v2_transport_pg','-v'],
+                    env,timeout=90)
             PHASE='runtime_image'
             command(['docker','build','-f','deploy/preprod/Dockerfile','-t','tradebot-pg-test','.'],timeout=200)
             runtime_env={**os.environ,'PP_SECRET_DIR':str(CI_FOUNDATION_SECRETS),'PP_RUNTIME_SECRET_DIR':str(CI_RUNTIME_SECRETS),'PP_APP_IMAGE':'tradebot-pg-test'}
@@ -251,7 +278,7 @@ def main():
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

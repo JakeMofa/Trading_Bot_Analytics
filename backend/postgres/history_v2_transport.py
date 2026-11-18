@@ -153,8 +153,8 @@ class HistoryV2PostgresTransport:
                         self._entity_lock(connection, record)
                         receipt = self._receipt(connection, record)
                         if receipt is not None:
-                            if checkpoint is None:
-                                raise ArchiveIntegrityError('private receipt without checkpoint')
+                            if checkpoint is None or record['id'] > previous_id:
+                                raise ArchiveIntegrityError('private receipt beyond checkpoint')
                             self._check_receipt(receipt, record)
                             continue
                         if record['id'] <= previous_id:

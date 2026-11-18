@@ -8,7 +8,7 @@ import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from postgres.archive_codec import ArchiveIntegrityError, encoded
+from postgres.archive_codec import ArchiveIntegrityError, encoded, sha256
 from postgres.history_v2_transport import HistoryV2PostgresTransport
 
 
@@ -118,6 +118,18 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         with self.assertRaises(ArchiveIntegrityError):
             transport.read_structured_authenticated(records,
                 max_bytes=4 * 1024 * 1024, timeout_seconds=5)
+        with factory() as connection:
+            connection.execute('''UPDATE history_v2.generation_checkpoints
+                SET cursor='{"outbox_id":1}'::jsonb,content_hash=%s
+                WHERE origin_id=%s AND generation_id=%s AND dataset='structured:outbox' ''',
+                (sha256(encoded({'outbox_id': 1})), origin, generation))
+        with self.assertRaises(ArchiveIntegrityError):
+            transport.put_structured(records, timeout_seconds=5)
+        with factory() as connection:
+            connection.execute('''UPDATE history_v2.generation_checkpoints
+                SET cursor='{"outbox_id":3}'::jsonb,content_hash=%s
+                WHERE origin_id=%s AND generation_id=%s AND dataset='structured:outbox' ''',
+                (sha256(encoded({'outbox_id': 3})), origin, generation))
         with factory() as connection:
             connection.execute('''DELETE FROM history_v2.structured_receipts
                 WHERE origin_id=%s AND outbox_id=2''', (origin,))

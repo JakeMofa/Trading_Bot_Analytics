@@ -283,8 +283,10 @@ class ActionTests(unittest.TestCase):
                 return json.dumps(config).encode()
             return b''
         budget.run=rendered_config
-        with patch.object(self.actions,'_host'),patch.object(self.actions,'_postgres'):
+        with patch.object(self.actions,'_host'),patch.object(self.actions,'_postgres'), \
+             patch.object(self.actions,'_outbox_release_preflight') as outbox:
             self.actions.preflight(self.context,budget)
+        outbox.assert_called_once_with(budget)
         self.assertEqual(set(self.actions.config['services']),set(a.MEMORY))
         rendered=budget.calls[0][0]
         self.assertLess(rendered.index('--profile'),rendered.index('config'))
@@ -313,7 +315,8 @@ class ActionTests(unittest.TestCase):
     def test_migration_fences_writers_before_explicit_migrate_and_preserves_existing_rows(self):
         calls=[]
         original={'core.predictions':{'count':1,'digest':'a'*32}}
-        with patch.object(self.actions,'_fence',side_effect=lambda *_:calls.append('fence')), \
+        with patch.object(self.actions,'_capture_prior_runtime'), \
+             patch.object(self.actions,'_fence',side_effect=lambda *_:calls.append('fence')), \
              patch.object(self.actions,'_inventory',side_effect=[original,original]), \
              patch.object(self.actions,'_compose',side_effect=lambda ctx,budget,args,**kw:(calls.append(args) or b'{"environment":"preprod","operation":"migrate","result":[1]}')):
             self.actions.migrate(self.context,self.budget)
@@ -324,11 +327,106 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(self.actions.migrated)
 
     def test_migration_existing_evidence_change_is_held_without_restore(self):
-        with patch.object(self.actions,'_fence'),patch.object(self.actions,'_inventory',side_effect=[{'core.predictions':{'count':1}}, {'core.predictions':{'count':0}}]), \
+        with patch.object(self.actions,'_capture_prior_runtime'),patch.object(self.actions,'_fence'),patch.object(self.actions,'_inventory',side_effect=[{'core.predictions':{'count':1}}, {'core.predictions':{'count':0}}]), \
              patch.object(self.actions,'_compose',return_value=b'{"environment":"preprod","operation":"migrate","result":[1]}'):
             with self.assertRaisesRegex(c.DeploymentHold,'migration_changed_existing_evidence'):
                 self.actions.migrate(self.context,self.budget)
         self.assertFalse(self.actions.migrated)
+
+    def test_outbox_inventory_checks_12779_rows_across_two_origins_after_oneoff(self):
+        calls=[]
+        def sql(_,query):
+            calls.append(query)
+            if query.startswith('SELECT to_regclass('):
+                return 't' if "'ops.outbox'" in query else 'f'
+            if 'SELECT coalesce(json_agg(origin_id' in query:
+                return '["generated-pp","pp-live-pp"]'
+            if "WHERE origin_id='generated-pp'" in query:
+                return json.dumps({'count':7511,'digest':'a'*32})
+            if "WHERE origin_id='pp-live-pp'" in query:
+                return json.dumps({'count':5268,'digest':'b'*32})
+            raise AssertionError('unexpected inventory query')
+        with patch.object(self.actions,'_sql',side_effect=sql):
+            original=self.actions._inventory(self.budget)
+            self.actions.before_migration=original
+            self.actions.fence_started=True
+            self.actions.migration_oneoff_attempted=True
+            with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'):
+                recovery=self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),self.budget)
+        self.assertEqual(original['ops.outbox'],{
+            'generated-pp':{'count':7511,'digest':'a'*32},
+            'pp-live-pp':{'count':5268,'digest':'b'*32}})
+        self.assertEqual(recovery['strategy'],'stop_candidate_keep_database')
+        self.assertTrue(recovery['new_acknowledgements_preserved'])
+        self.assertEqual(sum("WHERE origin_id='generated-pp'" in q for q in calls),3)
+        self.assertEqual(sum("WHERE origin_id='pp-live-pp'" in q for q in calls),3)
+        self.assertTrue(all('LIMIT 10001' in q for q in calls if 'WHERE origin_id=' in q))
+        self.assertFalse(any('FROM ops.outbox LIMIT 10001' in q for q in calls))
+        self.assertTrue(all(q.startswith('SELECT ') for q in calls))
+
+    def test_overbound_outbox_holds_in_read_only_preflight_before_fence(self):
+        def sql(_,query):
+            if query=="SELECT to_regclass('ops.outbox') IS NOT NULL":return 't'
+            if 'SELECT coalesce(json_agg(origin_id' in query:return '["generated-pp"]'
+            if "WHERE origin_id='generated-pp'" in query:return '10001'
+            raise AssertionError('unexpected preflight query')
+        config=json.dumps(configuration(self.context.source,'sha256:'+'0'*64)).encode()
+        with patch.object(self.actions,'_host'),patch.object(self.actions,'_postgres'), \
+             patch.object(self.actions,'_compose',return_value=config), \
+             patch.object(self.actions,'_sql',side_effect=sql), \
+             patch.object(self.actions,'_fence') as fence:
+            with self.assertRaisesRegex(c.DeploymentHold,'outbox_inventory_exceeds_release_bound'):
+                self.actions.preflight(self.context,self.budget)
+            fence.assert_not_called()
+        self.assertEqual(self.budget.calls,[])
+
+    def test_outbox_release_preflight_accepts_two_bounded_origins(self):
+        calls=[]
+        def sql(_,query):
+            calls.append(query)
+            if query=="SELECT to_regclass('ops.outbox') IS NOT NULL":return 't'
+            if 'SELECT coalesce(json_agg(origin_id' in query:return '["generated-pp","pp-live-pp"]'
+            if "WHERE origin_id='generated-pp'" in query:return '7511'
+            if "WHERE origin_id='pp-live-pp'" in query:return '5268'
+            raise AssertionError('unexpected preflight query')
+        with patch.object(self.actions,'_sql',side_effect=sql):
+            self.actions._outbox_release_preflight(self.budget)
+        self.assertEqual(len(calls),4)
+        self.assertTrue(all(q.startswith('SELECT ') for q in calls))
+        self.assertEqual(sum('LIMIT 10001' in q for q in calls),2)
+
+    def test_outbox_inventory_rejects_overbound_or_unknown_origin(self):
+        for origins,count in [(['generated-pp'],10001),
+                              (['generated-pp','pp-live-pp','unexpected'],7511),
+                              (['generated-pp',None],7511),
+                              (['unexpected'],7511)]:
+            with self.subTest(origins=origins,count=count):
+                def sql(_,query):
+                    if query.startswith('SELECT to_regclass('):
+                        return 't' if "'ops.outbox'" in query else 'f'
+                    if 'SELECT coalesce(json_agg(origin_id' in query:
+                        return json.dumps(origins)
+                    if "WHERE origin_id='generated-pp'" in query:
+                        return json.dumps({'count':count,'digest':'a'*32})
+                    raise AssertionError('unexpected inventory query')
+                with patch.object(self.actions,'_sql',side_effect=sql):
+                    with self.assertRaisesRegex(c.DeploymentHold,
+                                                'inventory_exceeds_generated_bound|unexpected_outbox_origin'):
+                        self.actions._inventory(self.budget)
+
+    def test_outbox_recovery_rejects_changed_origin_fingerprint(self):
+        self.actions.before_migration={'ops.outbox':{
+            'generated-pp':{'count':7511,'digest':'a'*32},
+            'pp-live-pp':{'count':5268,'digest':'b'*32}}}
+        current={'ops.outbox':{
+            'generated-pp':{'count':7511,'digest':'a'*32},
+            'pp-live-pp':{'count':5268,'digest':'c'*32}}}
+        self.actions.fence_started=True
+        self.actions.migration_oneoff_attempted=True
+        with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'), \
+             patch.object(self.actions,'_inventory',return_value=current):
+            with self.assertRaisesRegex(c.DeploymentHold,'migration_recovery_evidence_changed'):
+                self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),self.budget)
 
     def test_start_requires_migration_and_never_starts_postgres(self):
         with self.assertRaisesRegex(c.DeploymentHold,'explicit_migration_required'):

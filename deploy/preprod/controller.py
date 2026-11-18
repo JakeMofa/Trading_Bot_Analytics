@@ -357,8 +357,9 @@ class Actions(Protocol):
     profile; start never runs migrations implicitly. smoke executes generated-only
     runtime acceptance and returns every CHECKS member plus explicit disabled flags.
     recover fences candidate writers and preserves the current database, credentials
-    and volume. It may restart the candidate forward; it must never restore a DB
-    or blindly run a prior application against an incompatible migrated schema.
+    and volume. It may restart exact prior containers only when a durable boundary
+    proves migration was never attempted and the schema is unchanged. It must never
+    restore a DB or blindly run a prior application after migration.
     """
     def preflight(self,context:Context,budget:Budget)->None: ...
     def build(self,context:Context,budget:Budget)->str: ...
@@ -443,11 +444,20 @@ class Controller:
                 try:
                     recovered=actions.recover(replace(context,failed_stage=stage),recovery_budget)
                     recovery_budget.timeout()
-                    require(recovered.get('strategy') in ('stop_candidate_keep_database','forward_candidate','prior_runtime_unchanged')
+                    require(recovered.get('strategy') in ('stop_candidate_keep_database','forward_candidate',
+                        'prior_runtime_unchanged','prior_runtime_restored_pre_migration')
                             and recovered.get('database_preserved') is True
                             and recovered.get('new_acknowledgements_preserved') is True
                             and recovered.get('database_restored') is False,'recovery_not_proven')
                     result['recovery']={key:recovered[key] for key in ('strategy','database_preserved','new_acknowledgements_preserved','database_restored')}
+                    if recovered['strategy']=='prior_runtime_restored_pre_migration':
+                        prior_image=recovered.get('prior_image_id')
+                        prior_ids=recovered.get('prior_container_ids')
+                        require(isinstance(prior_image,str) and bool(re.fullmatch('sha256:[0-9a-f]{64}',prior_image))
+                                and isinstance(prior_ids,dict) and set(prior_ids)=={'api','calculation','lifecycle','operator'}
+                                and all(isinstance(value,str) and bool(re.fullmatch('[0-9a-f]{64}',value))
+                                        for value in prior_ids.values()),'prior_runtime_evidence_invalid')
+                        result['recovery'].update(prior_image_id=prior_image,prior_container_ids=prior_ids)
                 except Exception:
                     result['recovery']={'status':'unproven_preserve_and_inspect'}
                 try:

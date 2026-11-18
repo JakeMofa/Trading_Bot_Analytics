@@ -263,8 +263,9 @@ class TransferControls(unittest.TestCase):
                 with self.assertRaises(transfer.TransferStop):
                     transfer.public_key(path)
 
-    def test_exact_source_and_bundle_constants_are_real(self):
-        # Works in shallow CI; pinned digests prevent local edits from shipping.
+    def test_consumed_transfer_rejects_new_controller_source(self):
+        # This one-release helper remains pinned to the installed source.
+        # Later controller changes must use a separately reviewed transfer.
         repo = Path(__file__).parents[3]
         with tempfile.TemporaryDirectory() as folder:
             bundle = Path(folder) / 'bundle.pyz'
@@ -275,12 +276,7 @@ class TransferControls(unittest.TestCase):
                 info = controller_bundle.build(bundle)
             finally:
                 sys.path.pop(0)
-            self.assertEqual(info['sha256'], transfer.NEW)
-            actual = transfer.payload_for(bundle, repo)
-            self.assertLess(len(actual), transfer.MAX_TOTAL)
-            self.assertEqual(transfer.decode_payload(io.BytesIO(actual))['controller.pyz'],
-                             bundle.read_bytes())
-            bundle.write_bytes(b'changed')
+            self.assertNotEqual(info['sha256'], transfer.NEW)
             with self.assertRaises(transfer.TransferStop):
                 transfer.payload_for(bundle, repo)
 
@@ -294,14 +290,17 @@ class TransferControls(unittest.TestCase):
                 (source / name).write_bytes((real_source / name).read_bytes())
             bundle = root / 'controller.pyz'
             bundle.write_bytes(self.valid_bundle)
-            transfer.payload_for(bundle, root)
-            (source / 'install_controller.py').write_bytes(b'changed')
-            with self.assertRaises(transfer.TransferStop):
+            hashes={'controller.pyz':transfer.digest(self.valid_bundle)}
+            hashes.update({name:transfer.digest((source / name).read_bytes()) for name in transfer.FILES})
+            with patch.dict(transfer.HASHES,hashes,clear=True):
                 transfer.payload_for(bundle, root)
-            (source / 'install_controller.py').unlink()
-            (source / 'install_controller.py').symlink_to(real_source / 'install_controller.py')
-            with self.assertRaises(transfer.TransferStop):
-                transfer.payload_for(bundle, root)
+                (source / 'install_controller.py').write_bytes(b'changed')
+                with self.assertRaises(transfer.TransferStop):
+                    transfer.payload_for(bundle, root)
+                (source / 'install_controller.py').unlink()
+                (source / 'install_controller.py').symlink_to(real_source / 'install_controller.py')
+                with self.assertRaises(transfer.TransferStop):
+                    transfer.payload_for(bundle, root)
 
 
 if __name__ == '__main__':

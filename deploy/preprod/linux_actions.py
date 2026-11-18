@@ -2,10 +2,10 @@
 
 Only stdlib and the bundled controller are imported. Fixed root secrets and an
 already-running qualified PostgreSQL foundation are prerequisites. Every child
-runs through the controller's bounded Budget. Recovery stops candidate writers
-and preserves the database; it never starts an earlier application or restores
-a volume. Tests use command doubles; actual Linux execution remains a separate
-qualification gate.
+runs through the controller's bounded Budget. After a proven pre-migration
+failure, recovery may restart the exact prior containers. Once migration is
+attempted, recovery stops candidate writers and preserves the database; it
+never restores a volume. Actual Linux execution is a separate qualification gate.
 """
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from pathlib import Path
 import re
 import shutil
 import stat
+from dataclasses import replace
+import time
 import urllib.parse
 import urllib.request
 import uuid
@@ -52,6 +54,7 @@ BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_EN
           'TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false',
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
 OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
+OUTBOX_ORIGINS=('generated-pp','pp-live-pp')
 
 
 def memory_bytes(value):
@@ -236,6 +239,10 @@ class LinuxActions:
         self.migrated=False
         self.anchor=None
         self.before_migration=None
+        self.prior_runtime=None
+        self.fence_started=False
+        self.fence_completed=False
+        self.migration_oneoff_attempted=False
         self.attempt_id=uuid.uuid4().hex
         self.oneoffs={}
         self.oneoff_sequence=0
@@ -317,6 +324,19 @@ class LinuxActions:
 
     def _oneoff(self,context,budget,service,args=(),timeout=90,*,compose=None):
         require(service in ('migrate','lifecycle'),'unsupported_deployment_oneoff')
+        if service=='migrate' and not self.migration_oneoff_attempted:
+            # A timed-out CLI may have launched a daemon-side migration. Keep a
+            # durable, conservative boundary even after --rm removes the oneoff.
+            self.migration_oneoff_attempted=True
+            marker=context.staging/'migration-oneoff-attempted.json'
+            descriptor=os.open(marker,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            with os.fdopen(descriptor,'w') as output:
+                json.dump({'attempt_id':self.attempt_id,'source_sha':context.request.source_sha,
+                           'image':context.image},output,sort_keys=True)
+                output.flush();os.fsync(output.fileno())
+            directory=os.open(context.staging,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+            try:os.fsync(directory)
+            finally:os.close(directory)
         self.oneoff_sequence+=1
         name='tradebot-pp-deploy-'+self.attempt_id+'-'+str(self.oneoff_sequence)
         self.oneoffs[name]=service  # Record before daemon-side creation can occur.
@@ -395,10 +415,31 @@ class LinuxActions:
         require(re.findall(r'^FROM (.+)$',dockerfile,re.M)==[PYTHON_IMAGE],'unqualified_python_base')
         self.config=validate_config(self._json(self._compose(context,budget,['config','--format','json'])),context.source,'sha256:'+'0'*64)
         self._postgres(context,budget)
+        self._outbox_release_preflight(budget)
         pending=budget.run(['docker','ps','-a','--filter','label=com.docker.compose.project='+PROJECT,
             '--filter','label=com.docker.compose.oneoff=True','--format','{{.ID}}'],
             env=self._environment('unused'),timeout=10).strip()
         require(not pending,'prior_oneoff_requires_operator_inspection')
+
+    def _approved_outbox_origins(self,budget):
+        origins=self._json(self._sql(budget,"SELECT coalesce(json_agg(origin_id ORDER BY origin_id),'[]'::json) "
+            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 3) bounded"))
+        require(isinstance(origins,list) and len(origins)<=len(OUTBOX_ORIGINS)
+                and all(type(origin) is str and origin in OUTBOX_ORIGINS for origin in origins)
+                and len(origins)==len(set(origins)),'unexpected_outbox_origin')
+        return origins
+
+    def _outbox_release_preflight(self,budget):
+        # Fail before image build and writer fence if the finite complete-ledger
+        # inventory cannot fit. The runtime pending-row cap is separate.
+        exists=self._sql(budget,"SELECT to_regclass('ops.outbox') IS NOT NULL")
+        if exists=='f':return
+        require(exists=='t','invalid_inventory_evidence')
+        for origin in self._approved_outbox_origins(budget):
+            count=self._sql(budget,"SELECT count(*) FROM (SELECT 1 FROM ops.outbox "
+                "WHERE origin_id='"+origin+"' LIMIT 10001) bounded")
+            require(bool(re.fullmatch('[0-9]{1,5}',count)) and 0<int(count)<=10000,
+                    'outbox_inventory_exceeds_release_bound')
 
     def build(self,context,budget):
         require(self.config is not None,'preflight_required')
@@ -442,13 +483,94 @@ class LinuxActions:
             exists=self._sql(budget,"SELECT to_regclass('"+table+"') IS NOT NULL")
             if exists=='f':result[table]=None;continue
             require(exists=='t','invalid_inventory_evidence')
+            if table=='ops.outbox':
+                # The live and generated origins each enforce their own 10,000
+                # pending-row admission bound. A whole-table 10,001 sentinel
+                # falsely stopped deployment with 7,511 + 5,268 rows. Check
+                # every origin independently, including acknowledged evidence.
+                # This is a finite release check: >10,000 lifetime rows in
+                # either origin still HOLDs until a separate ledger design.
+                origins=self._approved_outbox_origins(budget)
+                groups={}
+                for origin in OUTBOX_ORIGINS:
+                    if origin not in origins:continue
+                    row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',"
+                        "md5(coalesce(string_agg(fingerprint,',' ORDER BY fingerprint),''))) FROM "
+                        "(SELECT jsonb_build_array("+identity+")::text AS fingerprint FROM ops.outbox "
+                        "WHERE origin_id='"+origin+"' LIMIT 10001) bounded"))
+                    require(isinstance(row,dict) and type(row.get('count')) is int
+                            and 0<row['count']<=10000
+                            and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),
+                            'inventory_exceeds_generated_bound')
+                    groups[origin]=row
+                result[table]=groups
+                continue
             row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY fingerprint),''))) FROM (SELECT jsonb_build_array("+identity+")::text AS fingerprint FROM "+table+" LIMIT 10001) bounded"))
             require(0<=row.get('count',10001)<=10000 and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'inventory_exceeds_generated_bound')
             result[table]=row
         return result
 
+    def _schema_ledger(self,budget):
+        """Bounded identity check; the prior runtime needs the same schema."""
+        row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY version),''))) FROM (SELECT version,jsonb_build_array(version,name,checksum,catalog_hash)::text AS fingerprint FROM ops.schema_migrations ORDER BY version LIMIT 65) bounded"))
+        require(isinstance(row,dict) and 1<=row.get('count',65)<=64
+                and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'prior_schema_ledger_unproven')
+        return row
+
+    def _ack_state(self,budget):
+        """Bounded exact outbox ACK-state proof for pre-migration restoration."""
+        # Keep the same complete, approved-origin coverage as _inventory.
+        # A whole-table sentinel would reject the measured 7,511 + 5,268 rows.
+        groups={}
+        for origin in self._approved_outbox_origins(budget):
+            row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',"
+                "md5(coalesce(string_agg(fingerprint,',' ORDER BY id),''))) FROM "
+                "(SELECT id,jsonb_build_array(id,origin_id,generation_id,entity_type,entity_id,"
+                "content_hash,acknowledged_at)::text AS fingerprint FROM ops.outbox "
+                "WHERE origin_id='"+origin+"' ORDER BY id LIMIT 10001) bounded"))
+            require(isinstance(row,dict) and type(row.get('count')) is int
+                    and 0<row['count']<=10000
+                    and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),
+                    'prior_ack_state_unproven')
+            groups[origin]=row
+        return groups
+
+    def _capture_prior_runtime(self,context,budget):
+        """Only the already-running generated/off containers may be restored."""
+        require(self.pg_id is not None and self.pg_volume==PG_VOLUME,'prior_postgres_not_bound')
+        ids={}
+        for service in SERVICES:
+            found=self._ids(context,budget,[service],all=True)
+            require(len(found)<=1,'prior_runtime_missing_or_ambiguous')
+            if found:ids[service]=found[0]
+        if not ids:return  # First installation has no prior application to restore.
+        require(set(ids)==set(SERVICES),'prior_runtime_missing_or_ambiguous')
+        require(len(set(ids.values()))==len(SERVICES),'prior_runtime_duplicate_container')
+        rows={service:self._inspect(budget,[cid])[0] for service,cid in ids.items()}
+        images={row.get('Image') for row in rows.values()}
+        require(len(images)==1 and bool(re.fullmatch('sha256:[0-9a-f]{64}',next(iter(images)))),
+                'prior_runtime_image_unproven')
+        prior_image=next(iter(images))
+        self._runtime(replace(context,image=prior_image),budget)
+        self._host_api();self._host_operator()
+        self.prior_runtime={'ids':ids,'rows':rows,'image':prior_image,
+                            'pg_id':self.pg_id,'pg_volume':self.pg_volume,
+                            'schema':self._schema_ledger(budget),'ack_state':self._ack_state(budget)}
+
+    @staticmethod
+    def _unchanged_container(prior,current):
+        def fixed_host(row):
+            return {key:value for key,value in row.get('HostConfig',{}).items() if key!='RestartPolicy'}
+        return (current.get('Id')==prior.get('Id') and current.get('Image')==prior.get('Image')
+                and current.get('Config')==prior.get('Config') and current.get('Mounts')==prior.get('Mounts')
+                and fixed_host(current)==fixed_host(prior)
+                and set(current.get('NetworkSettings',{}).get('Networks',{}))==set(prior.get('NetworkSettings',{}).get('Networks',{})))
+
     def migrate(self,context,budget):
+        self._capture_prior_runtime(context,budget)
+        self.fence_started=True
         self._fence(context,budget)
+        self.fence_completed=True
         self.before_migration=self._inventory(budget)
         evidence=self._json(self._oneoff(context,budget,'migrate',timeout=90))
         require(evidence.get('environment')=='preprod' and evidence.get('operation')=='migrate'
@@ -613,11 +735,70 @@ class LinuxActions:
         return {'checks':dict.fromkeys(CHECKS,'PASS'),'acceptance_scope':'generated_only','live_collector_enabled':False,
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}
 
+    def _restore_prior_before_migration(self,context,budget):
+        prior=self.prior_runtime
+        require(context.failed_stage=='migrate' and self.fence_completed and prior is not None
+                and not self.migration_oneoff_attempted and not self.oneoffs
+                and not (context.staging/'migration-oneoff-attempted.json').exists()
+                and not (context.staging/'migration-oneoff-attempted.json').is_symlink(),
+                'pre_migration_restore_not_proven')
+        ids=prior['ids']
+        for service,cid in ids.items():
+            require(self._ids(context,budget,[service],all=True)==[cid],
+                    'prior_container_identity_changed')
+            current=self._inspect(budget,[cid])[0]
+            require(self._unchanged_container(prior['rows'][service],current)
+                    and current.get('State',{}).get('Running') is False
+                    and current.get('HostConfig',{}).get('RestartPolicy',{}).get('Name')=='no',
+                    'prior_stopped_container_changed')
+        old_pg=self.pg_id
+        self._postgres(context,budget)
+        require(self.pg_id==old_pg==prior['pg_id'] and self.pg_volume==prior['pg_volume']
+                and self._schema_ledger(budget)==prior['schema']
+                and self._ack_state(budget)==prior['ack_state'],'pre_migration_database_changed')
+        originals=list(ids.values())
+        try:
+            budget.run(['docker','update','--restart=unless-stopped',*originals],
+                       env=self._environment(prior['image']),timeout=20)
+            budget.run(['docker','start',*originals],env=self._environment(prior['image']),timeout=40)
+            deadline=time.monotonic()+min(40,budget.timeout())
+            while True:
+                api=self._inspect(budget,[ids['api']])[0]
+                if api.get('State',{}).get('Health',{}).get('Status')=='healthy':break
+                require(time.monotonic()<deadline,'prior_api_recovery_timeout')
+                time.sleep(.5)
+            self._runtime(replace(context,image=prior['image']),budget)
+            self._host_api();self._host_operator()
+            old_pg=self.pg_id
+            self._postgres(context,budget)
+            require(self.pg_id==old_pg==prior['pg_id'] and self._schema_ledger(budget)==prior['schema'],
+                    'prior_database_postcheck_changed')
+        except Exception:
+            # A partially started application is not a recovery. Fence only the
+            # exact original containers and leave the database untouched.
+            budget.run(['docker','update','--restart=no',*originals],
+                       env=self._environment(prior['image']),timeout=20)
+            budget.run(['docker','stop','--time','5',*originals],
+                       env=self._environment(prior['image']),timeout=20)
+            require(all(not self._inspect(budget,[cid])[0].get('State',{}).get('Running')
+                        for cid in originals),'partial_prior_recovery_still_running')
+            raise
+        return {'strategy':'prior_runtime_restored_pre_migration','database_preserved':True,
+                'new_acknowledgements_preserved':True,'database_restored':False,
+                'prior_image_id':prior['image'],'prior_container_ids':dict(ids)}
+
     def recover(self,context,budget):
         if not context.migration_started:
             require(not self.oneoffs,'unexpected_pre_migration_oneoff')
             return {'strategy':'prior_runtime_unchanged','database_preserved':True,
                     'new_acknowledgements_preserved':True,'database_restored':False}
+        marker=context.staging/'migration-oneoff-attempted.json'
+        if (context.failed_stage=='migrate' and not self.fence_started and not self.migration_oneoff_attempted
+                and not marker.exists() and not marker.is_symlink()):
+            return {'strategy':'prior_runtime_unchanged','database_preserved':True,
+                    'new_acknowledgements_preserved':True,'database_restored':False}
+        if context.failed_stage=='migrate' and self.fence_completed and not self.migration_oneoff_attempted:
+            return self._restore_prior_before_migration(context,budget)
         self._cleanup_oneoffs(context,budget)
         self._fence(context,budget)
         self._postgres(context,budget)

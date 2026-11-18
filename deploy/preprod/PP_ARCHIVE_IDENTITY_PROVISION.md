@@ -6,7 +6,7 @@ on PP, enable cloud sync, or authorize retirement. It has no application startup
 hook. Production remains separate.
 
 The operator supplies an explicit dedicated email and an existing private
-Supabase admin/secret key file. The command binds the exact TokenBot project
+Supabase admin/secret key file. The command binds the exact Tradebot project
 `xttdqeimdujweijxcuro`, creates an email-confirmed Auth user through the
 supported Admin endpoint, and sets admin-controlled metadata
 `tradebot_role=pp_storage_archive` and `tradebot_origin=pp-live-pp`. It prints

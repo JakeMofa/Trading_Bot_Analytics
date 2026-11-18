@@ -4,6 +4,9 @@ from __future__ import annotations
 import asyncio
 
 import httpx
+from websockets.exceptions import (ConnectionClosed, ConnectionClosedOK,
+                                   InvalidHandshake, InvalidStatus,
+                                   WebSocketException)
 
 from .store import StorageHold
 
@@ -19,7 +22,19 @@ CATEGORIES = frozenset({
     'http_unexpected',
     'invalid_or_unavailable', 'identity_mismatch', 'write_rejected', 'unexpected', 'ended',
     'lease_lost', 'deadline_reached', 'durable_off_unproven',
+    'ws_closed_ok', 'ws_closed_error', 'ws_handshake_invalid', 'ws_protocol',
 })
+
+
+def _http_category(status):
+    # A provider handshake response is untrusted. Only its bounded integer
+    # status enters the private diagnostic; reason, headers and body do not.
+    if isinstance(status, bool) or not isinstance(status, int):
+        return 'http_unexpected'
+    return ('http_429' if status == 429 else
+            'http_404' if status == 404 else
+            'http_5xx' if 500 <= status <= 599 else
+            'http_4xx' if 400 <= status <= 499 else 'http_unexpected')
 
 
 class CollectorHold(RuntimeError):
@@ -38,10 +53,7 @@ class SourceHTTPFailure(ValueError):
     """Provider status is reduced to an allowlisted category, never a body."""
 
     def __init__(self, status: int, message: str):
-        self.category = ('http_429' if status == 429 else
-                         'http_404' if status == 404 else
-                         'http_5xx' if 500 <= status <= 599 else
-                         'http_4xx' if 400 <= status <= 499 else 'http_unexpected')
+        self.category = _http_category(status)
         super().__init__(message)
 
 
@@ -55,11 +67,21 @@ def diagnose(operation: str, error: Exception) -> LiveDiagnostic:
     """Classify types and fixed fields only; never copy exception text."""
     if isinstance(error, (SourceHTTPFailure, SourceTransportFailure)):
         category = error.category
+    elif isinstance(error, InvalidStatus):
+        category = _http_category(error.response.status_code)
+    elif isinstance(error, ConnectionClosedOK):
+        category = 'ws_closed_ok'
+    elif isinstance(error, ConnectionClosed):
+        category = 'ws_closed_error'
+    elif isinstance(error, InvalidHandshake):
+        category = 'ws_handshake_invalid'
+    elif isinstance(error, WebSocketException):
+        category = 'ws_protocol'
     elif isinstance(error, StorageHold):
         category = 'write_rejected'
     elif isinstance(error, (asyncio.TimeoutError, TimeoutError, httpx.TimeoutException)):
         category = 'timeout'
-    elif isinstance(error, (httpx.TransportError, OSError)):
+    elif isinstance(error, (httpx.TransportError, OSError, EOFError)):
         category = 'transport'
     elif isinstance(error, ValueError):
         category = 'invalid_or_unavailable'

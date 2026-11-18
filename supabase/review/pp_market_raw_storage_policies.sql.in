@@ -1,0 +1,53 @@
+-- REVIEW TEMPLATE ONLY. Never run with the placeholder UID.
+-- Replace the marker with the reviewed dedicated PP Supabase Auth user UUID
+-- after provisioning it through the supported Auth Admin API. This file is
+-- intentionally outside supabase/migrations and is not applied by CI or CD.
+BEGIN;
+DO $preflight$
+BEGIN
+  IF '__PP_STORAGE_AUTH_UID__' !~
+      '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+    RAISE EXCEPTION 'reviewed PP Storage machine UID is required';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM auth.users
+                 WHERE id='__PP_STORAGE_AUTH_UID__'::uuid
+                   AND email='__PP_STORAGE_AUTH_EMAIL__'
+                   AND role='authenticated'
+                   AND email_confirmed_at IS NOT NULL
+                   AND raw_app_meta_data->>'tradebot_role'='pp_storage_archive'
+                   AND raw_app_meta_data->>'tradebot_origin'='pp-live-pp') THEN
+    RAISE EXCEPTION 'reviewed PP Storage Auth identity binding changed';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM storage.buckets
+                 WHERE id='market-raw' AND public=false) THEN
+    RAISE EXCEPTION 'private market-raw bucket binding changed';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+                 WHERE n.nspname='storage' AND c.relname='objects' AND c.relrowsecurity) THEN
+    RAISE EXCEPTION 'Storage objects RLS is not enabled';
+  END IF;
+  IF EXISTS (SELECT 1 FROM pg_policies
+             WHERE schemaname='storage' AND tablename='objects') THEN
+    RAISE EXCEPTION 'Storage object policy set changed; review required';
+  END IF;
+END $preflight$;
+
+-- The runtime bearer is a dedicated authenticated Auth user. A publishable
+-- project API key is separate. A service-role bearer bypasses these policies.
+CREATE POLICY tradebot_pp_raw_upload ON storage.objects FOR INSERT
+  TO authenticated WITH CHECK (
+    auth.uid() = '__PP_STORAGE_AUTH_UID__'::uuid
+    AND bucket_id = 'market-raw'
+    AND name ~ '^raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
+    AND storage.allow_only_operation('storage.object.upload'));
+
+CREATE POLICY tradebot_pp_raw_readback ON storage.objects FOR SELECT
+  TO authenticated USING (
+    auth.uid() = '__PP_STORAGE_AUTH_UID__'::uuid
+    AND bucket_id = 'market-raw'
+    AND name ~ '^raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
+    AND storage.allow_only_operation('storage.object.get_authenticated'));
+
+-- No UPDATE/DELETE policies; listing, copy, move, signed or public retrieval
+-- are not granted. Exact upload/download behavior still needs a live API test.
+COMMIT;

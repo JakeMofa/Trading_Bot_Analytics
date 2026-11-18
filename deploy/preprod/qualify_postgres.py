@@ -185,6 +185,128 @@ def qualify_structured_receipts(secret_dir):
     return proof
 
 
+def qualify_pp_history_role(secret_dir):
+    """Prove exact-origin grants and denials in disposable PostgreSQL only."""
+    ddl=(REPO/'supabase/migrations/20261118020000_pp_history_v2_role.sql').read_text()
+    if 'CREATE ROLE tradebot_pp_history NOLOGIN' not in ddl:
+        raise RuntimeError('PP private history role scope changed')
+    f.sql('BEGIN;\n'+ddl+'\nCOMMIT;', secret_dir, timeout=40)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'role_no_login', NOT r.rolcanlogin,
+      'role_no_bypass', NOT r.rolbypassrls,
+      'role_no_superuser', NOT r.rolsuper,
+      'role_no_inherit', NOT r.rolinherit,
+      'role_connection_limit', r.rolconnlimit,
+      'pp_policies', (SELECT count(*) FROM pg_policies WHERE schemaname='history_v2'
+                         AND 'tradebot_pp_history'=ANY(roles)),
+      'pp_select_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n
+        ON n.oid=c.relnamespace WHERE n.nspname='history_v2' AND c.relkind='r'
+        AND has_table_privilege('tradebot_pp_history',c.oid,'SELECT')),
+      'pp_insert_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n
+        ON n.oid=c.relnamespace WHERE n.nspname='history_v2' AND c.relkind='r'
+        AND has_table_privilege('tradebot_pp_history',c.oid,'INSERT')),
+      'pp_update_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n
+        ON n.oid=c.relnamespace WHERE n.nspname='history_v2' AND c.relkind='r'
+        AND has_table_privilege('tradebot_pp_history',c.oid,'UPDATE')),
+      'anon_schema_access', has_schema_privilege('anon','history_v2','USAGE'),
+      'authenticated_schema_access', has_schema_privilege('authenticated','history_v2','USAGE'),
+      'service_schema_access', has_schema_privilege('service_role','history_v2','USAGE'),
+      'pp_coverage_access', has_table_privilege('tradebot_pp_history','history_v2.coverage','SELECT'),
+      'pp_receipt_access', CASE WHEN to_regclass('history_v2.structured_receipts') IS NULL
+        THEN false ELSE has_table_privilege('tradebot_pp_history',
+          to_regclass('history_v2.structured_receipts'),'SELECT') END,
+      'pp_delete_access', has_table_privilege('tradebot_pp_history','history_v2.generation_checkpoints','DELETE'),
+      'pp_immutable_update', has_table_privilege('tradebot_pp_history','history_v2.predictions','UPDATE'))
+      FROM pg_roles r WHERE r.rolname='tradebot_pp_history';""",secret_dir))
+    if (not all(proof[key] for key in ('role_no_login','role_no_bypass','role_no_superuser',
+                                     'role_no_inherit')) or
+        proof['role_connection_limit']!=2 or proof['pp_policies']!=21 or
+        proof['pp_select_tables']!=9 or proof['pp_insert_tables']!=9 or
+        proof['pp_update_tables']!=3 or
+        any(proof[key] for key in ('anon_schema_access','authenticated_schema_access',
+                                  'service_schema_access','pp_coverage_access',
+                                  'pp_receipt_access','pp_delete_access',
+                                  'pp_immutable_update'))):
+        raise RuntimeError('PP private history privilege check failed')
+    f.sql((REPO/'deploy/preprod/tests/pp_history_v2_role.sql').read_text(),
+          secret_dir,timeout=20)
+    return proof
+
+
+def qualify_pp_storage_policy(secret_dir):
+    """Exercise a substituted review template against disposable Storage RLS."""
+    fixture=(REPO/'deploy/preprod/tests/pp_storage_policy_fixture.sql').read_text()
+    template=(REPO/'supabase/review/pp_market_raw_storage_policies.sql.in').read_text()
+    marker='__PP_STORAGE_AUTH_UID__'
+    email_marker='__PP_STORAGE_AUTH_EMAIL__'
+    if template.count(marker)!=4 or template.count(email_marker)!=1 or \
+            'storage.object.upload' not in template or \
+            'storage.object.get_authenticated' not in template:
+        raise RuntimeError('PP Storage review template scope changed')
+    f.sql(fixture,secret_dir,timeout=20)
+    try:
+        f.sql(template,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('unbound PP Storage template unexpectedly applied')
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0':
+        raise RuntimeError('unbound PP Storage template left a policy')
+    # This UUID belongs only to the generated fixture. It is not a credential
+    # or a proposed live Auth user, and the unfilled template is never applied.
+    candidate=(template.replace(marker,'00000000-0000-4000-8000-0000000000aa')
+              .replace(email_marker,'pp-storage-archive@example.invalid'))
+    f.sql("UPDATE auth.users SET raw_app_meta_data='{}'::jsonb;",secret_dir)
+    try:
+        f.sql(candidate,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('wrong Auth metadata admitted PP Storage policy')
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0':
+        raise RuntimeError('failed Auth binding left a Storage policy')
+    f.sql("UPDATE auth.users SET raw_app_meta_data="
+          "'{\"tradebot_role\":\"pp_storage_archive\",\"tradebot_origin\":\"pp-live-pp\"}'::jsonb;",
+          secret_dir)
+    f.sql("UPDATE auth.users SET email_confirmed_at=NULL;",secret_dir)
+    try:
+        f.sql(candidate,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('unconfirmed Auth user admitted PP Storage policy')
+    f.sql("UPDATE auth.users SET email_confirmed_at=now();",secret_dir)
+    f.sql(candidate,secret_dir,timeout=20)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'private_bucket', (SELECT NOT public FROM storage.buckets WHERE id='market-raw'),
+      'policies', (SELECT count(*) FROM pg_policies WHERE schemaname='storage'
+                         AND tablename='objects'),
+      'upload_insert_only', EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage'
+                         AND tablename='objects' AND policyname='tradebot_pp_raw_upload'
+                         AND cmd='INSERT' AND roles::text[]=ARRAY['authenticated']::text[]),
+      'readback_select_only', EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage'
+                         AND tablename='objects' AND policyname='tradebot_pp_raw_readback'
+                         AND cmd='SELECT' AND roles::text[]=ARRAY['authenticated']::text[]))""",secret_dir))
+    if (proof['private_bucket'] is not True or proof['policies']!=2 or
+        proof['upload_insert_only'] is not True or
+        proof['readback_select_only'] is not True):
+        raise RuntimeError('PP Storage policy metadata mismatch')
+    f.sql((REPO/'deploy/preprod/tests/pp_storage_policy_denials.sql').read_text(),
+          secret_dir,timeout=20)
+    from bind_market_raw_policy import render_rollback
+    rollback=render_rollback('00000000-0000-4000-8000-0000000000aa',
+                             'pp-storage-archive@example.invalid',
+                             project_ref='xttdqeimdujweijxcuro',bucket='market-raw')
+    f.sql(rollback.decode('ascii'),secret_dir,timeout=20)
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0' or \
+       f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='2':
+        raise RuntimeError('policy-only rollback changed generated objects or left policies')
+    return proof
+
+
 def main():
     global DEADLINE, PHASE
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or f.MARKER.exists() or f.MARKER.is_symlink():
@@ -248,6 +370,10 @@ def main():
                 command([sys.executable,'-c',code],env,timeout=180)
             PHASE='generated_cloud_contract'
             cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_history_role'
+            pp_history_role=qualify_pp_history_role(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_storage_policy'
+            pp_storage_policy=qualify_pp_storage_policy(CI_FOUNDATION_SECRETS)
             PHASE='generated_structured_receipts'
             receipt_contract=qualify_structured_receipts(CI_FOUNDATION_SECRETS)
             env['TRADEBOT_TEST_HISTORY_V2_DSN']=dsns['admin']
@@ -278,7 +404,7 @@ def main():
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'pp_storage_policy':pp_storage_policy,'receipt_contract':receipt_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

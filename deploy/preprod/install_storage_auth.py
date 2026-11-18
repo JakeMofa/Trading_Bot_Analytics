@@ -121,6 +121,10 @@ def install(expected_uid, *, stage=STAGE, cloud=CLOUD, marker=MARKER,
         _host_binding(marker)
     if stage_uid is None:
         stage_uid = pwd.getpwnam('ubuntu').pw_uid
+    parent = stage.parent.lstat()
+    _check(stat.S_ISDIR(parent.st_mode) and parent.st_uid in
+           (stage_uid, root_uid) and not parent.st_mode & 0o022,
+           'unsafe_stage_parent')
     stage_identity = _directory(stage, stage_uid, 0o700)
     _directory(cloud, root_uid, 0o700)
     _directory(lock.parent, root_uid, 0o700)
@@ -169,7 +173,8 @@ def install(expected_uid, *, stage=STAGE, cloud=CLOUD, marker=MARKER,
                                  os.O_NOFOLLOW | os.O_CLOEXEC, 0o600)
             try:
                 with os.fdopen(descriptor, 'wb', closefd=False) as output:
-                    output.write(values[name])
+                    _check(output.write(values[name]) == len(values[name]),
+                           'short_secret_write')
                     output.flush()
                     os.fsync(descriptor)
             finally:

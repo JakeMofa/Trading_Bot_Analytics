@@ -1,5 +1,19 @@
 # BTC Intelligence Rebuild Plan
 
+## CP6 structured import preparation — November 17, 2026
+
+An isolated, default-off preparation now pins all eight structured cloud row
+shapes to the applied private `history_v2` migration and resolves the local
+`snapshot_evidence` hashless-cloud-row mapping by validating its deterministic
+edge hash before omission. Generated tests check exact decimal and source-time
+readback, origin-aware identities, duplicate payload conflicts and monotonic
+market/current-price revision classification. The existing batch import still
+holds conflicting revisions. No cloud write, outbox acknowledgement, grant,
+policy or retirement authorization occurred. Runtime grants remain absent;
+atomic mutable revision plus checkpoint writes and privileged mutation fencing
+remain separate CP6 gates. See
+[preparation evidence](CP6_STRUCTURED_IMPORT_PREPARATION_2026-11-17.md).
+
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 
 Exact `preprod` source `9dbeec6` passed push CI

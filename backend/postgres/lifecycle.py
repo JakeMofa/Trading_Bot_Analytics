@@ -129,10 +129,10 @@ class LifecycleRepository:
 
     def enable_collector(self, origin_id: str, *, session_id: str,
                          expected_generation_id: str, max_seconds: int) -> dict:
-        """Enable only one finite PP writer lease; host ownership is a separate gate.
+        """Enable one finite PP writer lease after separate host admission.
 
-        This method is intentionally absent from the operator API and runtime.
-        It cannot establish that production is fenced.
+        The operator runtime calls this only after its host control gate;
+        this database lease alone cannot establish that production is fenced.
         """
         if self.environment != 'preprod' or not origin_id.startswith('pp-live-') or \
                 len(origin_id) <= len('pp-live-') or len(origin_id) > 128:

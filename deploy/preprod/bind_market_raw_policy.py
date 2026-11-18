@@ -16,7 +16,7 @@ import uuid
 PROJECT_REF = 'xttdqeimdujweijxcuro'
 BUCKET = 'market-raw'
 TEMPLATE = Path(__file__).resolve().parents[2] / 'supabase/review/pp_market_raw_storage_policies.sql.in'
-TEMPLATE_SHA256 = 'a2921441c8ea93bfda5b2366a3ee72a5e281407ff91056c76455789876fb3e47'
+TEMPLATE_SHA256 = '8dc82605d011496c61f049ec06faebc70c6b6522a36b463eba4c63c418b50e10'
 UID_MARKER = '__PP_STORAGE_AUTH_UID__'
 EMAIL_MARKER = '__PP_STORAGE_AUTH_EMAIL__'
 EMAIL = re.compile(r'[a-z0-9._+\-]+@[a-z0-9.\-]+\Z')

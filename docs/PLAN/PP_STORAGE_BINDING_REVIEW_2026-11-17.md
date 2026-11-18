@@ -16,7 +16,7 @@ URL or public retrieval grant. Service-role and project-admin bypass authority
 remains a separate retirement blocker.
 
 The SQL preflight requires the exact canonical UID, exact reviewed email,
-`authenticated` role, and admin-controlled `raw_app_meta_data` markers
+`authenticated` role, confirmed email, and admin-controlled `raw_app_meta_data` markers
 `tradebot_role=pp_storage_archive` and `tradebot_origin=pp-live-pp`. It also
 requires private `market-raw`, Storage object RLS, and **zero existing object
 policies**. Any drift aborts the transaction before policy creation. The
@@ -79,7 +79,11 @@ verification, protected references and reader drainage remain required.
 
 ## Offline evidence
 
-Seven focused Python tests passed. A disposable local PostgreSQL 17.12
+Seven focused Python tests passed: three standard-library binding tests in
+the PP foundation suite and four HTTP probe tests in the backend suite with
+`httpx` installed. The first CI run placed all seven in the foundation suite,
+which failed to import `httpx`; this was a test-placement error and has been
+corrected without changing workflows. A disposable local PostgreSQL 17.12
 container with no network, 512 MiB memory and a 64 MiB temporary data volume
 applied the generated fixture, exercised its denial SQL, and completed
 policy-only rollback. Final fixture state: **zero policies and two original

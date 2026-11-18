@@ -13,6 +13,7 @@ BEGIN
                  WHERE id='__PP_STORAGE_AUTH_UID__'::uuid
                    AND email='__PP_STORAGE_AUTH_EMAIL__'
                    AND role='authenticated'
+                   AND email_confirmed_at IS NOT NULL
                    AND raw_app_meta_data->>'tradebot_role'='pp_storage_archive'
                    AND raw_app_meta_data->>'tradebot_origin'='pp-live-pp') THEN
     RAISE EXCEPTION 'reviewed PP Storage Auth identity binding changed';

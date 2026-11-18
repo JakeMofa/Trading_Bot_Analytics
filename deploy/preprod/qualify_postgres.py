@@ -248,6 +248,14 @@ def qualify_pp_storage_policy(secret_dir):
     f.sql("UPDATE auth.users SET raw_app_meta_data="
           "'{\"tradebot_role\":\"pp_storage_archive\",\"tradebot_origin\":\"pp-live-pp\"}'::jsonb;",
           secret_dir)
+    f.sql("UPDATE auth.users SET email_confirmed_at=NULL;",secret_dir)
+    try:
+        f.sql(candidate,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('unconfirmed Auth user admitted PP Storage policy')
+    f.sql("UPDATE auth.users SET email_confirmed_at=now();",secret_dir)
     f.sql(candidate,secret_dir,timeout=20)
     proof=json.loads(f.sql("""SELECT json_build_object(
       'private_bucket', (SELECT NOT public FROM storage.buckets WHERE id='market-raw'),

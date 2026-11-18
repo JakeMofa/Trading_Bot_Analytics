@@ -1,5 +1,15 @@
 # Resume here
 
+Latest CP6 permission checkpoint (November 18 UTC): PR #98 merged to
+`preprod` as `2c6ffd2` and its exact PP-only NOLOGIN `history_v2` role was
+applied to Supabase as migration `20261118021900`. Catalog readback passed.
+This does **not** enable PP cloud writes, raw Storage access, local retirement,
+or a production change. Draft PRs #92/#97 still need runtime/cloud
+qualification. CP7 Coinbase reconnect and generated leave fixes are merged
+in source but undeployed to PP; its last observed collector state was
+generated/OFF after the failed diagnostic trial. Follow the opening master
+roadmap section for exact evidence and next gates.
+
 The November 17 opening section of the master roadmap now distinguishes the
 **selected** PP modes from what is deployed. PP normally should preview the
 production API, switch temporarily to its own live collector/PostgreSQL for a

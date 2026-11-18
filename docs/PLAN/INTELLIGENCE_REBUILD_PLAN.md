@@ -1,5 +1,31 @@
 # BTC Intelligence Rebuild Plan
 
+## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
+
+Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)
+merged to `preprod` as `2c6ffd2`; exact source `6d44201` passed
+[push CI 44221712030](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221712030)
+and [PR CI 44221718737](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221718737).
+The reviewed SQL was applied to the connected Supabase project as migration
+`20261118021900` (`pp_history_v2_role_20261118`). Readback verified a
+NOLOGIN/NOINHERIT/NOBYPASSRLS role, 21 exact `pp-live-pp` policies, nine
+SELECT/INSERT tables and three UPDATE tables. DELETE, `coverage`, and
+anon/authenticated/service-role schema access remain denied. The existing
+private `history_v2` tables still contain zero rows. This is a permission
+foundation, **not** runtime enablement: no PP cloud login, Storage identity,
+structured receipt grant, host credential, live cloud write or retirement
+was enabled. See [the reviewed scope and remaining gates](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md).
+
+CP7 code-only PRs #93, #95 and #96 have merged into `preprod` after exact CI;
+the bounded Coinbase reconnect and generated-profile leave changes are **not
+deployed** to PP. The last observed PP collector state remains generated/OFF
+after the failed diagnostic live trial; its 5,268/10,000 pending outbox is a
+separate long-session gate. Draft CP6 PR #92 and stacked PR #97 address active
+structured sync and sealed-generation drainage, but remain unmerged and
+runtime NO-GO. Live A→B rotation, raw Storage archival/readback, and local
+retirement remain unproven. Production remains unchanged; I7 and Phase 1.75
+remain OPEN.
+
 ## PP leave readiness candidate — November 17 CST / November 18 UTC
 
 After the pp.9 diagnostic trial, first leave-to-generated failed with a generic

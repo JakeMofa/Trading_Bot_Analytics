@@ -1,13 +1,27 @@
 # CP6 PP private-history SQL role review — November 17, 2026
 
-Status: **isolated PostgreSQL 17 role qualification PASS; exact CI pending;
-live Supabase unchanged**.
-This is one small permission candidate for draft PR review. It does not turn on
+Status: **scoped SQL role applied; runtime remains OFF**.
+This is one small permission milestone. It does not turn on
 structured sync, Storage upload, or local partition retirement.
 
-## Read-only cloud facts
+## Application outcome — November 18 UTC
 
-The connected TokenBot project `xttdqeimdujweijxcuro` has the applied private
+PR #98 merged into `preprod` as `2c6ffd2` after exact push CI 44221712030 and
+PR CI 44221718737 passed. The exact reviewed migration was applied to the
+connected project as ledger version `20261118021900`, name
+`pp_history_v2_role_20261118`. Post-application catalog readback confirmed
+NOLOGIN, NOINHERIT, NOBYPASSRLS, no superuser, connection limit two, 21
+exact-origin policies, nine SELECT/INSERT tables, and three UPDATE tables.
+DELETE and `coverage` access were false; `anon`, `authenticated`, and
+`service_role` still had no `history_v2` schema usage. The private history
+tables had zero rows at the read-only preflight. No Storage policy, bearer,
+PP login, host configuration or data write was made. The pre-existing
+`public.rls_auto_enable()` advisory remains a separate review item.
+
+## Pre-application read-only cloud facts
+
+Before the scoped role migration, the connected TokenBot project
+`xttdqeimdujweijxcuro` had the applied private
 `history_v2` schema migration `20261116050522`: ten RLS-enabled tables, zero
 RLS policies, and table/schema access only for `postgres`. No `tradebot`, PP,
 history-import, or archive login role exists. `market-raw` is private;

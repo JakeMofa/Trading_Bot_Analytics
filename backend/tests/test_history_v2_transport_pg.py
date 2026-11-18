@@ -4,12 +4,14 @@ from pathlib import Path
 import os
 import math
 import sys
+import time
 import unittest
 import uuid
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from postgres.archive_codec import ArchiveIntegrityError, encoded, sha256
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, encoded, sha256
 from postgres.history_v2_transport import HistoryV2PostgresTransport
 from postgres.lifecycle import LifecycleHold, LifecycleRepository
 
@@ -27,6 +29,28 @@ def envelope(outbox_id, table, payload, generation_id):
 
 @unittest.skipUnless(DSN, 'isolated generated history_v2 DSN not supplied')
 class HistoryV2TransportPostgresTests(unittest.TestCase):
+    def test_pg17_whole_transaction_timeout_and_slow_connection_hold(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row, connect_timeout=5)
+        with factory() as connection:
+            with connection.transaction():
+                HistoryV2PostgresTransport._limit(connection, 0.5)
+                setting = connection.execute('SHOW transaction_timeout').fetchone()
+                self.assertEqual(setting['transaction_timeout'], '500ms')
+        slow = HistoryV2PostgresTransport(
+            lambda *, timeout_seconds: (time.sleep(timeout_seconds + 0.02),
+                                        factory())[1],
+            origin_id='pp-live-ci-' + uuid.uuid4().hex,
+            generation_id=str(uuid.uuid4()),
+            expected_database='unused', expected_role='unused')
+        # The validation path is exercised by other tests; isolate connection
+        # time here so no SQL import can occur after its request deadline.
+        with patch.object(slow, '_validate'), self.assertRaises(ArchiveLimit):
+            slow.put_structured([{'id': 1}], timeout_seconds=0.01)
+
     def test_same_origin_session_lock_serializes_workers(self):
         import psycopg
         from psycopg.rows import dict_row

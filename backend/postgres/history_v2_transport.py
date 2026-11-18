@@ -8,6 +8,7 @@ verifies those receipts before the local worker may acknowledge its outbox.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import time
 
 from psycopg import sql
 from psycopg.types.json import Jsonb
@@ -54,6 +55,14 @@ class HistoryV2PostgresTransport:
                            (f'{milliseconds}ms',))
         connection.execute("SELECT set_config('lock_timeout',%s,true)",
                            (f'{min(milliseconds, 1000)}ms',))
+
+    @staticmethod
+    def _deadline(timeout_seconds):
+        if (isinstance(timeout_seconds, bool) or
+                not isinstance(timeout_seconds, (int, float)) or
+                not 0 < timeout_seconds <= 60):
+            raise ArchiveLimit('invalid private structured deadline')
+        return time.monotonic() + timeout_seconds
 
     def _identity(self, connection):
         actual = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
@@ -135,10 +144,14 @@ class HistoryV2PostgresTransport:
 
     def put_structured(self, records: list[dict], *, timeout_seconds: float) -> None:
         self._validate(records)
+        deadline = self._deadline(timeout_seconds)
         try:
             with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ArchiveLimit('private structured connection deadline reached')
                 with connection.transaction():
-                    self._limit(connection, timeout_seconds)
+                    self._limit(connection, remaining)
                     self._identity(connection)
                     connection.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',
                         ('history-v2:stream:' + self.origin_id,))
@@ -187,6 +200,8 @@ class HistoryV2PostgresTransport:
                         (self.origin_id, self.generation_id, Jsonb(cursor),
                          (checkpoint['row_count'] if checkpoint else 0) + inserted,
                          digest, datetime.now(timezone.utc)))
+            if time.monotonic() >= deadline:
+                raise ArchiveLimit('private structured import deadline reached')
         except (ArchiveIntegrityError, ArchiveLimit):
             raise
         except Exception:
@@ -197,10 +212,14 @@ class HistoryV2PostgresTransport:
         if not isinstance(max_bytes, int) or not 0 < max_bytes <= 16 * 1024 * 1024:
             raise ArchiveLimit('invalid private structured read bound')
         self._validate(records, max_bytes=max_bytes)
+        deadline = self._deadline(timeout_seconds)
         try:
             with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise ArchiveLimit('private structured connection deadline reached')
                 with connection.transaction():
-                    self._limit(connection, timeout_seconds)
+                    self._limit(connection, remaining)
                     self._identity(connection)
                     checkpoint = connection.execute('''SELECT cursor,content_hash FROM
                         history_v2.generation_checkpoints WHERE origin_id=%s AND
@@ -233,7 +252,9 @@ class HistoryV2PostgresTransport:
                             # acknowledge local evidence without an exact
                             # fresh projection match.
                             raise ArchiveIntegrityError('private structured projection changed')
-                    return records
+            if time.monotonic() >= deadline:
+                raise ArchiveLimit('private structured readback deadline reached')
+            return records
         except (ArchiveIntegrityError, ArchiveLimit):
             raise
         except Exception:

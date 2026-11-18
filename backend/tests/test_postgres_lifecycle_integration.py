@@ -240,6 +240,45 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         with self.assertRaises(LifecycleHold):
             self.repository.collector_state('generated-pp')
 
+    def test_clean_start_off_requires_no_writer_or_generation(self):
+        origin = 'pp-live-' + uuid.uuid4().hex
+        self.assertFalse(self.repository.collector_state(origin)['initialized'])
+        for _ in range(2):
+            self.assertEqual(self.repository.disable_collector(origin),
+                             {'collector_enabled': False, 'epoch': None})
+        with self.factory() as connection:
+            self.assertIsNone(connection.execute('SELECT 1 FROM ops.writer_state WHERE origin_id=%s',
+                                                 (origin,)).fetchone())
+            self.assertIsNone(connection.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s',
+                                                 (origin,)).fetchone())
+        # OFF proves absence without creating an A slot. The ordinary explicit
+        # bootstrap remains necessary before an ON lease can be issued.
+        with self.assertRaises(LifecycleHold):
+            self.repository.enable_collector(origin, session_id=str(uuid.uuid4()),
+                expected_generation_id=str(uuid.uuid4()), max_seconds=60)
+        generation = self.repository.bootstrap(origin)
+        self.assertEqual(generation['slot'], 'A')
+        self.assertEqual(self.repository.disable_collector(origin),
+                         {'collector_enabled': False, 'epoch': 1})
+
+    def test_clean_start_off_holds_orphan_generation_and_wrong_scope(self):
+        origin = 'pp-live-' + uuid.uuid4().hex
+        generation = str(uuid.uuid4())
+        with self.factory() as connection:
+            connection.execute('''INSERT INTO archive.generations
+                (origin_id,generation_id,slot,state,partition_name,created_at)
+                VALUES (%s,%s,'A','prepared',%s,clock_timestamp())''',
+                (origin,generation,'events_g_' + generation.replace('-', '')))
+        with self.assertRaisesRegex(LifecycleHold, 'orphan generation'):
+            self.repository.disable_collector(origin)
+        with self.factory() as connection:
+            self.assertIsNotNone(connection.execute('''SELECT 1 FROM archive.generations
+                WHERE origin_id=%s AND generation_id=%s''', (origin,generation)).fetchone())
+            self.assertIsNone(connection.execute('SELECT 1 FROM ops.writer_state WHERE origin_id=%s',
+                                                 (origin,)).fetchone())
+        with self.assertRaisesRegex(LifecycleHold, 'writer identity missing'):
+            self.repository.disable_collector('generated-absent-' + uuid.uuid4().hex)
+
     def test_pp_live_lease_expires_without_authorizing_new_writes(self):
         origin = 'pp-live-' + uuid.uuid4().hex
         generation = self.repository.bootstrap(origin)

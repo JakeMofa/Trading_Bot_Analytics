@@ -446,6 +446,19 @@ class LifecycleRepository:
         with self.transaction() as connection:
             return self._pending(connection, generation_id, limit, max_bytes=max_bytes)
 
+    def has_other_pending(self, origin_id, generation_id):
+        """Hold active sync until earlier sealed-generation evidence drains.
+
+        The single-writer switch fences writes into the sealed generation. Any
+        other pending generation for this origin is therefore an unresolved
+        ordering dependency, including states requiring operator recovery.
+        """
+        with self.transaction() as connection:
+            return connection.execute('''SELECT 1 FROM ops.outbox
+                WHERE origin_id=%s AND generation_id<>%s
+                AND acknowledged_at IS NULL LIMIT 1''',
+                (origin_id, generation_id)).fetchone() is not None
+
     def acknowledge(self, generation_id, records):
         with self.transaction() as connection:
             generation = connection.execute('SELECT * FROM archive.generations WHERE generation_id=%s FOR SHARE',

@@ -210,3 +210,34 @@ def validate_outbox_batch(records: list[dict], *, origin_id: str,
         seen[index] = current
         validated.append(record)
     return sorted(validated, key=lambda row: (IMPORT_ORDER.index(row['entity_type']), row['id']))
+
+
+def validate_outbox_stream(records: list[dict], *, origin_id: str,
+                           generation_id: str) -> list[dict]:
+    """Validate an ordered active-generation stream, including revisions.
+
+    The original batch validator deliberately rejects mixed mutable revisions.
+    An active importer must preserve their outbox order and apply them within
+    one atomic cloud transaction; it cannot sort newer prices before older ones.
+    """
+    if not isinstance(records, list) or not 1 <= len(records) <= 500:
+        raise ArchiveIntegrityError('invalid structured stream size')
+    previous_id = 0
+    by_identity = {}
+    for record in records:
+        validate_outbox_batch([record], origin_id=origin_id,
+                              generation_id=generation_id)
+        cloud_row(record)
+        if record['id'] <= previous_id:
+            raise ArchiveIntegrityError('structured outbox order changed')
+        previous_id = record['id']
+        key = (record['entity_type'], record['entity_id'])
+        previous = by_identity.get(key)
+        if previous is not None:
+            if record['entity_type'] in MUTABLE_PROJECTIONS:
+                projection_order(previous, record)
+            elif (record['content_hash'] != previous['content_hash'] or
+                  encoded(record['payload']) != encoded(previous['payload'])):
+                raise ArchiveIntegrityError('immutable structured identity conflict')
+        by_identity[key] = record
+    return records

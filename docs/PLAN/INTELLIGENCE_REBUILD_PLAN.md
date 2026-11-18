@@ -1,5 +1,17 @@
 # BTC Intelligence Rebuild Plan
 
+## CI runtime annotation correction — November 18, 2026
+
+The failed PP CD run 44418602445 had a deployment-control error and separate
+GitHub runner warnings: old pinned actions targeted Node.js 20, and
+`ubuntu-latest` was moving from Ubuntu 24.04 to 26.04. The warning correction
+uses verified Node.js 24 action commits and explicit `ubuntu-24.04` for hosted
+jobs; the private PP runner selector remains unchanged. The action versions
+require runner 2.327.1 or later, and the observed PP ephemeral runner was
+2.338.2. Local actionlint and pin regressions passed. This is CI maintenance,
+not a fix for the PP deployment error, and creates no database or host change.
+Exact candidate and CI/PR evidence will be recorded after qualification.
+
 ## Current PP release checkpoint — November 18, 2026 CST
 
 **PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**

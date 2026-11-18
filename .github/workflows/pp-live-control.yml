@@ -44,7 +44,7 @@ concurrency:
 
 jobs:
   preflight:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       PP_LIVE_OPERATION: ${{ inputs.operation }}
@@ -57,17 +57,17 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PIPELINE_REPORT: ci-evidence/pp-live/preflight.json
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3.12"
       - name: Require published exact source, generated PP deployment and bounded operation
         run: python .github/ci/pp_live_pipeline.py preflight
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: pp-live-preflight-${{ github.run_id }}
@@ -93,7 +93,7 @@ jobs:
       PP_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_DEPLOY_KNOWN_HOSTS }}
       PIPELINE_REPORT: ci-evidence/pp-live/result.json
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
           ref: ${{ github.sha }}
           fetch-depth: 0
@@ -102,7 +102,7 @@ jobs:
         run: /opt/homebrew/bin/python3.12 -I -c "import sys; assert sys.version_info[:2] == (3, 12)"
       - name: Execute one pinned PP-only host command
         run: /opt/homebrew/bin/python3.12 .github/ci/pp_live_pipeline.py execute
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: pp-live-result-${{ github.run_id }}

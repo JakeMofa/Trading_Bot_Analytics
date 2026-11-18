@@ -1,5 +1,17 @@
 # BTC Intelligence Rebuild Plan
 
+## Legacy collector control CI correction — November 17 CST / November 18 UTC
+
+PR #83 successor [push CI 44213027544](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44213027544)
+found a separate legacy SQLite collector-control race: after a test kills a
+collector, its UNIX socket path survives. A new owner could acquire the lock
+before removing that stale path, making startup appear ready while a stop
+request receives connection refused. The isolated correction removes the
+stale socket immediately under the new owner's exclusive lock. Six focused
+legacy tests pass, including a stale-path regression; exact CI and any PP
+deployment remain separate gates. This does not change PostgreSQL storage,
+Supabase permissions or retirement state.
+
 ## Current CP7 result — first PP live session, November 17 CST / November 18 UTC
 
 **FAIL; PP is restored to generated mode with its collector OFF.** The first

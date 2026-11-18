@@ -34,6 +34,9 @@ def collector_lock(database):
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise RuntimeError('A collector already owns this database') from None
+        # A killed prior owner can leave its socket path behind. Remove it
+        # under the new exclusive lock before status can report this owner.
+        socket_path.unlink(missing_ok=True)
         lock.seek(0)
         lock.truncate()
         lock.write(json.dumps({'pid': os.getpid(), 'database': str(Path(database).resolve())}))

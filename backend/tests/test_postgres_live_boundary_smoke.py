@@ -74,7 +74,8 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
 
         async def coinbase(_store, stop):
             await coinbase_session(store, stop, source=lambda source_stop:
-                coinbase_once(source_stop, connector=connector))
+                coinbase_once(source_stop, connector=connector),
+                pause=lambda _stop, _delay: asyncio.sleep(0))
 
         async def idle(*_args, **_kwargs):
             await asyncio.Event().wait()
@@ -89,7 +90,7 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
         await asyncio.wait_for(session._task, 2)
         return session, store, opens
 
-    async def test_coinbase_websocket_failures_have_fixed_codes_and_no_retry(self):
+    async def test_coinbase_websocket_failures_have_fixed_codes_and_bounded_retry(self):
         def rejected(status):
             return InvalidStatus(Response(status, 'secret-provider-reason',
                                           Headers(), b'secret-provider-body'))
@@ -113,7 +114,10 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(session.state()['failure_code'], code)
                 self.assertFalse(store.enabled)
                 self.assertGreaterEqual(store.off_calls, 2)
-                self.assertEqual(len(opens), 1)
+                self.assertEqual(len(opens), 4 if code in {
+                    'coinbase_stream.ws_closed_ok', 'coinbase_stream.ws_closed_error',
+                    'coinbase_stream.transport',
+                } else 1)
                 self.assertEqual(store.events, [])
                 self.assertNotIn('secret', str(session.state()))
                 await session.stop()

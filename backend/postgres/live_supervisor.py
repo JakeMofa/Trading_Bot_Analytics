@@ -29,8 +29,10 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                       clock=lambda: datetime.now(timezone.utc)):
     """Run three independent read-only feed tasks while ownership stays valid.
 
-    A failed source or ownership check aborts the whole session. No retry can
-    hide stale data. `stop` is only a process signal; the host controller must
+    Source-only Coinbase transport retries are bounded in coinbase_session;
+    exhausted retries and all other failures abort the session. Retry does not
+    publish data, so source-age health still becomes stale. `stop` is only a
+    process signal; the host controller must
     persist OFF in PostgreSQL before considering a stop complete.
     """
     _live_store(store)

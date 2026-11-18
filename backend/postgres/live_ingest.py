@@ -6,11 +6,29 @@ has no process entry point and cannot enable collection by itself.
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from datetime import datetime, timezone
+import time
 
 from .live_sources import (coinbase_once, discover_polymarket_15m,
                            fetch_coinbase_closed_candles, fetch_polymarket_bbo)
 from .live_diagnostics import LiveDiagnostic, diagnose
+
+
+COINBASE_RECONNECT_DELAYS = (1, 2, 4)
+COINBASE_RECONNECT_WINDOW_SECONDS = 60
+COINBASE_RECONNECT_MAX_TOTAL = 12
+COINBASE_RETRYABLE = frozenset({
+    'coinbase_stream.ws_closed_ok', 'coinbase_stream.ws_closed_error',
+    'coinbase_stream.timeout', 'coinbase_stream.transport',
+})
+
+
+async def _pause_or_stop(stop: asyncio.Event, delay: float):
+    try:
+        await asyncio.wait_for(stop.wait(), timeout=delay)
+    except asyncio.TimeoutError:
+        pass
 
 
 async def _step(operation, awaitable):
@@ -28,18 +46,37 @@ def _live_store(store):
         raise ValueError('live ingestion requires a distinct PP live origin')
 
 
-async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once):
-    """Persist each ticker before reading the next; propagate holds and failures."""
+async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
+                           pause=_pause_or_stop, clock=time.monotonic):
+    """Persist serially; retry only bounded transient source disconnects.
+
+    A new subscription may replay a source event. Store's durable identity and
+    content-hash check handles that replay; this loop never synthesizes ticks.
+    """
     _live_store(store)
-    try:
-        async for event in source(stop):
-            if stop.is_set():
-                break
-            await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
-    except LiveDiagnostic:
-        raise
-    except Exception as error:
-        raise diagnose('coinbase_stream', error) from None
+    failures = deque()
+    reconnects = 0
+    while not stop.is_set():
+        try:
+            async for event in source(stop):
+                if stop.is_set():
+                    break
+                await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
+            return
+        except Exception as error:
+            diagnostic = error if isinstance(error, LiveDiagnostic) else diagnose('coinbase_stream', error)
+            if diagnostic.code not in COINBASE_RETRYABLE or stop.is_set():
+                raise diagnostic from None
+            now = clock()
+            while failures and now - failures[0] >= COINBASE_RECONNECT_WINDOW_SECONDS:
+                failures.popleft()
+            if (len(failures) >= len(COINBASE_RECONNECT_DELAYS)
+                    or reconnects >= COINBASE_RECONNECT_MAX_TOTAL):
+                raise diagnostic from None
+            delay = COINBASE_RECONNECT_DELAYS[len(failures)]
+            failures.append(now)
+            reconnects += 1
+            await pause(stop, delay)
 
 
 async def coinbase_candle_cycle(store, client, stop: asyncio.Event, *, now=None,

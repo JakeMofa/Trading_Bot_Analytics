@@ -44,6 +44,19 @@ any new live attempt. Keep the PP size trigger and outbox cap unchanged until
 separately qualified. Production, cloud sync, retirement and paid AI remain
 unchanged/OFF. I7 and Phase 1.75 remain OPEN.
 
+## CP7 Coinbase reconnect candidate — November 17, 2026
+
+An isolated, default-off successor to PR #93 retries only classified Coinbase
+WebSocket closure, transport and timeout failures, with 1/2/4-second backoff,
+three reconnects per 60 seconds and 12 reconnects per bounded session. Storage
+and ownership holds, invalid data and handshake/protocol failures remain
+fail-closed; no ticks are synthesized or backfilled. The 42 affected local
+tests pass, including cancellation, replay and sanitized diagnostics. Exact
+Linux CI and any PP release remain separate. This does **not** explain the
+historical `coinbase_stream.unexpected` PP failure. Outbox headroom and
+structured drain remain independent PP live-run gates. See the
+[candidate scope](CP7_COINBASE_RECONNECT_CANDIDATE_2026-11-17.md).
+
 ## Legacy collector control CI correction — November 17 CST / November 18 UTC
 
 PR #83 successor [push CI 44213027544](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44213027544)

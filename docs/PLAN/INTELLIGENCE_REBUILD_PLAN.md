@@ -102,6 +102,19 @@ diff does not change that query. A bounded generated-only acceptance fix
 requires the new market's exact price to appear after reseeding; an empty or
 wrong-price chart still fails. Successor exact CI is required before merge.
 
+## CP6 active structured sync preparation — November 17 CST / November 18 UTC
+
+Draft [PR #92](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/92)
+prepares a default-OFF active-generation structured importer with ordered
+mutable revisions, atomic per-revision cloud receipts/checkpoints, and fresh
+readback before local outbox acknowledgement. Its additive private receipt
+migration is **unapplied**, with no runtime grants. Source `02dad1a` passed
+local 32 focused tests, exact [push CI 44216336523](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44216336523)
+and [PR CI 44216373853](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44216373853),
+including actual isolated PostgreSQL. PP/Supabase runtime, narrow identity,
+sustained throughput and capacity remain **NOT QUALIFIED**. No cap, service or
+retirement setting changed. See the dated [CP6 evidence](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md).
+
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 
 Exact `preprod` source `9dbeec6` passed push CI

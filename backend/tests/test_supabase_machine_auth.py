@@ -133,7 +133,9 @@ class SupabaseMachineAuthTests(unittest.TestCase):
         self.assertEqual(len(calls), before)
         self.assertEqual(calls.count('/storage/v1/object/market-raw/' + KEY), 0)
 
+        forbidden_calls = []
         def forbidden(request):
+            forbidden_calls.append(request.url.path)
             if request.url.path == '/auth/v1/token':
                 return self.auth_response()
             return httpx.Response(403)
@@ -142,6 +144,7 @@ class SupabaseMachineAuthTests(unittest.TestCase):
             machine.put_if_absent(KEY, b'archive', timeout_seconds=2)
         with self.assertRaises(ArchiveUnavailable):
             machine.read_authenticated(KEY, max_bytes=32, timeout_seconds=2)
+        self.assertEqual(len(forbidden_calls), 2)
 
     def test_identity_mismatch_bad_files_and_budget(self):
         calls = []
@@ -206,6 +209,35 @@ class SupabaseMachineAuthTests(unittest.TestCase):
         self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
                                                      timeout_seconds=2), b'archive')
         self.assertEqual(calls.count('/auth/v1/token'), 2)
+
+    def test_machine_headers_require_deadline_and_total_request_deadline(self):
+        calls = []
+        def handle(request):
+            calls.append(request.url.path)
+            if request.url.path == '/auth/v1/token':
+                return self.auth_response()
+            time.sleep(0.02)
+            return httpx.Response(200, content=b'archive')
+        machine, _ = self.machine(handle)
+        with self.assertRaises(ArchiveLimit):
+            machine._headers()
+        self.assertEqual(calls, [])
+        with self.assertRaises(ArchiveUnavailable):
+            machine.read_authenticated(KEY, max_bytes=32,
+                                       timeout_seconds=0.005)
+        self.assertEqual(calls, ['/auth/v1/token',
+                                 '/storage/v1/object/authenticated/market-raw/' + KEY])
+
+    def test_auth_response_past_total_deadline_cannot_start_storage(self):
+        calls = []
+        def slow_auth(request):
+            calls.append(request.url.path)
+            time.sleep(0.02)
+            return self.auth_response()
+        machine, _ = self.machine(slow_auth)
+        with self.assertRaises(ArchiveUnavailable):
+            machine.put_if_absent(KEY, b'archive', timeout_seconds=0.005)
+        self.assertEqual(calls, ['/auth/v1/token'])
 
 
 if __name__ == '__main__':

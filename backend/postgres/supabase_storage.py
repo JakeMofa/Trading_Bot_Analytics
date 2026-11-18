@@ -158,7 +158,7 @@ class _MachineSession:
                     if response.status_code != 200:
                         raise ValueError('Auth rejected')
                     session = json.loads(SupabaseStorageTransport._bounded_body(
-                        response, 8192))
+                        response, 8192, deadline=deadline))
                 user = session.get('user')
                 access = session.get('access_token')
                 refresh = session.get('refresh_token')
@@ -237,6 +237,8 @@ class SupabaseStorageTransport:
         return f'{PROJECT_URL}/storage/v1/{route}/{BUCKET}/{quote(key, safe="/")}'
 
     def _headers(self, *, upload: bool = False, deadline: float | None = None) -> dict[str, str]:
+        if self._machine and deadline is None:
+            raise ArchiveLimit('machine Auth requires a request deadline')
         token = (self._machine.token(deadline) if self._machine and deadline is not None
                  else self._access_token)
         headers = {'apikey': self._api_key, 'Authorization': 'Bearer ' + token,
@@ -246,15 +248,20 @@ class SupabaseStorageTransport:
         return headers
 
     @staticmethod
-    def _bounded_body(response: httpx.Response, limit: int) -> bytes:
+    def _bounded_body(response: httpx.Response, limit: int,
+                      *, deadline: float | None = None) -> bytes:
         body = bytearray()
         try:
             for chunk in response.iter_raw():
+                if deadline is not None and time.monotonic() >= deadline:
+                    raise ArchiveUnavailable('Supabase request deadline exceeded')
                 body.extend(chunk)
                 if len(body) > limit:
                     raise ArchiveLimit('Supabase response exceeds byte limit')
         except httpx.StreamConsumed:
             # MockTransport responses may arrive fully buffered before stream().
+            if deadline is not None and time.monotonic() >= deadline:
+                raise ArchiveUnavailable('Supabase request deadline exceeded')
             body = bytearray(response.content)
             if len(body) > limit:
                 raise ArchiveLimit('Supabase response exceeds byte limit')
@@ -280,6 +287,8 @@ class SupabaseStorageTransport:
                 raise ArchiveUnavailable('authenticated archive read deadline exceeded')
             with self._client.stream('GET', url, headers=headers,
                                      timeout=remaining, follow_redirects=False) as response:
+                if time.monotonic() >= deadline:
+                    raise ArchiveUnavailable('authenticated archive read deadline exceeded')
                 if response.status_code in (401, 403) and self._machine:
                     self._machine.block()
                 if response.status_code != 200:
@@ -287,7 +296,7 @@ class SupabaseStorageTransport:
                 length = response.headers.get('content-length')
                 if length is not None and (not length.isdigit() or int(length) > max_bytes):
                     raise ArchiveLimit('Supabase response exceeds byte limit')
-                return self._bounded_body(response, max_bytes)
+                return self._bounded_body(response, max_bytes, deadline=deadline)
         except httpx.HTTPError:
             raise ArchiveUnavailable('authenticated archive read failed') from None
 
@@ -304,13 +313,15 @@ class SupabaseStorageTransport:
                 raise ArchiveUnavailable('create-only archive upload deadline exceeded')
             with self._client.stream('POST', url, headers=headers,
                                      content=data, timeout=remaining, follow_redirects=False) as response:
+                if time.monotonic() >= deadline:
+                    raise ArchiveUnavailable('create-only archive upload deadline exceeded')
                 if response.status_code in (401, 403) and self._machine:
                     self._machine.block()
                 if response.status_code in (200, 201):
                     return
                 if response.status_code not in (400, 409):
                     raise ArchiveUnavailable('create-only archive upload failed')
-                body = self._bounded_body(response, ERROR_BODY_BYTES)
+                body = self._bounded_body(response, ERROR_BODY_BYTES, deadline=deadline)
                 try:
                     detail = json.loads(body)
                 except (ValueError, UnicodeError):
@@ -322,6 +333,9 @@ class SupabaseStorageTransport:
             raise ArchiveUnavailable('create-only archive upload failed') from None
         budget = ACTIVE_BUDGET.get()
         retry_timeout = budget.request(len(data)) if budget else timeout
+        retry_timeout = min(retry_timeout, deadline - time.monotonic())
+        if retry_timeout <= 0:
+            raise ArchiveUnavailable('archive readback deadline exceeded')
         if self.read_authenticated(key, max_bytes=MAX_OBJECT_BYTES, timeout_seconds=retry_timeout) != data:
             raise ArchiveIntegrityError('existing archive object differs from proposed bytes')
 

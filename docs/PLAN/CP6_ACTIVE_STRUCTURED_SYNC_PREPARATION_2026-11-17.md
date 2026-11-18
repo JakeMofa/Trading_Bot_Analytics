@@ -54,3 +54,17 @@ growth, sustained backlog reduction and outage runway are unmeasured. This
 slice does **not** clear the 10,000-row operating cap or the planned 30–45
 minute PP A→B trial. Raw archive/readback, mutation protection and partition
 retirement remain separate gates.
+
+The direct adapter currently applies a PostgreSQL statement timeout per
+statement. Connection establishment and a whole multi-statement transaction
+still need a qualified wall-clock deadline before any PP runtime wiring.
+The follow-up generated PostgreSQL regressions cover parent-before-dependent
+imports, changed projections/receipts, and a receipt missing below an
+advanced checkpoint; their exact successor CI result is pending.
+
+For the later PP runtime, use a reviewed direct or session-mode PostgreSQL
+connection with TLS and a small explicit pool. Supabase documents direct
+connections for persistent backends and session mode for IPv4-only hosts;
+transaction pooling has prepared-statement and session-state constraints.
+Confirm the actual PP network path and role before configuring either mode.
+[Supabase connection guidance](https://supabase.com/docs/guides/database/connecting-to-postgres)

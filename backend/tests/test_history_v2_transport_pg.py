@@ -101,6 +101,28 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
             expected_role=binding['role'])
         with self.assertRaises(ArchiveIntegrityError):
             wrong.put_structured([records[0]], timeout_seconds=5)
+        # Independent authenticated reads must detect a changed cloud
+        # projection or receipt before any local outbox acknowledgement.
+        with factory() as connection:
+            connection.execute('''UPDATE history_v2.current_prices SET price='999.0000'
+                WHERE origin_id=%s''', (origin,))
+        with self.assertRaises(ArchiveIntegrityError):
+            transport.read_structured_authenticated(records,
+                max_bytes=4 * 1024 * 1024, timeout_seconds=5)
+        with factory() as connection:
+            connection.execute('''UPDATE history_v2.current_prices SET price='100.2400'
+                WHERE origin_id=%s''', (origin,))
+            connection.execute('''UPDATE history_v2.structured_receipts
+                SET envelope_hash=%s WHERE origin_id=%s AND outbox_id=2''',
+                ('f' * 64, origin))
+        with self.assertRaises(ArchiveIntegrityError):
+            transport.read_structured_authenticated(records,
+                max_bytes=4 * 1024 * 1024, timeout_seconds=5)
+        with factory() as connection:
+            connection.execute('''DELETE FROM history_v2.structured_receipts
+                WHERE origin_id=%s AND outbox_id=2''', (origin,))
+        with self.assertRaises(ArchiveIntegrityError):
+            transport.put_structured(records, timeout_seconds=5)
 
     def test_parent_import_precedes_lower_id_dependent(self):
         import psycopg

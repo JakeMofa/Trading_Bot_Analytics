@@ -142,6 +142,8 @@ class HistoryV2PostgresTransport:
                         history_v2.generation_checkpoints WHERE origin_id=%s AND
                         generation_id=%s AND dataset='structured:outbox' FOR UPDATE''',
                         (self.origin_id, self.generation_id)).fetchone()
+                    previous_id = (checkpoint['cursor'].get('outbox_id', 0)
+                                   if checkpoint else 0)
                     inserted = 0
                     # Outbox IDs reflect concurrent local transactions, not
                     # a guaranteed FK topological order. Preserve revision
@@ -155,6 +157,8 @@ class HistoryV2PostgresTransport:
                                 raise ArchiveIntegrityError('private receipt without checkpoint')
                             self._check_receipt(receipt, record)
                             continue
+                        if record['id'] <= previous_id:
+                            raise ArchiveIntegrityError('private structured checkpoint gap')
                         self._insert_or_update(connection, record)
                         payload_hash, envelope_hash = self._receipt_hashes(record)
                         connection.execute('''INSERT INTO history_v2.structured_receipts
@@ -166,8 +170,6 @@ class HistoryV2PostgresTransport:
                              record['content_hash'], payload_hash, envelope_hash))
                         inserted += 1
                     last_id = records[-1]['id']
-                    previous_id = (checkpoint['cursor'].get('outbox_id', 0)
-                                   if checkpoint else 0)
                     cursor = {'outbox_id': max(last_id, previous_id)}
                     digest = sha256(encoded(cursor))
                     connection.execute('''INSERT INTO history_v2.generation_checkpoints

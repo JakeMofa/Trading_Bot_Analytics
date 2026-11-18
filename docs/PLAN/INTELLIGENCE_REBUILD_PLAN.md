@@ -1,5 +1,37 @@
 # BTC Intelligence Rebuild Plan
 
+## Current CP7 result — first PP live session, November 17 CST / November 18 UTC
+
+**FAIL; PP is restored to generated mode with its collector OFF.** The first
+PP live session persisted data from 00:42:34 to 00:45:13 UTC. It committed
+1,360 Coinbase and 29 Polymarket US raw events, 28 feature snapshots and 28
+predictions in PP PostgreSQL. Discovery advanced from market `2633366` to
+`2637773` at the 00:45 boundary, then Polymarket became missing and Coinbase
+became stale. The session durably stopped 13 seconds after the boundary.
+The current operator discarded the exact source exception, so the cause is
+**unknown**. The 20-minute freshness/rollover observation did not complete.
+
+An explicit OFF and generated-profile restoration passed. The live A generation
+and all 1,389 raw rows remain in PP PostgreSQL. A bounded post-recovery sample
+measured 43,267,763 database bytes, 2,711,552 A-relation bytes, 33,554,432
+allocated WAL bytes, 56,830,771,200 free filesystem bytes and 1,202,831,360
+available RAM bytes. These are one short-session measurements, not a 72-hour
+capacity result. Cloud sync and retirement stayed OFF; 1,530 pending PP outbox
+rows are local. Production and paid AI were not changed. See the dated
+[first-trial evidence](PP_LIVE_FIRST_TRIAL_2026-11-17.md).
+
+The [READY_OFF workflow](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44209122389)
+is **FAILED** although its host artifact recorded `PP_LIVE_READY_OFF`: the
+reporter overwrote its PASS gate before returning exit code 1. [PR #85](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/85)
+fixes future reporting; it does not retroactively pass that run. Initial OFF
+also failed on the uninitialized PP live origin; explicit empty-A bootstrap
+then allowed verified OFF. Clean-start OFF needs a code fix before another ON.
+
+**Next CP7 checkpoint:** add sanitized source/task failure diagnostics and
+clean-start OFF handling, qualify exact CI, then run one new bounded PP-only
+trial. A qualified size trigger, A/B switch, Supabase verification and local
+retirement are separate later gates. I7 and Phase 1.75 remain OPEN.
+
 **CP7 read-only resource observer candidate (November 17):** A separate PP
 host script now takes bounded read-only samples of the PP live origin's writer
 generation, up to 10,001 raw records per active generation, relation/database
@@ -41,7 +73,8 @@ run [44195257281](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs
 returned `IDENTITY_PASS` for that exact hash; host API readback remained
 generated/OFF. The binding is recorded in
 `docs/PLAN/evidence/pp-live-controller-binding-2026-11-17.json`.
-**READY_OFF has not been entered and no PP live feed session has run.** Cloud
+At this earlier checkpoint, READY_OFF had not been entered and no PP live feed
+session had run. Cloud
 sync, retirement, paid AI and trading remain OFF. A separate one-use enter and
 session ON authority is required for the bounded first PP collector/query trial.
 

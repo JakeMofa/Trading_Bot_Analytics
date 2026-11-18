@@ -103,6 +103,11 @@ class StorageAuthInstallTests(unittest.TestCase):
         with self.assertRaises(target.InstallStop):
             self.run_install()
         (self.stage / 'supabase_auth_uid').unlink()
+        os.link(self.stage / 'supabase_auth_password',
+                self.stage / 'supabase_auth_uid')
+        with self.assertRaises(target.InstallStop):
+            self.run_install()
+        (self.stage / 'supabase_auth_uid').unlink()
         (self.stage / 'supabase_auth_uid').write_bytes(self.values['supabase_auth_uid'])
         (self.stage / 'supabase_auth_uid').chmod(0o400)
         (self.cloud / 'pp_storage_api_key').write_bytes(b'partial')

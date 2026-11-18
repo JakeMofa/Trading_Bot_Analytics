@@ -5,10 +5,16 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace
 import unittest
+from websockets.datastructures import Headers
+from websockets.exceptions import (ConnectionClosedError, ConnectionClosedOK,
+                                   InvalidMessage, InvalidStatus, ProtocolError)
+from websockets.frames import Close
+from websockets.http11 import Response
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.live_diagnostics import SourceHTTPFailure, SourceTransportFailure
-from postgres.live_ingest import polymarket_cycle
+from postgres.live_ingest import coinbase_session, polymarket_cycle
+from postgres.live_sources import coinbase_once
 from postgres.live_supervisor import run_bounded
 from postgres.operator_session import OperatorSession, SessionStopUnproven
 
@@ -41,6 +47,78 @@ class Store:
 
 
 class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
+    async def run_socket_failure(self, failure):
+        store = Store()
+        opens = []
+
+        class Socket:
+            async def __aenter__(self):
+                if isinstance(failure, InvalidStatus):
+                    raise failure
+                return self
+
+            async def __aexit__(self, *_args):
+                return False
+
+            async def send(self, _value):
+                return None
+
+            async def recv(self):
+                raise failure
+
+        def connector(url, **options):
+            self.assertEqual(url, 'wss://ws-feed.exchange.coinbase.com')
+            self.assertEqual(options['open_timeout'], 10)
+            opens.append(url)
+            return Socket()
+
+        async def coinbase(_store, stop):
+            await coinbase_session(store, stop, source=lambda source_stop:
+                coinbase_once(source_stop, connector=connector))
+
+        async def idle(*_args, **_kwargs):
+            await asyncio.Event().wait()
+
+        async def run(stop, seconds):
+            return await run_bounded(store, None, stop, owner_check=lambda: True,
+                                     disable_collector=store.disable, max_seconds=seconds,
+                                     coinbase=coinbase, market=idle, candles=idle)
+
+        session = OperatorSession(run, store.disable)
+        await session.start(max_seconds=2)
+        await asyncio.wait_for(session._task, 2)
+        return session, store, opens
+
+    async def test_coinbase_websocket_failures_have_fixed_codes_and_no_retry(self):
+        def rejected(status):
+            return InvalidStatus(Response(status, 'secret-provider-reason',
+                                          Headers(), b'secret-provider-body'))
+
+        failures = (
+            (ConnectionClosedOK(Close(1000, 'secret-close'),
+                                Close(1000, 'secret-close'), True), 'coinbase_stream.ws_closed_ok'),
+            (ConnectionClosedError(Close(1011, 'secret-close'),
+                                   Close(1011, 'secret-close'), True), 'coinbase_stream.ws_closed_error'),
+            (rejected(401), 'coinbase_stream.http_4xx'),
+            (rejected(429), 'coinbase_stream.http_429'),
+            (rejected(503), 'coinbase_stream.http_5xx'),
+            (InvalidMessage('secret-protocol'), 'coinbase_stream.ws_handshake_invalid'),
+            (ProtocolError('secret-protocol'), 'coinbase_stream.ws_protocol'),
+            (EOFError('secret-transport'), 'coinbase_stream.transport'),
+            (RuntimeError('secret-unexpected'), 'coinbase_stream.unexpected'),
+        )
+        for failure, code in failures:
+            with self.subTest(code=code):
+                session, store, opens = await self.run_socket_failure(failure)
+                self.assertEqual(session.state()['failure_code'], code)
+                self.assertFalse(store.enabled)
+                self.assertGreaterEqual(store.off_calls, 2)
+                self.assertEqual(len(opens), 1)
+                self.assertEqual(store.events, [])
+                self.assertNotIn('secret', str(session.state()))
+                await session.stop()
+                self.assertEqual(session.state()['failure_code'], code)
+
     async def run_session(self, *, second_failure=None, discovery_failure=None,
                           missing_once=False):
         store = Store()

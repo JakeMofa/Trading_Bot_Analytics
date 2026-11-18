@@ -93,6 +93,14 @@ the isolated PostgreSQL logs confirm both new smoke methods ran. This does not
 identify the first PP live session's lost exception or qualify live A→B.
 See [bounded smoke scope](CP7_BOUNDARY_SMOKE_2026-11-17.md).
 
+The subsequent PP diagnostic checkpoint reported `coinbase_stream.unexpected`
+before the market boundary, leaving the WebSocket exception subtype unknown.
+A default-OFF successor to draft PR #93 classifies pinned `websockets==15.0.1`
+closure, handshake status, protocol and transport failures into fixed private
+codes. Generated fake-socket tests verify durable OFF and no payload/URL text;
+35 affected local tests passed. No runtime reconnect, PP release or live
+continuity result follows from this candidate. Exact successor CI is pending.
+
 ## CP6 structured import preparation — November 17, 2026
 
 An isolated, default-off preparation now pins all eight structured cloud row

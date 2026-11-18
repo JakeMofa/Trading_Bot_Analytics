@@ -1,5 +1,13 @@
 # BTC Intelligence Rebuild Plan
 
+**CP7 read-only resource observer candidate (November 17):** A separate PP
+host script now takes bounded read-only samples of the PP live origin's writer
+generation, up to 10,001 raw records per active generation, relation/database
+bytes, WAL segment allocation, free disk and available RAM. Counts at the cap
+are lower bounds. Generated tests passed; PP host execution and exact CI are
+separate evidence. This observer never enables collection, cloud sync or
+retirement and cannot establish a qualified size trigger by itself.
+
 ## CP7 bounded PP live API observer — November 17, 2026
 
 The local-only deploy/preprod/live_observe.py candidate samples the private

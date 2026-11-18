@@ -5,6 +5,23 @@ retirement test. The operator separately enters READY_OFF, authorizes one
 session of at most 1,800 seconds, and retains the OFF/leave controls. This
 observer cannot change a collector lease, database, cloud object or service.
 
+For a separate PP host resource sample, send the reviewed read-only script
+through the same pinned SSH route. Run as root on PP; the script rejects another
+host or database binding. Replace `mid` with `before` or `after` for the other
+two checkpoints:
+
+    ssh [pinned PP SSH options] "ubuntu@${TRADEBOT_VM_HOST}" \
+      'sudo -n /usr/bin/python3 -IS - --phase mid' \
+      < deploy/preprod/live_resource_observe.py
+
+The script reads only the PP origin's writer row and up to 10,001 raw records
+per active generation. A count below 10,001 is exact; 10,001 is a lower bound.
+It reports relation/database bytes, PostgreSQL WAL segment allocation,
+filesystem free bytes and available RAM. Every SQL sample uses a read-only
+transaction with a three-second statement deadline. It never prints database
+credentials, raw event payloads or prices. A failed sample is `INCOMPLETE`,
+never a storage PASS.
+
 Use the approved pinned PP operator SSH route to forward only the host's
 loopback API. Set the variables to the existing verified host, key and
 known-hosts file; never put their contents in a report.

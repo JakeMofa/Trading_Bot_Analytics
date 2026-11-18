@@ -1,5 +1,41 @@
 # BTC Intelligence Rebuild Plan
 
+## PP live convergence checkpoint — November 17 CST / November 18 UTC
+
+**Current result: PP live and Supabase runtime sync are not yet accepted.**
+The PP PostgreSQL application and dashboard run. Two bounded live sessions
+persisted actual feed data but failed before market-boundary/rotation
+acceptance; PP was restored to generated mode with its collector OFF. The
+private `history_v2` schema, exact PP grants and restricted login passed
+catalog and rolled-back connection checks, but the runtime importer has not
+written structured PP rows. A 126-byte private Storage object passed synthetic
+upload and authenticated readback; no sealed PP generation has been archived.
+PR #115 corrected the PP one-shot credential mount and merged as `6d9fe3e`;
+exact merge [CI 44239876261](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44239876261)
+passed. That controller and image are still **not installed on PP**.
+
+The last live trial increased pending `pp-live-pp` outbox rows from 1,530 to
+5,268 in 282 seconds, about 13.3 net rows/second. With the unchanged 10,000
+row cap, the recorded 4,732-row headroom would last roughly six minutes at
+that rate. This is a planning estimate, not a qualified future rate. The
+25-row/20-second one-shot probe proves only a bounded cloud path; it cannot
+support a 20–30 minute live run or clear the backlog by itself. Do not raise
+the cap merely to make a trial last longer.
+
+| Gate | Passing evidence needed before proceeding |
+| --- | --- |
+| 1. Exact PP structured probe | Install the reviewed controller and image through qualified PP CD, enter `pp_live` with collector still OFF, pass dry-run preflight, then execute one exact-generation 25-row `history_v2` write/readback/ACK under a one-use permit. Keep retirement OFF. |
+| 2. Bounded structured drain | Wire the existing active/sealed workers through a separate default-OFF, supervised route. Prioritize sealed-generation obligations; demonstrate fresh authenticated readback before every ACK, retries/restarts without duplicates, collector isolation and measured throughput. Drain the existing 5,268 pending rows and qualify sustained rate, bursts and outage runway under the 10,000 cap before a long live run. |
+| 3. Bounded PP live acceptance | Release the already merged Coinbase reconnect and generated-profile leave corrections. Run PP's leased collector against PP PostgreSQL across a real 15-minute market boundary and qualified A→B size switch. Verify persisted Coinbase/Polymarket events, fresh predictions, dashboard/API/SSE, query latency, source health and the existing timeout/freshness limits; then durably turn PP collection OFF. Production need not pause because each environment has a separate database and collector lease. |
+| 4. First sealed raw archive | Add a separate default-OFF runtime route for exact sealed-generation upload to private Supabase Storage and authenticated full readback while the other slot collects. Verify coverage, protected references and failure preservation. This is distinct from `history_v2` structured sync and does not enable local partition retirement. |
+| 5. Retirement and production | Qualify mutation authority, reader drainage, recovery, capacity and sustained operation before enabling local retirement. Production PostgreSQL cutover remains CP8–10: exact candidate tested on PP, separately approved cutover, first sealed-generation proof, then retention enablement. Production legacy SQLite remains unchanged. |
+
+No paid AI, trading, production deployment, PP retirement or automatic cloud
+sync follows from passing an earlier gate. Record one result per gate; a
+failed gate keeps its specific next action rather than rerunning an unchanged
+trial. Older sections below are dated evidence where they describe superseded
+cross-VM collector fencing or a completed candidate as still pending.
+
 ## CP6 exact PP structured-origin binding candidate — November 17 CST / November 18 UTC
 
 The next default-OFF code slice narrows the active and sealed structured

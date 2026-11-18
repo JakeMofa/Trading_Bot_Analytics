@@ -145,7 +145,9 @@ def main():
         command, proof = command_for(env, api, profile)
         report = {'gate': 'PASS', 'scope': 'pp_live_preflight', **proof}
         if args.stage == 'execute':
-            report.update(validated_result(proof['operation'], transport(profile, command, env)))
+            host_result = validated_result(proof['operation'], transport(profile, command, env))
+            report.update({key: value for key, value in host_result.items() if key != 'gate'})
+            report['host_gate'] = host_result['gate']
             report['scope'] = 'pp_live_host_result'
             report['controls_sha'] = env['GITHUB_SHA']
             report['run_id'] = int(env['GITHUB_RUN_ID'])

@@ -1,5 +1,7 @@
 from pathlib import Path
 import importlib.util
+import json
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -84,6 +86,33 @@ class PPLivePipelineTests(unittest.TestCase):
         self.assertIn('environment: preprod', text)
         self.assertNotIn('PROD_DEPLOY_KEY', text)
         self.assertNotIn('cd-prod', text)
+
+    def test_successful_host_transition_keeps_pipeline_pass_gate(self):
+        with tempfile.TemporaryDirectory() as folder:
+            for operation, host_gate, origin, enabled in (
+                ('enter', 'PP_LIVE_READY_OFF', 'pp-live-pp', False),
+                ('on', 'PP_LIVE_ON', 'pp-live-pp', True),
+                ('off', 'PP_LIVE_OFF', 'pp-live-pp', False),
+                ('leave', 'PP_GENERATED_RESTORED', 'generated-pp', False),
+            ):
+                with self.subTest(operation=operation):
+                    report = Path(folder) / (operation + '.json')
+                    env = {'PP_LIVE_OPERATION': operation, 'GITHUB_SHA': 'a' * 40,
+                           'GITHUB_RUN_ID': '123', 'PIPELINE_REPORT': str(report)}
+                    host = {'gate': host_gate, 'origin_id': origin,
+                            'collector_enabled': enabled}
+                    with patch.object(module.pipeline, 'GitHub'), \
+                         patch.object(module.pipeline, 'target_profile', return_value={}), \
+                         patch.object(module, 'command_for', return_value=('reviewed command',
+                             {'operation': operation})), \
+                         patch.object(module, 'transport', return_value=host), \
+                         patch.object(module.os, 'environ', env), \
+                         patch('sys.argv', ['pp_live_pipeline.py', 'execute']):
+                        self.assertEqual(module.main(), 0)
+                    result = json.loads(report.read_text())
+                    self.assertEqual(result['gate'], 'PASS')
+                    self.assertEqual(result['host_gate'], host_gate)
+                    self.assertIs(result['collector_enabled'], enabled)
 
 
 if __name__ == '__main__':

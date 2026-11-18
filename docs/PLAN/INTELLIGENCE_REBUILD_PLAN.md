@@ -80,6 +80,17 @@ See deploy/preprod/LIVE_OBSERVATION.md. Raw-row acknowledgements, disk/WAL
 growth, Supabase archive/retirement and 72-hour operation require independent
 evidence.
 
+## CP7 generated market-boundary smoke candidate — November 17, 2026
+
+An isolated candidate combines the PP supervisor, Polymarket cycle and operator
+session across a simulated 15-minute boundary. Generated missing-market and
+404/429/timeout/invalid faults assert independent Coinbase progress, no old
+quote replay, fixed private failure codes, durable OFF and no automatic ON.
+The adjacent 34 local tests passed. The file is included in existing backend
+and isolated PostgreSQL CI discovery; exact CI remains pending. This does not
+identify the first PP live session's lost exception or qualify live A→B.
+See [bounded smoke scope](CP7_BOUNDARY_SMOKE_2026-11-17.md).
+
 ## CP6 structured import preparation — November 17, 2026
 
 An isolated, default-off preparation now pins all eight structured cloud row

@@ -57,10 +57,13 @@ class GitHub:
         require(isinstance(page, int) and 1 <= page <= 100, 'bounded registry page required')
         return self._read('https://api.github.com/users/JakeMofa/packages/container/trading_bot_analytics%2Freleases/versions?per_page=100&page='+str(page))
 
-    def _read(self, url, binary=False, max_bytes=1024 * 1024):
+    def _read(self, url, binary=False, max_bytes=1024 * 1024, *, artifact_zip=False):
+        # Actions artifact ZIP redirects with GitHub's JSON media type, while
+        # release assets require octet-stream to return their bytes.
         request = urllib.request.Request(url,
             headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
-                     'Accept': 'application/octet-stream' if binary else 'application/vnd.github+json'})
+                     'Accept': ('application/octet-stream' if binary and not artifact_zip
+                                else 'application/vnd.github+json')})
         with urllib.request.build_opener(SafeRedirect()).open(request, timeout=20) as response:
             data = response.read(max_bytes + 1)
         require(len(data) <= max_bytes, 'API evidence exceeds size bound')
@@ -68,7 +71,9 @@ class GitHub:
 
     def read(self, path, binary=False, max_bytes=1024 * 1024):
         require(path.startswith('/') and not path.startswith('//'), 'repository-relative API path required')
-        return self._read('https://api.github.com/repos/' + REPO + path, binary, max_bytes)
+        artifact_zip = binary and path.startswith('/actions/artifacts/') and path.endswith('/zip')
+        return self._read('https://api.github.com/repos/' + REPO + path, binary, max_bytes,
+                          artifact_zip=artifact_zip)
 
 
 def branch_allowed(role, branch):

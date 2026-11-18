@@ -243,6 +243,17 @@ class EnvironmentTests(unittest.TestCase):
         self.assertIsNone(redirect.get_header('Authorization'))
         with self.assertRaises(p.PipelineHold):
             p.SafeRedirect().redirect_request(request, None, 302, 'Found', {}, 'http://example.invalid/blob')
+
+        with patch.dict('os.environ', {'GH_TOKEN': 'synthetic'}), \
+             patch('environment_pipeline.urllib.request.build_opener') as opener:
+            opener.return_value.open.return_value = io.BytesIO(b'PK\x03\x04')
+            self.assertEqual(p.GitHub().read('/actions/artifacts/99/zip', binary=True), b'PK\x03\x04')
+            artifact_request = opener.return_value.open.call_args.args[0]
+            self.assertEqual(artifact_request.get_header('Accept'), 'application/vnd.github+json')
+            opener.return_value.open.return_value = io.BytesIO(b'asset')
+            self.assertEqual(p.GitHub().read('/releases/assets/99', binary=True), b'asset')
+            release_request = opener.return_value.open.call_args.args[0]
+            self.assertEqual(release_request.get_header('Accept'), 'application/octet-stream')
         for mode in ('missing', 'expired', 'duplicate', 'path'):
             api = API()
             if mode == 'missing':api.artifacts = []

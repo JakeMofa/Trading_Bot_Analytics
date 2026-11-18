@@ -195,8 +195,11 @@ def install(expected_uid, *, stage=STAGE, cloud=CLOUD, marker=MARKER,
         _check(_directory(stage, stage_uid, 0o700) == stage_identity,
                'stage_directory_changed')
         for name in STAGE_NAMES:
-            info = (stage / name).lstat()
-            _check((info.st_dev, info.st_ino) == source_identities[name],
+            current, identity = _read_exact(stage / name, stage_uid, 0o400,
+                                            maximum=128 if name == 'status'
+                                            else MAX_SIZE)
+            _check(identity == source_identities[name]
+                   and current == (status if name == 'status' else values[name]),
                    'stage_file_changed_before_cleanup')
         for name in STAGE_NAMES:
             (stage / name).unlink()

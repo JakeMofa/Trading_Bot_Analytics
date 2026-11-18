@@ -127,6 +127,30 @@ class StorageAuthInstallTests(unittest.TestCase):
             self.run_install()
         self.assert_history()
 
+    def test_in_place_stage_change_after_copy_blocks_cleanup(self):
+        original_fsync = target.os.fsync
+        calls = 0
+
+        def alter_source_before_cleanup(descriptor):
+            nonlocal calls
+            calls += 1
+            if calls == 5:  # Four destination files, then cloud directory.
+                path = self.stage / 'supabase_auth_password'
+                path.chmod(0o600)
+                path.write_bytes(b'b' * 64 + b'\n')
+                path.chmod(0o400)
+            return original_fsync(descriptor)
+
+        with mock.patch.object(target.os, 'fsync', side_effect=alter_source_before_cleanup):
+            with self.assertRaises(target.InstallStop):
+                self.run_install()
+        self.assertTrue(self.stage.exists())
+        self.assertEqual((self.cloud / 'supabase_auth_password').read_bytes(),
+                         self.values['supabase_auth_password'])
+        with self.assertRaises(target.InstallStop):
+            self.run_install()
+        self.assert_history()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,11 +16,13 @@ path. No PP credential or cloud state was changed by this review.
    Independently reconcile that UID to the approved `pp-live-pp` Auth user and
    both exact private `market-raw` policies. A missing or uncertain password
    requires a separately reviewed Auth rotation, not a guessed replacement.
-2. Prepare a **publishable** Supabase API key in a separate private file named
-   `pp_storage_api_key`. A service-role/admin key is forbidden. Keep the key
+2. Prepare a **publishable** Supabase API key in a separate private file. A
+   service-role/admin key is forbidden. Keep the key
    file and operator stage outside Git, CI artifacts, shell tracing and shared
-   temporary directories. On the operator host, the four input files must be
-   owned by the operator and mode `0400`; the stage parent is mode `0700`.
+   temporary directories. The three Auth input files and status are mode
+   `0400` in a `0700` stage. The existing separate publishable-key source is
+   mode `0600`; its remote stage copy is renamed `pp_storage_api_key` and
+   tightened to `0400` before installation.
 3. Verify the current PP IP and pinned SSH host key through the existing
    approved operator route. The target must be `tradebot-preprod-01`, not
    production. Confirm the root host marker, `/etc/tradebot/cloud` mode `0700`,
@@ -61,13 +63,18 @@ scp -p -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
   "$TRADEBOT_AUTH_STAGE/supabase_auth_password" \
   "$TRADEBOT_AUTH_STAGE/supabase_auth_uid" \
   "$TRADEBOT_AUTH_STAGE/status" \
-  "$TRADEBOT_PUBLISHABLE_KEY_FILE" \
   "ubuntu@$TRADEBOT_PP_HOST:/home/ubuntu/.tradebot-pp-storage-stage/"
+scp -p -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+  -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_OPERATOR_KEY" \
+  "$TRADEBOT_PUBLISHABLE_KEY_FILE" \
+  "ubuntu@$TRADEBOT_PP_HOST:/home/ubuntu/.tradebot-pp-storage-stage/pp_storage_api_key"
+ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+  -o "UserKnownHostsFile=$TRADEBOT_KNOWN_HOSTS" -i "$TRADEBOT_OPERATOR_KEY" \
+  "ubuntu@$TRADEBOT_PP_HOST" \
+  'chmod 0400 /home/ubuntu/.tradebot-pp-storage-stage/pp_storage_api_key'
 ```
 
-The publishable-key source file must already be named
-`pp_storage_api_key`; otherwise STOP and prepare it privately before using
-the command. Check transfer exit status and remote stage metadata before
+Check transfer exit status and remote stage metadata before
 installing. Transfer the public installer source to a separate temporary
 path, verify its hash equals the **exact reviewed CI source**, then use the
 pinned route to run:

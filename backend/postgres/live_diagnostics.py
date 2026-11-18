@@ -5,6 +5,8 @@ import asyncio
 
 import httpx
 
+from .store import StorageHold
+
 
 OPERATIONS = frozenset({
     'ownership', 'session', 'coinbase_stream', 'coinbase_write',
@@ -15,7 +17,7 @@ OPERATIONS = frozenset({
 CATEGORIES = frozenset({
     'timeout', 'transport', 'http_404', 'http_429', 'http_4xx', 'http_5xx',
     'http_unexpected',
-    'invalid_or_unavailable', 'identity_mismatch', 'unexpected', 'ended',
+    'invalid_or_unavailable', 'identity_mismatch', 'write_rejected', 'unexpected', 'ended',
     'lease_lost', 'deadline_reached', 'durable_off_unproven',
 })
 
@@ -53,6 +55,8 @@ def diagnose(operation: str, error: Exception) -> LiveDiagnostic:
     """Classify types and fixed fields only; never copy exception text."""
     if isinstance(error, (SourceHTTPFailure, SourceTransportFailure)):
         category = error.category
+    elif isinstance(error, StorageHold):
+        category = 'write_rejected'
     elif isinstance(error, (asyncio.TimeoutError, TimeoutError, httpx.TimeoutException)):
         category = 'timeout'
     elif isinstance(error, (httpx.TransportError, OSError)):

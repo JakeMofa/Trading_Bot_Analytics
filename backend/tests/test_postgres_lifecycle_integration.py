@@ -22,6 +22,7 @@ from postgres.history import ArchiveHistory
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.live_contract import coinbase_closed_candle, coinbase_ticker, polymarket_bbo, polymarket_market
 from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
+from postgres.live_diagnostics import LiveDiagnostic
 from postgres.calculation import calculate, forecast
 from postgres.store import PublicationRejected, StorageHold, Store
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
@@ -120,7 +121,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertFalse(live.collector_enabled())
         async def cycle():
             await polymarket_cycle(live, None, asyncio.Event(), discover=discover, fetch=fetch)
-        with self.assertRaises(StorageHold):
+        with self.assertRaisesRegex(LiveDiagnostic, 'polymarket_market_write.write_rejected'):
             asyncio.run(cycle())
         self.repository.enable_collector(live.origin, session_id=str(uuid.uuid4()),
                                          expected_generation_id=str(live_generation['generation_id']),
@@ -171,7 +172,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
             after = connection.execute('''SELECT count(*) AS count FROM core.predictions
                 WHERE origin_id=%s''', (live.origin,)).fetchone()['count']
         self.assertEqual(after, before)
-        with self.assertRaises(StorageHold):
+        with self.assertRaisesRegex(LiveDiagnostic, 'coinbase_write.write_rejected'):
             asyncio.run(coinbase_session(live, asyncio.Event(), source=source))
         with live.connection(True) as connection:
             count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE origin_id=%s',

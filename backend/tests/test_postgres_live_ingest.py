@@ -9,6 +9,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
 from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
+from postgres.store import StorageHold
 
 
 class FakeStore:
@@ -73,6 +74,17 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(LiveDiagnostic, 'polymarket_market_write.unexpected'):
             await polymarket_cycle(store, None, asyncio.Event(), discover=discover, fetch=fetch)
         self.assertEqual(store.events, [])
+
+    async def test_durable_store_hold_is_classified_without_database_text(self):
+        class HeldStore(FakeStore):
+            def ingest(self, _event):
+                raise StorageHold('private-database-details')
+        async def discover(*_):
+            return {'market_id': 'm', 'event_id': 'market'}
+        with self.assertRaises(LiveDiagnostic) as caught:
+            await polymarket_cycle(HeldStore(), None, asyncio.Event(), discover=discover)
+        self.assertEqual(caught.exception.code, 'polymarket_market_write.write_rejected')
+        self.assertNotIn('private', str(caught.exception))
 
     async def test_mismatched_quote_is_not_persisted(self):
         store = FakeStore()

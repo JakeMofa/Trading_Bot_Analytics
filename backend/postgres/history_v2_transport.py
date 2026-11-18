@@ -1,7 +1,7 @@
 """Default-off direct PostgreSQL importer for private structured history.
 
 The caller supplies a narrowly scoped connection factory. No service creates
-this adapter yet, and no Supabase grants are installed. Each cloud transaction
+this adapter yet; PP-only grants do not enable runtime sync. Each cloud transaction
 applies ordered revisions and immutable receipts together; a separate read
 verifies those receipts before the local worker may acknowledge its outbox.
 """
@@ -19,6 +19,8 @@ from .history_v2_envelope import (CLOUD_COLUMNS, IMPORT_ORDER, MUTABLE_PROJECTIO
                                   TABLE_KEYS, cloud_row, cloud_row_matches,
                                   projection_order, validate_outbox_stream)
 
+PP_STRUCTURED_ORIGIN = 'pp-live-pp'
+
 
 class HistoryV2PostgresTransport:
     authority_scope = 'supabase-unqualified'
@@ -26,8 +28,8 @@ class HistoryV2PostgresTransport:
     def __init__(self, connection_factory, *, origin_id: str,
                  generation_id: str, expected_database: str,
                  expected_role: str):
-        if (not callable(connection_factory) or not isinstance(origin_id, str) or
-                not origin_id.startswith('pp-live-') or not generation_id or
+        if (not callable(connection_factory) or origin_id != PP_STRUCTURED_ORIGIN or
+                not generation_id or
                 not expected_database or not expected_role):
             raise ValueError('private structured importer binding required')
         self.connection_factory = connection_factory

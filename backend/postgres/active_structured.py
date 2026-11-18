@@ -9,6 +9,8 @@ from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, en
 from .history_v2_envelope import validate_outbox_stream
 from .lifecycle import LifecycleHold
 
+PP_STRUCTURED_ORIGIN = 'pp-live-pp'
+
 
 class ActiveStructuredWorker:
     allowed_states = frozenset({'collecting'})
@@ -16,8 +18,8 @@ class ActiveStructuredWorker:
 
     def __init__(self, repository, transport, *, origin_id: str,
                  limits: ArchiveLimits = ArchiveLimits()):
-        if not isinstance(origin_id, str) or not origin_id.startswith('pp-live-'):
-            raise ValueError('active structured sync is PP-live only')
+        if origin_id != PP_STRUCTURED_ORIGIN:
+            raise ValueError('active structured sync requires exact PP origin')
         self.repository, self.transport = repository, transport
         self.origin_id, self.limits = origin_id, limits
 

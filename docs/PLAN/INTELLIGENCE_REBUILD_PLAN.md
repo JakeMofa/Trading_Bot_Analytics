@@ -1,5 +1,28 @@
 # BTC Intelligence Rebuild Plan
 
+## CP6 exact PP structured-origin binding candidate — November 17 CST / November 18 UTC
+
+The next default-OFF code slice narrows the active and sealed structured
+workers and private PostgreSQL transport to exactly `pp-live-pp`. The previous
+`pp-live-*` constructor rule could admit a wrong PP origin despite the live
+`history_v2` policies allowing only `pp-live-pp`. Generated PostgreSQL tests
+substitute unique isolated origins in their test process; runtime constructors
+retain the exact origin.
+
+`PPHistoryConnectionFactory` reads a private mounted DSN and a separately
+mounted CA. It requires the reviewed session-pooler host, project-scoped role,
+database, TLS `verify-full`, one pinned Supabase Root 2021 CA certificate,
+private file metadata and a bounded connect budget. It rejects extra libpq
+parameters, changed bindings and insufficient time before opening a
+connection; late connections are closed. Exceptions omit credentials.
+The factory is not constructed by a deployed service. The current PP host
+holds root-owned secret and CA files **outside** its containers. Local focused
+tests passed; exact Linux CI and isolated PostgreSQL cases remain release
+gates. No cloud writes, service mount, collector, retirement or production
+change is authorized by this candidate. The next independently reviewed slice
+must prove an actual bounded PP importer write/readback and outbox ACK while
+keeping local retirement OFF.
+
 ## CP6 private structured receipt grant candidate — November 17 CST / November 18 UTC
 
 **Historical candidate:** the later bounded operator connection check enabled

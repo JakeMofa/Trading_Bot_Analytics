@@ -31,6 +31,15 @@ def envelope(outbox_id, table, payload, generation_id):
 
 @unittest.skipUnless(DSN, 'isolated generated history_v2 DSN not supplied')
 class HistoryV2TransportPostgresTests(unittest.TestCase):
+    def setUp(self):
+        # Isolated generated origins remain unique between tests. Production
+        # constructors always require the exact PP origin.
+        self.origin = 'pp-live-ci-' + uuid.uuid4().hex
+        binding = patch('postgres.history_v2_transport.PP_STRUCTURED_ORIGIN',
+                        self.origin)
+        binding.start()
+        self.addCleanup(binding.stop)
+
     def test_generated_a_pending_blocks_b_until_acknowledged(self):
         import psycopg
         from psycopg.rows import dict_row
@@ -38,7 +47,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         factory = lambda: psycopg.connect(DSN, row_factory=dict_row,
                                           connect_timeout=5)
         repository = LifecycleRepository(factory)
-        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        origin = self.origin
         now = datetime.now(timezone.utc)
         first = repository.bootstrap(origin, now - timedelta(hours=73))
         switched = repository.switch_if_due(origin, now=now)
@@ -72,7 +81,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         slow = HistoryV2PostgresTransport(
             lambda *, timeout_seconds: (time.sleep(timeout_seconds + 0.02),
                                         factory())[1],
-            origin_id='pp-live-ci-' + uuid.uuid4().hex,
+            origin_id=self.origin,
             generation_id=str(uuid.uuid4()),
             expected_database='unused', expected_role='unused')
         # The validation path is exercised by other tests; isolate connection
@@ -88,7 +97,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                                           connect_timeout=5)
         first = LifecycleRepository(factory)
         second = LifecycleRepository(factory)
-        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        origin = self.origin
         with first.structured_sync_lock(origin):
             with self.assertRaises(LifecycleHold):
                 with second.structured_sync_lock(origin):
@@ -108,7 +117,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         admin = lambda timeout_seconds=5: psycopg.connect(
             DSN, row_factory=dict_row, connect_timeout=max(1, math.ceil(timeout_seconds)),
             options='-c timezone=UTC')
-        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        origin = self.origin
         generation = str(uuid.uuid4())
         role = 'pp_receipt_ci_' + uuid.uuid4().hex
 
@@ -261,7 +270,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
             options='-c timezone=UTC')
         with factory() as connection:
             binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
-        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        origin = self.origin
         generation = str(uuid.uuid4())
         transport = HistoryV2PostgresTransport(factory, origin_id=origin,
             generation_id=generation, expected_database=binding['database'],
@@ -391,7 +400,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
             options='-c timezone=UTC')
         with factory() as connection:
             binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
-        origin, generation = 'pp-live-ci-' + uuid.uuid4().hex, str(uuid.uuid4())
+        origin, generation = self.origin, str(uuid.uuid4())
         transport = HistoryV2PostgresTransport(factory, origin_id=origin,
             generation_id=generation, expected_database=binding['database'],
             expected_role=binding['role'])

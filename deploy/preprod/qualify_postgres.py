@@ -163,6 +163,54 @@ def qualify_cloud_contract(secret_dir):
     return proof
 
 
+def qualify_pp_history_role(secret_dir):
+    """Prove exact-origin grants and denials in disposable PostgreSQL only."""
+    ddl=(REPO/'supabase/migrations/20261118020000_pp_history_v2_role.sql').read_text()
+    if 'CREATE ROLE tradebot_pp_history NOLOGIN' not in ddl:
+        raise RuntimeError('PP private history role scope changed')
+    f.sql('BEGIN;\n'+ddl+'\nCOMMIT;', secret_dir, timeout=40)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'role_no_login', NOT r.rolcanlogin,
+      'role_no_bypass', NOT r.rolbypassrls,
+      'role_no_superuser', NOT r.rolsuper,
+      'role_no_inherit', NOT r.rolinherit,
+      'role_connection_limit', r.rolconnlimit,
+      'pp_policies', (SELECT count(*) FROM pg_policies WHERE schemaname='history_v2'
+                         AND 'tradebot_pp_history'=ANY(roles)),
+      'pp_select_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n
+        ON n.oid=c.relnamespace WHERE n.nspname='history_v2' AND c.relkind='r'
+        AND has_table_privilege('tradebot_pp_history',c.oid,'SELECT')),
+      'pp_insert_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n
+        ON n.oid=c.relnamespace WHERE n.nspname='history_v2' AND c.relkind='r'
+        AND has_table_privilege('tradebot_pp_history',c.oid,'INSERT')),
+      'pp_update_tables', (SELECT count(*) FROM pg_class c JOIN pg_namespace n
+        ON n.oid=c.relnamespace WHERE n.nspname='history_v2' AND c.relkind='r'
+        AND has_table_privilege('tradebot_pp_history',c.oid,'UPDATE')),
+      'anon_schema_access', has_schema_privilege('anon','history_v2','USAGE'),
+      'authenticated_schema_access', has_schema_privilege('authenticated','history_v2','USAGE'),
+      'service_schema_access', has_schema_privilege('service_role','history_v2','USAGE'),
+      'pp_coverage_access', has_table_privilege('tradebot_pp_history','history_v2.coverage','SELECT'),
+      'pp_receipt_access', CASE WHEN to_regclass('history_v2.structured_receipts') IS NULL
+        THEN false ELSE has_table_privilege('tradebot_pp_history',
+          to_regclass('history_v2.structured_receipts'),'SELECT') END,
+      'pp_delete_access', has_table_privilege('tradebot_pp_history','history_v2.generation_checkpoints','DELETE'),
+      'pp_immutable_update', has_table_privilege('tradebot_pp_history','history_v2.predictions','UPDATE'))
+      FROM pg_roles r WHERE r.rolname='tradebot_pp_history';""",secret_dir))
+    if (not all(proof[key] for key in ('role_no_login','role_no_bypass','role_no_superuser',
+                                     'role_no_inherit')) or
+        proof['role_connection_limit']!=2 or proof['pp_policies']!=21 or
+        proof['pp_select_tables']!=9 or proof['pp_insert_tables']!=9 or
+        proof['pp_update_tables']!=3 or
+        any(proof[key] for key in ('anon_schema_access','authenticated_schema_access',
+                                  'service_schema_access','pp_coverage_access',
+                                  'pp_receipt_access','pp_delete_access',
+                                  'pp_immutable_update'))):
+        raise RuntimeError('PP private history privilege check failed')
+    f.sql((REPO/'deploy/preprod/tests/pp_history_v2_role.sql').read_text(),
+          secret_dir,timeout=20)
+    return proof
+
+
 def main():
     global DEADLINE, PHASE
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or f.MARKER.exists() or f.MARKER.is_symlink():
@@ -226,6 +274,8 @@ def main():
                 command([sys.executable,'-c',code],env,timeout=180)
             PHASE='generated_cloud_contract'
             cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_history_role'
+            pp_history_role=qualify_pp_history_role(CI_FOUNDATION_SECRETS)
             PHASE='runtime_image'
             command(['docker','build','-f','deploy/preprod/Dockerfile','-t','tradebot-pg-test','.'],timeout=200)
             runtime_env={**os.environ,'PP_SECRET_DIR':str(CI_FOUNDATION_SECRETS),'PP_RUNTIME_SECRET_DIR':str(CI_RUNTIME_SECRETS),'PP_APP_IMAGE':'tradebot-pg-test'}
@@ -251,7 +301,7 @@ def main():
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

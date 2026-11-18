@@ -52,6 +52,7 @@ BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_EN
           'TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false',
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
 OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
+OUTBOX_ORIGINS=('generated-pp','pp-live-pp')
 
 
 def memory_bytes(value):
@@ -395,10 +396,31 @@ class LinuxActions:
         require(re.findall(r'^FROM (.+)$',dockerfile,re.M)==[PYTHON_IMAGE],'unqualified_python_base')
         self.config=validate_config(self._json(self._compose(context,budget,['config','--format','json'])),context.source,'sha256:'+'0'*64)
         self._postgres(context,budget)
+        self._outbox_release_preflight(budget)
         pending=budget.run(['docker','ps','-a','--filter','label=com.docker.compose.project='+PROJECT,
             '--filter','label=com.docker.compose.oneoff=True','--format','{{.ID}}'],
             env=self._environment('unused'),timeout=10).strip()
         require(not pending,'prior_oneoff_requires_operator_inspection')
+
+    def _approved_outbox_origins(self,budget):
+        origins=self._json(self._sql(budget,"SELECT coalesce(json_agg(origin_id ORDER BY origin_id),'[]'::json) "
+            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 3) bounded"))
+        require(isinstance(origins,list) and len(origins)<=len(OUTBOX_ORIGINS)
+                and all(type(origin) is str and origin in OUTBOX_ORIGINS for origin in origins)
+                and len(origins)==len(set(origins)),'unexpected_outbox_origin')
+        return origins
+
+    def _outbox_release_preflight(self,budget):
+        # Fail before image build and writer fence if the finite complete-ledger
+        # inventory cannot fit. The runtime pending-row cap is separate.
+        exists=self._sql(budget,"SELECT to_regclass('ops.outbox') IS NOT NULL")
+        if exists=='f':return
+        require(exists=='t','invalid_inventory_evidence')
+        for origin in self._approved_outbox_origins(budget):
+            count=self._sql(budget,"SELECT count(*) FROM (SELECT 1 FROM ops.outbox "
+                "WHERE origin_id='"+origin+"' LIMIT 10001) bounded")
+            require(bool(re.fullmatch('[0-9]{1,5}',count)) and 0<int(count)<=10000,
+                    'outbox_inventory_exceeds_release_bound')
 
     def build(self,context,budget):
         require(self.config is not None,'preflight_required')
@@ -442,6 +464,28 @@ class LinuxActions:
             exists=self._sql(budget,"SELECT to_regclass('"+table+"') IS NOT NULL")
             if exists=='f':result[table]=None;continue
             require(exists=='t','invalid_inventory_evidence')
+            if table=='ops.outbox':
+                # The live and generated origins each enforce their own 10,000
+                # pending-row admission bound. A whole-table 10,001 sentinel
+                # falsely stopped deployment with 7,511 + 5,268 rows. Check
+                # every origin independently, including acknowledged evidence.
+                # This is a finite release check: >10,000 lifetime rows in
+                # either origin still HOLDs until a separate ledger design.
+                origins=self._approved_outbox_origins(budget)
+                groups={}
+                for origin in OUTBOX_ORIGINS:
+                    if origin not in origins:continue
+                    row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',"
+                        "md5(coalesce(string_agg(fingerprint,',' ORDER BY fingerprint),''))) FROM "
+                        "(SELECT jsonb_build_array("+identity+")::text AS fingerprint FROM ops.outbox "
+                        "WHERE origin_id='"+origin+"' LIMIT 10001) bounded"))
+                    require(isinstance(row,dict) and type(row.get('count')) is int
+                            and 0<row['count']<=10000
+                            and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),
+                            'inventory_exceeds_generated_bound')
+                    groups[origin]=row
+                result[table]=groups
+                continue
             row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY fingerprint),''))) FROM (SELECT jsonb_build_array("+identity+")::text AS fingerprint FROM "+table+" LIMIT 10001) bounded"))
             require(0<=row.get('count',10001)<=10000 and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'inventory_exceeds_generated_bound')
             result[table]=row

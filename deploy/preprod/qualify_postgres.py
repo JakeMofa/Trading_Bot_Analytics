@@ -440,7 +440,9 @@ def main():
             f.compose(['exec','-T','postgres','rm','/tmp/generated-lifecycle-password'],CI_FOUNDATION_SECRETS)
             dsns={name:'postgresql://'+role+':'+passwords[name]+'@'+address+':5432/tradebot_pp' for name,role in {**f.ROLES,'lifecycle':'tradebot_lifecycle'}.items()}
             REDACTIONS.extend(dsns.values())
-            env={**os.environ,'PYTHONPATH':str(REPO/'backend'),'TRADEBOT_ENVIRONMENT':'preprod','TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-ci','TRADEBOT_COLLECTOR_ENABLED':'false'}
+            # The isolated CI database uses the same reviewed generated origin
+            # as PP; the controller must not admit a third production origin.
+            env={**os.environ,'PYTHONPATH':str(REPO/'backend'),'TRADEBOT_ENVIRONMENT':'preprod','TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false'}
             names={'migrator':'TRADEBOT_TEST_MIGRATOR_DSN','application':'TRADEBOT_TEST_APP_DSN','reader':'TRADEBOT_TEST_READER_DSN','lifecycle':'TRADEBOT_TEST_LIFECYCLE_DSN'}
             for name,key in names.items():
                 p=root/(name+'-dsn');p.write_text(dsns[name]);p.chmod(0o600)

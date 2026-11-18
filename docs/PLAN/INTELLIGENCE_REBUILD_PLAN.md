@@ -211,6 +211,16 @@ service wiring, actual importer/write/readback, and bounded backlog handling
 are qualified. Archival acceptance, local retirement and production remain
 OPEN; retirement and paid AI remain OFF.
 
+**CP6 one-shot mount candidate (November 18 UTC):** A separate PP-only Compose
+profile and root controller route prepare a bounded diagnostic without changing
+normal generated CD or mounting cloud credentials on persistent services.
+The profile is default OFF; dry-run preflight sends no cloud requests, and an
+exact-page execute requires its own one-use root permit. Local deployment
+controls passed 113 tests with one platform skip. The controller is **not
+installed**, the new image is **not deployed**, and no probe ran. Exact Linux
+CI, reviewed PP controller replacement, dry-run host preflight and separately
+bounded cloud execution remain gates. [Mount review](CP6_PP_STRUCTURED_ONE_SHOT_MOUNT_REVIEW_2026-11-18.md).
+
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 
 The following role checkpoint predates the receipt migrations above; its

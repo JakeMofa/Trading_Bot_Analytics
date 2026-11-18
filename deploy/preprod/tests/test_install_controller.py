@@ -16,6 +16,32 @@ installer=load('install_controller');builder=load('controller_bundle')
 
 
 class InstallationControls(unittest.TestCase):
+    def test_structured_probe_authority_is_exact_and_does_not_dispatch(self):
+        active={'state':'ready_off','environment':'preprod','instance':'tradebot-preprod-01',
+                'source_sha':'a'*40,'artifact_sha256':'b'*64,
+                'controller_sha256':'c'*64,'image_id':'sha256:'+'d'*64}
+        with tempfile.TemporaryDirectory() as folder:
+            authority=Path(folder)/'probe.json'
+            with patch.object(installer,'PROBE_AUTHORITY',authority), \
+                 patch.object(installer.HostBinding,'from_marker'), \
+                 patch.object(installer,'_read_active',return_value=active), \
+                 patch.object(installer,'checked_bundle'), \
+                 patch.object(installer,'_candidate'), \
+                 patch.object(installer,'directory'):
+                result=installer.authorize_structured_probe(
+                    '11111111-1111-4111-8111-111111111111','sealed',7)
+                self.assertFalse(result['deployment_dispatched'])
+                permit=json.loads(authority.read_text())
+                self.assertEqual(permit['scope'],'pp_structured_one_shot')
+                self.assertEqual(permit['expected_first_outbox_id'],7)
+                self.assertFalse(permit['retirement_enabled'])
+                self.assertFalse(permit['cloud_enabled'])
+                with self.assertRaises(Exception):
+                    installer.authorize_structured_probe(
+                        '11111111-1111-4111-8111-111111111111','sealed',7)
+                with self.assertRaises(Exception):
+                    installer.authorize_structured_probe('bad','sealed',7)
+
     def test_bundle_hash_and_members_required_before_installation(self):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'controller.pyz';info=builder.build(path)

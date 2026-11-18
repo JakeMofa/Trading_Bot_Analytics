@@ -7,6 +7,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.live_supervisor import CollectorHold, run_bounded
+from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
 
 
 class Store:
@@ -32,7 +33,7 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         store = Store()
         async def source(*_args, **_kwargs):
             self.fail('source must remain closed')
-        with self.assertRaises(CollectorHold):
+        with self.assertRaisesRegex(LiveDiagnostic, 'ownership.lease_lost'):
             await run_bounded(store, None, asyncio.Event(), owner_check=lambda: False,
                               disable_collector=store.disable, max_seconds=1,
                               coinbase=source, market=source, candles=source)
@@ -91,12 +92,12 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
             return None
         async def idle(*_args, **_kwargs):
             await asyncio.Event().wait()
-        with self.assertRaisesRegex(CollectorHold, 'stream ended'):
+        with self.assertRaisesRegex(LiveDiagnostic, 'coinbase_stream.ended'):
             await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
                               disable_collector=store.disable, max_seconds=1,
                               coinbase=ended, market=idle, candles=idle)
         store.enabled = True
-        with self.assertRaisesRegex(CollectorHold, 'deadline'):
+        with self.assertRaisesRegex(LiveDiagnostic, 'session.deadline_reached'):
             await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
                               disable_collector=store.disable, max_seconds=.02,
                               coinbase=idle, market=idle, candles=idle)
@@ -121,9 +122,22 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         stop.set()
         def broken_stop():
             raise RuntimeError('sensitive database error')
-        with self.assertRaisesRegex(CollectorHold, 'durable PP collector stop unproven'):
+        with self.assertRaisesRegex(LiveDiagnostic, 'session.durable_off_unproven'):
             await run_bounded(store, None, stop, owner_check=lambda: True,
                               disable_collector=broken_stop, max_seconds=1)
+
+    async def test_supervisor_preserves_bounded_source_operation(self):
+        store = Store()
+        async def idle(*_args, **_kwargs):
+            await asyncio.Event().wait()
+        async def bad_market(*_args, **_kwargs):
+            raise SourceHTTPFailure(429, 'secret=never-display')
+        with self.assertRaises(LiveDiagnostic) as caught:
+            await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
+                              disable_collector=store.disable, max_seconds=1,
+                              coinbase=idle, market=bad_market, candles=idle)
+        self.assertEqual(caught.exception.code, 'polymarket_loop.http_429')
+        self.assertNotIn('secret', str(caught.exception))
 
 
 if __name__ == '__main__':

@@ -1,5 +1,31 @@
 # BTC Intelligence Rebuild Plan
 
+## CP6 private structured receipt grant candidate — November 17 CST / November 18 UTC
+
+A generated-only candidate extends the already applied `tradebot_pp_history`
+NOLOGIN role with `SELECT`/`INSERT` on `history_v2.structured_receipts`
+and exact `origin_id = 'pp-live-pp'` RLS policies. The migration fails if PR
+#92's receipt table is absent, its columns/RLS differ, the role has a login or
+unreviewed membership, or the role has table privileges on an existing
+`public` relation. A read-only cloud catalog check found only the expected
+inbound `postgres` ADMIN membership (`INHERIT`/`SET` false), zero accessible
+public relations and no receipt table. The candidate does not set a password,
+enable LOGIN, grant UPDATE/DELETE, apply cloud DDL, or enable
+sync/retirement. A disposable PostgreSQL 17 test passed the PP insert/read and
+wrong-origin, mutation, row-lock and public-table denials. PR #92 merged as
+`ac32805` with advisory serialization and no row locks on immutable tables or
+receipts. The grant qualification applies the reviewed receipt table once
+before the grant migration and generated transport test.
+The later operator-only connection gate must verify the exact
+[Supabase session pooler endpoint](https://supabase.com/docs/guides/database/connecting-to-postgres)
+and TLS certificate, set a fresh password with interactive
+`psql \password tradebot_pp_history`, and enable LOGIN only after a fresh
+role/grant inventory. A credential never belongs in this migration, Git,
+shell arguments or logs. Failure closes the role with `NOLOGIN PASSWORD NULL`
+while sync stays OFF. Credential creation, TLS/host reachability, actual cloud
+readback and the 5,268/10,000 PP outbox drain remain separate gates. The
+candidate is not an archive acceptance or retirement authority.
+
 ## Active CP6 execution — PP archive identity and private Storage
 
 **Current state, November 17 CST / November 18 UTC:** PR #100 merged the
@@ -110,9 +136,10 @@ CP7 code-only PRs #93, #95 and #96 have merged into `preprod` after exact CI;
 the bounded Coinbase reconnect and generated-profile leave changes are **not
 deployed** to PP. The last observed PP collector state remains generated/OFF
 after the failed diagnostic live trial; its 5,268/10,000 pending outbox is a
-separate long-session gate. Draft CP6 PR #92 and stacked PR #97 address active
-structured sync and sealed-generation drainage, but remain unmerged and
-runtime NO-GO. Live A→B rotation, raw Storage archival/readback, and local
+separate long-session gate. CP6 PR #92 merged code-only as `ac32805`; its
+default-OFF active structured sync remains runtime NO-GO. Stacked PR #97
+addresses sealed-generation drainage and remains unmerged. Live A→B rotation,
+raw Storage archival/readback, and local
 retirement remain unproven. Production remains unchanged; I7 and Phase 1.75
 remain OPEN.
 

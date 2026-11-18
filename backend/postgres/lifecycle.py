@@ -178,7 +178,7 @@ class LifecycleRepository:
                 'lease_expires_at': result['collector_lease_expires_at']}
 
     def disable_collector(self, origin_id: str, now: datetime | None = None) -> dict:
-        """Durably stop new writes after all holders of the writer row finish.
+        """Stop writes, or prove a never-bootstrapped PP live origin is empty.
 
         No operator ON route exists: cross-VM ownership and host control must
         be qualified before PP live activation.
@@ -187,10 +187,24 @@ class LifecycleRepository:
             raise LifecycleHold('unsupported collector stop scope')
         now = now or utcnow()
         with self.transaction() as connection:
+            # Bootstrap uses this same lock before creating either row. In the
+            # empty case it prevents a generation from appearing between the
+            # absence checks and the OFF result; the writer row still drains
+            # in-flight acknowledged writes when it exists.
+            connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                               ('tradebot-generation-bootstrap:' + origin_id,))
             writer = connection.execute('''SELECT epoch,collector_enabled,collector_session_id,collector_lease_expires_at
                 FROM ops.writer_state WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
             if writer is None:
-                raise LifecycleHold('collector writer identity missing')
+                if not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-') or \
+                        len(origin_id) > 128:
+                    raise LifecycleHold('collector writer identity missing')
+                if connection.execute('''SELECT 1 FROM archive.generations
+                    WHERE origin_id=%s LIMIT 1''', (origin_id,)).fetchone():
+                    raise LifecycleHold('orphan generation requires explicit forward recovery')
+                # No writer or generation exists for this exact live origin.
+                # Do not bootstrap a file, invent an epoch, or grant an ON lease.
+                return {'collector_enabled': False, 'epoch': None}
             if writer['collector_enabled'] or writer['collector_session_id'] is not None or \
                     writer['collector_lease_expires_at'] is not None:
                 updated = connection.execute('''UPDATE ops.writer_state

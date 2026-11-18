@@ -23,7 +23,8 @@ class Handler(BaseHTTPRequestHandler):
             "environment": "preprod", "data_mode": "pp_live", "origin_id": "pp-live-pp",
             "collector": {"enabled": True}, "storage_status": "ok",
             "market": {"id": "fixture-market", "end": (now + timedelta(minutes=5)).isoformat()},
-            "coinbase": {"event_id": "coinbase-1", "source_time": (now - timedelta(seconds=2)).isoformat()},
+            "coinbase": {"event_id": "coinbase-1", "generation_id": "fixture-generation",
+                         "source_time": (now - timedelta(seconds=2)).isoformat()},
             "polymarket": {"received_at": (now - timedelta(seconds=2)).isoformat(),
                            "source_time": (now - timedelta(seconds=3)).isoformat()},
             "feature_snapshot": {"snapshot_id": "feature-1", "as_of": (now - timedelta(seconds=2)).isoformat()},
@@ -100,6 +101,7 @@ class LiveObservationTests(unittest.TestCase):
             sample = observer.sample_once(api)
             self.assertIsNone(sample["error"])
             self.assertEqual(sample["market_id"], "fixture-market")
+            self.assertEqual(sample["price_generation_id"], "fixture-generation")
             self.assertEqual(sample["origin_id"], "pp-live-pp")
             self.assertLess(sample["coinbase_age_seconds"], 30)
             with self.assertRaisesRegex(RuntimeError, "HTTPError"):

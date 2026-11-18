@@ -115,6 +115,7 @@ def sample_once(api, now=None):
             "storage_status": state.get("storage_status"),
             "market_id": nested(state, "market", "id"),
             "market_end": nested(state, "market", "end"),
+            "price_generation_id": nested(state, "coinbase", "generation_id"),
             "coinbase_event_id": nested(state, "coinbase", "event_id"),
             "coinbase_age_seconds": age(now, nested(state, "coinbase", "source_time")),
             "polymarket_receipt_time": nested(state, "polymarket", "received_at"),

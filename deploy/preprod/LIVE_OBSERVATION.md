@@ -26,7 +26,10 @@ The default 25-minute observation leaves five minutes inside the maximum
 and /health every five seconds with two-second HTTP timeouts. At one-minute
 intervals it checks the dashboard, prediction history, chart and first SSE
 frame. It emits only IDs, ages, status and latency, not prices or credentials.
-The output path is create-only. A failed or incomplete result must be reported
+The API exposes the last Coinbase price's generation ID, which this tool
+records. It does not expose an authoritative active writer generation, so a
+separate bounded database/host check is required for rotation proof. The
+output path is create-only. A failed or incomplete result must be reported
 as such; do not relabel it PASS after OFF or a code rollback.
 
 PASS requires at least 20 minutes with sufficient five-second coverage,

@@ -22,10 +22,13 @@ not enable the PP host collector, and writes no database or cloud rows.
   new ON until that OFF is acknowledged. No provider response text appears in
   operator status.
 
-The adjacent local regression run passed 34 tests in 9.3 seconds. Exact Linux
-CI is a separate gate. The existing `python-tests.yml` backend discovery and
-the isolated PostgreSQL qualification's `test_postgres*.py` discovery both
-include this file; no new workflow or runtime flag is required.
+The adjacent local regression run passed 34 tests in 9.3 seconds. Exact source
+`448cd1f` passed [push CI 44217282644](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217282644)
+and [PR CI 44217319889](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217319889).
+The isolated PostgreSQL job logs show both new smoke methods executed. The
+existing `python-tests.yml` backend discovery and isolated PostgreSQL
+qualification's `test_postgres*.py` discovery include this file; no new
+workflow or runtime flag is required.
 
 ## Remaining gates
 

@@ -86,8 +86,10 @@ An isolated candidate combines the PP supervisor, Polymarket cycle and operator
 session across a simulated 15-minute boundary. Generated missing-market and
 404/429/timeout/invalid faults assert independent Coinbase progress, no old
 quote replay, fixed private failure codes, durable OFF and no automatic ON.
-The adjacent 34 local tests passed. The file is included in existing backend
-and isolated PostgreSQL CI discovery; exact CI remains pending. This does not
+The adjacent 34 local tests passed. Exact source `448cd1f` passed
+[push CI 44217282644](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217282644)
+and [PR CI 44217319889](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44217319889);
+the isolated PostgreSQL logs confirm both new smoke methods ran. This does not
 identify the first PP live session's lost exception or qualify live A→B.
 See [bounded smoke scope](CP7_BOUNDARY_SMOKE_2026-11-17.md).
 

@@ -1,5 +1,36 @@
 # BTC Intelligence Rebuild Plan
 
+## Current CP7 result — diagnostic PP live release and trial, November 17 CST / November 18 UTC
+
+**FAIL; PP recovered to generated mode, collector OFF.** Exact `preprod`
+source `437d0a4` passed [CI 44214616202](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44214616202),
+immutable candidate `v0.2.0-pp.9` passed
+[publish workflow 44215401524](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44215401524),
+and [manual PP CD 44216017150](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44216017150)
+passed generated-mode acceptance. The bounded PP live session then stopped
+after about 282 seconds with private code `coinbase_stream.unexpected`,
+captured before OFF and profile restart. The exact WebSocket exception is
+unknown. During 53 ON samples, API had zero errors (maximum successful latency
+190.6 ms), but Coinbase input age reached 33.145 seconds near failure. Only
+one market ID was seen; no boundary, A/B switch, cloud archive or retirement
+was qualified. Raw A grew from 1,389 to 4,845 rows, and pending local outbox
+from 1,530 to 5,268 (below the unchanged 10,000 cap).
+
+Explicit OFF passed. The first generated-profile leave failed after service
+recreation; its exact post-recreation subcheck was not logged. The existing
+bounded permit-free recovery leave passed, and the journal records
+`generated_restored`. All application services run the exact image with zero
+automatic restarts; API reports generated mode and collector OFF; PostgreSQL
+was not recreated. Ten API transport errors occurred during the two profile
+recreations, none during ON or the intervening OFF period. The failed first
+leave and failed trial remain failures. [Full sanitized evidence and limits](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md).
+
+**Next CP7 action:** classify Coinbase WebSocket exceptions into specific
+sanitized codes and fix the generated-profile readiness race offline before
+any new live attempt. Keep the PP size trigger and outbox cap unchanged until
+separately qualified. Production, cloud sync, retirement and paid AI remain
+unchanged/OFF. I7 and Phase 1.75 remain OPEN.
+
 ## Legacy collector control CI correction — November 17 CST / November 18 UTC
 
 PR #83 successor [push CI 44213027544](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44213027544)

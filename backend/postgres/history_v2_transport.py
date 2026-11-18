@@ -46,6 +46,10 @@ class HistoryV2PostgresTransport:
                 not 0 < timeout_seconds <= 60):
             raise ArchiveLimit('invalid private structured deadline')
         milliseconds = max(1, int(timeout_seconds * 1000))
+        # PostgreSQL 17 bounds the entire import/readback transaction, not
+        # merely each statement. Unsupported servers fail closed here.
+        connection.execute("SELECT set_config('transaction_timeout',%s,true)",
+                           (f'{milliseconds}ms',))
         connection.execute("SELECT set_config('statement_timeout',%s,true)",
                            (f'{milliseconds}ms',))
         connection.execute("SELECT set_config('lock_timeout',%s,true)",
@@ -132,12 +136,12 @@ class HistoryV2PostgresTransport:
     def put_structured(self, records: list[dict], *, timeout_seconds: float) -> None:
         self._validate(records)
         try:
-            with self.connection_factory() as connection:
+            with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
                 with connection.transaction():
                     self._limit(connection, timeout_seconds)
                     self._identity(connection)
                     connection.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',
-                        ('history-v2:stream:' + self.origin_id + ':' + self.generation_id,))
+                        ('history-v2:stream:' + self.origin_id,))
                     checkpoint = connection.execute('''SELECT cursor,row_count FROM
                         history_v2.generation_checkpoints WHERE origin_id=%s AND
                         generation_id=%s AND dataset='structured:outbox' FOR UPDATE''',
@@ -194,7 +198,7 @@ class HistoryV2PostgresTransport:
             raise ArchiveLimit('invalid private structured read bound')
         self._validate(records, max_bytes=max_bytes)
         try:
-            with self.connection_factory() as connection:
+            with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
                 with connection.transaction():
                     self._limit(connection, timeout_seconds)
                     self._identity(connection)

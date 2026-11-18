@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import os
+import math
 import sys
 import unittest
 import uuid
@@ -10,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from postgres.archive_codec import ArchiveIntegrityError, encoded, sha256
 from postgres.history_v2_transport import HistoryV2PostgresTransport
+from postgres.lifecycle import LifecycleHold, LifecycleRepository
 
 
 DSN = os.environ.get('TRADEBOT_TEST_HISTORY_V2_DSN')
@@ -25,12 +27,32 @@ def envelope(outbox_id, table, payload, generation_id):
 
 @unittest.skipUnless(DSN, 'isolated generated history_v2 DSN not supplied')
 class HistoryV2TransportPostgresTests(unittest.TestCase):
+    def test_same_origin_session_lock_serializes_workers(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda: psycopg.connect(DSN, row_factory=dict_row,
+                                          connect_timeout=5)
+        first = LifecycleRepository(factory)
+        second = LifecycleRepository(factory)
+        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        with first.structured_sync_lock(origin):
+            with self.assertRaises(LifecycleHold):
+                with second.structured_sync_lock(origin):
+                    self.fail('same-origin lock admitted a second worker')
+            with second.structured_sync_lock(origin + '-other'):
+                pass
+        with second.structured_sync_lock(origin):
+            pass
+
     def test_atomic_revisions_receipts_retry_and_conflict(self):
         import psycopg
         from psycopg.rows import dict_row
 
-        factory = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
-                                          options='-c timezone=UTC')
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row,
+            connect_timeout=max(1, math.ceil(timeout_seconds)),
+            options='-c timezone=UTC')
         with factory() as connection:
             binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
         origin = 'pp-live-ci-' + uuid.uuid4().hex
@@ -157,8 +179,10 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         import psycopg
         from psycopg.rows import dict_row
 
-        factory = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
-                                          options='-c timezone=UTC')
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row,
+            connect_timeout=max(1, math.ceil(timeout_seconds)),
+            options='-c timezone=UTC')
         with factory() as connection:
             binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
         origin, generation = 'pp-live-ci-' + uuid.uuid4().hex, str(uuid.uuid4())

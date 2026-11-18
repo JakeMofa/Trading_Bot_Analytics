@@ -11,6 +11,9 @@ from .lifecycle import LifecycleHold
 
 
 class ActiveStructuredWorker:
+    allowed_states = frozenset({'collecting'})
+    hold_other_pending = True
+
     def __init__(self, repository, transport, *, origin_id: str,
                  limits: ArchiveLimits = ArchiveLimits()):
         if not isinstance(origin_id, str) or not origin_id.startswith('pp-live-'):
@@ -20,11 +23,12 @@ class ActiveStructuredWorker:
 
     def cycle(self, generation_id: str) -> dict:
         budget = CycleBudget(self.limits)
-        with budget:
+        with budget, self.repository.structured_sync_lock(self.origin_id):
             generation = self.repository.generation(generation_id)
-            if generation['origin_id'] != self.origin_id or generation['state'] != 'collecting':
-                raise LifecycleHold('active structured generation is not collecting')
-            if self.repository.has_other_pending(self.origin_id, generation_id):
+            if (generation['origin_id'] != self.origin_id or
+                    generation['state'] not in self.allowed_states):
+                raise LifecycleHold('structured generation state is not eligible')
+            if self.hold_other_pending and self.repository.has_other_pending(self.origin_id, generation_id):
                 raise LifecycleHold('another generation has pending structured evidence')
             rows = self.repository.outbox(generation_id, self.limits.max_rows,
                                           self.limits.max_decoded_bytes)
@@ -48,6 +52,13 @@ class ActiveStructuredWorker:
             if encoded(readback) != encoded(records):
                 raise ArchiveIntegrityError('structured authenticated readback mismatch')
             self.repository.acknowledge(generation_id, records)
+            budget.check()
             return {'status': 'acknowledged', 'acknowledged': len(records),
                     'raw_archive': 'not_started', 'retirement': 'off',
                     'requests': budget.requests, 'bytes': budget.bytes}
+
+
+class SealedStructuredWorker(ActiveStructuredWorker):
+    """Drain A's structured outbox while B collects; never upload raw here."""
+    allowed_states = frozenset({'sealed', 'verified'})
+    hold_other_pending = False

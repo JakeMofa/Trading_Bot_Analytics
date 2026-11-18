@@ -96,6 +96,11 @@ class LifecycleRepository:
             raise ArchiveLimit('insufficient cycle time for another database connection')
         with self.connection_factory() as connection:
             with connection.transaction():
+                if budget:
+                    budget.check()
+                    remaining = max(1, int(1000 * (budget.deadline - budget.clock())))
+                    connection.execute("SELECT set_config('transaction_timeout',%s,true)",
+                                       (f'{remaining}ms',))
                 connection.execute("SET LOCAL statement_timeout='5000ms'")
                 connection.execute("SET LOCAL lock_timeout='1000ms'")
                 yield _DeadlineConnection(connection, budget) if budget else connection
@@ -458,6 +463,36 @@ class LifecycleRepository:
                 WHERE origin_id=%s AND generation_id<>%s
                 AND acknowledged_at IS NULL LIMIT 1''',
                 (origin_id, generation_id)).fetchone() is not None
+
+    @contextmanager
+    def structured_sync_lock(self, origin_id):
+        """One same-origin structured writer across generation/cloud/ACK work.
+
+        This is a session advisory lock, released automatically if its owning
+        connection dies. A contending worker holds before cloud I/O.
+        """
+        budget = ACTIVE_BUDGET.get()
+        if budget:
+            budget.check()
+            if budget.deadline - budget.clock() <= 5:
+                raise ArchiveLimit('insufficient cycle time for sync lock connection')
+        with self.connection_factory() as connection:
+            connection.autocommit = True
+            connection.execute("SET statement_timeout='1000ms'")
+            key = 'tradebot-structured-sync:' + origin_id
+            acquired = connection.execute('''SELECT
+                pg_try_advisory_lock(hashtextextended(%s,0)) AS acquired''',
+                (key,)).fetchone()['acquired']
+            if not acquired:
+                raise LifecycleHold('another structured sync worker is active')
+            try:
+                if budget:
+                    budget.check()
+                yield
+            finally:
+                # Connection close releases the lock even if this unlock fails.
+                connection.execute('SELECT pg_advisory_unlock(hashtextextended(%s,0))',
+                                   (key,))
 
     def acknowledge(self, generation_id, records):
         with self.transaction() as connection:

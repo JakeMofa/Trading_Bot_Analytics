@@ -16,6 +16,34 @@ installer=load('install_controller');builder=load('controller_bundle')
 
 
 class InstallationControls(unittest.TestCase):
+    def test_raw_archive_authority_binds_exact_sealed_generation_without_dispatch(self):
+        active={'state':'ready_off','environment':'preprod','instance':'tradebot-preprod-01',
+                'source_sha':'a'*40,'artifact_sha256':'b'*64,
+                'controller_sha256':'c'*64,'image_id':'sha256:'+'d'*64}
+        with tempfile.TemporaryDirectory() as folder:
+            authority=Path(folder)/'raw.json'
+            with patch.object(installer,'RAW_ARCHIVE_AUTHORITY',authority), \
+                 patch.object(installer.HostBinding,'from_marker'), \
+                 patch.object(installer,'_read_active',return_value=active), \
+                 patch.object(installer,'checked_bundle'), \
+                 patch.object(installer,'_candidate'), \
+                 patch.object(installer,'directory'):
+                result=installer.authorize_raw_archive_probe(
+                    '11111111-1111-4111-8111-111111111111',25,0)
+                self.assertFalse(result['deployment_dispatched'])
+                permit=json.loads(authority.read_text())
+                self.assertEqual(permit['scope'],'pp_raw_archive_one_shot')
+                self.assertEqual((permit['expected_seal_count'],
+                                  permit['expected_manifest_count']),(25,0))
+                self.assertFalse(permit['retirement_enabled'])
+                original=authority.read_bytes()
+                with self.assertRaises(Exception):
+                    installer.authorize_raw_archive_probe(
+                        '11111111-1111-4111-8111-111111111111',25,0)
+                self.assertEqual(authority.read_bytes(),original)
+                with self.assertRaises(Exception):
+                    installer.authorize_raw_archive_probe('bad',25,0)
+
     def test_structured_probe_authority_is_exact_and_does_not_dispatch(self):
         active={'state':'ready_off','environment':'preprod','instance':'tradebot-preprod-01',
                 'source_sha':'a'*40,'artifact_sha256':'b'*64,

@@ -9,10 +9,27 @@ import unittest
 
 sys.path.insert(0,str(Path(__file__).parents[1]))
 import install_controller as installer
+import raw_archive_probe_control as raw_probe
 
 
 @unittest.skipUnless(sys.platform=='linux' and os.geteuid()==0,'requires isolated Linux root fixture')
 class AuthorizedKeyAccess(unittest.TestCase):
+    def test_raw_probe_local_credential_staging_is_root_only_and_short_lived(self):
+        with tempfile.TemporaryDirectory(prefix='tradebot-raw-secret-') as folder:
+            base=Path(folder);base.chmod(0o700)
+            source=base/'lifecycle_dsn'
+            staged=base/'probe-local-dsn'
+            source.write_bytes(b'generated-pp-local-dsn')
+            os.chown(source,10001,10001)
+            source.chmod(0o400)
+            with raw_probe._stage_local_secret(source,staged):
+                self.assertEqual(staged.read_bytes(),b'generated-pp-local-dsn')
+                self.assertEqual(staged.stat().st_uid,0)
+                self.assertEqual(stat.S_IMODE(staged.stat().st_mode),0o600)
+                self.assertEqual(stat.S_IMODE(source.stat().st_mode),0o400)
+            self.assertFalse(staged.exists())
+            self.assertEqual(source.read_bytes(),b'generated-pp-local-dsn')
+
     def test_effective_deploy_uid_can_read_but_cannot_modify_authorized_key(self):
         import pwd
         nobody=pwd.getpwnam('nobody')

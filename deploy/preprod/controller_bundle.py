@@ -12,6 +12,7 @@ from controller import Controller,DeploymentHold,HostBinding,Request,RootAuthori
 from linux_actions import LinuxActions
 from transition_control import ACTIVE,_read_active,session,transition,TransitionRequest
 from structured_probe_control import run as structured_probe_run
+from raw_archive_probe_control import run as raw_archive_probe_run
 
 def interrupted(signum,frame):
     raise DeploymentHold("operator_connection_interrupted")
@@ -50,6 +51,10 @@ def main():
         result=structured_probe_run(command,installed)
         print(json.dumps(result,sort_keys=True),flush=True)
         return 0 if result.get('gate') in ('PP_STRUCTURED_PREFLIGHT_PASS','PP_STRUCTURED_ONCE_PASS') else 1
+    if command.startswith('raw-archive-probe-v1 '):
+        result=raw_archive_probe_run(command,installed)
+        print(json.dumps(result,sort_keys=True),flush=True)
+        return 0 if result.get('gate') in ('PP_RAW_ARCHIVE_PREFLIGHT_PASS','PP_RAW_ARCHIVE_ONCE_PASS') else 1
     request=Request.parse(command)
     if ACTIVE.exists() or ACTIVE.is_symlink():
         require(_read_active()['state']=='generated_restored','unfinished_transition_blocks_deploy')
@@ -80,7 +85,8 @@ def build(destination):
     target=Path(destination)
     files={'__main__.py':ENTRY.encode()}
     for name in ('controller.py','linux_actions.py','live_profile.py','live_transition.py',
-                 'transition_control.py','structured_probe_profile.py','structured_probe_control.py'):
+                 'transition_control.py','structured_probe_profile.py','structured_probe_control.py',
+                 'raw_archive_probe_profile.py','raw_archive_probe_control.py'):
         files[name]=(HERE/name).read_bytes()
     with target.open('xb') as output:
         with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as bundle:

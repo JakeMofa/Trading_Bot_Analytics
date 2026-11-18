@@ -2,10 +2,10 @@
 
 Only stdlib and the bundled controller are imported. Fixed root secrets and an
 already-running qualified PostgreSQL foundation are prerequisites. Every child
-runs through the controller's bounded Budget. Recovery stops candidate writers
-and preserves the database; it never starts an earlier application or restores
-a volume. Tests use command doubles; actual Linux execution remains a separate
-qualification gate.
+runs through the controller's bounded Budget. After a proven pre-migration
+failure, recovery may restart the exact prior containers. Once migration is
+attempted, recovery stops candidate writers and preserves the database; it
+never restores a volume. Actual Linux execution is a separate qualification gate.
 """
 from __future__ import annotations
 
@@ -15,6 +15,8 @@ from pathlib import Path
 import re
 import shutil
 import stat
+from dataclasses import replace
+import time
 import urllib.parse
 import urllib.request
 import uuid
@@ -237,6 +239,10 @@ class LinuxActions:
         self.migrated=False
         self.anchor=None
         self.before_migration=None
+        self.prior_runtime=None
+        self.fence_started=False
+        self.fence_completed=False
+        self.migration_oneoff_attempted=False
         self.attempt_id=uuid.uuid4().hex
         self.oneoffs={}
         self.oneoff_sequence=0
@@ -318,6 +324,19 @@ class LinuxActions:
 
     def _oneoff(self,context,budget,service,args=(),timeout=90,*,compose=None):
         require(service in ('migrate','lifecycle'),'unsupported_deployment_oneoff')
+        if service=='migrate' and not self.migration_oneoff_attempted:
+            # A timed-out CLI may have launched a daemon-side migration. Keep a
+            # durable, conservative boundary even after --rm removes the oneoff.
+            self.migration_oneoff_attempted=True
+            marker=context.staging/'migration-oneoff-attempted.json'
+            descriptor=os.open(marker,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600)
+            with os.fdopen(descriptor,'w') as output:
+                json.dump({'attempt_id':self.attempt_id,'source_sha':context.request.source_sha,
+                           'image':context.image},output,sort_keys=True)
+                output.flush();os.fsync(output.fileno())
+            directory=os.open(context.staging,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+            try:os.fsync(directory)
+            finally:os.close(directory)
         self.oneoff_sequence+=1
         name='tradebot-pp-deploy-'+self.attempt_id+'-'+str(self.oneoff_sequence)
         self.oneoffs[name]=service  # Record before daemon-side creation can occur.
@@ -491,8 +510,49 @@ class LinuxActions:
             result[table]=row
         return result
 
+    def _schema_ledger(self,budget):
+        """Bounded identity check; the prior runtime needs the same schema."""
+        row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY version),''))) FROM (SELECT version,jsonb_build_array(version,name,checksum,catalog_hash)::text AS fingerprint FROM ops.schema_migrations ORDER BY version LIMIT 65) bounded"))
+        require(isinstance(row,dict) and 1<=row.get('count',65)<=64
+                and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'prior_schema_ledger_unproven')
+        return row
+
+    def _capture_prior_runtime(self,context,budget):
+        """Only the already-running generated/off containers may be restored."""
+        require(self.pg_id is not None and self.pg_volume==PG_VOLUME,'prior_postgres_not_bound')
+        ids={}
+        for service in SERVICES:
+            found=self._ids(context,budget,[service],all=True)
+            require(len(found)<=1,'prior_runtime_missing_or_ambiguous')
+            if found:ids[service]=found[0]
+        if not ids:return  # First installation has no prior application to restore.
+        require(set(ids)==set(SERVICES),'prior_runtime_missing_or_ambiguous')
+        require(len(set(ids.values()))==len(SERVICES),'prior_runtime_duplicate_container')
+        rows={service:self._inspect(budget,[cid])[0] for service,cid in ids.items()}
+        images={row.get('Image') for row in rows.values()}
+        require(len(images)==1 and bool(re.fullmatch('sha256:[0-9a-f]{64}',next(iter(images)))),
+                'prior_runtime_image_unproven')
+        prior_image=next(iter(images))
+        self._runtime(replace(context,image=prior_image),budget)
+        self._host_api();self._host_operator()
+        self.prior_runtime={'ids':ids,'rows':rows,'image':prior_image,
+                            'pg_id':self.pg_id,'pg_volume':self.pg_volume,
+                            'schema':self._schema_ledger(budget)}
+
+    @staticmethod
+    def _unchanged_container(prior,current):
+        def fixed_host(row):
+            return {key:value for key,value in row.get('HostConfig',{}).items() if key!='RestartPolicy'}
+        return (current.get('Id')==prior.get('Id') and current.get('Image')==prior.get('Image')
+                and current.get('Config')==prior.get('Config') and current.get('Mounts')==prior.get('Mounts')
+                and fixed_host(current)==fixed_host(prior)
+                and set(current.get('NetworkSettings',{}).get('Networks',{}))==set(prior.get('NetworkSettings',{}).get('Networks',{})))
+
     def migrate(self,context,budget):
+        self._capture_prior_runtime(context,budget)
+        self.fence_started=True
         self._fence(context,budget)
+        self.fence_completed=True
         self.before_migration=self._inventory(budget)
         evidence=self._json(self._oneoff(context,budget,'migrate',timeout=90))
         require(evidence.get('environment')=='preprod' and evidence.get('operation')=='migrate'
@@ -657,11 +717,69 @@ class LinuxActions:
         return {'checks':dict.fromkeys(CHECKS,'PASS'),'acceptance_scope':'generated_only','live_collector_enabled':False,
                 'paid_ai_enabled':False,'retention_enabled':False,'production_data_mounted':False}
 
+    def _restore_prior_before_migration(self,context,budget):
+        prior=self.prior_runtime
+        require(context.failed_stage=='migrate' and self.fence_completed and prior is not None
+                and not self.migration_oneoff_attempted and not self.oneoffs
+                and not (context.staging/'migration-oneoff-attempted.json').exists()
+                and not (context.staging/'migration-oneoff-attempted.json').is_symlink(),
+                'pre_migration_restore_not_proven')
+        ids=prior['ids']
+        for service,cid in ids.items():
+            require(self._ids(context,budget,[service],all=True)==[cid],
+                    'prior_container_identity_changed')
+            current=self._inspect(budget,[cid])[0]
+            require(self._unchanged_container(prior['rows'][service],current)
+                    and current.get('State',{}).get('Running') is False
+                    and current.get('HostConfig',{}).get('RestartPolicy',{}).get('Name')=='no',
+                    'prior_stopped_container_changed')
+        old_pg=self.pg_id
+        self._postgres(context,budget)
+        require(self.pg_id==old_pg==prior['pg_id'] and self.pg_volume==prior['pg_volume']
+                and self._schema_ledger(budget)==prior['schema'],'pre_migration_database_changed')
+        originals=list(ids.values())
+        try:
+            budget.run(['docker','update','--restart=unless-stopped',*originals],
+                       env=self._environment(prior['image']),timeout=20)
+            budget.run(['docker','start',*originals],env=self._environment(prior['image']),timeout=40)
+            deadline=time.monotonic()+min(40,budget.timeout())
+            while True:
+                api=self._inspect(budget,[ids['api']])[0]
+                if api.get('State',{}).get('Health',{}).get('Status')=='healthy':break
+                require(time.monotonic()<deadline,'prior_api_recovery_timeout')
+                time.sleep(.5)
+            self._runtime(replace(context,image=prior['image']),budget)
+            self._host_api();self._host_operator()
+            old_pg=self.pg_id
+            self._postgres(context,budget)
+            require(self.pg_id==old_pg==prior['pg_id'] and self._schema_ledger(budget)==prior['schema'],
+                    'prior_database_postcheck_changed')
+        except Exception:
+            # A partially started application is not a recovery. Fence only the
+            # exact original containers and leave the database untouched.
+            budget.run(['docker','update','--restart=no',*originals],
+                       env=self._environment(prior['image']),timeout=20)
+            budget.run(['docker','stop','--time','5',*originals],
+                       env=self._environment(prior['image']),timeout=20)
+            require(all(not self._inspect(budget,[cid])[0].get('State',{}).get('Running')
+                        for cid in originals),'partial_prior_recovery_still_running')
+            raise
+        return {'strategy':'prior_runtime_restored_pre_migration','database_preserved':True,
+                'new_acknowledgements_preserved':True,'database_restored':False,
+                'prior_image_id':prior['image'],'prior_container_ids':dict(ids)}
+
     def recover(self,context,budget):
         if not context.migration_started:
             require(not self.oneoffs,'unexpected_pre_migration_oneoff')
             return {'strategy':'prior_runtime_unchanged','database_preserved':True,
                     'new_acknowledgements_preserved':True,'database_restored':False}
+        marker=context.staging/'migration-oneoff-attempted.json'
+        if (context.failed_stage=='migrate' and not self.fence_started and not self.migration_oneoff_attempted
+                and not marker.exists() and not marker.is_symlink()):
+            return {'strategy':'prior_runtime_unchanged','database_preserved':True,
+                    'new_acknowledgements_preserved':True,'database_restored':False}
+        if context.failed_stage=='migrate' and self.fence_completed and not self.migration_oneoff_attempted:
+            return self._restore_prior_before_migration(context,budget)
         self._cleanup_oneoffs(context,budget)
         self._fence(context,budget)
         self._postgres(context,budget)

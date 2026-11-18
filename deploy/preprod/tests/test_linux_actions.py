@@ -315,7 +315,8 @@ class ActionTests(unittest.TestCase):
     def test_migration_fences_writers_before_explicit_migrate_and_preserves_existing_rows(self):
         calls=[]
         original={'core.predictions':{'count':1,'digest':'a'*32}}
-        with patch.object(self.actions,'_fence',side_effect=lambda *_:calls.append('fence')), \
+        with patch.object(self.actions,'_capture_prior_runtime'), \
+             patch.object(self.actions,'_fence',side_effect=lambda *_:calls.append('fence')), \
              patch.object(self.actions,'_inventory',side_effect=[original,original]), \
              patch.object(self.actions,'_compose',side_effect=lambda ctx,budget,args,**kw:(calls.append(args) or b'{"environment":"preprod","operation":"migrate","result":[1]}')):
             self.actions.migrate(self.context,self.budget)
@@ -326,7 +327,7 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(self.actions.migrated)
 
     def test_migration_existing_evidence_change_is_held_without_restore(self):
-        with patch.object(self.actions,'_fence'),patch.object(self.actions,'_inventory',side_effect=[{'core.predictions':{'count':1}}, {'core.predictions':{'count':0}}]), \
+        with patch.object(self.actions,'_capture_prior_runtime'),patch.object(self.actions,'_fence'),patch.object(self.actions,'_inventory',side_effect=[{'core.predictions':{'count':1}}, {'core.predictions':{'count':0}}]), \
              patch.object(self.actions,'_compose',return_value=b'{"environment":"preprod","operation":"migrate","result":[1]}'):
             with self.assertRaisesRegex(c.DeploymentHold,'migration_changed_existing_evidence'):
                 self.actions.migrate(self.context,self.budget)

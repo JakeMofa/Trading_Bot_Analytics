@@ -120,6 +120,16 @@ class ControllerTests(unittest.TestCase):
         self.assertFalse(actions.recovery_context.migration_started)
         self.assertEqual(result['recovery']['strategy'],'prior_runtime_unchanged')
 
+    def test_pre_migration_inventory_recovery_restores_prior_but_release_still_fails(self):
+        actions=Actions(fail='migrate',recovery={'strategy':'prior_runtime_restored_pre_migration',
+            'database_preserved':True,'new_acknowledgements_preserved':True,'database_restored':False,
+            'prior_image_id':'sha256:'+'a'*64,
+            'prior_container_ids':dict(zip(('api','calculation','lifecycle','operator'),('1'*64,'2'*64,'3'*64,'4'*64)))})
+        result=self.deploy(actions)
+        self.assertEqual(result['gate'],'BLOCKED')
+        self.assertEqual(result['failed_stage'],'migrate')
+        self.assertEqual(result['recovery']['strategy'],'prior_runtime_restored_pre_migration')
+
     def test_success_requires_real_adapter_evidence_and_consumes_once(self):
         actions=Actions()
         result=self.deploy(actions)

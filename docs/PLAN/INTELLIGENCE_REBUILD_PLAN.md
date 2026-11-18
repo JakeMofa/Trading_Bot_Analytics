@@ -124,6 +124,20 @@ while any other same-origin generation has pending outbox rows, preventing
 B from overtaking unsynced A. Sealed-A drainage and cross-worker ordering
 remain **NO-GO for runtime**; PR #92 stays draft and unmerged.
 
+Stacked draft [PR #97](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/97)
+implements a default-OFF sealed A structured drain while B collects. A
+same-origin PostgreSQL session lock spans import, fresh readback and local ACK;
+cloud import/readback and local ACK transactions use PostgreSQL 17 whole-
+transaction timeouts within the cycle budget. Source `8f4d498` passed 36
+local focused tests and exact
+[push CI 44221644336](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221644336)
+and [PR CI 44221649679](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221649679),
+including isolated generated PostgreSQL. This **does not enable PP cloud
+sync**: actual PP-only role/grants, live readback, runtime scheduling,
+connection-timeout binding and sustained backlog/outage capacity still need
+proof. The 10,000-row cap and retirement OFF remain unchanged. See
+[CP6 drainage evidence](CP6_STRUCTURED_DRAIN_2026-11-17.md).
+
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 
 Exact `preprod` source `9dbeec6` passed push CI

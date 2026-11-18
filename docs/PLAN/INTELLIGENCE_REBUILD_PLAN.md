@@ -1,5 +1,27 @@
 # BTC Intelligence Rebuild Plan
 
+**CP7 read-only resource observer candidate (November 17):** A separate PP
+host script now takes bounded read-only samples of the PP live origin's writer
+generation, up to 10,001 raw records per active generation, relation/database
+bytes, WAL segment allocation, free disk and available RAM. Counts at the cap
+are lower bounds. Generated tests passed; PP host execution and exact CI are
+separate evidence. This observer never enables collection, cloud sync or
+retirement and cannot establish a qualified size trigger by itself.
+
+## CP7 bounded PP live API observer — November 17, 2026
+
+The local-only deploy/preprod/live_observe.py candidate samples the private
+PP API through a caller-supplied loopback tunnel and cannot enable/disable
+collection. It records a bounded 25-minute session at five-second cadence,
+checks dashboard/history/SSE at one-minute cadence, and reports PASS, FAIL or
+INCOMPLETE against API latency, feed freshness, input/feature age, distinct
+calculation/prediction IDs and a real market boundary. The report excludes
+prices, credentials and response bodies. Fake-HTTP and pure-result tests pass
+locally; exact Linux CI and any actual PP observation remain separate gates.
+See deploy/preprod/LIVE_OBSERVATION.md. Raw-row acknowledgements, disk/WAL
+growth, Supabase archive/retirement and 72-hour operation require independent
+evidence.
+
 ## CP6 structured import preparation — November 17, 2026
 
 An isolated, default-off preparation now pins all eight structured cloud row
@@ -91,6 +113,39 @@ passed all required jobs; its isolated PostgreSQL 17 application lifecycle
 suite ran 99 tests with no skips, including the PP live query case. A real PP
 feed session, source cadence and rollover observation remain OPEN. No PP host,
 production, Supabase, trading or paid AI operation is part of this candidate.
+
+## CP6 PP full archive-flow distinction — November 17, 2026
+
+The user's requested functional PP proof is a bounded A→B switch followed by
+sealed-A structured sync to private `history_v2`, create-only raw upload to
+private Supabase Storage, exact authenticated readback, protected-reference and
+reader checks, then separately authorized local partition retirement while B
+continues writing. No extra 72-hour wait follows sealing. The first <=30-minute
+PP live collector/query session is a **different checkpoint**: cloud sync and
+retirement stay OFF, and no PP live size threshold is qualified yet. Neither A
+nor B is assigned a 30-minute rotation timer.
+
+Fresh read-only Supabase inventory found ten `history_v2` tables but no runtime
+grants or policies; `market-raw` is private with no Storage object policies.
+The existing Storage adapter cannot sync structured rows, and the SQL
+retirement function rejects non-generated origins. A default-off origin-bound
+raw/structured transport with generated HTTP and isolated PostgreSQL tests is
+under qualification. Exact source `84b0488` passed
+[Linux CI 44194237939](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44194237939),
+including the isolated PostgreSQL 17 A→B/B-write/mock readback case with no
+skip. The transport cannot authorize retirement or prove live Supabase access;
+PR #79 remains draft and is excluded from the first PP collector/query
+release. See the dated
+[CP6 PP archive-flow review](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md) for the
+minimal remaining cloud and mutation-authority gates. No cloud or PP runtime
+state changed through this read-only review.
+PP and production may collect concurrently into distinct databases and origins.
+As a future option, PP archives may preserve evidence during production gaps,
+but a later explicit
+source-ID/content-hash reconciliation must retain both originals and conflicts;
+no automatic PP→production history or training merge or failover is authorized.
+This is not a gate for the current PP live collector trial.
+
 
 ## CP7 PP live host-control candidate — November 17, 2026
 

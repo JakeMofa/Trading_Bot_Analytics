@@ -1,5 +1,18 @@
 # Resume here
 
+**Current checkpoint (November 18 CST):** Follow the opening section of
+[INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). PRs #117–#123
+are merged to `preprod` at `01c726a`; exact merge CI passed. The combined PP
+controller identity passed, but candidate `v0.2.0-pp.10` failed manual PP CD
+44411133302 at a whole-table 10,000-row outbox inventory check. The two
+origins total 12,779 rows; each is below its own limit. Recovery was unproven,
+then the prior application image was manually restored. PP API interruption
+was approximately 341.725 seconds; API/dashboard/state recovered, PostgreSQL
+is healthy, and the collector remains OFF. A per-origin inventory correction
+is under review and not deployed. Structured cloud sync, raw archival,
+retirement and production cutover remain OPEN. Older handoff entries below
+are dated history, not current instructions.
+
 Latest CP6 permission checkpoint (November 18 UTC): PR #98 merged to
 `preprod` as `2c6ffd2` and its exact PP-only NOLOGIN `history_v2` role was
 applied to Supabase as migration `20261118021900`. Catalog readback passed.

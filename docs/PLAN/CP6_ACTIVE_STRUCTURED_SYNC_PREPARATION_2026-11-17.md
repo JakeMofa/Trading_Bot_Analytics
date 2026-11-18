@@ -50,6 +50,12 @@ PostgreSQL database, proved the new receipt table has RLS and no public/service
 grants, and exercised ordered price revisions, fresh readback, idempotent
 retry, stale revision HOLD, receipt conflict and wrong-database rejection.
 The actual PostgreSQL transport test ran without skips in that isolated job.
+Successor `e302689` passed **33 local focused tests** and exact
+[push CI 44218348328](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44218348328)
+and [PR CI 44218357150](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44218357150).
+The disposable PostgreSQL proof included FK parent ordering, changed cloud
+projection/receipt, checkpoint gaps, and a forged newer price without a
+matching receipt. The generated A-pending/B-newer test held B before cloud I/O.
 
 The generated test used the isolated database administrator identity. A narrow
 PP importer role and policy remain unqualified. Neither Supabase HTTP nor
@@ -62,9 +68,9 @@ retirement remain separate gates.
 The direct adapter currently applies a PostgreSQL statement timeout per
 statement. Connection establishment and a whole multi-statement transaction
 still need a qualified wall-clock deadline before any PP runtime wiring.
-The follow-up generated PostgreSQL regressions cover parent-before-dependent
-imports, changed projections/receipts, and a receipt missing below an
-advanced checkpoint; their exact successor CI result is pending.
+The generated PostgreSQL regressions cover parent-before-dependent imports,
+changed projections/receipts, and a receipt missing below an advanced
+checkpoint. None of these tests used the live PP or Supabase database.
 
 Review also exposed the A-pending/B-newer ordering hazard. A generated
 two-generation regression now requires B to HOLD without a cloud request until

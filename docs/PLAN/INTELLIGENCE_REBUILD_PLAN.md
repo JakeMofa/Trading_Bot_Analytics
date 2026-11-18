@@ -115,6 +115,15 @@ including actual isolated PostgreSQL. PP/Supabase runtime, narrow identity,
 sustained throughput and capacity remain **NOT QUALIFIED**. No cap, service or
 retirement setting changed. See the dated [CP6 evidence](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md).
 
+Review follow-up `e302689` passed 33 local focused tests and exact
+[push CI 44218348328](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44218348328)
+and [PR CI 44218357150](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44218357150).
+Fresh readback now requires an exact mutable projection; a newer-looking
+unreceipted cloud value cannot ACK local evidence. Active B sync also holds
+while any other same-origin generation has pending outbox rows, preventing
+B from overtaking unsynced A. Sealed-A drainage and cross-worker ordering
+remain **NO-GO for runtime**; PR #92 stays draft and unmerged.
+
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 
 Exact `preprod` source `9dbeec6` passed push CI

@@ -1,3 +1,4 @@
+import ast
 import subprocess
 import datetime as dt
 import io
@@ -156,7 +157,7 @@ class EnvironmentTests(unittest.TestCase):
         proof=json.loads(Path(profile['qualification_evidence']).read_text())
         self.assertEqual(proof['scope'],'pp_controller_identity_only')
         self.assertEqual(proof['qualification_commit'],profile['qualification_commit'])
-        self.assertEqual(proof['qualification_run'],44407788335)
+        self.assertEqual(proof['qualification_run'],44418190583)
         self.assertEqual(proof['qualification_result'],'PASS')
         self.assertEqual(proof['artifact_gate'],'IDENTITY_PASS')
         self.assertFalse(proof['artifact_database_changed'])
@@ -179,12 +180,30 @@ class EnvironmentTests(unittest.TestCase):
     def test_wrong_host_identity_user_hash_or_budget_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)/'targets.json'
+            base = json.loads(Path('.github/deploy/targets.json').read_text())['preprod']
             for changes in [{'instance': p.TARGETS['production']}, {'region': 'us-west-2'},
                             {'user': 'ubuntu'}, {'controller_sha256': ''}, {'qualification_commit': ''},
                             {'timeout_seconds': 1200}, {'host': 'host;bad'}, {'runtime_qualified': 'true'}]:
-                path.write_text(json.dumps({'preprod': {**self.profile('preprod'), **changes}}))
+                path.write_text(json.dumps({'preprod': {**base, **changes}}))
                 with self.subTest(changes=changes), self.assertRaises(p.PipelineHold):
                     p.target_profile('preprod', path)
+
+    def test_profile_stale_controller_hash_and_identity_run_stop_before_transport(self):
+        base = json.loads(Path('.github/deploy/targets.json').read_text())['preprod']
+        self.assertEqual(p.target_profile('preprod','.github/deploy/targets.json'),base)
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'targets.json'
+            for changes in [{'controller_sha256':'c3fac37cb56945ad74d41188b8e22013a199fe8d656b87be4f4154676d3c9479'},
+                            {'qualification_commit':'453996df95b91608458f2957f8e590a81e141d1d'},
+                            {'qualification_evidence':'docs/PLAN/evidence/pp-controller-identity-2026-11-18.json'},
+                            {'controller_sha256':'c3fac37cb56945ad74d41188b8e22013a199fe8d656b87be4f4154676d3c9479',
+                             'qualification_commit':'453996df95b91608458f2957f8e590a81e141d1d',
+                             'qualification_evidence':'docs/PLAN/evidence/pp-controller-identity-2026-11-18.json'}]:
+                path.write_text(json.dumps({'preprod':{**base,**changes}}))
+                with self.subTest(changes=changes), patch.object(p,'transport') as transport:
+                    with self.assertRaises(p.PipelineHold):
+                        p.target_profile('preprod',path)
+                    transport.assert_not_called()
 
     def test_pp_acceptance_requires_exact_run_artifact_source_policy_and_attempt(self):
         self.assertEqual(p.preprod_proof(API(), 72, SHA, DIGEST, POLICY)['gate'], 'PASS')
@@ -289,6 +308,90 @@ class EnvironmentTests(unittest.TestCase):
                     with self.assertRaises((p.PipelineHold, p.subprocess.TimeoutExpired)):
                         p.transport(self.profile('preprod'), 'preprod', SHA, DIGEST, bundle, env)
                     self.assertEqual(run.call_count, 1)
+
+    def test_nonzero_controller_output_preserves_only_reviewed_codes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            bundle = Path(directory)/'bundle';bundle.write_bytes(b'generated')
+            env = {'PP_DEPLOY_KEY': 'synthetic-key', 'PP_DEPLOY_KNOWN_HOSTS': 'synthetic-pin'}
+            cases = [
+                ({'gate':'BLOCKED','environment':'preprod','instance':p.TARGETS['preprod'],
+                  'source_sha':SHA,'artifact_sha256':DIGEST,'reason':'unexpected_outbox_origin',
+                  'failed_stage':'preflight','recovery':{'status':'unproven_preserve_and_inspect'},
+                  'secret':'https://user:password@example.test/private'},
+                 {'gate':'BLOCKED','reason':'unexpected_outbox_origin','stage':'preflight',
+                  'recovery':'unproven_preserve_and_inspect'}),
+                ({'gate':'BLOCKED','environment':'preprod',
+                  'reason':'entrypoint_precondition_failed'},
+                 {'gate':'BLOCKED','reason':'entrypoint_precondition_failed'}),
+                ({'gate':'BLOCKED','environment':'preprod',
+                  'source_sha':SHA,'artifact_sha256':DIGEST,'reason':'credential=secret',
+                  'failed_stage':'https://example.test/private',
+                  'recovery':{'strategy':'https://example.test/private'}},
+                 {'gate':'BLOCKED','reason':'controller_reason_unclassified'}),
+            ]
+            for remote, expected in cases:
+                with self.subTest(reason=remote['reason']), \
+                     patch.object(p,'bounded_process',return_value=type('Result',(),{
+                         'returncode':1,'stdout':json.dumps(remote).encode()})()) as run:
+                    with self.assertRaises(p.ControllerFailure) as caught:
+                        p.transport(self.profile('preprod'),'preprod',SHA,DIGEST,bundle,env)
+                    self.assertEqual(caught.exception.diagnostic,expected)
+                    self.assertEqual(run.call_count,1)
+                    self.assertNotIn('password',repr(caught.exception.diagnostic))
+
+    def test_malformed_oversized_and_unbound_controller_reports_are_discarded(self):
+        valid={'gate':'BLOCKED','environment':'preprod','reason':'controller_action_failed'}
+        cases=[b'not JSON', b'{' + b'"blob":"' + b'secret'*1000 + b'"}',
+               b'{"gate":"BLOCKED","gate":"PASS","environment":"preprod"}',
+               json.dumps({**valid,'source_sha':'b'*40}).encode(),
+               json.dumps({**valid,'failed_stage':'preflight'}).encode(),
+               json.dumps({**valid,'environment':'production'}).encode(),
+               json.dumps({**valid,'gate':'PASS'}).encode()]
+        for raw in cases:
+            with self.subTest(length=len(raw)):
+                self.assertEqual(p.blocked_controller_diagnostic(raw,'preprod',SHA,DIGEST),
+                                 {'gate':'BLOCKED','reason':'controller_report_unavailable'})
+
+    def test_reviewed_controller_failure_codes_are_allowlisted(self):
+        # Newly introduced controller/adapter codes need an explicit evidence
+        # decision rather than silently disappearing from the failed run.
+        codes=set()
+        for name in ('controller.py','linux_actions.py'):
+            tree=ast.parse((Path('deploy/preprod')/name).read_text())
+            for node in ast.walk(tree):
+                if not isinstance(node,ast.Call) or not isinstance(node.func,ast.Name):
+                    continue
+                index={'require':1,'DeploymentHold':0}.get(node.func.id)
+                if index is not None and len(node.args)>index:
+                    arg=node.args[index]
+                    if isinstance(arg,ast.Constant) and type(arg.value) is str:
+                        codes.add(arg.value)
+        self.assertTrue(codes)
+        self.assertEqual(codes-p.CONTROLLER_REASONS,set())
+
+    def test_artifact_and_summary_never_echo_remote_output(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory)
+            artifact=root/'deployment.json'
+            summary=root/'summary.md'
+            env={'APPROVED_REVISION':SHA,'PIPELINE_REPORT':str(artifact),
+                 'GITHUB_STEP_SUMMARY':str(summary)}
+            diagnostic=p.blocked_controller_diagnostic(json.dumps({
+                'gate':'BLOCKED','environment':'preprod','source_sha':SHA,
+                'artifact_sha256':DIGEST,'reason':'controller_action_failed',
+                'failed_stage':'migrate','recovery':{'strategy':'prior_runtime_restored_pre_migration',
+                'prior_image_id':'sha256:'+'b'*64},
+                'secret':'Bearer synthetic-secret'}).encode(),'preprod',SHA,DIGEST)
+            with patch.object(sys,'argv',['environment_pipeline.py','deploy','preprod']), \
+                 patch.dict('os.environ',env,clear=True), \
+                 patch.object(p,'deploy',side_effect=p.ControllerFailure(diagnostic)):
+                self.assertEqual(p.main(),1)
+            persisted=json.loads(artifact.read_text())
+            self.assertEqual(persisted['controller'],{'gate':'BLOCKED',
+                'reason':'controller_action_failed','stage':'migrate',
+                'recovery':'prior_runtime_restored_pre_migration'})
+            self.assertNotIn('synthetic-secret',artifact.read_text()+summary.read_text())
+            self.assertNotIn('prior_image_id',artifact.read_text()+summary.read_text())
 
     def test_generated_child_output_and_deadline_are_bounded_and_reaped(self):
         real_popen = p.subprocess.Popen

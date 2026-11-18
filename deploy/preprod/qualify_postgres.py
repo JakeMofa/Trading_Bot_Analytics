@@ -211,6 +211,47 @@ def qualify_pp_history_role(secret_dir):
     return proof
 
 
+def qualify_pp_storage_policy(secret_dir):
+    """Exercise a substituted review template against disposable Storage RLS."""
+    fixture=(REPO/'deploy/preprod/tests/pp_storage_policy_fixture.sql').read_text()
+    template=(REPO/'supabase/review/pp_market_raw_storage_policies.sql.in').read_text()
+    marker='__PP_STORAGE_AUTH_UID__'
+    if template.count(marker)!=3 or 'storage.object.upload' not in template or \
+            'storage.object.get_authenticated' not in template:
+        raise RuntimeError('PP Storage review template scope changed')
+    f.sql(fixture,secret_dir,timeout=20)
+    try:
+        f.sql(template,secret_dir,timeout=20)
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('unbound PP Storage template unexpectedly applied')
+    if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
+             secret_dir).strip()!='0':
+        raise RuntimeError('unbound PP Storage template left a policy')
+    # This UUID belongs only to the generated fixture. It is not a credential
+    # or a proposed live Auth user, and the unfilled template is never applied.
+    candidate=template.replace(marker,'00000000-0000-4000-8000-0000000000aa')
+    f.sql(candidate,secret_dir,timeout=20)
+    proof=json.loads(f.sql("""SELECT json_build_object(
+      'private_bucket', (SELECT NOT public FROM storage.buckets WHERE id='market-raw'),
+      'policies', (SELECT count(*) FROM pg_policies WHERE schemaname='storage'
+                         AND tablename='objects'),
+      'upload_insert_only', EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage'
+                         AND tablename='objects' AND policyname='tradebot_pp_raw_upload'
+                         AND cmd='INSERT' AND roles::text[]=ARRAY['authenticated']::text[]),
+      'readback_select_only', EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='storage'
+                         AND tablename='objects' AND policyname='tradebot_pp_raw_readback'
+                         AND cmd='SELECT' AND roles::text[]=ARRAY['authenticated']::text[]))""",secret_dir))
+    if (proof['private_bucket'] is not True or proof['policies']!=2 or
+        proof['upload_insert_only'] is not True or
+        proof['readback_select_only'] is not True):
+        raise RuntimeError('PP Storage policy metadata mismatch')
+    f.sql((REPO/'deploy/preprod/tests/pp_storage_policy_denials.sql').read_text(),
+          secret_dir,timeout=20)
+    return proof
+
+
 def main():
     global DEADLINE, PHASE
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or f.MARKER.exists() or f.MARKER.is_symlink():
@@ -276,6 +317,8 @@ def main():
             cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
             PHASE='generated_pp_history_role'
             pp_history_role=qualify_pp_history_role(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_storage_policy'
+            pp_storage_policy=qualify_pp_storage_policy(CI_FOUNDATION_SECRETS)
             PHASE='runtime_image'
             command(['docker','build','-f','deploy/preprod/Dockerfile','-t','tradebot-pg-test','.'],timeout=200)
             runtime_env={**os.environ,'PP_SECRET_DIR':str(CI_FOUNDATION_SECRETS),'PP_RUNTIME_SECRET_DIR':str(CI_RUNTIME_SECRETS),'PP_APP_IMAGE':'tradebot-pg-test'}
@@ -301,7 +344,7 @@ def main():
             PHASE='resource_accounting'
             sizes=json.loads(f.sql("SELECT json_build_object('database_bytes',pg_database_size(current_database()),'generated_relation_bytes',(SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname IN ('raw','core','ops','archive') AND c.relkind IN ('r','p')),'wal_bytes',(SELECT sum(size) FROM pg_ls_waldir()));",CI_FOUNDATION_SECRETS))
             if sizes['generated_relation_bytes']>64*1024**2:raise RuntimeError('generated 64 MiB allowance exceeded')
-            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
+            print(json.dumps({'result':'PASS_GENERATED_POSTGRES_INTEGRATION','elapsed_seconds':round(time.monotonic()-started,3),'baseline':baseline,'sizes':sizes,'runtime':acceptance,'controller':controller_proof,'cloud_contract':cloud_contract,'pp_history_role':pp_history_role,'pp_storage_policy':pp_storage_policy,'production_access':False,'cloud_writes':False,'representative_capacity':'NOT_PERFORMED'},sort_keys=True))
         finally:
             f.DEADLINE=time.monotonic()+90
             try:

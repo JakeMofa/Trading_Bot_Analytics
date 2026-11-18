@@ -83,9 +83,20 @@ def drain_bounded(repository, transport_factory, *, execute=False,
         generation = chosen['generation_id']
         worker_type = (SealedStructuredWorker if chosen['state'] in ('sealed', 'verified')
                        else ActiveStructuredWorker)
-        worker = worker_type(repository, transport_factory(generation),
+        # The factory is a pure constructor. A later runtime review must prove
+        # it performs no network I/O and passes this budget to any connection.
+        worker = worker_type(repository, transport_factory(
+            generation, timeout_seconds=cycle_seconds),
                              origin_id=PP_STRUCTURED_ORIGIN, limits=cycle_limits)
         result = worker.cycle(generation)
+        if result.get('status') == 'idle':
+            # Selection precedes the worker's origin lock. Another worker may
+            # acknowledge the selected page in that gap; reselect without
+            # claiming its ACK or assuming a cloud request happened here.
+            if result.get('acknowledged') != 0 or result.get('requests', 0) != 0:
+                raise LifecycleHold('ambiguous idle structured cycle')
+            cycles += 1
+            continue
         count = result['acknowledged']
         used = result['requests']
         if not 1 <= count <= cycle_limits.max_rows or used != 2:

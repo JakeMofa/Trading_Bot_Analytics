@@ -31,6 +31,14 @@ cycle keeps the existing one-shot's 25-row, 256 KiB decoded, two-operation and
 changed evidence propagates a failed result; a late return after an ACK is
 reported as ambiguous and requires durable reconciliation.
 
+The selector runs before the worker takes its advisory lock. Another worker
+may acknowledge that page meanwhile; an `idle` worker result is therefore
+counted as one bounded selection, with zero claimed ACKs/cloud operations,
+then reselected. Repeated races stop at the cycle limit. The injected
+transport factory receives a finite per-cycle deadline but **must be proved a
+pure constructor before runtime wiring**; only the workers' two cloud methods
+may open bounded connections.
+
 This conservative limit **cannot sustain** the observed PP live outbox rate.
 It proves scheduling, ordering and fail-closed behavior in generated tests;
 it is deliberately not wired to PP. Its transport factory must be pure until

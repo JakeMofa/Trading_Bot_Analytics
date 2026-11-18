@@ -98,7 +98,7 @@ class Transport:
 class BoundedDrainTests(unittest.TestCase):
     def test_default_off_and_changed_cap_make_no_cloud_call(self):
         repository, calls = Repository(), []
-        factory = lambda generation: calls.append(generation) or Transport()
+        factory = lambda generation, *, timeout_seconds: calls.append(generation) or Transport()
         with self.assertRaises(LifecycleHold):
             drain_bounded(repository, factory)
         repository.pending_outbox_limit = 10_001
@@ -109,7 +109,9 @@ class BoundedDrainTests(unittest.TestCase):
 
     def test_sealed_a_then_active_b_with_fresh_readback(self):
         repository, transports, handoffs = Repository(), [], []
-        def factory(generation):
+        def factory(generation, *, timeout_seconds):
+            self.assertGreaterEqual(timeout_seconds, 5)
+            self.assertLessEqual(timeout_seconds, 20)
             transport = Transport()
             transports.append((generation, transport))
             return transport
@@ -130,13 +132,13 @@ class BoundedDrainTests(unittest.TestCase):
                 repository, transport = Repository(), Transport()
                 transport.failure = failure
                 with self.assertRaises((ArchiveUnavailable, ArchiveIntegrityError)):
-                    drain_bounded(repository, lambda _: transport, execute=True)
+                    drain_bounded(repository, lambda _, **kwargs: transport, execute=True)
                 self.assertEqual(repository.acknowledged, [])
                 self.assertEqual(len(repository.rows[A]), 1)
 
     def test_cycle_limit_stops_without_extra_cloud_call(self):
         repository, transports = Repository(), []
-        def factory(_):
+        def factory(_, *, timeout_seconds):
             transport = Transport()
             transports.append(transport)
             return transport
@@ -152,7 +154,7 @@ class BoundedDrainTests(unittest.TestCase):
 
     def test_row_limit_stops_without_touching_new_generation(self):
         repository, calls = Repository(), []
-        def factory(generation):
+        def factory(generation, *, timeout_seconds):
             calls.append(generation)
             return Transport()
         result = drain_bounded(repository, factory, execute=True,
@@ -162,12 +164,56 @@ class BoundedDrainTests(unittest.TestCase):
         self.assertEqual(calls, [A])
         self.assertEqual(repository.acknowledged, [1])
 
+    def test_other_worker_ack_between_selection_and_origin_lock_reselects(self):
+        class ConcurrentAck(Repository):
+            raced = False
+
+            def outbox(self, generation_id, limit, max_bytes):
+                if generation_id == A and not self.raced:
+                    self.raced = True
+                    # Simulate a different worker's durable ACK after our
+                    # selector ran but before this worker read the page.
+                    self.rows[A].clear()
+                    return []
+                return super().outbox(generation_id, limit, max_bytes)
+
+        repository, transports = ConcurrentAck(), []
+        def factory(generation, *, timeout_seconds):
+            transport = Transport()
+            transports.append((generation, transport))
+            return transport
+        result = drain_bounded(repository, factory, execute=True,
+                               sleep=lambda _: None)
+        self.assertEqual(result['status'], 'drained')
+        self.assertEqual(result['acknowledged'], 1)
+        self.assertEqual(result['cloud_operations'], 2)
+        self.assertEqual([generation for generation, _ in transports], [A, B])
+        self.assertEqual(transports[0][1].calls, [])
+        self.assertEqual(transports[1][1].calls, ['put', 'read'])
+        self.assertEqual(repository.acknowledged, [2])
+
+    def test_repeated_idle_selection_has_finite_stop_and_zero_false_ack(self):
+        class AlwaysRaced(Repository):
+            def outbox(self, generation_id, limit, max_bytes):
+                return []
+
+        repository, calls = AlwaysRaced(), []
+        result = drain_bounded(repository,
+            lambda generation, **kwargs: calls.append(generation) or Transport(),
+            execute=True, limits=DrainLimits(max_cycles=3), sleep=lambda _: None)
+        self.assertEqual(result['status'], 'bounded_stop')
+        self.assertEqual(result['acknowledged'], 0)
+        self.assertEqual(result['cloud_operations'], 0)
+        self.assertEqual(result['cycles'], 3)
+        self.assertEqual(calls, [A, A, A])
+        self.assertEqual(repository.acknowledged, [])
+
     def test_wrong_selector_order_holds_before_cloud_call(self):
         repository, calls = Repository(), []
         original = repository.structured_pending_generations
         repository.structured_pending_generations = lambda origin: list(reversed(original(origin)))
         with self.assertRaisesRegex(LifecycleHold, 'sealed structured backlog'):
-            drain_bounded(repository, lambda generation: calls.append(generation),
+            drain_bounded(repository, lambda generation, **kwargs: calls.append(generation),
                           execute=True)
         self.assertEqual(calls, [])
         self.assertEqual(repository.acknowledged, [])
@@ -185,7 +231,7 @@ class BoundedDrainTests(unittest.TestCase):
                 ticks[0] = 181.0
                 return value
         with self.assertRaisesRegex(ArchiveLimit, 'reconcile ACK'):
-            drain_bounded(repository, lambda _: SlowTransport(),
+            drain_bounded(repository, lambda _, **kwargs: SlowTransport(),
                           execute=True, clock=clock)
         self.assertEqual(repository.acknowledged, [1])
         self.assertEqual(len(repository.rows[B]), 1)
@@ -193,7 +239,7 @@ class BoundedDrainTests(unittest.TestCase):
     def test_expired_session_stops_before_transport_creation(self):
         repository, calls = Repository(), []
         ticks = iter([0.0, 171.0, 171.0])
-        result = drain_bounded(repository, lambda _: calls.append(1),
+        result = drain_bounded(repository, lambda _, **kwargs: calls.append(1),
                                execute=True, clock=lambda: next(ticks))
         self.assertEqual(result['status'], 'bounded_stop')
         self.assertEqual(calls, [])

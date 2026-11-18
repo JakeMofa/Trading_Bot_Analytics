@@ -11,8 +11,8 @@ import subprocess
 import sys
 import uuid
 
-from deploy.preprod.probe_market_raw_storage import ProbeFailure, run_probe
-from deploy.preprod.probe_market_raw_storage import ORIGIN_HASH
+from deploy.preprod.probe_market_raw_storage import (ORIGIN_HASH, ProbeFailure,
+                                                     RETAINED_BLOB, run_probe)
 
 UID = '00000000-0000-4000-8000-0000000000aa'
 EMAIL = 'pp-storage-archive@example.invalid'
@@ -21,8 +21,7 @@ LIVE_DIGEST = '5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf'
 LIVE_KEY = f'raw-v1/{ORIGIN_HASH}/{LIVE_GENERATION}/{LIVE_DIGEST}.jsonl.gz'
 LIVE_RECORDS = [{'probe': 'pp-storage-v1', 'origin': 'pp-live-pp',
                  'generation': str(LIVE_GENERATION), 'sequence': i} for i in (1, 2)]
-LIVE_BLOB = gzip.compress((''.join(json.dumps(row, sort_keys=True, separators=(',', ':')) + '\n'
-                              for row in LIVE_RECORDS)).encode(), mtime=0)
+LIVE_BLOB = RETAINED_BLOB
 
 
 class ProbeTests(unittest.TestCase):
@@ -98,6 +97,8 @@ class ProbeTests(unittest.TestCase):
     def test_reconcile_only_retained_object_has_zero_post(self):
         self.assertEqual(len(LIVE_BLOB), 126)
         self.assertEqual(hashlib.sha256(LIVE_BLOB).hexdigest(), LIVE_DIGEST)
+        self.assertEqual([json.loads(line) for line in gzip.decompress(LIVE_BLOB).splitlines()],
+                         LIVE_RECORDS)
         _, state, client = self.probe(stored_data=LIVE_BLOB)
         result = run_probe('sb_publishable_test', 'bearer', UID, EMAIL,
                            client=client, reconcile_key=LIVE_KEY,

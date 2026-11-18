@@ -23,6 +23,16 @@ ORIGIN = 'pp-live-pp'
 ORIGIN_HASH = hashlib.sha256(ORIGIN.encode()).hexdigest()
 MAX_BODY = 64 * 1024
 MAX_ATTEMPTS = 5  # Auth identity, create, optional ambiguous reconciliation, readback, public denial.
+RETAINED_GENERATION = uuid.UUID('500b0871-6f59-46de-a17c-537f6b0aee5d')
+RETAINED_DIGEST = '5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf'
+RETAINED_KEY = f'raw-v1/{ORIGIN_HASH}/{RETAINED_GENERATION}/{RETAINED_DIGEST}.jsonl.gz'
+# Exact synthetic bytes uploaded by the first reviewed probe. gzip.compress
+# differs across Python/zlib versions, so reconciliation must pin these bytes.
+RETAINED_BLOB = bytes.fromhex(
+    '1f8b08000000000002ffbdcd410e83201484e1bdc7786b5f02b640f536a0232169e015ad1be3dd4bd3'
+    '3b74fbfd93cc491119d5efa9649ac82815d4c369b6ab19f96e17b0d76e667373ab0dca0366a19e4a'
+    '4d317df722fc4c0758a4a9d412f0c36d2fd547f0a19b6f78bd91e796f4d59d7f3d1caeee03d1500'
+    '8d5e2000000')
 KEY = re.compile(r'raw-v1/' + ORIGIN_HASH +
                  r'/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/'
                  r'([0-9a-f]{64})[.]jsonl[.]gz\Z')
@@ -93,7 +103,7 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
         if generation_id is not None or not isinstance(reconcile_key, str):
             raise ProbeFailure('reconcile-only key binding invalid')
         match = KEY.fullmatch(reconcile_key)
-        if match is None:
+        if match is None or reconcile_key != RETAINED_KEY:
             raise ProbeFailure('reviewed PP object key required')
         generation_id = uuid.UUID(match.group(1))
         if generation_id.version != 4:
@@ -101,7 +111,9 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
         if (not isinstance(expected_bytes, int) or expected_bytes <= 0 or
                 not isinstance(expected_sha256, str) or
                 not re.fullmatch(r'[0-9a-f]{64}', expected_sha256) or
-                match.group(2) != expected_sha256):
+                match.group(2) != expected_sha256 or
+                expected_bytes != len(RETAINED_BLOB) or
+                expected_sha256 != RETAINED_DIGEST):
             raise ProbeFailure('reviewed byte count or SHA-256 mismatch')
     elif expected_bytes is not None or expected_sha256 is not None:
         raise ProbeFailure('reconcile bounds require an exact object key')
@@ -110,8 +122,16 @@ def run_probe(api_key: str, access_token: str, uid: str, email: str, *,
         raise ProbeFailure('synthetic generation UUID invalid')
     records = [{'probe': 'pp-storage-v1', 'origin': ORIGIN, 'generation': str(generation),
                 'sequence': i} for i in (1, 2)]
-    body = gzip.compress((''.join(json.dumps(row, sort_keys=True, separators=(',', ':')) + '\n'
-                                  for row in records)).encode(), mtime=0)
+    plain = (''.join(json.dumps(row, sort_keys=True, separators=(',', ':')) + '\n'
+                     for row in records)).encode()
+    body = RETAINED_BLOB if reconcile_key is not None else gzip.compress(plain, mtime=0)
+    if reconcile_key is not None:
+        try:
+            decoded = gzip.decompress(body)
+        except (OSError, EOFError):
+            raise ProbeFailure('reviewed synthetic gzip invalid') from None
+        if decoded != plain:
+            raise ProbeFailure('reviewed synthetic records changed')
     if len(body) > MAX_BODY:
         raise ProbeFailure('synthetic object exceeds bound')
     digest = hashlib.sha256(body).hexdigest()

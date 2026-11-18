@@ -28,6 +28,11 @@ The two deterministic synthetic records reconstruct locally to **126 bytes**
 and SHA-256 `5589f047e23adedca048ccadb7351f5d6eefb82b55314fdb3676d4a01096b7bf`.
 That local reconstruction does not verify the remote bytes. PP retirement stays
 OFF. No structured history claim follows from this synthetic probe.
+The first exact CI on this successor failed one backend test: Python/zlib
+produced different gzip bytes for the same two records on Linux. The reviewed
+126-byte synthetic blob is now pinned in code and independently checked by
+gzip decode, record values and SHA-256 before network. This preserves the
+original object across runtimes; the prior CI failure remains a failure.
 
 ## Narrow amendment
 

@@ -54,6 +54,14 @@ Provision the dedicated machine identity through Supabase's supported Auth
 Admin API, with credentials kept in private secret files. The user UUID is a
 binding, not a secret; it must be captured in a separately reviewed policy
 migration after the identity exists. Never insert directly into `auth.users`.
+The connected Supabase plugin exposes database/migration tools but no Auth
+Admin user-creation or session-issuance tool. The Supabase Dashboard's **Create
+new user** form requires an email address and password; it has no verified
+credential-free machine-user route. The supported Auth Admin API also needs a
+secret key and must run in a trusted operator context; that key must never be
+installed as PP's Storage bearer. No identity can be bound to this template
+until that separate provisioning step produces a reviewed UUID and access-token
+refresh route.
 If a later policy application fails, keep the runtime OFF, remove only the two
 reviewed policies after recording their definitions, and preserve all archive
 objects and structured rows. Admin/service-key mutation is outside ordinary

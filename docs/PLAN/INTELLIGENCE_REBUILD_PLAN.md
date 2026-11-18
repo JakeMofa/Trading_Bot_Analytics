@@ -5,8 +5,10 @@
 **Current state, November 17 CST / November 18 UTC:** PR #100 merged the
 tested, exact-origin `MARKET-RAW` Storage policy **template** into `preprod`.
 It is outside migrations and has **not** been applied. The PP Auth identity,
-credential, renewable token path, synthetic cloud readback, and PP runtime
-wiring do not yet exist. The previously applied `history_v2` NOLOGIN role is
+credential, synthetic cloud readback, and PP runtime wiring remained open at
+that checkpoint. The renewable-token adapter has since merged as PR #103;
+its live runtime qualification is still open. The previously applied
+`history_v2` NOLOGIN role is
 for structured PostgreSQL history, not Storage HTTP. The existing public
 Supabase tables contain historical rows; private `history_v2` remains empty.
 PP collection, cloud sync, retirement and paid AI remain OFF at the last
@@ -44,6 +46,24 @@ roadmap records their tested commits, CI and actual cloud results after each
 gate. A passing policy fixture or applied permission alone is not archive
 acceptance. No production deployment or Phase 2 work follows from this scope.
 
+### PP Auth refresh-token compatibility — November 18 UTC
+
+A bounded live Auth sign-in returned HTTP 200 with the reviewed identity and
+restricted access-token claims. Two adapter compatibility gaps were found:
+the opaque refresh token was **12 characters**, while PR #103 required at
+least 20; and the Auth response could be gzip encoded, while the adapter
+parsed raw compressed bytes as JSON. A separate bounded diagnostic with
+`Accept-Encoding: identity` returned uncompressed, valid JSON. The token
+value is not recorded. Either gap can prevent the adapter from accepting an
+otherwise valid response; the earlier failure is **not** attributed to just
+one. These are client-validation defects, not evidence of failed Storage
+permission or archive verification. A narrow default-OFF successor removes
+the guessed refresh-token lower bound and requests identity encoding, while
+strictly bounding and decoding unexpected gzip responses. Generated
+sign-in/rotation, compression and failure regressions are the next gate;
+fresh authenticated Storage readback and local-retirement HOLD remain
+unchanged. No production change follows from this correction.
+
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 
 Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)
@@ -64,9 +84,9 @@ CP7 code-only PRs #93, #95 and #96 have merged into `preprod` after exact CI;
 the bounded Coinbase reconnect and generated-profile leave changes are **not
 deployed** to PP. The last observed PP collector state remains generated/OFF
 after the failed diagnostic live trial; its 5,268/10,000 pending outbox is a
-separate long-session gate. Draft CP6 PR #92 and stacked PR #97 address active
-structured sync and sealed-generation drainage, but remain unmerged and
-runtime NO-GO. Live A→B rotation, raw Storage archival/readback, and local
+separate long-session gate. CP6 PR #92 merged code-only as `ac32805`; its
+active structured sync remains default OFF and runtime NO-GO. PR #97's sealed
+generation drainage remains unmerged. Live A→B rotation, raw Storage archival/readback, and local
 retirement remain unproven. Production remains unchanged; I7 and Phase 1.75
 remain OPEN.
 
@@ -270,9 +290,9 @@ Fresh readback now requires an exact mutable projection; a newer-looking
 unreceipted cloud value cannot ACK local evidence. Active B sync also holds
 while any other same-origin generation has pending outbox rows, preventing
 B from overtaking unsynced A. Sealed-A drainage and cross-worker ordering
-remain **NO-GO for runtime**; PR #92 stays draft and unmerged.
+remain **NO-GO for runtime**; PR #92 merged code-only as `ac32805`.
 
-Stacked draft [PR #97](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/97)
+Stacked [PR #97](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/97)
 implements a default-OFF sealed A structured drain while B collects. A
 same-origin PostgreSQL session lock spans import, fresh readback and local ACK;
 cloud import/readback and local ACK transactions use PostgreSQL 17 whole-
@@ -1067,10 +1087,11 @@ for the Storage publishable key, dedicated Auth machine identity, independent
 structured DSN and local lifecycle DSN, and OFF sync/retirement/paid-AI flags.
 It checks file metadata without reading values and always returns STOP; it
 does not mount a service or start cloud I/O. The structured role is still
-NOLOGIN, PR #92 receipts/grants and PR #97 worker are draft, and live Storage
-and direct PostgreSQL authority/network gates remain open. PR #92's receipt
-and immutable-row `SELECT ... FOR UPDATE` also require UPDATE privileges under
-PostgreSQL 17 and must be corrected under the narrow grant before execution. See
+NOLOGIN, PR #92's receipt table migration is unapplied, PR #97's worker is
+unmerged, and live Storage and direct PostgreSQL authority/network gates remain
+open. PR #92's importer now uses advisory serialization without row locks on
+immutable tables or receipts; narrow receipt grants are separately qualified
+in PR #106 and remain unapplied. See
 [binding preflight review](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md).
 
 **CP6 structured-import preparation:** A separate, offline envelope validator

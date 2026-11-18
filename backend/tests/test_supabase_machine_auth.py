@@ -1,6 +1,7 @@
 """Generated-only PP Auth qualification; no network or live credentials."""
 import concurrent.futures
 import base64
+import gzip
 import json
 import os
 from pathlib import Path
@@ -66,6 +67,7 @@ class SupabaseMachineAuthTests(unittest.TestCase):
             if request.url.path == '/auth/v1/token':
                 self.assertEqual(request.url.params['grant_type'], 'password')
                 self.assertEqual(request.headers['apikey'], API_KEY)
+                self.assertEqual(request.headers['accept-encoding'], 'identity')
                 self.assertEqual(request.headers.get('authorization'), None)
                 self.assertEqual(request.content, b'{"email":"pp-archive@example.test","password":"generated-machine-password-12345"}')
                 return self.auth_response()
@@ -111,6 +113,69 @@ class SupabaseMachineAuthTests(unittest.TestCase):
         self.assertEqual(grants, ['password', 'refresh_token'])
         self.assertTrue(all(r.headers['authorization'] ==
                             'Bearer ' + token(suffix='refreshed') for r in calls[-6:]))
+
+    def test_twelve_character_opaque_refresh_token_can_rotate(self):
+        refresh = 'shorttok1234'
+        self.assertEqual(len(refresh), 12)
+        grants = []
+        def handle(request):
+            if request.url.path == '/auth/v1/token':
+                grants.append(request.url.params['grant_type'])
+                if grants[-1] == 'refresh_token':
+                    self.assertEqual(json.loads(request.content)['refresh_token'], refresh)
+                return self.auth_response(refresh=refresh)
+            return httpx.Response(200, content=b'archive')
+        machine, _ = self.machine(handle)
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        machine._machine._expires = 0
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        self.assertEqual(grants, ['password', 'refresh_token'])
+
+    def test_gzip_auth_response_decodes_with_wire_and_body_limits(self):
+        calls = []
+        def compressed(request):
+            calls.append(request.url.path)
+            if request.url.path == '/auth/v1/token':
+                self.assertEqual(request.headers['accept-encoding'], 'identity')
+                return httpx.Response(200, stream=httpx.ByteStream(gzip.compress(
+                    self.auth_response(refresh='shorttok1234').content)),
+                    headers={'content-encoding': 'gzip'})
+            return httpx.Response(200, content=b'archive')
+        machine, _ = self.machine(compressed)
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        machine._machine._expires = 0
+        self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
+                                                     timeout_seconds=2), b'archive')
+        self.assertEqual(calls.count('/auth/v1/token'), 2)
+
+        for payload in (gzip.compress(b'x' * 100_000), b'broken-gzip'):
+            with self.subTest(length=len(payload)):
+                calls = []
+                def rejected(request):
+                    calls.append(request.url.path)
+                    return httpx.Response(200, stream=httpx.ByteStream(payload),
+                                          headers={'content-encoding': 'gzip'})
+                machine, _ = self.machine(rejected)
+                with self.assertRaises(ArchiveUnavailable):
+                    machine.put_if_absent(KEY, b'archive', timeout_seconds=2)
+                self.assertEqual(calls, ['/auth/v1/token'])
+
+    def test_empty_oversized_or_whitespace_refresh_token_fails_closed(self):
+        for refresh in ('', 'x' * 4097, 'a b'):
+            with self.subTest(length=len(refresh)):
+                paths = []
+                def handle(request):
+                    paths.append(request.url.path)
+                    return self.auth_response(refresh=refresh)
+                machine, _ = self.machine(handle)
+                with self.assertRaises(ArchiveUnavailable):
+                    machine.put_if_absent(KEY, b'archive', timeout_seconds=2)
+                with self.assertRaises(ArchiveUnavailable):
+                    machine.read_authenticated(KEY, max_bytes=32, timeout_seconds=2)
+                self.assertEqual(paths, ['/auth/v1/token'])
 
     def test_rejected_refresh_and_storage_unauthorized_fail_closed(self):
         calls = []

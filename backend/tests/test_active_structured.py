@@ -167,6 +167,21 @@ class ActiveStructuredTests(unittest.TestCase):
                 self.assertEqual(len(repository.rows), 1)
                 self.assertFalse(repository.sync_lock.locked())
 
+        class LateAckRepository(Repository):
+            def acknowledge(self, generation_id, records):
+                super().acknowledge(generation_id, records)
+                time.sleep(0.03)
+
+        late = LateAckRepository([price(3, '1794960003')])
+        with self.assertRaises(ArchiveLimit):
+            ActiveStructuredWorker(late, Transport(), origin_id=ORIGIN,
+                limits=ArchiveLimits(max_seconds=0.02,
+                                     request_timeout_seconds=0.01)).cycle(GENERATION)
+        # A post-commit deadline is reported as failed/ambiguous, while the
+        # durable ACK is preserved; a retry sees an empty pending outbox.
+        self.assertEqual(late.acknowledged, [3])
+        self.assertEqual(late.rows, [])
+
     def test_concurrent_workers_use_one_origin_lock(self):
         repository = Repository([price(1, '1794960001')])
         entered, release = threading.Event(), threading.Event()

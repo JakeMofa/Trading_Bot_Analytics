@@ -333,7 +333,7 @@ class ActionTests(unittest.TestCase):
                 self.actions.migrate(self.context,self.budget)
         self.assertFalse(self.actions.migrated)
 
-    def test_outbox_inventory_checks_12779_rows_across_two_origins_and_recovers(self):
+    def test_outbox_inventory_checks_12779_rows_across_two_origins_after_oneoff(self):
         calls=[]
         def sql(_,query):
             calls.append(query)
@@ -349,6 +349,8 @@ class ActionTests(unittest.TestCase):
         with patch.object(self.actions,'_sql',side_effect=sql):
             original=self.actions._inventory(self.budget)
             self.actions.before_migration=original
+            self.actions.fence_started=True
+            self.actions.migration_oneoff_attempted=True
             with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'):
                 recovery=self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),self.budget)
         self.assertEqual(original['ops.outbox'],{
@@ -419,6 +421,8 @@ class ActionTests(unittest.TestCase):
         current={'ops.outbox':{
             'generated-pp':{'count':7511,'digest':'a'*32},
             'pp-live-pp':{'count':5268,'digest':'c'*32}}}
+        self.actions.fence_started=True
+        self.actions.migration_oneoff_attempted=True
         with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'), \
              patch.object(self.actions,'_inventory',return_value=current):
             with self.assertRaisesRegex(c.DeploymentHold,'migration_recovery_evidence_changed'):

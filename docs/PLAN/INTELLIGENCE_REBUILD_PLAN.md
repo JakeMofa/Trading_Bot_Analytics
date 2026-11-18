@@ -160,9 +160,9 @@ the bounded Coinbase reconnect and generated-profile leave changes are **not
 deployed** to PP. The last observed PP collector state remains generated/OFF
 after the failed diagnostic live trial; its 5,268/10,000 pending outbox is a
 separate long-session gate. CP6 PR #92 merged code-only as `ac32805`; its
-default-OFF active structured sync remains runtime NO-GO. Stacked PR #97
-addresses sealed-generation drainage and remains unmerged. Live A→B rotation,
-raw Storage archival/readback, and local
+default-OFF active structured sync remains runtime NO-GO. PR #97's sealed
+generation drainage remains unmerged. Live A→B rotation, raw Storage
+archival/readback, and local
 retirement remain unproven. Production remains unchanged; I7 and Phase 1.75
 remain OPEN.
 
@@ -366,7 +366,21 @@ Fresh readback now requires an exact mutable projection; a newer-looking
 unreceipted cloud value cannot ACK local evidence. Active B sync also holds
 while any other same-origin generation has pending outbox rows, preventing
 B from overtaking unsynced A. Sealed-A drainage and cross-worker ordering
-remain **NO-GO for runtime**; PR #92 stays draft and unmerged.
+remain **NO-GO for runtime**; PR #92 merged code-only as `ac32805`.
+
+Stacked [PR #97](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/97)
+implements a default-OFF sealed A structured drain while B collects. A
+same-origin PostgreSQL session lock spans import, fresh readback and local ACK;
+cloud import/readback and local ACK transactions use PostgreSQL 17 whole-
+transaction timeouts within the cycle budget. Source `8f4d498` passed 36
+local focused tests and exact
+[push CI 44221644336](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221644336)
+and [PR CI 44221649679](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44221649679),
+including isolated generated PostgreSQL. This **does not enable PP cloud
+sync**: actual PP-only role/grants, live readback, runtime scheduling,
+connection-timeout binding and sustained backlog/outage capacity still need
+proof. The 10,000-row cap and retirement OFF remain unchanged. See
+[CP6 drainage evidence](CP6_STRUCTURED_DRAIN_2026-11-17.md).
 
 ## CP7 PP generated release and live-controller binding — November 17, 2026
 
@@ -1149,10 +1163,11 @@ for the Storage publishable key, dedicated Auth machine identity, independent
 structured DSN and local lifecycle DSN, and OFF sync/retirement/paid-AI flags.
 It checks file metadata without reading values and always returns STOP; it
 does not mount a service or start cloud I/O. The structured role is still
-NOLOGIN, PR #92 receipts/grants and PR #97 worker are draft, and live Storage
-and direct PostgreSQL authority/network gates remain open. PR #92's receipt
-and immutable-row `SELECT ... FOR UPDATE` also require UPDATE privileges under
-PostgreSQL 17 and must be corrected under the narrow grant before execution. See
+NOLOGIN, PR #92's receipt table migration is unapplied, PR #97's worker is
+unmerged, and live Storage and direct PostgreSQL authority/network gates remain
+open. PR #92's importer now uses advisory serialization without row locks on
+immutable tables or receipts; narrow receipt grants are separately qualified
+in PR #106 and remain unapplied. See
 [binding preflight review](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md).
 
 **CP6 structured-import preparation:** A separate, offline envelope validator

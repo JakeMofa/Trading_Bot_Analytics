@@ -3,15 +3,19 @@ from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import os
+import math
 import sys
+import time
 from threading import Barrier, Event
 import unittest
 import uuid
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from postgres.archive_codec import ArchiveIntegrityError, encoded, sha256
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, encoded, sha256
 from postgres.history_v2_transport import HistoryV2PostgresTransport
+from postgres.lifecycle import LifecycleHold, LifecycleRepository
 
 
 DSN = os.environ.get('TRADEBOT_TEST_HISTORY_V2_DSN')
@@ -27,6 +31,73 @@ def envelope(outbox_id, table, payload, generation_id):
 
 @unittest.skipUnless(DSN, 'isolated generated history_v2 DSN not supplied')
 class HistoryV2TransportPostgresTests(unittest.TestCase):
+    def test_generated_a_pending_blocks_b_until_acknowledged(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda: psycopg.connect(DSN, row_factory=dict_row,
+                                          connect_timeout=5)
+        repository = LifecycleRepository(factory)
+        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        now = datetime.now(timezone.utc)
+        first = repository.bootstrap(origin, now - timedelta(hours=73))
+        switched = repository.switch_if_due(origin, now=now)
+        self.assertEqual(switched['status'], 'switched')
+        first_id = str(first['generation_id'])
+        second_id = str(switched['generation_id'])
+        with factory() as connection:
+            old_id = connection.execute('''INSERT INTO ops.outbox
+                (origin_id,generation_id,entity_type,entity_id,content_hash,
+                 payload,created_at) VALUES(%s,%s,'core.current_prices','old',%s,
+                 '{}'::jsonb,%s) RETURNING id''',
+                (origin, first_id, 'a' * 64, now)).fetchone()['id']
+        self.assertTrue(repository.has_other_pending(origin, second_id))
+        self.assertFalse(repository.has_other_pending(origin, first_id))
+        with factory() as connection:
+            connection.execute('UPDATE ops.outbox SET acknowledged_at=%s WHERE id=%s',
+                               (now, old_id))
+        self.assertFalse(repository.has_other_pending(origin, second_id))
+
+    def test_pg17_whole_transaction_timeout_and_slow_connection_hold(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row, connect_timeout=5)
+        with factory() as connection:
+            with connection.transaction():
+                HistoryV2PostgresTransport._limit(connection, 0.5)
+                setting = connection.execute('SHOW transaction_timeout').fetchone()
+                self.assertEqual(setting['transaction_timeout'], '500ms')
+        slow = HistoryV2PostgresTransport(
+            lambda *, timeout_seconds: (time.sleep(timeout_seconds + 0.02),
+                                        factory())[1],
+            origin_id='pp-live-ci-' + uuid.uuid4().hex,
+            generation_id=str(uuid.uuid4()),
+            expected_database='unused', expected_role='unused')
+        # The validation path is exercised by other tests; isolate connection
+        # time here so no SQL import can occur after its request deadline.
+        with patch.object(slow, '_validate'), self.assertRaises(ArchiveLimit):
+            slow.put_structured([{'id': 1}], timeout_seconds=0.01)
+
+    def test_same_origin_session_lock_serializes_workers(self):
+        import psycopg
+        from psycopg.rows import dict_row
+
+        factory = lambda: psycopg.connect(DSN, row_factory=dict_row,
+                                          connect_timeout=5)
+        first = LifecycleRepository(factory)
+        second = LifecycleRepository(factory)
+        origin = 'pp-live-ci-' + uuid.uuid4().hex
+        with first.structured_sync_lock(origin):
+            with self.assertRaises(LifecycleHold):
+                with second.structured_sync_lock(origin):
+                    self.fail('same-origin lock admitted a second worker')
+            with second.structured_sync_lock(origin + '-other'):
+                pass
+        with second.structured_sync_lock(origin):
+            pass
+
     def test_narrow_immutable_privileges_and_concurrent_replay(self):
         import psycopg
         from psycopg import sql
@@ -34,8 +105,9 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
 
         # Model the separately reviewed NOLOGIN role's effective permissions
         # inside this disposable PG17 database; no live grant is installed.
-        admin = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
-                                        options='-c timezone=UTC')
+        admin = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row, connect_timeout=max(1, math.ceil(timeout_seconds)),
+            options='-c timezone=UTC')
         origin = 'pp-live-ci-' + uuid.uuid4().hex
         generation = str(uuid.uuid4())
         role = 'pp_receipt_ci_' + uuid.uuid4().hex
@@ -87,8 +159,8 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         first_at_receipt = Event()
         release_first = Event()
 
-        def factory(*, second=False):
-            connection = admin()
+        def factory(*, second=False, timeout_seconds=5):
+            connection = admin(timeout_seconds)
             connection.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(role)))
             if second:
                 second_connected.set()
@@ -128,7 +200,9 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         binding = dict(origin_id=origin, generation_id=generation,
                        expected_database=database, expected_role=role)
         first = PausedTransport(factory, **binding)
-        second = HistoryV2PostgresTransport(lambda: factory(second=True), **binding)
+        second = HistoryV2PostgresTransport(
+            lambda *, timeout_seconds: factory(second=True, timeout_seconds=timeout_seconds),
+            **binding)
         with ThreadPoolExecutor(max_workers=2) as pool:
             first_result = pool.submit(first.put_structured, records, timeout_seconds=10)
             self.assertTrue(first_at_receipt.wait(5))
@@ -181,8 +255,10 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         import psycopg
         from psycopg.rows import dict_row
 
-        factory = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
-                                          options='-c timezone=UTC')
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row,
+            connect_timeout=max(1, math.ceil(timeout_seconds)),
+            options='-c timezone=UTC')
         with factory() as connection:
             binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
         origin = 'pp-live-ci-' + uuid.uuid4().hex
@@ -309,8 +385,10 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         import psycopg
         from psycopg.rows import dict_row
 
-        factory = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
-                                          options='-c timezone=UTC')
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row,
+            connect_timeout=max(1, math.ceil(timeout_seconds)),
+            options='-c timezone=UTC')
         with factory() as connection:
             binding = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
         origin, generation = 'pp-live-ci-' + uuid.uuid4().hex, str(uuid.uuid4())

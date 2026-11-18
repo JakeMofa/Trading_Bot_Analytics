@@ -1,13 +1,16 @@
 """Network-free active outbox safety and ordering tests."""
 from copy import deepcopy
+from contextlib import contextmanager
 from pathlib import Path
 import sys
+import threading
+import time
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from postgres.active_structured import ActiveStructuredWorker
-from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded
+from postgres.active_structured import ActiveStructuredWorker, SealedStructuredWorker
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveLimits, ArchiveUnavailable, encoded
 from postgres.history_v2_envelope import validate_outbox_stream
 from postgres.lifecycle import LifecycleHold
 
@@ -38,6 +41,16 @@ class Repository:
         self.state, self.origin = 'collecting', ORIGIN
         self.generation_id = GENERATION
         self.other_rows = []
+        self.sync_lock = threading.Lock()
+
+    @contextmanager
+    def structured_sync_lock(self, origin_id):
+        if not self.sync_lock.acquire(blocking=False):
+            raise LifecycleHold('another structured sync worker is active')
+        try:
+            yield
+        finally:
+            self.sync_lock.release()
 
     def generation(self, generation_id):
         assert generation_id == self.generation_id
@@ -77,6 +90,126 @@ class Transport:
 
 
 class ActiveStructuredTests(unittest.TestCase):
+    def test_sealed_a_drains_before_b_projects_newer_price(self):
+        class TwoGenerationRepository(Repository):
+            def __init__(self):
+                super().__init__([])
+                self.rows_by_generation = {
+                    GENERATION: [price(10, '1794960010')],
+                    NEXT_GENERATION: [price(11, '1794960011',
+                                            generation_id=NEXT_GENERATION)]}
+
+            def generation(self, generation_id):
+                return {'origin_id': ORIGIN,
+                        'state': 'sealed' if generation_id == GENERATION else 'collecting'}
+
+            def has_other_pending(self, origin_id, generation_id):
+                return any(rows for key, rows in self.rows_by_generation.items()
+                           if key != generation_id)
+
+            def outbox(self, generation_id, limit, max_bytes):
+                return deepcopy(self.rows_by_generation[generation_id][:limit])
+
+            def acknowledge(self, generation_id, records):
+                self.acknowledged.extend(record['id'] for record in records)
+                del self.rows_by_generation[generation_id][:len(records)]
+
+        repository, transport = TwoGenerationRepository(), Transport()
+        with self.assertRaises(LifecycleHold):
+            ActiveStructuredWorker(repository, transport,
+                                   origin_id=ORIGIN).cycle(NEXT_GENERATION)
+        self.assertEqual(transport.calls, [])
+        self.assertEqual(SealedStructuredWorker(repository, transport,
+            origin_id=ORIGIN).cycle(GENERATION)['acknowledged'], 1)
+        self.assertEqual(repository.rows_by_generation[GENERATION], [])
+        self.assertEqual(ActiveStructuredWorker(repository, transport,
+            origin_id=ORIGIN).cycle(NEXT_GENERATION)['acknowledged'], 1)
+        self.assertEqual(repository.acknowledged, [10, 11])
+
+    def test_ambiguous_cloud_commit_deadline_and_cancellation_preserve_local_rows(self):
+        repository, transport = Repository([price(1, '1794960001')]), Transport()
+        original_put = transport.put_structured
+        attempts = [0]
+
+        def ambiguous(records, *, timeout_seconds):
+            original_put(records, timeout_seconds=timeout_seconds)
+            attempts[0] += 1
+            if attempts[0] == 1:
+                raise ArchiveUnavailable('ambiguous postcommit response')
+
+        transport.put_structured = ambiguous
+        worker = ActiveStructuredWorker(repository, transport, origin_id=ORIGIN)
+        with self.assertRaises(ArchiveUnavailable):
+            worker.cycle(GENERATION)
+        self.assertEqual(repository.acknowledged, [])
+        self.assertEqual(worker.cycle(GENERATION)['acknowledged'], 1)
+
+        for injected in ('deadline', 'cancel'):
+            with self.subTest(injected=injected):
+                repository = Repository([price(2, '1794960002')])
+                transport = Transport()
+                if injected == 'deadline':
+                    def slow(records, *, timeout_seconds):
+                        time.sleep(0.03)
+                    transport.put_structured = slow
+                    limits = ArchiveLimits(max_seconds=0.02,
+                                           request_timeout_seconds=0.01)
+                    expected = ArchiveLimit
+                else:
+                    def interrupted(records, *, timeout_seconds):
+                        raise KeyboardInterrupt()
+                    transport.put_structured = interrupted
+                    limits, expected = ArchiveLimits(), KeyboardInterrupt
+                with self.assertRaises(expected):
+                    ActiveStructuredWorker(repository, transport,
+                        origin_id=ORIGIN, limits=limits).cycle(GENERATION)
+                self.assertEqual(repository.acknowledged, [])
+                self.assertEqual(len(repository.rows), 1)
+                self.assertFalse(repository.sync_lock.locked())
+
+        class LateAckRepository(Repository):
+            def acknowledge(self, generation_id, records):
+                super().acknowledge(generation_id, records)
+                time.sleep(0.03)
+
+        late = LateAckRepository([price(3, '1794960003')])
+        with self.assertRaises(ArchiveLimit):
+            ActiveStructuredWorker(late, Transport(), origin_id=ORIGIN,
+                limits=ArchiveLimits(max_seconds=0.02,
+                                     request_timeout_seconds=0.01)).cycle(GENERATION)
+        # A post-commit deadline is reported as failed/ambiguous, while the
+        # durable ACK is preserved; a retry sees an empty pending outbox.
+        self.assertEqual(late.acknowledged, [3])
+        self.assertEqual(late.rows, [])
+
+    def test_concurrent_workers_use_one_origin_lock(self):
+        repository = Repository([price(1, '1794960001')])
+        entered, release = threading.Event(), threading.Event()
+        transport = Transport()
+        original_put = transport.put_structured
+
+        def blocked(records, *, timeout_seconds):
+            entered.set()
+            if not release.wait(2):
+                raise AssertionError('generated worker was not released')
+            original_put(records, timeout_seconds=timeout_seconds)
+
+        transport.put_structured = blocked
+        completed = []
+        worker = ActiveStructuredWorker(repository, transport, origin_id=ORIGIN)
+        thread = threading.Thread(target=lambda: completed.append(worker.cycle(GENERATION)))
+        thread.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            with self.assertRaises(LifecycleHold):
+                worker.cycle(GENERATION)
+            self.assertEqual(repository.acknowledged, [])
+        finally:
+            release.set()
+            thread.join(2)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(completed[0]['acknowledged'], 1)
+
     def test_newer_b_waits_for_pending_a_before_any_cloud_projection(self):
         pending_a = [price(10, '1794960010')]
         repository = Repository([price(11, '1794960011',

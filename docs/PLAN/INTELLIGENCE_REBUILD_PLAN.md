@@ -1,5 +1,49 @@
 # BTC Intelligence Rebuild Plan
 
+## Active CP6 execution — PP archive identity and private Storage
+
+**Current state, November 17 CST / November 18 UTC:** PR #100 merged the
+tested, exact-origin `MARKET-RAW` Storage policy **template** into `preprod`.
+It is outside migrations and has **not** been applied. The PP Auth identity,
+credential, renewable token path, synthetic cloud readback, and PP runtime
+wiring do not yet exist. The previously applied `history_v2` NOLOGIN role is
+for structured PostgreSQL history, not Storage HTTP. The existing public
+Supabase tables contain historical rows; private `history_v2` remains empty.
+PP collection, cloud sync, retirement and paid AI remain OFF at the last
+observed host checkpoint; production remains unchanged.
+
+This is one bounded sequence with independent small PRs and exact CI:
+
+1. **Operator-only identity provisioning:** Use Supabase Auth Admin API with a
+   privileged key held only in a private operator secret file. Create one
+   dedicated PP project Auth identity with a generated credential, report only
+   its UID and sanitized outcome, and stop on an existing/conflicting identity
+   or ambiguous response. No invitation or human dashboard password is used.
+2. **Renewable runtime bearer:** Replace the fixed-token-only PP Storage path
+   with bounded sign-in/refresh for that identity. Keep the publishable API key
+   separate; never install a service-role/admin key on PP. Expiry, revocation,
+   timeout, restart and concurrent archive calls must fail closed without
+   deleting raw data or exposing credentials.
+3. **Exact UID binding:** Render PR #100's reviewed policy only for the
+   independently verified PP UID and exact `pp-live-pp` object namespace.
+   Confirm private bucket, zero unexpected policies and operation semantics.
+   Apply one reviewed migration, then prove a bounded synthetic create-only
+   upload, fresh authenticated readback, and denials for wrong UID, bucket,
+   origin, listing, overwrite and deletion. Keep all test objects retained for
+   evidence unless a separate cleanup scope is reviewed.
+4. **PP integration:** Merge the qualified structured-sync/drain changes,
+   add the narrowly required `history_v2` receipt grants and cloud connection
+   binding, and first drain the measured 5,268/10,000 pending PP outbox without
+   collector interference. Then release the exact PP artifact and observe a
+   bounded live A→B seal/archive/readback cycle. Do not infer 72-hour capacity
+   from a short size-trigger test. Keep local retirement OFF until its separate
+   mutation-authority, reference, reader-drain and recovery gates pass.
+
+The first three coding parts are delegated in isolated worktrees. The master
+roadmap records their tested commits, CI and actual cloud results after each
+gate. A passing policy fixture or applied permission alone is not archive
+acceptance. No production deployment or Phase 2 work follows from this scope.
+
 ## Current CP6 cloud-permission checkpoint — November 17 CST / November 18 UTC
 
 Scoped PP private-history role [PR #98](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/98)

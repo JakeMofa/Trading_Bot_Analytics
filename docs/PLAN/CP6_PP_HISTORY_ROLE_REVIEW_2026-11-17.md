@@ -14,6 +14,12 @@ history-import, or archive login role exists. `market-raw` is private;
 **not applied**. This inspection read catalog and bucket metadata only, not
 credentials, user rows, archive objects, or application data.
 
+The Supabase advisor also reports a pre-existing, separate warning:
+`public.rls_auto_enable()` is SECURITY DEFINER with anon/authenticated EXECUTE.
+It is an event-trigger function owned by `postgres` that enables RLS on new
+public tables. Its scope and grants need independent review; this PP role
+migration does not change it or claim to resolve that advisory.
+
 ## Narrow SQL role candidate
 
 The additive migration `20261118020000_pp_history_v2_role.sql` creates

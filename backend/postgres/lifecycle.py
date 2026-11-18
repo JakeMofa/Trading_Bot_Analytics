@@ -451,6 +451,40 @@ class LifecycleRepository:
         with self.transaction() as connection:
             return self._pending(connection, generation_id, limit, max_bytes=max_bytes)
 
+    def structured_pending_generations(self, origin_id):
+        """Choose sealed evidence before active evidence without changing either.
+
+        A later active generation must never project ahead of a pending sealed
+        generation. This is a bounded hint: each worker rechecks its generation
+        and pending rows under its own origin-wide sync lock before cloud I/O.
+        """
+        if not isinstance(origin_id, str) or not 1 <= len(origin_id) <= 160:
+            raise LifecycleHold('bounded structured origin required')
+        with self.transaction() as connection:
+            count = connection.execute('''SELECT count(*) AS total FROM
+                (SELECT 1 FROM ops.outbox WHERE origin_id=%s AND
+                 acknowledged_at IS NULL LIMIT %s) pending''',
+                (origin_id, self.pending_outbox_limit + 1)).fetchone()['total']
+            if count > self.pending_outbox_limit:
+                raise LifecycleHold('pending structured outbox bound exceeded')
+            rows = connection.execute('''WITH pending AS (
+                SELECT generation_id, min(id) AS first_id FROM ops.outbox
+                WHERE origin_id=%s AND acknowledged_at IS NULL
+                GROUP BY generation_id)
+                SELECT p.generation_id,p.first_id,g.state,g.origin_id
+                FROM pending p LEFT JOIN archive.generations g
+                  ON g.generation_id=p.generation_id
+                ORDER BY CASE WHEN g.state IN ('sealed','verified') THEN 0
+                              WHEN g.state='collecting' THEN 1 ELSE 2 END,
+                         p.first_id LIMIT 3''', (origin_id,)).fetchall()
+        if len(rows) > 2 or any(row['generation_id'] is None or
+                                row['origin_id'] != origin_id or
+                                row['state'] not in ('collecting','sealed','verified')
+                                for row in rows):
+            raise LifecycleHold('unqualified structured generation backlog')
+        return [{'generation_id': row['generation_id'], 'state': row['state'],
+                 'first_id': row['first_id']} for row in rows]
+
     def has_other_pending(self, origin_id, generation_id):
         """Hold active sync until earlier sealed-generation evidence drains.
 

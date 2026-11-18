@@ -73,6 +73,35 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(result['status'], 'switched')
         return result
 
+    def test_structured_pending_selector_prioritizes_sealed_and_holds_unknown(self):
+        """Real PostgreSQL query; disposable origin and no cloud transport."""
+        switched = self.rotate()
+        first_id = str(self.first['generation_id'])
+        second_id = str(switched['generation_id'])
+        with self.app_factory() as connection:
+            with connection.transaction():
+                for index, generation_id in ((1, second_id), (2, first_id)):
+                    connection.execute('''INSERT INTO ops.outbox
+                        (origin_id,generation_id,entity_type,entity_id,
+                         content_hash,payload,created_at)
+                        VALUES(%s,%s,'core.current_prices',%s,%s,%s::jsonb,%s)''',
+                        (self.origin, generation_id, str(uuid.uuid4()),
+                         f'{index:064x}', '{}', datetime.now(timezone.utc)))
+        pending = self.repository.structured_pending_generations(self.origin)
+        self.assertEqual([(row['generation_id'], row['state']) for row in pending],
+                         [(first_id, 'sealed'), (second_id, 'collecting')])
+        self.assertGreater(pending[0]['first_id'], pending[1]['first_id'])
+        with self.app_factory() as connection:
+            with connection.transaction():
+                connection.execute('''INSERT INTO ops.outbox
+                    (origin_id,generation_id,entity_type,entity_id,
+                     content_hash,payload,created_at)
+                    VALUES(%s,NULL,'core.current_prices',%s,%s,%s::jsonb,%s)''',
+                    (self.origin, str(uuid.uuid4()), 'f' * 64, '{}',
+                     datetime.now(timezone.utc)))
+        with self.assertRaisesRegex(LifecycleHold, 'unqualified structured'):
+            self.repository.structured_pending_generations(self.origin)
+
     def archive_all(self, generation_id):
         for _ in range(8):
             result = self.worker.archive_cycle(generation_id)

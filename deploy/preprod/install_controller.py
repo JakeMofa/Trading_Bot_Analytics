@@ -16,6 +16,7 @@ from controller import HostBinding,Request,require
 from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _read_active
 
 PROBE_AUTHORITY=Path('/run/tradebot-pp-deploy/structured-probe.json')
+RAW_ARCHIVE_AUTHORITY=Path('/run/tradebot-pp-deploy/raw-archive-probe.json')
 
 USER='tradebot-preprod-deploy'
 HOME=Path('/var/lib/tradebot-pp-deploy')
@@ -61,7 +62,8 @@ def checked_bundle(path,expected):
     with zipfile.ZipFile(path) as archive:
         require(set(archive.namelist())=={'__main__.py','controller.py','linux_actions.py',
             'live_profile.py','live_transition.py','transition_control.py',
-            'structured_probe_profile.py','structured_probe_control.py'} and len(archive.namelist())==8,
+            'structured_probe_profile.py','structured_probe_control.py',
+            'raw_archive_probe_profile.py','raw_archive_probe_control.py'} and len(archive.namelist())==10,
             'unexpected_bundle_members')
         require(sum(i.file_size for i in archive.infolist())<=256*1024,'bundle_expanded_bound')
     return raw
@@ -192,6 +194,25 @@ def authorize_structured_probe(generation_id,expected_state,first_outbox_id):
          'expected_state':expected_state,'expected_first_outbox_id':first_outbox_id})
 
 
+def authorize_raw_archive_probe(generation_id,seal_count,manifest_count):
+    """Stage one exact sealed-generation cycle; no cloud call or retirement."""
+    HostBinding.from_marker().validate()
+    require(isinstance(generation_id,str) and str(uuid.UUID(generation_id))==generation_id
+            and type(seal_count) is int and seal_count>=0
+            and type(manifest_count) is int and 0<=manifest_count<=128,
+            'invalid_raw_archive_probe_target')
+    active=_read_active()
+    require(active['state']=='ready_off','live_profile_not_ready')
+    checked_bundle(LIB/'controller.pyz',active['controller_sha256'])
+    request=TransitionRequest('enter',*[active[k] for k in
+        ('source_sha','artifact_sha256','controller_sha256','image_id')])
+    _candidate(request)
+    return _scope_permit(RAW_ARCHIVE_AUTHORITY,{k:active[k] for k in
+        ('environment','instance','source_sha','artifact_sha256','controller_sha256','image_id')}|
+        {'scope':'pp_raw_archive_one_shot','generation_id':generation_id,
+         'expected_seal_count':seal_count,'expected_manifest_count':manifest_count})
+
+
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     sub=parser.add_subparsers(dest='operation',required=True)
@@ -200,6 +221,7 @@ if __name__=='__main__':
     a=sub.add_parser('authorize-live-enter');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True);a.add_argument('--image-id',required=True)
     a=sub.add_parser('authorize-live-on');a.add_argument('--max-seconds',type=int,required=True)
     a=sub.add_parser('authorize-structured-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-state',required=True);a.add_argument('--first-outbox-id',type=int,required=True)
+    a=sub.add_parser('authorize-raw-archive-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-seal-count',type=int,required=True);a.add_argument('--expected-manifest-count',type=int,required=True)
     args=parser.parse_args()
     try:
         HostBinding.from_marker().validate()
@@ -209,7 +231,7 @@ if __name__=='__main__':
         require(info.st_uid==0 and stat.S_ISREG(info.st_mode) and not info.st_mode & 0o077,'unsafe_controller_lock')
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         if args.operation=='install':
-            require(not any(path.exists() for path in (AUTHORITY/'authorization.json',ENTER_AUTHORITY,ON_AUTHORITY,PROBE_AUTHORITY)),
+            require(not any(path.exists() for path in (AUTHORITY/'authorization.json',ENTER_AUTHORITY,ON_AUTHORITY,PROBE_AUTHORITY,RAW_ARCHIVE_AUTHORITY)),
                     'unused_authority_requires_reconciliation')
             if ACTIVE.exists() or ACTIVE.is_symlink():
                 require(_read_active()['state']=='generated_restored','unfinished_transition_requires_leave')
@@ -221,6 +243,8 @@ if __name__=='__main__':
             result=authorize_live_enter(args.source_sha,args.artifact_sha256,args.controller_sha256,args.image_id)
         elif args.operation=='authorize-structured-probe':
             result=authorize_structured_probe(args.generation_id,args.expected_state,args.first_outbox_id)
+        elif args.operation=='authorize-raw-archive-probe':
+            result=authorize_raw_archive_probe(args.generation_id,args.expected_seal_count,args.expected_manifest_count)
         else:
             result=authorize_live_on(args.max_seconds)
         print(json.dumps(result,sort_keys=True))

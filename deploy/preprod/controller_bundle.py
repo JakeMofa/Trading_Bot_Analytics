@@ -56,8 +56,14 @@ def main():
 
 try:
     raise SystemExit(main())
-except (DeploymentHold,OSError,ValueError):
-    print(json.dumps({"gate":"BLOCKED","environment":"preprod","reason":"entrypoint_precondition_failed"}),flush=True)
+except (DeploymentHold,OSError,ValueError) as error:
+    # Publish only these fixed, non-sensitive leave-stage codes. All other
+    # adapter/child diagnostics retain the existing generic public result.
+    reason=str(error)
+    if reason not in ('generated_api_readiness_timeout',
+                      'generated_operator_readiness_timeout'):
+        reason='entrypoint_precondition_failed'
+    print(json.dumps({"gate":"BLOCKED","environment":"preprod","reason":reason}),flush=True)
     raise SystemExit(1)
 '''
 

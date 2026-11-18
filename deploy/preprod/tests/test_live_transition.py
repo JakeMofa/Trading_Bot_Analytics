@@ -31,6 +31,7 @@ class Actions:
 
 class Budget:
     def __init__(self,actions):self.actions=actions
+    def timeout(self,maximum=None):return 180 if maximum is None else min(180,maximum)
     def run(self,args,**_):
         args=tuple(args)
         self.actions.calls.append(('live',args))
@@ -95,3 +96,51 @@ class LiveTransitionTests(unittest.TestCase):
                 self.transition.enter()
         self.assertFalse(any('stop' in call[1] or 'up' in call[1]
                              for call in self.actions.calls if isinstance(call,tuple)))
+
+    def test_generated_restore_waits_for_delayed_api_and_operator_binding(self):
+        clock=[0.0]
+        api,operator=self.actions._host_api,self.actions._host_operator
+        attempts={'api':0,'operator':0}
+        def delayed_api(*,live=False):
+            attempts['api']+=1
+            if attempts['api']<=2:raise DeploymentHold('host_api_loopback_unavailable')
+            return api(live=live)
+        def delayed_operator(*,live=False):
+            attempts['operator']+=1
+            if attempts['operator']<=2:raise DeploymentHold('host_operator_loopback_unavailable')
+            return operator(live=live)
+        self.actions._host_api=delayed_api
+        self.actions._host_operator=delayed_operator
+        with patch('live_transition.time.monotonic',side_effect=lambda:clock[0]), \
+             patch('live_transition.time.sleep',side_effect=lambda seconds:clock.__setitem__(0,clock[0]+seconds)):
+            result=self.transition.leave()
+        self.assertEqual(result['gate'],'PP_GENERATED_RESTORED')
+        self.assertEqual(attempts,{'api':5,'operator':3})
+        self.assertLess(clock[0],10)
+        self.assertEqual(self.actions.calls[-1],'operator_generated')
+        self.assertTrue(any('--stop-collector' in call[1] for call in self.actions.calls if isinstance(call,tuple)))
+
+    def test_generated_restore_times_out_on_persistent_unavailability(self):
+        clock=[0.0]
+        def unavailable(*,live=False):
+            self.actions.calls.append('api_unavailable')
+            raise DeploymentHold('host_api_loopback_unavailable')
+        self.actions._host_api=unavailable
+        with patch('live_transition.time.monotonic',side_effect=lambda:clock[0]), \
+             patch('live_transition.time.sleep',side_effect=lambda seconds:clock.__setitem__(0,clock[0]+seconds)):
+            with self.assertRaisesRegex(DeploymentHold,'generated_api_readiness_timeout'):
+                self.transition.leave()
+        self.assertLessEqual(clock[0],10)
+        self.assertNotIn('operator_generated',self.actions.calls)
+
+    def test_generated_restore_rejects_reachable_wrong_state_immediately(self):
+        attempts=[]
+        def wrong_state(*,live=False):
+            attempts.append('api')
+            raise DeploymentHold('host_api_wrong_state')
+        self.actions._host_api=wrong_state
+        with patch('live_transition.time.sleep') as sleep:
+            with self.assertRaisesRegex(DeploymentHold,'host_api_wrong_state'):
+                self.transition.leave()
+        self.assertEqual(attempts,['api'])
+        sleep.assert_not_called()

@@ -68,8 +68,31 @@ class LiveTransition:
         self.actions._compose(self.context,self.budget,
             ['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
         self.actions._runtime(self.context,self.budget)
-        self.actions._host_api()
-        self.actions._host_operator()
+        # Compose health does not prove that both host loopback routes have
+        # finished binding after recreation. Only connection unavailability is
+        # transient; a reachable endpoint reporting wrong state must stop.
+        deadline=time.monotonic()+self.budget.timeout(10)
+        last_unavailable='generated_api_readiness_timeout'
+        while True:
+            if min(deadline-time.monotonic(),self.budget.timeout()) < 2:
+                raise DeploymentHold(last_unavailable)
+            try:
+                self.actions._host_api()
+                if min(deadline-time.monotonic(),self.budget.timeout()) < 2:
+                    raise DeploymentHold('generated_operator_readiness_timeout')
+                self.actions._host_operator()
+                return
+            except DeploymentHold as error:
+                reason=str(error)
+                if reason not in ('host_api_loopback_unavailable',
+                                  'host_operator_loopback_unavailable'):
+                    raise
+                # Each host probe has a two-second socket timeout. Leave room
+                # inside both the readiness window and the original work budget.
+                last_unavailable=('generated_api_readiness_timeout' if
+                    reason=='host_api_loopback_unavailable' else
+                    'generated_operator_readiness_timeout')
+                time.sleep(.2)
 
     def enter(self):
         """Expose an OFF live operator and matching API/workers; never call ON."""

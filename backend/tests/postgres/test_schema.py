@@ -269,6 +269,86 @@ class PostgreSQLSchemaTests(unittest.TestCase):
             self.assertEqual(self.db.execute("SELECT count(*) AS n FROM core.protected_evidence WHERE origin_id='generated-cp2-schema'").fetchone()['n'],1)
             self.assertEqual(self.db.execute("SELECT count(*) AS n FROM core.snapshot_evidence WHERE origin_id='generated-cp2-schema'").fetchone()['n'],1)
 
+    def test_exact_pp_permit_rollback_target_protection_and_reuse(self):
+        from postgres.lifecycle import LifecycleRepository
+        from postgres.pp_retirement_verify import Permit, Target, retire_with_permit
+        from uuid import uuid4
+
+        with self.generated_transaction():
+            db = self.db
+            sealed, active = str(uuid4()), str(uuid4())
+            target = Target(sealed, active, '5' * 64, 1)
+            permit = Permit(str(uuid4()), 'a' * 40, 'b' * 64, 'c' * 64)
+            origin = 'pp-live-pp'
+            for gen,slot in ((sealed,'A'),(active,'B')):
+                db.execute("""INSERT INTO archive.generations
+                    (origin_id,generation_id,slot,state,partition_name,created_at)
+                    VALUES(%s,%s,%s,'prepared',%s,now())""",
+                    (origin,gen,slot,partition_name(gen)))
+                db.execute('SELECT archive.create_generation_partition(%s,%s)',(origin,gen))
+            db.execute("""UPDATE archive.generations SET state='verified',sealed_at=now(),
+                verified_at=now(),seal_count=1,seal_hash=%s WHERE generation_id=%s""",
+                (target.seal_hash,sealed))
+            db.execute("UPDATE archive.generations SET state='collecting' WHERE generation_id=%s",(active,))
+            db.execute("""INSERT INTO ops.writer_state VALUES(%s,%s,2,true,now(),gen_random_uuid(),
+                          now()+interval '5 minutes')""",(origin,active))
+            db.execute("""INSERT INTO archive.manifests VALUES(%s,%s,'m',1,'k',%s,1,1,'{}',
+                          now(),now(),'{}')""",(origin,sealed,'d'*64))
+            db.execute("""INSERT INTO raw.events
+              (generation_id,origin_id,source,event_id,kind,received_at,available_at,payload,content_hash)
+              VALUES(%s,%s,'fixture','e','tick',now(),now(),'{}',%s),
+                    (%s,%s,'fixture','e2','tick',now(),now(),'{}',%s)""",
+                       (sealed,origin,'1'*64,active,origin,'2'*64))
+            g={'generation_id':sealed,'origin_id':origin}
+            lack=db.execute("""SELECT has_table_privilege('tradebot_lifecycle',
+                 'archive.pp_retirement_permits','SELECT,INSERT,UPDATE,DELETE') AS access""").fetchone()
+            self.assertFalse(lack['access'])
+            def drop(pass_permit=permit):
+                retire_with_permit(db,g,target,pass_permit,1)
+            with self.assertRaises(Exception), db.transaction():
+                drop()
+            db.execute("""INSERT INTO archive.pp_retirement_permits(ticket,sealed_id,collecting_id,
+                seal_hash,seal_count,release_sha,policy_epoch_hash,history_reader_proof,authority_scope,expires_at)
+                VALUES(%s,%s,%s,%s,1,%s,%s,%s,'pp-admin-change-freeze-v1',clock_timestamp()+interval '2 minutes')""",
+                (permit.ticket,sealed,active,target.seal_hash,permit.release,permit.policy_epoch,permit.history_reader_proof))
+            with self.assertRaises(Exception), db.transaction():
+                db.execute("UPDATE archive.pp_retirement_permits SET issued_at=now()-interval '1 minute', expires_at=now()-interval '1 second' WHERE ticket=%s",(permit.ticket,))
+                drop()
+            with self.assertRaises(Exception), db.transaction():
+                drop(Permit(permit.ticket, 'd'*40, permit.policy_epoch, permit.history_reader_proof))
+            db.execute("""INSERT INTO archive.reader_leases VALUES('reading',%s,%s,'fixture',
+                       clock_timestamp()+interval '1 minute')""",(origin,sealed))
+            with self.assertRaises(Exception),db.transaction():
+                drop()
+            db.execute("DELETE FROM archive.reader_leases WHERE lease_id='reading'")
+            db.execute("""INSERT INTO core.protected_evidence(origin_id,evidence_id,generation_id,
+                source,event_id,kind,received_at,available_at,payload,content_hash)
+                VALUES(%s,'e-protected',%s,'fixture','e','tick',now(),now(),'{}',%s)""",
+                (origin,sealed,'1'*64))
+            db.execute("""INSERT INTO ops.outbox(origin_id,generation_id,entity_type,entity_id,
+                content_hash,payload,created_at,acknowledged_at)
+                SELECT origin_id,generation_id,'core.protected_evidence','e-protected',content_hash,
+                    to_jsonb(e)||'{"raw_payload":"changed"}'::jsonb,now(),now()
+                FROM core.protected_evidence e WHERE evidence_id='e-protected' AND origin_id=%s""",(origin,))
+            with self.assertRaises(Exception),db.transaction():
+                drop()
+            db.execute("""UPDATE ops.outbox o SET payload=to_jsonb(e) FROM core.protected_evidence e
+                WHERE e.origin_id=o.origin_id AND e.generation_id=o.generation_id AND e.evidence_id=o.entity_id
+                  AND o.generation_id=%s""",(sealed,))
+            class Crash(Exception): pass
+            with self.assertRaises(Crash),db.transaction():
+                drop()
+                raise Crash()
+            self.assertIsNone(db.execute('SELECT used_at FROM archive.pp_retirement_permits WHERE ticket=%s',
+                                        (permit.ticket,)).fetchone()['used_at'])
+            drop()
+            self.assertIsNone(db.execute('SELECT to_regclass(%s) AS child',
+                            ('raw.'+partition_name(sealed),)).fetchone()['child'])
+            self.assertEqual(db.execute('SELECT count(*) AS n FROM raw.events WHERE generation_id=%s',
+                                       (active,)).fetchone()['n'],1)
+            with self.assertRaises(Exception),db.transaction():
+                drop()
+
     def test_dynamic_partition_shape_and_grants(self):
         with self.generated_transaction():
             _,name=self.seed_generation()

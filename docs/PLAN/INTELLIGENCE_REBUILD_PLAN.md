@@ -57,6 +57,56 @@ Release `v0.2.0-pp.15` from `7175fc60fbb4d06caa8fb47f41221d34783d3d23` passed [e
 
 # BTC Intelligence Rebuild Plan
 
+## November 19 — PP revision authority and exact retirement source
+
+At 05:38:37 UTC the reviewed additive Supabase migration
+`20261119020000_pp_structured_revision_payloads.sql` was applied, SHA-256
+`a29766873eb0ffe8c7e33522931ae0c6eb1a41dbb7dffc96122b4403c1b98d92`.
+The new table had zero envelopes, two PP-origin RLS policies and a PP login
+with SELECT/INSERT only. No ordinary anonymous, authenticated or service-role
+table grants were present. All 5,268 PP receipts remained. Existing receipts
+need exact local-envelope backfill and verified reconstruction.
+
+The local PostgreSQL migration `0003_pp_retirement_authority.sql` adds an
+owner-issued ticket for one PP A or B generation. Local migration, issuance,
+deployment and actual retirement are separate. The proposed operator sequence:
+
+1. Verify the exact released image, restricted history-reader identity,
+   recovery of the reviewed archive through that reader, protected references,
+   fresh seal, active collector and its opposite slot. Check the local inventory
+   fits the deadlines. Record the reader evidence SHA-256.
+2. An authorized operator must establish a change freeze covering **all**
+   privileged Supabase policy/object/database mutations through local commit,
+   record its scope, responsible privileged actors, expiry and SHA-256, and
+   explicitly accept the trust boundary. This is a procedural control for
+   trusted administrators; a service key or project owner can bypass ordinary
+   Storage RLS. Hold if an actor or path is uncovered or a policy change is due.
+3. With the PP migration role, use `deploy/preprod/issue_pp_retirement.sql` via
+   `psql -X -qAt -v sealed=... -v collecting=... -v seal_hash=... -v row_count=...
+   -v release_sha=... -v policy_epoch_hash=... -v history_reader_proof=... -f ...`.
+   Send its sole result directly into a private, mode-0400, one-shot file.
+   Bind that file at `/run/secrets/pp_retirement_ticket` only in the exact
+   release's supervised one-shot container. Its ticket expires after two minutes.
+4. With the existing PP verification flags and exact four target arguments,
+   enable `TRADEBOT_PP_EXACT_RETIREMENT=true`, bind the verified release and
+   evidence digests via `TRADEBOT_PP_VERIFIED_SOURCE`,
+   `TRADEBOT_PP_POLICY_EPOCH_SHA256`, and
+   `TRADEBOT_PP_HISTORY_READER_PROOF_SHA256`, and pass
+   `--retire-with-pp-permit` to `python -m postgres.pp_retirement_verify`.
+   No API or recurring worker exposes this operation. The generation and
+   manifests stay locked locally through complete fresh reads, new opposite-slot
+   commits, a final reference/reader check, a 5 ms DDL lock wait and commit.
+   The transaction consumes the ticket, records retirement and drops the exact
+   registered child. An exception before commit rolls all three changes back.
+5. After any ambiguous process/connection result, check the exact child,
+   generation state and ticket consumption from the migration identity before
+   considering any retry. Revoke an unused ticket via its exact ID on failure,
+   remove the one-shot mount, release the change freeze, then verify API history,
+   predictions, active B persistence and available disk against the same target.
+
+No live permit or local DROP has been issued. The 30-minute seal-to-removal
+target still requires actual PP evidence. Production remains outside this route.
+
 ## Current PP checkpoint — November 18, 2026
 
 ### pp.14 deployment and real structured history result — November 19 UTC

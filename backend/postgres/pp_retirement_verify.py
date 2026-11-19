@@ -1,4 +1,4 @@
-"""Exact-target, fresh PP retirement readback. This command never drops a partition."""
+"""Exact-target, fresh PP retirement readback. The separately permitted operator mode can retire one exact PP partition."""
 import argparse
 from dataclasses import dataclass
 import json
@@ -26,6 +26,37 @@ class Target:
                 or self.sealed == self.collecting or not re.fullmatch('[0-9a-f]{64}',self.seal_hash)
                 or type(self.count) is not int or self.count < 1):
             raise ValueError('exact distinct generations, digest and positive row count required')
+
+
+@dataclass(frozen=True)
+class Permit:
+    ticket: str
+    release: str
+    policy_epoch: str
+    history_reader_proof: str
+
+    def validate(self):
+        if (str(uuid.UUID(self.ticket)) != self.ticket or
+                not re.fullmatch('[0-9a-f]{40}', self.release) or
+                not re.fullmatch('[0-9a-f]{64}', self.policy_epoch) or
+                not re.fullmatch('[0-9a-f]{64}', self.history_reader_proof)):
+            raise LifecycleHold('invalid one-use PP retirement permit')
+
+
+def retire_with_permit(db, generation, target, permit, new_rows):
+    # The caller's local generation row lock and all manifest share locks
+    # remain held until the verification, permit consumption and DROP commit.
+    txid = db.execute('SELECT txid_current() AS txid').fetchone()['txid']
+    LifecycleRepository._checkpoint(db, generation, 'retirement:pp-fresh-readback', {
+        'txid': txid, 'enabled':True, 'policy':'pp-exact-retirement-v1',
+        'policy_epoch':permit.policy_epoch, 'source':permit.release,
+        'history_reader_proof':permit.history_reader_proof,
+        'seal_hash':target.seal_hash, 'count':target.count, 'active':target.collecting,
+        'active_new_rows':new_rows})
+    db.execute("SET LOCAL lock_timeout='5ms'")
+    db.execute('SELECT archive.retire_pp_generation(%s,%s,%s,%s,%s,%s)',
+               (permit.ticket, target.sealed, target.collecting, permit.release, permit.policy_epoch,
+                permit.history_reader_proof))
 
 
 class RetirementTransport(ScopedArchiveTransport):
@@ -101,13 +132,24 @@ def inventory(connection, generation_id, manifests, budget, *, fresh_machine_ses
             return result
 
 
-def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN, inventory_only=False):
+def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN, inventory_only=False, permit=None):
     target.validate()
     if (repository.environment != 'preprod' or
             (not inventory_only and (transport.origin_id != origin or transport.generation_id != target.sealed)) or
             (origin != ORIGIN and not origin.startswith('generated-'))):
         raise LifecycleHold('wrong retirement readback environment or generation')
+    if permit is not None:
+        permit.validate()
+        if origin != ORIGIN or inventory_only or not isinstance(transport, RetirementTransport):
+            raise LifecycleHold('retirement permit requires exact PP cloud readback')
     with CycleBudget(limits) as budget, repository.retirement(target.sealed) as (db, generation, manifests):
+        if permit is not None:
+            # FK inserts block on the generation UPDATE lock; existing catalog
+            # entries must also remain immutable for this local transaction.
+            db.execute('SELECT manifest_id FROM archive.manifests WHERE generation_id=%s FOR SHARE',
+                       (target.sealed,)).fetchall()
+            manifests = repository._manifests(db, target.sealed)
+
         if (generation['origin_id'] != origin or generation['seal_count'] != target.count
                 or generation['seal_hash'] != target.seal_hash or not bound_catalog(generation,manifests)):
             raise LifecycleHold('reviewed seal or authenticated catalog changed')
@@ -127,7 +169,12 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
                 or after['slot'] != before['slot'] or after['committed_rows'] <= before['committed_rows']):
             raise LifecycleHold('concurrent opposite-slot persistence unobserved')
         budget.check()
-    return {'status':'fresh_readback_verified','retirement_authorized':False,
+        if permit is not None:
+            retire_with_permit(db, generation, target, permit,
+                               after['committed_rows'] - before['committed_rows'])
+            budget.check()
+    return {'status':'retired_pp' if permit else 'fresh_readback_verified',
+            'retirement_authorized':permit is not None,
             'policy_version':'pp-retirement-readback-v2','sealed':target.sealed,
             'collecting':target.collecting,'opposite_slot_new_rows':after['committed_rows']-before['committed_rows'],
             'inventory':estimate, **readback}
@@ -140,6 +187,8 @@ def main():
     parser.add_argument('--seal-hash',required=True)
     parser.add_argument('--count',required=True,type=int)
     parser.add_argument('--inventory-only', action='store_true', help='estimate locally without cloud credentials or requests')
+    parser.add_argument('--retire-with-pp-permit', action='store_true',
+                        help='consume the separately issued private exact-generation ticket')
     args=parser.parse_args()
     raw=None
     try:
@@ -160,6 +209,18 @@ def main():
             if db.execute('SELECT current_user AS role').fetchone()['role'] != 'tradebot_lifecycle':
                 raise LifecycleHold('incorrect local readback identity')
             validate_schema(db,'preprod')
+        if args.inventory_only and args.retire_with_pp_permit:
+            raise LifecycleHold('inventory and retirement are mutually exclusive')
+        permit = None
+        if args.retire_with_pp_permit:
+            if os.environ.get('TRADEBOT_PP_EXACT_RETIREMENT') != 'true':
+                raise LifecycleHold('explicit PP retirement gate required')
+            from .supabase_storage import read_token_file
+            ticket = read_token_file('/run/secrets/pp_retirement_ticket')
+            permit = Permit(ticket, os.environ.get('TRADEBOT_PP_VERIFIED_SOURCE',''),
+                            os.environ.get('TRADEBOT_PP_POLICY_EPOCH_SHA256',''),
+                            os.environ.get('TRADEBOT_PP_HISTORY_READER_PROOF_SHA256',''))
+            permit.validate()
         if args.inventory_only:
             result = verify(LifecycleRepository(factory), None, target, inventory_only=True)
             print(json.dumps(result,sort_keys=True))
@@ -169,12 +230,14 @@ def main():
         structured=HistoryV2PostgresTransport(PPHistoryConnectionFactory(),origin_id=ORIGIN,
             generation_id=target.sealed,expected_database='postgres',expected_role='tradebot_pp_history')
         scoped=RetirementTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed)
-        result = verify(LifecycleRepository(factory),scoped,target)
+        result = verify(LifecycleRepository(factory),scoped,target,permit=permit)
         print(json.dumps(result,sort_keys=True))
         return 1 if result['status'] == 'HOLD' else 0
     except Exception as error:
         print(json.dumps({'status':'HOLD','retirement_authorized':False,
-                          'reason':getattr(error,'code',type(error).__name__)}))
+                          'reason':getattr(error,'code',type(error).__name__),
+                          'partition_outcome':('inspect_generation_and_ticket' if args.retire_with_pp_permit
+                                               else 'readback_only')}))
         return 1
     finally:
         if raw is not None:

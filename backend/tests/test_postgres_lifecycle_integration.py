@@ -570,6 +570,64 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
             self.assertEqual(connection.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                                                 (late['generation_id'],)).fetchone()['count'], 2)
 
+    def test_runtime_history_handles_concurrent_real_drop_with_readonly_role(self):
+        from fastapi.testclient import TestClient
+        from postgres.api import create_app
+        from postgres.config import Settings
+        from postgres.runtime_history import ReadRepository, RuntimeHistory
+        sealed=self.first['generation_id']
+        original=self.insert(1)
+        self.rotate()
+        self.archive_all(sealed)
+        factory=lambda:self.connect(os.environ['TRADEBOT_TEST_READER_DSN'],environment='preprod',readonly=True)
+        with factory() as db:
+            self.assertEqual(db.execute('SHOW transaction_read_only').fetchone()['transaction_read_only'],'on')
+            self.assertEqual(db.execute('SELECT current_user AS role').fetchone()['role'],'tradebot_reader')
+        repository=ReadRepository(factory,origin_id=self.origin)
+        raw_access=[]
+        def raw():
+            raw_access.append(True)
+            return self.transport
+        runtime=RuntimeHistory(repository,raw,origin_id=self.origin)
+        settings=Settings(origin_id=self.origin,dsn=os.environ['TRADEBOT_TEST_APP_DSN'])
+        with TestClient(create_app(settings=settings,store=Store(settings),history=runtime,refresh=False)) as client:
+            route='/history/archive/'+sealed
+            before=client.get(route)
+            self.assertEqual(before.status_code,200,before.text)
+            self.assertEqual(before.json()['provenance']['tier'],'local_postgres')
+            self.assertEqual(raw_access,[])
+            # Pause a real HTTP read after its initial generation lookup. Another
+            # DB connection removes A and commits B while this request is open.
+            seen=threading.Event()
+            committed=threading.Event()
+            saved=repository.generation
+            def delayed_lookup(*args):
+                result=saved(*args)
+                seen.set()
+                if not committed.wait(5):
+                    raise TimeoutError('generated DROP missed lookup boundary')
+                return result
+            responses=[]
+            with patch.object(repository,'generation',side_effect=delayed_lookup):
+                request=threading.Thread(target=lambda:responses.append(client.get(route)))
+                request.start()
+                try:
+                    self.assertTrue(seen.wait(4))
+                    self.worker.retire_generated(sealed,qualification_enabled=True)
+                    self.insert(9)
+                finally:
+                    committed.set()
+                    request.join(5)
+            self.assertFalse(request.is_alive())
+            self.assertEqual(len(responses),1)
+            self.assertEqual(responses[0].status_code,200,responses[0].text)
+            self.assertEqual(responses[0].json()['provenance']['tier'],'authenticated_archive')
+            self.assertEqual(responses[0].json()['rows'],wire([original]))
+            self.assertEqual(raw_access,[True])
+            with self.factory() as db:
+                self.assertIsNone(db.execute('SELECT to_regclass(%s) AS relation',
+                    ('raw.'+self.first['partition_name'],)).fetchone()['relation'])
+
     def test_exact_final_readback_pages_and_partition_drop_recovery(self):
         from postgres.pp_retirement_verify import Target, verify
         from psycopg.errors import LockNotAvailable

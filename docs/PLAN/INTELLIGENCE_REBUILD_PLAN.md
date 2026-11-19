@@ -103,6 +103,18 @@ establish live PP or production dashboard parity.
   independent PP copy/restore and Grafana integration remain separate. No extra
   PP data copy or service activation is required by this roadmap entry.
 
+## November 19 UTC — offline A/B/fresh-A admission planning
+
+A source-only planner validates exact official quarter-hour pairs, distinct
+A/B/fresh-A generation UUIDs, both unchanged 30-minute seal deadlines and the
+existing 4560-second lease cap. Six tests pass. The earliest aligned full-window
+schedule needs validity past 5400 seconds; mid-market alignment can increase the
+shortfall. The current market-pair profile never rotates B, so every plan remains
+HOLD even when shorter proposed readback reserves fit. No route/profile/lease/
+guard/retirement policy or runtime operation changed. A separately reviewed
+explicit OFF/re-admission and exact-B continuation is required to rehearse the
+second leg without extending the cap. [Evidence and continuation scope](PP_REHEARSAL_ADMISSION_2026-11-19.md).
+
 ## November 19 UTC — canonical exact-read byte reuse source candidate
 
 A narrow source candidate reuses the exact expected serialization and canonical/

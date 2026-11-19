@@ -118,7 +118,10 @@ def transport(profile, command, env):
         with open('/dev/null', 'rb') as source:
             result = pipeline.bounded_process(args, source,
                 810 if command.startswith('transition-v1 ') else 240)
-        require(result.returncode == 0 and len(result.stdout) <= 8192, 'PP live controller failed; inspect host journal')
+        if result.returncode:
+            diagnostic = pipeline.blocked_controller_diagnostic(result.stdout,'preprod',None,None)
+            raise pipeline.PipelineHold(diagnostic['reason'])
+        require(len(result.stdout) <= 8192, 'PP live controller response exceeds bound')
         return json.loads(result.stdout)
 
 

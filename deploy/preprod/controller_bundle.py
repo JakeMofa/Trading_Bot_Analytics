@@ -72,7 +72,15 @@ except (DeploymentHold,OSError,ValueError) as error:
     # Publish only these fixed, non-sensitive leave-stage codes. All other
     # adapter/child diagnostics retain the existing generic public result.
     reason=str(error)
-    if reason not in PUBLIC_FAILURE_CODES and reason not in ('stop_recurring_structured_sync_first','stop_recurring_archive_first',
+    if reason not in PUBLIC_FAILURE_CODES and reason not in (
+                      'pp_filesystem_database_identity',
+                      'pp_filesystem_volume_binding',
+                      'pp_filesystem_source_binding',
+                      'pp_filesystem_device_mismatch',
+                      'pp_filesystem_container_identity',
+                      'pp_filesystem_runtime_binding',
+                      'pp_filesystem_reserve',
+                      'pp_filesystem_sample_unavailable','stop_recurring_structured_sync_first','stop_recurring_archive_first',
                       'generated_runtime_check_failed',
                       'generated_api_readiness_timeout',
                       'generated_operator_readiness_timeout',

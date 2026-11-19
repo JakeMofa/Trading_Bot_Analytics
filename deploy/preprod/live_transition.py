@@ -105,6 +105,7 @@ class LiveTransition:
         self.actions._host()
         self._profile()
         self.actions._postgres(self.context,self.budget)
+        self.actions._live_filesystem(self.context,self.budget)
         self.actions._runtime(self.context,self.budget)
         self.actions._host_api()
         self.actions._host_operator()

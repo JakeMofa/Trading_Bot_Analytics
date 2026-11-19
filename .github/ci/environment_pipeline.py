@@ -118,6 +118,14 @@ CONTROLLER_RECOVERY = frozenset({
     'forward_candidate',
 })
 ENTRYPOINT_REASONS = frozenset({
+    'pp_filesystem_database_identity',
+    'pp_filesystem_volume_binding',
+    'pp_filesystem_source_binding',
+    'pp_filesystem_device_mismatch',
+    'pp_filesystem_container_identity',
+    'pp_filesystem_runtime_binding',
+    'pp_filesystem_reserve',
+    'pp_filesystem_sample_unavailable',
     'entrypoint_precondition_failed', 'generated_runtime_check_failed',
     'generated_api_readiness_timeout', 'generated_operator_readiness_timeout',
     'generated_api_state_check_failed', 'generated_operator_state_check_failed',

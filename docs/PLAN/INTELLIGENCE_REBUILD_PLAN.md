@@ -3759,6 +3759,32 @@ write WAL and index storage increase. No hosted DDL, flag activation, grant,
 auth/cap/clock change or retroactive trial pass is included. [Evidence and
 standalone concurrent migration/rollback gates](PP_RECEIPT_LATEST_INDEX_2026-11-19.md).
 
+### PP.20 hosted index and generated deployment smoke, 2026-11-19
+
+The authorized concurrent index build on hosted structured receipts completed.
+A new read-only connection verified its exact index definition and its ready,
+valid and live flags. It occupies 4,087,808 bytes. The standalone operation
+left the Supabase migration ledger untouched. Reconcile that version against
+the existing index before any future bulk migration.
+
+Release `v0.2.0-pp.20` at `b7b4c9f` passed source and preprod CI. CD
+passed its migration and schema checks, then stopped during generated
+acceptance. The shared `generated-pp` test origin had 9,997 pending
+structured records. Two generated markets and one candle reached the 10,000
+admission limit before the smoke could query the dashboard. The smoke process
+exited with a generic child error. The count, last three committed rows and
+the application's admission rule independently establish why the next new
+candle is blocked. The separate `pp-live-pp` origin had 42,133 acknowledged
+records, zero pending and collection OFF. Recovery stopped the candidate and
+preserved PostgreSQL, including 28,411 sealed A rows and 9,784 B rows.
+
+The generated test origin needs a bounded lifecycle across repeated releases.
+The indexed 500-row readback timing and the retained-A verification outcome
+remain open. Preserve the original expired trial verdict and the generated
+records until their disposition is tested.
+[CD run](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44510969827)
+and [sanitized measurements](evidence/pp20-index-and-smoke-2026-11-19.json).
+
 ### Generated smoke pending-capacity candidate, November 19 UTC
 
 PP20 exposed a persistent generated backlog: 9,997→10,000 pending rows under
@@ -3774,3 +3800,4 @@ receipt or raw-retirement authority is produced. Source/schema/profile/native
 qualification passed; no host/cloud/apply action occurred. Fenced-runtime
 forward bootstrap stays a separate reviewed operator task. [Storage scope,
 constraints, faults and retained-data proof](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).
+

@@ -98,9 +98,27 @@ class DashboardEvidenceTests(unittest.TestCase):
         result=audit.summarize([record(10)],generations())
         self.assertEqual(result['integrity_result'],'INCOMPLETE')
         r=record(5);r['state']['generated_at']=(BASE-timedelta(minutes=2)).isoformat()
-        self.assertIn('state_generated_time_stale_or_missing',audit.summarize([r])['failures'])
+        self.assertIn('cross_host_clock_or_delivery_not_qualified',audit.summarize([r])['missing_evidence'])
         r=record(5,abstain=True);r['state']['forecast']['probability_down']='0.4'
         self.assertEqual(audit.summarize([r])['observations'][0]['saved']['classification'],'stale_or_unbound')
+
+    def test_cross_host_clock_skew_not_forecast_input_age(self):
+        rows=[record(5),record(10,generation='new'),record(15,generation='new')]
+        for row in rows:
+            row['at']=(audit.instant(row['at'])-timedelta(milliseconds=65)).isoformat()
+        result=audit.summarize(rows,generations())
+        self.assertEqual(result['numeric_forecast_result'],'PASS')
+        self.assertEqual(result['observations'][0]['live']['input_price_age_seconds'],1)
+        self.assertAlmostEqual(result['observations'][0]['operator_minus_server_generated_seconds'],-0.065)
+        self.assertFalse(result['clock_evidence']['synchronized_wall_clocks_proven'])
+        rows[0]['at']=(BASE+timedelta(seconds=30)).isoformat()
+        self.assertIn('cross_host_clock_or_delivery_not_qualified',audit.summarize(rows,generations())['missing_evidence'])
+
+    def test_missing_server_timestamp_does_not_use_operator_clock(self):
+        row=record(5);row['state']['generated_at']=None
+        result=audit.summarize([row],generations())
+        self.assertIn('state_generated_time_missing_or_invalid',result['failures'])
+        self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
 
     def test_capture_allowlist_no_headers_or_secret_nested_price(self):
         r=record(5);state=deepcopy(r['state']);state['headers']={'Authorization':'secret'}

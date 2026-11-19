@@ -160,20 +160,29 @@ def summarize(records, generations=()):
     for record in records:
         if record.get('endpoint') not in ('/state/current', '/events'):
             continue
-        state, at = record.get('state'), instant(record.get('at'))
-        if not isinstance(state, dict) or not at:
+        state, observed_at = record.get('state'), instant(record.get('at'))
+        if not isinstance(state, dict) or not observed_at:
             missing.append('state_or_observation_time_missing')
             continue
         issues = []
         if (state.get('environment'), state.get('data_mode'), state.get('origin_id')) != ('preprod', 'pp_live', 'pp-live-pp'):
             issues.append('wrong_environment_mode_or_origin')
-        if not 0 <= (age(at, state.get('generated_at')) if instant(state.get('generated_at')) else -1) <= 10:
-            issues.append('state_generated_time_stale_or_missing')
+        at = instant(state.get('generated_at'))
+        delta = age(observed_at, state.get('generated_at'))
+        if at is None:
+            issues.append('state_generated_time_missing_or_invalid')
+        elif delta < -2 or delta > 10:
+            # Different hosts: this delta combines clock offset and delivery.
+            # It cannot establish that the server's own forecast inputs aged.
+            missing.append('cross_host_clock_or_delivery_not_qualified')
         if not record.get('source_sha'):
             missing.append('source_sha_missing')
         row = dict(at=record['at'], endpoint=record['endpoint'], source_sha=record.get('source_sha'),
                    market_id=(state.get('market') or {}).get('id'),
                    price_generation_id=(state.get('coinbase') or {}).get('generation_id'),
+                   server_generated_at=state.get('generated_at'),
+                   operator_minus_server_generated_seconds=delta,
+                   comparison_clock='server_generated_at',
                    issues=issues, saved=classify(state, at, 'forecast'),
                    live=classify(state, at, 'live_estimate'))
         samples.append(row)
@@ -192,8 +201,8 @@ def summarize(records, generations=()):
         if before.get('generation_id') == after.get('generation_id'):
             continue
         low, high = instant(before['at_utc']), instant(after['at_utc'])
-        prior = [r for r in samples if instant(r['at']) <= low]
-        later = [r for r in samples if instant(r['at']) >= high]
+        prior = [r for r in samples if instant(r.get('server_generated_at')) and instant(r['server_generated_at']) <= low]
+        later = [r for r in samples if instant(r.get('server_generated_at')) and instant(r['server_generated_at']) >= high]
         switches.append({'from_generation_id': before.get('generation_id'),
                          'to_generation_id': after.get('generation_id'),
                          'observed_after_utc': before['at_utc'], 'observed_by_utc': after['at_utc'],
@@ -222,6 +231,17 @@ def summarize(records, generations=()):
             'integrity_result': 'FAIL' if failures else 'INCOMPLETE' if missing else 'PASS',
             'numeric_forecast_result': 'FAIL' if failures else 'INCOMPLETE' if missing or numeric_missing else 'PASS',
             'samples': len(samples), 'classifications': counts,
+            'clock_evidence': {
+                'input_age_basis': 'server_generated_at; not operator wall clock',
+                'operator_minus_server_generated_seconds_min': min(
+                    (r['operator_minus_server_generated_seconds'] for r in samples
+                     if r['operator_minus_server_generated_seconds'] is not None), default=None),
+                'operator_minus_server_generated_seconds_max': max(
+                    (r['operator_minus_server_generated_seconds'] for r in samples
+                     if r['operator_minus_server_generated_seconds'] is not None), default=None),
+                'delta_is_not_pure_offset': True,
+                'delivery_or_clock_review_band_seconds': [-2, 10],
+                'synchronized_wall_clocks_proven': False},
             'distinct_active_numeric_saved_predictions': len(saved_ids),
             'failures': sorted(set(failures)), 'missing_evidence': sorted(set(missing)),
             'numeric_missing_evidence': numeric_missing, 'switches': switches,

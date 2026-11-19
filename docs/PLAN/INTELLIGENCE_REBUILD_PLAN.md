@@ -11,7 +11,10 @@ honest abstention can pass integrity while numerical evidence stays INCOMPLETE.
 [Executable and evidence contract](PP_DASHBOARD_EVIDENCE_2026-11-19.md) documents
 UTC source/input/feature ages, exact snapshot binding, the dashboard's 10-second
 live-tick limit and before/after writer-generation observation brackets. Missing
-richer payloads cannot be reconstructed from ID-only observer reports. No rendered
+richer payloads cannot be reconstructed from ID-only observer reports. A later
+actual-run audit exposed small cross-host clock offsets: input/forecast ages now
+use API generated_at, while operator-minus-server deltas remain separately
+disclosed and out-of-band delivery/clock qualification stays incomplete. No rendered
 browser display, raw archive correctness or retirement authority is implied.
 
 The separately authorized temporary local conductor records allowlisted fields

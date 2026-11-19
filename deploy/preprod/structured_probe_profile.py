@@ -59,7 +59,7 @@ def validate_probe_profile(base: dict, live: dict, probe: dict, source, image):
         TRADEBOT_DATA_MODE='pp_live', TRADEBOT_ORIGIN_ID='pp-live-pp',
         TRADEBOT_PP_HISTORY_DSN_FILE='/run/secrets/pp_history_dsn',
         TRADEBOT_PP_HISTORY_CA_FILE='/run/secrets/pp_history_ca',
-        TRADEBOT_PP_STRUCTURED_ONE_SHOT='true', **OFF)
+        TRADEBOT_PP_STRUCTURED_ONE_SHOT='true', TRADEBOT_PP_RETAIN_REVISIONS='true', **OFF)
     service['secrets'] = [
         {'source': 'probe_local_dsn', 'target': '/run/secrets/lifecycle_dsn'},
         *({'source': name, 'target': '/run/secrets/' + name}

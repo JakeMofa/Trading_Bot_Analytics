@@ -465,6 +465,11 @@ class HistoryV2PostgresTransport:
                             raise ArchiveIntegrityError('private structured receipt missing')
                         self._check_receipt(receipt, record)
                         final[(record['entity_type'], record['entity_id'])] = record
+                    if self.retain_revisions:
+                        revisions = self._read_revisions(connection,
+                            [record['id'] for record in records], max_bytes)
+                        if encoded(revisions) != encoded(records):
+                            raise ArchiveIntegrityError('private structured revision readback mismatch')
                     projections = self._projection_rows(connection, final.values())
                     for record in final.values():
                         row = projections[(record['entity_type'], record['entity_id'])]

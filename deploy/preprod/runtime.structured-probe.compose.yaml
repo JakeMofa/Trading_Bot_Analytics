@@ -32,6 +32,7 @@ services:
       TRADEBOT_PP_HISTORY_DSN_FILE: /run/secrets/pp_history_dsn
       TRADEBOT_PP_HISTORY_CA_FILE: /run/secrets/pp_history_ca
       TRADEBOT_PP_STRUCTURED_ONE_SHOT: 'true'
+      TRADEBOT_PP_RETAIN_REVISIONS: 'true'
     secrets:
       - {source: probe_local_dsn, target: /run/secrets/lifecycle_dsn}
       - pp_history_dsn

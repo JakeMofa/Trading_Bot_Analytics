@@ -3,7 +3,7 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable, encoded, sha256
 from postgres.cold_structured_history import ColdStructuredHistory, MAX_BYTES, ORIGIN
@@ -81,6 +81,47 @@ class ColdHistoryTests(unittest.TestCase):
         for bad in ([],[manifest[0],manifest[0]],[dict(id=True,envelope_sha256='a'*64)]):
             with self.assertRaises((ArchiveLimit,ArchiveIntegrityError)):reader.read_page(bad,entity_type='core.predictions',market_id='market')
         source.read_revisions.assert_not_called()
+
+    def test_local_encoding_validation_and_copy_overrun_cannot_return_success(self):
+        from postgres import cold_structured_history as subject
+        for operation in ('encoded', 'validate_outbox_stream', 'deepcopy'):
+            ticks = [0]
+            reader, source, rows, manifest = setup(50, clock=lambda: ticks[0])
+            original = getattr(subject, operation)
+            # The injected source returns a defensive copy, so trigger on the
+            # list's matching records rather than object identity. Real work
+            # completes before modeling scaled local CPU/response-copy time.
+            def overrun(value, *args, **kwargs):
+                result = original(value, *args, **kwargs)
+                if isinstance(value, list) and value == rows:
+                    ticks[0] = 4
+                return result
+            with self.subTest(operation=operation), patch.object(subject, operation, side_effect=overrun):
+                with self.assertRaisesRegex(ArchiveLimit, 'page deadline'):
+                    reader.read_page(manifest, entity_type='core.predictions', market_id='market')
+            source.read_revisions.assert_called_once()
+
+    def test_empty_final_page_still_checks_local_deadline(self):
+        reader, source, rows, manifest = setup(1)
+        first = reader.read_page(manifest, entity_type='core.predictions', market_id='market')
+        ticks = iter([0, 4])
+        reader.clock = lambda: next(ticks)
+        with self.assertRaisesRegex(ArchiveLimit, 'page deadline'):
+            reader.read_page(manifest, entity_type='core.predictions', market_id='market',
+                             cursor=dict(scope_sha256=first['provenance']['scope_sha256'], after_id=1))
+        self.assertEqual(source.read_revisions.call_count, 1)
+
+    def test_manifest_work_consumes_source_budget_and_can_prevent_dial(self):
+        for elapsed in (1, 4):
+            ticks = iter([0, elapsed] + ([elapsed, elapsed] if elapsed < 4 else []))
+            reader, source, rows, manifest = setup(1, clock=lambda: next(ticks))
+            if elapsed == 4:
+                with self.assertRaisesRegex(ArchiveLimit, 'page deadline'):
+                    reader.read_page(manifest, entity_type='core.predictions', market_id='market')
+                source.read_revisions.assert_not_called()
+            else:
+                reader.read_page(manifest, entity_type='core.predictions', market_id='market')
+                self.assertEqual(source.read_revisions.call_args.kwargs['timeout_seconds'], 3)
 
 
 if __name__=='__main__':unittest.main()

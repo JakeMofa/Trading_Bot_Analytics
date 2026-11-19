@@ -154,25 +154,42 @@ class HistoryV2PostgresTransport:
 
     def _read_revisions(self, connection, ids, max_bytes, *, generation_id=None):
         generation_id = generation_id or self.generation_id
-        # One statement, one snapshot. The window sums sizes, not payloads.
-        # The bytes are sent to the client only if the entire batch fits.
+        # One statement/snapshot bounds envelope bytes and all selected receipt
+        # text separately. Sum lengths rather than concatenate corrupt metadata.
+        # Neither payload nor text is transferred when either aggregate exceeds
+        # max_bytes. Fixed-width fields, row/protocol/TLS overhead are additional.
         rows=connection.execute("""WITH sizes AS (
-                SELECT outbox_id, sum(octet_length(envelope)) OVER () total
-                FROM history_v2.structured_revision_payloads
-                WHERE origin_id=%s AND generation_id=%s AND outbox_id=ANY(%s::bigint[]))
-            SELECT p.outbox_id,s.total,CASE WHEN s.total<=%s THEN p.envelope END AS envelope,
-                   r.entity_type,r.entity_id,r.content_hash,r.payload_hash,r.envelope_hash
-            FROM sizes s JOIN history_v2.structured_revision_payloads p ON
+                SELECT p.outbox_id, sum(octet_length(p.envelope)) OVER () total,
+                    sum(coalesce(octet_length(r.entity_type),0)
+                      + coalesce(octet_length(r.entity_id),0)
+                      + coalesce(octet_length(r.content_hash),0)
+                      + coalesce(octet_length(r.payload_hash),0)
+                      + coalesce(octet_length(r.envelope_hash),0)) OVER () metadata_total
+                FROM history_v2.structured_revision_payloads p
+                JOIN history_v2.structured_receipts r ON
+                    (r.origin_id,r.generation_id,r.outbox_id)=
+                    (p.origin_id,p.generation_id,p.outbox_id)
+                WHERE p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=ANY(%s::bigint[])),
+            bounded AS (SELECT *,total<=%s AND metadata_total<=%s AS fits FROM sizes)
+            SELECT p.outbox_id,s.total,s.metadata_total,
+                   CASE WHEN s.fits THEN p.envelope END AS envelope,
+                   CASE WHEN s.fits THEN r.entity_type END AS entity_type,
+                   CASE WHEN s.fits THEN r.entity_id END AS entity_id,
+                   CASE WHEN s.fits THEN r.content_hash END AS content_hash,
+                   CASE WHEN s.fits THEN r.payload_hash END AS payload_hash,
+                   CASE WHEN s.fits THEN r.envelope_hash END AS envelope_hash
+            FROM bounded s JOIN history_v2.structured_revision_payloads p ON
                 p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=s.outbox_id
             JOIN history_v2.structured_receipts r ON (r.origin_id,r.generation_id,r.outbox_id)=
                     (p.origin_id,p.generation_id,p.outbox_id)
-            ORDER BY p.outbox_id""", (self.origin_id,generation_id,ids,max_bytes,
+            ORDER BY p.outbox_id""", (self.origin_id,generation_id,ids,max_bytes,max_bytes,
                                       self.origin_id,generation_id)).fetchall()
         if [r['outbox_id'] for r in rows] != ids:
             raise ArchiveIntegrityError('historical revision or receipt missing')
         records=[]
         for row in rows:
-            if row['total']>max_bytes or row['envelope'] is None:
+            if (row['total']>max_bytes or row['metadata_total']>max_bytes
+                    or row['envelope'] is None):
                 raise ArchiveLimit('stored revision batch exceeds read bound')
             raw=bytes(row['envelope'])
             try:

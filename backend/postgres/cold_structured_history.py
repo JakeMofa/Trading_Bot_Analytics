@@ -36,6 +36,7 @@ class ColdStructuredHistory:
 
     def read_page(self, manifest, *, entity_type, market_id, cursor=None):
         """Return one reviewed scope's page; never discover/claim whole-market coverage."""
+        started = self.clock()
         if (entity_type not in ENTITIES or not isinstance(market_id, str)
                 or not market_id or len(market_id) > 256 or not isinstance(manifest, list)
                 or not 1 <= len(manifest) <= 500):
@@ -63,9 +64,11 @@ class ColdStructuredHistory:
         # manifest only; it never proves the generation or market has no more data.
         records = []
         if ids:
-            started = self.clock()
+            remaining = MAX_SECONDS - (self.clock() - started)
+            if remaining <= 0:
+                raise ArchiveLimit('cold structured page deadline reached')
             try:
-                records = self.source.read_revisions(ids, max_bytes=MAX_BYTES, timeout_seconds=MAX_SECONDS)
+                records = self.source.read_revisions(ids, max_bytes=MAX_BYTES, timeout_seconds=remaining)
             except (ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable):
                 raise
             except Exception:
@@ -82,7 +85,7 @@ class ColdStructuredHistory:
                         or sha256(encoded(row)) != expected[row['id']]):
                     raise ArchiveIntegrityError('historical query scope or exact envelope hash mismatch')
         more = bool(ids and ids[-1] != next(reversed(expected)))
-        return {'rows': deepcopy(records),
+        result = {'rows': deepcopy(records),
                 'next_cursor': dict(scope_sha256=scope, after_id=ids[-1]) if more else None,
                 'coverage': {'status': 'bounded_reviewed_id_page', 'reviewed_ids': len(expected),
                              'returned_ids': ids, 'end_of_reviewed_manifest': not more,
@@ -93,3 +96,8 @@ class ColdStructuredHistory:
                                'envelope_sha256': [expected[key] for key in ids],
                                'historical_only': True, 'prototype_only': True,
                                'retirement_authority': False, 'official_settlement_inferred': False}}
+        # Include manifest validation, encoding, scope checks and defensive
+        # response copying in the same call deadline, including empty final pages.
+        if self.clock() - started >= MAX_SECONDS:
+            raise ArchiveLimit('cold structured page deadline reached')
+        return result

@@ -15,7 +15,8 @@ from test_cold_structured_history import envelope, GENERATION
 
 def fixture():
     record = envelope(1)
-    receipt = dict(outbox_id=1, total=len(encoded(record)), envelope=encoded(record),
+    receipt = dict(outbox_id=1, total=len(encoded(record)), metadata_total=256,
+                   envelope=encoded(record),
                    entity_type=record['entity_type'], entity_id=record['entity_id'],
                    content_hash=record['content_hash'],
                    payload_hash=sha256(encoded(record['payload'])),
@@ -56,7 +57,9 @@ class ColdSourceTests(unittest.TestCase):
         statements = [call.args[0].strip() for call in connection.execute.call_args_list]
         self.assertEqual(len(statements), 4)
         self.assertTrue(all(s.startswith(('SELECT', 'WITH')) for s in statements))
-        factory.assert_called_once_with(timeout_seconds=4)
+        factory.assert_called_once()
+        self.assertGreater(factory.call_args.kwargs['timeout_seconds'], 0)
+        self.assertLessEqual(factory.call_args.kwargs['timeout_seconds'], 4)
 
     def test_effective_write_or_privileged_or_wrong_identity_denied_before_payload(self):
         for field in ('direct_login', 'read_only', 'restricted_role', 'schema_read',
@@ -78,6 +81,7 @@ class ColdSourceTests(unittest.TestCase):
         for mutate in (lambda r: r.update(payload_hash='b'*64),
                        lambda r: r.update(envelope=r['envelope']+b' '),
                        lambda r: r.update(envelope=None),
+                       lambda r: r.update(metadata_total=MAX_BYTES+1),
                        lambda r: r.update(outbox_id=2)):
             source, connection, factory, receipt, guard, record = fixture()
             mutate(receipt)

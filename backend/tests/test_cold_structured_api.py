@@ -1,10 +1,13 @@
 """Injected API composition only: no hosted credentials or network."""
-from concurrent.futures import ThreadPoolExecutor
+import asyncio
+from concurrent.futures import Future, ThreadPoolExecutor
 from pathlib import Path
 import sys
 from threading import Event
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+import httpx
 
 from fastapi.testclient import TestClient
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -109,6 +112,88 @@ class ColdStructuredApiTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             RegisteredStructuredHistory({'injected': dict(reader=Mock(), manifest=[],
                 entity_type='core.predictions', market_id='market')})
+
+
+    def test_cancelled_before_start_and_submit_failure_release_reserved_admission(self):
+        service, source, rows, manifest = registry(1)
+        try:
+            pending = Future()
+            with patch.object(service._executor, 'submit', return_value=pending):
+                self.assertIs(service.submit_query('reviewed'), pending)
+                self.assertTrue(pending.cancel())
+            source.read_revisions.assert_not_called()
+            service._next_start = float('-inf')
+            with patch.object(service._executor, 'submit', side_effect=RuntimeError('executor closed')):
+                with self.assertRaises(RuntimeError):
+                    service.submit_query('reviewed')
+            service._next_start = float('-inf')
+            self.assertEqual(service.read_query('reviewed')['rows'], rows)
+        finally:
+            service.close()
+
+    def test_app_shutdown_closes_registry_and_rejects_new_submissions(self):
+        service, source, rows, manifest = registry(1)
+        with client_for(service) as client:
+            self.assertEqual(client.get('/history/structured/reviewed').status_code, 200)
+        with self.assertRaises(ArchiveUnavailable):
+            service.submit_query('reviewed')
+        self.assertEqual(source.read_revisions.call_count, 1)
+
+
+class ColdStructuredDispatchTests(unittest.IsolatedAsyncioTestCase):
+    async def test_busy_and_cancelled_cold_requests_cannot_occupy_local_executor(self):
+        # A single local worker is enough for local reads even while cold I/O
+        # blocks. Before dedicated dispatch, the second cold request queued here.
+        loop = asyncio.get_running_loop()
+        loop.set_default_executor(ThreadPoolExecutor(max_workers=1))
+        service, source, rows, manifest = registry(1)
+        started, release = Event(), Event()
+        def blocked(*args, **kwargs):
+            started.set()
+            if not release.wait(3):
+                raise AssertionError('cold fixture was not released')
+            return rows
+        source.read_revisions.side_effect = blocked
+        app = create_app(Settings(data_mode='pp_live', origin_id='pp-live-pp'),
+            store=Mock(predictions=Mock(return_value=[])), history=Mock(),
+            structured_history=service, refresh=False)
+        first = None
+        try:
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app),
+                                         base_url='http://test') as client:
+                first = asyncio.create_task(client.get('/history/structured/reviewed'))
+                for _ in range(100):
+                    if started.is_set():
+                        break
+                    await asyncio.sleep(.005)
+                self.assertTrue(started.is_set())
+                busy = await asyncio.wait_for(client.get('/history/structured/reviewed'), .5)
+                self.assertEqual(busy.status_code, 429)
+                for path in ('/history/predictions', '/forecast/current', '/state/current'):
+                    self.assertEqual((await asyncio.wait_for(client.get(path), .5)).status_code, 200)
+                first.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await first
+                self.assertEqual((await asyncio.wait_for(
+                    client.get('/history/structured/reviewed'), .5)).status_code, 429)
+                self.assertEqual(source.read_revisions.call_count, 1)
+                release.set()
+                # Wait for worker-owned cleanup, rather than the cancelled HTTP task.
+                for _ in range(100):
+                    if service._admission.acquire(blocking=False):
+                        service._admission.release()
+                        break
+                    await asyncio.sleep(.005)
+                else:
+                    self.fail('cold worker did not release its admission')
+                service._next_start = float('-inf')
+                self.assertEqual((await client.get('/history/structured/reviewed')).status_code, 200)
+        finally:
+            release.set()
+            if first is not None and not first.done():
+                first.cancel()
+                await asyncio.gather(first, return_exceptions=True)
+            await asyncio.to_thread(service.close)
 
 
 if __name__ == '__main__':

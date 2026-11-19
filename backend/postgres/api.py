@@ -97,6 +97,8 @@ def create_app(settings=None, store=None, state=None, *, history=None,
             for task in tasks:
                 task.cancel()
             await asyncio.gather(*tasks,return_exceptions=True)
+            if structured_history is not None:
+                await asyncio.to_thread(structured_history.close)
 
     app = FastAPI(title='BTC Intelligence PostgreSQL API',version='0.2.0',lifespan=lifespan)
     app.state.live_state = state
@@ -160,8 +162,11 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                              scope_sha256: str | None=Query(default=None,min_length=64,max_length=64)):
             from .archive_codec import ArchiveError
             try:
-                return await asyncio.to_thread(structured_history.read_query,
-                                                query_id, after_id=after_id, scope_sha256=scope_sha256)
+                pending = structured_history.submit_query(
+                    query_id, after_id=after_id, scope_sha256=scope_sha256)
+                # HTTP cancellation must not release admission or cancel queued
+                # cleanup while the independently bounded source is still active.
+                return await asyncio.shield(asyncio.wrap_future(pending))
             except ArchiveError as error:
                 code = error.code
                 status = 404 if code == 'cold_history_unknown_query' else (

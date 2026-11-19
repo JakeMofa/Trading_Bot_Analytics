@@ -1,3 +1,32 @@
+## November 19 UTC — cold-history edge-case review and bounded dispatch
+
+The source-only candidate in PR #164 now closes three reproduced edge cases:
+receipt metadata is budgeted and suppressed in SQL before transfer, the page
+clock includes manifest/validation/copy work with remaining-budget handoff, and
+API admission happens before a dedicated cold worker receives work. HTTP
+cancellation cannot release the slot while the source is still active; shutdown
+and rejected submissions have cleanup coverage. Live/local endpoints use their
+existing worker path. Source default remains OFF and no runtime injects the route.
+
+Full pinned backend: **362 run, 316 passed, 46 explicit platform/fixture skips**.
+Separate native PostgreSQL17 qualification: **75 run, 72 passed, 3 unrelated
+app-fixture skips**, including 13 generic history/import/reuse tests and six
+cold-source tests. Native proof corrupted each of five receipt text fields to
+1MiB and tested aggregate overflow across two rows; over-budget fields and
+envelopes returned NULL before client transfer. Temporary databases were stopped.
+The 256KiB envelope and 256KiB receipt-text budgets are separate; fixed row,
+protocol and TLS overhead are additional. No hosted-role or PP/prod qualification
+follows from generated tests. [Source/test evidence](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md).
+
+User requested deeper read-only navigation after the initial39-context audit.
+A separate browser agent has read all31 integration overviews and opened all31
+linked public documentation destinations; nested navigation is still in progress.
+The browser now observes Grafana as a third installed integration. This research
+made no installation; installed-state differences are timestamped observations.
+The release chat was notified of scope, findings and progress and continues its
+rollover/archive work separately. No live cloud, collector or retirement action
+was performed here.
+
 ## November 19 UTC — hosted Supabase integration investigation and local candidate
 
 Parallel research combines PR #157's dashboard audit, PR #155's actual PP

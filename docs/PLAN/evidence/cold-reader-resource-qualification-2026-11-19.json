@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "run": 75,
+  "skipped": 3,
+  "failures": 0,
+  "errors": 0,
+  "skip_reasons": [
+    "requires isolated generated PostgreSQL",
+    "requires isolated generated PostgreSQL",
+    "requires disposable PostgreSQL app/lifecycle roles"
+  ],
+  "scope": "generated local fixtures only; no cloud",
+  "postgres_version": "17.2 Homebrew",
+  "psycopg_version": "3.2.13",
+  "fixture_path": "/tmp/tradebot-cold-ftazs43i",
+  "fixture_stopped": true,
+  "full_backend": {
+    "run": 362,
+    "passed": 316,
+    "skipped": 46,
+    "failures": 0,
+    "errors": 0
+  },
+  "api_dispatch": {
+    "tests_run": 10,
+    "passed": 10,
+    "independent_generated_asgi_replay": {
+      "local_executor_workers": 1,
+      "cold_request_while_blocked_status": 429,
+      "cold_request_ms": "0.532",
+      "local_history_status": 200,
+      "local_history_ms": "0.519",
+      "http_cancellation_keeps_admission": true
+    },
+    "runtime_enabled": false
+  },
+  "source_sha256": {
+    "backend/postgres/api.py": "903e9029f38b7ca4c01b10465c29fff86b34332c6577e6f540ec3e26f2d71756",
+    "backend/postgres/cold_structured_queries.py": "bcaa15b6402129ab8014748c097b6572c12008170f6a322bbe4f3e9cc57488eb",
+    "backend/postgres/cold_structured_history.py": "f0370e53126da54e1d0f1b7eb2931ebd1ead3ce32828ed5ce58bf372b6473dae",
+    "backend/postgres/cold_structured_source.py": "21e8394e3ae371caf17d79a0cfab15f8df916081cffb6a1b2bfd010491e5f4e2",
+    "backend/postgres/history_v2_transport.py": "b3097c1b8f78417ffc6f3c7929d289b42badc9efe546f768b7341fd3ae74aeb6"
+  }
+}

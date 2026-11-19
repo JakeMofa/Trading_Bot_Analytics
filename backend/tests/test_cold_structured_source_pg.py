@@ -3,10 +3,11 @@ from pathlib import Path
 import os
 import sys
 import time
+from types import SimpleNamespace
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.archive_codec import ArchiveIntegrityError, ArchiveUnavailable, encoded, sha256
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable, encoded, sha256
 from postgres.cold_structured_source import ReadOnlyStructuredSource, READER_ROLE
 from postgres.cold_structured_history import ORIGIN, MAX_BYTES
 from test_cold_structured_history import envelope, GENERATION
@@ -107,6 +108,91 @@ class NativeColdSourceTests(unittest.TestCase):
         with self.assertRaises(ArchiveUnavailable):
             source.read_revisions([1], max_bytes=MAX_BYTES, timeout_seconds=.05)
         self.assertLess(time.monotonic()-started, .75)
+
+    def test_native_oversized_receipt_text_is_suppressed_before_client_fetch(self):
+        selected = ('entity_type', 'entity_id', 'content_hash', 'payload_hash', 'envelope_hash')
+        original = dict(entity_type=self.record['entity_type'], entity_id=self.record['entity_id'],
+            content_hash=self.record['content_hash'], payload_hash=sha256(encoded(self.record['payload'])),
+            envelope_hash=sha256(encoded(self.record)))
+        fetched = []
+
+        class CapturedConnection:
+            def __init__(self, inner):
+                object.__setattr__(self, 'inner', inner)
+            def __getattr__(self, name):
+                return getattr(self.inner, name)
+            def __setattr__(self, name, value):
+                setattr(self.inner, name, value)
+            def __enter__(self):
+                self.inner.__enter__()
+                return self
+            def __exit__(self, *args):
+                return self.inner.__exit__(*args)
+            def execute(self, statement, values=None):
+                cursor = self.inner.execute(statement, values)
+                if 'WITH sizes' in statement:
+                    rows = cursor.fetchall()
+                    fetched.extend(rows)
+                    return SimpleNamespace(fetchall=lambda: rows)
+                return cursor
+
+        for column in selected:
+            with self.admin() as db:
+                db.execute(f'UPDATE history_v2.structured_receipts SET {column}=%s WHERE origin_id=%s',
+                           ('x' * 1024**2, ORIGIN))
+            try:
+                fetched.clear()
+                source = self.source(lambda **_: CapturedConnection(self.reader()))
+                with self.subTest(column=column), self.assertRaises(ArchiveLimit):
+                    source.read_revisions([1], max_bytes=MAX_BYTES, timeout_seconds=4)
+                self.assertEqual(len(fetched), 1)
+                self.assertGreaterEqual(fetched[0]['metadata_total'], 1024**2)
+                self.assertLess(fetched[0]['total'], MAX_BYTES)
+                self.assertTrue(all(fetched[0][field] is None for field in (*selected, 'envelope')))
+                self.assertFalse(any(isinstance(value, (str, bytes, memoryview))
+                                     for value in fetched[0].values()))
+            finally:
+                with self.admin() as db:
+                    db.execute(f'UPDATE history_v2.structured_receipts SET {column}=%s WHERE origin_id=%s',
+                               (original[column], ORIGIN))
+
+    def test_native_receipt_metadata_budget_is_aggregate_across_requested_rows(self):
+        second = envelope(2)
+        # Each row's receipt text fits individually; their combined metadata
+        # exceeds the independent aggregate budget while both envelopes fit.
+        metadata = 'x' * (MAX_BYTES // 2 + 1)
+        with self.admin() as db:
+            db.execute('UPDATE history_v2.structured_receipts SET entity_id=%s WHERE origin_id=%s',
+                       (metadata, ORIGIN))
+            db.execute('INSERT INTO history_v2.structured_receipts VALUES (%s,%s,%s,%s,%s,%s,%s,%s)',
+                (ORIGIN, GENERATION, 2, second['entity_type'], metadata, second['content_hash'],
+                 sha256(encoded(second['payload'])), sha256(encoded(second))))
+            db.execute('INSERT INTO history_v2.structured_revision_payloads VALUES (%s,%s,2,%s)',
+                       (ORIGIN, GENERATION, encoded(second)))
+        fetched = []
+        try:
+            with self.reader() as db:
+                class QueryCapture:
+                    def execute(self, statement, values):
+                        rows = db.execute(statement, values).fetchall()
+                        fetched.extend(rows)
+                        return SimpleNamespace(fetchall=lambda: rows)
+                with self.assertRaises(ArchiveLimit):
+                    self.source()._decoder._read_revisions(QueryCapture(), [1, 2], MAX_BYTES)
+            self.assertEqual(len(fetched), 2)
+            for row in fetched:
+                self.assertGreater(row['metadata_total'], MAX_BYTES)
+                self.assertLess(row['total'], MAX_BYTES)
+                self.assertTrue(all(row[field] is None for field in ('envelope', 'entity_type',
+                    'entity_id', 'content_hash', 'payload_hash', 'envelope_hash')))
+        finally:
+            with self.admin() as db:
+                db.execute('DELETE FROM history_v2.structured_revision_payloads WHERE origin_id=%s AND outbox_id=2',
+                           (ORIGIN,))
+                db.execute('DELETE FROM history_v2.structured_receipts WHERE origin_id=%s AND outbox_id=2',
+                           (ORIGIN,))
+                db.execute('UPDATE history_v2.structured_receipts SET entity_id=%s WHERE origin_id=%s',
+                           (self.record['entity_id'], ORIGIN))
 
 
 if __name__ == '__main__':

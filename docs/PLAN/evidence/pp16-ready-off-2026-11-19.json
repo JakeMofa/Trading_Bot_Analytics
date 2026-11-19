@@ -1,0 +1,51 @@
+{
+  "deployment": {
+    "source_sha": "8b31c369d8576bc829805e8764d0b2a3a23dbb44",
+    "branch": "preprod",
+    "source_ci_run_id": 44462245847,
+    "source_ci_attempt": 1,
+    "environment": "preprod",
+    "gate": "PASS",
+    "scope": "exact-source runtime deployment and acceptance",
+    "paid_ai_enabled": false,
+    "retention_enabled": false,
+    "instance": "tradebot-preprod-01",
+    "runtime_image_id": "sha256:81c6d2bb89e2c5eb4b18ede1bd2c254ab1ae6cee29d1632d504d31ea47b4d5ba",
+    "live_collector_enabled": false,
+    "artifact_sha256": "a45db5a02b6136a37947c6038c1c4b3b6558e2934cb5e320584b0ae6f60322c5",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "acceptance_scope": "generated_only",
+    "production_data_mounted": false,
+    "policy_sha256": "e43ab55e1c7eace07c3b76572d2c0bdbdccbb15d71c28c8f931570417d499af3",
+    "release_version": "v0.2.0-pp.16",
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:19e9a767f8836b47a72ba673af22ba3f76d39c1b56239ce100ee138b8e4aee85",
+    "controls_sha": "8b31c369d8576bc829805e8764d0b2a3a23dbb44",
+    "run_id": 44464522646,
+    "run_attempt": 1,
+    "completed_at_utc": "2026-11-19T05:22:38.629130+00:00"
+  },
+  "publication_run": 44464395647,
+  "leave_previous_run": 44464204402,
+  "ready_off_run": 44464821715,
+  "runtime_preflight": {
+    "generation_collision": false,
+    "pending_structured_rows": 0,
+    "collector_enabled": false,
+    "session_active": false,
+    "remaining_private_runners": 0,
+    "synthetic_namespace_objects": 0
+  },
+  "representative_raw_upload": "not_run"
+}

@@ -115,6 +115,29 @@ Native timing does not establish PP's needed full-audit reserve. Exact-source CI
 matched PP first-page comparison and actual full-audit margin remain unqualified.
 [Decision, reproducible harness and evidence](PP_READBACK_CANONICAL_BYTE_REUSE_2026-11-19.md)
 
+## November 19 UTC — source-only PP snapshot binding and chart coverage fix
+
+An independent parity audit reproduced a PostgreSQL read-committed hydration
+race: a calculation committed between the feature and forecast SELECTs, yielding
+different snapshot IDs. A separate regression showed a newer feature without a
+forecast borrowing an older forecast. The candidate reads the latest feature
+and its exact saved forecast in one statement, retaining null/abstaining results
+and exact decimal decoding. It also makes the chart display the server's
+`truncated` warning when the bounded query omits earlier ticks.
+
+All 23 focused native PostgreSQL 17.2/application/SSE/dashboard tests passed with
+restricted app/lifecycle logins and no skips; the full backend run passed 342
+tests with 54 environment-dependent skips. A generated 10,001-pair warm-query
+comparison used existing indexes, with 0.089 ms median / 0.271 ms p95 for the
+linked read versus 0.222 / 0.363 ms for the old two reads. These local timings do
+not establish PP runtime latency. [Reproduction and limitations](PP_HYDRATION_CONSISTENCY_2026-11-19.md).
+
+This source-only fix was staged during the PP21 freeze; source integration
+follows its explicit unlock. No schema, release, host, cloud, collection or AI
+activation changed. Official outcome
+reconciliation, deterministic replay, evaluation/context/case retrieval and
+ensemble/AI migration remain separate application parity work.
+
 ## PP19 retained A audit, November 19 UTC
 
 PP19 `5efc4bb` passed [exact source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502994609)

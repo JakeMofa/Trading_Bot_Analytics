@@ -297,7 +297,7 @@
       if (!points.length) { set('chart-summary','No stream ticks saved for this market yet.'); return; }
       const first = points[0], last = points.at(-1);
       const tickAge = serverNowMs() == null ? null : ageOf(last.at);
-      set('chart-summary','Coinbase last '+money(last.price_usd)+(tickAge == null ? '' : ' · tick '+age(tickAge))+' · first saved tick '+localTime(first.at)+(chartData.sample_limited?' · earlier ticks outside query limit':''));
+      set('chart-summary','Coinbase last '+money(last.price_usd)+(tickAge == null ? '' : ' · tick '+age(tickAge))+' · first saved tick '+localTime(first.at)+(chartData.truncated?' · earlier ticks outside query limit':''));
     }
     function drawChart() {
       const canvas = byId('price-chart');

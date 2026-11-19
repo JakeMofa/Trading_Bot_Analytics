@@ -84,6 +84,14 @@ class Store:
         if count+reserve > maximum:
             raise StorageHold('pending outbox bound reached; preserve local evidence until verified sync')
 
+    def require_generated_headroom(self):
+        """Reject a generated acceptance before seeding when its reserve cannot fit."""
+        if self.settings.data_mode!='generated':
+            raise StorageHold('generated acceptance headroom is unavailable in other modes')
+        from .generated_storage import HEADROOM
+        with self.connection() as db:
+            self._admit(db,HEADROOM)
+
     def _locked_writer(self, db):
         # Lock the pointer before looking up its generation. A joined SELECT can
         # start on the old generation snapshot, wait for a concurrent switch,

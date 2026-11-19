@@ -14,6 +14,7 @@ services:
       TRADEBOT_DATA_MODE: pp_live
       TRADEBOT_ORIGIN_ID: pp-live-pp
       TRADEBOT_PP_LIVE_LIFECYCLE: 'true'
+      TRADEBOT_GENERATED_LOCAL_STORAGE: 'false'
       TRADEBOT_PP_WINDOW_POLICY: 'two-official-markets'
   operator:
     environment:

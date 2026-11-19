@@ -79,6 +79,7 @@ services:
     environment:
       <<: *app_environment
       TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
+      TRADEBOT_GENERATED_LOCAL_STORAGE: 'true'
     secrets: [lifecycle_dsn]
     networks: [database]
     depends_on:

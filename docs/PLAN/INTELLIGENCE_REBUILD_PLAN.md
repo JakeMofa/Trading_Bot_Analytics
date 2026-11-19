@@ -1,3 +1,30 @@
+## November 19 UTC — PP18 observed switch, retained A, early B stop
+
+PP18 pinned source `74a850bc` observed A→B, and raw A verification covered
+28,411 rows / 57 chunks in **498.625812s** after 08:30:04.617214 seal. Full final
+verification returned **HOLD `archive_limit`**; A stayed attached, with no
+retirement. The 247.855136s ticket→container-die interval includes startup and
+finalization; the exhausted dimension and dominant phase are not established.
+
+The required 30-minute B run **FAILED**: durable OFF 08:50:36.853109 after
+`ownership.lease_lost` and lifecycle-role connection saturation, only
+**20m32.235895s** after A seal. B retained 9,784 raw rows. Post-OFF drain completed
+with A 31,162/B 10,971 structured ACKs, zero pending, both workers OFF and final
+DB sample 08:56:09.912353. No B archive/retirement success is claimed.
+
+Independent 690-payload audit reports publication integrity **PASS** and strict
+numeric switch continuity **INCOMPLETE**. First post-bracket sample lacked
+forecasts; saved/live numeric recovered 08:30:25.738910. Truthful stale-reference
+abstentions, UI age suppression, rollover empty charts and  91.281s observer gap
+remain explicit. API sampled latency and DB/WAL counters do not prove continuous
+feed freshness or CPU/RSS/headroom; only preflight disk-free was measured.
+
+[Full qualified observation](PP18_COMBINED_OBSERVATION_2026-11-19.md) ·
+[Sanitized combined evidence](evidence/pp18-combined-observation-2026-11-19.json).
+Next gates are lifecycle connection-budget/lease continuity and bounded full-path
+verification qualification. No legacy/prod, trading, deployment, setting or
+retirement authority follows from this docs-only milestone.
+
 ## November 19 UTC — measured cold-readback followup, documentation only
 
 PR #164 merged at `a4e39d1` after exact green. Additional research remains separate:

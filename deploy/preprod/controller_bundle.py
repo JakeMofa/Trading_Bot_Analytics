@@ -40,6 +40,7 @@ def main():
         signal.signal(getattr(signal,name),interrupted)
     installed=Path(sys.argv[0]).resolve()
     if command.startswith('transition-v1 '):
+        fence_recurring_sync()
         result=transition(TransitionRequest.parse(command),installed)
         print(json.dumps(result,sort_keys=True),flush=True)
         return 0 if result.get('gate') in ('PP_LIVE_READY_OFF','PP_GENERATED_RESTORED') else 1
@@ -56,6 +57,7 @@ def main():
         print(json.dumps(result,sort_keys=True),flush=True)
         return 0 if result.get('gate') in ('PP_RAW_ARCHIVE_PREFLIGHT_PASS','PP_RAW_ARCHIVE_ONCE_PASS') else 1
     request=Request.parse(command)
+    fence_recurring_sync()
     if ACTIVE.exists() or ACTIVE.is_symlink():
         require(_read_active()['state']=='generated_restored','unfinished_transition_blocks_deploy')
     controller=Controller(binding,RootAuthorization("/run/tradebot-pp-deploy/authorization.json"),

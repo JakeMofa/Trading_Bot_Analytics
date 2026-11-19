@@ -57,6 +57,8 @@ def main():
             return connect(dsn, environment='preprod')
 
         with local() as conn:
+            if conn.execute('SELECT session_user AS login').fetchone()['login'] != 'tradebot_lifecycle':
+                raise ValueError('wrong PP lifecycle role')
             validate_schema(conn, 'preprod')
         repo = LifecycleRepository(local, environment='preprod', pending_outbox_limit=MAX_PENDING)
         remote = PPHistoryConnectionFactory()
@@ -70,6 +72,7 @@ def main():
             return drain_bounded(repo, transport, execute=True,
                                  limits=DrainLimits(max_cycles=1))
 
+        emit(dict(status='structured_worker_ready'))
         return supervise(page, stop, emit)
     except Exception:
         emit(dict(status='hold', reason='structured_startup_failed'))

@@ -61,6 +61,12 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   3.784 s in a classified read-only PP comparison; the released code's read
   held at 4.369 s. Sustained put, readback and local ACK remain unqualified.
   [Comparison](PLAN/evidence/pp22-structured-readback-comparison-2026-11-19.json)
+  A bounded test of that candidate against the retained backlog with collection
+  OFF held on the first 50-row import at 4.112 s. The hosted writer log records
+  transaction timeout `25P04` during the revision SELECT. Supabase reports zero
+  committed rows for that page. Local counts remain 4,888 pending and 763
+  acknowledged, with all 5,241 raw rows attached. The 13.6 records/s gate failed.
+  [Offline qualification](PLAN/evidence/pp22-offline-sync-qualification-2026-11-19.json)
 
 - [ ] **Paired SSE and Realtime latency.** Three local runs matched all 180
   generated tick IDs and prices. Local Realtime median was 66–90 ms and the

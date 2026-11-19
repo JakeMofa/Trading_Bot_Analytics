@@ -67,6 +67,19 @@ or acknowledgements. One successful read cannot establish import-and-ACK rate
 or qualification for another live window.
 [Exact comparison](evidence/pp22-structured-readback-comparison-2026-11-19.json).
 
+The bounded write → verify → ACK test then aimed to drain all 4,888 retained
+records with collection durably OFF. Candidate `69af6ef` stopped in the first
+50-row cloud import after 4.112 seconds, with zero local ACKs. Supabase logged
+transaction timeout `25P04` for the exact writer role during the import's
+revision SELECT and confirmed no attempted receipts or revisions committed.
+A separate read-only probe spent 0.390 seconds on cold checkout and under
+1 millisecond on reused checkout; this did not profile the failed import
+transaction. The cloud write can fail with no competing collector. The timing
+of individual statements or network waits inside that write remains unknown.
+Preserve the 4,888 pending records and hold live rotation until the complete
+sync path clears the measured 13.6 records/s arrival rate and operation budget.
+[Offline write qualification](evidence/pp22-offline-sync-qualification-2026-11-19.json).
+
 A fresh read-only PP21 inventory confirmed historic live A is verified and still
 attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,
 and the writer is OFF with no session or unused authority. All 42,133

@@ -108,12 +108,32 @@ the same tick. This measures added local mirror delivery, with no hosted
 network comparison or browser rendering measurement. The observer closed
 after the bounded sample. Dashboard routing, collector, and hosted Supabase
 settings were unchanged. The release owner stopped the trial in initial A
-after structured sync failed to keep up. A 50-row page committed to Supabase
+after structured sync failed to keep up. Durable OFF was confirmed at 22:21:36
+UTC with 5,241 A raw rows retained. A 50-row page committed to Supabase
 before its local ACK deadline and was reconciled by exact readback. The 25-row
 fallback acknowledged 250 rows in 66 seconds while the input rate was about
 14 rows per second. B and fresh A were unobserved, and the optional 500-row
 read under live load was held to avoid adding load during recovery.
 [PP22 deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44624765516)
+
+## Structured write sizing after the live hold
+
+Two disposable PostgreSQL 17 checks used the current structured writer and
+fresh authenticated readback. Three generated pages per size were rotated.
+Matching canonical bytes and receipt and revision counts were required.
+
+The wider fixture fit 25 and 50 rows at up to 99,201 and 198,401 bytes.
+All generated 75-row pages exceeded the existing 256 KiB limit at
+295,657–297,601 bytes. A narrower fixture fit all sizes at up to 67,201,
+134,401 and 201,601 bytes. In that narrower run, generated put-plus-readback
+medians were 567 ms, 545 ms and 1,306 ms for 25, 50 and 75 rows respectively.
+The wider run's 25- and 50-row medians were 245 ms and 359 ms. These small
+fixture runs omit the network, TLS, pooler and local ACK. Their timing varies
+between runs. At roughly 14 incoming rows/sec the observed live worker would
+need a sustained complete turn in about 1.79 seconds for 25 rows or 3.57
+seconds for 50, including handoff. The existing reviewed row ceiling is 50.
+Next measurement should use actual host page bytes and separate cloud commit,
+authenticated readback and local ACK timings.
 
 ## Product scope and decisions
 

@@ -140,7 +140,7 @@ class MemoryRepository:
         yield None, deepcopy(self.record), deepcopy(self.catalog)
 
     def _pending(self, connection, generation_id, limit, **kwargs):
-        return deepcopy(self.outbox_rows[:limit])
+        return deepcopy([row for row in self.outbox_rows if row['id'] > kwargs.get('after_id',0)][:limit])
 
     def verify_local_chunk(self, connection, generation_id, manifest, decoded, limits):
         rows = [row for row in self.rows if (manifest['coverage']['after'] is None or row_cursor(row) > manifest['coverage']['after'])]

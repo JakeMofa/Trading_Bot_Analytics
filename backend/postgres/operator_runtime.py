@@ -24,11 +24,16 @@ from .config import Settings
 from .store import Store
 
 
+def _owner_reader(app_dsn, connector=connect):
+    return LifecycleRepository(lambda: connector(app_dsn, environment='preprod', readonly=True))
+
+
 def build_live_session(repository, origin, app_dsn):
     """Prepare a PP-only, explicitly started source task with a finite lease."""
     store = Store(Settings(environment='preprod', data_mode='pp_live',
                            origin_id=origin, dsn=app_dsn))
     store.verify()
+    owner_reader = _owner_reader(app_dsn)
 
     async def run(stop, max_seconds):
         generation = await asyncio.to_thread(repository.bootstrap, origin)
@@ -37,8 +42,8 @@ def build_live_session(repository, origin, app_dsn):
         enabled = False
 
         def owner_check():
-            return (repository.owns_collector(origin, session_id) if enabled
-                    else not repository.collector_state(origin)['collector_enabled'])
+            return (owner_reader.owns_collector(origin, session_id) if enabled
+                    else not owner_reader.collector_state(origin)['collector_enabled'])
 
         def enable():
             nonlocal enabled
@@ -127,6 +132,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
     if live_control not in ('true', 'false'):
         raise ValueError('invalid PP live control flag')
     session = None
+    status_repository = repository
     if live_control == 'true':
         if environ.get('TRADEBOT_APP_DSN_FILE') != '/run/secrets/app_dsn':
             raise ValueError('PP live app credential path required')
@@ -136,9 +142,10 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
                 raise ValueError('PP live writer requires the app role')
             validate_schema(connection, 'preprod')
         fence_live_startup(repository, origin)
+        status_repository = _owner_reader(app_dsn, connector)
         session = session_builder(repository, origin, app_dsn)
     return create_operator_app(repository, origin_id=origin, token=token,
-                               session=session)
+                               session=session, status_repository=status_repository)
 
 
 def main():

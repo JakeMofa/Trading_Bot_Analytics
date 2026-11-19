@@ -3672,6 +3672,10 @@ A read of the same market's official `/book` endpoint exposed a reproducible par
 
 The PP quote poll waits until its next scheduled cycle after an empty book, missing route, timeout, connection error, 429 or 5xx. A supervised regression exercises all six with a continuing Coinbase write and verifies that the first new-market quote is saved under its own identity. Authentication, malformed data, identity mismatch and write failures still stop the session.
 
+## PP collector control under lifecycle connection pressure
+
+PP18 exposed connection contention during archival and lease monitoring. The source correction checks the exact collector session and database expiry with the PP application role in a read-only transaction. Each recurring worker reuses its advisory-lock connection for short local transactions and releases transaction locks before remote I/O. The PP controller can release an owned worker of the same build to reprove a failed durable OFF within its original deadline. An isolated PG17 fixture filled all three lifecycle connections, rejected a fourth, preserved ownership checks, detected genuine expiry, and proved durable OFF after freeing one connection. The PP deployment and sustained B run require separate evidence.
+
 ### PP.18 retirement diagnosis and default-off session reuse, November 19 UTC
 
 PP18 completed A→B and remote raw archival, but final fresh proof returned HOLD

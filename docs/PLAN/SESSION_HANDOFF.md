@@ -1,5 +1,7 @@
 # Resume here
 
+**Current PP checkpoint, November 19 UTC:** pp.16 is deployed and ready with its collector OFF. Follow the [master roadmap](INTELLIGENCE_REBUILD_PLAN.md) for the 50-row sync, measured raw transfer scope, and pending combined live run. Earlier entries below are historical.
+
 **November 19 UTC** — pp.15 is deployed to PP and real structured archival passed for 25 records. Read the [master roadmap](INTELLIGENCE_REBUILD_PLAN.md) for release evidence, sync timings and the outstanding A-retirement gate. PP is ready with its collector OFF. Earlier entries below are historical.
 
 **Historical checkpoint (November 18 CST):** `preprod` source `2e38ecd` passed CI

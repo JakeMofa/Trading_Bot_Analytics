@@ -1,0 +1,60 @@
+{
+  "generation": "7eb0e05c-8893-43e7-8869-b40d1078e3c6",
+  "objects": [
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/8978bcee6228ebd5cc794ea92e98abd37a3b9ec4a6a449ef806d0ce351b45bb2.jsonl.gz",
+      "bytes": 64139
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/b7de51b6c82fabab9c6e3fb200b33deaf6b9767bf50efe340b6683ec75bbfa8a.jsonl.gz",
+      "bytes": 63443
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/8697cad863ba0f77885fb095444e231cad94a922f2b030ef6ded2130400a97b7.jsonl.gz",
+      "bytes": 66029
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/6105259d21166b91b8114fb6a7959ee1637488c8d10ae8858ac47123b9a5f5fe.jsonl.gz",
+      "bytes": 62054
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/cb010187948c64e1db644af5c6f1136f10ff335bebffd2acce6e034e0f5b88ef.jsonl.gz",
+      "bytes": 63457
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/aadb1336385dd72a37681572fb4d99f0aa042761f3f6d4cb710a7745d71aa106.jsonl.gz",
+      "bytes": 63041
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/f519189184209fde0cc1a55582c34cd47b7c3f597f5b5a1e6ca5658f3f36ac0e.jsonl.gz",
+      "bytes": 64757
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/ff6972cff899ca06c21810fe0f5dfb907f4336718bd693f53c5124ae754fb9c2.jsonl.gz",
+      "bytes": 65171
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/48f5037119346e992103de5708e7fa6c3f58846c9d71d95c29ac4144503c6781.jsonl.gz",
+      "bytes": 61357
+    },
+    {
+      "key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/7eb0e05c-8893-43e7-8869-b40d1078e3c6/ce0120ee579c739694ed4655ed63d59015c40c9d67bd86658a5846e9826e988d.jsonl.gz",
+      "bytes": 47101
+    }
+  ],
+  "environment": "preprod",
+  "synthetic": true,
+  "source_partition_access": false,
+  "origin": "pp-live-pp",
+  "bucket": "market-raw",
+  "action": "one create-only upload, immediate authenticated readback, final fresh authenticated readback per object",
+  "max_requests": 31,
+  "deadline_seconds": 60,
+  "per_request_seconds": 4,
+  "total_upload_bytes": 620549,
+  "total_authenticated_read_bytes": 1241098,
+  "structured_writes": 0,
+  "no_delete": true,
+  "observed_source_scope": "pp.15 active A pack sample only; does not measure full two-market rotation",
+  "source_script_sha256": "40b1821e1630e651175c0a262cc12152ad859353cb436d67a266b841c2cfe612"
+}

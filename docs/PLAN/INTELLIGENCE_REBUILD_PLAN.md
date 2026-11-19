@@ -1,3 +1,9 @@
+## November 19 UTC — 50-row recurring synchronization deployed on PP
+
+Release `v0.2.0-pp.16` runs on PP at `8b31c369d8576bc829805e8764d0b2a3a23dbb44`. [Exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44462245847), [publication](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464395647), [manual deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464522646) and [ready-off transition](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464821715) passed. The deployed API/SSE and schema smoke used generated data. A separate read-only PP query confirmed no collector session, zero pending PP structured records and no collision with the proposed synthetic Storage generation. The reserved cloud prefix contained zero objects. The temporary private runner deregistered.
+
+The existing 5,268 structured records were verified on pp.15. The installed 50-row change requires fresh runtime evidence when new records arrive. Representative raw PUT/GET timing and the combined live collector / prediction / dashboard / archive run remain open. [Deployment and bounded preflight evidence](evidence/pp16-ready-off-2026-11-19.json)
+
 ## November 19, 2026 UTC — recurring structured drain clears all retained A rows
 
 On PP release `v0.2.0-pp.15`, the installed recurring worker acknowledged **5,243 A records across 210 pages in 431.490 seconds (12.15/s)**. The slowest page took 2.677 seconds. The run ended with zero retries, zero holds and zero pending records. The operator stopped the idle worker and confirmed it was OFF. Independent Supabase and PP queries matched all 5,268 origin/generation-scoped outbox IDs and content hashes, including 25 acknowledged by the preceding probe. The structured checkpoint reached ID 12789.
@@ -287,6 +293,14 @@ after authenticated readback and backs off after a cloud outage. The root instal
 reviewed probe network and mounts. A durable owner record fences CD and mode
 transitions until the operator proves the worker stopped. Release, host
 installation and sustained throughput qualification are pending.
+
+### November 19 UTC — synthetic Storage transfer scope before live rotation
+
+The measured active PP generation packed to 10 chunks totaling 620,549 bytes. The prior PP Storage proof contains a single 126-byte object. The reviewed raw worker requires a sealed generation. Prepare an independent PP transport measurement with 10 clearly synthetic gzip objects matching all measured chunk sizes, using the deployed restricted PP writer and the existing PP network. The operator script’s default prints the exact scope offline.
+
+The single execution may perform up to **31 requests in 60 seconds**, with four-second request deadlines. This includes machine authentication, 10 create-only uploads, 10 immediate authenticated reads and 10 final authenticated reads. Expected body transfer is 620,549 bytes up and 1,241,098 bytes down. Existing keys, unexpected HTTP responses, oversized or different bytes, deadline expiry and additional calls stop the operation. Partial uploads stay retained for reconciliation. The operator must bind the exact tested script, PP host/image, four existing Storage credential files, empty synthetic namespace and confirmed collector-OFF state. No SQL credential is mounted and the probe cannot record local manifests or retire a partition. Its results qualify transport for this footprint only. The 30-minute seal-to-retirement measurement remains a separate live checkpoint.
+
+[Reviewed keys, sizes, source hash and execution scope](evidence/pp-raw-transfer-scope-2026-11-19.json)
 
 ### November 19 UTC — qualified recurring page comparison on isolated PostgreSQL
 

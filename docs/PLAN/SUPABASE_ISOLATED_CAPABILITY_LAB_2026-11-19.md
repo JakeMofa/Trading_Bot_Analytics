@@ -54,6 +54,40 @@ cloud-status endpoint does not provide the VM archive observations today.
 Publishing fresh reports needs a scoped bridge and identity. Existing release
 and retention jobs remain owned by the VM.
 
+## Same-tick delivery timing
+
+Three isolated runs published the same generated tick ID and exact price text
+to both branches of a test program. The first branch used the app's actual
+`event_stream` implementation over loopback HTTP, with its 250 ms snapshot
+interval. The second inserted the same record into local Supabase PostgreSQL
+and read it through an authenticated Realtime Postgres Changes subscription.
+Tick production and both consumers used the same monotonic clock. Generated
+ticks were spaced 290–470 ms apart to exercise different points within the SSE
+interval without saturating its latest-state delivery. All 180 IDs and exact
+price strings matched. Times end at the subscriber, before browser rendering.
+
+| Run | Matched | SSE median / p95 | Realtime median / p95 | Paired Realtime minus SSE median / p95 |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 60 | 121.542 / 233.160 ms | 90.090 / 120.052 ms | -37.443 / +88.704 ms |
+| 2 | 60 | 137.474 / 233.902 ms | 66.246 / 121.098 ms | -49.494 / +87.669 ms |
+| 3 | 60 | 128.536 / 231.542 ms | 66.330 / 110.429 ms | -55.063 / +72.293 ms |
+
+Realtime arrived later for 52 of 180 pairs. This local comparison includes a
+loopback database insert and Realtime propagation, plus the separate SSE frame
+timer. Hosted network time, actual VM persistence cadence, batch contention
+and browser rendering remain unmeasured. No collector or dashboard routing
+change was needed.
+
+A separate passive mirror was prepared for the PP rehearsal. It accepts one
+operator-authorized loopback SSE connection during a generation, requires the
+correct origin and collector ON, and mirrors at most 30 distinct observed
+tick IDs and exact prices at one per second into a disposable local database.
+Its elapsed metric starts when the observer receives a VM SSE tick and ends
+when local Realtime delivers the same tick. A generated PP-shaped SSE endpoint
+proved the mirror on 30 exact pairs at 68.893 ms median and 133.221 ms p95
+after SSE receipt. The release owner supplies the actual collector ON receipt
+and access window. Hosted TokenBot stays outside the experiment.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

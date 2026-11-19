@@ -284,7 +284,7 @@ class ActionTests(unittest.TestCase):
             return b''
         budget.run=rendered_config
         with patch.object(self.actions,'_host'),patch.object(self.actions,'_postgres'), \
-             patch.object(self.actions,'_outbox_release_preflight') as outbox:
+             patch.object(self.actions,'_outbox_release_preflight') as outbox,patch.object(self.actions,'_inventory'):
             self.actions.preflight(self.context,budget)
         outbox.assert_called_once_with(budget)
         self.assertEqual(set(self.actions.config['services']),set(a.MEMORY))
@@ -342,9 +342,9 @@ class ActionTests(unittest.TestCase):
             if 'SELECT coalesce(json_agg(origin_id' in query:
                 return '["generated-pp","pp-live-pp"]'
             if "WHERE origin_id='generated-pp'" in query:
-                return json.dumps({'count':7511,'digest':'a'*32})
+                return json.dumps({'count':17511,'pending':7511,'digest':'a'*64})
             if "WHERE origin_id='pp-live-pp'" in query:
-                return json.dumps({'count':5268,'digest':'b'*32})
+                return json.dumps({'count':5268,'pending':5268,'digest':'b'*64})
             raise AssertionError('unexpected inventory query')
         with patch.object(self.actions,'_sql',side_effect=sql):
             original=self.actions._inventory(self.budget)
@@ -354,13 +354,13 @@ class ActionTests(unittest.TestCase):
             with patch.object(self.actions,'_fence'),patch.object(self.actions,'_postgres'):
                 recovery=self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),self.budget)
         self.assertEqual(original['ops.outbox'],{
-            'generated-pp':{'count':7511,'digest':'a'*32},
-            'pp-live-pp':{'count':5268,'digest':'b'*32}})
+            'generated-pp':{'count':17511,'pending':7511,'digest':'a'*64},
+            'pp-live-pp':{'count':5268,'pending':5268,'digest':'b'*64}})
         self.assertEqual(recovery['strategy'],'stop_candidate_keep_database')
         self.assertTrue(recovery['new_acknowledgements_preserved'])
         self.assertEqual(sum("WHERE origin_id='generated-pp'" in q for q in calls),3)
         self.assertEqual(sum("WHERE origin_id='pp-live-pp'" in q for q in calls),3)
-        self.assertTrue(all('LIMIT 10001' in q for q in calls if 'WHERE origin_id=' in q))
+        self.assertTrue(all('GROUP BY id / 1024' in q for q in calls if 'WHERE origin_id=' in q))
         self.assertFalse(any('FROM ops.outbox LIMIT 10001' in q for q in calls))
         self.assertTrue(all(q.startswith('SELECT ') for q in calls))
 
@@ -393,7 +393,7 @@ class ActionTests(unittest.TestCase):
             self.actions._outbox_release_preflight(self.budget)
         self.assertEqual(len(calls),4)
         self.assertTrue(all(q.startswith('SELECT ') for q in calls))
-        self.assertEqual(sum('LIMIT 10001' in q for q in calls),2)
+        self.assertEqual(sum('acknowledged_at IS NULL LIMIT 10001' in q for q in calls),2)
 
     def test_outbox_inventory_rejects_overbound_or_unknown_origin(self):
         for origins,count in [(['generated-pp'],10001),
@@ -407,11 +407,11 @@ class ActionTests(unittest.TestCase):
                     if 'SELECT coalesce(json_agg(origin_id' in query:
                         return json.dumps(origins)
                     if "WHERE origin_id='generated-pp'" in query:
-                        return json.dumps({'count':count,'digest':'a'*32})
+                        return json.dumps({'count':count,'pending':count,'digest':'a'*64})
                     raise AssertionError('unexpected inventory query')
                 with patch.object(self.actions,'_sql',side_effect=sql):
                     with self.assertRaisesRegex(c.DeploymentHold,
-                                                'inventory_exceeds_generated_bound|unexpected_outbox_origin'):
+                                                'outbox_inventory_invalid|unexpected_outbox_origin'):
                         self.actions._inventory(self.budget)
 
     def test_outbox_recovery_rejects_changed_origin_fingerprint(self):

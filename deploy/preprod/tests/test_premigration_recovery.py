@@ -18,8 +18,8 @@ IMAGE='sha256:'+'a'*64
 PG_ID='f'*64
 IDS={service:str(index+1)*64 for index,service in enumerate(a.SERVICES)}
 SCHEMA={'count':2,'digest':'a'*32}
-ACK_STATE={'generated-pp':{'count':7511,'digest':'c'*32},
-           'pp-live-pp':{'count':5268,'digest':'d'*32}}
+ACK_STATE={'generated-pp':{'count':17511,'pending':7511,'digest':'c'*64},
+           'pp-live-pp':{'count':5268,'pending':5268,'digest':'d'*64}}
 
 
 class DockerBudget:
@@ -169,14 +169,14 @@ class RecoveryTests(unittest.TestCase):
             self.assertEqual(self.actions._ack_state(self.budget),ACK_STATE)
         queries=[call.args[1] for call in query.call_args_list]
         self.assertEqual(len(queries),3)
-        self.assertTrue(all('acknowledged_at' in text and 'LIMIT 10001' in text
+        self.assertTrue(all('acknowledged_at' in text and 'GROUP BY id / 1024' in text
                             for text in queries[1:]))
         self.assertTrue(all(text.startswith('SELECT ') for text in queries))
         def overbound(_,query):
             if 'SELECT coalesce(json_agg(origin_id' in query:return '["generated-pp"]'
             return json.dumps({'count':10001,'digest':'a'*32})
         with patch.object(self.actions,'_sql',side_effect=overbound):
-            with self.assertRaisesRegex(c.DeploymentHold,'prior_ack_state_unproven'):
+            with self.assertRaisesRegex(c.DeploymentHold,'outbox_inventory_invalid'):
                 self.actions._ack_state(self.budget)
         with patch.object(self.actions,'_sql',return_value='["third-origin"]'):
             with self.assertRaisesRegex(c.DeploymentHold,'unexpected_outbox_origin'):

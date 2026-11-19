@@ -22,6 +22,8 @@ from urllib.parse import urlencode, urlsplit
 import uuid
 
 ORIGIN = 'pp-live-pp'
+TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
+ORIGINS = (ORIGIN, TRIAL_ORIGIN)
 MAX_BYTES = 64 * 1024**2
 
 
@@ -51,7 +53,9 @@ def write_new(path, value):
         out.write('\n')
 
 
-def bindings(directory, *, complete=False):
+def bindings(directory, *, complete=False, origin=ORIGIN):
+    if origin not in ORIGINS:
+        raise ValueError('exact PP capture origin required')
     result = {}
     if set(path.name for path in directory.glob('generation-*.json')) - {'generation-1.json', 'generation-2.json'}:
         raise ValueError('unexpected generation binding file')
@@ -59,7 +63,7 @@ def bindings(directory, *, complete=False):
         path = directory / f'generation-{ordinal}.json'
         if path.exists():
             value = read_json(path)
-            if value.get('ordinal') != ordinal or value.get('origin_id') != ORIGIN:
+            if value.get('ordinal') != ordinal or value.get('origin_id') != origin:
                 raise ValueError('generation binding mismatch')
             result[str(ordinal)] = identity(value['generation_id'])
     if len(set(result.values())) != len(result) or (complete and len(result) != 2):
@@ -67,14 +71,14 @@ def bindings(directory, *, complete=False):
     return result
 
 
-def bind(directory, ordinal, generation):
+def bind(directory, ordinal, generation, *, origin=ORIGIN):
     identity(generation)
     directory.mkdir(exist_ok=True)
-    old = bindings(directory)
+    old = bindings(directory, origin=origin)
     if ordinal == 2 and '1' not in old: raise ValueError('bind first generation before second')
     if generation in old.values(): raise ValueError('generation already bound')
     write_new(directory / f'generation-{ordinal}.json', dict(ordinal=ordinal,
-        origin_id=ORIGIN, generation_id=generation, bound_at=utc()))
+        origin_id=origin, generation_id=generation, bound_at=utc()))
 
 
 class HTTPFailure(ValueError):
@@ -167,19 +171,21 @@ class LoopbackHTTP:
             connection.close()
 
 
-def validate_state(state):
-    if (state.get('environment'), state.get('data_mode'), state.get('origin_id')) != ('preprod', 'pp_live', ORIGIN):
+def validate_state(state, *, origin=ORIGIN):
+    if (state.get('environment'), state.get('data_mode'), state.get('origin_id')) != ('preprod', 'pp_live', origin):
         raise ValueError('state environment/mode/origin mismatch')
     if not state.get('generated_at'): raise ValueError('server generated_at missing')
 
 
-def collect(client, generation, phase, *, expected, source_sha, max_pages=128):
+def collect(client, generation, phase, *, expected, source_sha, max_pages=128, origin=ORIGIN):
+    if origin not in ORIGINS:
+        raise ValueError('exact PP capture origin required')
     identity(generation)
     if generation not in expected.values() or not re.fullmatch('[0-9a-f]{40}', source_sha):
         raise ValueError('bound generation and full source SHA required')
     if phase not in ('retained', 'retired') or not 1 <= max_pages <= 128:
         raise ValueError('bounded retained/retired capture required')
-    result = dict(scope='bounded_read_only_http_capture', origin_id=ORIGIN,
+    result = dict(scope='bounded_read_only_http_capture', origin_id=origin,
         generation_id=generation, expected_generations=expected, phase=phase,
         operator_declared_source_sha=source_sha, source_identity_independently_proven=False,
         started_at=utc(), responses=[], rows=[], missing_evidence=[])
@@ -189,13 +195,13 @@ def collect(client, generation, phase, *, expected, source_sha, max_pages=128):
         result['responses'].append(captured)
         body = captured['body']
         if route in ('/state/current', '/events'):
-            validate_state(body)
+            validate_state(body, origin=origin)
             if not body.get('market') or not body.get('feature_snapshot') or not body.get('forecast'):
                 result['missing_evidence'].append('current_market_feature_or_saved_forecast_missing')
             if body.get('missing_data'):
                 result['missing_evidence'].append('state_reports_missing_data')
         elif route.startswith('/history/predictions'):
-            if body.get('origin_id') != ORIGIN or body.get('limit') != 500 or not isinstance(body.get('items'), list):
+            if body.get('origin_id') != origin or body.get('limit') != 500 or not isinstance(body.get('items'), list):
                 raise ValueError('prediction history contract mismatch')
             ids = [item['id'] for item in body['items']]
             if len(ids) != len(set(ids)): raise ValueError('duplicate prediction ID')
@@ -212,7 +218,7 @@ def collect(client, generation, phase, *, expected, source_sha, max_pages=128):
         captured = client.get(route)
         result['responses'].append(captured)
         body, provenance = captured['body'], captured['body'].get('provenance', {})
-        if (provenance.get('origin_id'), provenance.get('generation_id'), provenance.get('dataset')) != (ORIGIN, generation, 'raw.events'):
+        if (provenance.get('origin_id'), provenance.get('generation_id'), provenance.get('dataset')) != (origin, generation, 'raw.events'):
             raise ValueError('raw history scope mismatch')
         state, tier = provenance.get('state'), provenance.get('tier')
         if phase == 'retained' and (state not in ('sealed', 'verified') or tier != 'local_postgres'):
@@ -226,7 +232,7 @@ def collect(client, generation, phase, *, expected, source_sha, max_pages=128):
         rows = body.get('rows')
         if not isinstance(rows, list) or len(rows) > 500: raise ValueError('invalid raw page')
         for row in rows:
-            if (row.get('origin_id'), row.get('generation_id')) != (ORIGIN, generation):
+            if (row.get('origin_id'), row.get('generation_id')) != (origin, generation):
                 raise ValueError('foreign raw row')
             key = (row['source'], row['event_id'])
             if key in seen or (previous is not None and key <= previous):
@@ -258,15 +264,15 @@ def collect(client, generation, phase, *, expected, source_sha, max_pages=128):
     return result
 
 
-def compare(directory, captures):
-    expected = bindings(directory, complete=True)
+def compare(directory, captures, *, origin=ORIGIN):
+    expected = bindings(directory, complete=True, origin=origin)
     if len(captures) != 4: raise ValueError('two retained and two retired captures required')
     indexed = {}
     for item in captures:
         if item.get('scope') != 'bounded_read_only_http_capture' or item.get('result') not in ('CAPTURED', 'INCOMPLETE'):
             raise ValueError('incomplete/failed capture shape')
         key = (item['generation_id'], item['phase'])
-        if key in indexed or key[0] not in expected.values() or item['origin_id'] != ORIGIN:
+        if key in indexed or key[0] not in expected.values() or item['origin_id'] != origin:
             raise ValueError('duplicate/foreign capture')
         if item.get('raw_rows_sha256') != digest(item['rows']) or item.get('row_count') != len(item['rows']):
             raise ValueError('capture row hash/count mismatch')
@@ -299,7 +305,7 @@ def compare(directory, captures):
         output.append(dict(generation_id=generation, row_count=len(before['rows']),
                            raw_rows_sha256=digest(before['rows']), saved_predictions_matched=len(left),
                            retained_capture_sha256=digest(before), retired_capture_sha256=digest(after)))
-    return dict(scope='offline_two_generation_http_raw_and_prediction_parity',
+    return dict(scope='offline_two_generation_http_raw_and_prediction_parity', origin_id=origin,
                 result='INCOMPLETE' if gaps else 'PASS', raw_history_result='PASS',
                 saved_prediction_result='INCOMPLETE' if 'saved_predictions_empty' in gaps else 'PASS', windows=output, missing_evidence=sorted(set(gaps)),
                 not_proven=captures[0]['not_proven'])
@@ -317,12 +323,14 @@ def main():
     capture.add_argument('--output', type=Path, required=True)
     check = commands.add_parser('compare'); check.add_argument('--captures', type=Path, nargs=4, required=True)
     check.add_argument('--output', type=Path, required=True)
-    for sub in (pin, capture, check): sub.add_argument('--binding-dir', type=Path, required=True)
+    for sub in (pin, capture, check):
+        sub.add_argument('--binding-dir', type=Path, required=True)
+        sub.add_argument('--origin', choices=ORIGINS, default=ORIGIN)
     args = parser.parse_args()
-    if args.command == 'bind': bind(args.binding_dir, args.ordinal, args.generation); return 0
+    if args.command == 'bind': bind(args.binding_dir, args.ordinal, args.generation, origin=args.origin); return 0
     if args.output.exists(): raise ValueError('output already exists')
     if args.command == 'capture':
-        expected = bindings(args.binding_dir)
+        expected = bindings(args.binding_dir, origin=args.origin)
         generation = expected[str(args.ordinal)]
         client = LoopbackHTTP(args.base_url, total_seconds=args.total_seconds,
                               request_seconds=args.request_seconds)
@@ -335,7 +343,7 @@ def main():
         recording = Recording()
         try:
             result = collect(recording, generation, args.phase, expected=expected,
-                             source_sha=args.source_sha, max_pages=args.max_pages)
+                             source_sha=args.source_sha, max_pages=args.max_pages, origin=args.origin)
         except Exception as error:
             if isinstance(error, HTTPFailure): recording.responses.append(error.response)
             # Preserve successfully received exact bodies even when a later gate
@@ -345,7 +353,7 @@ def main():
                 operator_declared_source_sha=args.source_sha, completed_at=utc(),
                 failure_type=type(error).__name__, failure_reason=str(error)[:256], responses=recording.responses))
             return 1
-    else: result = compare(args.binding_dir, [read_json(path) for path in args.captures])
+    else: result = compare(args.binding_dir, [read_json(path) for path in args.captures], origin=args.origin)
     write_new(args.output, result)
     return 1 if result.get('result') == 'INCOMPLETE' else 0
 

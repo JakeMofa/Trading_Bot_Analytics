@@ -206,4 +206,21 @@ class CaptureHTTPTests(unittest.TestCase):
             with self.assertRaises(ValueError): probe.bind(path,2,IDS['1'])
 
 
+class TrialOriginCaptureTests(unittest.TestCase):
+    def test_exact_origin_binding_disallows_reusing_legacy_capture_directory(self):
+        with tempfile.TemporaryDirectory() as name:
+            directory = Path(name)
+            probe.bind(directory, 1, IDS['1'], origin=probe.TRIAL_ORIGIN)
+            self.assertEqual(probe.bindings(directory, origin=probe.TRIAL_ORIGIN), {'1': IDS['1']})
+            with self.assertRaisesRegex(ValueError, 'binding mismatch'):
+                probe.bindings(directory)
+            with self.assertRaisesRegex(ValueError, 'exact PP capture origin'):
+                probe.bindings(directory, origin='pp-live-pp-trial-unqualified')
+            state = dict(environment='preprod', data_mode='pp_live', origin_id=probe.TRIAL_ORIGIN,
+                         generated_at='2026-11-19T00:00:00+00:00')
+            probe.validate_state(state, origin=probe.TRIAL_ORIGIN)
+            with self.assertRaisesRegex(ValueError, 'origin mismatch'):
+                probe.validate_state(state)
+
+
 if __name__=='__main__': unittest.main()

@@ -26,8 +26,16 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   tests pass both directions of the shared collector fence, preserve the old
   origin, and verify exact trial retirement with its separate 30-minute
   windows. The old A/B drain grants no deletion or fresh-trial authority.
-  Continue controller, cloud identity, exact release and live qualification.
-  [Trial scope and cloud prerequisites](PLAN/PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md)
+  Hosted setup created exact trial-only SQL writer/reader logins and two
+  Storage Auth identities. The bounded fixtures proved one exact structured
+  receipt/revision and one 210-byte private archive object, with independent
+  reader readback and denied reader writes and foreign-origin access. Ten
+  private files were staged on PP without activating a collector or replacing
+  legacy credentials. The live profile must qualify both workers and the
+  independent reader, deploy the exact release, prepare the initial A and
+  verify the production fence before collection starts.
+  [Trial scope](PLAN/PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md) ·
+  [Hosted qualification and PP staging](PLAN/evidence/pp-trial-cloud-setup-2026-11-19.json)
 
 - [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**
   Exact qualified canonical-byte transport verified all 57 raw objects / 28,411

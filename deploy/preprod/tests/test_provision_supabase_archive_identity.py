@@ -66,6 +66,28 @@ class ProvisionTests(unittest.TestCase):
             self.invoke(self.success)
         self.assertEqual(self.calls, 1)
 
+    def test_private_history_reader_stages_distinct_files_and_verifies_role(self):
+        def create(payload, key):
+            body = json.loads(payload)
+            self.assertEqual(body["app_metadata"], {
+                "tradebot_role": "pp_storage_history_reader", "tradebot_origin": "pp-live-pp"})
+            self.assertEqual(body["password"], (self.stage / "history_reader_password").read_text().strip())
+            return 201, json.dumps(dict(id=UID, email=EMAIL, app_metadata=body["app_metadata"])).encode()
+        self.assertEqual(self.invoke(create, purpose="history-reader"), UID)
+        self.assertEqual({p.name for p in self.stage.iterdir()},
+                         {"history_reader_email", "history_reader_password", "history_reader_uid", "status"})
+        self.assertTrue(all(stat.S_IMODE(p.stat().st_mode) == 0o400 for p in self.stage.iterdir()))
+
+    def test_history_reader_rejects_writer_metadata_and_preserves_uncertain_stage(self):
+        def wrong(payload, key):
+            return 201, json.dumps(dict(id=UID, email=EMAIL, app_metadata={
+                "tradebot_role": "pp_storage_archive", "tradebot_origin": "pp-live-pp"})).encode()
+        with self.assertRaises(module.ProvisionError):
+            self.invoke(wrong, purpose="history-reader")
+        self.assertFalse((self.stage / "history_reader_uid").exists())
+        self.assertTrue((self.stage / "history_reader_password").exists())
+        self.assertEqual((self.stage / "status").read_text().strip(), "UNCONFIRMED_CREATE")
+
     def test_definite_duplicate_rejection_cleans_private_stage(self):
         def duplicate(payload, key):
             self.calls += 1

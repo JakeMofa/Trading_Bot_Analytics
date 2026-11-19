@@ -1,3 +1,9 @@
+## November 19 UTC — archived-history reader access inventory
+
+Live read-only inspection found **zero** Supabase Auth users tagged as the PP archived-history reader, **zero** matching reader Storage policies, and **one** distinct archive writer. On deployed pp.16 the four reader credential files, root proof and release authority marker were absent. The running API had zero reader mounts and no archive writer credential. The collector remained OFF. Fresh generated PostgreSQL 17 tests proved the reviewed policy restricts reads to the PP origin and denies list/insert/update/delete even with a deliberately permissive secondary policy. Actual reader HTTP permission and post-retirement application history remain unqualified.
+
+The existing Admin Auth helper now supports `--purpose history-reader`, emitting a separately named private credential stage and verifying the reader role in the creation response. Fourteen generated provisioning tests passed. Actual provisioning requires a dedicated confirmed machine Auth identity, its two-UID reviewed private Storage policy, an independent authenticated GET and mutation-denial proof, and a marker bound to the exact deployed SHA/image. No identity, policy, live data or running service changed during this inventory. [Operator procedure](../../deploy/preprod/PP_ARCHIVE_IDENTITY_PROVISION.md)
+
 ## November 19 UTC — measured PP → Supabase raw transfer passed
 
 Ten synthetic objects matched the ten compressed chunk sizes measured from the 4,845 retained A events. Uploading 620,549 bytes took **5.105 seconds**, immediate authenticated byte-for-byte readback took **8.612 seconds**, and a second authenticated readback took **0.450 seconds**. Total elapsed inside the probe was **14.564 seconds** across 31 requests, including machine authentication. A separate private catalog query matched all ten keys and lengths. The test objects remain in their isolated synthetic generation.

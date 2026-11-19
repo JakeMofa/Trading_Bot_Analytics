@@ -1,0 +1,55 @@
+# Explicit PP profile. The controller provisions the dedicated root-only DSN mount.
+services:
+  structured_sync:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    profiles: [structured_sync]
+    command: [python, -m, postgres.pp_structured_service]
+    user: '0:0' # read root-owned, single-file secrets in this restricted worker
+    restart: 'no'
+    stop_grace_period: 35s
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: /app/backend
+      TRADEBOT_ENVIRONMENT: preprod
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
+      TRADEBOT_COLLECTOR_ENABLED: 'false'
+      TRADEBOT_CLOUD_ENABLED: 'false'
+      TRADEBOT_RETIREMENT_ENABLED: 'false'
+      ENABLE_SUPABASE_SYNC: 'false'
+      ENABLE_LOCAL_RETENTION: 'false'
+      ENABLE_OPENAI_ANALYST: 'false'
+      TRADEBOT_PP_HISTORY_DSN_FILE: /run/secrets/pp_history_dsn
+      TRADEBOT_PP_HISTORY_CA_FILE: /run/secrets/pp_history_ca
+      TRADEBOT_PP_STRUCTURED_RECURRING: 'true'
+    secrets:
+      - {source: sync_local_dsn, target: /run/secrets/lifecycle_dsn}
+      - pp_history_dsn
+      - pp_history_ca
+    networks: [database, structured_sync_egress]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+secrets:
+  sync_local_dsn:
+    file: /run/tradebot-pp-deploy/structured-sync-local-dsn
+  pp_history_dsn:
+    file: /etc/tradebot/cloud/pp_history_dsn
+  pp_history_ca:
+    file: /etc/tradebot/cloud/pp_history_ca
+networks:
+  structured_sync_egress:
+    driver: bridge

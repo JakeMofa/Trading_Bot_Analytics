@@ -1,5 +1,18 @@
 # BTC Intelligence Rebuild Plan
 
+### PP recurring structured sync candidate
+
+The optional `structured_sync` Compose profile runs one verified outbox page per
+iteration. A clean stop finishes the current page. Cloud unavailability retries
+with a 1–60 second backoff. Integrity or budget failures stop the process and
+emit a public reason. Logs report per-page acknowledged rows and elapsed time.
+The profile requires an exact PP origin, a dedicated root-only local credential
+mount and the existing restricted history credential. Deployment control must
+bind those mounts and stop this profile before changing release or mode.
+Real page throughput, backlog recovery, archive upload and retirement remain
+separate qualification gates.
+
+
 ## Current PP release checkpoint — November 18, 2026 CST
 
 **PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**

@@ -29,12 +29,16 @@ OFF_FLAGS = ('ENABLE_SUPABASE_SYNC', 'ENABLE_LOCAL_RETENTION',
              'TRADEBOT_RETIREMENT_ENABLED')
 
 
-def check_environment(environ: dict[str, str]) -> None:
+def check_environment(environ: dict[str, str], *, recurring=False) -> None:
+    enabled = ('TRADEBOT_PP_STRUCTURED_RECURRING' if recurring
+               else 'TRADEBOT_PP_STRUCTURED_ONE_SHOT')
+    other = ('TRADEBOT_PP_STRUCTURED_ONE_SHOT' if recurring
+             else 'TRADEBOT_PP_STRUCTURED_RECURRING')
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
             environ.get('TRADEBOT_DATA_MODE') != 'pp_live' or
             environ.get('TRADEBOT_ORIGIN_ID') != ORIGIN or
-            environ.get('TRADEBOT_PP_STRUCTURED_ONE_SHOT') != 'true'):
-        raise LifecycleHold('exact PP one-shot identity required')
+            environ.get(enabled) != 'true' or environ.get(other, 'false') != 'false'):
+        raise LifecycleHold('exact PP structured worker identity required')
     if any(environ.get(flag, 'false').lower() not in ('false', '0', 'off')
            for flag in OFF_FLAGS):
         raise LifecycleHold('cloud service, retirement and paid AI must remain OFF')

@@ -32,11 +32,13 @@ class RuntimeHistory:
             return ArchiveHistory(self.repository, transport, ArchiveLimits()).read_generation(
                 generation_id, **kwargs)
         finally:
-            if raw is not None:
-                close = getattr(raw, 'close', None)
-                if close is not None:
-                    close()
-            self._admission.release()
+            try:
+                if raw is not None:
+                    close = getattr(raw, 'close', None)
+                    if close is not None:
+                        close()
+            finally:
+                self._admission.release()
 
 
 def configured_history(settings, store, environ):

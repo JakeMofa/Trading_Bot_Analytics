@@ -128,6 +128,14 @@ class ConfigTests(unittest.TestCase):
                                              text=True,timeout=10,env=env).stdout)
         live_policy.validate_live_profile(rendered(),rendered('runtime.live.compose.yaml'),
                                           source,IMAGE)
+        cfg = rendered('runtime.live.compose.yaml','runtime.history-reader.compose.yaml')
+        live_policy.validate_live_profile(rendered(),cfg,source,IMAGE,reader=True)
+        with self.assertRaises(a.DeploymentHold):
+            live_policy.validate_live_profile(rendered(),cfg,source,IMAGE)
+        cfg['services']['api']['secrets'].append({'source':'lifecycle_dsn','target':'lifecycle_dsn'})
+        with self.assertRaises(a.DeploymentHold):
+            live_policy.validate_live_profile(rendered(),cfg,source,IMAGE,reader=True)
+
 
     def test_explicit_live_overlay_changes_only_reviewed_pp_fields(self):
         source=Path('/private/candidate/source')

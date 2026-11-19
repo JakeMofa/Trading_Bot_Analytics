@@ -15,7 +15,7 @@ import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from postgres.archive_codec import ArchiveLimit, ArchiveUnavailable, ArchiveLimits, CycleBudget
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable, ArchiveLimits, CycleBudget
 from postgres.supabase_storage import SupabaseStorageTransport
 
 
@@ -28,10 +28,12 @@ PASSWORD = 'generated-machine-password-12345'
 EXP = int(time.time()) + 3600
 
 
-def token(uid=UID, *, role='authenticated', suffix='first'):
+def token(uid=UID, *, role='authenticated', suffix='first', metadata=None):
     claims = {'sub': uid, 'role': role,
               'iss': 'https://xttdqeimdujweijxcuro.supabase.co/auth/v1',
               'exp': EXP}
+    if metadata is not None:
+        claims['app_metadata'] = metadata
     encoded = base64.urlsafe_b64encode(json.dumps(claims).encode()).rstrip(b'=').decode()
     return f'generated-header.{encoded}.generated-signature-{suffix}'
 
@@ -274,6 +276,28 @@ class SupabaseMachineAuthTests(unittest.TestCase):
         self.assertEqual(machine.read_authenticated(KEY, max_bytes=32,
                                                      timeout_seconds=2), b'archive')
         self.assertEqual(calls.count('/auth/v1/token'), 2)
+
+    def test_history_reader_cannot_use_archive_writer_claims_or_upload(self):
+        for marked in (False, True):
+            methods = []
+            def handler(request):
+                methods.append((request.method,request.url.path))
+                if request.url.path == '/auth/v1/token':
+                    role = 'pp_storage_history_reader' if marked else 'pp_storage_archive'
+                    return self.auth_response(token(metadata={'tradebot_role':role,'tradebot_origin':'pp-live-pp'}))
+                return httpx.Response(200,content=b'old')
+            original, paths = self.machine(handler)
+            read = SupabaseStorageTransport.from_machine_files(*paths,client=original._client,reader=True)
+            with self.assertRaises(ArchiveIntegrityError):
+                read.put_if_absent(KEY,b'forbidden',timeout_seconds=2)
+            self.assertFalse(methods)
+            if marked:
+                self.assertEqual(read.read_authenticated(KEY,max_bytes=32,timeout_seconds=2),b'old')
+                self.assertEqual([m for m,_ in methods],['POST','GET'])
+            else:
+                with self.assertRaises(ArchiveUnavailable):
+                    read.read_authenticated(KEY,max_bytes=32,timeout_seconds=2)
+                self.assertEqual(methods,[('POST','/auth/v1/token')])
 
     def test_machine_headers_require_deadline_and_total_request_deadline(self):
         calls = []

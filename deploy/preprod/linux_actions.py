@@ -9,6 +9,7 @@ never restores a volume. Actual Linux execution is a separate qualification gate
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -229,6 +230,46 @@ while True:
         if time.monotonic()>=deadline:raise
         time.sleep(.2)
 '''
+
+
+HISTORY_READER_FILES = tuple('history_reader_' + field for field in ('api_key','email','password','uid'))
+
+
+def history_reader_enabled(context):
+    marker = RUNTIME_SECRETS/'history_reader_authority.json'
+    try:
+        info = marker.lstat()
+    except FileNotFoundError:
+        return False
+    require(stat.S_ISREG(info.st_mode) and info.st_nlink==1 and info.st_uid==0
+            and stat.S_IMODE(info.st_mode)==0o400 and 0<info.st_size<=2048, 'unsafe_history_reader_authority')
+    proof = json.loads(marker.read_text())
+    require(set(proof)=={'source_sha','image_id','scope','reader_uid','policy_proof_sha256'}
+            and proof['source_sha']==context.request.source_sha and proof['image_id']==context.image
+            and proof['scope']=='pp_raw_get_only' and re.fullmatch('[a-f0-9]{64}',proof['policy_proof_sha256']),
+            'unqualified_history_reader_profile')
+    evidence_path = RUNTIME_SECRETS/'history_reader_proof.json'
+    attestation = evidence_path.lstat()
+    require(stat.S_ISREG(attestation.st_mode) and attestation.st_nlink==1 and attestation.st_uid==0
+            and stat.S_IMODE(attestation.st_mode)==0o400 and 0<attestation.st_size<=4096,
+            'unsafe_history_reader_proof')
+    raw = evidence_path.read_bytes()
+    require(hashlib.sha256(raw).hexdigest()==proof['policy_proof_sha256'], 'history_reader_proof_changed')
+    evidence = json.loads(raw)
+    require(evidence == dict(project_ref='xttdqeimdujweijxcuro', bucket='market-raw',
+            origin_id='pp-live-pp', reader_uid=proof['reader_uid'], effective_role='authenticated',
+            authenticated_get='pass', denied=['wrong_origin','list','upload','replace','move','delete']),
+            'incomplete_history_reader_proof')
+    for name in HISTORY_READER_FILES:
+        credential = (RUNTIME_SECRETS/name).lstat()
+        require(stat.S_ISREG(credential.st_mode) and credential.st_nlink==1 and credential.st_uid==10001
+                and stat.S_IMODE(credential.st_mode)==0o400 and 0<credential.st_size<=4096,
+                'unsafe_history_reader_credential')
+    uid=(RUNTIME_SECRETS/'history_reader_uid').read_text().strip()
+    require(bool(re.fullmatch('[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}',uid))
+            and uid==proof['reader_uid'] and uid!=Path('/etc/tradebot/cloud/supabase_auth_uid').read_text().strip(),
+            'history_reader_identity_mismatch')
+    return True
 
 
 class LinuxActions:
@@ -644,6 +685,11 @@ class LinuxActions:
                     'runtime_network_mismatch')
             mounts=row.get('Mounts',[])
             wanted=set(service_secrets(service,live=live))
+            reader = bool(live and service=='api' and history_reader_enabled(context))
+            require(env.get('TRADEBOT_PP_ARCHIVE_HISTORY','false') == ('true' if reader else 'false'),
+                    'archive_history_runtime_flag_mismatch')
+            if reader:
+                wanted.update(HISTORY_READER_FILES)
             secrets={item.get('Destination'):item for item in mounts if item.get('Destination','').startswith('/run/secrets/')}
             require(set(secrets)=={'/run/secrets/'+name for name in wanted}
                     and all(secrets['/run/secrets/'+name].get('Source')==str(RUNTIME_SECRETS/name)

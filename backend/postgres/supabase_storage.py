@@ -89,7 +89,8 @@ class _MachineSession:
     """One in-memory, restricted Auth session; failed refresh requires restart."""
 
     def __init__(self, api_key: str, email: str, password: str, uid: str,
-                 client: httpx.Client):
+                 client: httpx.Client, *, reader=False):
+        self._reader = reader
         try:
             canonical_uid = str(UUID(uid))
         except (ValueError, AttributeError):
@@ -117,6 +118,11 @@ class _MachineSession:
                 raise ValueError('invalid token shape')
             claims = json.loads(base64.urlsafe_b64decode(
                 parts[1] + '=' * (-len(parts[1]) % 4)))
+            if self._reader:
+                metadata = claims.get('app_metadata') if isinstance(claims, dict) else None
+                if (not isinstance(metadata, dict) or metadata.get('tradebot_role') != 'pp_storage_history_reader'
+                        or metadata.get('tradebot_origin') != 'pp-live-pp'):
+                    raise ValueError('wrong archive reader role')
             if (not isinstance(claims, dict) or claims.get('sub') != self._uid or
                     claims.get('role') != 'authenticated' or
                     claims.get('iss') != PROJECT_URL + '/auth/v1' or
@@ -209,6 +215,7 @@ class SupabaseStorageTransport:
         self._access_token = access_token
         self._client = client or httpx.Client(trust_env=False)
         self._owns_client = client is None
+        self._reader = False
         self._machine: _MachineSession | None = None
 
     @classmethod
@@ -219,7 +226,7 @@ class SupabaseStorageTransport:
 
     @classmethod
     def from_machine_files(cls, api_key_path: str | Path, email_path: str | Path,
-                           password_path: str | Path, uid_path: str | Path, **kwargs):
+                           password_path: str | Path, uid_path: str | Path, *, reader=False, **kwargs):
         """Use restricted PP Auth files; refresh tokens remain process-local."""
         api_key = read_token_file(api_key_path)
         if not api_key.startswith('sb_publishable_'):
@@ -228,8 +235,9 @@ class SupabaseStorageTransport:
         password = _read_machine_file(password_path, minimum=20)
         uid = _read_machine_file(uid_path, minimum=36)
         transport = cls(api_key, None, _machine_mode=True, **kwargs)
+        transport._reader = reader
         transport._machine = _MachineSession(api_key, email, password, uid,
-                                             transport._client)
+                                             transport._client, reader=reader)
         return transport
 
     def close(self):
@@ -347,6 +355,8 @@ class SupabaseStorageTransport:
             raise ArchiveUnavailable('authenticated archive read failed') from None
 
     def put_if_absent(self, key: str, data: bytes, *, timeout_seconds: float) -> None:
+        if self._reader:
+            raise ArchiveIntegrityError('history reader has no upload operation')
         url = self._url(key, authenticated=False)
         timeout = self._timeout(timeout_seconds)
         deadline = time.monotonic() + timeout

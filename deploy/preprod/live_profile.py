@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import validate_config
+from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS
 from controller import require
 
 
 LIVE_ORIGIN = 'pp-live-pp'
 
 
-def validate_live_profile(base: dict, live: dict, source, image):
+def validate_live_profile(base: dict, live: dict, source, image, *, reader=False):
     validate_config(base, source, image)
     expected = deepcopy(base)
     for name in ('api', 'calculation', 'lifecycle'):
@@ -32,5 +32,11 @@ def validate_live_profile(base: dict, live: dict, source, image):
             'unreviewed_pp_operator_secret_shape')
     operator['secrets'].append({'source': 'app_dsn',
                                 'target': '/run/secrets/app_dsn' if target.startswith('/') else 'app_dsn'})
+    if reader:
+        api = expected['services']['api']
+        api['environment']['TRADEBOT_PP_ARCHIVE_HISTORY'] = 'true'
+        for name in HISTORY_READER_FILES:
+            expected['secrets'][name] = {'name': expected['name']+'_'+name, 'file':str(RUNTIME_SECRETS/name)}
+            api['secrets'].append({'source':name, 'target':('/run/secrets/' if target.startswith('/') else '')+name})
     require(live == expected, 'unreviewed_pp_live_profile_difference')
     return live

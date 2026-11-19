@@ -83,15 +83,12 @@ def configured_history(settings, store, environ):
     if (flag != 'true' or settings.environment != 'preprod' or
             settings.data_mode != 'pp_live' or settings.origin_id != 'pp-live-pp'):
         raise ValueError('archive history requires exact PP live identity')
-    from .pp_raw_archive_probe import FILES
     from .supabase_storage import SupabaseStorageTransport
 
     def raw():
         return SupabaseStorageTransport.from_machine_files(
-            FILES['TRADEBOT_PP_STORAGE_API_KEY_FILE'],
-            FILES['TRADEBOT_PP_STORAGE_AUTH_EMAIL_FILE'],
-            FILES['TRADEBOT_PP_STORAGE_AUTH_PASSWORD_FILE'],
-            FILES['TRADEBOT_PP_STORAGE_AUTH_UID_FILE'])
+            '/run/secrets/history_reader_api_key', '/run/secrets/history_reader_email',
+            '/run/secrets/history_reader_password', '/run/secrets/history_reader_uid', reader=True)
 
     repository = ReadRepository(lambda: store.connection(readonly=True), origin_id=settings.origin_id)
     return RuntimeHistory(repository, raw, origin_id=settings.origin_id)

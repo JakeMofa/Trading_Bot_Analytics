@@ -5,6 +5,7 @@ import uuid
 from .archive_codec import ArchiveLimits
 from .archive_transport import ScopedArchiveTransport
 from .history import ArchiveHistory, HistoryError
+from .lifecycle import LifecycleRepository, LifecycleHold
 
 
 class RuntimeHistory:
@@ -52,6 +53,29 @@ class RuntimeHistory:
                 self._admission.release()
 
 
+class ReadRepository(LifecycleRepository):
+    def __init__(self, connection_factory, *, origin_id):
+        super().__init__(connection_factory)
+        self.origin_id = origin_id
+
+    def local_history(self, generation_id, after, limits):
+        with self.transaction() as connection:
+            connection.execute("SET LOCAL lock_timeout='250ms'")
+            connection.execute('LOCK TABLE raw.events IN ACCESS SHARE MODE')
+            generation = connection.execute(
+                'SELECT * FROM archive.generations WHERE generation_id=%s',
+                (generation_id,)).fetchone()
+            if generation is None or generation['origin_id'] != self.origin_id:
+                raise LifecycleHold('unknown history generation')
+            if generation['state'] == 'retired':
+                return generation, None, False
+            # Parent and attached partition relation locks precede state
+            # lookup, so transactional retirement cannot remove the rows
+            # between that lookup and the page query.
+            rows, more = self._page(connection, generation_id, after, limits)
+            return generation, rows, more
+
+
 def configured_history(settings, store, environ):
     flag = environ.get('TRADEBOT_PP_ARCHIVE_HISTORY', 'false')
     if flag == 'false':
@@ -59,7 +83,6 @@ def configured_history(settings, store, environ):
     if (flag != 'true' or settings.environment != 'preprod' or
             settings.data_mode != 'pp_live' or settings.origin_id != 'pp-live-pp'):
         raise ValueError('archive history requires exact PP live identity')
-    from .lifecycle import LifecycleRepository, LifecycleHold
     from .pp_raw_archive_probe import FILES
     from .supabase_storage import SupabaseStorageTransport
 
@@ -70,24 +93,5 @@ def configured_history(settings, store, environ):
             FILES['TRADEBOT_PP_STORAGE_AUTH_PASSWORD_FILE'],
             FILES['TRADEBOT_PP_STORAGE_AUTH_UID_FILE'])
 
-    class ReadRepository(LifecycleRepository):
-        def local_history(self, generation_id, after, limits):
-            with self.transaction() as connection:
-                connection.execute("SET LOCAL lock_timeout='250ms'")
-                connection.execute('LOCK TABLE raw.events IN ACCESS SHARE MODE')
-                generation = connection.execute(
-                    'SELECT * FROM archive.generations WHERE generation_id=%s',
-                    (generation_id,)).fetchone()
-                if generation is None or generation['origin_id'] != settings.origin_id:
-                    raise LifecycleHold('unknown history generation')
-                if generation['state'] == 'retired':
-                    return generation, None, False
-                # Parent and attached partition relation locks precede state
-                # lookup, so transactional retirement cannot remove the rows
-                # between that lookup and the page query.
-                rows, more = self._page(connection, generation_id, after, limits)
-                return generation, rows, more
-
-    repository = ReadRepository(lambda: store.connection(readonly=True),
-                                environment='preprod')
+    repository = ReadRepository(lambda: store.connection(readonly=True), origin_id=settings.origin_id)
     return RuntimeHistory(repository, raw, origin_id=settings.origin_id)

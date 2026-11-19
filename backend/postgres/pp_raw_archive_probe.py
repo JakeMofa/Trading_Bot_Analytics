@@ -1,6 +1,6 @@
 """Default-OFF, one-cycle PP raw archive diagnostic for a sealed generation.
 
-This module has no service or host-controller route. It may upload and verify
+The explicit PP host control may upload and verify
 one bounded raw page only after a separately reviewed one-use execution path
 mounts the restricted Storage and structured-history credentials. It never
 authorizes local partition retirement.
@@ -77,6 +77,12 @@ class PinnedRepository:
             raise LifecycleHold('archive progress changed after review')
         return rows
 
+    def archive_page(self, generation_id, after, limits):
+        rows, more = self.repository.archive_page(generation_id, after, limits)
+        if rows and self.manifest_count >= 128:
+            raise LifecycleHold('sealed generation exceeds probe manifest capacity')
+        return rows, more
+
     def outbox(self, generation_id, limit, max_bytes):
         # The archive worker syncs structured rows before it reads manifests.
         # Recheck reviewed progress before its first possible cloud write.
@@ -98,6 +104,10 @@ def archive_once(repository, transport, *, generation_id: str,
             not isinstance(expected_manifest_count, int) or
             not 0 <= expected_manifest_count <= 128):
         raise ValueError('invalid reviewed generation count')
+    # Each manifest covers at most one bounded page. Avoid a cloud write
+    # when this probe cannot finish within the supported manifest catalog.
+    if expected_seal_count > 128 * LIMITS.max_rows:
+        raise LifecycleHold('sealed generation exceeds probe manifest capacity')
     pinned = PinnedRepository(repository, generation_id, expected_seal_count,
                               expected_manifest_count)
     with CycleBudget(LIMITS) as overall:

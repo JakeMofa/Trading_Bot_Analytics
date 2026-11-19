@@ -81,6 +81,21 @@ class ProbeTests(unittest.TestCase):
                             expected_seal_count=10, expected_manifest_count=0)
             worker.assert_not_called()
 
+    def test_impossible_seal_or_exhausted_manifest_budget_stops_before_cloud(self):
+        transport = Mock()
+        with self.assertRaises(LifecycleHold):
+            probe.archive_once(FakeRepository(), transport, generation_id=GENERATION,
+                               expected_seal_count=3201, expected_manifest_count=0)
+        self.assertFalse(transport.mock_calls)
+        repository = Mock()
+        pinned = probe.PinnedRepository(repository, GENERATION, 3200, 128)
+        repository.archive_page.return_value = ([{'row': 1}], False)
+        with self.assertRaises(LifecycleHold):
+            pinned.archive_page(GENERATION, None, probe.LIMITS)
+        # Recovery may still finalize the last durable manifest after restart.
+        repository.archive_page.return_value = ([], False)
+        self.assertEqual(pinned.archive_page(GENERATION, None, probe.LIMITS), ([], False))
+
     def test_bounded_cycle_never_calls_retirement(self):
         repo = FakeRepository()
         fake = Mock()

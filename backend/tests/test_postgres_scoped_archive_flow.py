@@ -40,16 +40,20 @@ class ScopedArchivePostgresFlowTests(unittest.TestCase):
         origin = 'generated-archive-fault-' + uuid.uuid4().hex
         first = repository.bootstrap(origin)
         first_id = str(first['generation_id'])
-        row = generated_rows(first_id, 1, origin)[0]
+        rows = generated_rows(first_id, 26, origin)
+        row = rows[0]
         columns = list(row)
         placeholders = ','.join('%s::jsonb' if column == 'payload' else '%s'
                                 for column in columns)
-        values = [encoded(row[column]).decode() if column == 'payload' else row[column]
-                  for column in columns]
-        with application() as database:
-            with database.transaction():
-                database.execute(f'INSERT INTO raw.events({",".join(columns)}) VALUES({placeholders})',
-                                 values)
+        def insert_rows(events):
+            with application() as database:
+                for event in events:
+                    values = [encoded(event[col]).decode() if col == 'payload' else event[col]
+                              for col in columns]
+                    database.execute(f'INSERT INTO raw.events({",".join(columns)}) VALUES({placeholders})',
+                                     values)
+
+        insert_rows(rows)
         with lifecycle() as database:
             threshold = database.execute('SELECT pg_total_relation_size(to_regclass(%s)) AS bytes',
                 ('raw.' + first['partition_name'],)).fetchone()['bytes']
@@ -69,34 +73,48 @@ class ScopedArchivePostgresFlowTests(unittest.TestCase):
         worker = ArchiveWorker(repository,
             ScopedArchiveTransport(raw, ImmutableMemoryTransport(),
                 origin_id=origin, generation_id=first_id), ArchiveLimits(max_rows=5))
+        # Drive the same bounded wrapper that the host launches. Keep the
+        # object store across attempts, but reopen local state for each page.
+        def page(progress):
+            with patch.object(pp_raw_archive_probe, 'ORIGIN', origin):
+                return pp_raw_archive_probe.archive_once(LifecycleRepository(lifecycle),
+                    worker.transport, generation_id=first_id, expected_seal_count=len(rows),
+                    expected_manifest_count=progress)
+
+        first_page = page(0)
+        self.assertEqual((first_page['raw_coverage'], first_page['raw_rows']), ('partial', 25))
+        active_rows = iter(generated_rows(second_id, 3, origin))
+        read = raw.read_authenticated
+
+        def reading_while_b_collects(key, **kwargs):
+            insert_rows([next(active_rows)])
+            return read(key, **kwargs)
+
+        raw.read_authenticated = reading_while_b_collects
         raw.fail_get = True
         with self.assertRaises(ArchiveUnavailable):
-            worker.archive_cycle(first_id)
-        self.assertTrue(raw.objects, 'failed readback must leave uploaded object for reconciliation')
+            page(1)
         raw.fail_get = False
         raw.corrupt = True
         with self.assertRaises(ArchiveIntegrityError):
-            worker.archive_cycle(first_id)
-        with lifecycle() as database:
-            self.assertEqual(database.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
-                (first_id,)).fetchone()['count'], 1)
-            self.assertEqual(repository.generation(first_id)['state'], 'sealed')
-            self.assertEqual(repository.generation(second_id)['state'], 'collecting')
+            page(1)
+        self.assertEqual(repository.generation(first_id)['state'], 'sealed')
+        self.assertEqual(len(repository.manifests(first_id)), 1)
         raw.corrupt = False
-        # Exercise the default-off one-shot wrapper against actual PostgreSQL
-        # sealing, cloud-mock readback, and manifest persistence.
-        with patch.object(pp_raw_archive_probe, 'ORIGIN', origin):
-            outcome = pp_raw_archive_probe.archive_once(repository,
-                worker.transport, generation_id=first_id,
-                expected_seal_count=1, expected_manifest_count=0)
-        self.assertEqual(outcome['raw_coverage'], 'archived')
-        self.assertEqual(outcome['retirement'], 'off')
+        outcome = page(1)
+        self.assertEqual((outcome['raw_coverage'], outcome['raw_rows']), ('archived', 1))
+        self.assertEqual([manifest['row_count'] for manifest in repository.manifests(first_id)],
+                         [25, 1])
+        self.assertEqual(len(raw.objects), 2)
         self.assertEqual(repository.generation(first_id)['state'], 'verified')
         with self.assertRaisesRegex(LifecycleHold, 'runtime retirement disabled'):
             worker.retire_generated(first_id, qualification_enabled=True)
         with lifecycle() as database:
-            self.assertEqual(database.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
-                (first_id,)).fetchone()['count'], 1)
+            saved = database.execute('SELECT generation_id,event_id FROM raw.events WHERE origin_id=%s',
+                                     (origin,)).fetchall()
+        self.assertEqual({(str(event['generation_id']), event['event_id']) for event in saved},
+                         {(event['generation_id'], event['event_id'])
+                          for event in [*rows, *generated_rows(second_id, 3, origin)]})
 
     def test_size_switch_keeps_b_writing_during_a_authenticated_readback(self):
         lifecycle = lambda: connect(os.environ['TRADEBOT_TEST_LIFECYCLE_DSN'],

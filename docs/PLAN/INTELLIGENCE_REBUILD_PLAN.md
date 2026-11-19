@@ -1,5 +1,16 @@
 # BTC Intelligence Rebuild Plan
 
+## PP sealed-generation archive capacity, November 18
+
+The PP raw diagnostic supports 25 rows per page and 128 manifests. A seal
+above 3,200 rows exceeds this route before byte limits are considered. An
+oversized seal stays local. The host control currently uses the ready-off
+profile. Continuous PP requires a supervised route with measured chunk and
+catalog capacity for an actual seal while the other generation collects.
+The generated integration case covers a durable first page, failed and corrupt
+second-page readback, restart at the saved manifest, and B commits during each
+attempt. The archive worker leaves both local partitions in place.
+
 ## Current PP release checkpoint — November 18, 2026 CST
 
 **PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**

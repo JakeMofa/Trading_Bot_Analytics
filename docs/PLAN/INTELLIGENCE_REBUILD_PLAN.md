@@ -20,6 +20,19 @@ retained data, then repeat the same query after each partition drop.
 
 ### Checkpoint 3 continuation — November 19, 2026
 
+PP22 deployed the merge of #189 plus the controller binding in #190.
+[`0c86b47` exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44623771290),
+[controller identity](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44622538113)
+and [CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44624765516)
+passed their respective scopes. Trial `pp-live-pp-trial-20261119-01` entered
+with empty initial A `94107d29-626f-480a-b61a-ce6a10f44301`; the trial-only
+structured sync and sealed archive workers each passed host readiness. At this
+checkpoint the collector remained OFF and no trial partition had been removed.
+After the two timed retirements, stop and fence PP, then archive and verify
+the final fresh A by a separately bounded OFF drain that retains its local
+partition.
+
+
 A fresh read-only PP21 inventory confirmed historic live A is verified and still
 attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,
 and the writer is OFF with no session or unused authority. All 42,133

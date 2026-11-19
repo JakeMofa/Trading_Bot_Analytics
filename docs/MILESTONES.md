@@ -33,7 +33,14 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   private files were staged on PP without activating a collector or replacing
   legacy credentials. The live profile must qualify both workers and the
   independent reader, deploy the exact release, prepare the initial A and
-  verify the production fence before collection starts.
+  verify the production fence before collection starts. PP22 source
+  `0c86b47` passed exact CI and generated-mode deployment. The installed
+  controller passed the dedicated identity check. The exact trial initial A
+  was created empty with collection OFF, and both scoped cloud workers passed
+  host readiness. Live rollover, two deadline-bound retirements, history after
+  removal and the final fresh-A drain remain open.
+  [Exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44623771290) ·
+  [PP22 deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44624765516)
   [Trial scope](PLAN/PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md) ·
   [Hosted qualification and PP staging](PLAN/evidence/pp-trial-cloud-setup-2026-11-19.json)
 

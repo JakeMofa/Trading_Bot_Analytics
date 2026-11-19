@@ -3837,3 +3837,27 @@ boundary; no old-image or DB rollback, A/B deletion, cloud action, live ON or
 renewed expired-trial authority is included. Actual reader SQL/native controls
 pass; host migration/bootstrap and normal exact-source CD remain pending.
 [Procedure, compatibility and gates](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md).
+
+### PP21 generated recovery and normal deployment completed, November 19 UTC
+
+Exact release `v0.2.0-pp.21` at `c1da8d6` passed merged-source Linux/controller
+CI 44560442424, CI Preprod 44561420990 and create-only publication 44561555039.
+The actual PP20-state-pinned operator preflight and separately authorized
+forward bootstrap passed, applying migration4 and genuine generated-local
+storage/readback/ACKs with no DB restore. Separate normal CD 44562705669 then
+passed all checks; final image is `880c013e…`, controller 9a7b. The operator
+receipt remained explicitly outside normal CD acceptance.
+
+Independent post-CD reader fingerprints matched all 38,510 original raw rows,
+all 10,000 original generated source bodies (only permitted genuine ACK metadata
+excluded), all 42,133 live rows/ACKs and live core/A-B/writer metadata. Live A
+remains 28,411 raw rows, B 9,784; outcomes honestly remain 0. Generated snapshot:
+10,416 total/6,834 pending/3,166 free admission slots, 3,582 stored envelopes,
+zero ACKs without exact source-equivalent stored envelopes and valid byte hash.
+Both collectors remain OFF/session NULL. Existing history-reader eligibility is
+bound to the final exact source/image without changed credentials/grants.
+This closes generated recovery/deployment, not a new real collector session,
+30-minute observation, cloud/index change, raw deletion or original expired A
+trial/retirement pass. Schema 4 compatibility and preserving all genuine ACKs
+remain mandatory. Source freeze released only after these proofs.
+[Completed procedure and exact sanitized receipts](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md).

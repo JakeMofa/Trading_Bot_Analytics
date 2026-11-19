@@ -206,9 +206,9 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
             if windowed:
                 active_start = db.execute('SELECT started_at FROM archive.generations WHERE generation_id=%s',
                                           (target.collecting,)).fetchone()
-                if (generation['slot'] != 'A' or before['slot'] != 'B' or not active_start or
+                if ({generation['slot'], before['slot']} != {'A', 'B'} or not active_start or
                         active_start['started_at'] != generation['sealed_at']):
-                    raise LifecycleHold('two-market verification requires the actual A to B handoff')
+                    raise LifecycleHold('two-market verification requires the actual opposite-slot handoff')
             with phase('inventory'):
                 estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
             if windowed:

@@ -816,7 +816,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
 
     def test_real_pp_permit_commits_only_after_fresh_read_and_independent_b_commit(self):
         from postgres.connection import connect_migrator
-        from postgres.pp_retirement_verify import Permit, RetirementTransport, Target, verify
+        from postgres.pp_retirement_verify import Permit, RetirementTransport, Target, TwoMarketReadbackLimits, verify
         from psycopg import sql
         from psycopg.conninfo import conninfo_to_dict
         import subprocess
@@ -832,6 +832,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         a=self.repository.bootstrap(origin,self.started)
         sealed=a['generation_id']
         children=[sealed]
+        tickets=[]
         permit=Permit(str(uuid.uuid4()), 'a'*40, 'b'*64, 'c'*64)
         def cleanup():
             with owner() as db:
@@ -844,7 +845,8 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
                     db.execute(sql.SQL('DROP TABLE IF EXISTS raw.{}').format(sql.Identifier(child)))
                     db.execute('DELETE FROM archive.generations WHERE origin_id=%s AND generation_id=%s',
                                (origin,gen))
-                db.execute('DELETE FROM archive.pp_retirement_permits WHERE ticket=%s',(permit.ticket,))
+                for ticket in tickets:
+                    db.execute('DELETE FROM archive.pp_retirement_permits WHERE ticket=%s',(ticket,))
         self.addCleanup(cleanup)
         original=self.insert(1)
         active=self.rotate()['generation_id']
@@ -883,13 +885,15 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         result = issue(start,end)
         self.assertEqual(result.returncode,0,result.stderr)
         permit = replace(permit,ticket=str(uuid.UUID(result.stdout.strip())))
+        tickets.append(permit.ticket)
         with owner() as db:
             observed = db.execute('SELECT issued_at,expires_at FROM archive.pp_retirement_permits '
                                   'WHERE ticket=%s',(permit.ticket,)).fetchone()
             self.assertEqual(observed['expires_at'], datetime.fromisoformat(end))
             self.assertLess(observed['issued_at'],observed['expires_at'])
         scoped=RetirementTransport(self.transport,None,origin_id=origin,generation_id=sealed)
-        check=lambda: verify(self.repository,scoped,target,origin=origin,permit=permit)
+        check=lambda: verify(self.repository,scoped,target,origin=origin,permit=permit,
+                             limits=TwoMarketReadbackLimits())
         with self.assertRaisesRegex(LifecycleHold,'unobserved'):
             check()
         saved=self.transport.read_authenticated
@@ -908,6 +912,135 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         history=ArchiveHistory(self.repository,self.transport,self.limits)
         self.assertEqual(history.read_generation(sealed)['rows'], wire([original]))
         self.assertEqual(self.repository.generation(active)['state'],'collecting')
+
+        # The same source authority now retires exact B while a genuinely new A
+        # persists. Neither the first A's identity nor first ticket is reusable.
+        first_target, first_permit = target, permit
+        sealed = active
+        b = self.repository.generation(sealed)
+        switched = self.repository.switch_if_due(origin, RotationPolicy(1))
+        self.assertEqual(switched['status'], 'switched')
+        self.assertEqual(switched['slot'], 'A')
+        active = switched['generation_id']
+        children.append(active)
+        self.assertEqual(len(set(children)), 3)
+        self.archive_all(sealed)
+        target = Target(sealed,active,self.repository.generation(sealed)['seal_hash'],1)
+        scoped = RetirementTransport(self.transport,None,origin_id=origin,generation_id=sealed)
+        with owner() as db:
+            handoff = db.execute('SELECT started_at FROM archive.generations WHERE generation_id=%s',
+                                 (active,)).fetchone()['started_at']
+            db.execute("UPDATE archive.generations SET started_at=started_at+interval '1 second' "
+                       "WHERE generation_id=%s", (active,))
+        self.assertNotEqual(issue(start,end).returncode,0)
+        calls = len(self.transport.calls)
+        with self.assertRaisesRegex(LifecycleHold, 'handoff'):
+            verify(self.repository,scoped,target,origin=origin,limits=TwoMarketReadbackLimits())
+        self.assertEqual(len(self.transport.calls), calls)
+        with owner() as db:
+            db.execute('UPDATE archive.generations SET started_at=%s WHERE generation_id=%s',
+                       (handoff,active))
+        self.assertNotEqual(issue(start,end,sealed=first_target.sealed).returncode,0)
+        result = issue(start,end)
+        self.assertEqual(result.returncode,0,result.stderr)
+        permit = replace(permit,ticket=str(uuid.UUID(result.stdout.strip())))
+        tickets.append(permit.ticket)
+        self.assertNotEqual(permit.ticket,first_permit.ticket)
+        with self.assertRaisesRegex(LifecycleHold,'unobserved'):
+            check()
+        advances = 42
+        def advance_fresh_a(*args,**kwargs):
+            nonlocal advances
+            advances += 1
+            self.insert(advances)
+            return saved(*args,**kwargs)
+        self.transport.read_authenticated=advance_fresh_a
+        try:
+            from psycopg.errors import RaiseException
+            with self.assertRaises(RaiseException):
+                verify(self.repository,scoped,target,origin=origin,permit=first_permit,
+                       limits=TwoMarketReadbackLimits())
+            self.assertEqual(self.repository.generation(sealed)['state'], 'verified')
+            self.assert_partition_present(b)
+            result=check()
+        finally:
+            self.transport.read_authenticated=saved
+        self.assertEqual((result['status'],result['opposite_slot_new_rows']),('retired_pp',1))
+        self.assertTrue(result['seal_deadline_met'])
+        with owner() as db:
+            self.assertIsNone(db.execute('SELECT to_regclass(%s) AS relation',
+                    ('raw.'+b['partition_name'],)).fetchone()['relation'])
+            self.assertEqual(db.execute('SELECT count(*) AS n FROM archive.pp_retirement_permits '
+                'WHERE ticket=ANY(%s::uuid[]) AND used_at IS NOT NULL', (tickets,)).fetchone()['n'],2)
+        self.assertEqual(self.repository.generation(active)['state'],'collecting')
+
+    def test_two_market_readback_verifies_raw_and_structured_on_both_handoffs(self):
+        from postgres.pp_retirement_verify import Target, TwoMarketReadbackLimits, verify
+        first_id = self.first['generation_id']
+        self.insert(1)
+        ids = [first_id]
+        for leg in range(2):
+            sealed = ids[-1]
+            with self.app_factory() as db:
+                db.execute("""INSERT INTO ops.outbox
+                    (origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at)
+                    VALUES (%s,%s,'fixture',%s,repeat('1',64),'{"exact":"0.000000000000000001"}',now())""",
+                    (self.origin, sealed, str(leg)))
+            switched = self.repository.switch_if_due(self.origin, RotationPolicy(1))
+            self.assertEqual(switched['status'], 'switched')
+            active = switched['generation_id']
+            self.assertNotIn(active, ids)
+            ids.append(active)
+            self.assertEqual(switched['slot'], 'B' if leg == 0 else 'A')
+            self.archive_all(sealed)
+            self.worker.sync_outbox(sealed, CycleBudget(self.limits))
+            target = Target(sealed, active, self.repository.generation(sealed)['seal_hash'], 1)
+            self.transport.origin_id, self.transport.generation_id = self.origin, sealed
+            # Both directions retain fresh raw and structured integrity gates.
+            self.transport.fail_get = True
+            try:
+                with self.assertRaises(ArchiveUnavailable):
+                    verify(self.repository,self.transport,target,origin=self.origin,
+                           limits=TwoMarketReadbackLimits())
+            finally:
+                self.transport.fail_get = False
+            self.transport.corrupt_structured = True
+            try:
+                with self.assertRaises(ArchiveIntegrityError):
+                    verify(self.repository,self.transport,target,origin=self.origin,
+                           limits=TwoMarketReadbackLimits())
+            finally:
+                self.transport.corrupt_structured = False
+            sealed_at = self.repository.generation(sealed)['sealed_at']
+            with self.factory() as db:
+                db.execute("UPDATE archive.generations SET sealed_at=clock_timestamp()-interval '31 minutes' "
+                           "WHERE generation_id=%s", (sealed,))
+            from postgres.archive_codec import ArchiveLimit
+            requests_before = len(self.transport.calls)
+            with self.assertRaises(ArchiveLimit):
+                verify(self.repository,self.transport,target,origin=self.origin,
+                       limits=TwoMarketReadbackLimits())
+            self.assertEqual(len(self.transport.calls),requests_before)
+            with self.factory() as db:
+                db.execute('UPDATE archive.generations SET sealed_at=%s WHERE generation_id=%s',
+                           (sealed_at,sealed))
+            raw_read = self.transport.read_authenticated
+            def progress(*args, **kwargs):
+                self.insert(100 + leg)
+                return raw_read(*args, **kwargs)
+            self.transport.read_authenticated = progress
+            try:
+                proof = verify(self.repository, self.transport, target, origin=self.origin,
+                               limits=TwoMarketReadbackLimits())
+            finally:
+                self.transport.read_authenticated = raw_read
+            self.assertEqual((proof['raw_count'], proof['structured_count']), (1, 1))
+            self.assertEqual(proof['opposite_slot_new_rows'], 1)
+            self.assertTrue(proof['seal_deadline_met'])
+            self.assertFalse(proof['retirement_authorized'])
+            self.worker.retire_generated(sealed, qualification_enabled=True)
+            self.assertEqual(self.repository.generation(sealed)['state'], 'retired')
+        self.assertEqual(len(set(ids)), 3)
 
     def test_a_b_a_reuse_new_generation_ids_and_history_after_real_drop(self):
         original = [self.insert(index) for index in range(7)]

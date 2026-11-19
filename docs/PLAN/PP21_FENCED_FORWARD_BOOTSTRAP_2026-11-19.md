@@ -56,6 +56,8 @@ and live collector, paid AI, retention, cloud, retirement and production flags
 all false. The existing root authorization nonce, lifetime and exclusive durable
 consume rules apply. No normal CD or live authority is produced.
 
+After the potentially long image build, the procedure rechecks the entire pinned
+stopped profile/database state and original fingerprints before migration.
 The procedure reuses the installed adapter's exact build, fencing, bounded
 migration oneoff, generated bootstrap/start and full smoke methods. It requires
 migration output exactly `[4]`, unchanged complete migration-preservation

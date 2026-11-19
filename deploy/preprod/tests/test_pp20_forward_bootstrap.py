@@ -15,6 +15,10 @@ from test_linux_actions import inspected
 
 
 class ForwardGuards(unittest.TestCase):
+    def setUp(self):
+        patcher=patch.object(f,'prior_state',return_value={})
+        patcher.start();self.addCleanup(patcher.stop)
+
     def rows(self):
         rows={name:inspected(name) for name in a.SERVICES}
         for index,(name,row) in enumerate(rows.items()):
@@ -58,7 +62,7 @@ class ForwardGuards(unittest.TestCase):
         actions.build.return_value='sha256:'+'a'*64
         actions._inventory.side_effect=[{'raw.events':{'count':28411}}, {'raw.events':{'count':28410}}]
         actions._oneoff.return_value=json.dumps({'environment':'preprod','operation':'migrate','result':[4]})
-        with tempfile.TemporaryDirectory() as folder:
+        with tempfile.TemporaryDirectory() as folder,patch.object(f,'preserved_state',return_value={}):
             p=Path(folder);context=c.Context(c.Request('a'*40,'b'*64,f.CONTROLLER),p,p)
             with self.assertRaisesRegex(c.DeploymentHold,'migration_changed_existing_evidence'):
                 f.forward(actions,context,None,{},10000,'2026-11-19 11:00:00+00')
@@ -70,7 +74,7 @@ class ForwardGuards(unittest.TestCase):
         actions._inventory.return_value={'raw.events':{'count':28411}}
         actions._oneoff.return_value=json.dumps({'environment':'preprod','operation':'migrate','result':[4]})
         before={'ops.outbox':{'digest':'a'*64}}
-        with tempfile.TemporaryDirectory() as folder,patch.object(f,'preserved_state',side_effect=[before,{'ops.outbox':{'digest':'b'*64}}]):
+        with tempfile.TemporaryDirectory() as folder,patch.object(f,'preserved_state',side_effect=[before,before,{'ops.outbox':{'digest':'b'*64}}]):
             p=Path(folder);context=c.Context(c.Request('a'*40,'b'*64,f.CONTROLLER),p,p)
             with self.assertRaisesRegex(c.DeploymentHold,'forward_preservation_failed'):
                 f.forward(actions,context,None,before,10000,'2026-11-19 11:00:00+00')
@@ -80,7 +84,7 @@ class ForwardGuards(unittest.TestCase):
         for result in ([],[3],[3,4]):
             actions=Mock();actions._json=json.loads;actions.build.return_value='sha256:'+'a'*64
             actions._oneoff.return_value=json.dumps({'environment':'preprod','operation':'migrate','result':result})
-            with tempfile.TemporaryDirectory() as folder:
+            with tempfile.TemporaryDirectory() as folder,patch.object(f,'preserved_state',return_value={}):
                 p=Path(folder);context=c.Context(c.Request('a'*40,'b'*64,f.CONTROLLER),p,p)
                 with self.assertRaisesRegex(c.DeploymentHold,'forward_migration4_not_proven'):
                     f.forward(actions,context,None,{},10000,'2026-11-19 11:00:00+00')

@@ -173,6 +173,9 @@ def forward(actions,context,budget,before,through_id,raw_cutoff):
     """Use the installed adapter unchanged; skip no migration/schema/smoke check."""
     actions.forward_phase='build'
     image=actions.build(context,budget);context=replace(context,image=image,migration_started=True)
+    prior_state(actions,context,budget)  # Recheck after the potentially long build.
+    require(preserved_state(actions,budget,through_id,raw_cutoff)==before,
+            'forward_source_changed_before_migration')
     actions.fence_started=True;actions._fence(context,budget);actions.fence_completed=True
     actions.before_migration=actions._inventory(budget)
     actions.forward_phase='migration4'

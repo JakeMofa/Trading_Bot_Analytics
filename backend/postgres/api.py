@@ -2,6 +2,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 import json
+import os
 from pathlib import Path
 import time
 
@@ -38,6 +39,9 @@ def create_app(settings=None, store=None, state=None, *, history=None, refresh=T
     settings = settings or Settings.from_env()
     store = store or Store(settings)
     state = state or LiveState(settings)
+    if history is None:
+        from .runtime_history import configured_history
+        history = configured_history(settings, store, os.environ)
 
     async def discover():
         while True:

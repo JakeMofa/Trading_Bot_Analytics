@@ -2,6 +2,23 @@
 
 ## Current PP checkpoint — November 18, 2026
 
+### Archive history API integration candidate
+
+The API can explicitly configure a bounded historical reader with
+`TRADEBOT_PP_ARCHIVE_HISTORY=true` under the exact PP live origin. It admits
+one historical request at a time, validates generation origin and creates a
+generation-scoped Storage reader only for retired raw. Local reads use the
+existing database credential in read-only transactions. Returned archive data
+passes the existing checksum/identity decoder. Cloud failures return unavailable
+through the actual history endpoint.
+
+The new factory and API tests passed locally with the pinned backend requirements
+(22 application/history tests, two platform skips). Runtime Storage mounts and
+actual post-retirement retrieval remain qualification gates. This source slice
+does not activate the option on PP. The running collector reads RAM/local
+PostgreSQL independently of explicit historical requests.
+
+
 The dedicated PP deployment identity verified installed controller `5b7c457296e4` from source `c9ec5e9d7a` through the pinned host route. This qualifies the controller identity used for the next PP release. Release installation, live B collection, sealed-A cloud readback and retirement have separate evidence. [PP controller identity run 44433405035](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44433405035)
 
 ### Sealed PP retirement decision

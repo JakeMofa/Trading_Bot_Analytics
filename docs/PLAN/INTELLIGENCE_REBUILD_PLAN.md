@@ -32,6 +32,13 @@ counts **all** outbox rows per origin against 10,000, including ACKed rows;
 ACK does not free that lifetime release bound. Any bounded-ledger solution
 must preserve verified evidence for protected references and release recovery.
 
+PR #131 prepares a default-off, root-controlled recurring service for the second checkpoint.
+It selects sealed generations first, sends a page at a time, acknowledges
+after authenticated readback and backs off after a cloud outage. The root installer starts, stops and inspects the exact worker using the
+reviewed probe network and mounts. A durable owner record fences CD and mode
+transitions until the operator proves the worker stopped. Release, host
+installation and sustained throughput qualification are pending.
+
 ### PP execution sequence
 
 **Resume at step 1.** Receipt batching in PR #130 passed Linux CI at

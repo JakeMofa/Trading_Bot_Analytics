@@ -1,0 +1,119 @@
+{
+  "active": {
+    "artifact_sha256": "9b68e22b2b5f8e86f8308d4f11c38dbe03ddd40b33ce1993b53a9100e6042017",
+    "controller_sha256": "1e10e1064d37a1629098d90793d3ad7719d127368881b8305f49ce8c1a4907c5",
+    "image_id": "sha256:36923156e4879f00be3d1bc7568475c818f4798ca4e40e9856a912ce7a5814f2",
+    "source_sha": "5efc4bb774b41e65c174aa53882629908ad96ad3",
+    "state": "generated_restored"
+  },
+  "controller_sha256": "1e10e1064d37a1629098d90793d3ad7719d127368881b8305f49ce8c1a4907c5",
+  "database": {
+    "generations": [
+      {
+        "generation_id": "fe26274c-6b8a-40ff-91e0-b5573f834061",
+        "origin_id": "generated-pp",
+        "seal_count": 42,
+        "slot": "A",
+        "state": "sealed"
+      },
+      {
+        "generation_id": "2ba8b503-f94a-4fbb-bfe5-04569de18435",
+        "origin_id": "generated-pp",
+        "seal_count": null,
+        "slot": "B",
+        "state": "collecting"
+      },
+      {
+        "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "origin_id": "pp-live-pp",
+        "seal_count": 28411,
+        "slot": "A",
+        "state": "verified"
+      },
+      {
+        "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "origin_id": "pp-live-pp",
+        "seal_count": null,
+        "slot": "B",
+        "state": "collecting"
+      }
+    ],
+    "migration_versions": [
+      1,
+      2,
+      3
+    ],
+    "outbox": [
+      {
+        "origin_id": "generated-pp",
+        "pending": 10000,
+        "total": 10000
+      },
+      {
+        "origin_id": "pp-live-pp",
+        "pending": 0,
+        "total": 42133
+      }
+    ],
+    "raw_count": 38510,
+    "writers": [
+      {
+        "collector_enabled": false,
+        "collector_session_id": null,
+        "generation_id": "2ba8b503-f94a-4fbb-bfe5-04569de18435",
+        "origin_id": "generated-pp"
+      },
+      {
+        "collector_enabled": false,
+        "collector_session_id": null,
+        "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "origin_id": "pp-live-pp"
+      }
+    ]
+  },
+  "services": {
+    "api": {
+      "health": "unhealthy",
+      "id": "bebc756d6a75f13aad073232a3b181f5da4827ffdc71368ae88a10880266c03a",
+      "image": "sha256:711fcb3f0267cd8214dafbe2c183b6569a3cec1ccb40cb79f15a8af3bb5366ea",
+      "restart": "no",
+      "running": false,
+      "source": null
+    },
+    "calculation": {
+      "health": null,
+      "id": "d26c1d982c0401c54084e19eb991162f75b1ce1799dfc8b0b6fb13cc5cf5bacf",
+      "image": "sha256:711fcb3f0267cd8214dafbe2c183b6569a3cec1ccb40cb79f15a8af3bb5366ea",
+      "restart": "no",
+      "running": false,
+      "source": null
+    },
+    "lifecycle": {
+      "health": null,
+      "id": "1e27fd02d03018a3e320f297e69e48c25c4d3441f1350d03c19ace449fcd8b13",
+      "image": "sha256:711fcb3f0267cd8214dafbe2c183b6569a3cec1ccb40cb79f15a8af3bb5366ea",
+      "restart": "no",
+      "running": false,
+      "source": null
+    },
+    "operator": {
+      "health": null,
+      "id": "fa6b2c416c7aec3697bbcc788d1471dfcafb4b3e4a4e17de2b5aad8c6ba03e13",
+      "image": "sha256:711fcb3f0267cd8214dafbe2c183b6569a3cec1ccb40cb79f15a8af3bb5366ea",
+      "restart": "no",
+      "running": false,
+      "source": null
+    },
+    "postgres": {
+      "health": "healthy",
+      "id": "09ed172ab159946debc0e55602edf1a5fbb46d052428f37b236f88eda9eb55f6",
+      "image": "sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+      "restart": "unless-stopped",
+      "running": true,
+      "source": null
+    }
+  },
+  "unused_authorities": [],
+  "scope": "pp20_failed_generated_profile_read_only_before_controller_replacement",
+  "database_changed": false
+}

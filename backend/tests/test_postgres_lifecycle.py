@@ -121,6 +121,13 @@ class RotationConfigurationTests(unittest.TestCase):
             with self.subTest(missing=missing), self.assertRaises(ValueError):
                 configuration({key: value for key, value in live.items() if key != missing})
         self.assertEqual(configuration(live)['origin_id'], 'pp-live-fixture')
+        qualified = {**live, 'TRADEBOT_ENVIRONMENT':'preprod', 'TRADEBOT_ORIGIN_ID':'pp-live-pp',
+                     'TRADEBOT_QUALIFIED_GENERATION_BYTES':'33554432'}
+        self.assertEqual(configuration(qualified)['policy'].qualified_size_bytes, 32 * 1024**2)
+        for key, value in [('TRADEBOT_QUALIFIED_GENERATION_BYTES', '1'),
+                           ('TRADEBOT_ORIGIN_ID', 'pp-live-fixture')]:
+            with self.assertRaises(ValueError):
+                configuration({**qualified, key:value})
         for flag in ('TRADEBOT_COLLECTOR_ENABLED', 'TRADEBOT_CLOUD_ENABLED',
                      'TRADEBOT_RETIREMENT_ENABLED'):
             with self.subTest(flag=flag), self.assertRaises(ValueError):

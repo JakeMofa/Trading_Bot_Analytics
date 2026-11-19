@@ -265,13 +265,23 @@ class LifecycleRepository:
                            (origin_id, generation_id))
         return {'origin_id': origin_id, 'generation_id': generation_id, 'slot': slot}
 
-    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None) -> dict:
+    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False) -> dict:
         now = now or utcnow()
         with self.transaction() as connection:
             writer = connection.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
                                         (origin_id,)).fetchone()
             if not writer:
                 raise LifecycleHold('writer not bootstrapped')
+            if require_live_lease:
+                # The writer row is locked. Use database time so ready/OFF,
+                # expired or stopped sessions cannot seal A during deployment.
+                lease = connection.execute('''SELECT collector_enabled AND
+                    collector_session_id IS NOT NULL AND
+                    collector_lease_expires_at > clock_timestamp() AS active
+                    FROM ops.writer_state WHERE origin_id=%s''', (origin_id,)).fetchone()
+                if not lease['active']:
+                    return {'status': 'idle', 'reason': 'collector_off',
+                            'generation_id': writer['generation_id']}
             count = connection.execute('''SELECT count(*) AS count FROM
                 (SELECT 1 FROM archive.generations WHERE origin_id=%s AND state<>'retired' LIMIT 3) g''',
                                        (origin_id,)).fetchone()['count']

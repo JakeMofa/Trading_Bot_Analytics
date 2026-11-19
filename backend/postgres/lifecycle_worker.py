@@ -36,6 +36,10 @@ def configuration(environ):
     if mode != 'pp_live' and origin.startswith('pp-live-'):
         raise ValueError('PP live origin cannot be used for test lifecycle')
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')
+    if mode == 'pp_live' and size is not None and (
+            environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
+            origin != 'pp-live-pp' or size != str(32 * 1024 * 1024)):
+        raise ValueError('PP size trial requires the exact 32 MiB live profile')
     pending = int(environ.get('TRADEBOT_OUTBOX_MAX_PENDING', '10000'))
     if not 10 <= pending <= 100000:
         raise ValueError('pending outbox bound must be 10..100000')
@@ -101,7 +105,8 @@ def main(argv=None):
         signal.signal(getattr(signal, name), lambda *_: stop.set())
     while not stop.is_set():
         try:
-            result = repository.switch_if_due(config['origin_id'], config['policy'])
+            result = repository.switch_if_due(config['origin_id'], config['policy'],
+                                              require_live_lease=config['mode'] == 'pp_live')
             result.update(archive='held_no_qualified_transport', retirement='off')
             if config['mode'] == 'pp_live' and result.get('reason') == 'other_slot_not_retired':
                 # The repository atomically committed OFF with the hold. The

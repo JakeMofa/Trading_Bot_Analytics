@@ -1,3 +1,106 @@
+## Active master plan — PP rotation, usable history, and archive performance
+
+November 19, 2026. Scope is read-only collection and deterministic analysis for
+Polymarket US BTC 15-minute markets. Release operations and application
+research run in parallel. Keep the live calculation on the VM, with one
+collector and visible freshness and coverage. Keep production and PP origins
+separate. One-hour collection, trading and paid AI remain deferred.
+
+Prepare the deterministic history probe from step 4 before either retirement
+in step 3. Save its exact input IDs, values and recalculated output against
+retained data, then repeat the same query after each partition drop.
+
+| Step | Work and current evidence | Acceptance |
+| --- | --- | --- |
+| 1. Restore PP release and preserve both generations | PP20 stopped at a generated smoke-queue cap. [#177](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/177) merged the generated-storage fix. [#181](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/181) merged the fenced PP21 forward recovery source. PP21 host recovery, [normal deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44562705669) and the independent retention snapshot passed. A and B still hold 28,411 and 9,784 raw rows. All 42,133 live acknowledgements matched, pending records and outcome counts remained zero, and collection stayed off. | The release operator proves the intended image and schema, preserves A/B identities and counts, and passes smoke and normal deployment acceptance. |
+| 2. Finish exact readback and measure the bottlenecks | The hosted receipt index and tie-preserving lookup lowered the same 500-row read from 4.712 s to 2.729 s. The full audit still held at 239.608 s after 57 raw objects and 62 of 63 structured pages. [#178](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/178) records it. | Same first page remains under four seconds. Full protected, receipt, revision, projection and raw-object verification passes all scoped pages within 240 seconds with measured margin and the existing request/byte budgets. Record restricted-reader proof. A read-only replay cannot authorize DROP or qualify collection continuity. |
+| 3. Prove a full A → B → fresh A trial | PP18 observed the first switch and archived A's 28,411 raw rows, but B stopped after 20m32s and A remained attached. Obtain fresh release-owned authority for another trial. | Collect two full 15-minute markets in each outgoing generation. While the successor keeps writing, verify and retire the exact outgoing partition within the existing 30-minute seal window. Repeat for B with a fresh A generation. Bind each run to a fresh seal and its permit. Verify continued successor writes, forecast freshness or explicit abstention, and retrieval of both retired UUIDs. Keep shared core history and deduplication intact. |
+| 4. Make history usable by deterministic calculations across rotation | The offline `88c59ac` prototype composes one reviewed market/generation before and after a generated partition drop. It returns saved snapshots and predictions and separate labels in the generated case. The release team found a protected outcome wrapper mismatch with actual `Store.ingest` and assigned a native ingestion-to-retirement test with the fix. PP's raw API is generation-specific, its saved prediction endpoint reads local PostgreSQL, and its history-context endpoint still marks linked prior cases unsupported. | A bounded market/time query merges retained and retired generations by origin and generation UUID. Use the same availability cutoff, global ordering and event deduplication on both paths. Prove identical input IDs, exact values, links and recalculated deterministic features across an A/B boundary before and after retirement. Required missing generations or manifests fail explicitly. Report capture gaps. Qualify real PP and production scopes separately. |
+| 5. Rebuild dashboard research and evaluate deterministic signals first | Use the actual legacy contracts below as a behavior reference. Build chronological comparisons from verified 15-minute windows and versioned feature/prediction evidence. | Test the actual PP browser at rollover before and after retirement. It distinguishes saved forecast, current estimate, matched historical cases, official outcomes and explicit gaps. Training/evaluation splits by market and time. Optional AI explanation stays a separate contract with paid calls disabled. |
+
+### Legacy dashboard contracts to carry forward
+
+- Review the actual production legacy FastAPI source at `d56b4a7`, separately
+  from the older standalone SQLite dashboard. The shipped browser consumes
+  RAM state and the `/events` stream for the live Gaussian estimate. It requests
+  saved prediction rows from `/history/predictions` and SQLite-backed outcomes,
+  evaluation, news and linked cases from `/history/context`. A user needs to be
+  able to distinguish a saved Gaussian/ensemble row, a live estimate and
+  retrospective context. The older `/api/status` server remains useful as a
+  reference for saved ensemble preference and Gaussian fallback.
+  [Legacy FastAPI endpoints](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d56b4a7/backend/app/api.py#L221)
+  · [Legacy SQLite query contract](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d56b4a7/backend/app/dashboard.py)
+- Legacy prior cases, forecasts and confirmed outcomes have provenance and
+  time semantics worth preserving. Retrospective links are evidence of a
+  later association. Preserve the explicit calculation-input links as
+  a distinct record. A market-wide latest decision override and latest linked
+  context can refer to a different snapshot. PP needs atomic hydration of
+  market, feature, forecast and chart state through rollover. It currently
+  exposes a Gaussian saved forecast and live estimate, local prediction history
+  and unsupported prior-case context. The outcomes schema and ingestion support
+  exist. Routine official delayed-outcome reconciliation for live PP still
+  needs its own evidence. Classify a forecast without a known outcome as
+  awaiting a label rather than manufacturing one.
+- The deployed legacy ensemble worker computes deterministic predictions and
+  has a separately gated advisor. At `d56b4a7` the worker passes market and
+  snapshot IDs in a short summary, plus ensemble probability and components,
+  then can write `ai_suggestions`. The optional history argument is unused by
+  that worker. The standalone legacy variant that queries up to 200 same-market
+  prediction rows is a separate source path. The shipped browser does not
+  invoke the advisor, and the FastAPI payload omits the `ai_suggestion` and
+  `forecast_15m` fields the browser probes. The deployed service definitions
+  explicitly disable OpenAI. Keep paid AI off.
+  If later authorized, make the explanation optional and bind it to the
+  exact forecast input and model version.
+  [Deployed legacy advisor worker](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d56b4a7/backend/app/run_ensemble_agent.py#L47)
+  · [Legacy browser field probes](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d56b4a7/backend/app/dashboard.html#L478)
+
+For this audit, 25 legacy dashboard tests passed against the exact
+`d56b4a7` source with the advisor disabled. Six generated `88c59ac` research
+tests passed in this review. Its native test requires a disposable DSN and was
+skipped in this rerun. These are source and fixture results. They do not
+establish live PP or production dashboard parity.
+
+### Points that matter for the Supabase and PostgreSQL work
+
+- Raw events remain exact compressed files in private Storage with the local
+  sealed manifest and hash. Private Supabase PostgreSQL holds structured
+  records, receipts and revision envelopes. For research, decode verified
+  objects into an isolated queryable workspace. For live calculations, use
+  local inputs. Coinbase remains reference data. Official Polymarket US labels
+  are separate, with availability and confirmation times.
+- A research cutoff uses actual arrival and availability, including the link
+  proving when a feature was published. Preserve source timestamps and saved
+  IDs, never substitute latest state for point-in-time inputs, and apply a
+  separate cutoff to official outcome labels. Legacy saved-history responses omit
+  snapshot and evidence links. Carry those in PP instead of inferring saved
+  provenance from an old UI label. The initial prototype is
+  single-generation, explicitly reviewed coverage and bounded by four raw
+  pages and 50 structured revisions. The next proof requires a true
+  multi-generation merge and indexed market/time selection or an equivalent
+  bounded archive catalog.
+- Archive and query tuning continues alongside dashboard parity. Binary results
+  reduced protocol bytes in a native fixture, while the matched PP text/binary
+  pages showed no elapsed win. [#180](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/180)
+  reuses already-checked canonical bytes and saved 71–75 ms per generated
+  page. It still needs a matched PP measurement and full-audit margin.
+  An isolated local query study found a matching raw cursor index cut the
+  generated 57-page sweep from 4.416 s to 0.740 s with identical row/page
+  hashes. The same sweep on the full local schema fell from 4.613 s to
+  0.761 s with identical hashes. The index added about 4% bulk-insert time
+  and 15% WAL in the generated write trial. The tested outbox index did not
+  show a material improvement. Profile the actual PP raw plan and local
+  inventory separately. If PP reproduces the raw scan, qualify a sealed-child
+  index to keep its write cost off the active generation.
+  [Local retention query study](PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)
+  Keep the 50-row sync write configuration
+  until separate 75-row throughput and exact acknowledgement evidence.
+- The audit timing report and independent raw restore tooling are in draft
+  [#179](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/179). Generated
+  restore passed. An actual independent copy/restore and Grafana integration
+  remain separate. No extra PP data copy or service activation is required by
+  this roadmap entry.
+
 ## November 19 UTC — canonical exact-read byte reuse source candidate
 
 A narrow source candidate reuses the exact expected serialization and canonical/

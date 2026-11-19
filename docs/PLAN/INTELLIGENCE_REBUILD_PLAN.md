@@ -71,7 +71,18 @@ cover at most 3,200 rows including existing data. The current A already exceeds
 that bound. PR #132 makes this an early hold and exercises durable two-page
 resume, corrupt/failed readback, and B commits during each readback in CI.
 
-For the recurring worker, resume from the last verified manifest using the
+The opt-in `postgres.pp_sealed_archive --execute` entrypoint and
+`runtime.sealed-archive.compose.yaml` overlay select sealed PP generations and
+resume durable manifest progress. Each cycle reads at most 500 raw rows and
+4 MiB decoded, verifies the restricted Storage readback, and yields between
+pages. Transient Storage failures back off up to 60 seconds. The worker waits
+for structured evidence to sync first. Synthetic payloads at 4,845 and 36,180
+rows passed in 10 and 73 pages respectively with an injected readback failure.
+The 128-manifest limit still applies, so the 64,000-row maximum is lower for
+large payloads. Qualify the dedicated root-owned DSN mount, host control,
+real byte distribution and archive throughput before enabling this on PP.
+
+For larger generations, resume from the last verified manifest using the
 indexed generation and manifest sequence, fetch exactly one bounded raw page,
 then atomically advance its cursor after create-only upload and authenticated
 readback. Stream ordered manifest pages for final coverage validation under

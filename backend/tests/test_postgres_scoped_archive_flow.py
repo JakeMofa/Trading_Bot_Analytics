@@ -22,7 +22,7 @@ from postgres.config import Settings
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.store import Store
 from postgres.supabase_storage import SupabaseStorageTransport
-from postgres import pp_raw_archive_probe
+from postgres import pp_raw_archive_probe, pp_sealed_archive
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
 
 
@@ -192,7 +192,7 @@ class ScopedArchivePostgresFlowTests(unittest.TestCase):
             worker = ArchiveWorker(repository,
                 ScopedArchiveTransport(raw, ImmutableMemoryTransport(),
                     origin_id=origin, generation_id=first_id), ArchiveLimits(max_rows=500))
-            result = worker.archive_cycle(first_id)
+            result = pp_sealed_archive.cycle(repository, raw, origin=origin)
             self.assertEqual(result['status'], 'archived')
             with self.assertRaisesRegex(LifecycleHold, 'runtime retirement disabled'):
                 worker.retire_generated(first_id, qualification_enabled=True)

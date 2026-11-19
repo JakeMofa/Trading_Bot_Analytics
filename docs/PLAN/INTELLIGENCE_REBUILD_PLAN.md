@@ -527,10 +527,11 @@ deployment and actual retirement are separate. The proposed operator sequence:
    Storage RLS. Hold if an actor or path is uncovered or a policy change is due.
 3. With the PP migration role, use `deploy/preprod/issue_pp_retirement.sql` via
    `psql -X -qAt -v sealed=... -v collecting=... -v seal_hash=... -v row_count=...
-   -v release_sha=... -v policy_epoch_hash=... -v history_reader_proof=... -f ...`.
+   -v release_sha=... -v policy_epoch_hash=... -v history_reader_proof=...
+   -v freeze_started_at=... -v freeze_ends_at=... -f ...`.
    Send its sole result directly into a private, mode-0400, one-shot file.
    Bind that file at `/run/secrets/pp_retirement_ticket` only in the exact
-   release's supervised one-shot container. Its ticket expires after two minutes.
+   release's supervised one-shot container. Supply explicit ISO timestamps with timezone for the attested freeze, at most 295 seconds long. The ticket expires at the earliest of the attested end and the standard two-minute limit. The two-market profile uses the earliest of the attested end, issuance plus 295 seconds, and the original seal plus 30 minutes. Missing, expired or future freezes yield no ticket.
 4. With the existing PP verification flags and exact four target arguments,
    enable `TRADEBOT_PP_EXACT_RETIREMENT=true`, bind the verified release and
    evidence digests via `TRADEBOT_PP_VERIFIED_SOURCE`,
@@ -3671,6 +3672,10 @@ CD run 44474562747 and READY_OFF 44474879676 qualified image `6f76adb3…`. The 
 A read of the same market's official `/book` endpoint exposed a reproducible parser defect: the fallback returns `bids[].px`, `offers[].px` and `transactTime`, while the collector expected a flat BBO response. The rejected live body was never stored, so the precise wire variant remains unknown. The successor parses both formats, records the book's exchange transaction time distinctly, and allows the next scheduled discovery following a matching empty book or a double 404. Invalid identities, prices, timestamps and oversized responses still stop collection with a specific diagnostic. A concurrent regression kept Coinbase writing through two missing-book responses before the first new-market quote. Both official endpoints subsequently passed a read-only translation for market 2680845. Full PP handoff, archive and retirement remain open.
 
 The PP quote poll waits until its next scheduled cycle after an empty book, missing route, timeout, connection error, 429 or 5xx. A supervised regression exercises all six with a continuing Coinbase write and verifies that the first new-market quote is saved under its own identity. Authentication, malformed data, identity mismatch and write failures still stop the session.
+
+## PP collector control under lifecycle connection pressure
+
+PP18 exposed connection contention during archival and lease monitoring. The source correction checks the exact collector session and database expiry with the PP application role in a read-only transaction. Each recurring worker reuses its advisory-lock connection for short local transactions and releases transaction locks before remote I/O. The PP controller can release an owned worker of the same build to reprove a failed durable OFF within its original deadline. An isolated PG17 fixture filled all three lifecycle connections, rejected a fourth, preserved ownership checks, detected genuine expiry, and proved durable OFF after freeing one connection. The PP deployment and sustained B run require separate evidence.
 
 ### PP.18 retirement diagnosis and default-off session reuse, November 19 UTC
 

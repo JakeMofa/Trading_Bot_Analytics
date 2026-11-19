@@ -48,6 +48,45 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.limits = ArchiveLimits(max_rows=4)
         self.worker = ArchiveWorker(self.repository, self.transport, self.limits)
 
+    def test_watchdog_and_off_with_three_lifecycle_connections(self):
+        from postgres.operator_runtime import _owner_reader
+        import psycopg
+        from psycopg.pq import TransactionStatus
+        origin = 'pp-live-capacity-' + uuid.uuid4().hex
+        generation = self.repository.bootstrap(origin)
+        session = str(uuid.uuid4())
+        self.repository.enable_collector(origin, session_id=session,
+            expected_generation_id=str(generation['generation_id']), max_seconds=60)
+        reader = _owner_reader(os.environ['TRADEBOT_TEST_APP_DSN'])
+        opened = []
+        def tracked():
+            connection = self.factory()
+            opened.append(connection)
+            return connection
+        raw = LifecycleRepository(tracked)
+        structured = LifecycleRepository(tracked)
+        try:
+            with raw.raw_archive_lock(origin), structured.structured_sync_lock(origin):
+                with self.factory() as scheduler:
+                    for repo, outer in zip((raw, structured), opened):
+                        with repo.transaction() as local:
+                            self.assertIs(local, outer)
+                        self.assertEqual(outer.info.transaction_status, TransactionStatus.IDLE)
+                    self.assertEqual(len(opened), 2)
+                    with self.assertRaises(psycopg.OperationalError):
+                        self.factory()
+                    self.assertTrue(reader.owns_collector(origin, session))
+                    self.assertFalse(reader.owns_collector(origin, str(uuid.uuid4())))
+                    with reader.connection_factory() as conn:
+                        self.assertEqual(conn.execute('SHOW transaction_read_only').fetchone()['transaction_read_only'], 'on')
+                    scheduler.execute("UPDATE ops.writer_state SET collector_lease_expires_at=clock_timestamp() "
+                                      "WHERE origin_id=%s", (origin,))
+                    scheduler.commit()
+                    self.assertFalse(reader.owns_collector(origin, session))
+                self.assertFalse(self.repository.disable_collector(origin)['collector_enabled'])
+        finally:
+            self.repository.disable_collector(origin)
+
     def insert(self, index, *, wait=None, locked=None):
         with self.app_factory() as connection:
             with connection.transaction():
@@ -779,6 +818,8 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         from postgres.connection import connect_migrator
         from postgres.pp_retirement_verify import Permit, RetirementTransport, Target, verify
         from psycopg import sql
+        from psycopg.conninfo import conninfo_to_dict
+        import subprocess
 
         if (os.getenv('TRADEBOT_DATA_MODE'), os.getenv('TRADEBOT_ORIGIN_ID')) != ('generated','generated-pp'):
             self.skipTest('dedicated generated CI harness required')
@@ -814,10 +855,39 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
             db.execute("""UPDATE ops.writer_state SET collector_enabled=true,collector_session_id=%s,
                           collector_lease_expires_at=now()+interval '2 minutes' WHERE origin_id=%s""",
                        (str(uuid.uuid4()),origin))
-            db.execute("""INSERT INTO archive.pp_retirement_permits(ticket,sealed_id,collecting_id,seal_hash,
-                seal_count,release_sha,policy_epoch_hash,history_reader_proof,authority_scope,expires_at)
-                VALUES(%s,%s,%s,%s,1,%s,%s,%s,'pp-admin-change-freeze-v1',now()+interval '2 minutes')""",
-                (permit.ticket,sealed,active,target.seal_hash,permit.release,permit.policy_epoch,permit.history_reader_proof))
+        # Exercise the reviewed psql issuer. Keep its capability and DSN out of
+        # test logs, including assertions on rejected requests.
+        config = conninfo_to_dict(os.environ['TRADEBOT_TEST_MIGRATOR_DSN'])
+        env = {**os.environ, **{'PG'+key.upper():value for key,value in config.items()
+                               if key in ('host','port','user','password','dbname')}}
+        env['PGDATABASE'] = config['dbname']
+        issuer = Path(__file__).resolve().parents[2]/'deploy/preprod/issue_pp_retirement.sql'
+        def issue(start, end, **overrides):
+            args = dict(sealed=sealed, collecting=active, seal_hash=target.seal_hash,
+                        row_count=1, release_sha=permit.release, policy_epoch_hash=permit.policy_epoch,
+                        history_reader_proof=permit.history_reader_proof, window_profile='two_markets',
+                        freeze_started_at=start, freeze_ends_at=end)
+            args.update(overrides)
+            variables = [part for key,value in args.items() if value is not None
+                         for part in ('-v', f'{key}={value}')]
+            return subprocess.run(['psql','-X','-qAt',*variables,'-f',str(issuer)],
+                                  env=env, capture_output=True, text=True, timeout=6)
+        now = datetime.now(timezone.utc)
+        start = (now-timedelta(seconds=15)).isoformat()
+        end = (now+timedelta(seconds=60)).isoformat()
+        for left,right in ((start,None),(start,start),(end,end),(start,'infinity'),
+                           (start,(now+timedelta(minutes=6)).isoformat()),
+                           (start,now.replace(tzinfo=None).isoformat())):
+            self.assertNotEqual(issue(left,right).returncode,0)
+        self.assertNotEqual(issue(start,end,collecting=sealed).returncode,0)
+        result = issue(start,end)
+        self.assertEqual(result.returncode,0,result.stderr)
+        permit = replace(permit,ticket=str(uuid.UUID(result.stdout.strip())))
+        with owner() as db:
+            observed = db.execute('SELECT issued_at,expires_at FROM archive.pp_retirement_permits '
+                                  'WHERE ticket=%s',(permit.ticket,)).fetchone()
+            self.assertEqual(observed['expires_at'], datetime.fromisoformat(end))
+            self.assertLess(observed['issued_at'],observed['expires_at'])
         scoped=RetirementTransport(self.transport,None,origin_id=origin,generation_id=sealed)
         check=lambda: verify(self.repository,scoped,target,origin=origin,permit=permit)
         with self.assertRaisesRegex(LifecycleHold,'unobserved'):

@@ -86,3 +86,36 @@ class RecurringControlTests(unittest.TestCase):
                 sync.recurring_start(Path('bundle'))
         compose.assert_not_called()
         self.assertFalse(sync.SYNC_STATE.exists())
+
+
+    def test_packaged_entry_reports_worker_fence_for_deploy_and_transition(self):
+        import io
+        import stat
+        from types import SimpleNamespace
+        import zipfile
+        import controller_bundle
+
+        bundle = sync.SYNC_STATE.parent / 'controller.pyz'
+        controller_bundle.build(bundle)
+        with zipfile.ZipFile(bundle) as archive:
+            entry = compile(archive.read('__main__.py'), '__main__.py', 'exec')
+        sync._write_sync_owner(self.owner)
+        for command in ('transition-v1 leave', 'deploy-v1 preprod tradebot-preprod-01 '
+                        + 'c'*40 + ' ' + 'd'*64 + ' ' + 'a'*64):
+            out = io.StringIO()
+            with self.subTest(command=command.split()[0]), contextlib.ExitStack() as ctx:
+                for target, value in (
+                    ('sys.argv', [str(bundle), command]), ('sys.stdout', out),
+                ):
+                    ctx.enter_context(patch(target, value))
+                for target, value in (
+                    ('os.geteuid', 0), ('controller.HostBinding.from_marker', object()),
+                    ('os.open', 23), ('fcntl.flock', None), ('signal.signal', None),
+                    ('os.fstat', SimpleNamespace(st_uid=0,st_mode=stat.S_IFREG | 0o600))
+                ):
+                    ctx.enter_context(patch(target, return_value=value))
+                with self.assertRaises(SystemExit) as result:
+                    exec(entry, {'__name__': '__main__'})
+                self.assertEqual(result.exception.code, 1)
+                self.assertEqual(json.loads(out.getvalue())['reason'],
+                                 'stop_recurring_structured_sync_first')

@@ -42,6 +42,51 @@ class InitialSealControls(unittest.TestCase):
                 '--raw-count','5241','--outbox-count','5651','--operation',target.operation,'--source',target.source]),1)
             secret.assert_not_called()
 
+    def test_actual_machine_file_transport_reader_binding_is_admitted_without_network(self):
+        import httpx
+        from types import SimpleNamespace
+        from postgres.cloud_origin_binding import LEGACY_ORIGIN, TRIAL_READER
+        from postgres.pp_initial_trial_drain import audit_initial_a
+        from postgres.pp_retirement_verify import RetirementTransport
+        from postgres.supabase_storage import SupabaseStorageTransport
+        anchor=str(uuid.uuid4())
+        target=SealTarget(anchor,anchor,3,5241,5651,str(uuid.uuid4()),'a'*40)
+        requests=[]
+        def no_network(request):
+            requests.append(request)
+            raise AssertionError('transport construction and scope validation must not use network')
+        with tempfile.TemporaryDirectory(prefix='initial-trial-fake-auth-') as folder, \
+                httpx.Client(transport=httpx.MockTransport(no_network)) as client:
+            paths=[]
+            for name,value in (('key','sb_publishable_generated_only_12345'),
+                               ('email','generated@example.invalid'),
+                               ('password','generated-password-for-tests-only'),
+                               ('uid',str(uuid.uuid4()))):
+                path=Path(folder)/name;path.write_text(value);path.chmod(0o400);paths.append(path)
+            structured=SimpleNamespace(expected_role=TRIAL_READER,origin_id=TRIAL_ORIGIN,generation_id=anchor)
+            for origin,reader,admitted in ((TRIAL_ORIGIN,True,True),(LEGACY_ORIGIN,True,False),
+                                            (TRIAL_ORIGIN,False,False)):
+                with self.subTest(origin=origin,reader=reader):
+                    raw=SupabaseStorageTransport.from_machine_files(*paths,client=client,
+                                                                  origin_id=origin,reader=reader)
+                    self.assertFalse(hasattr(raw,'_binding'))
+                    self.assertEqual(raw._origin_binding.origin_id,origin)
+                    transport=RetirementTransport(raw,structured,origin_id=TRIAL_ORIGIN,generation_id=anchor)
+                    with patch('postgres.pp_retained_archive_audit.local_snapshot',
+                               side_effect=RuntimeError('reader snapshot reached')) as snapshot:
+                        if admitted:
+                            with self.assertRaisesRegex(RuntimeError,'reader snapshot reached'):
+                                audit_initial_a(None,transport,target,seal_hash='a'*64,
+                                                raw_objects=11,structured_pages=12)
+                            snapshot.assert_called_once()
+                        else:
+                            with self.assertRaisesRegex(LifecycleHold,'independent initial trial reader'):
+                                audit_initial_a(None,transport,target,seal_hash='a'*64,
+                                                raw_objects=11,structured_pages=12)
+                            snapshot.assert_not_called()
+                    raw.close()
+        self.assertEqual(requests,[])
+
 
 class InitialSealNative(unittest.TestCase):
     @classmethod
@@ -182,7 +227,7 @@ class InitialSealNative(unittest.TestCase):
         from postgres.pp_sealed_archive import cycle
         seal_initial_a(self.repo,self.target,execute=True)
         cycle(self.repo,self.raw,origin=TRIAL_ORIGIN)
-        self.raw._reader=True;self.raw._binding=cloud_binding(TRIAL_ORIGIN)
+        self.raw._reader=True;self.raw._origin_binding=cloud_binding(TRIAL_ORIGIN)
         raw=self.raw
         class StructuredReader:
             expected_role=TRIAL_READER

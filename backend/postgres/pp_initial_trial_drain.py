@@ -171,7 +171,7 @@ def audit_initial_a(factory, transport, target: SealTarget, *, seal_hash, raw_ob
             or transport.structured.origin_id != ORIGIN
             or transport.structured.generation_id != target.generation
             or getattr(transport.raw,'_reader',False) is not True
-            or getattr(getattr(transport.raw,'_binding',None),'origin_id',None) != ORIGIN):
+            or getattr(getattr(transport.raw,'_origin_binding',None),'origin_id',None) != ORIGIN):
         raise LifecycleHold('exact independent initial trial reader scope required')
     limits=TwoMarketReadbackLimits()
     with CycleBudget(limits) as budget, local_snapshot(factory,budget) as db:

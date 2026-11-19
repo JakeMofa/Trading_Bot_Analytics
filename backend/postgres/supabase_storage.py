@@ -22,6 +22,7 @@ from uuid import UUID
 import httpx
 
 from .retirement_accounting import phase
+from .cloud_origin_binding import cloud_binding, LEGACY_ORIGIN
 from .archive_codec import (ACTIVE_BUDGET, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveUnavailable)
 
@@ -90,8 +91,10 @@ class _MachineSession:
     """One in-memory, restricted Auth session; failed refresh requires restart."""
 
     def __init__(self, api_key: str, email: str, password: str, uid: str,
-                 client: httpx.Client, *, reader=False):
+                 client: httpx.Client, *, reader=False, origin_id=LEGACY_ORIGIN):
         self._reader = reader
+        self._binding = cloud_binding(origin_id)
+        self._binding.role(reader=reader)
         try:
             canonical_uid = str(UUID(uid))
         except (ValueError, AttributeError):
@@ -119,10 +122,10 @@ class _MachineSession:
                 raise ValueError('invalid token shape')
             claims = json.loads(base64.urlsafe_b64decode(
                 parts[1] + '=' * (-len(parts[1]) % 4)))
-            if self._reader:
+            if self._reader or self._binding.origin_id != LEGACY_ORIGIN:
                 metadata = claims.get('app_metadata') if isinstance(claims, dict) else None
-                if (not isinstance(metadata, dict) or metadata.get('tradebot_role') != 'pp_storage_history_reader'
-                        or metadata.get('tradebot_origin') != 'pp-live-pp'):
+                if (not isinstance(metadata, dict) or metadata.get('tradebot_role') != ('pp_storage_history_reader' if self._reader else 'pp_storage_archive')
+                        or metadata.get('tradebot_origin') != self._binding.origin_id):
                     raise ValueError('wrong archive reader role')
             if (not isinstance(claims, dict) or claims.get('sub') != self._uid or
                     claims.get('role') != 'authenticated' or
@@ -228,8 +231,11 @@ class SupabaseStorageTransport:
 
     @classmethod
     def from_machine_files(cls, api_key_path: str | Path, email_path: str | Path,
-                           password_path: str | Path, uid_path: str | Path, *, reader=False, **kwargs):
+                           password_path: str | Path, uid_path: str | Path, *, reader=False,
+                           origin_id=LEGACY_ORIGIN, **kwargs):
         """Use restricted PP Auth files; refresh tokens remain process-local."""
+        binding = cloud_binding(origin_id)
+        binding.role(reader=reader)
         api_key = read_token_file(api_key_path)
         if not api_key.startswith('sb_publishable_'):
             raise ValueError('PP requires a Supabase publishable key')
@@ -238,8 +244,9 @@ class SupabaseStorageTransport:
         uid = _read_machine_file(uid_path, minimum=36)
         transport = cls(api_key, None, _machine_mode=True, **kwargs)
         transport._reader = reader
+        transport._origin_binding = binding
         transport._machine = _MachineSession(api_key, email, password, uid,
-                                             transport._client, reader=reader)
+                                             transport._client, reader=reader, origin_id=origin_id)
         return transport
 
     def close(self):
@@ -249,6 +256,9 @@ class SupabaseStorageTransport:
     def _url(self, key: str, *, authenticated: bool) -> str:
         if not isinstance(key, str) or not KEY.fullmatch(key):
             raise ArchiveIntegrityError('invalid archive object key')
+        binding = getattr(self, '_origin_binding', None)
+        if binding is not None and binding.origin_id != LEGACY_ORIGIN and not key.startswith(binding.raw_prefix):
+            raise ArchiveIntegrityError('archive object origin does not match machine binding')
         route = 'object/authenticated' if authenticated else 'object'
         return f'{PROJECT_URL}/storage/v1/{route}/{BUCKET}/{quote(key, safe="/")}'
 

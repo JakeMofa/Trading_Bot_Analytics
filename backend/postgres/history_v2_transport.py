@@ -21,6 +21,8 @@ from .history_v2_envelope import (CLOUD_COLUMNS, IMPORT_ORDER, MUTABLE_PROJECTIO
                                   TABLE_KEYS, cloud_row, cloud_row_matches,
                                   projection_order, validate_outbox_stream)
 
+from .cloud_origin_binding import cloud_binding, TRIAL_ORIGIN
+
 PP_STRUCTURED_ORIGIN = 'pp-live-pp'
 
 
@@ -31,7 +33,10 @@ class HistoryV2PostgresTransport:
                  generation_id: str, expected_database: str,
                  expected_role: str, retain_revisions: bool = False,
                  indexed_latest: bool = False):
-        if (not callable(connection_factory) or origin_id != PP_STRUCTURED_ORIGIN or
+        binding = cloud_binding(origin_id) if origin_id == TRIAL_ORIGIN else None
+        if (not callable(connection_factory) or origin_id not in (PP_STRUCTURED_ORIGIN, TRIAL_ORIGIN) or
+                (origin_id == TRIAL_ORIGIN and (expected_database != 'postgres' or
+                 expected_role not in (binding.writer_role, binding.reader_role))) or
                 not generation_id or
                 not expected_database or not expected_role):
             raise ValueError('private structured importer binding required')
@@ -39,6 +44,7 @@ class HistoryV2PostgresTransport:
             raise ValueError('boolean revision-retention selection required')
         if type(indexed_latest) is not bool:
             raise ArchiveIntegrityError('boolean PP latest receipt opt-in required')
+        self._read_only = origin_id == TRIAL_ORIGIN and expected_role == binding.reader_role
         self.indexed_latest = indexed_latest
         self.retain_revisions = retain_revisions
         self.connection_factory = connection_factory
@@ -421,6 +427,8 @@ class HistoryV2PostgresTransport:
         return row
 
     def put_structured(self, records: list[dict], *, timeout_seconds: float) -> None:
+        if self._read_only:
+            raise ArchiveIntegrityError('trial structured reader has no append operation')
         self._validate(records)
         deadline = self._deadline(timeout_seconds)
         try:

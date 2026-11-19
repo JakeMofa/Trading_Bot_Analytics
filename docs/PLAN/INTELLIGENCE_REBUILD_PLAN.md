@@ -3334,3 +3334,7 @@ Only upgrade when measured need appears:
 - [ ] **P11.1** Add specialist dashboard.
 - [ ] **P12.1** Run forward collection/evaluation.
 - [ ] **P13.1** Train `meta_model_v1`.
+
+### PP live workflow dispatch choice correction, November 19 UTC
+
+The first ON submission for pp.17 received GitHub HTTP 422 before a workflow was created. The operation choice used bare YAML `on` and `off`. Both background workers stopped and PP confirmed the collector OFF. A dedicated regression now requires four quoted string choices in the manual workflow. The installed PP controller and application image are independently bound to pp.17. The dispatch failure provides no live-collection evidence.

@@ -3710,3 +3710,7 @@ exact PP18 replay is 57 raw objects + 63 structured pages, 28,411 raw / 31,162
 structured rows, with 122 minimum logical requests including authenticated
 permission preflight. Hosted timing remains unmeasured pending released source
 and sealed's coordinated host window. [Candidate scope and native controls](PP_RETAINED_ARCHIVE_AUDIT_2026-11-19.md).
+
+## PP19 controller identity
+
+The dedicated PP deploy identity verified the release controller built from `414e3c232ba54d61bc4a71e8315fd3d1b1e620e3` in [run 44502043684](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502043684). The previously installed controller is retained for recovery. This proof qualifies the controller binding. PP19 application deployment and the read-only audit of retained A still require their own results.

@@ -1,9 +1,11 @@
 """Generated concurrent PP collector tests. No real source or live activation."""
 import asyncio
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import sys
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx
@@ -79,6 +81,91 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(saved[-1]['market_id'], 'new')
         self.assertEqual(saved[-1]['payload']['best_ask'], '0.5300')
         self.assertEqual(store.stops, 1)
+
+    async def test_wire_discovery_delay_and_first_book_jitter_keep_coinbase_running(self):
+        store, stop = Store(), asyncio.Event()
+        saved, paths = [], []
+        tick_requested, tick_saved = asyncio.Event(), asyncio.Event()
+        at = datetime(2026, 11, 15, 12, 14, 55, tzinfo=timezone.utc)
+        cycle = 0
+        def ingest(event):
+            saved.append(event)
+        store.ingest = ingest
+        def raw_market(identity, start):
+            return {'id': identity, 'slug': identity, 'status': 'MARKET_STATUS_OPEN',
+                    'assetPriceTerms': {'asset': {'symbol': 'btc'},
+                        'marketType': 'ASSET_PRICE_MARKET_TYPE_UP_DOWN', 'horizon': '15m',
+                        'windowStart': start.isoformat(),
+                        'windowEnd': (start + timedelta(minutes=15)).isoformat(),
+                        'priceToBeat': {'value': '100000.00000000000001'}}}
+        old = raw_market('old', at.replace(minute=0, second=0))
+        new = raw_market('new', at.replace(minute=15, second=0))
+        def wire(request):
+            paths.append((cycle, request.url.path))
+            if request.url.path == '/v1/markets':
+                if cycle == 1:
+                    return httpx.Response(200, json={'markets': [old]})
+                if cycle in (2, 3):
+                    return httpx.Response(429 if cycle == 2 else 503)
+                if cycle == 4:
+                    raise httpx.ReadTimeout('private', request=request)
+                if cycle == 5:
+                    raise httpx.ConnectError('private', request=request)
+                return httpx.Response(200, json={'markets': [old if cycle == 0 else new]})
+            slug = 'old' if cycle == 0 else 'new'
+            if cycle == 6:
+                return httpx.Response(404)  # Both BBO and book missing.
+            data = {'marketSlug': slug, 'state': 'MARKET_STATE_OPEN'}
+            if cycle != 7:  # Recognized matching empty BBO before first quote.
+                data['bestAsk'] = {'value': '0.530000000000000001'}
+                data['lastPriceSample'] = {'ts': '2026-11-15T12:14:54Z' if cycle == 0
+                                         else '2026-11-15T12:15:34Z'}
+            return httpx.Response(200, json={'marketData': data})
+        async def pause(st, seconds):
+            nonlocal at, cycle
+            if st.is_set():
+                return
+            if seconds != 5:
+                await st.wait()
+                return
+            tick_requested.set()
+            await tick_saved.wait()
+            tick_saved.clear()
+            cycle += 1
+            at += timedelta(seconds=5)
+        async def cb(s, st):
+            from postgres.live_contract import coinbase_ticker
+            while not st.is_set():
+                await tick_requested.wait()
+                tick_requested.clear()
+                event = coinbase_ticker({'type': 'ticker', 'product_id': 'BTC-USD',
+                    'trade_id': cycle, 'time': at.isoformat(),
+                    'price': '100001.000000000000001', 'last_size': '0.0001'}, at.isoformat())
+                await asyncio.to_thread(s.ingest, event)
+                tick_saved.set()
+        async def market(s, client, st, **kw):
+            result = await polymarket_cycle(s, client, st, **kw)
+            if cycle == 8:
+                self.assertEqual(result, 'new')
+                st.set()
+        async def idle(*_a, **_kw):
+            await stop.wait()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(wire)) as client:
+            with patch('postgres.live_supervisor._pause_or_stop', pause):
+                await run_bounded(store, client, stop, owner_check=lambda: True,
+                    disable_collector=store.disable, max_seconds=2, market_interval=5,
+                    clock=lambda: at, market=market, coinbase=cb, candles=idle)
+        prices = [e for e in saved if e['source'] == 'coinbase']
+        quotes = [e for e in saved if e['kind'] == 'quote']
+        self.assertEqual(len(prices), 8)
+        self.assertEqual([e['market_id'] for e in quotes], ['old', 'new'])
+        self.assertEqual(quotes[0]['source_time'], '2026-11-15T12:14:54Z')
+        self.assertEqual(quotes[-1]['source_time'], '2026-11-15T12:15:34Z')
+        self.assertEqual(quotes[-1]['payload']['best_ask'], '0.530000000000000001')
+        self.assertEqual([e['market_id'] for e in saved if e['kind'] == 'market'],
+                         ['old', 'new', 'new', 'new'])
+        self.assertFalse(any('/old/' in path for c, path in paths if c > 0))
+        self.assertFalse(store.enabled)
 
     async def test_fence_failure_opens_no_source(self):
         store = Store()

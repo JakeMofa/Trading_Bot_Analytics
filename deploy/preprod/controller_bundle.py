@@ -80,6 +80,8 @@ except (DeploymentHold,OSError,ValueError) as error:
                       'pp_filesystem_container_identity',
                       'pp_filesystem_runtime_binding',
                       'pp_filesystem_reserve',
+                      'invalid_pp_cycle_anchor', 'pp_cycle_session_binding_mismatch',
+                      'pp_cycle_initial_generation_not_ready',
                       'pp_filesystem_sample_unavailable','stop_recurring_structured_sync_first','stop_recurring_archive_first',
                       'generated_runtime_check_failed',
                       'generated_api_readiness_timeout',

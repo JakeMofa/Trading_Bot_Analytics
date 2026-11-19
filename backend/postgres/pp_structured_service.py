@@ -12,7 +12,7 @@ from .lifecycle import LifecycleRepository
 from .migrate import validate_schema
 from .pp_history_connection import PPHistoryConnectionFactory
 from .pp_structured_drain import DrainLimits, drain_bounded
-from .pp_structured_probe import LOCAL_DSN, MAX_PENDING, ORIGIN, check_environment, private_dsn
+from .pp_structured_probe import LOCAL_DSN, MAX_PENDING, ORIGIN, check_environment, private_dsn, retain_revisions
 
 
 # Recurring-only page. The operator one-shot retains its independent 25-row cap.
@@ -65,12 +65,13 @@ def main():
                 raise ValueError('wrong PP lifecycle role')
             validate_schema(conn, 'preprod')
         repo = LifecycleRepository(local, environment='preprod', pending_outbox_limit=MAX_PENDING)
+        capture = retain_revisions(os.environ)
         remote = PPHistoryConnectionFactory()
 
         def transport(generation, *, timeout_seconds):
             return HistoryV2PostgresTransport(remote, origin_id=ORIGIN,
                 generation_id=generation, expected_database='postgres',
-                expected_role='tradebot_pp_history')
+                expected_role='tradebot_pp_history', retain_revisions=capture)
 
         def page():
             return drain_bounded(repo, transport, execute=True,

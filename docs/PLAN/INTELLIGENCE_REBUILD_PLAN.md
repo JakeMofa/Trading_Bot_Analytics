@@ -1,3 +1,39 @@
+## November 19 UTC — exact PP revision backfill and persistent capture candidate
+
+The restricted structured profile explicitly opts into immutable revision capture
+with `TRADEBOT_PP_RETAIN_REVISIONS=true`. Both recurring and one-shot imports
+retain receipt-bound canonical envelope bytes atomically; authenticated readback
+now also verifies those committed bytes before local ACK. Missing opt-in keeps
+the adapter default OFF; malformed opt-in fails closed. The API, collector and
+ordinary lifecycle profile receive no additional credentials or cloud flags.
+
+`python -m postgres.pp_revision_backfill --generation-id UUID --through-id ID`
+provides a local-only inventory of already acknowledged PP envelopes. Its exact
+count and SHA256 must be reviewed before a separate `--execute --expected-count N
+--expected-sha256 SHA` invocation, with explicit
+`TRADEBOT_PP_REVISION_BACKFILL=true` and capture opt-in. It requires the existing
+restricted lifecycle/history mounts and PP one-shot identity, never admin keys.
+The reviewed upper ID is mandatory; newer local rows are outside the repair.
+Each <=50-row/256KiB page checks existing exact receipts, appends original bytes,
+then independently reads and matches every envelope. Whole-scope limits are
+10,000 rows, 512 pages, 64MiB of envelopes and 1,800 seconds; each cloud operation
+retains its four-second deadline. No local ACK, projection, checkpoint, raw or
+retirement mutation occurs. Partial cloud commits remain retained; reconciliation
+and idempotent replay use the same reviewed count/digest, with no guessed cursor.
+
+Source qualification includes a generated 5,268-row/106-page repair, corruption,
+changed scope, outage/partial-commit replay, deadline, local acknowledgement and
+origin guards. Isolated PostgreSQL17 exercised receipt-bound multi-page replay,
+exact original decimal bytes and unchanged current projection/checkpoint. Three
+native PostgreSQL17 tests passed; generated25-row authenticated readback with
+100ms round trips took0.853s including committed envelope verification (import
+1.516s), not live pooler performance. Local pinned-backend suite314 tests passed
+with36 explicit environment/platform skips; deployment controls190 passed with5
+platform skips. Full exact-source CI/release and the real bounded backfill/capture measurements remain
+required. No host/cloud operation was performed by this source milestone; cloud
+migration state is recorded separately by the operator. Safe live removal and
+complete A/B verification within30minutes remain independent open gates.
+
 ## November 19 UTC — measured PP → Supabase raw transfer passed
 
 Ten synthetic objects matched the ten compressed chunk sizes measured from the 4,845 retained A events. Uploading 620,549 bytes took **5.105 seconds**, immediate authenticated byte-for-byte readback took **8.612 seconds**, and a second authenticated readback took **0.450 seconds**. Total elapsed inside the probe was **14.564 seconds** across 31 requests, including machine authentication. A separate private catalog query matched all ten keys and lengths. The test objects remain in their isolated synthetic generation.

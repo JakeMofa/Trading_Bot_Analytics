@@ -408,8 +408,20 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
             expected_database=binding['database'],expected_role=binding['role'],retain_revisions=True)
         with self.assertRaises(ArchiveIntegrityError):
             previous.read_revisions([2],max_bytes=4096,timeout_seconds=5)
-        previous.backfill_verified_revisions(records[:2],timeout_seconds=5)
-        previous.backfill_verified_revisions(records[:2],timeout_seconds=5)
+        from postgres.pp_revision_backfill import backfill, inventory
+        def local_pages(after):
+            return [r for r in records[:2] if r['id'] > after][:1]
+        scope, _ = inventory(local_pages, 2)
+        with factory() as connection:
+            before = connection.execute("SELECT row_to_json(p) AS row FROM history_v2.current_prices p WHERE origin_id=%s", (origin,)).fetchall()
+            checkpoint = connection.execute("SELECT row_to_json(c) AS row FROM history_v2.generation_checkpoints c WHERE origin_id=%s", (origin,)).fetchall()
+        for _ in range(2):
+            proof = backfill(local_pages, previous, 2, expected_count=2,
+                             expected_sha256=scope['sha256'])
+            self.assertEqual((proof['verified_rows'],proof['pages'],proof['cloud_operations']), (2,2,4))
+        with factory() as connection:
+            self.assertEqual(connection.execute("SELECT row_to_json(p) AS row FROM history_v2.current_prices p WHERE origin_id=%s", (origin,)).fetchall(), before)
+            self.assertEqual(connection.execute("SELECT row_to_json(c) AS row FROM history_v2.generation_checkpoints c WHERE origin_id=%s", (origin,)).fetchall(), checkpoint)
         previous.put_structured(records,timeout_seconds=5)
         self.assertEqual(previous.read_revisions([2,3],max_bytes=8192,timeout_seconds=5),records[1:])
         # Explicitly simulate privileged mutation; normal PP cannot update.
@@ -419,6 +431,8 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 (encoded(records[-1]),origin,generation))
         with self.assertRaises(ArchiveIntegrityError):
             previous.read_revisions([2],max_bytes=4096,timeout_seconds=5)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.read_structured_authenticated(records,max_bytes=16384,timeout_seconds=5)
         with factory() as connection:
             connection.execute("""UPDATE history_v2.structured_revision_payloads SET envelope=%s
                 WHERE origin_id=%s AND generation_id=%s AND outbox_id=2""",

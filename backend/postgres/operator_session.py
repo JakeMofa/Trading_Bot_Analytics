@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 
 from .live_diagnostics import LiveDiagnostic
+from .rehearsal_profile import lease_cap
 
 
 class SessionBusy(RuntimeError):
@@ -15,9 +16,11 @@ class SessionStopUnproven(RuntimeError):
 
 
 class OperatorSession:
-    def __init__(self, run, durable_off):
+    def __init__(self, run, durable_off, *, rehearsal_anchor=None):
         if not callable(run) or not callable(durable_off):
             raise ValueError('runner and durable OFF callback required')
+        self.max_session_seconds = lease_cap(rehearsal_anchor)
+        self._rehearsal = rehearsal_anchor is not None
         self._run = run
         self._durable_off = durable_off
         self._lock = asyncio.Lock()
@@ -32,8 +35,10 @@ class OperatorSession:
                 'failure_code': self._last_failure_code}
 
     async def start(self, *, max_seconds: int):
-        if not isinstance(max_seconds, int) or isinstance(max_seconds, bool) or not 1 <= max_seconds <= 4560:
-            raise ValueError('session deadline must be 1..4560 seconds')
+        if not isinstance(max_seconds, int) or isinstance(max_seconds, bool) or not 1 <= max_seconds <= self.max_session_seconds:
+            raise ValueError('session deadline outside configured finite window')
+        if self._rehearsal and max_seconds != self.max_session_seconds:
+            raise ValueError('two-leg rehearsal requires its explicit complete finite budget')
         async with self._lock:
             if self._task is not None and not self._task.done():
                 raise SessionBusy('PP collector session already running')

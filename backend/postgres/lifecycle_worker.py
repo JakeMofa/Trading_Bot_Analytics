@@ -9,6 +9,7 @@ import signal
 import threading
 
 from .lifecycle import LifecycleRepository, RotationPolicy
+from .rehearsal_profile import cycle_anchor, CYCLE_POLICY
 
 
 def configuration(environ):
@@ -37,7 +38,8 @@ def configuration(environ):
         raise ValueError('PP live origin cannot be used for test lifecycle')
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')
     trial = environ.get('TRADEBOT_PP_WINDOW_POLICY')
-    if trial is not None and (trial != 'two-official-markets' or mode != 'pp_live'
+    anchor = cycle_anchor(environ)
+    if trial is not None and (trial not in ('two-official-markets', CYCLE_POLICY) or mode != 'pp_live'
             or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin != 'pp-live-pp'):
         raise ValueError('invalid PP market-window qualification profile')
     if mode == 'pp_live' and size is not None:
@@ -49,7 +51,7 @@ def configuration(environ):
     generated_storage=requested(environ,mode,origin)
     return {'origin_id': origin, 'mode': mode, 'generated_storage':generated_storage,
             'policy': RotationPolicy(int(size) if size else None),
-            'pending_outbox_limit': pending, 'market_pair_trial': trial is not None}
+            'pending_outbox_limit': pending, 'market_pair_trial': trial is not None, 'rehearsal_anchor': anchor}
 
 
 def read_dsn(environ):
@@ -115,7 +117,8 @@ def main(argv=None):
                 generated=drain(repository)
             result = repository.switch_if_due(config['origin_id'], config['policy'],
                                               require_live_lease=config['mode'] == 'pp_live',
-                                              market_pair_trial=config['market_pair_trial'])
+                                              market_pair_trial=config['market_pair_trial'],
+                                              rehearsal_anchor=config['rehearsal_anchor'])
             result.update(archive='held_no_qualified_transport', retirement='off')
             if generated is not None:result['generated_storage']=generated
             if config['mode'] == 'pp_live' and result.get('reason') in (

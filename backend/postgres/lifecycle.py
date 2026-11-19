@@ -14,6 +14,7 @@ import json
 import uuid
 
 from . import pp_space
+from .rehearsal_profile import canonical_anchor, lease_cap, require_cycle_alignment
 from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
@@ -138,7 +139,7 @@ class LifecycleRepository:
                                       (generation['generation_id'],)).fetchone()
 
     def enable_collector(self, origin_id: str, *, session_id: str,
-                         expected_generation_id: str, max_seconds: int) -> dict:
+                         expected_generation_id: str, max_seconds: int, rehearsal_anchor=None) -> dict:
         """Enable one finite PP writer lease after separate host admission.
 
         The operator runtime calls this only after its host control gate;
@@ -147,7 +148,14 @@ class LifecycleRepository:
         if self.environment != 'preprod' or not origin_id.startswith('pp-live-') or \
                 len(origin_id) <= len('pp-live-') or len(origin_id) > 128:
             raise LifecycleHold('unsupported collector enable scope')
-        if isinstance(max_seconds, bool) or not isinstance(max_seconds, int) or not 1 <= max_seconds <= 4560:
+        try:
+            cap = lease_cap(rehearsal_anchor)
+        except ValueError as error:
+            raise LifecycleHold(str(error)) from None
+        if rehearsal_anchor is not None and (origin_id != 'pp-live-pp' or expected_generation_id != rehearsal_anchor
+                                              or max_seconds != cap):
+            raise LifecycleHold('two-leg rehearsal requires exact initial PP A')
+        if isinstance(max_seconds, bool) or not isinstance(max_seconds, int) or not 1 <= max_seconds <= cap:
             raise LifecycleHold('collector lease duration outside bounded window')
         for value in (session_id, expected_generation_id):
             try:
@@ -171,11 +179,19 @@ class LifecycleRepository:
                 FROM ops.writer_state WHERE origin_id=%s FOR UPDATE''', (origin_id,)).fetchone()
             if writer is None or writer['collector_enabled'] or str(writer['generation_id']) != expected_generation_id:
                 raise LifecycleHold('collector writer unavailable or generation changed')
-            generation = connection.execute('''SELECT state,hold_reason FROM archive.generations
+            generation = connection.execute('''SELECT state,slot,hold_reason FROM archive.generations
                 WHERE origin_id=%s AND generation_id=%s''',
                 (origin_id, expected_generation_id)).fetchone()
             if generation is None or generation['state'] != 'collecting':
                 raise LifecycleHold('collector generation is not collecting')
+            if rehearsal_anchor is not None:
+                # Existing retained A/B are evidence, not a fresh trial. Never
+                # recycle them or inherit an expired retirement authority.
+                occupied = connection.execute('''SELECT 1 FROM archive.generations
+                    WHERE origin_id=%s AND generation_id<>%s AND state<>'retired' LIMIT 1''',
+                    (origin_id, rehearsal_anchor)).fetchone()
+                if generation['slot'] != 'A' or occupied:
+                    raise LifecycleHold('two-leg rehearsal requires initial A and free B slot')
             if generation['hold_reason'] == 'pp_window_relation_limit':
                 raise LifecycleHold('PP window allocation limit requires review')
             if generation['hold_reason'] == 'other_slot_not_retired':
@@ -194,8 +210,18 @@ class LifecycleRepository:
                 collector_session_id=%s::uuid,
                 collector_lease_expires_at=clock_timestamp()+(%s * interval '1 second'),
                 epoch=epoch+1,updated_at=clock_timestamp()
-                WHERE origin_id=%s RETURNING epoch,collector_lease_expires_at''',
+                WHERE origin_id=%s RETURNING epoch,collector_lease_expires_at,updated_at''',
                 (session_id, max_seconds, origin_id)).fetchone()
+            if rehearsal_anchor is not None:
+                try:
+                    require_cycle_alignment(result['updated_at'])
+                except ValueError as error:
+                    raise LifecycleHold(str(error)) from None
+                self._checkpoint(connection, {'origin_id':origin_id,'generation_id':rehearsal_anchor},
+                    'rehearsal:two-leg-session', {'session_id':session_id,
+                        'lease_expires_at':result['collector_lease_expires_at'].isoformat(),
+                        'admitted_at':result['updated_at'].isoformat(),
+                        'initial_a':rehearsal_anchor,'lease_seconds':cap})
         return {'collector_enabled': True, 'epoch': result['epoch'],
                 'lease_expires_at': result['collector_lease_expires_at']}
 
@@ -283,6 +309,26 @@ class LifecycleRepository:
         return {'origin_id': origin_id, 'generation_id': generation_id, 'slot': slot}
 
     @staticmethod
+    def _rehearsal_phase(connection, origin, anchor, current):
+        initial = connection.execute('''SELECT * FROM archive.generations
+            WHERE origin_id=%s AND generation_id=%s''', (origin, anchor)).fetchone()
+        if initial is None or initial['slot'] != 'A':
+            raise LifecycleHold('initial rehearsal A missing')
+        chain = connection.execute('''SELECT * FROM archive.generations
+            WHERE origin_id=%s AND created_at>=%s
+            ORDER BY created_at,generation_id LIMIT 4''', (origin, initial['created_at'])).fetchall()
+        if (not 1 <= len(chain) <= 3 or str(chain[0]['generation_id']) != anchor
+                or chain[-1]['generation_id'] != current['generation_id']
+                or [row['slot'] for row in chain] != ['A','B','A'][:len(chain)]):
+            raise LifecycleHold('rehearsal generation chain changed')
+        for previous, successor in zip(chain, chain[1:]):
+            if previous['sealed_at'] != successor['started_at']:
+                raise LifecycleHold('rehearsal switch boundary changed')
+        if len(chain) == 3 and chain[0]['state'] != 'retired':
+            raise LifecycleHold('initial A retirement missing')
+        return len(chain)-1
+
+    @staticmethod
     def _observed_market_pair(connection, origin, generation, start, now):
         # A session begun mid-market must wait for the next full official interval.
         # Use exact UTC quarters, then validate both venue IDs and their source
@@ -304,7 +350,7 @@ class LifecycleRepository:
             ORDER BY m.start_epoch,m.market_id LIMIT 3""",
             (start,origin,now,generation)).fetchall()
 
-    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False, market_pair_trial=False) -> dict:
+    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False, market_pair_trial=False, rehearsal_anchor=None) -> dict:
         now = now or utcnow()
         with self.transaction() as connection:
             writer = connection.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
@@ -314,6 +360,10 @@ class LifecycleRepository:
             if market_pair_trial and (not require_live_lease or self.environment!='preprod'
                                       or not origin_id.startswith('pp-live-')):
                 raise LifecycleHold('invalid PP market-window qualification')
+            if rehearsal_anchor is not None:
+                canonical_anchor(rehearsal_anchor)
+                if not market_pair_trial or self.environment != 'preprod' or origin_id != 'pp-live-pp':
+                    raise LifecycleHold('invalid two-leg PP rehearsal scope')
             if require_live_lease:
                 # The writer row is locked. Use database time so ready/OFF,
                 # expired or stopped sessions cannot seal A during deployment.
@@ -352,7 +402,22 @@ class LifecycleRepository:
                                             ('raw.' + current['partition_name'],)).fetchone()['size']
             if allocation is None:
                 raise LifecycleHold('collecting partition missing')
-            if market_pair_trial and current['slot']=='B':
+            cycle = None
+            if rehearsal_anchor is not None:
+                admission = connection.execute('''SELECT cursor FROM archive.checkpoints
+                    WHERE origin_id=%s AND generation_id=%s AND consumer='rehearsal:two-leg-session' ''',
+                    (origin_id,rehearsal_anchor)).fetchone()
+                proof = admission['cursor'] if admission else {}
+                if (proof.get('initial_a') != rehearsal_anchor
+                        or proof.get('session_id') != str(writer['collector_session_id'])
+                        or proof.get('lease_expires_at') != writer['collector_lease_expires_at'].isoformat()
+                        or proof.get('lease_seconds') != lease_cap(rehearsal_anchor)):
+                    raise LifecycleHold('two-leg session admission changed or missing')
+                cycle = self._rehearsal_phase(connection, origin_id, rehearsal_anchor, current)
+                if cycle == 2:
+                    return {'status':'collecting','reason':'two_leg_rehearsal_complete',
+                            'generation_id':current['generation_id'],'allocated_bytes':allocation, **space}
+            if market_pair_trial and current['slot']=='B' and rehearsal_anchor is None:
                 # Report elapsed B observation using the actual switch time.
                 # Normal operator OFF / lease expiry owns orderly shutdown.
                 return {'status':'collecting','generation_id':current['generation_id'],

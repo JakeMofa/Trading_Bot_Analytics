@@ -4252,3 +4252,18 @@ readback, then archive/verify successfully without removal. Retained A metadata
 and catalog, raw/core/dedup/source-body evidence remain exact. Hosted release,
 actual cloud drain/readback and independently scoped fresh trial remain pending.
 No schema/grant/host/cloud operation occurred. [Finite route and limitations](PP_HISTORICAL_DRAIN_SOURCE_2026-11-19.md).
+
+### November 19 — exact fresh-trial cloud authority candidate (source only)
+
+Prepared an additive review-only cloud scope for exact
+`pp-live-pp-trial-20261119-01`: separate structured writer/reader NOLOGIN roles,
+new independent Storage Auth identities and exact origin-hashed raw path. Existing
+old-origin identities/policies/data stay unchanged. Explicit adapter arguments
+pin trial DSN role/app name, JWT admin metadata, raw prefix and read-only verifier
+behavior; no environment prefix widens cloud access. Six unit controls and six
+owned disposable native PG17 tests pass, including genuine immutable receipt/
+envelope readback through a separate read-only role. No cloud inventory/mutation,
+Auth provisioning, secret deployment, host action or collector activation occurred.
+Service wiring, fresh grant/catalog review, actual new identities/secrets, bounded
+live API denials/readback and separate old A/B disposition remain prerequisites.
+[Policy artifacts, exact dependencies and reversible deployment](PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md).

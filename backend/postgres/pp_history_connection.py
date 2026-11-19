@@ -15,6 +15,7 @@ import time
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable
 from .retirement_accounting import phase
+from .cloud_origin_binding import cloud_binding
 
 
 PP_POOLER_HOST = 'aws-1-us-west-2.pooler.supabase.com'
@@ -72,7 +73,10 @@ class PPHistoryConnectionFactory:
     """
 
     def __init__(self, dsn_file: str | Path = DEFAULT_DSN_FILE,
-                 ca_file: str | Path = DEFAULT_CA_FILE):
+                 ca_file: str | Path = DEFAULT_CA_FILE, *,
+                 origin_id: str = 'pp-live-pp', reader: bool = False):
+        self.binding = cloud_binding(origin_id)
+        self.expected_role = self.binding.role(reader=reader)
         self.dsn_file, self.ca_file = Path(dsn_file), Path(ca_file)
         if self.dsn_file == self.ca_file:
             raise ArchiveIntegrityError('private PP history files must differ')
@@ -102,9 +106,9 @@ class PPHistoryConnectionFactory:
             values = conninfo_to_dict(secret.decode('utf-8').strip())
             expected = {
                 'host': PP_POOLER_HOST, 'port': '5432', 'dbname': 'postgres',
-                'user': PP_POOLER_USER, 'sslmode': 'verify-full',
+                'user': self.expected_role + '.xttdqeimdujweijxcuro', 'sslmode': 'verify-full',
                 'sslrootcert': str(self.ca_file), 'connect_timeout': '5',
-                'application_name': 'tradebot_pp_history',
+                'application_name': self.expected_role,
             }
             if (set(values) != set(expected) | {'password'} or
                     any(values[key] != value for key, value in expected.items()) or

@@ -1,0 +1,32 @@
+{
+  "baseline_source": "0c86b47c46ae5a39f5d1076555e7cf010163416c",
+  "candidate_exact_ci": 44629825977,
+  "candidate_source": "69af6eff9d3555103b69f111ad533e35a0abc5be",
+  "collector_started": false,
+  "hosted_records_written": 0,
+  "initially_unresolved_wrapper_outcomes": 6,
+  "local_acknowledgements_written": 0,
+  "local_retirement": false,
+  "max_seconds_per_cloud_operation": 4,
+  "paired_reads": [
+    {
+      "container_exit": 1,
+      "error_type": "ArchiveUnavailable",
+      "mode": "baseline",
+      "seconds": 4.369151,
+      "setup_category": "unknown",
+      "status": "hold"
+    },
+    {
+      "canonical_sha256": "733b2cab62809f05c4d574b9949d1c878b76b0ee0bff65d0392a059e18d796e7",
+      "container_exit": 0,
+      "mode": "candidate",
+      "rows": 25,
+      "seconds": 3.784375,
+      "setup_category": "unknown",
+      "status": "pass"
+    }
+  ],
+  "scope": "same_exact_read_only_hosted_25_ids_bounded_4s",
+  "sustained_write_throughput": "NOT_MEASURED"
+}

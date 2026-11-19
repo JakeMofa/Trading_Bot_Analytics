@@ -27,39 +27,54 @@ class ActiveStructuredWorker:
 
     def cycle(self, generation_id: str) -> dict:
         budget = CycleBudget(self.limits)
-        with budget, self.repository.structured_sync_lock(self.origin_id):
-            generation = self.repository.generation(generation_id)
-            if (generation['origin_id'] != self.origin_id or
-                    generation['state'] not in self.allowed_states):
-                raise LifecycleHold('structured generation state is not eligible')
-            if self.hold_other_pending and self.repository.has_other_pending(self.origin_id, generation_id):
-                raise LifecycleHold('another generation has pending structured evidence')
-            rows = self.repository.outbox(generation_id, self.limits.max_rows,
-                                          self.limits.max_decoded_bytes)
-            if not rows:
-                return {'status': 'idle', 'acknowledged': 0,
-                        'raw_archive': 'not_started', 'retirement': 'off'}
-            keys = ('id', 'origin_id', 'generation_id', 'entity_type',
-                    'entity_id', 'content_hash', 'payload')
-            records = [wire({key: row[key] for key in keys}) for row in rows]
-            validate_outbox_stream(records, origin_id=self.origin_id,
-                                   generation_id=generation_id)
-            size = len(encoded(records))
-            if size > self.limits.max_decoded_bytes:
-                raise ArchiveIntegrityError('structured stream exceeds byte bound')
-            self.transport.put_structured(records, timeout_seconds=budget.request(size))
-            budget.check()
-            readback = self.transport.read_structured_authenticated(
-                records, max_bytes=self.limits.max_decoded_bytes,
-                timeout_seconds=budget.request(size))
-            budget.check()
-            if encoded(readback) != encoded(records):
-                raise ArchiveIntegrityError('structured authenticated readback mismatch')
-            self.repository.acknowledge(generation_id, records)
-            budget.check()
-            return {'status': 'acknowledged', 'acknowledged': len(records),
-                    'raw_archive': 'not_started', 'retirement': 'off',
-                    'requests': budget.requests, 'bytes': budget.bytes}
+        phase, identities = 'local_prepare', None
+        try:
+            with budget, self.repository.structured_sync_lock(self.origin_id):
+                generation = self.repository.generation(generation_id)
+                if (generation['origin_id'] != self.origin_id or
+                        generation['state'] not in self.allowed_states):
+                    raise LifecycleHold('structured generation state is not eligible')
+                if self.hold_other_pending and self.repository.has_other_pending(self.origin_id, generation_id):
+                    raise LifecycleHold('another generation has pending structured evidence')
+                rows = self.repository.outbox(generation_id, self.limits.max_rows,
+                                              self.limits.max_decoded_bytes)
+                if not rows:
+                    return {'status': 'idle', 'acknowledged': 0,
+                            'raw_archive': 'not_started', 'retirement': 'off'}
+                keys = ('id', 'origin_id', 'generation_id', 'entity_type',
+                        'entity_id', 'content_hash', 'payload')
+                records = [wire({key: row[key] for key in keys}) for row in rows]
+                validate_outbox_stream(records, origin_id=self.origin_id,
+                                       generation_id=generation_id)
+                identities = (records[0]['id'], records[-1]['id'], len(records))
+                canonical = encoded(records)
+                size = len(canonical)
+                if size > self.limits.max_decoded_bytes:
+                    raise ArchiveIntegrityError('structured stream exceeds byte bound')
+                phase = 'cloud_import'
+                self.transport.put_structured(records, timeout_seconds=budget.request(size))
+                budget.check()
+                phase = 'cloud_readback'
+                readback = self.transport.read_structured_authenticated(
+                    records, max_bytes=self.limits.max_decoded_bytes,
+                    timeout_seconds=budget.request(size))
+                budget.check()
+                if encoded(readback) != canonical:
+                    raise ArchiveIntegrityError('structured authenticated readback mismatch')
+                phase = 'local_ack'
+                self.repository.acknowledge(generation_id, records)
+                phase = 'after_local_ack'
+                budget.check()
+                return {'status': 'acknowledged', 'acknowledged': len(records),
+                        'raw_archive': 'not_started', 'retirement': 'off',
+                        'requests': budget.requests, 'bytes': budget.bytes}
+        except Exception as error:
+            # Remote import and local ACK can commit before a later deadline
+            # check. Preserve the attempted identities without claiming either
+            # outcome or emitting exception text, which can contain credentials.
+            error.structured_phase = phase
+            error.structured_page = identities
+            raise
 
 
 class SealedStructuredWorker(ActiveStructuredWorker):

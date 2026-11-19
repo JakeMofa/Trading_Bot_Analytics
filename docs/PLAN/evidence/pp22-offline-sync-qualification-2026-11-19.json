@@ -1,0 +1,74 @@
+{
+  "attempts": [
+    {
+      "baseline": {
+        "acked": 763,
+        "pending": 4888,
+        "raw": 5241
+      },
+      "status": "ready"
+    },
+    {
+      "error_type": "ArchiveUnavailable",
+      "first_id": 54537,
+      "last_id": 54586,
+      "page": 1,
+      "page_rows": 50,
+      "phase": "cloud_import",
+      "status": "hold",
+      "write_seconds": 4.111949
+    },
+    {
+      "above_intake": false,
+      "acknowledged": 0,
+      "elapsed": 4.253534,
+      "failure": "ArchiveUnavailable",
+      "final": {
+        "acked": 763,
+        "pending": 4888,
+        "raw": 5241
+      },
+      "rate": 0.0,
+      "status": "hold"
+    }
+  ],
+  "candidate": "69af6eff9d3555103b69f111ad533e35a0abc5be",
+  "collector_durably_off": true,
+  "exact_ci_run": 44629825977,
+  "generation_attached": true,
+  "hosted_check": {
+    "attempted_receipts": 0,
+    "attempted_revisions": 0,
+    "checkpoint": 763
+  },
+  "live_trial_started": false,
+  "operation_deadline_seconds": 4,
+  "postgres_timeout": {
+    "command": "SELECT",
+    "matches_trial_writer": true,
+    "query_touches_revision_payloads": true,
+    "sqlstate": "25P04",
+    "timestamp_utc": "2026-11-19T22:52:44.368Z"
+  },
+  "required_records_per_second": 13.6,
+  "result": "HOLD_ON_FIRST_CLOUD_IMPORT",
+  "retirement_performed": false,
+  "same_role_readonly_checkout_probe": [
+    {
+      "checkout_seconds": 0.3902191258966923,
+      "elapsed_seconds": 0.5898695529904217,
+      "identity_query_seconds": 0.049562269006855786,
+      "mode": "cold",
+      "status": "pass"
+    },
+    {
+      "checkout_seconds": 0.0005988520570099354,
+      "elapsed_seconds": 0.19578658905811608,
+      "identity_query_seconds": 0.04893358796834946,
+      "mode": "reused",
+      "status": "pass"
+    }
+  ],
+  "scope": "pp_offline_candidate_structured_backlog_qualification",
+  "trial_generation": "94107d29-626f-480a-b61a-ce6a10f44301"
+}

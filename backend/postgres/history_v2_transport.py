@@ -32,7 +32,7 @@ class HistoryV2PostgresTransport:
     def __init__(self, connection_factory, *, origin_id: str,
                  generation_id: str, expected_database: str,
                  expected_role: str, retain_revisions: bool = False,
-                 indexed_latest: bool = False):
+                 indexed_latest: bool = False, sync_barriers: bool = False):
         binding = cloud_binding(origin_id) if origin_id == TRIAL_ORIGIN else None
         if (not callable(connection_factory) or origin_id not in (PP_STRUCTURED_ORIGIN, TRIAL_ORIGIN) or
                 (origin_id == TRIAL_ORIGIN and (expected_database != 'postgres' or
@@ -44,6 +44,9 @@ class HistoryV2PostgresTransport:
             raise ValueError('boolean revision-retention selection required')
         if type(indexed_latest) is not bool:
             raise ArchiveIntegrityError('boolean PP latest receipt opt-in required')
+        if type(sync_barriers) is not bool or (sync_barriers and origin_id != TRIAL_ORIGIN):
+            raise ArchiveIntegrityError('synchronized batches require exact trial opt-in')
+        self.sync_barriers=sync_barriers
         self._read_only = origin_id == TRIAL_ORIGIN and expected_role == binding.reader_role
         self.indexed_latest = indexed_latest
         self.retain_revisions = retain_revisions
@@ -83,6 +86,9 @@ class HistoryV2PostgresTransport:
 
     def _identity(self, connection):
         actual = connection.execute('SELECT current_database() AS database, current_user AS role').fetchone()
+        self._check_identity(actual)
+
+    def _check_identity(self,actual):
         if (actual['database'] != self.expected_database or
                 actual['role'] != self.expected_role):
             raise ArchiveIntegrityError('private structured database identity mismatch')
@@ -100,18 +106,20 @@ class HistoryV2PostgresTransport:
     def _projection_rows(connection, records, *, for_update=False):
         # Queue distinct entity reads before waiting for any result. No write
         # decision is made until the entire read phase has synchronized.
-        cursors = {}
         with connection.pipeline():
-            for record in records:
-                key = (record['entity_type'], record['entity_id'])
-                if key in cursors:
-                    continue
-                table, condition, values = HistoryV2PostgresTransport._table_and_condition(record)
-                lock = sql.SQL(' FOR UPDATE') if (for_update and
-                    record['entity_type'] in MUTABLE_PROJECTIONS) else sql.SQL('')
-                cursors[key] = connection.execute(
-                    sql.SQL('SELECT * FROM {} WHERE {}{}').format(table, condition, lock), values)
-        return {key: cursor.fetchone() for key, cursor in cursors.items()}
+            cursors=HistoryV2PostgresTransport._projection_cursors(connection,records,for_update=for_update)
+        return {key:cursor.fetchone() for key,cursor in cursors.items()}
+
+    @staticmethod
+    def _projection_cursors(connection,records,*,for_update=False):
+        cursors={}
+        for record in records:
+            key=(record['entity_type'],record['entity_id'])
+            if key in cursors:continue
+            table,condition,values=HistoryV2PostgresTransport._table_and_condition(record)
+            lock=sql.SQL(' FOR UPDATE') if for_update and record['entity_type'] in MUTABLE_PROJECTIONS else sql.SQL('')
+            cursors[key]=connection.execute(sql.SQL('SELECT * FROM {} WHERE {}{}').format(table,condition,lock),values)
+        return cursors
 
     @staticmethod
     def _table_and_condition(record):
@@ -128,11 +136,17 @@ class HistoryV2PostgresTransport:
 
     def _receipts(self, connection, records):
         """Read the exact page's receipts in one bounded remote round trip."""
-        rows = connection.execute('''SELECT outbox_id,entity_type,entity_id,
+        return self._checked_receipts(self._receipt_cursor(connection,records).fetchall(),records)
+
+    def _receipt_cursor(self,connection,records):
+        return connection.execute('''SELECT outbox_id,entity_type,entity_id,
             content_hash,payload_hash,envelope_hash FROM history_v2.structured_receipts
             WHERE origin_id=%s AND generation_id=%s AND outbox_id=ANY(%s::bigint[])''',
             (self.origin_id, self.generation_id,
-             [record['id'] for record in records])).fetchall()
+             [record['id'] for record in records]))
+
+    @staticmethod
+    def _checked_receipts(rows,records):
         receipts = {row['outbox_id']: row for row in rows}
         if len(receipts) != len(rows) or len(receipts) > len(records):
             raise ArchiveIntegrityError('private structured receipt set invalid')
@@ -169,36 +183,46 @@ class HistoryV2PostgresTransport:
     def _read_revisions(self, connection, ids, max_bytes, *, generation_id=None,
                         _canonical_envelopes=None):
         generation_id = generation_id or self.generation_id
-        # One statement/snapshot bounds envelope bytes and all selected receipt
-        # text separately. Sum lengths rather than concatenate corrupt metadata.
-        # Neither payload nor text is transferred when either aggregate exceeds
-        # max_bytes. Fixed-width fields, row/protocol/TLS overhead are additional.
-        rows=connection.execute("""WITH sizes AS (
-                SELECT p.outbox_id, sum(octet_length(p.envelope)) OVER () total,
-                    sum(coalesce(octet_length(r.entity_type),0)
-                      + coalesce(octet_length(r.entity_id),0)
-                      + coalesce(octet_length(r.content_hash),0)
-                      + coalesce(octet_length(r.payload_hash),0)
-                      + coalesce(octet_length(r.envelope_hash),0)) OVER () metadata_total
+        rows=self._revision_cursor(connection,ids,max_bytes,generation_id=generation_id).fetchall()
+        return self._decode_revisions(rows,ids,max_bytes,generation_id=generation_id,
+                                      _canonical_envelopes=_canonical_envelopes)
+
+    def _revision_cursor(self,connection,ids,max_bytes,*,generation_id=None):
+        generation_id=generation_id or self.generation_id
+        # Materialize only the requested identities once. The previous plan
+        # could rescan a generation for every row through the window/rejoins.
+        # Keep the byte/metadata limits in the same snapshot and suppress all
+        # variable-width output when either aggregate is too large.
+        return connection.execute("""WITH selected AS MATERIALIZED (
+                SELECT p.outbox_id,p.envelope,r.entity_type,r.entity_id,
+                       r.content_hash,r.payload_hash,r.envelope_hash
                 FROM history_v2.structured_revision_payloads p
                 JOIN history_v2.structured_receipts r ON
                     (r.origin_id,r.generation_id,r.outbox_id)=
                     (p.origin_id,p.generation_id,p.outbox_id)
-                WHERE p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=ANY(%s::bigint[])),
+                WHERE p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=ANY(%s::bigint[])
+                  AND r.origin_id=%s AND r.generation_id=%s AND r.outbox_id=ANY(%s::bigint[])),
+            sizes AS (
+                SELECT *,sum(octet_length(envelope)) OVER () AS total,
+                    sum(coalesce(octet_length(entity_type),0)
+                      + coalesce(octet_length(entity_id),0)
+                      + coalesce(octet_length(content_hash),0)
+                      + coalesce(octet_length(payload_hash),0)
+                      + coalesce(octet_length(envelope_hash),0)) OVER () AS metadata_total
+                FROM selected),
             bounded AS (SELECT *,total<=%s AND metadata_total<=%s AS fits FROM sizes)
-            SELECT p.outbox_id,s.total,s.metadata_total,
-                   CASE WHEN s.fits THEN p.envelope END AS envelope,
-                   CASE WHEN s.fits THEN r.entity_type END AS entity_type,
-                   CASE WHEN s.fits THEN r.entity_id END AS entity_id,
-                   CASE WHEN s.fits THEN r.content_hash END AS content_hash,
-                   CASE WHEN s.fits THEN r.payload_hash END AS payload_hash,
-                   CASE WHEN s.fits THEN r.envelope_hash END AS envelope_hash
-            FROM bounded s JOIN history_v2.structured_revision_payloads p ON
-                p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=s.outbox_id
-            JOIN history_v2.structured_receipts r ON (r.origin_id,r.generation_id,r.outbox_id)=
-                    (p.origin_id,p.generation_id,p.outbox_id)
-            ORDER BY p.outbox_id""", (self.origin_id,generation_id,ids,max_bytes,max_bytes,
-                                      self.origin_id,generation_id)).fetchall()
+            SELECT outbox_id,total,metadata_total,
+                   CASE WHEN fits THEN envelope END AS envelope,
+                   CASE WHEN fits THEN entity_type END AS entity_type,
+                   CASE WHEN fits THEN entity_id END AS entity_id,
+                   CASE WHEN fits THEN content_hash END AS content_hash,
+                   CASE WHEN fits THEN payload_hash END AS payload_hash,
+                   CASE WHEN fits THEN envelope_hash END AS envelope_hash
+            FROM bounded ORDER BY outbox_id""",
+            (self.origin_id,generation_id,ids,self.origin_id,generation_id,ids,max_bytes,max_bytes))
+
+    def _decode_revisions(self,rows,ids,max_bytes,*,generation_id=None,_canonical_envelopes=None):
+        generation_id=generation_id or self.generation_id
         if [r['outbox_id'] for r in rows] != ids:
             raise ArchiveIntegrityError('historical revision or receipt missing')
         records=[]
@@ -426,10 +450,71 @@ class HistoryV2PostgresTransport:
         connection.execute(statement, values)
         return row
 
+    def _upsert_checkpoint(self,connection,cursor,row_count,digest):
+        connection.execute('''INSERT INTO history_v2.generation_checkpoints
+                        (origin_id,generation_id,dataset,cursor,row_count,
+                         content_hash,acknowledged_at)
+                        VALUES(%s,%s,'structured:outbox',%s,%s,%s,%s)
+                        ON CONFLICT(origin_id,generation_id,dataset)
+                        DO UPDATE SET cursor=EXCLUDED.cursor,row_count=EXCLUDED.row_count,
+                            content_hash=EXCLUDED.content_hash,
+                            acknowledged_at=EXCLUDED.acknowledged_at''',
+                        (self.origin_id, self.generation_id, Jsonb(cursor),
+                         row_count,
+                         digest, datetime.now(timezone.utc)))
+
+    def _read_batch(self,connection,records,max_bytes,remaining):
+        # Identity is still verified before any scoped data SELECT. Independent
+        # bounded reads share a synchronization; every result is checked before
+        # return/ACK. No transaction or snapshot is cached across operations.
+        with connection.pipeline():
+            self._limit(connection,remaining)
+            identity=connection.execute('SELECT current_database() AS database, current_user AS role')
+        self._check_identity(identity.fetchone())
+        final={(record['entity_type'],record['entity_id']):record for record in records}
+        with connection.pipeline():
+            checkpoint=connection.execute("""SELECT cursor,content_hash FROM history_v2.generation_checkpoints
+                WHERE origin_id=%s AND generation_id=%s AND dataset='structured:outbox' """,
+                (self.origin_id,self.generation_id))
+            receipts=self._receipt_cursor(connection,records)
+            revisions=self._revision_cursor(connection,[r['id'] for r in records],max_bytes) if self.retain_revisions else None
+            projections=self._projection_cursors(connection,final.values())
+        checkpoint=checkpoint.fetchone()
+        if (not checkpoint or checkpoint['cursor'].get('outbox_id',0)<records[-1]['id']
+                or checkpoint['content_hash']!=sha256(encoded(checkpoint['cursor']))):
+            raise ArchiveIntegrityError('private structured checkpoint mismatch')
+        receipts=self._checked_receipts(receipts.fetchall(),records)
+        for record in records:
+            receipt=receipts.get(record['id'])
+            if receipt is None:raise ArchiveIntegrityError('private structured receipt missing')
+            self._check_receipt(receipt,record)
+        if revisions is not None:
+            recovered=self._decode_revisions(revisions.fetchall(),[r['id'] for r in records],max_bytes)
+            if encoded(recovered)!=encoded(records):
+                raise ArchiveIntegrityError('private structured revision readback mismatch')
+        for key,record in final.items():
+            row=projections[key].fetchone()
+            if row is None:raise ArchiveIntegrityError('private structured projection missing')
+            if not cloud_row_matches(record,wire(row)):
+                raise ArchiveIntegrityError('private structured projection changed')
+
+    def _append_revision_commands(self,connection,records):
+        # Preserve the existing maximum 25-row physical INSERT statements.
+        for start in range(0,len(records),25):
+            page=records[start:start+25]
+            values=[(self.origin_id,self.generation_id,r['id'],encoded(r)) for r in page]
+            placeholders=sql.SQL(',').join(sql.SQL('(%s,%s,%s,%s)') for _ in values)
+            connection.execute(sql.SQL("""INSERT INTO history_v2.structured_revision_payloads
+                (origin_id,generation_id,outbox_id,envelope) VALUES {}
+                ON CONFLICT (origin_id,generation_id,outbox_id) DO NOTHING""").format(placeholders),
+                [v for row in values for v in row])
+
     def put_structured(self, records: list[dict], *, timeout_seconds: float) -> None:
+        if self.sync_barriers and len(records)>50:
+            raise ArchiveLimit('trial synchronized batch exceeds fifty rows')
         if self._read_only:
             raise ArchiveIntegrityError('trial structured reader has no append operation')
-        self._validate(records)
+        self._validate(records,max_bytes=256*1024 if self.sync_barriers else 4*1024*1024)
         deadline = self._deadline(timeout_seconds)
         try:
             with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
@@ -474,23 +559,26 @@ class HistoryV2PostgresTransport:
                                 record['id'], record['entity_type'], record['entity_id'],
                                 record['content_hash'], payload_hash, envelope_hash))
                             inserted += 1
-                    self._insert_receipts(connection, new_receipts)
-                    if self.retain_revisions:
-                        self._append_revisions(connection,records)
-                    last_id = records[-1]['id']
-                    cursor = {'outbox_id': max(last_id, previous_id)}
-                    digest = sha256(encoded(cursor))
-                    connection.execute('''INSERT INTO history_v2.generation_checkpoints
-                        (origin_id,generation_id,dataset,cursor,row_count,
-                         content_hash,acknowledged_at)
-                        VALUES(%s,%s,'structured:outbox',%s,%s,%s,%s)
-                        ON CONFLICT(origin_id,generation_id,dataset)
-                        DO UPDATE SET cursor=EXCLUDED.cursor,row_count=EXCLUDED.row_count,
-                            content_hash=EXCLUDED.content_hash,
-                            acknowledged_at=EXCLUDED.acknowledged_at''',
-                        (self.origin_id, self.generation_id, Jsonb(cursor),
-                         (checkpoint['row_count'] if checkpoint else 0) + inserted,
-                         digest, datetime.now(timezone.utc)))
+                    last_id=records[-1]['id']
+                    cursor={'outbox_id':max(last_id,previous_id)}
+                    digest=sha256(encoded(cursor))
+                    row_count=(checkpoint['row_count'] if checkpoint else 0)+inserted
+                    if self.sync_barriers:
+                        size=sum(len(encoded(r)) for r in records)
+                        with connection.pipeline():
+                            self._insert_receipts(connection,new_receipts)
+                            if self.retain_revisions:
+                                self._append_revision_commands(connection,records)
+                                revisions=self._revision_cursor(connection,[r['id'] for r in records],size)
+                            self._upsert_checkpoint(connection,cursor,row_count,digest)
+                        if self.retain_revisions:
+                            actual=self._decode_revisions(revisions.fetchall(),[r['id'] for r in records],size)
+                            if encoded(actual)!=encoded(records):
+                                raise ArchiveIntegrityError('stored historical envelope conflicts')
+                    else:
+                        self._insert_receipts(connection,new_receipts)
+                        if self.retain_revisions:self._append_revisions(connection,records)
+                        self._upsert_checkpoint(connection,cursor,row_count,digest)
             if time.monotonic() >= deadline:
                 raise ArchiveLimit('private structured import deadline reached')
         except (ArchiveIntegrityError, ArchiveLimit):
@@ -500,6 +588,8 @@ class HistoryV2PostgresTransport:
 
     def read_structured_authenticated(self, records: list[dict], *, max_bytes: int,
                                       timeout_seconds: float) -> list[dict]:
+        if self.sync_barriers and (len(records)>50 or max_bytes>256*1024):
+            raise ArchiveLimit('trial synchronized read exceeds reviewed bounds')
         if not isinstance(max_bytes, int) or not 0 < max_bytes <= 16 * 1024 * 1024:
             raise ArchiveLimit('invalid private structured read bound')
         self._validate(records, max_bytes=max_bytes)
@@ -510,39 +600,42 @@ class HistoryV2PostgresTransport:
                 if remaining <= 0:
                     raise ArchiveLimit('private structured connection deadline reached')
                 with connection.transaction():
-                    self._limit(connection, remaining)
-                    self._identity(connection)
-                    checkpoint = connection.execute('''SELECT cursor,content_hash FROM
-                        history_v2.generation_checkpoints WHERE origin_id=%s AND
-                        generation_id=%s AND dataset='structured:outbox' ''',
-                        (self.origin_id, self.generation_id)).fetchone()
-                    if (not checkpoint or checkpoint['cursor'].get('outbox_id', 0) < records[-1]['id'] or
-                            checkpoint['content_hash'] != sha256(encoded(checkpoint['cursor']))):
-                        raise ArchiveIntegrityError('private structured checkpoint mismatch')
-                    receipts = self._receipts(connection, records)
-                    final = {}
-                    for record in records:
-                        receipt = receipts.get(record['id'])
-                        if receipt is None:
-                            raise ArchiveIntegrityError('private structured receipt missing')
-                        self._check_receipt(receipt, record)
-                        final[(record['entity_type'], record['entity_id'])] = record
-                    if self.retain_revisions:
-                        revisions = self._read_revisions(connection,
-                            [record['id'] for record in records], max_bytes)
-                        if encoded(revisions) != encoded(records):
-                            raise ArchiveIntegrityError('private structured revision readback mismatch')
-                    projections = self._projection_rows(connection, final.values())
-                    for record in final.values():
-                        row = projections[(record['entity_type'], record['entity_id'])]
-                        if row is None:
-                            raise ArchiveIntegrityError('private structured projection missing')
-                        if not cloud_row_matches(record, wire(row)):
-                            # A newer-looking mutable row is not proof it was
-                            # imported through this receipt stream. Do not
-                            # acknowledge local evidence without an exact
-                            # fresh projection match.
-                            raise ArchiveIntegrityError('private structured projection changed')
+                    if self.sync_barriers:
+                        self._read_batch(connection,records,max_bytes,remaining)
+                    else:
+                        self._limit(connection, remaining)
+                        self._identity(connection)
+                        checkpoint = connection.execute('''SELECT cursor,content_hash FROM
+                            history_v2.generation_checkpoints WHERE origin_id=%s AND
+                            generation_id=%s AND dataset='structured:outbox' ''',
+                            (self.origin_id, self.generation_id)).fetchone()
+                        if (not checkpoint or checkpoint['cursor'].get('outbox_id', 0) < records[-1]['id'] or
+                                checkpoint['content_hash'] != sha256(encoded(checkpoint['cursor']))):
+                            raise ArchiveIntegrityError('private structured checkpoint mismatch')
+                        receipts = self._receipts(connection, records)
+                        final = {}
+                        for record in records:
+                            receipt = receipts.get(record['id'])
+                            if receipt is None:
+                                raise ArchiveIntegrityError('private structured receipt missing')
+                            self._check_receipt(receipt, record)
+                            final[(record['entity_type'], record['entity_id'])] = record
+                        if self.retain_revisions:
+                            revisions = self._read_revisions(connection,
+                                [record['id'] for record in records], max_bytes)
+                            if encoded(revisions) != encoded(records):
+                                raise ArchiveIntegrityError('private structured revision readback mismatch')
+                        projections = self._projection_rows(connection, final.values())
+                        for record in final.values():
+                            row = projections[(record['entity_type'], record['entity_id'])]
+                            if row is None:
+                                raise ArchiveIntegrityError('private structured projection missing')
+                            if not cloud_row_matches(record, wire(row)):
+                                # A newer-looking mutable row is not proof it was
+                                # imported through this receipt stream. Do not
+                                # acknowledge local evidence without an exact
+                                # fresh projection match.
+                                raise ArchiveIntegrityError('private structured projection changed')
             if time.monotonic() >= deadline:
                 raise ArchiveLimit('private structured readback deadline reached')
             return records

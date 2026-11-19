@@ -1,3 +1,30 @@
+## November 19 — retained PP22 drain and archive PASS
+
+Completed before any new live rotation, with PP collection durably OFF.
+Exact drain source `a9e51dd` passed CI 44635662957; maintenance source
+`3850776` passed CI 44636450530. All **4,888 pending structured records**
+were written, freshly read back and acknowledged in **126.359 seconds**
+(**38.683 records/s**, above the unchanged 13.6/s prerequisite). The 98 pages
+used at most 50 records; no failures, retries or timeouts occurred. Final
+structured count is 5,651 acknowledged, zero pending.
+
+Sealed initial A without a successor, then archived all **5,241 raw rows in
+11 objects**, in 18.243 seconds of archive-worker elapsed time. Independent
+read-only credentials verified every object and all 5,651 structured rows:
+25 requests, 9,838,974 bytes, within the 240-second audit budget. Raw remains
+attached, with the same seal digest. **No local deletion was authorized or
+performed.** Prior PP21 A/B archives remain preserved.
+
+This passes the user's drain/archive prerequisite, not the failed original
+live trial or concurrent throughput acceptance. No new live run started.
+The deployed application remains pp.22. Runtime wiring of the measured
+connection-reuse/sync-barrier path and Coinbase gap hydration is under review.
+The old one-use origin cannot be reset: a new qualified admission must preserve
+its sealed data before another A → B → fresh A rehearsal. Production,
+retirement and paid AI settings are unchanged. Phase 1.75/I7 remain OPEN.
+
+[Sanitized full drain/archive/readback evidence](evidence/pp22-retained-drain-archive-2026-11-19.json).
+
 ## Active master plan — PP rotation, usable history, and archive performance
 
 November 19, 2026. Scope is read-only collection and deterministic analysis for
@@ -19,6 +46,66 @@ retained data, then repeat the same query after each partition drop.
 | 5. Rebuild dashboard research and evaluate deterministic signals first | Use the actual legacy contracts below as a behavior reference. Build chronological comparisons from verified 15-minute windows and versioned feature/prediction evidence. | Test the actual PP browser at rollover before and after retirement. It distinguishes saved forecast, current estimate, matched historical cases, official outcomes and explicit gaps. Training/evaluation splits by market and time. Optional AI explanation stays a separate contract with paid calls disabled. |
 
 ### Checkpoint 3 continuation — November 19, 2026
+
+PP22 deployed the merge of #189 plus the controller binding in #190.
+[`0c86b47` exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44623771290),
+[controller identity](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44622538113)
+and [CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44624765516)
+passed their respective scopes. Trial `pp-live-pp-trial-20261119-01` entered
+with empty initial A `94107d29-626f-480a-b61a-ce6a10f44301`; the trial-only
+structured sync and sealed archive workers each passed host readiness. At this
+checkpoint the collector remained OFF and no trial partition had been removed.
+After the two timed retirements, stop and fence PP, then archive and verify
+the final fresh A by a separately bounded OFF drain that retains its local
+partition.
+
+
+The first PP22 live attempt held before A sealed. The collector stayed on
+through one real Polymarket boundary, which had about 36 seconds of quote
+delay, and durably kept Coinbase capture moving. The dashboard price display
+paused while the Polymarket market was unavailable. The recurring structured
+worker stopped after a cloud commit without a local ACK. An exact 50-row
+readback reconciled the commit in 3.7174 seconds. The bounded reused-session
+25-row fallback acknowledged 250 records in 66.3916 seconds before a second
+operation deadline, while the measured arrival rate was about 13.6 records/s.
+A final exact readback accounted for the latter 25 remote commits and brought
+local and hosted acknowledgements to 763. PP was durably stopped with 5,241
+raw rows and 4,888 pending structured records in the original attached A.
+No partition was removed or raw archive created. The production collector
+setting was restored only after PP OFF. The partial first A is held separately
+from the planned final fresh-A drain.
+
+The release gate is now a measured structured-sync rate with margin over the
+arrival rate and the unchanged request, cycle and outbox limits. Qualify
+client-side transaction batching with exact receipt, revision and projection
+parity on isolated PostgreSQL, then verify the rate against the retained
+workload through the existing scoped roles before spending another live
+admission. Keep the 30-minute seal deadline and the exact retirement
+requirements. The Coinbase display gap has its own source repair.
+[PP22 live hold and preservation evidence](evidence/pp22-live-initial-a-hold-2026-11-19.json).
+
+The opt-in transaction batching candidate `69af6ef` passed exact CI. One
+classified read-only PP comparison used the same 25 acknowledged records and
+the same scoped reader with a four-second transport budget. The baseline
+reported `ArchiveUnavailable` after 4.369 s. The candidate returned all 25
+canonical records in 3.784 s. Earlier wrapper attempts returned no timed
+receipt. The classified comparison did not start collection or write records
+or acknowledgements. One successful read cannot establish import-and-ACK rate
+or qualification for another live window.
+[Exact comparison](evidence/pp22-structured-readback-comparison-2026-11-19.json).
+
+The bounded write → verify → ACK test then aimed to drain all 4,888 retained
+records with collection durably OFF. Candidate `69af6ef` stopped in the first
+50-row cloud import after 4.112 seconds, with zero local ACKs. Supabase logged
+transaction timeout `25P04` for the exact writer role during the import's
+revision SELECT and confirmed no attempted receipts or revisions committed.
+A separate read-only probe spent 0.390 seconds on cold checkout and under
+1 millisecond on reused checkout; this did not profile the failed import
+transaction. The cloud write can fail with no competing collector. The timing
+of individual statements or network waits inside that write remains unknown.
+Preserve the 4,888 pending records and hold live rotation until the complete
+sync path clears the measured 13.6 records/s arrival rate and operation budget.
+[Offline write qualification](evidence/pp22-offline-sync-qualification-2026-11-19.json).
 
 A fresh read-only PP21 inventory confirmed historic live A is verified and still
 attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,

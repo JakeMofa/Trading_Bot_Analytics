@@ -2,16 +2,39 @@
 from pathlib import Path
 import sys
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveUnavailable
 from postgres.lifecycle import LifecycleHold
 from postgres.pp_structured_probe import check_environment
 from postgres.pp_structured_service import supervise
+import postgres.pp_structured_service as service
 
 
 class StructuredServiceTests(unittest.TestCase):
+    def test_recurring_runtime_binds_explicit_capture_without_raising_other_flags(self):
+        for enabled in ('true', 'false'):
+            with (self.subTest(enabled=enabled),
+                  patch.dict(service.os.environ, {'TRADEBOT_PP_RETAIN_REVISIONS': enabled}),
+                  patch.object(service.signal, 'signal'),
+                  patch.object(service, 'check_environment'),
+                  patch.object(service, 'private_dsn'),
+                  patch.object(service, 'connect') as connection,
+                  patch.object(service, 'validate_schema'),
+                  patch.object(service, 'LifecycleRepository'),
+                  patch.object(service, 'PPHistoryConnectionFactory') as remote,
+                  patch.object(service, 'HistoryV2PostgresTransport') as transport,
+                  patch.object(service, 'drain_bounded') as drain,
+                  patch.object(service, 'supervise') as supervisor):
+                connection.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = {'login': 'tradebot_lifecycle'}
+                drain.side_effect = lambda repo, factory, **kw: factory('generation', timeout_seconds=20)
+                supervisor.side_effect = lambda page, *_: (page(), 0)[1]
+                self.assertEqual(service.main(), 0)
+                transport.assert_called_once_with(remote.return_value, origin_id='pp-live-pp',
+                    generation_id='generation', expected_database='postgres',
+                    expected_role='tradebot_pp_history', retain_revisions=enabled == 'true')
+
     def test_recurring_must_be_explicit_and_exclusive(self):
         env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
                    TRADEBOT_ORIGIN_ID='pp-live-pp',

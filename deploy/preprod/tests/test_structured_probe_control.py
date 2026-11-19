@@ -61,6 +61,7 @@ class ProfileTests(unittest.TestCase):
         self.assertEqual(set(service['networks']), {'database', 'structured_probe_egress'})
         self.assertFalse(service.get('ports') or service.get('volumes') or service.get('use_api_socket'))
         self.assertEqual(service['environment']['TRADEBOT_PP_STRUCTURED_ONE_SHOT'], 'true')
+        self.assertEqual(service['environment']['TRADEBOT_PP_RETAIN_REVISIONS'], 'true')
 
     def test_unsafe_overrides_fail_closed(self):
         mutations = (
@@ -70,6 +71,7 @@ class ProfileTests(unittest.TestCase):
             lambda p: p['services']['structured_probe'].update(volumes=[{'type': 'bind', 'source': '/var/run/docker.sock', 'target': '/var/run/docker.sock'}]),
             lambda p: p['services']['structured_probe'].update(cap_drop=[]),
             lambda p: p['services']['structured_probe']['environment'].update(ENABLE_SUPABASE_SYNC='true'),
+            lambda p: p['services']['structured_probe']['environment'].update(TRADEBOT_PP_RETAIN_REVISIONS='false'),
             lambda p: p['services']['structured_probe']['environment'].update(TRADEBOT_ENVIRONMENT='production'),
             lambda p: p['services']['structured_probe']['secrets'].append({'source': 'admin', 'target': '/run/secrets/admin'}),
             lambda p: p['secrets']['pp_history_dsn'].update(file='/etc/tradebot/production/history_dsn'),

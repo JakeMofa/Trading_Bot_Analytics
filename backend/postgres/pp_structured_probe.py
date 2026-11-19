@@ -47,6 +47,14 @@ def check_environment(environ: dict[str, str], *, recurring=False) -> None:
         raise LifecycleHold('exact local lifecycle credential file required')
 
 
+def retain_revisions(environ):
+    """Only a reviewed explicit PP profile may enable immutable envelope capture."""
+    value = environ.get('TRADEBOT_PP_RETAIN_REVISIONS', 'false')
+    if value not in ('true', 'false'):
+        raise LifecycleHold('exact revision retention opt-in required')
+    return value == 'true'
+
+
 def private_dsn(path: Path) -> str:
     """Read only the fixed mounted lifecycle credential; never log its value."""
     info = path.lstat()
@@ -146,7 +154,8 @@ def main(argv=None, environ=None) -> int:
         transport = HistoryV2PostgresTransport(
             PPHistoryConnectionFactory(), origin_id=ORIGIN,
             generation_id=args.generation_id, expected_database='postgres',
-            expected_role='tradebot_pp_history')
+            expected_role='tradebot_pp_history',
+            retain_revisions=retain_revisions(dict(os.environ if environ is None else environ)))
         result = probe_once(repository, transport,
                             generation_id=args.generation_id,
                             expected_state=args.expected_state,

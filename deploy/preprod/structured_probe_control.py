@@ -289,19 +289,27 @@ def run(command: str, installed: Path):
 SYNC_STATE = ACTIVE.with_name('structured-sync-owner.json')
 
 
+ARCHIVE_STATE = ACTIVE.with_name('sealed-archive-owner.json')
+
+
+def _require_stopped(path):
+    require(not path.exists() and not path.is_symlink(), 'stop_recurring_worker_first')
+
+
 def fence_recurring_sync():
-    require(not SYNC_STATE.exists() and not SYNC_STATE.is_symlink(),
-            'stop_recurring_structured_sync_first')
+    for path in (SYNC_STATE, ARCHIVE_STATE):
+        _require_stopped(path)
 
 
-def _write_sync_owner(owner):
+def _write_sync_owner(owner, path=None):
+    path = path or SYNC_STATE
     import json
-    descriptor = os.open(SYNC_STATE, os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_WRONLY, 0o600)
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, 'w') as out:
         json.dump(owner, out)
         out.flush()
         os.fsync(out.fileno())
-    parent = os.open(SYNC_STATE.parent, os.O_DIRECTORY | os.O_RDONLY)
+    parent = os.open(path.parent, os.O_DIRECTORY | os.O_RDONLY)
     try:
         os.fsync(parent)
     finally:
@@ -310,7 +318,7 @@ def _write_sync_owner(owner):
 
 def recurring_start(installed):
     import time
-    fence_recurring_sync()
+    _require_stopped(SYNC_STATE)
     budget = Budget(120)
     context, actions, digest = preflight(installed, budget)
     require(digest == context.request.controller_sha256,
@@ -349,12 +357,12 @@ def recurring_start(installed):
     return {'status': 'started', 'retirement': 'off'}
 
 
-def _sync_container(owner, budget):
+def _sync_container(owner, budget, *, archive=False):
     attempt, image, source = (owner.get(k, '') for k in ('attempt_id', 'image', 'source_sha'))
     require(re.fullmatch('[a-f0-9]{32}', attempt) and
             re.fullmatch('sha256:[a-f0-9]{64}', image) and
             re.fullmatch('[a-f0-9]{40}', source), 'bad_recurring_worker_owner')
-    name = 'tradebot-pp-sync-' + attempt
+    name = ('tradebot-pp-sealed-' if archive else 'tradebot-pp-sync-') + attempt
     env = LinuxActions._environment(image)
     ids = budget.run(['docker', 'ps', '-a', '--no-trunc', '--filter',
                       'name=^/' + name + '$', '--format', '{{.ID}}'],
@@ -367,7 +375,7 @@ def _sync_container(owner, budget):
     labels = row['Config']['Labels']
     require(row['Image'] == image and row['Id'] == ids[0] and row['Name'] == '/' + name
             and labels.get('com.docker.compose.project') == PROJECT
-            and labels.get('com.docker.compose.service') == 'structured_probe'
+            and labels.get('com.docker.compose.service') == ('sealed_archive' if archive else 'structured_probe')
             and labels.get('tradebot.deployment_attempt') == attempt
             and labels.get('tradebot.deployment_source') == source
             and row['HostConfig']['RestartPolicy']['Name'] in ('no', ''),
@@ -375,13 +383,14 @@ def _sync_container(owner, budget):
     return row
 
 
-def recurring_control(operation, budget):
+def recurring_control(operation, budget, *, archive=False):
+    path = ARCHIVE_STATE if archive else SYNC_STATE
     import json
     require(operation in ('stop', 'status'), 'bad_recurring_worker_operation')
-    if not SYNC_STATE.exists() and not SYNC_STATE.is_symlink():
+    if not path.exists() and not path.is_symlink():
         return {'status': 'off'}
-    owner = json.loads(_secure_file(SYNC_STATE)[0])
-    row = _sync_container(owner, budget)
+    owner = json.loads(_secure_file(path)[0])
+    row = _sync_container(owner, budget, archive=archive)
     if operation == 'status':
         return {'status': 'running' if row and row['State']['Running'] else 'stopped',
                 'source_sha': owner['source_sha'], 'retirement': 'off'}
@@ -389,10 +398,10 @@ def recurring_control(operation, budget):
         env = LinuxActions._environment(owner['image'])
         if row['State']['Running']:
             budget.run(['docker', 'stop', '--time', '30', row['Id']], env=env, timeout=35)
-        row = _sync_container(owner, budget)
+        row = _sync_container(owner, budget, archive=archive)
         if row:
             require(not row['State']['Running'], 'recurring_worker_still_running')
             budget.run(['docker', 'rm', row['Id']], env=env, timeout=8)
-        require(_sync_container(owner, budget) is None, 'recurring_worker_still_present')
-    SYNC_STATE.unlink()
+        require(_sync_container(owner, budget, archive=archive) is None, 'recurring_worker_still_present')
+    path.unlink()
     return {'status': 'off'}

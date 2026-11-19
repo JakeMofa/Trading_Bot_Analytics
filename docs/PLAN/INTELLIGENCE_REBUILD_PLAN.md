@@ -86,8 +86,15 @@ pages. Transient Storage failures back off up to 60 seconds. The worker waits
 for structured evidence to sync first. Synthetic payloads at 4,845 and 36,180
 rows passed in 10 and 73 pages respectively with an injected readback failure.
 The 128-manifest limit still applies, so the 64,000-row maximum is lower for
-large payloads. Qualify the dedicated root-owned DSN mount, host control,
-real byte distribution and archive throughput before enabling this on PP.
+large payloads. A bounded read-only PP inventory of the actual A rows, ordered as the archive
+worker reads them, found ten 500-row-or-smaller pages, largest conservative
+page size 1,720,208 bytes and largest single-row allowance 11,860 bytes. These
+fit the 4 MiB decoded budget. Measure compressed sizes and throughput during
+the PP run. Root operator commands `sealed-archive-start/status/stop` use a
+distinct ownership record, exact image, private Storage credentials and the
+staged lifecycle DSN. The archive container mounts no history login. Deploy and
+mode transitions require both workers stopped. Stop waits for the owned
+container to exit and preserves its fence if cleanup cannot be confirmed.
 
 For larger generations, resume from the last verified manifest using the
 indexed generation and manifest sequence, fetch exactly one bounded raw page,

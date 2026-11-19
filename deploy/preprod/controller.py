@@ -186,8 +186,9 @@ class Budget:
         require(remaining>0, 'deadline_exceeded')
         return remaining if maximum is None else min(maximum,remaining)
 
-    def run(self,args,*,cwd=None,env=None,input=None,timeout=None,output_limit=65536):
-        """No shell, bounded streams and process-group cleanup; errors hide output."""
+    def run(self,args,*,cwd=None,env=None,input=None,timeout=None,output_limit=65536,
+            return_status=False):
+        """No shell, bounded streams and process-group cleanup; errors hide output by default."""
         require(isinstance(args,(tuple,list)) and args and all(isinstance(arg,str) for arg in args), 'invalid_child_command')
         require(1<=output_limit<=65536 and (input is None or len(input)<=FILE_LIMIT), 'child_io_bound')
         child_deadline=self.clock()+self.timeout(timeout)
@@ -215,6 +216,9 @@ class Budget:
                             require(len(output[ready.data])<=output_limit,'child_output_bound')
                 code=process.wait(timeout=min(self.timeout(),max(.001,child_deadline-self.clock())))
                 require(self.clock()<child_deadline,'child_deadline_exceeded')
+                if return_status:
+                    completed=code==0
+                    return code,bytes(output['stdout'])
                 require(code==0,'child_failed')
                 completed=True
                 return bytes(output['stdout'])

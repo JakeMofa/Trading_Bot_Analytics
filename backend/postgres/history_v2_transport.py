@@ -91,11 +91,30 @@ class HistoryV2PostgresTransport:
     def _receipt_hashes(record):
         return sha256(encoded(record['payload'])), sha256(encoded(record))
 
-    def _receipt(self, connection, record):
-        return connection.execute('''SELECT entity_type,entity_id,content_hash,
-            payload_hash,envelope_hash FROM history_v2.structured_receipts
-            WHERE origin_id=%s AND generation_id=%s AND outbox_id=%s''',
-            (self.origin_id, self.generation_id, record['id'])).fetchone()
+    def _receipts(self, connection, records):
+        """Read the exact page's receipts in one bounded remote round trip."""
+        rows = connection.execute('''SELECT outbox_id,entity_type,entity_id,
+            content_hash,payload_hash,envelope_hash FROM history_v2.structured_receipts
+            WHERE origin_id=%s AND generation_id=%s AND outbox_id=ANY(%s::bigint[])''',
+            (self.origin_id, self.generation_id,
+             [record['id'] for record in records])).fetchall()
+        receipts = {row['outbox_id']: row for row in rows}
+        if len(receipts) != len(rows) or len(receipts) > len(records):
+            raise ArchiveIntegrityError('private structured receipt set invalid')
+        return receipts
+
+    @staticmethod
+    def _insert_receipts(connection, rows):
+        # Projection writes precede receipts in the same atomic transaction.
+        # One bounded VALUES statement replaces one network round trip per row.
+        for offset in range(0, len(rows), 25):
+            page = rows[offset:offset + 25]
+            placeholders = sql.SQL(',').join(
+                sql.SQL('(%s,%s,%s,%s,%s,%s,%s,%s)') for _ in page)
+            statement = sql.SQL('''INSERT INTO history_v2.structured_receipts
+                (origin_id,generation_id,outbox_id,entity_type,entity_id,
+                 content_hash,payload_hash,envelope_hash) VALUES {}''').format(placeholders)
+            connection.execute(statement, [value for row in page for value in row])
 
     @staticmethod
     def _check_receipt(receipt, record):
@@ -169,13 +188,15 @@ class HistoryV2PostgresTransport:
                     previous_id = (checkpoint['cursor'].get('outbox_id', 0)
                                    if checkpoint else 0)
                     inserted = 0
+                    receipts = self._receipts(connection, records)
+                    new_receipts = []
                     # Outbox IDs reflect concurrent local transactions, not
                     # a guaranteed FK topological order. Preserve revision
                     # order within each table while importing parents first.
                     for record in sorted(records, key=lambda item:
                                          (IMPORT_ORDER.index(item['entity_type']), item['id'])):
                         self._entity_lock(connection, record)
-                        receipt = self._receipt(connection, record)
+                        receipt = receipts.get(record['id'])
                         if receipt is not None:
                             if checkpoint is None or record['id'] > previous_id:
                                 raise ArchiveIntegrityError('private receipt beyond checkpoint')
@@ -185,14 +206,12 @@ class HistoryV2PostgresTransport:
                             raise ArchiveIntegrityError('private structured checkpoint gap')
                         self._insert_or_update(connection, record)
                         payload_hash, envelope_hash = self._receipt_hashes(record)
-                        connection.execute('''INSERT INTO history_v2.structured_receipts
-                            (origin_id,generation_id,outbox_id,entity_type,entity_id,
-                             content_hash,payload_hash,envelope_hash)
-                            VALUES(%s,%s,%s,%s,%s,%s,%s,%s)''',
-                            (self.origin_id, self.generation_id, record['id'],
-                             record['entity_type'], record['entity_id'],
-                             record['content_hash'], payload_hash, envelope_hash))
+                        new_receipts.append((self.origin_id, self.generation_id,
+                                             record['id'], record['entity_type'],
+                                             record['entity_id'], record['content_hash'],
+                                             payload_hash, envelope_hash))
                         inserted += 1
+                    self._insert_receipts(connection, new_receipts)
                     last_id = records[-1]['id']
                     cursor = {'outbox_id': max(last_id, previous_id)}
                     digest = sha256(encoded(cursor))
@@ -235,13 +254,10 @@ class HistoryV2PostgresTransport:
                     if (not checkpoint or checkpoint['cursor'].get('outbox_id', 0) < records[-1]['id'] or
                             checkpoint['content_hash'] != sha256(encoded(checkpoint['cursor']))):
                         raise ArchiveIntegrityError('private structured checkpoint mismatch')
+                    receipts = self._receipts(connection, records)
                     final = {}
                     for record in records:
-                        receipt = connection.execute('''SELECT entity_type,entity_id,
-                            content_hash,payload_hash,envelope_hash FROM
-                            history_v2.structured_receipts WHERE origin_id=%s AND
-                            generation_id=%s AND outbox_id=%s''',
-                            (self.origin_id, self.generation_id, record['id'])).fetchone()
+                        receipt = receipts.get(record['id'])
                         if receipt is None:
                             raise ArchiveIntegrityError('private structured receipt missing')
                         self._check_receipt(receipt, record)

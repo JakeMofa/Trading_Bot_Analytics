@@ -1,15 +1,89 @@
 # BTC Intelligence Rebuild Plan
 
-## PP sealed-generation archive capacity, November 18
+## Current PP checkpoint — November 18, 2026
 
-The PP raw diagnostic supports 25 rows per page and 128 manifests. A seal
-above 3,200 rows exceeds this route before byte limits are considered. An
-oversized seal stays local. The host control currently uses the ready-off
-profile. Continuous PP requires a supervised route with measured chunk and
-catalog capacity for an actual seal while the other generation collects.
-The generated integration case covers a durable first page, failed and corrupt
-second-page readback, restart at the saved manifest, and B commits during each
-attempt. The archive worker leaves both local partitions in place.
+`preprod` source `2e38ecdf693fed194960fc8fd67286854decb221`
+passed exact CI 44422595480 and was published as `v0.2.0-pp.12` in
+run 44423143306. Manual PP CD
+[44423321845](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44423321845)
+**PASSED** in generated-only scope. PP application services run the exact
+release; PostgreSQL and the private API/dashboard are healthy. A separate
+one-use [mode transition 44423758592](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44423758592)
+entered `PP_LIVE_READY_OFF`: the PP collector is **OFF**. Raw archival,
+retirement, paid AI and production changes remain **OFF / not performed**.
+
+The first exact-generation, 25-row `history_v2` structured probe consumed its
+single-use authorization and **FAILED**. Supabase logged SQLSTATE `25P04`,
+terminating the restricted PP session for transaction timeout about four
+seconds after authentication. Read-only reconciliation found **zero** matching
+`pp-live-pp` cloud receipts/projections/checkpoints and **zero** local outbox
+ACKs from the selected 25 rows. The precise slow SQL operation is not yet
+identified. Do not retry the unchanged probe or claim cloud sync PASS. Improve
+round-trip efficiency and sanitized phase diagnostics, then qualify an exact
+successor before a separately bounded cloud attempt.
+
+The one-use permit protects this first probe; it is **not** the intended
+continuous sync policy. A default-OFF finite drain exists in source, but has
+no deployed schedule or service route. The last observed `pp-live-pp` pending
+backlog was 5,268 rows. The previous bounded live session added about 13.3
+rows/second, so sustained ACK throughput and outage runway must be measured
+before another long live run. Separately, the PP release inventory currently
+counts **all** outbox rows per origin against 10,000, including ACKed rows;
+ACK does not free that lifetime release bound. Any bounded-ledger solution
+must preserve verified evidence for protected references and release recovery.
+
+### PP execution sequence
+
+**Resume at step 1.** Receipt batching in PR #130 passed Linux CI at
+`a879bc4`. With 34 ms of injected delay per SQL call, 25 rows took 2.921 s
+to write (84 calls) and 1.087 s to read back (31 calls). Each operation passed
+its four-second limit. Together they yield about 6.2 rows/s before local ACK
+or scheduling. At the previously observed 13.3 rows/s arrival rate, a worker
+processing one page at a time needs a full 25-row cycle under 1.88 s just
+to keep pace. Use actual PP timings to decide what to optimize.
+[Source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44425953701)
+and [PR CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44425963901).
+
+| Step | Work and pass condition | If it fails |
+| --- | --- | --- |
+| 1. Verify one real page | Review #130, release its exact tested successor on PP with matching controller and profile, and keep the collector OFF. Select 25 pending PP identities. Record connect, write, fresh readback and local ACK timings. Pass when those exact 25 cloud receipts, final values, generation checkpoint and local ACKs agree within the existing budgets. | Reconcile committed receipts against local ACKs first. For another timeout, capture sanitized phase, statement category, elapsed time and query count. Group independent projection reads or pipeline independent writes if network waits dominate. Inspect the specific query plan or lock wait if server time dominates. Reproduce the failed phase before another cloud attempt. |
+| 2. Prove recurring sync | Run the existing bounded drain under a supervised PP lifecycle worker. Each cycle reads back committed history before marking local rows synced. Give sealed generations priority. Drain the recorded backlog, verify restart and safe retries with backoff, and measure full-cycle ACK rate, oldest pending age and outage headroom. Require measured spare throughput over observed arrivals and a shrinking backlog during catch-up. | Keep pending rows durable. Investigate the measured slow phase and repeat that test. A single successful page establishes correctness only. |
+| 3. Qualify the release inventory | In parallel with step 2, fix the deployment inventory that counts synced rows toward its 10,000-row limit. Test with more than 10,000 lifetime rows, including protected and pending records. Prove release and recovery still detect missing or changed evidence. For continuous operation, qualify bounded storage for synced evidence, including exact recovery and reference checks. | Preserve original rows until their replacement evidence passes. Before starting a long trial, verify that its projected growth leaves the deployment and recovery paths usable. |
+| 4. Exercise the real A/B flow | Prepare the sealed-generation archive route and exercise corruption, outage and reader-hold cases on generated data first. Then run PP for 30–45 minutes across a real 15-minute market boundary. Use a qualified PP size trigger for A → B. While B acknowledges live writes, upload sealed A's raw objects to private Storage, download them with the runtime identity, and match checksum, count and identities to the manifest. Record B's writes during verification, dashboard generation, query latency, zero two-second API timeouts, sub-second save/heartbeat delays and feature/input ages within 30 s. Report each observed switch. | On an archive error retain A and record B's remaining runway. On a feed or rollover error retain the evidence and report the affected interval. Finish the trial with PP collection durably OFF. |
+| 5. Qualify retirement | After verified archive coverage, prove protected references, archived history/replay, reader drainage and protection against archive mutation through removal. At the separate retirement gate, retire the eligible PP partition and verify safe slot reuse and actual disk/WAL usage. | Keep the partition. Production cutover, first production archive verification and retirement enablement retain their separate Phase 1.75 gates. |
+
+PostgreSQL applies the timeout to the whole transaction. Psycopg can send
+independent statements together to reduce network waits. PostgreSQL supports
+retiring a partition as a unit, with locking requirements that the PP trial
+must measure. These mechanisms address different stages of the plan.
+[Transaction limits](https://www.postgresql.org/docs/17/runtime-config-client.html#GUC-TRANSACTION-TIMEOUT),
+[Psycopg pipeline behavior](https://www.psycopg.org/psycopg3/docs/advanced/pipeline.html),
+[partition maintenance](https://www.postgresql.org/docs/17/ddl-partitioning.html#DDL-PARTITIONING-MAINTENANCE).
+
+### Measured PP raw archive capacity
+
+Bounded read-only PP inventory on November 19 UTC found slot A collecting,
+4,845 raw rows and 9,109,504 allocated partition bytes. Nonempty minutes
+peaked at 804 raw rows/minute. A 30–45 minute interval at that observed peak
+would add 24,120–36,180 raw rows. Treat this as a scenario and record actual
+counts at switch. The existing 25-row page and 128-manifest diagnostic can
+cover at most 3,200 rows including existing data. The current A already exceeds
+that bound. PR #132 makes this an early hold and exercises durable two-page
+resume, corrupt/failed readback, and B commits during each readback in CI.
+
+For the recurring worker, resume from the last verified manifest using the
+indexed generation and manifest sequence, fetch exactly one bounded raw page,
+then atomically advance its cursor after create-only upload and authenticated
+readback. Stream ordered manifest pages for final coverage validation under
+a repeatable snapshot, preserving the existing seal digest format. Include
+history retrieval in the pagination change. Qualify with at least the observed
+4,845-row shape and a 36,180-row generated burst, independently measuring
+archive throughput against B growth and available disk. Exercise page 129,
+crash after upload, corrupt readback, and generation identity on restart.
+The prepared live host profile marker stays in ready_off even while an
+operator lease runs. Prove B's actual continued collection with advancing
+persisted event IDs during A verification. Keep retirement at its separate
+authorization gate.
 
 ## Current PP release checkpoint — November 18, 2026 CST
 
@@ -126,13 +200,7 @@ that rate. This is a planning estimate, not a qualified future rate. The
 support a 20–30 minute live run or clear the backlog by itself. Do not raise
 the cap merely to make a trial last longer.
 
-| Gate | Passing evidence needed before proceeding |
-| --- | --- |
-| 1. Exact PP structured probe | Install the reviewed controller and image through qualified PP CD, enter `pp_live` with collector still OFF, pass dry-run preflight, then execute one exact-generation 25-row `history_v2` write/readback/ACK under a one-use permit. Keep retirement OFF. |
-| 2. Bounded structured drain | Wire the existing active/sealed workers through a separate default-OFF, supervised route. Prioritize sealed-generation obligations; demonstrate fresh authenticated readback before every ACK, retries/restarts without duplicates, collector isolation and measured throughput. Drain the existing 5,268 pending rows and qualify sustained rate, bursts and outage runway under the 10,000 cap before a long live run. |
-| 3. Bounded PP live acceptance | Release the already merged Coinbase reconnect and generated-profile leave corrections. Run PP's leased collector against PP PostgreSQL across a real 15-minute market boundary and qualified A→B size switch. Verify persisted Coinbase/Polymarket events, fresh predictions, dashboard/API/SSE, query latency, source health and the existing timeout/freshness limits; then durably turn PP collection OFF. Production need not pause because each environment has a separate database and collector lease. |
-| 4. First sealed raw archive | Add a separate default-OFF runtime route for exact sealed-generation upload to private Supabase Storage and authenticated full readback while the other slot collects. Verify coverage, protected references and failure preservation. This is distinct from `history_v2` structured sync and does not enable local partition retirement. |
-| 5. Retirement and production | Qualify mutation authority, reader drainage, recovery, capacity and sustained operation before enabling local retirement. Production PostgreSQL cutover remains CP8–10: exact candidate tested on PP, separately approved cutover, first sealed-generation proof, then retention enablement. Production legacy SQLite remains unchanged. |
+Follow the [current PP execution sequence](#pp-execution-sequence) at the top of this roadmap. The measurements above are its historical baseline.
 
 No paid AI, trading, production deployment, PP retirement or automatic cloud
 sync follows from passing an earlier gate. Record one result per gate; a

@@ -1,0 +1,374 @@
+{
+  "available_bytes_before": 1057443840,
+  "backend_file_count": 60,
+  "base_image": "sha256:880c013e6fd1936be6bfdf2fbd101f1b021357c45a1c454b42c6da7df7831040",
+  "base_source": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+  "bytes": 53779250,
+  "candidate_source": "308bfcfa5d391bd24e810df08abec398d4398365",
+  "candidate_source_ci": 44563923394,
+  "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+  "diagnostic_container_removed": true,
+  "diagnostic_effective_backend_verified": true,
+  "evidence_scope": "read_only_pp21_qualified_180_transport_override_full_audit",
+  "first_page_deadline_met": true,
+  "first_page_distinct_projection_keys": 73,
+  "first_page_phase_accounting": {
+    "history_checkout": {
+      "calls": 2,
+      "logical_bytes": 0,
+      "max_seconds": 0.333867,
+      "requests": 0,
+      "seconds": 0.633547
+    },
+    "history_connect": {
+      "calls": 2,
+      "logical_bytes": 0,
+      "max_seconds": 0.333463,
+      "requests": 0,
+      "seconds": 0.631733
+    },
+    "history_exact_revisions": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.947325,
+      "requests": 0,
+      "seconds": 0.947325
+    },
+    "history_identity_checkpoint": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.19991,
+      "requests": 0,
+      "seconds": 0.19991
+    },
+    "history_latest_receipts": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.094437,
+      "requests": 0,
+      "seconds": 0.094437
+    },
+    "history_newer_revisions": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.099424,
+      "requests": 0,
+      "seconds": 0.099424
+    },
+    "history_projections": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.214752,
+      "requests": 0,
+      "seconds": 0.214752
+    },
+    "history_release": {
+      "calls": 2,
+      "logical_bytes": 0,
+      "max_seconds": 3.1e-05,
+      "requests": 0,
+      "seconds": 5.7e-05
+    },
+    "history_transaction": {
+      "calls": 2,
+      "logical_bytes": 0,
+      "max_seconds": 1.65363,
+      "requests": 0,
+      "seconds": 2.042624
+    },
+    "inventory": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 18.183448,
+      "requests": 0,
+      "seconds": 18.183448
+    },
+    "local_open": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.103389,
+      "requests": 0,
+      "seconds": 0.103389
+    },
+    "raw_auth_token": {
+      "calls": 57,
+      "logical_bytes": 0,
+      "max_seconds": 0.772297,
+      "requests": 1,
+      "seconds": 0.772811
+    },
+    "raw_local_compare": {
+      "calls": 57,
+      "logical_bytes": 0,
+      "max_seconds": 0.76069,
+      "requests": 0,
+      "seconds": 16.736555
+    },
+    "raw_read_decode": {
+      "calls": 57,
+      "logical_bytes": 3623081,
+      "max_seconds": 1.277057,
+      "requests": 58,
+      "seconds": 26.098138
+    },
+    "structured_local_page": {
+      "calls": 1,
+      "logical_bytes": 0,
+      "max_seconds": 0.286626,
+      "requests": 0,
+      "seconds": 0.286626
+    }
+  },
+  "first_page_rows": 500,
+  "first_page_seconds": 2.163305,
+  "first_page_succeeded": true,
+  "first_page_timeout_seconds": 4.0,
+  "generated_services_left_running": true,
+  "inventory": {
+    "auth_calls_reserved": 1,
+    "byte_limit": 134217728,
+    "bytes_minimum": 53696972,
+    "bytes_upper_bound": 267864233,
+    "deadline_seconds": 240.0,
+    "fit": "conditional_on_newer_revision_bytes",
+    "raw_bytes": 3623081,
+    "raw_objects": 57,
+    "request_limit": 192,
+    "requests_minimum": 121,
+    "structured_bytes_examined": 50073891,
+    "structured_inventory_complete": true,
+    "structured_pages_examined": 63,
+    "structured_rows": 31162
+  },
+  "last_structured_id": 39703,
+  "latest_receipt_lookup": "indexed_tie_safe_lateral",
+  "local_role": "tradebot_reader",
+  "manifest_digest": "bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250",
+  "normal_cd_deployment": false,
+  "objects_read": 57,
+  "operation_deadline_met": true,
+  "opposite": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+  "original_seal_deadline_utc": "2026-11-19T09:00:04.617214+00:00",
+  "original_seal_expired_at_audit_start": true,
+  "original_trial_satisfied": false,
+  "outer_elapsed_seconds": 219.458,
+  "phase_accounting": {
+    "diagnostics_unavailable": false,
+    "elapsed_seconds": 214.390169,
+    "exhausted_limit": null,
+    "failed_phase": null,
+    "logical_bytes": 53779250,
+    "nested_phase_totals_overlap": true,
+    "phases": {
+      "history_checkout": {
+        "calls": 64,
+        "logical_bytes": 0,
+        "max_seconds": 0.333867,
+        "requests": 0,
+        "seconds": 0.732014
+      },
+      "history_connect": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 0.333463,
+        "requests": 0,
+        "seconds": 0.631733
+      },
+      "history_exact_revisions": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 1.858552,
+        "requests": 0,
+        "seconds": 50.18499
+      },
+      "history_identity_checkpoint": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 0.393221,
+        "requests": 0,
+        "seconds": 12.539343
+      },
+      "history_latest_receipts": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 0.125304,
+        "requests": 0,
+        "seconds": 3.52424
+      },
+      "history_newer_revisions": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 0.1997,
+        "requests": 0,
+        "seconds": 6.322654
+      },
+      "history_projections": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 0.26511,
+        "requests": 0,
+        "seconds": 8.862345
+      },
+      "history_release": {
+        "calls": 64,
+        "logical_bytes": 0,
+        "max_seconds": 0.0001,
+        "requests": 0,
+        "seconds": 0.001582
+      },
+      "history_transaction": {
+        "calls": 64,
+        "logical_bytes": 0,
+        "max_seconds": 2.849389,
+        "requests": 0,
+        "seconds": 88.058317
+      },
+      "inventory": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 18.183448,
+        "requests": 0,
+        "seconds": 18.183448
+      },
+      "local_finish": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.046238,
+        "requests": 0,
+        "seconds": 0.046238
+      },
+      "local_open": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.103389,
+        "requests": 0,
+        "seconds": 0.103389
+      },
+      "raw_auth_token": {
+        "calls": 57,
+        "logical_bytes": 0,
+        "max_seconds": 0.772297,
+        "requests": 1,
+        "seconds": 0.772811
+      },
+      "raw_local_compare": {
+        "calls": 57,
+        "logical_bytes": 0,
+        "max_seconds": 0.76069,
+        "requests": 0,
+        "seconds": 16.736555
+      },
+      "raw_read_decode": {
+        "calls": 57,
+        "logical_bytes": 3623081,
+        "max_seconds": 1.277057,
+        "requests": 58,
+        "seconds": 26.098138
+      },
+      "structured_compare": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 0.33613,
+        "requests": 0,
+        "seconds": 11.907149
+      },
+      "structured_local_page": {
+        "calls": 64,
+        "logical_bytes": 0,
+        "max_seconds": 0.416002,
+        "requests": 0,
+        "seconds": 17.149182
+      },
+      "structured_readback": {
+        "calls": 63,
+        "logical_bytes": 50156169,
+        "max_seconds": 3.547267,
+        "requests": 63,
+        "seconds": 123.219692
+      }
+    },
+    "remaining_seconds": 25.60991,
+    "requests": 122,
+    "sqlstate": null
+  },
+  "raw_count": 28411,
+  "requests": 122,
+  "retained_after": {
+    "a_generation": {
+      "count": 1,
+      "digest": "5543bcf0b47b3dea4f3d68399f70857fd82593b15776a83ad92b596087c94cf8"
+    },
+    "a_manifests": {
+      "count": 57,
+      "digest": "f8aed62b288996466755381ef95bf40dcdecd3c01ee7f0bd4de66d09d3f36ba6"
+    },
+    "a_outbox": {
+      "count": 31162,
+      "digest": "deebce4e82657ec23c829dd26407f1c9edb00622cc967ff0913777a257a98fb7"
+    },
+    "a_raw": {
+      "count": 28411,
+      "digest": "eb2a0457532d2587ddda3418ce05dc660f41ec2e89c2fa67cfd3eebb27f7cba9"
+    },
+    "b_generation": {
+      "count": 1,
+      "digest": "fc33403f93dd4c053f1844d03c766abb4f0fad0696c20e2d5abf0788d1b068bc"
+    },
+    "b_raw": {
+      "count": 9784,
+      "digest": "f129fbb3cc187ef84ebc0ffcb954b7881290cff6c95f5936fe0db4bea7900929"
+    },
+    "live_outcomes": {
+      "count": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "live_writer": {
+      "count": 1,
+      "digest": "be5c9fa72a2ac95423834fc3f6be94ecd6a69ed49bc7b8629f9b28ceb8ab4dd0"
+    }
+  },
+  "retained_before": {
+    "a_generation": {
+      "count": 1,
+      "digest": "5543bcf0b47b3dea4f3d68399f70857fd82593b15776a83ad92b596087c94cf8"
+    },
+    "a_manifests": {
+      "count": 57,
+      "digest": "f8aed62b288996466755381ef95bf40dcdecd3c01ee7f0bd4de66d09d3f36ba6"
+    },
+    "a_outbox": {
+      "count": 31162,
+      "digest": "deebce4e82657ec23c829dd26407f1c9edb00622cc967ff0913777a257a98fb7"
+    },
+    "a_raw": {
+      "count": 28411,
+      "digest": "eb2a0457532d2587ddda3418ce05dc660f41ec2e89c2fa67cfd3eebb27f7cba9"
+    },
+    "b_generation": {
+      "count": 1,
+      "digest": "fc33403f93dd4c053f1844d03c766abb4f0fad0696c20e2d5abf0788d1b068bc"
+    },
+    "b_raw": {
+      "count": 9784,
+      "digest": "f129fbb3cc187ef84ebc0ffcb954b7881290cff6c95f5936fe0db4bea7900929"
+    },
+    "live_outcomes": {
+      "count": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "live_writer": {
+      "count": 1,
+      "digest": "be5c9fa72a2ac95423834fc3f6be94ecd6a69ed49bc7b8629f9b28ceb8ab4dd0"
+    }
+  },
+  "retained_independent_postcondition": true,
+  "retirement_authorized": false,
+  "sealed": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+  "status": "retained_archive_audit_verified",
+  "structured_calls": 63,
+  "structured_count": 31162,
+  "structured_role": "tradebot_pp_history",
+  "structured_transactions": "repeatable_read_read_only",
+  "transport_sha256": "86ab76801ce497b885ca16737450c026853d1c533890e6b055cab1f2b22e3142",
+  "wrapper_exit": 0
+}

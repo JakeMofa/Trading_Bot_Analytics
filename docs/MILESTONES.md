@@ -8,6 +8,15 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**
+  Exact qualified canonical-byte transport verified all 57 raw objects / 28,411
+  rows and 63 structured pages / 31,162 rows. Core elapsed 214.390169 s under
+  240 s, with 25.609910 s remaining; attached-container interval 219.458 s.
+  Retained before/after fingerprints matched. This is a diagnostic result;
+  regular PP21 deployment/collection state is unchanged, and the expired
+  original trial and local retirement remain unqualified.
+  [Exact receipt, source binding and limits](PLAN/PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md)
+
 - [ ] **PP raw archive restore and readback evidence — tools qualified on generated data.**
   A disposable PostgreSQL 17 reader exported the complete generated catalog.
   The offline verifier recovered **57 objects and 28,411 generated rows** from a

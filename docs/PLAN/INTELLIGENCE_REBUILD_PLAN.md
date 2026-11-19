@@ -13,7 +13,7 @@ retained data, then repeat the same query after each partition drop.
 | Step | Work and current evidence | Acceptance |
 | --- | --- | --- |
 | 1. Restore PP release and preserve both generations | PP20 stopped at a generated smoke-queue cap. [#177](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/177) merged the generated-storage fix. [#181](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/181) merged the fenced PP21 forward recovery source. PP21 host recovery, [normal deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44562705669) and the independent retention snapshot passed. A and B still hold 28,411 and 9,784 raw rows. All 42,133 live acknowledgements matched, pending records and outcome counts remained zero, and collection stayed off. | The release operator proves the intended image and schema, preserves A/B identities and counts, and passes smoke and normal deployment acceptance. |
-| 2. Finish exact readback and measure the bottlenecks | The hosted receipt index and tie-preserving lookup lowered the same 500-row read from 4.712 s to 2.729 s. The full audit still held at 239.608 s after 57 raw objects and 62 of 63 structured pages. [#178](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/178) records it. | Same first page remains under four seconds. Full protected, receipt, revision, projection and raw-object verification passes all scoped pages within 240 seconds with measured margin and the existing request/byte budgets. Record restricted-reader proof. A read-only replay cannot authorize DROP or qualify collection continuity. |
+| 2. Finish exact readback and measure the bottlenecks | The indexed PP20 audit held after 62 of 63 structured pages ([#178](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/178)). A read-only PP21 diagnostic using exact qualified [#180](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/180) transport bytes now passed all 57 raw objects / 28,411 rows and all 63 structured pages / 31,162 rows: core 214.390169 s of 240 s, with 25.609910 s remaining; attached-container interval 219.458 s. The scoped first 500-row read passed in 2.163305 s, and retained before/after fingerprints matched. This is diagnostic readback qualification, not a normal deployment, live-continuity trial or retirement authorization. [Exact evidence and limits](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md). | Same first page remains under four seconds. Full protected, receipt, revision, projection and raw-object verification passes all scoped pages within 240 seconds with measured margin and the existing request/byte budgets. Record restricted-reader proof. A read-only replay cannot authorize DROP or qualify collection continuity. |
 | 3. Prove a full A → B → fresh A trial | PP18 observed the first switch and archived A's 28,411 raw rows, but B stopped after 20m32s and A remained attached. Obtain fresh release-owned authority for another trial. | Collect two full 15-minute markets in each outgoing generation. While the successor keeps writing, verify and retire the exact outgoing partition within the existing 30-minute seal window. Repeat for B with a fresh A generation. Bind each run to a fresh seal and its permit. Verify continued successor writes, forecast freshness or explicit abstention, and retrieval of both retired UUIDs. Keep shared core history and deduplication intact. |
 | 4. Make history usable by deterministic calculations across rotation | The offline `88c59ac` prototype composes one reviewed market/generation before and after a generated partition drop. It returns saved snapshots and predictions and separate labels in the generated case. [#185](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/185) corrects the protected outcome wrapper to actual `Store.ingest`; its native ingestion-to-retirement regression and eight research tests pass. This source prototype does not recompute deterministic features. PP's raw API is generation-specific, its saved prediction endpoint reads local PostgreSQL, and its history-context endpoint still marks linked prior cases unsupported. | A bounded market/time query merges retained and retired generations by origin and generation UUID. Use the same availability cutoff, global ordering and event deduplication on both paths. Prove identical input IDs, exact values, links and recalculated deterministic features across an A/B boundary before and after retirement. Required missing generations or manifests fail explicitly. Report capture gaps. Qualify real PP and production scopes separately. |
 | 5. Rebuild dashboard research and evaluate deterministic signals first | Use the actual legacy contracts below as a behavior reference. Build chronological comparisons from verified 15-minute windows and versioned feature/prediction evidence. | Test the actual PP browser at rollover before and after retirement. It distinguishes saved forecast, current estimate, matched historical cases, official outcomes and explicit gaps. Training/evaluation splits by market and time. Optional AI explanation stays a separate contract with paid calls disabled. |
@@ -4083,3 +4083,32 @@ local history_v2 receipt/envelope readback; 29 relevant existing tests pass.
 No cloud/host/runtime/API/retirement activation occurred. Single-generation and
 reviewed-manifest bounds do not establish full historical coverage or runtime
 application parity. [Evidence, interfaces and remaining gates](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md).
+
+
+### PP21 complete retained-A read-only verification, November 19 UTC
+
+A one-off diagnostic used the immutable deployed PP21 image and the exact
+CI-qualified canonical-byte-reuse transport from source `308bfcf`. All 60
+backend files were checked against that source before imports/database use;
+only the reviewed transport differed from the regular PP21 image. The normal
+services stayed on PP21; generated services remained running and collection
+remained OFF. No normal deployment, DDL/index change, permit, detach/drop,
+live ON, paid AI or cloud data write occurred.
+
+All 57 raw objects / 28,411 rows and all 63 structured pages / 31,162 rows
+verified. Core work took 214.390169 s with 25.609910 s remaining under its
+240-second budget; the attached-container interval was 219.458 s. The first
+scoped 500-row read (73 distinct projection keys) took 2.163305 s under four
+seconds. The largest structured-readback phase was 3.547267 s. The audit charged
+122 requests and 53,779,250 logical bytes; nested phase totals overlap and are
+not additive elapsed times.
+
+Independent before/after fingerprints matched A/B raw data and generation
+metadata, A's 31,162 outbox rows including acknowledgement state, all 57 A
+manifests, live writer state and zero outcomes. The diagnostic container exited
+zero and was removed. The original seal deadline was already expired;
+`original_trial_satisfied=false` and `retirement_authorized=false` remain
+unchanged. A fresh full A→B→fresh-A trial and deterministic history parity are
+still required. Prior PP19/PP20 holds remain historical evidence, and this
+single result does not establish a causal whole-audit speedup percentage.
+[Source, operator receipt and qualification boundaries](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md).

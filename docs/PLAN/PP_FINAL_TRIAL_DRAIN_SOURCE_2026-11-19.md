@@ -29,7 +29,9 @@ of `pp-live-pp-trial-20261119-01`, after durable OFF. It requires:
 - The original anchored admission receipt and both existing retirement receipts
   must match the source, successor UUIDs, seal hashes/counts, nonzero concurrent
   successor writes, transaction ID and policy/history-proof hashes. The seal
-  records hashes of these receipts. Admission/retirement rows stay share-locked
+  records hashes of these receipts. The caller must supply independently
+  reviewed canonical SHA-256 digests for all three receipts; any byte drift
+  rejects the first operation as well as a retry. Admission/retirement rows stay share-locked
   during the local transaction. This validates the recorded retirement chain;
   it is not a new cloud proof or a full application/history trial verdict.
 
@@ -72,8 +74,15 @@ python -m postgres.pp_final_trial_drain --execute \
   --generation <current-final-A-UUID> --writer-epoch <reviewed-epoch> \
   --raw-count <reviewed-count> --operation <fresh-operation-UUID> \
   --source <reviewed-offline-candidate-SHA> \
-  --trial-source <exact-source-recorded-in-both-retirement-receipts>
+  --trial-source <exact-source-recorded-in-both-retirement-receipts> \
+  --admission-sha256 <reviewed-admission-cursor-digest> \
+  --retirement-a-sha256 <reviewed-initial-A-retirement-cursor-digest> \
+  --retirement-b-sha256 <reviewed-B-retirement-cursor-digest>
 ```
+
+Compute each reviewed digest as `sha256(encoded(cursor))` using the existing
+`postgres.archive_codec` canonical encoder, from independently read full cursor
+objects. Do not derive them inside an unreviewed execution wrapper.
 
 Independently reconcile the committed seal/checkpoint and unchanged pointer/OFF
 state. Reconcile ambiguity with exactly the same operation; never rewrite the

@@ -35,6 +35,9 @@ class TailTarget:
     operation: str
     source: str
     trial_source: str
+    admission_sha256: str
+    retirement_a_sha256: str
+    retirement_b_sha256: str
 
     def validate(self):
         from .pp_historical_drain import SealTarget
@@ -43,7 +46,9 @@ class TailTarget:
         canonical_anchor(self.retired_b)
         if (self.origin != ORIGIN or len({self.anchor,self.retired_b,self.generation}) != 3
                 or not isinstance(self.trial_source,str)
-                or not re.fullmatch('[0-9a-f]{40}',self.trial_source)):
+                or not re.fullmatch('[0-9a-f]{40}',self.trial_source)
+                or not all(isinstance(v,str) and re.fullmatch('[0-9a-f]{64}',v)
+                           for v in (self.admission_sha256,self.retirement_a_sha256,self.retirement_b_sha256))):
             raise LifecycleHold('exact trial origin, three distinct generations and source required')
 
 
@@ -101,7 +106,11 @@ def _completed_trial(db, target, current):
         receipts.append(sha256(encoded(receipt)))
     if rows[0]['retired_at'] > rows[1]['sealed_at']:
         raise LifecycleHold('initial A was not retired before fresh A creation')
-    return dict(admission_sha256=sha256(encoded(proof)),retirement_sha256=receipts)
+    admission_hash=sha256(encoded(proof))
+    if (admission_hash != target.admission_sha256
+            or receipts != [target.retirement_a_sha256,target.retirement_b_sha256]):
+        raise LifecycleHold('independently reviewed trial receipt bytes changed')
+    return dict(admission_sha256=admission_hash,retirement_sha256=receipts)
 
 
 def seal_final_a(repository, target: TailTarget, *, execute=False):
@@ -201,6 +210,9 @@ def main(argv=None):
     parser.add_argument('--anchor',required=True)
     parser.add_argument('--retired-b',required=True)
     parser.add_argument('--trial-source',required=True)
+    parser.add_argument('--admission-sha256',required=True)
+    parser.add_argument('--retirement-a-sha256',required=True)
+    parser.add_argument('--retirement-b-sha256',required=True)
     parser.add_argument('--generation', required=True)
     parser.add_argument('--writer-epoch', required=True, type=int)
     parser.add_argument('--raw-count', required=True, type=int)
@@ -209,7 +221,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         target = TailTarget(args.origin,args.anchor,args.retired_b,args.generation,args.writer_epoch,
-                            args.raw_count,args.operation,args.source,args.trial_source)
+                            args.raw_count,args.operation,args.source,args.trial_source,
+                            args.admission_sha256,args.retirement_a_sha256,args.retirement_b_sha256)
         target.validate()
         if (not args.execute or os.getenv('TRADEBOT_PP_FINAL_TAIL_DRAIN') != 'true'
                 or os.getenv('TRADEBOT_ENVIRONMENT') != 'preprod'

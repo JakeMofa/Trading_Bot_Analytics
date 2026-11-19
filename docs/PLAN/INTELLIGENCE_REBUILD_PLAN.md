@@ -4328,8 +4328,8 @@ The requested end-of-trial drain has a separate default-off exact-trial command,
 leaving the historic-B command unchanged. After all PP writers are durably OFF,
 it binds the original admission anchor, exact A/B/fresh-A chain and both timely
 completed retirement receipts, current final-A UUID/epoch/count and both source
-identities. It seals only final A, keeps its pointer/partition, records proof
-hashes and allocates no successor or retirement authority. The existing scoped
+identities and independently reviewed canonical admission/retirement cursor
+hashes. It seals only final A, keeps its pointer/partition, records proof hashes and allocates no successor or retirement authority. The existing scoped
 structured/raw workers can then ACK and archive that final generation under
 unchanged page/request/byte/deadline limits.
 

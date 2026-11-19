@@ -10,7 +10,7 @@ from unittest.mock import patch
 import uuid
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded, sha256
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.pp_final_trial_drain import CONSUMER, TailTarget, main, seal_final_a
 from postgres.rehearsal_profile import TRIAL_ORIGIN, lease_cap
@@ -20,7 +20,7 @@ from postgres_lifecycle_fixtures import ImmutableMemoryTransport
 class TailControls(unittest.TestCase):
     def test_exact_target_and_default_off(self):
         target=TailTarget(TRIAL_ORIGIN,*[str(uuid.uuid4()) for _ in range(3)],3,1,
-                          str(uuid.uuid4()),'a'*40,'b'*40)
+                          str(uuid.uuid4()),'a'*40,'b'*40,'c'*64,'d'*64,'e'*64)
         target.validate()
         for change in ({'origin':'pp-live-pp'},{'origin':TRIAL_ORIGIN+'-other'},
                        {'anchor':target.generation},{'raw_count':64001},{'trial_source':'main'}):
@@ -30,7 +30,9 @@ class TailControls(unittest.TestCase):
             seal_final_a(SimpleNamespace(environment='preprod'),target)
         args=['--origin',target.origin,'--anchor',target.anchor,'--retired-b',target.retired_b,
               '--trial-source',target.trial_source,'--generation',target.generation,
-              '--writer-epoch','3','--raw-count','1','--operation',target.operation,'--source',target.source]
+              '--writer-epoch','3','--raw-count','1','--operation',target.operation,'--source',target.source,
+              '--admission-sha256',target.admission_sha256,'--retirement-a-sha256',target.retirement_a_sha256,
+              '--retirement-b-sha256',target.retirement_b_sha256]
         with patch('postgres.pp_final_trial_drain.private_dsn') as secret:
             self.assertEqual(main(args),1)
             secret.assert_not_called()
@@ -112,8 +114,13 @@ class TailNative(unittest.TestCase):
                 self.raw.read_authenticated=raw_read
             self.assertEqual(result['status'],'retired_pp')
         self.repo.disable_collector(self.origin)
+        with self.owner() as db:
+            receipts=[db.execute("SELECT cursor FROM archive.checkpoints WHERE generation_id=%s "
+                      "AND consumer='retirement:pp-fresh-readback'",(gen,)).fetchone()['cursor']
+                      for gen in self.ids[:2]]
         self.target=TailTarget(self.origin,self.ids[0],self.ids[1],self.ids[2],
-            self.repo.collector_state(self.origin)['epoch'],1,str(uuid.uuid4()),'a'*40,'b'*40)
+            self.repo.collector_state(self.origin)['epoch'],1,str(uuid.uuid4()),'a'*40,'b'*40,
+            sha256(encoded(self.admission)),*[sha256(encoded(r)) for r in receipts])
 
     def cleanup(self):
         from psycopg import sql
@@ -182,7 +189,8 @@ class TailNative(unittest.TestCase):
         before=self.snapshot()
         for change in ({'anchor':str(uuid.uuid4())},{'retired_b':str(uuid.uuid4())},
                        {'generation':self.target.anchor},{'writer_epoch':self.target.writer_epoch+1},
-                       {'raw_count':2},{'trial_source':'e'*40}):
+                       {'raw_count':2},{'trial_source':'e'*40},{'admission_sha256':'e'*64},
+                       {'retirement_a_sha256':'e'*64},{'retirement_b_sha256':'e'*64}):
             with self.subTest(change=change),self.assertRaises(LifecycleHold):
                 seal_final_a(self.repo,replace(self.target,**change),execute=True)
         with patch.object(self.repo,'_checkpoint',side_effect=RuntimeError('fixture failure')):
@@ -192,21 +200,22 @@ class TailNative(unittest.TestCase):
         self.assertEqual(self.repo.collector_state(self.origin)['epoch'],self.target.writer_epoch)
 
     def test_missing_retirement_boundary_or_changed_admission_fails_closed(self):
-        for mutation in ('admission','active','boundary','retired_at','state'):
+        for mutation in ('admission','active','boundary','retired_at','state','receipt_bytes'):
             with self.subTest(mutation=mutation),self.owner() as db:
                 # Fixture changes roll back after the independently connected check.
                 if mutation=='admission':
                     table='archive.checkpoints';column='cursor';where="generation_id=%s AND consumer='rehearsal:two-leg-session'"
                     gen=self.target.anchor
-                elif mutation=='active':
+                elif mutation in ('active','receipt_bytes'):
                     table='archive.checkpoints';column='cursor';where="generation_id=%s AND consumer='retirement:pp-fresh-readback'"
                     gen=self.target.retired_b
                 else:
                     table='archive.generations';column='started_at' if mutation=='boundary' else ('state' if mutation=='state' else 'retired_at');where='generation_id=%s'
                     gen=self.target.generation if mutation=='boundary' else self.target.retired_b
                 old=db.execute(f'SELECT {column} AS value FROM {table} WHERE {where}',(gen,)).fetchone()['value']
-                if mutation in ('admission','active'):
-                    changed={**old,('initial_a' if mutation=='admission' else 'active'):str(uuid.uuid4())}
+                if mutation in ('admission','active','receipt_bytes'):
+                    changed=({**old,'txid':old['txid']+1} if mutation=='receipt_bytes' else
+                             {**old,('initial_a' if mutation=='admission' else 'active'):str(uuid.uuid4())})
                     db.execute(f'UPDATE {table} SET {column}=%s::jsonb WHERE {where}',(encoded(changed).decode(),gen))
                 elif mutation=='state':
                     db.execute(f"UPDATE {table} SET state='verified' WHERE {where}",(gen,))
@@ -216,7 +225,7 @@ class TailNative(unittest.TestCase):
                 try:
                     with self.assertRaises(LifecycleHold):seal_final_a(self.repo,self.target,execute=True)
                 finally:
-                    if mutation in ('admission','active'):
+                    if mutation in ('admission','active','receipt_bytes'):
                         db.execute(f'UPDATE {table} SET {column}=%s::jsonb WHERE {where}',(encoded(old).decode(),gen))
                     else:db.execute(f'UPDATE {table} SET {column}=%s WHERE {where}',(old,gen))
                     db.commit()

@@ -4267,3 +4267,15 @@ Auth provisioning, secret deployment, host action or collector activation occurr
 Service wiring, fresh grant/catalog review, actual new identities/secrets, bounded
 live API denials/readback and separate old A/B disposition remain prerequisites.
 [Policy artifacts, exact dependencies and reversible deployment](PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md).
+
+### November 19 — source-only exact trial host preparation
+
+The host-control candidate binds the one exact trial origin and initial-A UUID
+into existing enter/ON authority. Permit-bound enter stops generated services,
+prepares an exact OFF A under the shared database admission fence, preserves
+historic A/B, then proves the trial API/operator OFF. Permit-free leave/OFF never
+prepares. Native restricted-role allocation and host/profile/authority fixture
+checks pass. Trial ON and legacy cloud sidecars remain explicitly held until
+separate exact trial writer/reader credentials and cloud readiness proofs are
+integrated; no deployment or host/cloud action is claimed. See
+[scope and evidence](PP_TRIAL_HOST_PREPARATION_2026-11-19.md).

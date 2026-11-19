@@ -82,6 +82,10 @@ def command_for(env, api, profile):
     controls = api.read('/git/ref/heads/' + env['GITHUB_REF_NAME'])
     require(controls['object']['sha'] == env.get('GITHUB_SHA'), 'PP control branch moved')
     anchor = env.get('PP_CYCLE_INITIAL_A', '')
+    trial_origin=env.get('PP_TRIAL_ORIGIN','')
+    if trial_origin:
+        require(trial_origin=='pp-live-pp-trial-20261119-01' and bool(anchor)
+                and operation in ('enter','on'),'exact anchored PP trial origin required')
     if anchor:
         try:
             canonical = str(uuid.UUID(anchor))
@@ -96,8 +100,8 @@ def command_for(env, api, profile):
         require(re.fullmatch(r'[0-9]{1,4}', seconds) is not None
                 and (int(seconds) == 6600 if anchor else 1 <= int(seconds) <= 4560),
                 'bounded session seconds required')
-        binding = {'initial_a': anchor} if anchor else {}
-        return ('session-v1 on ' + str(int(seconds)) + (' ' + anchor if anchor else ''),
+        binding = ({'initial_a': anchor} if anchor else {}) | ({'trial_origin':trial_origin} if trial_origin else {})
+        return ('session-v1 on ' + str(int(seconds)) + (' ' + anchor if anchor else '') + (' '+trial_origin if trial_origin else ''),
                 {'operation': 'on', 'max_seconds': int(seconds)} | binding)
     sha = env.get('APPROVED_REVISION', '')
     require(pipeline.SHA.fullmatch(sha) is not None, 'exact PP source required')
@@ -114,6 +118,9 @@ def command_for(env, api, profile):
     if anchor:
         command += ' ' + anchor
         proof['initial_a'] = anchor
+        if trial_origin:
+            command+=' '+trial_origin
+            proof['trial_origin']=trial_origin
     return command, {**proof, 'operation': operation, 'release_version': candidate['version']}
 
 
@@ -141,11 +148,13 @@ def transport(profile, command, env):
         return json.loads(result.stdout)
 
 
-def validated_result(operation, result, initial_a=None):
+def validated_result(operation, result, initial_a=None, trial_origin=None):
     expected = {'enter':'PP_LIVE_READY_OFF', 'leave':'PP_GENERATED_RESTORED',
                 'on':'PP_LIVE_ON', 'off':'PP_LIVE_OFF'}[operation]
-    require(result.get('gate') == expected and result.get('origin_id') ==
-            ('generated-pp' if operation == 'leave' else 'pp-live-pp')
+    expected_origin='generated-pp' if operation=='leave' else (trial_origin or 'pp-live-pp')
+    valid_origin=(result.get('origin_id') in ('pp-live-pp','pp-live-pp-trial-20261119-01')
+                  if operation=='off' else result.get('origin_id')==expected_origin)
+    require(result.get('gate') == expected and valid_origin
             and result.get('collector_enabled') is (operation == 'on')
             and result.get('initial_a') == initial_a, 'PP live result mismatch')
     return {'gate': expected, 'origin_id': result['origin_id'],
@@ -166,7 +175,7 @@ def main():
         report = {'gate': 'PASS', 'scope': 'pp_live_preflight', **proof}
         if args.stage == 'execute':
             host_result = validated_result(proof['operation'], transport(profile, command, env),
-                                           proof.get('initial_a'))
+                                           proof.get('initial_a'),proof.get('trial_origin'))
             report.update({key: value for key, value in host_result.items() if key != 'gate'})
             report['host_gate'] = host_result['gate']
             report['scope'] = 'pp_live_host_result'

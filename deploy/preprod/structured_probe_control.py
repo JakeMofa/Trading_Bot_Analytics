@@ -200,7 +200,9 @@ def preflight(installed: Path, budget: Budget):
     actions = _image_binding(context, budget)
     _owned_runtime(actions, context, budget)
     actions._runtime(context, budget, live=True,
-                     **({'initial_a': active['initial_a']} if active.get('initial_a') else {}))
+                     **({'initial_a': active['initial_a']} | ({'trial_origin':active['trial_origin']} if active.get('trial_origin') else {})
+                        if active.get('initial_a') else {}))
+    require(not active.get('trial_origin'),'trial_cloud_profile_not_yet_qualified')
     _files()
     for name in EXPECTED_MODULES:
         path = context.source / name

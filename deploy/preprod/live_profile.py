@@ -9,27 +9,31 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS, cycle_environment
+from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS, cycle_environment, live_origin
 from controller import require
 
 
 LIVE_ORIGIN = 'pp-live-pp'
 
 
-def validate_live_profile(base: dict, live: dict, source, image, *, reader=False, initial_a=None):
+def validate_live_profile(base: dict, live: dict, source, image, *, reader=False, initial_a=None, trial_origin=None):
     validate_config(base, source, image)
+    origin=live_origin(trial_origin)
+    require(not (trial_origin and reader),'trial_reader_requires_independent_profile')
     expected = deepcopy(base)
     for name in ('api', 'calculation', 'lifecycle'):
         expected['services'][name]['environment'].update(
-            TRADEBOT_DATA_MODE='pp_live', TRADEBOT_ORIGIN_ID=LIVE_ORIGIN)
+            TRADEBOT_DATA_MODE='pp_live', TRADEBOT_ORIGIN_ID=origin)
     expected['services']['lifecycle']['environment'].update(
         TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets',
         TRADEBOT_GENERATED_LOCAL_STORAGE='false')
     operator = expected['services']['operator']
     operator['environment'].update(TRADEBOT_PP_LIVE_CONTROL='true',
                                    TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
+    if trial_origin:
+        operator['environment']['TRADEBOT_ORIGIN_ID']=origin
     for service in ('lifecycle', 'operator'):
-        expected['services'][service]['environment'].update(cycle_environment(initial_a))
+        expected['services'][service]['environment'].update(cycle_environment(initial_a,trial_origin))
     target = operator['secrets'][0]['target']
     require(target in ('lifecycle_dsn', '/run/secrets/lifecycle_dsn'),
             'unreviewed_pp_operator_secret_shape')

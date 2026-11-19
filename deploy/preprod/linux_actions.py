@@ -55,13 +55,21 @@ BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_EN
           'TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false',
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
 OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
-OUTBOX_ORIGINS=('generated-pp','pp-live-pp')
+OUTBOX_ORIGINS=('generated-pp','pp-live-pp','pp-live-pp-trial-20261119-01')
 CYCLE_SESSION_MAX_SECONDS=6600
 CYCLE_POLICY='two-official-markets-cycle'
+TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
 
 
-def cycle_environment(initial_a):
+def live_origin(trial_origin=None):
+    require(trial_origin in (None,TRIAL_ORIGIN),'invalid_pp_trial_origin')
+    return trial_origin or 'pp-live-pp'
+
+
+def cycle_environment(initial_a, trial_origin=None):
+    origin=live_origin(trial_origin)
     if initial_a is None:
+        require(trial_origin is None,'pp_trial_requires_anchor')
         return {}
     try:
         valid = isinstance(initial_a, str) and str(uuid.UUID(initial_a)) == initial_a
@@ -69,7 +77,8 @@ def cycle_environment(initial_a):
         valid = False
     require(valid, 'invalid_pp_cycle_anchor')
     return {'TRADEBOT_PP_WINDOW_POLICY': CYCLE_POLICY,
-            'TRADEBOT_PP_CYCLE_INITIAL_A': initial_a}
+            'TRADEBOT_PP_CYCLE_INITIAL_A': initial_a} | (
+                {'TRADEBOT_ORIGIN_ID':origin} if trial_origin else {})
 
 
 def memory_bytes(value):
@@ -79,7 +88,7 @@ def memory_bytes(value):
     return int(match[1])*{'':1,'k':1024,'m':1024**2,'g':1024**3}[match[2]]
 
 
-def expected_environment(service, *, live=False, initial_a=None):
+def expected_environment(service, *, live=False, initial_a=None, trial_origin=None):
     env={**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
     if service=='lifecycle':
         env['TRADEBOT_GENERATED_LOCAL_STORAGE']='false' if live else 'true'
@@ -87,15 +96,15 @@ def expected_environment(service, *, live=False, initial_a=None):
         env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp',
                    TRADEBOT_OPERATOR_TOKEN_FILE='/run/secrets/operator_token')
     if live:
-        if service in ('api','calculation','lifecycle'):
-            env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
+        if service in ('api','calculation','lifecycle','operator'):
+            env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID=live_origin(trial_origin))
         if service=='lifecycle':
             env.update(TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets')
         if service=='operator':
             env.update(TRADEBOT_PP_LIVE_CONTROL='true',
                        TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
         if service in ('lifecycle','operator'):
-            env.update(cycle_environment(initial_a))
+            env.update(cycle_environment(initial_a,trial_origin))
     return env
 
 
@@ -526,7 +535,7 @@ class LinuxActions:
 
     def _approved_outbox_origins(self,budget):
         origins=self._json(self._sql(budget,"SELECT coalesce(json_agg(origin_id ORDER BY origin_id),'[]'::json) "
-            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 3) bounded"))
+            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 4) bounded"))
         require(isinstance(origins,list) and len(origins)<=len(OUTBOX_ORIGINS)
                 and all(type(origin) is str and origin in OUTBOX_ORIGINS for origin in origins)
                 and len(origins)==len(set(origins)),'unexpected_outbox_origin')
@@ -697,7 +706,7 @@ class LinuxActions:
                 'generated_durable_headroom_not_proven')
         self._compose(context,budget,['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
 
-    def _runtime(self,context,budget,*,live=False,initial_a=None):
+    def _runtime(self,context,budget,*,live=False,initial_a=None,trial_origin=None):
         for service in SERVICES:
             ids=self._ids(context,budget,[service])
             require(len(ids)==1,'missing_runtime_service')
@@ -712,7 +721,7 @@ class LinuxActions:
                     and host.get('CapDrop')==['ALL'] and host.get('NanoCpus')==int(CPUS[service]*1_000_000_000)
                     and host.get('RestartPolicy',{}).get('Name')=='unless-stopped','runtime_resource_or_privilege_mismatch')
             env=dict(item.split('=',1) for item in config.get('Env',[]) if '=' in item)
-            expected_env=expected_environment(service,live=live,initial_a=initial_a)
+            expected_env=expected_environment(service,live=live,initial_a=initial_a,trial_origin=trial_origin)
             require(all(env.get(key)==value for key,value in expected_env.items())
                     and all(env.get(key)==expected_env.get(key) for key in
                             ('TRADEBOT_PP_WINDOW_POLICY','TRADEBOT_PP_CYCLE_INITIAL_A'))
@@ -723,7 +732,7 @@ class LinuxActions:
                     'runtime_network_mismatch')
             mounts=row.get('Mounts',[])
             wanted=set(service_secrets(service,live=live))
-            reader = bool(live and service=='api' and history_reader_enabled(context))
+            reader = bool(live and not trial_origin and service=='api' and history_reader_enabled(context))
             require(env.get('TRADEBOT_PP_ARCHIVE_HISTORY','false') == ('true' if reader else 'false'),
                     'archive_history_runtime_flag_mismatch')
             if reader:
@@ -745,7 +754,7 @@ class LinuxActions:
                 require(row['State'].get('Health',{}).get('Status')=='healthy','api_not_healthy')
 
     @staticmethod
-    def _host_api(*,live=False):
+    def _host_api(*,live=False,trial_origin=None):
         """Test the real host listener; container-local HTTP is insufficient."""
         try:
             opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
@@ -754,13 +763,13 @@ class LinuxActions:
             require(len(raw)<=65536,'host_api_response_too_large')
             state=json.loads(raw)
             require(state.get('environment')=='preprod' and state.get('data_mode')==('pp_live' if live else 'generated')
-                    and state.get('origin_id')==('pp-live-pp' if live else 'generated-pp')
+                    and state.get('origin_id')==(live_origin(trial_origin) if live else 'generated-pp')
                     and state.get('collector',{}).get('enabled') is False,'host_api_wrong_state')
         except (OSError,ValueError,KeyError) as error:
             raise DeploymentHold('host_api_loopback_unavailable') from None
 
     @staticmethod
-    def _host_operator(*,live=False):
+    def _host_operator(*,live=False,trial_origin=None):
         """Prove authenticated host loopback status and deny unauthenticated use."""
         from urllib.error import HTTPError
         endpoint='http://127.0.0.1:8001/collector/status'
@@ -777,7 +786,7 @@ class LinuxActions:
                 raw=response.read(8193)
             require(len(raw)<=8192,'operator_response_too_large')
             state=json.loads(raw)
-            require(state.get('environment')=='preprod' and state.get('origin_id')=='pp-live-pp'
+            require(state.get('environment')=='preprod' and state.get('origin_id')==live_origin(trial_origin)
                     and state.get('collector_enabled') is False and isinstance(state.get('initialized'),bool)
                     and state.get('process_running') is (False if live else None)
                     and state.get('live_fence_qualified') is False,

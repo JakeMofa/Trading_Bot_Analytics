@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from contextlib import contextmanager
 import hashlib
+import json
 import os
 from pathlib import Path
 import re
@@ -27,6 +28,42 @@ STAGED_LOCAL = Path(LOCAL_STAGED)
 CA_SHA256 = '807025ad50d4ed219d2c9c7d299c004f824eb00cf7f65afef607d07b72e6cafa'
 EXPECTED_MODULES = ('backend/postgres/pp_structured_probe.py',
                     'backend/postgres/pp_history_connection.py')
+CHILD_REASON_CODES = {
+    'archive_error': 'pp_structured_archive_error',
+    'archive_limit': 'pp_structured_archive_limit',
+    'archive_integrity': 'pp_structured_archive_integrity',
+    'archive_unavailable': 'pp_structured_archive_unavailable',
+    'lifecycle_hold': 'pp_structured_lifecycle_hold',
+    'OperationalError': 'pp_structured_database_unavailable',
+    'IntegrityError': 'pp_structured_database_integrity',
+    'TimeoutError': 'pp_structured_timeout',
+}
+PUBLIC_FAILURE_CODES = frozenset(CHILD_REASON_CODES.values()) | {'pp_structured_probe_failed'}
+
+
+def _public_child_failure(raw: bytes) -> str:
+    """Accept only the child's fixed, non-sensitive failure envelope."""
+    if len(raw) > 2048:
+        return 'pp_structured_probe_failed'
+    try:
+        def unique_pairs(pairs):
+            result = {}
+            for key, value in pairs:
+                if key in result:
+                    raise ValueError('duplicate key')
+                result[key] = value
+            return result
+        report = json.loads(raw, object_pairs_hook=unique_pairs)
+        if (type(report) is dict and set(report) ==
+                {'status', 'reason', 'ack_status', 'retirement'} and
+                report['status'] == 'HOLD' and
+                report['ack_status'] == 'unconfirmed_after_error' and
+                report['retirement'] == 'off' and
+                type(report['reason']) is str):
+            return CHILD_REASON_CODES.get(report['reason'], 'pp_structured_probe_failed')
+    except (UnicodeError, ValueError, TypeError):
+        pass
+    return 'pp_structured_probe_failed'
 
 
 def _files():
@@ -131,7 +168,7 @@ def _stage_local_secret(source=None, staged=None):
             raise DeploymentHold('probe_local_secret_cleanup_failed') from None
 
 
-def _compose(actions, context, budget, extra, args, timeout):
+def _compose(actions, context, budget, extra, args, timeout, *, capture_exit=False):
     folder = context.source / 'deploy/preprod'
     files = [folder / 'compose.yaml', folder / 'runtime.compose.yaml', *
              (folder / name for name in extra)]
@@ -139,9 +176,17 @@ def _compose(actions, context, budget, extra, args, timeout):
                '--project-name', PROJECT, '--project-directory', str(folder)]
     for path in files:
         command += ['-f', str(path)]
-    return budget.run([*command, '--profile', 'migration', '--profile',
-                       'structured_probe', *args], cwd=context.source,
-                      env=actions._environment(context.image), timeout=timeout)
+    result = budget.run([*command, '--profile', 'migration', '--profile',
+                         'structured_probe', *args], cwd=context.source,
+                        env=actions._environment(context.image), timeout=timeout,
+                        **({'return_status': True, 'output_limit': 2048}
+                           if capture_exit else {}))
+    if capture_exit:
+        status, stdout = result
+        if status != 0:
+            raise DeploymentHold(_public_child_failure(stdout))
+        return stdout
+    return result
 
 
 def preflight(installed: Path, budget: Budget):
@@ -189,7 +234,6 @@ def run(command: str, installed: Path):
 
     # The permit is root-owned and one-use. Its exact page target is reviewed
     # out of band; caller-supplied arguments never select cloud rows or files.
-    import json
     permit = json.loads(_secure_file(AUTHORITY)[0])
     generation = permit.get('generation_id')
     state = permit.get('expected_state')
@@ -216,7 +260,7 @@ def run(command: str, installed: Path):
         try:
             raw = _compose(actions, context, Budget(30),
                 ('runtime.live.compose.yaml', 'runtime.structured-probe.compose.yaml'),
-                args, 25)
+                args, 25, capture_exit=True)
             result = actions._json(raw)
         except Exception as caught:
             error = caught
@@ -225,7 +269,9 @@ def run(command: str, installed: Path):
             # out. A fresh recovery budget proves exit or reports STOP.
             actions._cleanup_oneoffs(context, Budget(30))
     if error is not None:
-        raise DeploymentHold('pp_structured_probe_failed') from None
+        reason = str(error) if isinstance(error, DeploymentHold) else ''
+        raise DeploymentHold(reason if reason in PUBLIC_FAILURE_CODES
+                             else 'pp_structured_probe_failed') from None
     count = result.get('acknowledged')
     require(result.get('status') == 'acknowledged'
             and result.get('origin_id') == 'pp-live-pp'

@@ -28,9 +28,19 @@ class SuccessorTransferTests(unittest.TestCase):
         bundle_spec.loader.exec_module(builder)
         cls.bundle = Path(cls.folder.name) / 'controller.pyz'
         cls.result = builder.build(cls.bundle)
+        # This one-use transfer is pinned to f4a037 bytes. Exercise its wire
+        # validation with the current generated bundle without requiring the
+        # mutable controller source to remain at that historical revision.
+        cls.original_new = transfer.NEW
+        cls.original_hashes = transfer.HASHES
+        transfer.NEW = cls.result['sha256']
+        transfer.HASHES = {'controller.pyz': transfer.NEW, **{
+            name: transfer.digest((HERE / name).read_bytes()) for name in transfer.FILES}}
 
     @classmethod
     def tearDownClass(cls):
+        transfer.NEW = cls.original_new
+        transfer.HASHES = cls.original_hashes
         cls.folder.cleanup()
 
     def payload(self):
@@ -39,6 +49,7 @@ class SuccessorTransferTests(unittest.TestCase):
     def test_exact_source_bundle_and_members(self):
         self.assertEqual(transfer.SOURCE, 'f4a03703cc8552917b752ab0cacd6e1e7c5233ea')
         self.assertEqual(transfer.OLD, 'c3fac37cb56945ad74d41188b8e22013a199fe8d656b87be4f4154676d3c9479')
+        self.assertEqual(self.original_new, 'acec846b8876df991026c0437b971d525beef398ff43afa6f7a8e01ac5b80a7d')
         self.assertEqual(self.result['sha256'], transfer.NEW)
         payload = self.payload()
         contents = transfer.decode_payload(io.BytesIO(payload))

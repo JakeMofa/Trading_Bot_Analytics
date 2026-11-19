@@ -1,5 +1,16 @@
 # Resume here
 
+**Latest checkpoint (November 18 CST):** `preprod` source `2e38ecd` passed CI
+44422595480, and `v0.2.0-pp.12` passed manual PP CD 44423321845. The PP app
+and PostgreSQL are healthy. Mode transition 44423758592 passed, leaving PP
+`PP_LIVE_READY_OFF` with collector OFF. The first one-use `history_v2` probe
+FAILED with Supabase SQLSTATE `25P04` (transaction timeout); read-only
+reconciliation found zero PP cloud receipts/projections/checkpoints and zero
+local ACKs for the selected page. Its permit was consumed. Raw archival,
+retirement, paid AI and production remain unchanged. See the opening master
+roadmap section for the exact next gates. The earlier pp.11 account below is
+historical.
+
 **Current checkpoint (November 18 CST):** Follow the opening section of
 [INTELLIGENCE_REBUILD_PLAN.md](INTELLIGENCE_REBUILD_PLAN.md). PRs #124–#126
 merged to `preprod` at `56e4de5`; exact merge CI passed. Candidate

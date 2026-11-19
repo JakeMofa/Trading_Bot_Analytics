@@ -200,11 +200,11 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                    envelope(2, 'core.feature_snapshots', feature, generation)]
 
         class PausedTransport(HistoryV2PostgresTransport):
-            def _receipt(self, connection, record):
+            def _receipts(self, connection, records):
                 first_at_receipt.set()
                 if not release_first.wait(5):
                     raise AssertionError('first importer was not released')
-                return super()._receipt(connection, record)
+                return super()._receipts(connection, records)
 
         binding = dict(origin_id=origin, generation_id=generation,
                        expected_database=database, expected_role=role)
@@ -424,6 +424,133 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         transport.put_structured(records, timeout_seconds=5)
         self.assertEqual(transport.read_structured_authenticated(
             records, max_bytes=4 * 1024 * 1024, timeout_seconds=5), records)
+
+    def test_25_row_remote_roundtrip_budget_preserves_fk_and_exact_readback(self):
+        """Generated 34 ms/query latency models a remote pooler, not live proof."""
+        import psycopg
+        from psycopg.rows import dict_row
+
+        class DelayedConnection:
+            def __init__(self, inner):
+                self.inner, self.queries = inner, 0
+
+            def __enter__(self):
+                self.inner.__enter__()
+                return self
+
+            def __exit__(self, *args):
+                return self.inner.__exit__(*args)
+
+            def __getattr__(self, name):
+                return getattr(self.inner, name)
+
+            def execute(self, *args, **kwargs):
+                self.queries += 1
+                time.sleep(0.034)
+                return self.inner.execute(*args, **kwargs)
+
+        origin, generation = self.origin, str(uuid.uuid4())
+        plain = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
+                                        options='-c timezone=UTC')
+        with plain() as connection:
+            binding = connection.execute('SELECT current_database() AS database, '
+                                         'current_user AS role').fetchone()
+        used = []
+
+        def factory(*, timeout_seconds):
+            connection = DelayedConnection(plain())
+            used.append(connection)
+            return connection
+
+        start = datetime(2026, 11, 18, tzinfo=timezone.utc)
+        end = start + timedelta(minutes=15)
+        market = dict(origin_id=origin, market_id='market-25', source='polymarket-us',
+            slug='market-25', duration=900, start_time=start.isoformat(),
+            end_time=end.isoformat(), start_epoch=str(int(start.timestamp())),
+            end_epoch=str(int(end.timestamp())), target='100.0000', final=None,
+            result=None, status='open', index_symbol='BTC-USD', rules=None,
+            first_seen=start.isoformat(), last_seen=start.isoformat(),
+            payload={'source':'generated'}, content_hash='f' * 64)
+        features = [dict(origin_id=origin, snapshot_id=f'snapshot-{index}',
+            market_id='market-25', as_of=(start + timedelta(seconds=index)).isoformat(),
+            version=1, values_json={'price':f'100.{index:04d}'}, quality_json={},
+            evidence_json={'source_time':start.isoformat()},
+            content_hash=f'{index:064x}') for index in range(1, 25)]
+        # The lower outbox IDs refer to children; import must still insert the
+        # market parent first while preserving the original outbox cursor.
+        records = [envelope(index, 'core.feature_snapshots', feature, generation)
+                   for index, feature in enumerate(features, 1)]
+        records.append(envelope(25, 'core.markets', market, generation))
+        transport = HistoryV2PostgresTransport(factory, origin_id=origin,
+            generation_id=generation, expected_database=binding['database'],
+            expected_role=binding['role'])
+        started = time.monotonic()
+        transport.put_structured(records, timeout_seconds=4)
+        put_elapsed = time.monotonic() - started
+        started = time.monotonic()
+        self.assertEqual(transport.read_structured_authenticated(
+            records, max_bytes=4 * 1024 * 1024, timeout_seconds=4), records)
+        read_elapsed = time.monotonic() - started
+        self.assertEqual(len(used), 2)
+        print(f'generated_history_v2_roundtrips put_queries={used[0].queries} '
+              f'put_seconds={put_elapsed:.3f} read_queries={used[1].queries} '
+              f'read_seconds={read_elapsed:.3f}', flush=True)
+        self.assertLessEqual(used[0].queries, 90)
+        self.assertLessEqual(used[1].queries, 35)
+        self.assertLess(put_elapsed, 4)
+        self.assertLess(read_elapsed, 4)
+        with plain() as connection:
+            receipt_count = connection.execute('SELECT count(*) AS n FROM '
+                'history_v2.structured_receipts WHERE origin_id=%s AND generation_id=%s',
+                (origin, generation)).fetchone()['n']
+            target = connection.execute('SELECT target::text AS value FROM '
+                'history_v2.markets WHERE origin_id=%s AND market_id=%s',
+                (origin, 'market-25')).fetchone()['value']
+        self.assertEqual((receipt_count, target), (25, '100.0000'))
+
+    def test_receipt_batch_failure_rolls_back_projection_and_checkpoint(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        from postgres.archive_codec import ArchiveUnavailable
+
+        factory = lambda timeout_seconds=5: psycopg.connect(
+            DSN, row_factory=dict_row, connect_timeout=5)
+        with factory() as connection:
+            binding = connection.execute('SELECT current_database() AS database, '
+                                         'current_user AS role').fetchone()
+        origin, generation = self.origin, str(uuid.uuid4())
+        start = datetime(2026, 11, 18, tzinfo=timezone.utc)
+        market = dict(origin_id=origin, market_id='rollback-market',
+            source='polymarket-us', slug='rollback-market', duration=900,
+            start_time=start.isoformat(),
+            end_time=(start + timedelta(minutes=15)).isoformat(),
+            start_epoch=str(int(start.timestamp())),
+            end_epoch=str(int((start + timedelta(minutes=15)).timestamp())),
+            target='100.0000', final=None, result=None, status='open',
+            index_symbol='BTC-USD', rules=None, first_seen=start.isoformat(),
+            last_seen=start.isoformat(), payload={'source':'generated'},
+            content_hash='a' * 64)
+
+        class FailAfterReceiptBatch(HistoryV2PostgresTransport):
+            @staticmethod
+            def _insert_receipts(connection, rows):
+                HistoryV2PostgresTransport._insert_receipts(connection, rows)
+                raise RuntimeError('generated failure after batch insert')
+
+        transport = FailAfterReceiptBatch(factory, origin_id=origin,
+            generation_id=generation, expected_database=binding['database'],
+            expected_role=binding['role'])
+        with self.assertRaises(ArchiveUnavailable):
+            transport.put_structured([envelope(1, 'core.markets', market, generation)],
+                                     timeout_seconds=4)
+        with factory() as connection:
+            counts = connection.execute('''SELECT
+                (SELECT count(*) FROM history_v2.markets WHERE origin_id=%s) AS markets,
+                (SELECT count(*) FROM history_v2.structured_receipts WHERE origin_id=%s)
+                    AS receipts,
+                (SELECT count(*) FROM history_v2.generation_checkpoints WHERE origin_id=%s)
+                    AS checkpoints''', (origin, origin, origin)).fetchone()
+        self.assertEqual(counts, {'markets':0, 'receipts':0, 'checkpoints':0})
 
 
 if __name__ == '__main__':

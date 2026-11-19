@@ -84,7 +84,7 @@ class OperatorSessionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_invalid_deadlines_never_start(self):
         control = OperatorSession(lambda *_: None, lambda: {'collector_enabled': False})
-        for value in (0, 1801, True, 1.5):
+        for value in (0, 4561, True, 1.5):
             with self.assertRaises(ValueError):
                 await control.start(max_seconds=value)
         self.assertFalse(control.state()['process_running'])

@@ -105,7 +105,7 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
     async def test_unqualified_cadence_and_mode_rejected(self):
         store = Store()
         for options in ({'market_interval': 11}, {'candle_interval': 5},
-                        {'max_seconds': 1801}):
+                        {'max_seconds': 4561}):
             with self.assertRaises(ValueError):
                 await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
                                   disable_collector=store.disable,

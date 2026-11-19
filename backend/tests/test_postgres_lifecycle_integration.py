@@ -317,7 +317,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         session = str(uuid.uuid4())
         with self.assertRaises(LifecycleHold):
             self.repository.enable_collector(origin, session_id=session,
-                expected_generation_id=str(generation['generation_id']), max_seconds=1801)
+                expected_generation_id=str(generation['generation_id']), max_seconds=4561)
         with self.assertRaises(LifecycleHold):
             self.repository.enable_collector(origin, session_id=session,
                 expected_generation_id=str(uuid.uuid4()), max_seconds=60)
@@ -345,6 +345,53 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         state = self.repository.collector_state(origin)
         self.assertFalse(state['stored_enabled'])
         self.assertIsNone(state['collector_lease_expires_at'])
+
+    def test_market_pair_excludes_initial_partial_interval_and_times_b_from_switch(self):
+        origin = 'pp-live-' + uuid.uuid4().hex
+        repo = self.repository
+        gen = repo.bootstrap(origin, now=self.started)
+        store = Store(SimpleNamespace(origin_id=origin, environment='preprod',
+            dsn=os.environ['TRADEBOT_TEST_APP_DSN'], data_mode='pp_live', outbox_max_pending=10000))
+        session = str(uuid.uuid4())
+        repo.enable_collector(origin,session_id=session,expected_generation_id=gen['generation_id'],
+                              max_seconds=4560)
+        now = datetime.now(timezone.utc)
+        partial = now.replace(minute=now.minute//15*15, second=0,microsecond=0)
+        def at(minutes):
+            return partial + timedelta(minutes=minutes)
+        def sample(minutes):
+            ts = (at(minutes)+timedelta(seconds=10)).isoformat()
+            market = polymarket_market({'id':str(minutes),'slug':f'fixture-{minutes}',
+                'status':'MARKET_STATUS_OPEN','updatedAt':ts,
+                'assetPriceTerms':{'asset':{'symbol':'btc'}, 'horizon':'15m',
+                    'marketType':'ASSET_PRICE_MARKET_TYPE_UP_DOWN','windowStart':at(minutes).isoformat(),
+                    'windowEnd':at(minutes+15).isoformat()}},ts)
+            store.ingest(market)
+            store.ingest(polymarket_bbo({'marketData':{'marketSlug':market['payload']['slug'],
+                'lastPriceSample':{'ts':ts},'bestBid':{'value':'0.49'}}},market,ts))
+        def rotate(instant):
+            return repo.switch_if_due(origin,now=instant,require_live_lease=True,market_pair_trial=True)
+        sample(0)
+        sample(15)
+        self.assertEqual(rotate(at(30))['status'],'collecting')
+        self.assertEqual(rotate(at(45))['status'],'collecting')
+        sample(30)
+        self.assertEqual(rotate(at(45)-timedelta(microseconds=1))['status'],'collecting')
+        actual = at(45)+timedelta(seconds=7)
+        result = rotate(actual)
+        self.assertEqual((result['slot'],result['window_market_ids']),('B',['15','30']))
+        self.assertEqual(result['next_generation_started_at'],actual.isoformat())
+        self.assertFalse(rotate(at(75))['b_observation_elapsed'])
+        self.assertTrue(rotate(actual+timedelta(minutes=30))['b_observation_elapsed'])
+        from unittest.mock import patch
+        with patch('postgres.lifecycle.PP_WINDOW_ALLOCATION_STOP_BYTES', 1):
+            held=rotate(actual+timedelta(minutes=30))
+        self.assertEqual(held['reason'],'pp_window_relation_limit')
+        with self.assertRaisesRegex(LifecycleHold,'allocation limit'):
+            repo.enable_collector(origin,session_id=str(uuid.uuid4()),
+                                  expected_generation_id=result['generation_id'],max_seconds=60)
+        self.assertFalse(repo.collector_state(origin)['stored_enabled'])
+        self.assertEqual(repo.generation(gen['generation_id'])['state'],'sealed')
 
     def test_pp_live_lease_and_acknowledged_writes_survive_a_to_b_switch(self):
         origin = 'pp-live-' + uuid.uuid4().hex

@@ -25,6 +25,17 @@ class PPLivePipelineTests(unittest.TestCase):
         self.assertEqual(module.command_for(env, API(), {'controller_sha256':'b'*64}),
                          ('session-v1 off', {'operation':'off'}))
 
+    def test_long_pp_session_has_an_explicit_finite_bound(self):
+        class API:
+            def read(self, path):
+                return {'object': {'sha':'a'*40}}
+        env = {'PP_LIVE_OPERATION':'on', 'GITHUB_EVENT_NAME':'workflow_dispatch',
+               'GITHUB_REF_NAME':'preprod', 'GITHUB_SHA':'a'*40, 'GITHUB_REPOSITORY':module.pipeline.REPO}
+        self.assertEqual(module.command_for({**env,'PP_LIVE_SECONDS':'4560'}, API(), {})[0],
+                         'session-v1 on 4560')
+        with self.assertRaises(ValueError):
+            module.command_for({**env,'PP_LIVE_SECONDS':'4561'}, API(), {})
+
     def test_enter_command_binds_generated_proof_and_exact_source_ci(self):
         class API:
             def read(self, path):

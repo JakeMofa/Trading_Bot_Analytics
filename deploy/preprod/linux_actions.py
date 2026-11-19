@@ -73,7 +73,7 @@ def expected_environment(service, *, live=False):
         if service in ('api','calculation','lifecycle'):
             env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
         if service=='lifecycle':
-            env.update(TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_QUALIFIED_GENERATION_BYTES='33554432')
+            env.update(TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets')
         if service=='operator':
             env.update(TRADEBOT_PP_LIVE_CONTROL='true',
                        TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')

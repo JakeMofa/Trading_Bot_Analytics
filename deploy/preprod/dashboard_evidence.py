@@ -224,9 +224,18 @@ def summarize(records, generations=()):
         missing.append('generation_switch_not_demonstrated')
     elif any(not s['before'] or not s['after'] for s in switches):
         missing.append('before_after_switch_state_missing')
-    market_transitions = [dict(before=left, after=right)
-                          for left, right in zip(samples, samples[1:])
-                          if left['market_id'] and right['market_id'] and left['market_id'] != right['market_id']]
+    market_transitions = []
+    previous_market_sample = None
+    intervening_missing = 0
+    for row in samples:
+        if not row['market_id']:
+            intervening_missing += 1
+            continue
+        if previous_market_sample and previous_market_sample['market_id'] != row['market_id']:
+            market_transitions.append(dict(before=previous_market_sample, after=row,
+                                           intervening_missing_market_samples=intervening_missing))
+        previous_market_sample = row
+        intervening_missing = 0
     numeric_missing = []
     if len(saved_ids) < 3:
         numeric_missing.append('fewer_than_three_active_numeric_saved_predictions')

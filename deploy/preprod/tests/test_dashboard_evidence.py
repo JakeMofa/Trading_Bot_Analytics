@@ -133,6 +133,15 @@ class DashboardEvidenceTests(unittest.TestCase):
         row['state']['live_estimate'].update(probability_up='0.6',probability_down='0.4',abstain_reason=None)
         self.assertEqual(audit.summarize([row])['observations'][0]['live']['classification'],'stale_or_unbound')
 
+    def test_market_rollover_with_explicit_missing_market_gap(self):
+        before=record(5);gap=record(10);gap['state'].update(market=None,forecast=None,live_estimate=None)
+        after=record(15,market='B')
+        result=audit.summarize([before,gap,after])
+        self.assertEqual(len(result['market_transitions']),1)
+        self.assertEqual(result['market_transitions'][0]['intervening_missing_market_samples'],1)
+        self.assertEqual(result['market_transitions'][0]['before']['market_id'],'A')
+        self.assertEqual(result['market_transitions'][0]['after']['market_id'],'B')
+
     def test_capture_allowlist_no_headers_or_secret_nested_price(self):
         r=record(5);state=deepcopy(r['state']);state['headers']={'Authorization':'secret'}
         state['feature_snapshot']['quality']['price']['secret']='secret'

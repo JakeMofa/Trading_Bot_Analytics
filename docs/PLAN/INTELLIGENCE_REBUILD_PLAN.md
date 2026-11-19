@@ -3799,6 +3799,28 @@ records until their disposition is tested.
 [CD run](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44510969827)
 and [sanitized measurements](evidence/pp20-index-and-smoke-2026-11-19.json).
 
+### PP20 indexed retained archive replay
+
+The exact PP20 candidate image ran in an isolated read-only container while the
+failed deployment's application services were stopped and the collector was OFF.
+The candidate remained fenced from normal operation. The installed Supabase
+index passed its definition and validity checks before the replay.
+
+- The first 500-record read completed in **2.729 seconds**. The same page took
+  **4.712 seconds** on PP19. Latest-receipt selection fell from **2.051 seconds**
+  to **0.134 seconds**.
+- All **57 raw objects** matched the retained partition and **62 of 63** structured
+  pages completed. The final checkout held with **0.392 seconds** remaining in
+  the 240-second operation, at **122 requests** and **53,777,944 logical bytes**.
+  The whole replay held. The original seal deadline stayed expired and local
+  retirement remained unauthorized.
+- Exact revision reads accounted for **71.052 seconds** across the completed
+  pages. Measure receipt and revision transfer and canonical validation separately
+  before selecting a further optimization. Keep the per-page and whole-operation
+  limits.
+
+[Sanitized replay evidence](evidence/pp20-indexed-retained-audit-2026-11-19.json)
+
 ### Generated smoke pending-capacity candidate, November 19 UTC
 
 PP20 exposed a persistent generated backlog: 9,997→10,000 pending rows under
@@ -3835,6 +3857,24 @@ Hosted follow-up found the lifetime-inventory SQL fixture also needed the reader
 hook; it now exercises the actual reader login and READ ONLY transaction while
 retaining its temporary outbox fixture. Exact-source hosted qualification is
 rerun; this does not change runtime source or grants.
+
+### Repeated PP rotation and application replay acceptance
+
+Run A across two complete 15-minute markets, then B across two complete
+15-minute markets. Verify and retire sealed A while B writes. Then switch to a
+fresh A generation and verify and retire sealed B while fresh A writes. Each
+sealed generation has its own 30-minute seal-to-removal deadline. The one-switch
+PP18 rehearsal did not implement the second leg. The second-leg test must prove
+that its bounded session covers both market pairs and final verification.
+
+After retirement, replay one bounded 15-minute research window through the
+application's historical read path. Match the exact captured input identities
+and values, saved features, forecasts and official outcome labels across
+active, sealed and retired generations. Key provenance by origin and
+generation UUID. Exclude inputs unavailable at the forecast cutoff and join
+later official outcomes only as labels. Check exact input and feature parity
+against the same window before retirement and report gaps or duplicates.
+Archive integrity and application replay each require their own evidence.
 
 ### PP21 controller identity and fenced forward procedure, November 19 UTC
 

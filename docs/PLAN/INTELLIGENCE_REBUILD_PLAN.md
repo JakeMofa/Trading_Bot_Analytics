@@ -3806,3 +3806,40 @@ index passed its definition and validity checks before the replay.
   limits.
 
 [Sanitized replay evidence](evidence/pp20-indexed-retained-audit-2026-11-19.json)
+
+### Generated smoke pending-capacity candidate, November 19 UTC
+
+PP20 exposed a persistent generated backlog: 9,997→10,000 pending rows under
+`generated-pp` blocked the next candle before API smoke, independently of the
+42,133 acknowledged/zero-pending live rows. The source candidate gives generated
+smoke an append-only local PostgreSQL envelope destination, committed bytes and
+independent authenticated READ ONLY exact readback before genuine source ACK.
+Existing source/raw data and the 10,000 pending cap remain. Generated bootstrap
+must prove 128 admission slots before service start, acceptance checks before
+seeding, and periodic generated cycles consume pending work under fixed cycle
+and storage limits. Live mode/probes do not enable this capability; no cloud
+receipt or raw-retirement authority is produced. Source/schema/profile/native
+qualification passed; no host/cloud/apply action occurred. Fenced-runtime
+forward bootstrap stays a separate reviewed operator task. [Storage scope,
+constraints, faults and retained-data proof](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).
+
+
+### Generated smoke controller inventory correction, November 19 UTC
+
+PR #177 full Linux CI exposed an additional controller inventory fault after
+migration: the application role correctly lacks SELECT on generated storage.
+The inventory now uses the existing reader credential for that table in the
+same bounded READ ONLY query shape; migration preservation/recovery comparisons
+and runtime grants stay unchanged. Targeted controls cover clean/upgrade table
+presence and authenticated reader selection. A local Ubuntu nested-Docker
+diagnostic reproduced the exact permission failure, with its disk-gate
+substitution explicitly excluded from qualification. Exact-source hosted CI
+and the separate PP fenced-runtime task remain required.
+[Diagnosis, scope and limitations](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).
+
+The corrected controller passed both clean-volume and existing-schema local
+nested-Linux diagnostics at `4158ff2` under the documented disk-gate limitation.
+Hosted follow-up found the lifetime-inventory SQL fixture also needed the reader
+hook; it now exercises the actual reader login and READ ONLY transaction while
+retaining its temporary outbox fixture. Exact-source hosted qualification is
+rerun; this does not change runtime source or grants.

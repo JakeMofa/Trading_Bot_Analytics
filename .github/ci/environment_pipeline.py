@@ -62,7 +62,7 @@ CONTROLLER_REASONS = frozenset({
     'pre_migration_restore_not_proven', 'prior_container_identity_changed',
     'prior_stopped_container_changed', 'partial_prior_recovery_still_running',
     'explicit_migration_not_proven', 'generated_bootstrap_not_proven',
-    'generated_acceptance_incomplete', 'api_not_healthy',
+    'generated_acceptance_incomplete', 'generated_durable_headroom_not_proven', 'api_not_healthy',
     'freshness_or_market_not_proven', 'runtime_flag_mismatch',
     'runtime_image_or_process_mismatch', 'runtime_secret_binding_mismatch',
     'schema_check_not_proven', 'wrong_postgres_environment',

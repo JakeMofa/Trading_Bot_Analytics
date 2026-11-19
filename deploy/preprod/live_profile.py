@@ -23,7 +23,8 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
         expected['services'][name]['environment'].update(
             TRADEBOT_DATA_MODE='pp_live', TRADEBOT_ORIGIN_ID=LIVE_ORIGIN)
     expected['services']['lifecycle']['environment'].update(
-        TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets')
+        TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets',
+        TRADEBOT_GENERATED_LOCAL_STORAGE='false')
     operator = expected['services']['operator']
     operator['environment'].update(TRADEBOT_PP_LIVE_CONTROL='true',
                                    TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')

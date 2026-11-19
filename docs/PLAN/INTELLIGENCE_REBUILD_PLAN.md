@@ -1,5 +1,37 @@
 # BTC Intelligence Rebuild Plan
 
+## Current PP checkpoint — November 18, 2026
+
+`preprod` source `2e38ecdf693fed194960fc8fd67286854decb221`
+passed exact CI 44422595480 and was published as `v0.2.0-pp.12` in
+run 44423143306. Manual PP CD
+[44423321845](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44423321845)
+**PASSED** in generated-only scope. PP application services run the exact
+release; PostgreSQL and the private API/dashboard are healthy. A separate
+one-use [mode transition 44423758592](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44423758592)
+entered `PP_LIVE_READY_OFF`: the PP collector is **OFF**. Raw archival,
+retirement, paid AI and production changes remain **OFF / not performed**.
+
+The first exact-generation, 25-row `history_v2` structured probe consumed its
+single-use authorization and **FAILED**. Supabase logged SQLSTATE `25P04`,
+terminating the restricted PP session for transaction timeout about four
+seconds after authentication. Read-only reconciliation found **zero** matching
+`pp-live-pp` cloud receipts/projections/checkpoints and **zero** local outbox
+ACKs from the selected 25 rows. The precise slow SQL operation is not yet
+identified. Do not retry the unchanged probe or claim cloud sync PASS. Improve
+round-trip efficiency and sanitized phase diagnostics, then qualify an exact
+successor before a separately bounded cloud attempt.
+
+The one-use permit protects this first probe; it is **not** the intended
+continuous sync policy. A default-OFF finite drain exists in source, but has
+no deployed schedule or service route. The last observed `pp-live-pp` pending
+backlog was 5,268 rows. The previous bounded live session added about 13.3
+rows/second, so sustained ACK throughput and outage runway must be measured
+before another long live run. Separately, the PP release inventory currently
+counts **all** outbox rows per origin against 10,000, including ACKed rows;
+ACK does not free that lifetime release bound. Any bounded-ledger solution
+must preserve verified evidence for protected references and release recovery.
+
 ## Current PP release checkpoint — November 18, 2026 CST
 
 **PP PostgreSQL live collection and Supabase runtime sync remain OPEN.**

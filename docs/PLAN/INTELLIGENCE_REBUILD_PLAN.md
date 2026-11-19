@@ -3806,3 +3806,21 @@ index passed its definition and validity checks before the replay.
   limits.
 
 [Sanitized replay evidence](evidence/pp20-indexed-retained-audit-2026-11-19.json)
+
+### Repeated PP rotation and application replay acceptance
+
+Run A across two complete 15-minute markets, then B across two complete
+15-minute markets. Verify and retire sealed A while B writes. Then switch to a
+fresh A generation and verify and retire sealed B while fresh A writes. Each
+sealed generation has its own 30-minute seal-to-removal deadline. The one-switch
+PP18 rehearsal did not implement the second leg. The second-leg test must prove
+that its bounded session covers both market pairs and final verification.
+
+After retirement, replay one bounded 15-minute research window through the
+application's historical read path. Match the exact captured input identities
+and values, saved features, forecasts and official outcome labels across
+active, sealed and retired generations. Key provenance by origin and
+generation UUID. Exclude inputs unavailable at the forecast cutoff and join
+later official outcomes only as labels. Check exact input and feature parity
+against the same window before retirement and report gaps or duplicates.
+Archive integrity and application replay each require their own evidence.

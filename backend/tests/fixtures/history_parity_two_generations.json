@@ -1,0 +1,1473 @@
+{
+  "source_sha": "d2ca040bb11b70c1a809e6b056ca7ebb1c6c8d05",
+  "windows": [
+    {
+      "origin_id": "generated-lifecycle-unit",
+      "generation_id": "00000000-0000-0000-0000-000000000001",
+      "phases": {
+        "collecting": {
+          "research": {
+            "scope": {
+              "origin_id": "generated-lifecycle-unit",
+              "generation_id": "00000000-0000-0000-0000-000000000001",
+              "market_id": "market",
+              "start": "2026-11-12T00:00:00+00:00",
+              "end": "2026-11-12T00:15:00+00:00",
+              "as_of": "2026-11-12T00:05:00+00:00",
+              "labels_as_of": "2026-11-12T00:20:00+00:00"
+            },
+            "inputs": [
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0000",
+                "kind": "market",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:00+00:00",
+                "source_epoch": "1794441600",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "target": "100000.00000001",
+                  "missing": null
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0001",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:01+00:00",
+                "source_epoch": "1794441601",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000001"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0002",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:02+00:00",
+                "source_epoch": "1794441602",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000002"
+              }
+            ],
+            "saved_features": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "version": 1,
+                "values_json": {
+                  "target_usd": "100000.00000001",
+                  "missing": null
+                },
+                "quality_json": {
+                  "late_join": true
+                },
+                "evidence_json": {
+                  "market": {
+                    "target_usd": "100000.00000001",
+                    "first_seen": "2026-11-12T00:00:00+00:00"
+                  },
+                  "candle_inputs": [],
+                  "price": null
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "saved_forecasts": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "prediction_id": "ps1",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "model_version": "fixture",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "created_at": "2026-11-12T00:05:00+00:00",
+                "seconds_remaining": "600",
+                "probability_up": "0.50000000000000000001",
+                "probability_down": "0.49999999999999999999",
+                "abstain_reason": null,
+                "assumptions_json": {},
+                "payload": {},
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "official_outcome_labels": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "outcome_id": "o1",
+                "market_id": "market",
+                "evidence_id": "official",
+                "result": "UP",
+                "final": "100001.00000001",
+                "source_time": "2026-11-12T00:20:00+00:00",
+                "source_epoch": "1794442800",
+                "confirmed_at": "2026-11-12T00:20:00+00:00",
+                "available_at": "2026-11-12T00:20:00+00:00",
+                "payload": {
+                  "data": {
+                    "result": "UP",
+                    "final": "100001.00000001"
+                  },
+                  "provenance": {
+                    "data_mode": "generated"
+                  }
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "links": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "evidence_id": "es1",
+                "content_hash": "4ad5357bcdbb18ec2fe1c78f6054912486c13d64201f5672359745d3ae2a1bd5"
+              }
+            ],
+            "coverage": {
+              "status": "reviewed_manifest_only",
+              "whole_market": "not_established",
+              "raw_generation_scan_complete": true,
+              "recomputed_features": false
+            },
+            "provenance": {
+              "raw_pages": [
+                {
+                  "tier": "local_postgres",
+                  "origin_id": "generated-lifecycle-unit",
+                  "generation_id": "00000000-0000-0000-0000-000000000001",
+                  "dataset": "raw.events",
+                  "state": "collecting",
+                  "sha256": [],
+                  "sealed_at": "2026-11-12T00:00:00+00:00",
+                  "historical_only": true,
+                  "official_settlement": false
+                }
+              ],
+              "reviewed_envelope_hashes": {
+                "1": "5b06e46f7df3c6904bd61477eed0bc5adee669ce8ce0a5a187e33461dd76dd4a",
+                "2": "343f4fdae88dd316823440904364da461712ba7ae848d4aead1c9c1fdedf52c4",
+                "3": "c3e0e644b8211cf5d359a2778ad61a0c93fdf5e7b4eefa006fedaed4d69975ea",
+                "4": "41d2c6d23e90d9f426f0902e814999779732500b6b5752c3112a96a4c815d872",
+                "5": "a829214bc83951816ac29e3f897ad697859409e2c2e0ee6d727a50741c5afa5b",
+                "6": "84bcf34d3f2d160d3aac16bfdacd52292a1d9c84f24022fe8d5efe2b96a50d08",
+                "7": "3c2e49e6514eb82ea376814cccdf0911de15ab94507f6a9b9d599f0f1aad7372",
+                "8": "0f51cde4f40d8a4638c748783464e908245d62c4de512f9e1a32bf403a46fa17",
+                "9": "cb82645bee8d22cc50922878550da0361a54b2a3b45eb028263a3a720d799ac6",
+                "10": "65400896fdaf0d47c3d0936abf2d144c8bd24e08ae90776fcd5cb0f0a2bf1930"
+              },
+              "prototype_only": true,
+              "retirement_authority": false
+            }
+          },
+          "http": {
+            "/history/predictions?limit=500": {
+              "status_code": 200,
+              "body": {
+                "items": [
+                  {
+                    "id": "ps1",
+                    "market_id": "market",
+                    "model_version": "fixture",
+                    "as_of": "2026-11-12T00:05:00+00:00",
+                    "created_at": "2026-11-12T00:05:00+00:00",
+                    "seconds_remaining": "600",
+                    "probability_up": "0.50000000000000000001",
+                    "probability_down": "0.49999999999999999999",
+                    "abstain_reason": null
+                  }
+                ],
+                "limit": 500,
+                "tier": "local",
+                "origin_id": "generated-lifecycle-unit"
+              }
+            },
+            "/history/coinbase-chart": {
+              "status_code": 200,
+              "body": {
+                "status": "missing",
+                "market": null,
+                "points": []
+              }
+            },
+            "/history/context": {
+              "status_code": 200,
+              "body": {
+                "status": "unsupported",
+                "unsupported": [
+                  "evaluation",
+                  "news",
+                  "linked_historical_cases"
+                ],
+                "evaluation": {
+                  "distinct_confirmed_markets_by_checkpoint": {},
+                  "distinct_confirmed_markets": 0
+                },
+                "news": [],
+                "news_last_seen": null,
+                "outcomes": [],
+                "evidence": null
+              }
+            }
+          },
+          "research_artifact": "generated/00000000-0000-0000-0000-000000000001/collecting/research.json",
+          "http_artifact": "generated/00000000-0000-0000-0000-000000000001/collecting/http.json"
+        },
+        "sealed": {
+          "research": {
+            "scope": {
+              "origin_id": "generated-lifecycle-unit",
+              "generation_id": "00000000-0000-0000-0000-000000000001",
+              "market_id": "market",
+              "start": "2026-11-12T00:00:00+00:00",
+              "end": "2026-11-12T00:15:00+00:00",
+              "as_of": "2026-11-12T00:05:00+00:00",
+              "labels_as_of": "2026-11-12T00:20:00+00:00"
+            },
+            "inputs": [
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0000",
+                "kind": "market",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:00+00:00",
+                "source_epoch": "1794441600",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "target": "100000.00000001",
+                  "missing": null
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0001",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:01+00:00",
+                "source_epoch": "1794441601",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000001"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0002",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:02+00:00",
+                "source_epoch": "1794441602",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000002"
+              }
+            ],
+            "saved_features": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "version": 1,
+                "values_json": {
+                  "target_usd": "100000.00000001",
+                  "missing": null
+                },
+                "quality_json": {
+                  "late_join": true
+                },
+                "evidence_json": {
+                  "market": {
+                    "target_usd": "100000.00000001",
+                    "first_seen": "2026-11-12T00:00:00+00:00"
+                  },
+                  "candle_inputs": [],
+                  "price": null
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "saved_forecasts": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "prediction_id": "ps1",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "model_version": "fixture",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "created_at": "2026-11-12T00:05:00+00:00",
+                "seconds_remaining": "600",
+                "probability_up": "0.50000000000000000001",
+                "probability_down": "0.49999999999999999999",
+                "abstain_reason": null,
+                "assumptions_json": {},
+                "payload": {},
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "official_outcome_labels": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "outcome_id": "o1",
+                "market_id": "market",
+                "evidence_id": "official",
+                "result": "UP",
+                "final": "100001.00000001",
+                "source_time": "2026-11-12T00:20:00+00:00",
+                "source_epoch": "1794442800",
+                "confirmed_at": "2026-11-12T00:20:00+00:00",
+                "available_at": "2026-11-12T00:20:00+00:00",
+                "payload": {
+                  "data": {
+                    "result": "UP",
+                    "final": "100001.00000001"
+                  },
+                  "provenance": {
+                    "data_mode": "generated"
+                  }
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "links": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "evidence_id": "es1",
+                "content_hash": "4ad5357bcdbb18ec2fe1c78f6054912486c13d64201f5672359745d3ae2a1bd5"
+              }
+            ],
+            "coverage": {
+              "status": "reviewed_manifest_only",
+              "whole_market": "not_established",
+              "raw_generation_scan_complete": true,
+              "recomputed_features": false
+            },
+            "provenance": {
+              "raw_pages": [
+                {
+                  "tier": "local_postgres",
+                  "origin_id": "generated-lifecycle-unit",
+                  "generation_id": "00000000-0000-0000-0000-000000000001",
+                  "dataset": "raw.events",
+                  "state": "sealed",
+                  "sha256": [],
+                  "sealed_at": "2026-11-12T00:00:00+00:00",
+                  "historical_only": true,
+                  "official_settlement": false
+                }
+              ],
+              "reviewed_envelope_hashes": {
+                "1": "5b06e46f7df3c6904bd61477eed0bc5adee669ce8ce0a5a187e33461dd76dd4a",
+                "2": "343f4fdae88dd316823440904364da461712ba7ae848d4aead1c9c1fdedf52c4",
+                "3": "c3e0e644b8211cf5d359a2778ad61a0c93fdf5e7b4eefa006fedaed4d69975ea",
+                "4": "41d2c6d23e90d9f426f0902e814999779732500b6b5752c3112a96a4c815d872",
+                "5": "a829214bc83951816ac29e3f897ad697859409e2c2e0ee6d727a50741c5afa5b",
+                "6": "84bcf34d3f2d160d3aac16bfdacd52292a1d9c84f24022fe8d5efe2b96a50d08",
+                "7": "3c2e49e6514eb82ea376814cccdf0911de15ab94507f6a9b9d599f0f1aad7372",
+                "8": "0f51cde4f40d8a4638c748783464e908245d62c4de512f9e1a32bf403a46fa17",
+                "9": "cb82645bee8d22cc50922878550da0361a54b2a3b45eb028263a3a720d799ac6",
+                "10": "65400896fdaf0d47c3d0936abf2d144c8bd24e08ae90776fcd5cb0f0a2bf1930"
+              },
+              "prototype_only": true,
+              "retirement_authority": false
+            }
+          },
+          "http": {
+            "/history/predictions?limit=500": {
+              "status_code": 200,
+              "body": {
+                "items": [
+                  {
+                    "id": "ps1",
+                    "market_id": "market",
+                    "model_version": "fixture",
+                    "as_of": "2026-11-12T00:05:00+00:00",
+                    "created_at": "2026-11-12T00:05:00+00:00",
+                    "seconds_remaining": "600",
+                    "probability_up": "0.50000000000000000001",
+                    "probability_down": "0.49999999999999999999",
+                    "abstain_reason": null
+                  }
+                ],
+                "limit": 500,
+                "tier": "local",
+                "origin_id": "generated-lifecycle-unit"
+              }
+            },
+            "/history/coinbase-chart": {
+              "status_code": 200,
+              "body": {
+                "status": "missing",
+                "market": null,
+                "points": []
+              }
+            },
+            "/history/context": {
+              "status_code": 200,
+              "body": {
+                "status": "unsupported",
+                "unsupported": [
+                  "evaluation",
+                  "news",
+                  "linked_historical_cases"
+                ],
+                "evaluation": {
+                  "distinct_confirmed_markets_by_checkpoint": {},
+                  "distinct_confirmed_markets": 0
+                },
+                "news": [],
+                "news_last_seen": null,
+                "outcomes": [],
+                "evidence": null
+              }
+            }
+          },
+          "research_artifact": "generated/00000000-0000-0000-0000-000000000001/sealed/research.json",
+          "http_artifact": "generated/00000000-0000-0000-0000-000000000001/sealed/http.json"
+        },
+        "retired": {
+          "research": {
+            "scope": {
+              "origin_id": "generated-lifecycle-unit",
+              "generation_id": "00000000-0000-0000-0000-000000000001",
+              "market_id": "market",
+              "start": "2026-11-12T00:00:00+00:00",
+              "end": "2026-11-12T00:15:00+00:00",
+              "as_of": "2026-11-12T00:05:00+00:00",
+              "labels_as_of": "2026-11-12T00:20:00+00:00"
+            },
+            "inputs": [
+              {
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+                "event_id": "event-0000",
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "kind": "market",
+                "market_id": "market",
+                "origin_id": "generated-lifecycle-unit",
+                "payload": {
+                  "missing": null,
+                  "target": "100000.00000001"
+                },
+                "price": null,
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "size": null,
+                "source": "polymarket_us",
+                "source_epoch": "1794441600",
+                "source_time": "2026-11-12T00:00:00+00:00",
+                "symbol": "BTC-USD"
+              },
+              {
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000001",
+                "event_id": "event-0001",
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "kind": "quote",
+                "market_id": "market",
+                "origin_id": "generated-lifecycle-unit",
+                "payload": {
+                  "ask": null,
+                  "bid": "0.49000000000000000001",
+                  "book": []
+                },
+                "price": null,
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "size": null,
+                "source": "polymarket_us",
+                "source_epoch": "1794441601",
+                "source_time": "2026-11-12T00:00:01+00:00",
+                "symbol": "BTC-USD"
+              },
+              {
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000002",
+                "event_id": "event-0002",
+                "generation_id": "00000000-0000-0000-0000-000000000001",
+                "kind": "quote",
+                "market_id": "market",
+                "origin_id": "generated-lifecycle-unit",
+                "payload": {
+                  "ask": null,
+                  "bid": "0.49000000000000000001",
+                  "book": []
+                },
+                "price": null,
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "size": null,
+                "source": "polymarket_us",
+                "source_epoch": "1794441602",
+                "source_time": "2026-11-12T00:00:02+00:00",
+                "symbol": "BTC-USD"
+              }
+            ],
+            "saved_features": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "version": 1,
+                "values_json": {
+                  "target_usd": "100000.00000001",
+                  "missing": null
+                },
+                "quality_json": {
+                  "late_join": true
+                },
+                "evidence_json": {
+                  "market": {
+                    "target_usd": "100000.00000001",
+                    "first_seen": "2026-11-12T00:00:00+00:00"
+                  },
+                  "candle_inputs": [],
+                  "price": null
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "saved_forecasts": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "prediction_id": "ps1",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "model_version": "fixture",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "created_at": "2026-11-12T00:05:00+00:00",
+                "seconds_remaining": "600",
+                "probability_up": "0.50000000000000000001",
+                "probability_down": "0.49999999999999999999",
+                "abstain_reason": null,
+                "assumptions_json": {},
+                "payload": {},
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "official_outcome_labels": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "outcome_id": "o1",
+                "market_id": "market",
+                "evidence_id": "official",
+                "result": "UP",
+                "final": "100001.00000001",
+                "source_time": "2026-11-12T00:20:00+00:00",
+                "source_epoch": "1794442800",
+                "confirmed_at": "2026-11-12T00:20:00+00:00",
+                "available_at": "2026-11-12T00:20:00+00:00",
+                "payload": {
+                  "data": {
+                    "result": "UP",
+                    "final": "100001.00000001"
+                  },
+                  "provenance": {
+                    "data_mode": "generated"
+                  }
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "links": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "evidence_id": "es1",
+                "content_hash": "4ad5357bcdbb18ec2fe1c78f6054912486c13d64201f5672359745d3ae2a1bd5"
+              }
+            ],
+            "coverage": {
+              "status": "reviewed_manifest_only",
+              "whole_market": "not_established",
+              "raw_generation_scan_complete": true,
+              "recomputed_features": false
+            },
+            "provenance": {
+              "raw_pages": [
+                {
+                  "tier": "authenticated_archive",
+                  "origin_id": "generated-lifecycle-unit",
+                  "generation_id": "00000000-0000-0000-0000-000000000001",
+                  "dataset": "raw.events",
+                  "state": "retired",
+                  "sha256": [
+                    "a932e2b3e1bab22668071970c1114d42306dbaecc54f68128ba7b6fd457e32a2"
+                  ],
+                  "sealed_at": "2026-11-12T00:00:00+00:00",
+                  "historical_only": true,
+                  "official_settlement": false
+                }
+              ],
+              "reviewed_envelope_hashes": {
+                "1": "5b06e46f7df3c6904bd61477eed0bc5adee669ce8ce0a5a187e33461dd76dd4a",
+                "2": "343f4fdae88dd316823440904364da461712ba7ae848d4aead1c9c1fdedf52c4",
+                "3": "c3e0e644b8211cf5d359a2778ad61a0c93fdf5e7b4eefa006fedaed4d69975ea",
+                "4": "41d2c6d23e90d9f426f0902e814999779732500b6b5752c3112a96a4c815d872",
+                "5": "a829214bc83951816ac29e3f897ad697859409e2c2e0ee6d727a50741c5afa5b",
+                "6": "84bcf34d3f2d160d3aac16bfdacd52292a1d9c84f24022fe8d5efe2b96a50d08",
+                "7": "3c2e49e6514eb82ea376814cccdf0911de15ab94507f6a9b9d599f0f1aad7372",
+                "8": "0f51cde4f40d8a4638c748783464e908245d62c4de512f9e1a32bf403a46fa17",
+                "9": "cb82645bee8d22cc50922878550da0361a54b2a3b45eb028263a3a720d799ac6",
+                "10": "65400896fdaf0d47c3d0936abf2d144c8bd24e08ae90776fcd5cb0f0a2bf1930"
+              },
+              "prototype_only": true,
+              "retirement_authority": false
+            }
+          },
+          "http": {
+            "/history/predictions?limit=500": {
+              "status_code": 200,
+              "body": {
+                "items": [
+                  {
+                    "id": "ps1",
+                    "market_id": "market",
+                    "model_version": "fixture",
+                    "as_of": "2026-11-12T00:05:00+00:00",
+                    "created_at": "2026-11-12T00:05:00+00:00",
+                    "seconds_remaining": "600",
+                    "probability_up": "0.50000000000000000001",
+                    "probability_down": "0.49999999999999999999",
+                    "abstain_reason": null
+                  }
+                ],
+                "limit": 500,
+                "tier": "local",
+                "origin_id": "generated-lifecycle-unit"
+              }
+            },
+            "/history/coinbase-chart": {
+              "status_code": 200,
+              "body": {
+                "status": "missing",
+                "market": null,
+                "points": []
+              }
+            },
+            "/history/context": {
+              "status_code": 200,
+              "body": {
+                "status": "unsupported",
+                "unsupported": [
+                  "evaluation",
+                  "news",
+                  "linked_historical_cases"
+                ],
+                "evaluation": {
+                  "distinct_confirmed_markets_by_checkpoint": {},
+                  "distinct_confirmed_markets": 0
+                },
+                "news": [],
+                "news_last_seen": null,
+                "outcomes": [],
+                "evidence": null
+              }
+            }
+          },
+          "research_artifact": "generated/00000000-0000-0000-0000-000000000001/retired/research.json",
+          "http_artifact": "generated/00000000-0000-0000-0000-000000000001/retired/http.json"
+        }
+      }
+    },
+    {
+      "origin_id": "generated-lifecycle-unit",
+      "generation_id": "00000000-0000-0000-0000-000000000002",
+      "phases": {
+        "collecting": {
+          "research": {
+            "scope": {
+              "origin_id": "generated-lifecycle-unit",
+              "generation_id": "00000000-0000-0000-0000-000000000002",
+              "market_id": "market",
+              "start": "2026-11-12T00:00:00+00:00",
+              "end": "2026-11-12T00:15:00+00:00",
+              "as_of": "2026-11-12T00:05:00+00:00",
+              "labels_as_of": "2026-11-12T00:20:00+00:00"
+            },
+            "inputs": [
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0000",
+                "kind": "market",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:00+00:00",
+                "source_epoch": "1794441600",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "target": "100000.00000001",
+                  "missing": null
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0001",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:01+00:00",
+                "source_epoch": "1794441601",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000001"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0002",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:02+00:00",
+                "source_epoch": "1794441602",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000002"
+              }
+            ],
+            "saved_features": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "version": 1,
+                "values_json": {
+                  "target_usd": "100000.00000001",
+                  "missing": null
+                },
+                "quality_json": {
+                  "late_join": true
+                },
+                "evidence_json": {
+                  "market": {
+                    "target_usd": "100000.00000001",
+                    "first_seen": "2026-11-12T00:00:00+00:00"
+                  },
+                  "candle_inputs": [],
+                  "price": null
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "saved_forecasts": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "prediction_id": "ps1",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "model_version": "fixture",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "created_at": "2026-11-12T00:05:00+00:00",
+                "seconds_remaining": "600",
+                "probability_up": "0.50000000000000000001",
+                "probability_down": "0.49999999999999999999",
+                "abstain_reason": null,
+                "assumptions_json": {},
+                "payload": {},
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "official_outcome_labels": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "outcome_id": "o1",
+                "market_id": "market",
+                "evidence_id": "official",
+                "result": "UP",
+                "final": "100001.00000001",
+                "source_time": "2026-11-12T00:20:00+00:00",
+                "source_epoch": "1794442800",
+                "confirmed_at": "2026-11-12T00:20:00+00:00",
+                "available_at": "2026-11-12T00:20:00+00:00",
+                "payload": {
+                  "data": {
+                    "result": "UP",
+                    "final": "100001.00000001"
+                  },
+                  "provenance": {
+                    "data_mode": "generated"
+                  }
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "links": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "evidence_id": "es1",
+                "content_hash": "4ad5357bcdbb18ec2fe1c78f6054912486c13d64201f5672359745d3ae2a1bd5"
+              }
+            ],
+            "coverage": {
+              "status": "reviewed_manifest_only",
+              "whole_market": "not_established",
+              "raw_generation_scan_complete": true,
+              "recomputed_features": false
+            },
+            "provenance": {
+              "raw_pages": [
+                {
+                  "tier": "local_postgres",
+                  "origin_id": "generated-lifecycle-unit",
+                  "generation_id": "00000000-0000-0000-0000-000000000002",
+                  "dataset": "raw.events",
+                  "state": "collecting",
+                  "sha256": [],
+                  "sealed_at": "2026-11-12T00:00:00+00:00",
+                  "historical_only": true,
+                  "official_settlement": false
+                }
+              ],
+              "reviewed_envelope_hashes": {
+                "1": "9d461d97cbbfc136a898e7a7f4b0e5245a21782def8053dc5c34e32dd208e8c4",
+                "2": "1eeff4ba1b83becc1f1d0568e6314554adbdcfcfc4f2c63312417fd80a1f4cdb",
+                "3": "c6fa0331bd82cc559d32fb027171f9a5b9248efdc70e2a3b92499db55c737b1c",
+                "4": "a6eaf548c73c837852d9659f8423949a3a7c2d828806ddea14c2b95334e286c2",
+                "5": "0847bdda0356c451288b547630380fe46a8d00cf32cb92c14bd3d7a29bf936d5",
+                "6": "ff8fd072d5e1c04215ab19635a246ead3b509f9126e7e34c9a8c0870ac112a54",
+                "7": "fdd62442effe80f3c72ad2dbc1aa373b06f71115333f238b5f819dae16afd95d",
+                "8": "cc47bf8e8351425e6131cb48ec0da989c3587c96fd57840ef290c93e0b84c587",
+                "9": "84e13a856bd2050e1c9b19ec00e1b1dce0c0cd4f776bee8b1193673a7f38d170",
+                "10": "59da23f2e5151a3da2fe82c6f2f0fe9b01944a83c1f19faf0e05743a0f86699e"
+              },
+              "prototype_only": true,
+              "retirement_authority": false
+            }
+          },
+          "http": {
+            "/history/predictions?limit=500": {
+              "status_code": 200,
+              "body": {
+                "items": [
+                  {
+                    "id": "ps1",
+                    "market_id": "market",
+                    "model_version": "fixture",
+                    "as_of": "2026-11-12T00:05:00+00:00",
+                    "created_at": "2026-11-12T00:05:00+00:00",
+                    "seconds_remaining": "600",
+                    "probability_up": "0.50000000000000000001",
+                    "probability_down": "0.49999999999999999999",
+                    "abstain_reason": null
+                  }
+                ],
+                "limit": 500,
+                "tier": "local",
+                "origin_id": "generated-lifecycle-unit"
+              }
+            },
+            "/history/coinbase-chart": {
+              "status_code": 200,
+              "body": {
+                "status": "missing",
+                "market": null,
+                "points": []
+              }
+            },
+            "/history/context": {
+              "status_code": 200,
+              "body": {
+                "status": "unsupported",
+                "unsupported": [
+                  "evaluation",
+                  "news",
+                  "linked_historical_cases"
+                ],
+                "evaluation": {
+                  "distinct_confirmed_markets_by_checkpoint": {},
+                  "distinct_confirmed_markets": 0
+                },
+                "news": [],
+                "news_last_seen": null,
+                "outcomes": [],
+                "evidence": null
+              }
+            }
+          },
+          "research_artifact": "generated/00000000-0000-0000-0000-000000000002/collecting/research.json",
+          "http_artifact": "generated/00000000-0000-0000-0000-000000000002/collecting/http.json"
+        },
+        "sealed": {
+          "research": {
+            "scope": {
+              "origin_id": "generated-lifecycle-unit",
+              "generation_id": "00000000-0000-0000-0000-000000000002",
+              "market_id": "market",
+              "start": "2026-11-12T00:00:00+00:00",
+              "end": "2026-11-12T00:15:00+00:00",
+              "as_of": "2026-11-12T00:05:00+00:00",
+              "labels_as_of": "2026-11-12T00:20:00+00:00"
+            },
+            "inputs": [
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0000",
+                "kind": "market",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:00+00:00",
+                "source_epoch": "1794441600",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "target": "100000.00000001",
+                  "missing": null
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0001",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:01+00:00",
+                "source_epoch": "1794441601",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000001"
+              },
+              {
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "origin_id": "generated-lifecycle-unit",
+                "source": "polymarket_us",
+                "event_id": "event-0002",
+                "kind": "quote",
+                "market_id": "market",
+                "symbol": "BTC-USD",
+                "source_time": "2026-11-12T00:00:02+00:00",
+                "source_epoch": "1794441602",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "price": null,
+                "size": null,
+                "payload": {
+                  "bid": "0.49000000000000000001",
+                  "ask": null,
+                  "book": []
+                },
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000002"
+              }
+            ],
+            "saved_features": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "version": 1,
+                "values_json": {
+                  "target_usd": "100000.00000001",
+                  "missing": null
+                },
+                "quality_json": {
+                  "late_join": true
+                },
+                "evidence_json": {
+                  "market": {
+                    "target_usd": "100000.00000001",
+                    "first_seen": "2026-11-12T00:00:00+00:00"
+                  },
+                  "candle_inputs": [],
+                  "price": null
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "saved_forecasts": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "prediction_id": "ps1",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "model_version": "fixture",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "created_at": "2026-11-12T00:05:00+00:00",
+                "seconds_remaining": "600",
+                "probability_up": "0.50000000000000000001",
+                "probability_down": "0.49999999999999999999",
+                "abstain_reason": null,
+                "assumptions_json": {},
+                "payload": {},
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "official_outcome_labels": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "outcome_id": "o1",
+                "market_id": "market",
+                "evidence_id": "official",
+                "result": "UP",
+                "final": "100001.00000001",
+                "source_time": "2026-11-12T00:20:00+00:00",
+                "source_epoch": "1794442800",
+                "confirmed_at": "2026-11-12T00:20:00+00:00",
+                "available_at": "2026-11-12T00:20:00+00:00",
+                "payload": {
+                  "data": {
+                    "result": "UP",
+                    "final": "100001.00000001"
+                  },
+                  "provenance": {
+                    "data_mode": "generated"
+                  }
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "links": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "evidence_id": "es1",
+                "content_hash": "4ad5357bcdbb18ec2fe1c78f6054912486c13d64201f5672359745d3ae2a1bd5"
+              }
+            ],
+            "coverage": {
+              "status": "reviewed_manifest_only",
+              "whole_market": "not_established",
+              "raw_generation_scan_complete": true,
+              "recomputed_features": false
+            },
+            "provenance": {
+              "raw_pages": [
+                {
+                  "tier": "local_postgres",
+                  "origin_id": "generated-lifecycle-unit",
+                  "generation_id": "00000000-0000-0000-0000-000000000002",
+                  "dataset": "raw.events",
+                  "state": "sealed",
+                  "sha256": [],
+                  "sealed_at": "2026-11-12T00:00:00+00:00",
+                  "historical_only": true,
+                  "official_settlement": false
+                }
+              ],
+              "reviewed_envelope_hashes": {
+                "1": "9d461d97cbbfc136a898e7a7f4b0e5245a21782def8053dc5c34e32dd208e8c4",
+                "2": "1eeff4ba1b83becc1f1d0568e6314554adbdcfcfc4f2c63312417fd80a1f4cdb",
+                "3": "c6fa0331bd82cc559d32fb027171f9a5b9248efdc70e2a3b92499db55c737b1c",
+                "4": "a6eaf548c73c837852d9659f8423949a3a7c2d828806ddea14c2b95334e286c2",
+                "5": "0847bdda0356c451288b547630380fe46a8d00cf32cb92c14bd3d7a29bf936d5",
+                "6": "ff8fd072d5e1c04215ab19635a246ead3b509f9126e7e34c9a8c0870ac112a54",
+                "7": "fdd62442effe80f3c72ad2dbc1aa373b06f71115333f238b5f819dae16afd95d",
+                "8": "cc47bf8e8351425e6131cb48ec0da989c3587c96fd57840ef290c93e0b84c587",
+                "9": "84e13a856bd2050e1c9b19ec00e1b1dce0c0cd4f776bee8b1193673a7f38d170",
+                "10": "59da23f2e5151a3da2fe82c6f2f0fe9b01944a83c1f19faf0e05743a0f86699e"
+              },
+              "prototype_only": true,
+              "retirement_authority": false
+            }
+          },
+          "http": {
+            "/history/predictions?limit=500": {
+              "status_code": 200,
+              "body": {
+                "items": [
+                  {
+                    "id": "ps1",
+                    "market_id": "market",
+                    "model_version": "fixture",
+                    "as_of": "2026-11-12T00:05:00+00:00",
+                    "created_at": "2026-11-12T00:05:00+00:00",
+                    "seconds_remaining": "600",
+                    "probability_up": "0.50000000000000000001",
+                    "probability_down": "0.49999999999999999999",
+                    "abstain_reason": null
+                  }
+                ],
+                "limit": 500,
+                "tier": "local",
+                "origin_id": "generated-lifecycle-unit"
+              }
+            },
+            "/history/coinbase-chart": {
+              "status_code": 200,
+              "body": {
+                "status": "missing",
+                "market": null,
+                "points": []
+              }
+            },
+            "/history/context": {
+              "status_code": 200,
+              "body": {
+                "status": "unsupported",
+                "unsupported": [
+                  "evaluation",
+                  "news",
+                  "linked_historical_cases"
+                ],
+                "evaluation": {
+                  "distinct_confirmed_markets_by_checkpoint": {},
+                  "distinct_confirmed_markets": 0
+                },
+                "news": [],
+                "news_last_seen": null,
+                "outcomes": [],
+                "evidence": null
+              }
+            }
+          },
+          "research_artifact": "generated/00000000-0000-0000-0000-000000000002/sealed/research.json",
+          "http_artifact": "generated/00000000-0000-0000-0000-000000000002/sealed/http.json"
+        },
+        "retired": {
+          "research": {
+            "scope": {
+              "origin_id": "generated-lifecycle-unit",
+              "generation_id": "00000000-0000-0000-0000-000000000002",
+              "market_id": "market",
+              "start": "2026-11-12T00:00:00+00:00",
+              "end": "2026-11-12T00:15:00+00:00",
+              "as_of": "2026-11-12T00:05:00+00:00",
+              "labels_as_of": "2026-11-12T00:20:00+00:00"
+            },
+            "inputs": [
+              {
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+                "event_id": "event-0000",
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "kind": "market",
+                "market_id": "market",
+                "origin_id": "generated-lifecycle-unit",
+                "payload": {
+                  "missing": null,
+                  "target": "100000.00000001"
+                },
+                "price": null,
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "size": null,
+                "source": "polymarket_us",
+                "source_epoch": "1794441600",
+                "source_time": "2026-11-12T00:00:00+00:00",
+                "symbol": "BTC-USD"
+              },
+              {
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000001",
+                "event_id": "event-0001",
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "kind": "quote",
+                "market_id": "market",
+                "origin_id": "generated-lifecycle-unit",
+                "payload": {
+                  "ask": null,
+                  "bid": "0.49000000000000000001",
+                  "book": []
+                },
+                "price": null,
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "size": null,
+                "source": "polymarket_us",
+                "source_epoch": "1794441601",
+                "source_time": "2026-11-12T00:00:01+00:00",
+                "symbol": "BTC-USD"
+              },
+              {
+                "available_at": "2026-11-12T00:00:00+00:00",
+                "content_hash": "0000000000000000000000000000000000000000000000000000000000000002",
+                "event_id": "event-0002",
+                "generation_id": "00000000-0000-0000-0000-000000000002",
+                "kind": "quote",
+                "market_id": "market",
+                "origin_id": "generated-lifecycle-unit",
+                "payload": {
+                  "ask": null,
+                  "bid": "0.49000000000000000001",
+                  "book": []
+                },
+                "price": null,
+                "raw_payload": "{\"price\":\"12345.123456789012345678901234567890\"}",
+                "received_at": "2026-11-12T00:00:00+00:00",
+                "size": null,
+                "source": "polymarket_us",
+                "source_epoch": "1794441602",
+                "source_time": "2026-11-12T00:00:02+00:00",
+                "symbol": "BTC-USD"
+              }
+            ],
+            "saved_features": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "version": 1,
+                "values_json": {
+                  "target_usd": "100000.00000001",
+                  "missing": null
+                },
+                "quality_json": {
+                  "late_join": true
+                },
+                "evidence_json": {
+                  "market": {
+                    "target_usd": "100000.00000001",
+                    "first_seen": "2026-11-12T00:00:00+00:00"
+                  },
+                  "candle_inputs": [],
+                  "price": null
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "saved_forecasts": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "prediction_id": "ps1",
+                "snapshot_id": "s1",
+                "market_id": "market",
+                "model_version": "fixture",
+                "as_of": "2026-11-12T00:05:00+00:00",
+                "created_at": "2026-11-12T00:05:00+00:00",
+                "seconds_remaining": "600",
+                "probability_up": "0.50000000000000000001",
+                "probability_down": "0.49999999999999999999",
+                "abstain_reason": null,
+                "assumptions_json": {},
+                "payload": {},
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "official_outcome_labels": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "outcome_id": "o1",
+                "market_id": "market",
+                "evidence_id": "official",
+                "result": "UP",
+                "final": "100001.00000001",
+                "source_time": "2026-11-12T00:20:00+00:00",
+                "source_epoch": "1794442800",
+                "confirmed_at": "2026-11-12T00:20:00+00:00",
+                "available_at": "2026-11-12T00:20:00+00:00",
+                "payload": {
+                  "data": {
+                    "result": "UP",
+                    "final": "100001.00000001"
+                  },
+                  "provenance": {
+                    "data_mode": "generated"
+                  }
+                },
+                "content_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ],
+            "links": [
+              {
+                "origin_id": "generated-lifecycle-unit",
+                "snapshot_id": "s1",
+                "evidence_id": "es1",
+                "content_hash": "4ad5357bcdbb18ec2fe1c78f6054912486c13d64201f5672359745d3ae2a1bd5"
+              }
+            ],
+            "coverage": {
+              "status": "reviewed_manifest_only",
+              "whole_market": "not_established",
+              "raw_generation_scan_complete": true,
+              "recomputed_features": false
+            },
+            "provenance": {
+              "raw_pages": [
+                {
+                  "tier": "authenticated_archive",
+                  "origin_id": "generated-lifecycle-unit",
+                  "generation_id": "00000000-0000-0000-0000-000000000002",
+                  "dataset": "raw.events",
+                  "state": "retired",
+                  "sha256": [
+                    "e1447ff36e633d67f2d2d0cf74caabef8516572380e5ba3625e2a977097e5a88"
+                  ],
+                  "sealed_at": "2026-11-12T00:00:00+00:00",
+                  "historical_only": true,
+                  "official_settlement": false
+                }
+              ],
+              "reviewed_envelope_hashes": {
+                "1": "9d461d97cbbfc136a898e7a7f4b0e5245a21782def8053dc5c34e32dd208e8c4",
+                "2": "1eeff4ba1b83becc1f1d0568e6314554adbdcfcfc4f2c63312417fd80a1f4cdb",
+                "3": "c6fa0331bd82cc559d32fb027171f9a5b9248efdc70e2a3b92499db55c737b1c",
+                "4": "a6eaf548c73c837852d9659f8423949a3a7c2d828806ddea14c2b95334e286c2",
+                "5": "0847bdda0356c451288b547630380fe46a8d00cf32cb92c14bd3d7a29bf936d5",
+                "6": "ff8fd072d5e1c04215ab19635a246ead3b509f9126e7e34c9a8c0870ac112a54",
+                "7": "fdd62442effe80f3c72ad2dbc1aa373b06f71115333f238b5f819dae16afd95d",
+                "8": "cc47bf8e8351425e6131cb48ec0da989c3587c96fd57840ef290c93e0b84c587",
+                "9": "84e13a856bd2050e1c9b19ec00e1b1dce0c0cd4f776bee8b1193673a7f38d170",
+                "10": "59da23f2e5151a3da2fe82c6f2f0fe9b01944a83c1f19faf0e05743a0f86699e"
+              },
+              "prototype_only": true,
+              "retirement_authority": false
+            }
+          },
+          "http": {
+            "/history/predictions?limit=500": {
+              "status_code": 200,
+              "body": {
+                "items": [
+                  {
+                    "id": "ps1",
+                    "market_id": "market",
+                    "model_version": "fixture",
+                    "as_of": "2026-11-12T00:05:00+00:00",
+                    "created_at": "2026-11-12T00:05:00+00:00",
+                    "seconds_remaining": "600",
+                    "probability_up": "0.50000000000000000001",
+                    "probability_down": "0.49999999999999999999",
+                    "abstain_reason": null
+                  }
+                ],
+                "limit": 500,
+                "tier": "local",
+                "origin_id": "generated-lifecycle-unit"
+              }
+            },
+            "/history/coinbase-chart": {
+              "status_code": 200,
+              "body": {
+                "status": "missing",
+                "market": null,
+                "points": []
+              }
+            },
+            "/history/context": {
+              "status_code": 200,
+              "body": {
+                "status": "unsupported",
+                "unsupported": [
+                  "evaluation",
+                  "news",
+                  "linked_historical_cases"
+                ],
+                "evaluation": {
+                  "distinct_confirmed_markets_by_checkpoint": {},
+                  "distinct_confirmed_markets": 0
+                },
+                "news": [],
+                "news_last_seen": null,
+                "outcomes": [],
+                "evidence": null
+              }
+            }
+          },
+          "research_artifact": "generated/00000000-0000-0000-0000-000000000002/retired/research.json",
+          "http_artifact": "generated/00000000-0000-0000-0000-000000000002/retired/http.json"
+        }
+      }
+    }
+  ]
+}

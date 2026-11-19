@@ -4320,3 +4320,15 @@ running before the existing one-use permit can be consumed. OFF/leave recovery
 never depends on optional reader evidence. Generated profile/guard tests pass,
 including actual Compose normalization. No collector ON or deployment occurred
 in this source milestone. [Proof schema and limits](PP_TRIAL_CLOUD_HOST_2026-11-19.md).
+
+### November 19 — offline trial structured synchronization candidate
+
+A default-OFF exact-trial transport option batches existing transaction
+synchronizations without changing receipts, envelopes, current-projection
+checks, ACK order, four-second requests, 20-second cycles or the 10k cap.
+Seven native trial/RLS/ambiguity/corruption/cold-history tests and the existing
+transport regressions pass. A paired rich 50-row local benchmark reduces
+synchronization waits 17→11 on import and 8→4 on readback; injected 200ms waits
+reduce median remote-stage time 5.257→3.189s, with no zero-delay CPU gain. This
+is neither actual PP latency nor sustained intake/ACK qualification. No runtime
+selects the option. [Exact source evidence and residual gaps](PP_SYNC_BARRIERS_SOURCE_2026-11-19.md).

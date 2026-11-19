@@ -29,14 +29,20 @@ OFF_FLAGS = ('ENABLE_SUPABASE_SYNC', 'ENABLE_LOCAL_RETENTION',
              'TRADEBOT_RETIREMENT_ENABLED')
 
 
-def check_environment(environ: dict[str, str], *, recurring=False) -> None:
+def check_environment(environ: dict[str, str], *, recurring=False, origin_id=ORIGIN) -> None:
+    from .cloud_origin_binding import cloud_binding
+    cloud_binding(origin_id)
+    if origin_id != ORIGIN:
+        from .cloud_runtime_profile import selected_cloud_origin
+        if selected_cloud_origin(environ) != origin_id:
+            raise LifecycleHold('trial structured origin/profile mismatch')
     enabled = ('TRADEBOT_PP_STRUCTURED_RECURRING' if recurring
                else 'TRADEBOT_PP_STRUCTURED_ONE_SHOT')
     other = ('TRADEBOT_PP_STRUCTURED_ONE_SHOT' if recurring
              else 'TRADEBOT_PP_STRUCTURED_RECURRING')
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
             environ.get('TRADEBOT_DATA_MODE') != 'pp_live' or
-            environ.get('TRADEBOT_ORIGIN_ID') != ORIGIN or
+            environ.get('TRADEBOT_ORIGIN_ID') != origin_id or
             environ.get(enabled) != 'true' or environ.get(other, 'false') != 'false'):
         raise LifecycleHold('exact PP structured worker identity required')
     if any(environ.get(flag, 'false').lower() not in ('false', '0', 'off')

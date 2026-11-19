@@ -4267,3 +4267,18 @@ Auth provisioning, secret deployment, host action or collector activation occurr
 Service wiring, fresh grant/catalog review, actual new identities/secrets, bounded
 live API denials/readback and separate old A/B disposition remain prerequisites.
 [Policy artifacts, exact dependencies and reversible deployment](PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md).
+
+### November 19 — exact trial cloud application wiring (source only)
+
+Wired structured recurring service, sealed raw worker, retirement CLI and lazy
+API archive history to exact trial cloud bindings and fixed independent
+writer/reader secret targets. Origin now flows through bounded outbox selection
+and Active/SealedStructuredWorker rather than selecting legacy pending rows.
+Trial writers/verifier require the reviewed cycle profile/anchor; verifier uses
+only the separate read-only SQL/Auth identities and its existing bounded-window
+checks. Legacy defaults and fresh readback-before-ACK remain. Eight new generated
+wiring controls plus 67 surrounding controls pass (75 total, including six owned
+native PG17 policy tests, no skips). No host/cloud call, deployment, secret/grant
+application or collector/retirement action occurred. Host Compose integration,
+trial-reader proof and actual bounded cloud readback remain separate gates.
+[Fixed mount contract, evidence and remaining gates](PP_TRIAL_CLOUD_RUNTIME_2026-11-19.md).

@@ -1,3 +1,34 @@
+## November 18, 2026 — PP transaction-budget pipeline candidate (source only)
+
+- pp.14 failed its first real 25-row page with PostgreSQL SQLSTATE `25P04`
+  (`transaction_timeout`); the `idle in transaction` command tag does not make
+  this an idle-session timeout. No cloud receipts committed and no local ACKs
+  advanced. The unchanged four-second request cap remains in force.
+- Candidate transport batches advisory entity locks, pipelines distinct initial
+  projection reads and FK-ordered writes, and pipelines authenticated projection
+  readback. Repeated mutable keys advance through checked prior revisions in
+  memory. Receipts/checkpoints remain one atomic transaction; exact immutable
+  revision payload retention remains explicitly opt-in and its migration is not
+  applied by this source change. Ambiguous-commit replay still verifies exact
+  receipts, rather than treating the previous exception as proof of rollback.
+- Disposable native PostgreSQL 17 qualification: nine applicable transport tests
+  and thirteen envelope/connection tests passed. A generated 25-row page matching
+  the real type mix (12 candles, 12 revisions of one current-price key, one
+  market; 14 projection keys) passed with 100ms per round trip/pipeline boundary
+  and 200ms per connection. With exact revision retention enabled, import took
+  about 1.53s across 12 observable waits, followed by exact readback and recovery
+  of all 25 immutable envelopes. A separate FK-dependent page imported in about
+  1.10s/10 waits and read back in about 0.54s/5 waits. These are generated timings,
+  not a live pooler performance claim; protocol handshakes are not individually
+  counted. The supplied history-only cluster lacks local ops tables, so the
+  local generation/ACK test remains for the full isolated CI environment.
+- Remaining gates: exact-source full CI, newly qualified candidate, bounded real
+  page import/readback/local ACK evidence, then sustained verified-and-ACKed
+  throughput exceeding the observed arrival rate. A page PASS alone establishes
+  neither catch-up capacity nor continuous archive operation. No cloud retry,
+  host deployment, live retirement, or production action is authorized by this
+  entry; live retirement remains disabled.
+
 # BTC Intelligence Rebuild Plan
 
 ## Current PP checkpoint — November 18, 2026

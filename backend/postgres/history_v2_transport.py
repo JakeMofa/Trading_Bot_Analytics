@@ -55,12 +55,9 @@ class HistoryV2PostgresTransport:
         milliseconds = max(1, int(timeout_seconds * 1000))
         # PostgreSQL 17 bounds the entire import/readback transaction, not
         # merely each statement. Unsupported servers fail closed here.
-        connection.execute("SELECT set_config('transaction_timeout',%s,true)",
-                           (f'{milliseconds}ms',))
-        connection.execute("SELECT set_config('statement_timeout',%s,true)",
-                           (f'{milliseconds}ms',))
-        connection.execute("SELECT set_config('lock_timeout',%s,true)",
-                           (f'{min(milliseconds, 1000)}ms',))
+        connection.execute("""SELECT set_config('transaction_timeout',%s,true),
+            set_config('statement_timeout',%s,true), set_config('lock_timeout',%s,true)""",
+            (f'{milliseconds}ms', f'{milliseconds}ms', f'{min(milliseconds, 1000)}ms'))
 
     @staticmethod
     def _deadline(timeout_seconds):
@@ -77,10 +74,30 @@ class HistoryV2PostgresTransport:
             raise ArchiveIntegrityError('private structured database identity mismatch')
 
     @staticmethod
-    def _entity_lock(connection, record):
-        connection.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))',
-                           ('history-v2:' + record['origin_id'] + ':' +
-                            record['entity_type'] + ':' + record['entity_id'],))
+    def _entity_locks(connection, records):
+        # One ordered acquisition prevents both per-row RTTs and lock-order
+        # inversions. The per-origin stream lock still serializes importers.
+        keys = sorted({'history-v2:' + row['origin_id'] + ':' +
+                       row['entity_type'] + ':' + row['entity_id'] for row in records})
+        connection.execute("""SELECT pg_advisory_xact_lock(hashtextextended(key,0))
+            FROM unnest(%s::text[]) AS locks(key) ORDER BY key""", (keys,))
+
+    @staticmethod
+    def _projection_rows(connection, records, *, for_update=False):
+        # Queue distinct entity reads before waiting for any result. No write
+        # decision is made until the entire read phase has synchronized.
+        cursors = {}
+        with connection.pipeline():
+            for record in records:
+                key = (record['entity_type'], record['entity_id'])
+                if key in cursors:
+                    continue
+                table, condition, values = HistoryV2PostgresTransport._table_and_condition(record)
+                lock = sql.SQL(' FOR UPDATE') if (for_update and
+                    record['entity_type'] in MUTABLE_PROJECTIONS) else sql.SQL('')
+                cursors[key] = connection.execute(
+                    sql.SQL('SELECT * FROM {} WHERE {}{}').format(table, condition, lock), values)
+        return {key: cursor.fetchone() for key, cursor in cursors.items()}
 
     @staticmethod
     def _table_and_condition(record):
@@ -232,22 +249,16 @@ class HistoryV2PostgresTransport:
             raise ArchiveIntegrityError('private structured receipt conflict')
 
     @staticmethod
-    def _insert_or_update(connection, record):
+    def _insert_or_update(connection, record, existing):
         row = cloud_row(record)
         table, condition, keys = HistoryV2PostgresTransport._table_and_condition(record)
-        # The entity advisory lock serializes immutable inserts and replays
-        # across generations. Only mutable projections need a row lock; the
-        # private importer has no UPDATE privilege on immutable tables.
-        row_lock = (sql.SQL(' FOR UPDATE') if record['entity_type'] in MUTABLE_PROJECTIONS
-                    else sql.SQL(''))
-        existing = connection.execute(
-            sql.SQL('SELECT * FROM {} WHERE {}{}').format(table, condition, row_lock),
-            keys).fetchone()
+        # The caller holds all entity locks and advances a checked in-memory
+        # projection after each queued revision, including duplicate entity IDs.
         if existing is not None:
             if record['entity_type'] not in MUTABLE_PROJECTIONS:
                 if not cloud_row_matches(record, wire(existing)):
                     raise ArchiveIntegrityError('private immutable structured conflict')
-                return
+                return existing
             previous = {'entity_type': record['entity_type'],
                         'entity_id': record['entity_id'],
                         'origin_id': record['origin_id'],
@@ -257,7 +268,7 @@ class HistoryV2PostgresTransport:
             if order == 'identical':
                 if not cloud_row_matches(record, wire(existing)):
                     raise ArchiveIntegrityError('private mutable structured conflict')
-                return
+                return existing
         columns = tuple(CLOUD_COLUMNS[record['entity_type']])
         values = [Jsonb(row[name]) if isinstance(row[name], (dict, list))
                   else row[name] for name in columns]
@@ -272,6 +283,7 @@ class HistoryV2PostgresTransport:
                                   for name in columns), condition)
             values += keys
         connection.execute(statement, values)
+        return row
 
     def put_structured(self, records: list[dict], *, timeout_seconds: float) -> None:
         self._validate(records)
@@ -295,27 +307,30 @@ class HistoryV2PostgresTransport:
                     inserted = 0
                     receipts = self._receipts(connection, records)
                     new_receipts = []
-                    # Outbox IDs reflect concurrent local transactions, not
-                    # a guaranteed FK topological order. Preserve revision
-                    # order within each table while importing parents first.
-                    for record in sorted(records, key=lambda item:
-                                         (IMPORT_ORDER.index(item['entity_type']), item['id'])):
-                        self._entity_lock(connection, record)
-                        receipt = receipts.get(record['id'])
-                        if receipt is not None:
-                            if checkpoint is None or record['id'] > previous_id:
-                                raise ArchiveIntegrityError('private receipt beyond checkpoint')
-                            self._check_receipt(receipt, record)
-                            continue
-                        if record['id'] <= previous_id:
-                            raise ArchiveIntegrityError('private structured checkpoint gap')
-                        self._insert_or_update(connection, record)
-                        payload_hash, envelope_hash = self._receipt_hashes(record)
-                        new_receipts.append((self.origin_id, self.generation_id,
-                                             record['id'], record['entity_type'],
-                                             record['entity_id'], record['content_hash'],
-                                             payload_hash, envelope_hash))
-                        inserted += 1
+                    ordered = sorted(records, key=lambda item:
+                        (IMPORT_ORDER.index(item['entity_type']), item['id']))
+                    self._entity_locks(connection, ordered)
+                    projections = self._projection_rows(connection, ordered, for_update=True)
+                    # Synchronize writes once, in FK order. Client checks still
+                    # run sequentially; repeated mutable keys see their prior
+                    # proposed revision, never the stale initial snapshot.
+                    with connection.pipeline():
+                        for record in ordered:
+                            receipt = receipts.get(record['id'])
+                            if receipt is not None:
+                                if checkpoint is None or record['id'] > previous_id:
+                                    raise ArchiveIntegrityError('private receipt beyond checkpoint')
+                                self._check_receipt(receipt, record)
+                                continue
+                            if record['id'] <= previous_id:
+                                raise ArchiveIntegrityError('private structured checkpoint gap')
+                            key = (record['entity_type'], record['entity_id'])
+                            projections[key] = self._insert_or_update(connection, record, projections[key])
+                            payload_hash, envelope_hash = self._receipt_hashes(record)
+                            new_receipts.append((self.origin_id, self.generation_id,
+                                record['id'], record['entity_type'], record['entity_id'],
+                                record['content_hash'], payload_hash, envelope_hash))
+                            inserted += 1
                     self._insert_receipts(connection, new_receipts)
                     if self.retain_revisions:
                         self._append_revisions(connection,records)
@@ -369,11 +384,9 @@ class HistoryV2PostgresTransport:
                             raise ArchiveIntegrityError('private structured receipt missing')
                         self._check_receipt(receipt, record)
                         final[(record['entity_type'], record['entity_id'])] = record
+                    projections = self._projection_rows(connection, final.values())
                     for record in final.values():
-                        table, condition, keys = self._table_and_condition(record)
-                        row = connection.execute(
-                            sql.SQL('SELECT * FROM {} WHERE {}').format(table, condition),
-                            keys).fetchone()
+                        row = projections[(record['entity_type'], record['entity_id'])]
                         if row is None:
                             raise ArchiveIntegrityError('private structured projection missing')
                         if not cloud_row_matches(record, wire(row)):

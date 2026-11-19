@@ -163,6 +163,7 @@ def main(argv=None):
             result, _ = inventory(pages, args.through_id)
             result.update(status='inventory_only', cloud_operations=0, origin_id=ORIGIN,
                           generation_id=args.generation_id, retirement_authorized=False)
+        result['generation_id'] = args.generation_id
         print(json.dumps(result, sort_keys=True))
         return 0
     except Exception as error:

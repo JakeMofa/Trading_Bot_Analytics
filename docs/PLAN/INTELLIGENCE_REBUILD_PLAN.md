@@ -41,11 +41,66 @@ Both bound root operations exited successfully after owned-oneoff and temporary
 credential cleanup; the controller lock was released. The release owner then
 began its separately authorized live trial. No post-trial OFF snapshot is claimed.
 The repair used the initial default fresh-connection pp.17 transport; optional
-reuse remains a separate unmerged/defaultOFF candidate. Raw A remains local:
+reuse is merged as a separate default-OFF source candidate and is not deployed. Raw A remains local:
 structured recovery alone proves neither raw archive recovery nor safe retirement.
 Genuine new-write capture validation follows actual live acknowledgements.
 
 [Exact release, scope, readbacks and independent whole-body hash evidence](evidence/pp17-exact-envelope-backfill-2026-11-19.json).
+
+## November 19 UTC — hosted history research and cold structured page candidate
+
+Official hosted Pipelines docs currently describe outbound Supabase Postgres →
+BigQuery, not the local-PG → private history_v2 envelope/receipt import. The ETL
+library offers other modules/custom destinations but does not prove managed
+availability here. WAL/replica identity, replay and lifecycle-delete semantics
+need separate qualification. No replication slot, RPC, Data API exposure, grant,
+S3 key, paid feature or cloud setting changed.
+
+The actual application gap is an explicit structured cold-read contract:
+raw.events archive pages and local prediction history exist, but immutable
+structured revision reads are only a lower transport operation. A small local
+prototype now pages independently reviewed exact IDs/hashes, one PP origin/
+generation/entity/market, at most 50 records/256 KiB/four seconds. It preserves
+original decimals/timestamps/NULLs and revisions; missing/corrupt/unavailable
+rows fail, and page coverage never implies complete market history or retirement
+authority. No API wiring, live credential use or production support is added.
+
+[Research, executable/test contract, product choices and freeze limits](HOSTED_HISTORY_INTEGRATION_2026-11-19.md)
+records remaining reader-grant/discovery/manifest/browser/performance gaps.
+Generated two-page tests passed; this is an offline candidate, not runtime
+acceptance. PP/production hot reads and durable outbox/receipt/ACK gates stay
+unchanged. Privileged service/operator/Studio/SQL/Storage owners remain possible
+mutation paths; full holder inventory and human freeze attestation are OPEN.
+Do not infer an administrator freeze from narrow reader RLS or dashboard settings.
+The release owner unlocked source-only merges for PRs 157–160 while the
+installed pp17 runtime stays pinned; runtime/cloud controls remain frozen.
+
+## November 19 UTC — independent dashboard evidence acceptance candidate
+
+A local offline evidence audit now distinguishes current-market numerical saved
+forecasts/live estimates, truthful abstentions, unavailable output and stale or
+unbound output. Existing `live_observe.py` counts distinct prediction IDs and a
+nonempty history list; those checks alone do not prove any numerical forecast,
+market binding or fresh model input. This supplementary audit requires original
+state fields and reports integrity separately from numerical acceptance. An
+honest abstention can pass integrity while numerical evidence stays INCOMPLETE.
+
+[Executable and evidence contract](PP_DASHBOARD_EVIDENCE_2026-11-19.md) documents
+UTC source/input/feature ages, exact snapshot binding, the dashboard's 10-second
+live-tick limit and before/after writer-generation observation brackets. Missing
+richer payloads cannot be reconstructed from ID-only observer reports. No rendered
+browser display, raw archive correctness or retirement authority is implied.
+
+The separately authorized temporary local conductor records allowlisted fields
+from its existing API responses only, with latency/source SHA/UTC/monotonic time;
+it adds no API requests or host configuration. Its pure wrapper was compiled and
+tested for one inner request/one captured record without running the conductor.
+The committed helper remains offline and the deployed observer/runtime are
+unchanged. Generated fixture tests cover stale/prior-market forecasts, honest
+abstain, missing evidence and exact decimal preservation. Real combined-trial
+acceptance remains OPEN until run evidence is processed; preserve the pp17
+runtime release freeze. The release owner unlocked source-only merges for
+PRs 157–160; this candidate does not promote or alter the installed runtime.
 
 ## November 19 UTC — Supabase dashboard audit, observation only
 
@@ -3431,3 +3486,7 @@ Only upgrade when measured need appears:
 - [ ] **P11.1** Add specialist dashboard.
 - [ ] **P12.1** Run forward collection/evaluation.
 - [ ] **P13.1** Train `meta_model_v1`.
+
+### PP live workflow dispatch choice correction, November 19 UTC
+
+The first ON submission for pp.17 received GitHub HTTP 422 before a workflow was created. The operation choice used bare YAML `on` and `off`. Both background workers stopped and PP confirmed the collector OFF. A dedicated regression now requires four quoted string choices in the manual workflow. The installed PP controller and application image are independently bound to pp.17. The dispatch failure provides no live-collection evidence.

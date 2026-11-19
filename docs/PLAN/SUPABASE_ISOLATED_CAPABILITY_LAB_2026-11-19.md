@@ -39,9 +39,20 @@ row, and an input with missing evidence showed `unknown`. The displayed
 2.163305 seconds came from the historical audit. This probe reads no live VM
 state and its output carries no retirement authority.
 
-The next service decision depends on a scoped bridge for sanitized reports
-and an explicit distinction between fresh reports, old reports and missing
-inputs. Existing release and retention jobs remain owned by the VM.
+The probe now also runs an example of the VM's existing read-only resource
+sample contract through the status consumer. It keeps the age of an observation
+separate from the collector's lease and on/off state. A fresh stopped collector
+is `off`; a stale or missing sample leaves the collector `unknown`. Separate
+unit checks reject the wrong origin, future timestamps and timezone-free
+timestamps, and identify an expired lease. The two-minute freshness threshold
+is a fixture setting. Archive lag, pending rows and transport downtime require
+their own live measurements.
+
+A periodic scoped VM sample can supply this information. Realtime is optional
+delivery for dashboard updates after a sample exists. The app's deployed
+cloud-status endpoint does not provide the VM archive observations today.
+Publishing fresh reports needs a scoped bridge and identity. Existing release
+and retention jobs remain owned by the VM.
 
 ## Product scope and decisions
 

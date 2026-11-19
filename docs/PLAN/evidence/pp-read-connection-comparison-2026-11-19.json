@@ -1,0 +1,618 @@
+{
+  "status": "verified",
+  "scope": "PP read-only receipt metadata, not envelope payload/full sync/local ACK",
+  "origin_id": "pp-live-pp",
+  "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+  "source_sha": "8b31c369d8576bc829805e8764d0b2a3a23dbb44",
+  "ids": [
+    7314,
+    7315,
+    7316,
+    7317,
+    7318,
+    7319,
+    7320,
+    7321,
+    7322,
+    7323,
+    7324,
+    7325,
+    7326,
+    7327,
+    7328,
+    7329,
+    7330,
+    7331,
+    7332,
+    7333,
+    7334,
+    7335,
+    7336,
+    7337,
+    7338,
+    7339,
+    7340,
+    7341,
+    7342,
+    7343,
+    7344,
+    7345,
+    7346,
+    7347,
+    7348,
+    7349,
+    7350,
+    7351,
+    7352,
+    7353,
+    7354,
+    7355,
+    7356,
+    7357,
+    7358,
+    7359,
+    7360,
+    7361,
+    7362,
+    7363
+  ],
+  "records_sha256": "08ab6bbfcecfafacd3e3d1ac704b1412c18c875bc6cbe830394e4013089e6004",
+  "receipt_metadata": [
+    {
+      "outbox_id": 7314,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961500]",
+      "content_hash": "ab421199042b77c016f482c2e0d2f9b97221795f3301c8466fe157b7e3bf50a2",
+      "payload_hash": "f8b607216d31b73679a90f1d739471d36c7804849c9d827cda35f655fa843f87",
+      "envelope_hash": "b280b5917732aeabe2a254434281195a2a967ab0748552801076be8fb6a0c8d0"
+    },
+    {
+      "outbox_id": 7315,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "879bfc4504bc8f9882697c1cbd01c13e4c73eef5a2af20e6b4393c62584c2d11",
+      "payload_hash": "cf8dfd2fa4c130352fec2dd79c7fe73b4037425c27c6beed3b0387b605e80e93",
+      "envelope_hash": "ad9e5c83ed95578b62321ee1e334fb4f7360da287bab66c304f8d4b857d7d870"
+    },
+    {
+      "outbox_id": 7316,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961560]",
+      "content_hash": "7e66b51f51102343d6d7b8877c3f9dba0ac77ec916401b2b4fd0c503c5b7dc9b",
+      "payload_hash": "fc5bc63a35a0e976677315fe311d568a9a30b6b27474ecb4a3266bf6c847be02",
+      "envelope_hash": "f909fd30a6d4b7b4c09ade1e473f7666118e3359e37fd4d4beae41b198bc5740"
+    },
+    {
+      "outbox_id": 7317,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "e7a4115be46672ad8b932cbc2b34c8ad9ef7103098c41a248a55952836b1b9f5",
+      "payload_hash": "a94d2c65a73f6872ee5eb66fdf9285a87865bba009e6afe2957803a4a5527f75",
+      "envelope_hash": "e5576905dcc29c0b1d4f3fca1ad3cbed0d219366aba723b8ab065f02e7a3745d"
+    },
+    {
+      "outbox_id": 7318,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961620]",
+      "content_hash": "6991c5767b2a5eea46375d6ba6708147d758173cd24d4a18a9b3c68b605b0e9b",
+      "payload_hash": "9bd1b89b348e20329f397e226781ad7a53a1ba1298351362dd3c1e74d9d69dd7",
+      "envelope_hash": "eb447f4ae9c369506447c5e35567a113fc83b57f8e38ae5d6642c1c951c0d7c5"
+    },
+    {
+      "outbox_id": 7319,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "f77c9d7942bc6b4b6b0a75b41381d5f80cf6ae6f8c13a393b0df81881afc2761",
+      "payload_hash": "1e25ea71e31093bb3c3ec86048b940205413f72dd887cbb2bd5376aa6f9d6628",
+      "envelope_hash": "eef5e9b92ad04d6dd250864de2f57ebda767471b080a875e88f7786ef5c87c98"
+    },
+    {
+      "outbox_id": 7320,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961680]",
+      "content_hash": "1b3738d01b449f740e2a01fc3d314796f0f53a2f37c0c6f82db3469e4d7b1a15",
+      "payload_hash": "5901cf6ec1b3e3f8039c79ed002a2372af59ce536462bccc1d2b041a7f637494",
+      "envelope_hash": "6823a43fd416dec0c5fe4c3ea9d8f077348fb0aa8bb7f7ff4b13fac6d35c9edc"
+    },
+    {
+      "outbox_id": 7321,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "e2c63c9cfd54db88a11ce641e7a370464c409ff406036a29375c632f95eee64f",
+      "payload_hash": "cb4ad46ec0a29da8649ae2023d1019dca745cef83d8f4c65dae03c519fa0c246",
+      "envelope_hash": "7f554106ce99de7bf4d1474f30521095ae62e1117ac6d0af15abb9ac009faee3"
+    },
+    {
+      "outbox_id": 7322,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961740]",
+      "content_hash": "1f3bf2dec1868c3d236ecee0dba07440e9436e2261cee0e3dafa7bca9e1501f2",
+      "payload_hash": "c08736e3f0ae925298d29d6c5748f70684e653665eca0defca6f9a93048e63e9",
+      "envelope_hash": "f53c55de5473b49daff303be1f0b6b1e7fad4aad2344a69fc74cb46dd1165582"
+    },
+    {
+      "outbox_id": 7323,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "7db21f452510e0f87892405cc53d4a140613e2dc4217d2f81f490288908d6792",
+      "payload_hash": "098862b9aff677847b26bed40a7ec05096bc56f59298cc9a9590fae5d6d81e7b",
+      "envelope_hash": "289dddba37e5dc1db9d4d3b3c8ebce1c07dae7cc56f8a8b0bcf3312a80a68437"
+    },
+    {
+      "outbox_id": 7324,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961800]",
+      "content_hash": "73c4359df298bd8ba2c2f3014a2f782033a4c7e48035731d789093e9ee4d4455",
+      "payload_hash": "a62f344314b3c6e35f5c6a4a616dbd1ec963cbc4738efc5bca92fa638f884bdb",
+      "envelope_hash": "d70402163d68bb3ee274f78fadead2fde40d0e93cc95d36b215fd2bcbe75d797"
+    },
+    {
+      "outbox_id": 7325,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "4df144a11a13f15e7e7d8b9c7ecff265a017e1350e328061c945fdd54ee67bc0",
+      "payload_hash": "29d9027e59cfcc6beca4b9bc27bf99b485f716ac209c2bb4446c832d8068b95d",
+      "envelope_hash": "db4b33c5a276d2de7d535bdd45e9c11ebd776ff7f757ddcdb6b89a541af73667"
+    },
+    {
+      "outbox_id": 7326,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961860]",
+      "content_hash": "fe05ad88a43fea54be1bc73aa42f3115e14b39e3004ba0b697171bdb8153c871",
+      "payload_hash": "c51a060bfcb4ec72a613ec1e038bc10abfd9125975b74830a850b7ca62743b85",
+      "envelope_hash": "c42e45eb4e100f948c118a679e04bf79b66610033e1fcc603091903f616d375b"
+    },
+    {
+      "outbox_id": 7327,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "e81e723c5a8e959ed1526a1fc2e4afba4ed41928f01a192fbcb79a4df036837a",
+      "payload_hash": "95f1f513ab08833ec25e7b5abfe42184b4488b647e9eaeffea35260184401c4e",
+      "envelope_hash": "f0f97a1df6fe47435efcec54980236dc35917d2265e318796ee8b59e6c45a04a"
+    },
+    {
+      "outbox_id": 7328,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961920]",
+      "content_hash": "c0e1bc6a05e69ca29a5a9d663908045f4546a0cbd39f72249fa2b852f514d085",
+      "payload_hash": "48d0e801aeaec5f1b7314e2189e6f8baa59ab5cff7655e9d1b048273802e7eca",
+      "envelope_hash": "a61466a8f25b7e26276f4b2d394b6c823f00eba2a011e9204ce445530ea0abed"
+    },
+    {
+      "outbox_id": 7329,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "a7e17e0ed98cf69e59005d2b7a22f0148bbf9a097ea1142a046773e1d3cbddd7",
+      "payload_hash": "4326c8141eeff2d10d350ac1710d718f29445285126ab7c211fd74c843edbd13",
+      "envelope_hash": "5e7fa5dcfa428b2b84f74a74195e5bcf4222de9e0ba67473655a885a7f115f7a"
+    },
+    {
+      "outbox_id": 7330,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794961980]",
+      "content_hash": "5faf991fff1ebcb42f5058ac47b2a45d0151be0afaadcb9c51cd89162f6b99cf",
+      "payload_hash": "a808e6c36f0ea25a2d11b3c1ec25b58759c43317d283be428799b9cdd823baef",
+      "envelope_hash": "6cf0e5eed27cef3f551a39d919baf9a99783bdd659f3caaa03b9bede1af6611b"
+    },
+    {
+      "outbox_id": 7331,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "c3a485fb5353e92b47767f4ed9dada5ec8b0c63e1fbefe71e14efe8e96f520bb",
+      "payload_hash": "184c71e3c9b86810b78771e4cde9728268d2071e428bc4b1ce748d489c2f6d05",
+      "envelope_hash": "82b8370942685fd5c76cf2ca11ed1dd5496391c72d7014606a1184820bb548bf"
+    },
+    {
+      "outbox_id": 7332,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962040]",
+      "content_hash": "452d4cd0ae81b6432d1e3da5ece3cf03588ad2072b48c8a2a5323b84ebecdd46",
+      "payload_hash": "3b156445c4bd518247538725f4785783d2c66120946e7a3d435ee717683d35f5",
+      "envelope_hash": "814798b9de0cf3317bf765ba3ef3ad20f58f3c69d4386b0fb33c7541267bcda5"
+    },
+    {
+      "outbox_id": 7333,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "5d226c5184291696c65f66ab547733d2f6c5ce553b46c936430ce7c6269bbe58",
+      "payload_hash": "5f4314e55001315011be33bf05dd3988845db2cd858967d64e0fab5cc7187ede",
+      "envelope_hash": "b9b613ef11c057cdc8a2c246062a3cb96644959b37859076a46a6892530466d3"
+    },
+    {
+      "outbox_id": 7334,
+      "entity_type": "core.markets",
+      "entity_id": "[\"pp-live-pp\",\"2633366\"]",
+      "content_hash": "fc696f6b5434cb1658d305e4970806bf4f2ced91f29a15416e08b02b065990c9",
+      "payload_hash": "44c74c05b0fad4dc2468cb2537fd92f47990fa06d54cccc471313f62b66d4869",
+      "envelope_hash": "752b360018777a3ba63302b77e94a9a660a5ca82a2f21a11e4654d2e7f264381"
+    },
+    {
+      "outbox_id": 7335,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962100]",
+      "content_hash": "9baa6e37f47dc2d31732d5df19c011afe9d90ed000fd1b6b84d0a3699d9a83ad",
+      "payload_hash": "fb07c5e028622d17581f791d997b1a5bf20a415488787cf505a76f5d5c65c4c5",
+      "envelope_hash": "08142f224354cc704a52ba780f7047be5f518da2c27d7f441361096b0d1ff85c"
+    },
+    {
+      "outbox_id": 7336,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "19ffb38ad0ac71f01e36ed099541bc6c589b5a72594cf7def2d5db9f974874e1",
+      "payload_hash": "dcaaf44169d6e8831d989f227bb81010e7c792ae03bd213686e5ad2997f6ca60",
+      "envelope_hash": "4b8e538757ba88ce36178580047f468b58e048657ebcdfb12e4ec26f38e5726c"
+    },
+    {
+      "outbox_id": 7337,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962160]",
+      "content_hash": "f9d936ad85f7b28add7af8439d90a6af9ffd2e875e03f960b60ada1005152712",
+      "payload_hash": "c2477f3bfd8cabf0e437a54cd3c974e64f479a6841fb7df4f526503efcb68e78",
+      "envelope_hash": "202b7036f1eb6e2aab95fb31fcfa3cb53863c78c657e7fb111774c0ec046702d"
+    },
+    {
+      "outbox_id": 7338,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "0fcf01041616e563878fb8fdf8fc584c0ca2594ec121eb01d086242136bcb333",
+      "payload_hash": "aafc88e06420d326f08048af95602af1ea865ef1fbb60fa5fc7666ce892170eb",
+      "envelope_hash": "22cdda5f1100cb76e0e35fc8d887b0aff5dc96e84bd15ee9dc46407978be6a43"
+    },
+    {
+      "outbox_id": 7339,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962220]",
+      "content_hash": "ee218b40f9dcb32b3d5f2dc1773b72a811284a70fff38fe4a738125704498da7",
+      "payload_hash": "3290e10f4d58237e6717535b4e70fbd89d861537322a9d09c344533c1b68b7cd",
+      "envelope_hash": "aa002f4a929817efd4e59e38302268f02f279c1f582a6e154fca279e9df1e758"
+    },
+    {
+      "outbox_id": 7340,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "9274dc96188c1e9428245e02112a2f86237a0626a78b2439338f648fbc8576e3",
+      "payload_hash": "1f52ee0cf5f4ea558f1179750bcc9734d642716681e10ef2d8fd10fc20ecd546",
+      "envelope_hash": "57da60d8ad37dcf6e387b23f32a4cb7d129eca88237f291e3e8e7a0fe159773a"
+    },
+    {
+      "outbox_id": 7341,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962280]",
+      "content_hash": "e0708e638aaca15be169b3ef57cda39352fdb5a0a04326325512a131555faa47",
+      "payload_hash": "e73a8c9c362112a197e59088d7f20207b838ede394a54b3befb43ce21cf1a4aa",
+      "envelope_hash": "d894fd010214a24145ba5465f4de2daea3c4729e47348e7ccd2611cf5a0b2677"
+    },
+    {
+      "outbox_id": 7342,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "70b624978faaa1b83bc41faa97cc6ebe4ccc20073a6bb22856b6c9ad2e95d2ef",
+      "payload_hash": "685a8e5b6129de095a3d01aedd98e3711975c4dbb5dad29c6badb385aeabf88a",
+      "envelope_hash": "dea078a7524f7bd46383de4215e6b81867460917572d30685015f7eb98c287ea"
+    },
+    {
+      "outbox_id": 7343,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962340]",
+      "content_hash": "d4a5dd8133f7cc9799868ff466e519d0358cb65be2a831280d45bb730135c1af",
+      "payload_hash": "9ddaedc675e1a3f337a8bbada44ea721799ec05f961b258fee5fad090630939c",
+      "envelope_hash": "cf7f5f5509f73952485699bf7f1d48cfbf95817a8a200897e7e79309e8d1eff8"
+    },
+    {
+      "outbox_id": 7344,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "a343e9456673384f6846e7ef2ccbc4350861d17263f15baa80e2d0d391b3c8ab",
+      "payload_hash": "fbf17e500dc7294edaa4189ff7b81daddd1b1cf4085fd04db2b2004f72cf0a78",
+      "envelope_hash": "eecc22dc0ffd4f8af6b6ae589e244b55b4aaa06064f5d37354f835cc88fb4f76"
+    },
+    {
+      "outbox_id": 7345,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962400]",
+      "content_hash": "c94fa63174823723d0da607ebe8f3b1ab96ac35f32e1673db88b2e625125ef52",
+      "payload_hash": "281e0eafcd4cc530b9e29e07c04f67e428f09477f590a5a0615544c24e18fda3",
+      "envelope_hash": "7b83fb6e6f1e2ffde617ed0f53d54e0da3f3945d953b720177240f9731ba0762"
+    },
+    {
+      "outbox_id": 7346,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "d8a0b6ac57976808bfaf9f5e74d22a5d44e872179ca9166575af703d7257bb3a",
+      "payload_hash": "ed94e08658e57eedc978b8caaf8c2a41399c59223665c31102998c18f8851fe6",
+      "envelope_hash": "79392da2a8aba5d72a9eaa9e1d0b1cfe6250211228174d5e06b0429abd3d7f6b"
+    },
+    {
+      "outbox_id": 7347,
+      "entity_type": "core.candles",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\",60,1794962460]",
+      "content_hash": "3cd0e19c6c46d137087f9ad63d59a157004ec684c347b949ceae0e81f8fa5fae",
+      "payload_hash": "7148a05dc42b6ca6144f8a5fc913985f04aa22ab9397d7c331af8f060f4d5adb",
+      "envelope_hash": "145d8508edc78cbe33e9c1b3912374e2da602d9e8c223f8a52b6dc2745e51c26"
+    },
+    {
+      "outbox_id": 7348,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "0dccaee44762b898f959903f4877c4f2ac16ab6654c901cb65c87ba5daecf6b3",
+      "payload_hash": "7b5f36b12a85e56b6cbe4661b376b65043af02b89dd4e1bf46d072cda6585708",
+      "envelope_hash": "7f33153365fb5d9329853685c89f95fe9787a37e0708cbb2645e35fa1a5bb798"
+    },
+    {
+      "outbox_id": 7349,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "82029fa11f308e41ae32017aa443b4ba9972d20ce1565981164a7b7c333fb4d4",
+      "payload_hash": "732334a76c01a8103305e55d35defe0144344d2f756f76b76ef373284aa8228f",
+      "envelope_hash": "cf99f955fac845753cc3ee113cc9ac5a76d80c586e14497923e51a83f170f163"
+    },
+    {
+      "outbox_id": 7350,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "5519b6df2971eb72af01099633396a732a6837b8ab05734c5a4ccc15aec302c8",
+      "payload_hash": "79e67ecca0e773c7dc1475e891ee4ddb1089ba7e9845b8cb716bb4855c81c3df",
+      "envelope_hash": "4938f06dc4632fa5e9ae47abf5b126a69c21d3db3550e3deb0f9ee843a3aadce"
+    },
+    {
+      "outbox_id": 7351,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "1923997eb44115c93042a41631718cbfe24a61c9e1b7f7c0faa4c753115a0463",
+      "payload_hash": "d40f75fb1e5ca10488e61ecb69988e63147ecbc9c9aeac68691b2bde542ed244",
+      "envelope_hash": "f4a69aac6187d79b8a30213ff8e5b171d01932e31a93a8a60b7aa7da0b1edec6"
+    },
+    {
+      "outbox_id": 7352,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "30b9671ce0c5eb50f7a3c05da527e0afb6c268882c4c66a3226ecba13f8cf758",
+      "payload_hash": "f31c256fff89569d15ca45bcd5ab6b83f25629cd4b8af8c5136a0513a9a36543",
+      "envelope_hash": "b727ac244664a6a1c9552a66c6fbe8ed61a6fd960e6782d435dd8208b0d20143"
+    },
+    {
+      "outbox_id": 7353,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "5c702bcf43fc6d41c5295a1ebdfa41267659268f65474dff3b66efac506d82f5",
+      "payload_hash": "298222fc6ce29a227a4e80b3961b1cbcb0cce507d071befce0fcecde9ec12ef5",
+      "envelope_hash": "2e0c985de4786d917aeeffe60bf79c3c1f62c5a3634cc2a4357d2593ffc8ee54"
+    },
+    {
+      "outbox_id": 7354,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "1037086c2632073c4c88161b3295b78793fe9c7c4d02f33302f0f005d5806cd6",
+      "payload_hash": "253a44763beb0e0b0909901f1745616a9368f51b4b8707dcddbf3b8ca99f12d6",
+      "envelope_hash": "63ac7b285ff1f152ec8e8c789cada15f83f6c88ccfc08e4804d07cf0c7277e13"
+    },
+    {
+      "outbox_id": 7355,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "2f58b7cd5ac4c64faf1b447bf66e74716c4895baf3a033e5c91efbaf0d99c703",
+      "payload_hash": "2b21d30cc3945dd680ba788a4252f42299f47a07db77ff86921a6c480a468dab",
+      "envelope_hash": "bef43876a1876544e8c2125e7fdeb335ffdc7f906f62e144e9f61b39a0243307"
+    },
+    {
+      "outbox_id": 7356,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "cdb4f8503f79745651f12420b2226128932a2b8b9e6271d13a8e9e8409215aa2",
+      "payload_hash": "77e73f6c9532daf55afa85833adb3605e18a949a8a415ca408f339977e271e14",
+      "envelope_hash": "ca31f8a8aac4017542e81cdab7d60cfbeba7bad80f93f2cd1ca846595bb33b17"
+    },
+    {
+      "outbox_id": 7357,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "5c6c4e4c048361b76d6418366f9063fd2981a120255a635257d58ff40e0a7c0c",
+      "payload_hash": "0161c18ca6f74fd3de3e130c6ef7c8bceadd7dc0cf039b05f2f28cf9ffe69aa3",
+      "envelope_hash": "eda285d66744baacb321c82ca48e126520c8307b1573b29676129f3fb00677bd"
+    },
+    {
+      "outbox_id": 7358,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "c4ec88da4c81d0b2abd70fe21ca8937b60449fef1a8cf8511280c64246802d0c",
+      "payload_hash": "3489456c7c251fe43fd985d20baad30eefa5128e0d74f1bdc0c7dfb9e7851ced",
+      "envelope_hash": "37d8cb13d72fc00a8c303c4b0f9a347b1a9734e9a61464f49be8b750004ec9aa"
+    },
+    {
+      "outbox_id": 7359,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "7b3ad85ed20a8bc3047179565cc194cf922db7dc8e0ab56aede435917becc47d",
+      "payload_hash": "7dfee552027cac1f41439c38239b4a72cb6ef15208c1849a337112d6cda81b22",
+      "envelope_hash": "05f9712a4bf35cc0bf55cab4b30e2afee00ca91f4e7fd3e7ea2498bd216452f6"
+    },
+    {
+      "outbox_id": 7360,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "04592d10d7b244cd0edd3c61608c092bc725b118eae144126698f7cd2eed449d",
+      "payload_hash": "71988b29c20a8b7d5dadee9b1c583cce174fa37afb1e4260976b76529902ff85",
+      "envelope_hash": "55751df39e3b7409f82ea834a70f2c4ed2d8e08b31ff832fb894545a898905f5"
+    },
+    {
+      "outbox_id": 7361,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "8dec0a89d2de5873d78cde3a807dd64cf21a405283367d0866cd1cfb9dbce1ab",
+      "payload_hash": "cc3504b7986b18b8b41c61d0000ce931b4c03d912b93deb554917c3f725626d3",
+      "envelope_hash": "16b3620c24275e46ad2ae44c62f50a8b5352235b7027d6bf5126769acfd471e5"
+    },
+    {
+      "outbox_id": 7362,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "590e14e2a3532def7719ce5a1fb0f18d37283c92ee8f07b5fe6c0987edf2e1a2",
+      "payload_hash": "8dbec128e76c2a792e81abb49f4de9de9a4cd178dd77c27d94a179cad7737a47",
+      "envelope_hash": "8259a7b1a23a0a2f40c9247404db839898f094254143b6e8b76fd4b7f3030802"
+    },
+    {
+      "outbox_id": 7363,
+      "entity_type": "core.current_prices",
+      "entity_id": "[\"pp-live-pp\",\"coinbase\",\"BTC-USD\"]",
+      "content_hash": "23a0c5a4dc96a4df0647d3dd3f8a70f426edc15cf1d5b6684724163258f8ba83",
+      "payload_hash": "d69a6fc4c73348f12559d58ac8a5a299e1902de4a8ae9ce1450edc6a50de4535",
+      "envelope_hash": "3f5f2db2e076df9982e4475e4418a633618472ec51b6ee33d7d37149aa065d23"
+    }
+  ],
+  "samples": [
+    {
+      "pair": 0,
+      "arm": "cold",
+      "new_connection": true,
+      "setup_seconds": 0.360270757926628,
+      "transaction_and_readback_seconds": 0.31289921200368553,
+      "total_seconds": 0.6748109969776124,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 20583,
+        "tx_bytes": 4748
+      }
+    },
+    {
+      "pair": 0,
+      "arm": "retained",
+      "new_connection": true,
+      "setup_seconds": 0.3262894559884444,
+      "transaction_and_readback_seconds": 0.3216539700515568,
+      "total_seconds": 0.6487662739818916,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 20851,
+        "tx_bytes": 4487
+      }
+    },
+    {
+      "pair": 1,
+      "arm": "retained",
+      "new_connection": false,
+      "setup_seconds": 8.700403850525618e-05,
+      "transaction_and_readback_seconds": 0.2688813410932198,
+      "total_seconds": 0.27041238301899284,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 15472,
+        "tx_bytes": 1419
+      }
+    },
+    {
+      "pair": 1,
+      "arm": "cold",
+      "new_connection": true,
+      "setup_seconds": 0.3154839869821444,
+      "transaction_and_readback_seconds": 0.29793197102844715,
+      "total_seconds": 0.6143724690191448,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 20541,
+        "tx_bytes": 4574
+      }
+    },
+    {
+      "pair": 2,
+      "arm": "cold",
+      "new_connection": true,
+      "setup_seconds": 0.32423727796413004,
+      "transaction_and_readback_seconds": 0.32146822300273925,
+      "total_seconds": 0.6472874369937927,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 20899,
+        "tx_bytes": 4670
+      }
+    },
+    {
+      "pair": 2,
+      "arm": "retained",
+      "new_connection": false,
+      "setup_seconds": 0.0001280430005863309,
+      "transaction_and_readback_seconds": 0.3209189680637792,
+      "total_seconds": 0.32187839690595865,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 15782,
+        "tx_bytes": 1647
+      }
+    },
+    {
+      "pair": 3,
+      "arm": "retained",
+      "new_connection": false,
+      "setup_seconds": 9.705801494419575e-05,
+      "transaction_and_readback_seconds": 0.27139993105083704,
+      "total_seconds": 0.27231280400883406,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 15472,
+        "tx_bytes": 1419
+      }
+    },
+    {
+      "pair": 3,
+      "arm": "cold",
+      "new_connection": true,
+      "setup_seconds": 0.297634351067245,
+      "transaction_and_readback_seconds": 0.2940214490517974,
+      "total_seconds": 0.5929149329895154,
+      "receipt_bytes": 18000,
+      "sha256": "8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28",
+      "network_bytes": {
+        "rx_bytes": 20563,
+        "tx_bytes": 4640
+      }
+    }
+  ],
+  "transactions": 8,
+  "cloud_writes": 0,
+  "local_ack_changes": 0,
+  "prepared_statements": false,
+  "measurement_method": {
+    "alternation": "cold,retained / retained,cold repeated twice",
+    "same_identifiers": true,
+    "read_only_transactions": true,
+    "page_rows": 50,
+    "max_pairs": 4,
+    "per_operation_seconds": 4,
+    "overall_seconds": 60,
+    "physical_connections": 5,
+    "retained_first_open_included": true,
+    "exact_receipt_bytes": 18000,
+    "network_counter_scope": "isolated oneoff eth0 rx/tx deltas, includes TLS/auth/protocol, not pure payload",
+    "operator_sha256": "c3ced7be83a25e99a1835fbe40006174934764d0c103e160a77cd02094bf22d0",
+    "no_released_transport_changes": true,
+    "cleanup": "owned oneoff removed, staged local DSN removed, controller lock released"
+  },
+  "summary": {
+    "cold": {
+      "setup_seconds": 0.32440659348503686,
+      "transaction_and_readback_seconds": 0.30658021377166733,
+      "total_seconds": 0.6323464589950163,
+      "n": 4
+    },
+    "retained_all": {
+      "setup_seconds": 0.08165039026062004,
+      "transaction_and_readback_seconds": 0.2957135525648482,
+      "total_seconds": 0.3783424644789193,
+      "n": 4
+    },
+    "retained_warm": {
+      "setup_seconds": 0.0001040350180119276,
+      "transaction_and_readback_seconds": 0.28706674673594534,
+      "total_seconds": 0.2882011946445952,
+      "n": 3
+    },
+    "whole_retained_elapsed_reduction_percent": 40.16848531417156,
+    "warm_elapsed_reduction_percent": 54.423529926516665
+  }
+}

@@ -107,3 +107,10 @@ missing local SELECT, wrong structured scope and missing remote SELECT all
 reject before raw GETs. A direct mutation attempt inside the local snapshot is
 rejected by PostgreSQL READ ONLY. These are correctness controls, not a hosted
 57-object/63-page performance result; that exact replay remains unexecuted.
+
+Source validation: 382 backend tests passed (48 isolated/external DSN skips);
+all 15 history transport tests passed in a disposable native PG17 cluster using
+CI-style `backend.tests.test_history_v2_transport_pg` package invocation. The
+cluster was stopped and removed. No hosted data, operator credentials or live
+host were accessed. The audit scope/role/default-OFF unit cases also passed
+separately after the original-deadline binding was added.

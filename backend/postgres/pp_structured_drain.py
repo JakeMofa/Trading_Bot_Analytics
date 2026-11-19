@@ -34,7 +34,7 @@ class DrainLimits:
                 not 1 <= self.max_rows <= 300 or
                 not 2 <= self.max_cloud_operations <= 24 or
                 not 10 <= self.max_seconds <= 180 or
-                not 1 <= self.max_cycle_rows <= 25 or
+                not 1 <= self.max_cycle_rows <= 50 or
                 not 0 <= self.handoff_seconds <= 0.1):
             raise ValueError('PP structured drain limits exceed reviewed bounds')
 

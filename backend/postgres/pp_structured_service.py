@@ -15,6 +15,10 @@ from .pp_structured_drain import DrainLimits, drain_bounded
 from .pp_structured_probe import LOCAL_DSN, MAX_PENDING, ORIGIN, check_environment, private_dsn
 
 
+# Recurring-only page. The operator one-shot retains its independent 25-row cap.
+RECURRING_LIMITS = DrainLimits(max_cycles=1, max_cycle_rows=50)
+
+
 def supervise(page, stop, emit):
     delay = 1
     while not stop.is_set():
@@ -70,7 +74,7 @@ def main():
 
         def page():
             return drain_bounded(repo, transport, execute=True,
-                                 limits=DrainLimits(max_cycles=1))
+                                 limits=RECURRING_LIMITS)
 
         emit(dict(status='structured_worker_ready'))
         return supervise(page, stop, emit)

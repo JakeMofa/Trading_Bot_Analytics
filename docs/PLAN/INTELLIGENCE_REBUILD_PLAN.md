@@ -1,3 +1,25 @@
+## November 19 UTC — genuine new pp.17 immutable capture verified
+
+During the authorized live trial, an independent read-only check compared the
+first50acknowledged PP rows beyond the historical cutoff12789: IDs13595–13644,
+created07:06:09.098333–07:06:13.193928UTC. All50original envelopes matched cloud
+receipt-backed canonical bodies exactly (60,800batch bytes,
+SHA256`a793c776d58dbdf8bc235ebfc4fdbf2b06819cf987a3a8ec7cc63804c17b626c`).
+The sample includes32current-price revisions,17candles and1market. The actual
+recurring worker was running with revision captureTRUE and session reuseOFF on
+exact pp.17 source1c753c6/image6f76adb3. Collector/session wereON and new committed
+outbox IDs advanced14503→14511during the comparison. This verifies that original
+new price revisions remain recoverable while later writes continue.
+
+The check used one authenticated cloud read and changed no cloud/local data,
+ACK or cursor. Owned-oneoff/credential staging cleanup passed and its controller
+lock was released. Historical5268/5268recovery plus this new-write sample now
+satisfy the structured-envelope checkpoint. This sample covers input/market
+revisions; whole-generation raw archival/retirement, forecast freshness and
+sustained sync headroom remain separate live-trial gates.
+
+[Exact new capture, types, identities, hash and concurrent progress](evidence/pp17-new-live-envelope-capture-2026-11-19.json).
+
 ## November 19 UTC — actual pp.17 retained-A envelopes fully recovered
 
 On exact pp.17 `1c753c6`, generated CD44474562747 and ready-off44474879676 passed.

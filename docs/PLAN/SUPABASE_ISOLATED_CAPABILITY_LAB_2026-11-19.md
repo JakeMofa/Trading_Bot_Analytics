@@ -21,6 +21,28 @@ identities. PP, production and the hosted Supabase project were outside the lab.
 | Realtime | Two signed-in clients subscribed to the same generated table and each received its own committed notice, with no cross-scope notice observed in the bounded test. | Can deliver dashboard archive status updates. The fixture did not compare it with the VM’s existing SSE or test reconnection recovery. |
 | PostgreSQL telemetry | Local `pg_stat_statements` recorded the generated RPC statements. | Pair statement counters with VM archive phase timings and oldest pending age. A live Grafana scrape and combined dashboard have separate acceptance. |
 
+## Combined archive status prototype
+
+The [isolated scheduler probe](../../deploy/preprod/probe_archive_health_scheduler.py)
+combines Cron with PGMQ and the application's existing telemetry summarizer.
+On a fresh local Supabase stack at database port 57322, run the probe with
+`PYTHONPATH=backend`, psycopg installed, the disposable database password in
+`TRADEBOT_HEALTH_LAB_PASSWORD`, and the checked-in
+[PP21 historical audit JSON](evidence/pp21-canonical-retained-audit-2026-11-19.json)
+as its sole argument. The probe creates fixture tables and a queue in that
+isolated database.
+
+Cron delivered the job. A deliberately rolled-back status write and queue
+acknowledgement left no status row. PGMQ redelivered the same message ID, and
+the retry committed one completed status. A duplicate job left one status
+row, and an input with missing evidence showed `unknown`. The displayed
+2.163305 seconds came from the historical audit. This probe reads no live VM
+state and its output carries no retirement authority.
+
+The next service decision depends on a scoped bridge for sanitized reports
+and an explicit distinction between fresh reports, old reports and missing
+inputs. Existing release and retention jobs remain owned by the VM.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

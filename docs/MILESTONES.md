@@ -14,7 +14,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   Independent native tests measured RPC round trips and reproduced exact
   research features after an A/B restore. The local WAL/analytics trial
   preserved the immutable evidence and demonstrated duplicate delivery.
-  Hosted Pipelines and Analytics Buckets still need separate qualification.
+  The combined Cron and Queue probe published the existing audit telemetry
+  after a forced rollback and retry, deduplicated job delivery, and reported
+  missing evidence as unknown. A live report bridge and hosted Pipelines
+  and Analytics Buckets still need separate qualification.
   [Lab findings and PP decisions](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**

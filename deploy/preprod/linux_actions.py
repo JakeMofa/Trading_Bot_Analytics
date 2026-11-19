@@ -352,7 +352,7 @@ class LinuxActions:
     def _sql(self,budget,query):
         require(self.pg_id is not None,'postgres_identity_not_verified')
         script='export PGPASSWORD="$(cat /run/secrets/application)"; exec psql -X -qAt --set ON_ERROR_STOP=1 -h 127.0.0.1 -U tradebot_app -d tradebot_pp'
-        return budget.run(['docker','exec','-i',self.pg_id,'sh','-ec',script],input=('BEGIN READ ONLY; '+query+'; COMMIT;').encode(),
+        return budget.run(['docker','exec','-i',self.pg_id,'sh','-ec',script],input=("BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; "+query+"; COMMIT;").encode(),
                           env=self._environment('unused'),timeout=20).decode().strip()
 
     @staticmethod
@@ -416,6 +416,7 @@ class LinuxActions:
         self.config=validate_config(self._json(self._compose(context,budget,['config','--format','json'])),context.source,'sha256:'+'0'*64)
         self._postgres(context,budget)
         self._outbox_release_preflight(budget)
+        self._inventory(budget)  # Confirm the full scans fit before stopping services.
         pending=budget.run(['docker','ps','-a','--filter','label=com.docker.compose.project='+PROJECT,
             '--filter','label=com.docker.compose.oneoff=True','--format','{{.ID}}'],
             env=self._environment('unused'),timeout=10).strip()
@@ -430,15 +431,14 @@ class LinuxActions:
         return origins
 
     def _outbox_release_preflight(self,budget):
-        # Fail before image build and writer fence if the finite complete-ledger
-        # inventory cannot fit. The runtime pending-row cap is separate.
+        # Compare the admission cap with pending rows only.
         exists=self._sql(budget,"SELECT to_regclass('ops.outbox') IS NOT NULL")
         if exists=='f':return
         require(exists=='t','invalid_inventory_evidence')
         for origin in self._approved_outbox_origins(budget):
             count=self._sql(budget,"SELECT count(*) FROM (SELECT 1 FROM ops.outbox "
-                "WHERE origin_id='"+origin+"' LIMIT 10001) bounded")
-            require(bool(re.fullmatch('[0-9]{1,5}',count)) and 0<int(count)<=10000,
+                "WHERE origin_id='"+origin+"' AND acknowledged_at IS NULL LIMIT 10001) bounded")
+            require(bool(re.fullmatch('[0-9]{1,5}',count)) and 0<=int(count)<=10000,
                     'outbox_inventory_exceeds_release_bound')
 
     def build(self,context,budget):
@@ -471,7 +471,7 @@ class LinuxActions:
                         for row in self._inspect(budget,ids)),'candidate_writer_fence_failed')
 
     def _inventory(self,budget):
-        # Bounded generated-only evidence, not a production-scale checksum claim.
+        # Compare the same complete set of release identities on both sides of migration.
         result={}
         identities={'core.markets':'origin_id,market_id,content_hash','core.candles':'origin_id,source,symbol,granularity,time,content_hash',
                     'core.current_prices':'origin_id,source,symbol,content_hash','core.protected_evidence':'origin_id,evidence_id,content_hash',
@@ -484,29 +484,23 @@ class LinuxActions:
             if exists=='f':result[table]=None;continue
             require(exists=='t','invalid_inventory_evidence')
             if table=='ops.outbox':
-                # The live and generated origins each enforce their own 10,000
-                # pending-row admission bound. A whole-table 10,001 sentinel
-                # falsely stopped deployment with 7,511 + 5,268 rows. Check
-                # every origin independently, including acknowledged evidence.
-                # This is a finite release check: >10,000 lifetime rows in
-                # either origin still HOLDs until a separate ledger design.
-                origins=self._approved_outbox_origins(budget)
-                groups={}
-                for origin in OUTBOX_ORIGINS:
-                    if origin not in origins:continue
-                    row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',"
-                        "md5(coalesce(string_agg(fingerprint,',' ORDER BY fingerprint),''))) FROM "
-                        "(SELECT jsonb_build_array("+identity+")::text AS fingerprint FROM ops.outbox "
-                        "WHERE origin_id='"+origin+"' LIMIT 10001) bounded"))
-                    require(isinstance(row,dict) and type(row.get('count')) is int
-                            and 0<row['count']<=10000
-                            and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),
-                            'inventory_exceeds_generated_bound')
-                    groups[origin]=row
-                result[table]=groups
+                result[table]=self._outbox_evidence(budget)
                 continue
-            row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',md5(coalesce(string_agg(fingerprint,',' ORDER BY fingerprint),''))) FROM (SELECT jsonb_build_array("+identity+")::text AS fingerprint FROM "+table+" LIMIT 10001) bounded"))
-            require(0<=row.get('count',10001)<=10000 and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),'inventory_exceeds_generated_bound')
+            # Deterministic pages bound each inner aggregate. Only row hashes
+            # and one digest per page are sorted or accumulated.
+            row=self._json(self._sql(budget,"""SELECT json_build_object('count',coalesce(sum(n),0),
+                'digest',encode(sha256(convert_to(coalesce(string_agg(page_hash,''
+                    ORDER BY page),''),'UTF8')),'hex'))
+                FROM (SELECT page, count(*) AS n,
+                    encode(sha256(convert_to(string_agg(fingerprint,'' ORDER BY fingerprint),
+                        'UTF8')),'hex') AS page_hash
+                    FROM (SELECT fingerprint, (row_number() OVER (ORDER BY fingerprint)-1)/1024 AS page
+                        FROM (SELECT encode(sha256(convert_to(jsonb_build_array("""+identity+
+                        """)::text,'UTF8')),'hex') AS fingerprint FROM """+table+""") rows) numbered
+                    GROUP BY page) pages"""))
+            require(isinstance(row,dict) and type(row.get('count')) is int
+                    and row['count']>=0 and bool(re.fullmatch('[0-9a-f]{64}',row.get('digest',''))),
+                    'invalid_inventory_evidence')
             result[table]=row
         return result
 
@@ -518,20 +512,28 @@ class LinuxActions:
         return row
 
     def _ack_state(self,budget):
-        """Bounded exact outbox ACK-state proof for pre-migration restoration."""
-        # Keep the same complete, approved-origin coverage as _inventory.
-        # A whole-table sentinel would reject the measured 7,511 + 5,268 rows.
+        return self._outbox_evidence(budget)
+
+    def _outbox_evidence(self,budget):
+        # One statement snapshot per origin. Fold groups of at most 1024 row
+        # hashes so the database never aggregates the original payload bodies.
         groups={}
         for origin in self._approved_outbox_origins(budget):
-            row=self._json(self._sql(budget,"SELECT json_build_object('count',count(*),'digest',"
-                "md5(coalesce(string_agg(fingerprint,',' ORDER BY id),''))) FROM "
-                "(SELECT id,jsonb_build_array(id,origin_id,generation_id,entity_type,entity_id,"
-                "content_hash,acknowledged_at)::text AS fingerprint FROM ops.outbox "
-                "WHERE origin_id='"+origin+"' ORDER BY id LIMIT 10001) bounded"))
+            row=self._json(self._sql(budget,"""SELECT json_build_object(
+                'count',sum(n),'pending',sum(pending),'digest',
+                encode(sha256(convert_to(string_agg(page_hash,'' ORDER BY page),'UTF8')),'hex'))
+                FROM (SELECT id / 1024 AS page, count(*) AS n,
+                    count(*) FILTER (WHERE acknowledged_at IS NULL) AS pending,
+                    encode(sha256(convert_to(string_agg(
+                        encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex'),
+                        '' ORDER BY id),'UTF8')),'hex') AS page_hash
+                    FROM ops.outbox o WHERE origin_id='"""+origin+"""'
+                    GROUP BY id / 1024) pages"""))
             require(isinstance(row,dict) and type(row.get('count')) is int
-                    and 0<row['count']<=10000
-                    and bool(re.fullmatch('[0-9a-f]{32}',row.get('digest',''))),
-                    'prior_ack_state_unproven')
+                    and row['count']>0 and type(row.get('pending')) is int
+                    and 0<=row['pending']<=min(row['count'],10000)
+                    and bool(re.fullmatch('[0-9a-f]{64}',row.get('digest',''))),
+                    'outbox_inventory_invalid')
             groups[origin]=row
         return groups
 

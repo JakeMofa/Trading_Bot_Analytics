@@ -4112,3 +4112,20 @@ unchanged. A fresh full A→B→fresh-A trial and deterministic history parity a
 still required. Prior PP19/PP20 holds remain historical evidence, and this
 single result does not establish a causal whole-audit speedup percentage.
 [Source, operator receipt and qualification boundaries](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md).
+
+### November 19 — two-generation offline history evidence contract
+
+Added an offline capture-parity auditor for two exact origin/generation UUID
+windows, reusing #185 `ResearchWindow` and the actual dashboard HTTP history
+contracts. Five generated tests retain immutable golden collecting/sealed/retired
+captures and reject changed exact values/times, duplicate/missing forecasts,
+wrong bindings and float coercion. Seven existing research unit tests and fifteen
+dashboard evidence tests pass; native PG research skips without an explicit
+isolated DSN. This is model retirement with an explicitly generated HTTP store,
+not a new native/drop/live two-rotation qualification. No host/cloud/deployment,
+collector/lease change, API registration or feature recalculation occurred.
+Actual chart remains current/local raw only; context outcomes unsupported;
+prediction HTTP omits snapshot IDs. #185's 2,000-row scan cannot cover real
+retained A; indexed bounded reading, cross-generation merge where needed, live
+labels and recalculation remain gates. Checkpoint 3 stays OPEN.
+[Evidence shape, qualification and live gaps](PP_TWO_GENERATION_HISTORY_EVIDENCE_2026-11-19.md).

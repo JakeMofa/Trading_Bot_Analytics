@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.archive_codec import ArchiveIntegrityError, ArchiveUnavailable
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable
 from postgres.lifecycle import LifecycleHold
 from postgres.pp_structured_probe import check_environment
 from postgres.pp_structured_service import supervise
@@ -84,3 +84,15 @@ class StructuredServiceTests(unittest.TestCase):
         page.assert_called_once()
         stop.wait.assert_not_called()
         emit.assert_called_once_with(dict(status='hold', reason='archive_integrity'))
+
+    def test_deadline_logs_only_bounded_phase_and_page_identity(self):
+        stop, emit = Mock(), Mock()
+        stop.is_set.return_value = False
+        error = ArchiveLimit('private details')
+        error.structured_phase = 'cloud_readback'
+        error.structured_page = (23, 73, 50)
+        self.assertEqual(supervise(Mock(side_effect=error), stop, emit), 1)
+        stop.wait.assert_not_called()
+        emit.assert_called_once_with(dict(status='hold', reason='archive_limit',
+            phase='cloud_readback', first_outbox_id=23, last_outbox_id=73,
+            page_rows=50))

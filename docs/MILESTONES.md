@@ -44,6 +44,20 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   [Trial scope](PLAN/PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md) ·
   [Hosted qualification and PP staging](PLAN/evidence/pp-trial-cloud-setup-2026-11-19.json)
 
+- [ ] **PP22 live rehearsal held before the storage switch.** Collection
+  advanced across the 22:15 UTC Polymarket boundary. PostgreSQL persisted 333
+  Coinbase events during the discovery gap. The dashboard paused the displayed
+  Coinbase price during that same gap. The structured worker stopped after
+  Supabase committed a 50-row page. A 25-row fallback also hit its deadline
+  and processed about 3.8 rows/s against 13.6 incoming rows/s. PP stopped
+  before the queue guard. A retained 5,241 raw rows and 4,888 pending
+  structured records. All 763 hosted receipts and revisions matched local
+  acknowledgements after exact readback. No seal, B, raw upload or retirement
+  occurred. Production's original service setting was restored. Qualify
+  fewer remote transaction round trips and sustainable sync before a new
+  live attempt.
+  [Live evidence](PLAN/evidence/pp22-live-initial-a-hold-2026-11-19.json)
+
 - [ ] **Paired SSE and Realtime latency.** Three local runs matched all 180
   generated tick IDs and prices. Local Realtime median was 66–90 ms and the
   app's 250 ms SSE path had a 122–137 ms median. The paired median favored

@@ -22,23 +22,39 @@ from .pp_structured_probe import LOCAL_DSN, MAX_PENDING, ORIGIN, check_environme
 RECURRING_LIMITS = DrainLimits(max_cycles=1, max_cycle_rows=50)
 
 
+def failure_context(error):
+    phase = getattr(error, 'structured_phase', None)
+    if phase not in ('local_prepare', 'cloud_import', 'cloud_readback',
+                     'local_ack', 'after_local_ack'):
+        return {}
+    result = {'phase': phase}
+    page = getattr(error, 'structured_page', None)
+    if (isinstance(page, tuple) and len(page) == 3 and
+            all(type(value) is int for value in page)):
+        first, last, count = page
+        if 0 < first <= last and 1 <= count <= RECURRING_LIMITS.max_cycle_rows:
+            result.update(first_outbox_id=first, last_outbox_id=last, page_rows=count)
+    return result
+
+
 def supervise(page, stop, emit):
     delay = 1
     while not stop.is_set():
         start = time.monotonic()
         try:
             result = page()
-        except ArchiveUnavailable:
+        except ArchiveUnavailable as error:
             # A replay uses the same durable outbox page and verifies any
             # receipts already committed remotely before local ACK.
-            emit(dict(status='retry', reason='archive_unavailable', delay_seconds=delay))
+            emit(dict(status='retry', reason='archive_unavailable', delay_seconds=delay,
+                      **failure_context(error)))
             stop.wait(delay)
             delay = min(60, delay * 2)
             continue
         except Exception as error:
             reason = {ArchiveIntegrityError: 'archive_integrity',
                       ArchiveLimit: 'archive_limit'}.get(type(error), 'structured_page_failed')
-            emit(dict(status='hold', reason=reason))
+            emit(dict(status='hold', reason=reason, **failure_context(error)))
             return 1
         delay = 1
         count = result['acknowledged']

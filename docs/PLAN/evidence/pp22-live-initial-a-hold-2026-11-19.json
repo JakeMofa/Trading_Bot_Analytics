@@ -1,0 +1,96 @@
+{
+  "api": {
+    "dashboard_history_sse_contract_checks": 7,
+    "distinct_observed_feature_ids": 75,
+    "history_after_retirement": "NOT_REACHED",
+    "maximum_coinbase_age_seconds_when_present": 34.938,
+    "maximum_feature_age_seconds_when_present": 8.245,
+    "maximum_observed_latency_ms": 424.965,
+    "requests_reported_failed": 0,
+    "samples": 84
+  },
+  "coinbase": {
+    "coinbase_events_during_gap": 333,
+    "dashboard_display_held_during_polymarket_market_gap": true,
+    "first_receipt": "2026-11-19T22:15:00.1002+00:00",
+    "last_receipt": "2026-11-19T22:15:26.961329+00:00"
+  },
+  "controller_identity_run": 44622538113,
+  "deployment_result": "PASS_GENERATED",
+  "durable_off_confirmed_at_utc": "2026-11-19T22:21:36.072475+00:00",
+  "durable_on_confirmed_at_utc": "2026-11-19T22:14:37.238178+00:00",
+  "exact_ci_run": 44623771290,
+  "fresh_a_created": false,
+  "initial_a": "94107d29-626f-480a-b61a-ce6a10f44301",
+  "initial_a_relation_still_attached": true,
+  "initial_a_retained_raw_rows": 5241,
+  "initial_a_sealed": false,
+  "on_dispatched_at_utc": "2026-11-19T22:14:05.503225+00:00",
+  "origin_id": "pp-live-pp-trial-20261119-01",
+  "other_session_a_sample": {
+    "duration_seconds": 29.5,
+    "exact_id_price_matches": 16,
+    "hosted_path_latency_claimed": false,
+    "local_realtime_added_median_ms_after_vm_sse": 71.867
+  },
+  "partitions_removed": 0,
+  "polymarket": {
+    "collector_on_through_boundary": true,
+    "first_new_quote_received_utc": "2026-11-19T22:15:35.656995+00:00",
+    "market_ended_utc": "2026-11-19T22:15:00Z",
+    "next_market": "2702326",
+    "next_market_first_observed_utc": "2026-11-19T22:15:27.513616+00:00",
+    "previous_market": "2702728"
+  },
+  "preprod_deployment_run": 44624765516,
+  "raw_archive_and_retirement_acceptance": "NOT_REACHED",
+  "raw_manifests_created": 0,
+  "release": "v0.2.0-pp.22",
+  "restoration": {
+    "pp_durable_off": true,
+    "production_collector_running": false,
+    "production_revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a",
+    "production_setting_restored": true,
+    "trial_workers_stopped": true
+  },
+  "scope": "pp22_initial_a_live_market_rollover_and_structured_sync_hold",
+  "slot_b_created": false,
+  "source_sha": "0c86b47c46ae5a39f5d1076555e7cf010163416c",
+  "structured": {
+    "fallback_attempt": {
+      "detail": "private PP history operation deadline reached; reconcile",
+      "elapsed": 66.3916,
+      "phase": "bounded_25_row_drain",
+      "status": "HOLD",
+      "type": "ArchiveLimit"
+    },
+    "fallback_concurrent_verified_acks": 250,
+    "final_local_acknowledged": 763,
+    "final_local_pending": 4888,
+    "final_reconciliation": {
+      "acknowledged": 25,
+      "cloud_records_written": 0,
+      "elapsed": 4.1647,
+      "readback_seconds": 3.9822,
+      "requests": 1,
+      "status": "reconciled_existing"
+    },
+    "first_reconciliation": {
+      "acknowledged": 50,
+      "cloud_records_written": 0,
+      "elapsed": 3.9587,
+      "readback_seconds": 3.7174,
+      "requests": 1,
+      "status": "reconciled_existing"
+    },
+    "hosted_checkpoint_count": 763,
+    "hosted_receipts": 763,
+    "hosted_revisions": 763,
+    "initial_hold_reason": "archive_limit_after_50_hosted_commit_before_local_ack",
+    "sample_elapsed_seconds": 100.194,
+    "sample_generation_rate_per_second": 13.62,
+    "sampled_generated_rows": 1365
+  },
+  "sustained_collection_acceptance": "NOT_PROVEN",
+  "trial_result": "HOLD_BEFORE_FIRST_STORAGE_SWITCH"
+}

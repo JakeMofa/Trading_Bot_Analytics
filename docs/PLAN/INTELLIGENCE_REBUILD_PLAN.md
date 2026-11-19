@@ -33,6 +33,30 @@ the final fresh A by a separately bounded OFF drain that retains its local
 partition.
 
 
+The first PP22 live attempt held before A sealed. The collector stayed on
+through one real Polymarket boundary, which had about 36 seconds of quote
+delay, and durably kept Coinbase capture moving. The dashboard price display
+paused while the Polymarket market was unavailable. The recurring structured
+worker stopped after a cloud commit without a local ACK. An exact 50-row
+readback reconciled the commit in 3.7174 seconds. The bounded reused-session
+25-row fallback acknowledged 250 records in 66.3916 seconds before a second
+operation deadline, while the measured arrival rate was about 13.6 records/s.
+A final exact readback accounted for the latter 25 remote commits and brought
+local and hosted acknowledgements to 763. PP was durably stopped with 5,241
+raw rows and 4,888 pending structured records in the original attached A.
+No partition was removed or raw archive created. The production collector
+setting was restored only after PP OFF. The partial first A is held separately
+from the planned final fresh-A drain.
+
+The release gate is now a measured structured-sync rate with margin over the
+arrival rate and the unchanged request, cycle and outbox limits. Qualify
+client-side transaction batching with exact receipt, revision and projection
+parity on isolated PostgreSQL, then verify the rate against the retained
+workload through the existing scoped roles before spending another live
+admission. Keep the 30-minute seal deadline and the exact retirement
+requirements. The Coinbase display gap has its own source repair.
+[PP22 live hold and preservation evidence](evidence/pp22-live-initial-a-hold-2026-11-19.json).
+
 A fresh read-only PP21 inventory confirmed historic live A is verified and still
 attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,
 and the writer is OFF with no session or unused authority. All 42,133

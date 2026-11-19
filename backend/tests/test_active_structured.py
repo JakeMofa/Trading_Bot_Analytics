@@ -140,8 +140,10 @@ class ActiveStructuredTests(unittest.TestCase):
 
         transport.put_structured = ambiguous
         worker = ActiveStructuredWorker(repository, transport, origin_id=ORIGIN)
-        with self.assertRaises(ArchiveUnavailable):
+        with self.assertRaises(ArchiveUnavailable) as problem:
             worker.cycle(GENERATION)
+        self.assertEqual(problem.exception.structured_phase, 'cloud_import')
+        self.assertEqual(problem.exception.structured_page, (1, 1, 1))
         self.assertEqual(repository.acknowledged, [])
         self.assertEqual(worker.cycle(GENERATION)['acknowledged'], 1)
 
@@ -174,10 +176,12 @@ class ActiveStructuredTests(unittest.TestCase):
                 time.sleep(0.03)
 
         late = LateAckRepository([price(3, '1794960003')])
-        with self.assertRaises(ArchiveLimit):
+        with self.assertRaises(ArchiveLimit) as problem:
             ActiveStructuredWorker(late, Transport(), origin_id=ORIGIN,
                 limits=ArchiveLimits(max_seconds=0.02,
                                      request_timeout_seconds=0.01)).cycle(GENERATION)
+        self.assertEqual(problem.exception.structured_phase, 'after_local_ack')
+        self.assertEqual(problem.exception.structured_page, (3, 3, 1))
         # A post-commit deadline is reported as failed/ambiguous, while the
         # durable ACK is preserved; a retry sees an empty pending outbox.
         self.assertEqual(late.acknowledged, [3])

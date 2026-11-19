@@ -1,3 +1,30 @@
+## November 19 UTC — hosted history research and cold structured page candidate
+
+Official hosted Pipelines docs currently describe outbound Supabase Postgres →
+BigQuery, not the local-PG → private history_v2 envelope/receipt import. The ETL
+library offers other modules/custom destinations but does not prove managed
+availability here. WAL/replica identity, replay and lifecycle-delete semantics
+need separate qualification. No replication slot, RPC, Data API exposure, grant,
+S3 key, paid feature or cloud setting changed.
+
+The actual application gap is an explicit structured cold-read contract:
+raw.events archive pages and local prediction history exist, but immutable
+structured revision reads are only a lower transport operation. A small local
+prototype now pages independently reviewed exact IDs/hashes, one PP origin/
+generation/entity/market, at most 50 records/256 KiB/four seconds. It preserves
+original decimals/timestamps/NULLs and revisions; missing/corrupt/unavailable
+rows fail, and page coverage never implies complete market history or retirement
+authority. No API wiring, live credential use or production support is added.
+
+[Research, executable/test contract, product choices and freeze limits](HOSTED_HISTORY_INTEGRATION_2026-11-19.md)
+records remaining reader-grant/discovery/manifest/browser/performance gaps.
+Generated two-page tests passed; this is an offline candidate, not runtime
+acceptance. PP/production hot reads and durable outbox/receipt/ACK gates stay
+unchanged. Privileged service/operator/Studio/SQL/Storage owners remain possible
+mutation paths; full holder inventory and human freeze attestation are OPEN.
+Do not infer an administrator freeze from narrow reader RLS or dashboard settings.
+Keep this branch isolated and unmerged during the pp17 release freeze.
+
 ## November 19 UTC — PP controller bound for revision capture and sealed-window verification
 
 Combined source `3adbc3a` passed exact CI 44472117753. The old PP session closed with collection OFF. An installation check and dedicated deployment identity confirmed the installed controller SHA-256 `a72679fde847b69ab7e84671e34b3bdc0464791d3ddf16502adc37a12511f7fe`. The PP deployment profile now references that proof. The combined application release, repair of 5,268 historical structured envelopes, live switch and verified retirement remain distinct qualification steps. [Controller identity evidence](evidence/pp-controller-identity-2026-11-19-a72679fd.json)

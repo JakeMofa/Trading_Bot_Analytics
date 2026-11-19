@@ -8,6 +8,15 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] **Isolated Supabase capability lab.** Generated local tests covered
+  REST/RPC and role policies, GraphQL, private Storage, the Edge runtime,
+  webhook transport, Cron, Queues, Realtime, vectors and PostgreSQL telemetry.
+  Independent native tests measured RPC round trips and reproduced exact
+  research features after an A/B restore. The local WAL/analytics trial
+  preserved the immutable evidence and demonstrated duplicate delivery.
+  Hosted Pipelines and Analytics Buckets still need separate qualification.
+  [Lab findings and PP decisions](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
+
 - [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**
   Exact qualified canonical-byte transport verified all 57 raw objects / 28,411
   rows and 63 structured pages / 31,162 rows. Core elapsed 214.390169 s under

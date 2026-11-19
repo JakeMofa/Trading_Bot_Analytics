@@ -8,6 +8,14 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **PP22 retained-data drain and archive before another live trial.**
+  Timed baseline write isolated its failing final pipeline. A scoped
+  materialized revision selection reduces the same hosted read-only query to
+  1.591 ms server execution and preserves exact-byte/metadata gates. Native
+  safety and retained-cardinality tests pass. Exact-source CI and full 4,888
+  record write/readback/ACK throughput remain pending. Collector stays OFF.
+  [Diagnosis](PLAN/evidence/pp22-sync-query-diagnosis-2026-11-19.json).
+
 - [x] **PP21 old A/B Supabase drain.** Old A remained verified with 57
   private Storage objects covering 28,411 raw rows. Sealed old B with the
   collector durably OFF and archived its 9,784 raw rows as 20 authenticated

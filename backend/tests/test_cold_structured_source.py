@@ -35,7 +35,7 @@ def fixture():
             return Mock(fetchone=lambda: dict(database='postgres', role=READER_ROLE))
         if 'current_user=session_user' in statement:
             return Mock(fetchone=lambda: guard)
-        if 'WITH sizes' in statement:
+        if 'WITH selected' in statement:
             return Mock(fetchall=lambda: [receipt])
         return Mock()
 
@@ -68,7 +68,7 @@ class ColdSourceTests(unittest.TestCase):
             guard[field] = False
             with self.subTest(field=field), self.assertRaises(ArchiveIntegrityError):
                 source.read_revisions([1], max_bytes=MAX_BYTES, timeout_seconds=4)
-            self.assertFalse(any('WITH sizes' in c.args[0] for c in connection.execute.call_args_list))
+            self.assertFalse(any('WITH selected' in c.args[0] for c in connection.execute.call_args_list))
         source, connection, factory, receipt, guard, record = fixture()
         original = connection.execute.side_effect
         connection.execute.side_effect = lambda s, v=None: (

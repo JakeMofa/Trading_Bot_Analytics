@@ -1,0 +1,777 @@
+{
+  "scope": "collector OFF; bounded 50-record diagnostic rollback; read-only query comparison",
+  "baseline_source": "69af6eff9d3555103b69f111ad533e35a0abc5be",
+  "write_trace": [
+    {
+      "baseline": {
+        "acked": 763,
+        "pending": 4888,
+        "raw": 5241
+      },
+      "status": "ready"
+    },
+    {
+      "elapsed": 0.493606,
+      "label": "checkout",
+      "seconds": 0.313044,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.542616,
+      "label": "begin",
+      "seconds": 0.048907,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.592645,
+      "label": "set_config",
+      "operation": 1,
+      "pipeline": 0,
+      "seconds": 0.049923,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.641567,
+      "label": "current_database",
+      "operation": 2,
+      "pipeline": 0,
+      "seconds": 0.048807,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.691703,
+      "label": "pg_advisory_xact_lock",
+      "operation": 3,
+      "pipeline": 0,
+      "seconds": 0.050024,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.762523,
+      "label": "generation_checkpoints",
+      "operation": 4,
+      "pipeline": 0,
+      "seconds": 0.07072,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.876289,
+      "label": "structured_receipts",
+      "operation": 5,
+      "pipeline": 0,
+      "seconds": 0.113591,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.932943,
+      "label": "pg_advisory_xact_lock",
+      "operation": 6,
+      "pipeline": 0,
+      "seconds": 0.055241,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.933971,
+      "label": "current_prices",
+      "operation": 7,
+      "pipeline": 1,
+      "seconds": 0.000311,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.9883,
+      "label": "pipeline_total",
+      "seconds": 0.055108,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.989587,
+      "label": "current_prices",
+      "operation": 8,
+      "pipeline": 1,
+      "seconds": 0.000548,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.990432,
+      "label": "current_prices",
+      "operation": 9,
+      "pipeline": 1,
+      "seconds": 0.000238,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.991314,
+      "label": "current_prices",
+      "operation": 10,
+      "pipeline": 1,
+      "seconds": 0.000317,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.992056,
+      "label": "current_prices",
+      "operation": 11,
+      "pipeline": 1,
+      "seconds": 0.000202,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.9928,
+      "label": "current_prices",
+      "operation": 12,
+      "pipeline": 1,
+      "seconds": 0.000222,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.99384,
+      "label": "current_prices",
+      "operation": 13,
+      "pipeline": 1,
+      "seconds": 0.000192,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.994555,
+      "label": "current_prices",
+      "operation": 14,
+      "pipeline": 1,
+      "seconds": 0.000202,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.995218,
+      "label": "current_prices",
+      "operation": 15,
+      "pipeline": 1,
+      "seconds": 0.000167,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.99588,
+      "label": "current_prices",
+      "operation": 16,
+      "pipeline": 1,
+      "seconds": 0.000157,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.996573,
+      "label": "current_prices",
+      "operation": 17,
+      "pipeline": 1,
+      "seconds": 0.000192,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.997288,
+      "label": "current_prices",
+      "operation": 18,
+      "pipeline": 1,
+      "seconds": 0.000231,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.998232,
+      "label": "current_prices",
+      "operation": 19,
+      "pipeline": 1,
+      "seconds": 0.000274,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.998923,
+      "label": "current_prices",
+      "operation": 20,
+      "pipeline": 1,
+      "seconds": 0.00017,
+      "status": "phase"
+    },
+    {
+      "elapsed": 0.999588,
+      "label": "current_prices",
+      "operation": 21,
+      "pipeline": 1,
+      "seconds": 0.000192,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.000231,
+      "label": "current_prices",
+      "operation": 22,
+      "pipeline": 1,
+      "seconds": 0.000155,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.001056,
+      "label": "current_prices",
+      "operation": 23,
+      "pipeline": 1,
+      "seconds": 0.000314,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.00173,
+      "label": "current_prices",
+      "operation": 24,
+      "pipeline": 1,
+      "seconds": 0.000157,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.002371,
+      "label": "current_prices",
+      "operation": 25,
+      "pipeline": 1,
+      "seconds": 0.000157,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.004084,
+      "label": "current_prices",
+      "operation": 26,
+      "pipeline": 1,
+      "seconds": 0.000162,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.004727,
+      "label": "current_prices",
+      "operation": 27,
+      "pipeline": 1,
+      "seconds": 0.000156,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.005394,
+      "label": "current_prices",
+      "operation": 28,
+      "pipeline": 1,
+      "seconds": 0.000175,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.006031,
+      "label": "current_prices",
+      "operation": 29,
+      "pipeline": 1,
+      "seconds": 0.000155,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.006663,
+      "label": "current_prices",
+      "operation": 30,
+      "pipeline": 1,
+      "seconds": 0.000157,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.007391,
+      "label": "current_prices",
+      "operation": 31,
+      "pipeline": 1,
+      "seconds": 0.00024,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.00815,
+      "label": "current_prices",
+      "operation": 32,
+      "pipeline": 1,
+      "seconds": 0.000242,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.0088,
+      "label": "current_prices",
+      "operation": 33,
+      "pipeline": 1,
+      "seconds": 0.000159,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.009496,
+      "label": "current_prices",
+      "operation": 34,
+      "pipeline": 1,
+      "seconds": 0.000187,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.010288,
+      "label": "current_prices",
+      "operation": 35,
+      "pipeline": 1,
+      "seconds": 0.0003,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.011002,
+      "label": "current_prices",
+      "operation": 36,
+      "pipeline": 1,
+      "seconds": 0.000159,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.011681,
+      "label": "current_prices",
+      "operation": 37,
+      "pipeline": 1,
+      "seconds": 0.000159,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.012306,
+      "label": "current_prices",
+      "operation": 38,
+      "pipeline": 1,
+      "seconds": 0.000157,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.013095,
+      "label": "current_prices",
+      "operation": 39,
+      "pipeline": 1,
+      "seconds": 0.000158,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.013917,
+      "label": "current_prices",
+      "operation": 40,
+      "pipeline": 1,
+      "seconds": 0.000184,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.051033,
+      "label": "current_prices",
+      "operation": 41,
+      "pipeline": 1,
+      "seconds": 0.000287,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.051998,
+      "label": "current_prices",
+      "operation": 42,
+      "pipeline": 1,
+      "seconds": 0.000332,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.052761,
+      "label": "current_prices",
+      "operation": 43,
+      "pipeline": 1,
+      "seconds": 0.000181,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.053556,
+      "label": "current_prices",
+      "operation": 44,
+      "pipeline": 1,
+      "seconds": 0.000277,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.054307,
+      "label": "current_prices",
+      "operation": 45,
+      "pipeline": 1,
+      "seconds": 0.000164,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.054973,
+      "label": "current_prices",
+      "operation": 46,
+      "pipeline": 1,
+      "seconds": 0.000159,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.055664,
+      "label": "current_prices",
+      "operation": 47,
+      "pipeline": 1,
+      "seconds": 0.000166,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.056322,
+      "label": "current_prices",
+      "operation": 48,
+      "pipeline": 1,
+      "seconds": 0.000159,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.057125,
+      "label": "current_prices",
+      "operation": 49,
+      "pipeline": 1,
+      "seconds": 0.000291,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.057973,
+      "label": "current_prices",
+      "operation": 50,
+      "pipeline": 1,
+      "seconds": 0.000203,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.058765,
+      "label": "current_prices",
+      "operation": 51,
+      "pipeline": 1,
+      "seconds": 0.000169,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.059561,
+      "label": "current_prices",
+      "operation": 52,
+      "pipeline": 1,
+      "seconds": 0.000204,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.060228,
+      "label": "current_prices",
+      "operation": 53,
+      "pipeline": 1,
+      "seconds": 0.000164,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.061063,
+      "label": "current_prices",
+      "operation": 54,
+      "pipeline": 1,
+      "seconds": 0.000265,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.062135,
+      "label": "current_prices",
+      "operation": 55,
+      "pipeline": 1,
+      "seconds": 0.000209,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.084211,
+      "label": "current_prices",
+      "operation": 56,
+      "pipeline": 1,
+      "seconds": 0.02154,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.085723,
+      "label": "current_prices",
+      "operation": 57,
+      "pipeline": 1,
+      "seconds": 0.000739,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.138951,
+      "label": "pipeline_total",
+      "seconds": 0.15042,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.144383,
+      "label": "structured_receipts",
+      "operation": 58,
+      "pipeline": 1,
+      "seconds": 0.001827,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.147237,
+      "label": "structured_receipts",
+      "operation": 59,
+      "pipeline": 1,
+      "seconds": 0.002562,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.153819,
+      "label": "structured_revision_payloads",
+      "operation": 60,
+      "pipeline": 1,
+      "seconds": 0.000995,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.156035,
+      "label": "structured_revision_payloads",
+      "operation": 61,
+      "pipeline": 1,
+      "seconds": 0.000647,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.156649,
+      "label": "structured_revision_payloads",
+      "operation": 62,
+      "pipeline": 1,
+      "seconds": 0.000441,
+      "status": "phase"
+    },
+    {
+      "elapsed": 1.191272,
+      "label": "generation_checkpoints",
+      "operation": 63,
+      "pipeline": 1,
+      "seconds": 0.034522,
+      "status": "phase"
+    },
+    {
+      "elapsed": 4.286264,
+      "label": "pipeline_total",
+      "seconds": 3.143904,
+      "status": "phase"
+    },
+    {
+      "elapsed": 4.286344,
+      "label": "transaction_exit",
+      "seconds": 3.792643,
+      "status": "phase"
+    },
+    {
+      "error_type": "ArchiveUnavailable",
+      "first_id": 54537,
+      "last_id": 54586,
+      "page": 1,
+      "page_rows": 50,
+      "phase": "cloud_import",
+      "status": "hold",
+      "write_seconds": 4.11565
+    },
+    {
+      "above_intake": false,
+      "acknowledged": 0,
+      "elapsed": 4.28715,
+      "failure": "ArchiveUnavailable",
+      "final": {
+        "acked": 763,
+        "pending": 4888,
+        "raw": 5241
+      },
+      "rate": 0.0,
+      "status": "hold"
+    }
+  ],
+  "old_query_analysis": {
+    "scope": "same_exact_read_only_hosted_25_ids_bounded_4s",
+    "attempts": [
+      {
+        "mode": "candidate",
+        "status": "hold",
+        "error_type": "TransactionTimeout",
+        "line": 269,
+        "location": "execute",
+        "container_exit": 1,
+        "setup_category": "unknown"
+      }
+    ]
+  },
+  "old_query_estimate": {
+    "scope": "same_exact_read_only_hosted_25_ids_bounded_4s",
+    "attempts": [
+      {
+        "mode": "candidate",
+        "status": "pass",
+        "seconds": 0.5440596329281107,
+        "plan": {
+          "Node Type": "Nested Loop",
+          "Startup Cost": 1.66,
+          "Total Cost": 44.85,
+          "Plan Rows": 1,
+          "Plan Width": 216,
+          "Plans": [
+            {
+              "Node Type": "Nested Loop",
+              "Startup Cost": 1.24,
+              "Total Cost": 42.79,
+              "Plan Rows": 1,
+              "Plan Width": 1311,
+              "Plans": [
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "structured_revision_payloads",
+                  "Index Name": "structured_revision_payloads_pkey",
+                  "Startup Cost": 0.41,
+                  "Total Cost": 2.02,
+                  "Plan Rows": 1,
+                  "Plan Width": 1287,
+                  "Plans": []
+                },
+                {
+                  "Node Type": "WindowAgg",
+                  "Startup Cost": 0.83,
+                  "Total Cost": 40.75,
+                  "Plan Rows": 1,
+                  "Plan Width": 24,
+                  "Plans": [
+                    {
+                      "Node Type": "Nested Loop",
+                      "Startup Cost": 0.83,
+                      "Total Cost": 40.71,
+                      "Plan Rows": 1,
+                      "Plan Width": 1497,
+                      "Plans": [
+                        {
+                          "Node Type": "Index Scan",
+                          "Relation Name": "structured_revision_payloads",
+                          "Index Name": "structured_revision_payloads_pkey",
+                          "Startup Cost": 0.41,
+                          "Total Cost": 38.68,
+                          "Plan Rows": 1,
+                          "Plan Width": 1287,
+                          "Plans": []
+                        },
+                        {
+                          "Node Type": "Index Scan",
+                          "Relation Name": "structured_receipts",
+                          "Index Name": "structured_receipts_pkey",
+                          "Startup Cost": 0.41,
+                          "Total Cost": 2.02,
+                          "Plan Rows": 1,
+                          "Plan Width": 314,
+                          "Plans": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "Node Type": "Index Scan",
+              "Relation Name": "structured_receipts",
+              "Index Name": "structured_receipts_pkey",
+              "Startup Cost": 0.41,
+              "Total Cost": 2.02,
+              "Plan Rows": 1,
+              "Plan Width": 314,
+              "Plans": []
+            }
+          ]
+        },
+        "execution_ms": null,
+        "planning_ms": null,
+        "container_exit": 0,
+        "setup_category": "unknown"
+      }
+    ]
+  },
+  "selected_query_analysis": {
+    "scope": "same_exact_read_only_hosted_25_ids_bounded_4s",
+    "attempts": [
+      {
+        "mode": "candidate",
+        "status": "pass",
+        "seconds": 0.5110406129388139,
+        "plan": {
+          "Node Type": "Sort",
+          "Actual Startup Time": 1.455,
+          "Actual Total Time": 1.458,
+          "Actual Rows": 25,
+          "Actual Loops": 1,
+          "Shared Hit Blocks": 175,
+          "Shared Read Blocks": 0,
+          "Plans": [
+            {
+              "Node Type": "Nested Loop",
+              "Actual Startup Time": 0.503,
+              "Actual Total Time": 1.237,
+              "Actual Rows": 25,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 172,
+              "Shared Read Blocks": 0,
+              "Plans": [
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "structured_revision_payloads",
+                  "Index Name": "structured_revision_payloads_pkey",
+                  "Actual Startup Time": 0.187,
+                  "Actual Total Time": 0.251,
+                  "Actual Rows": 25,
+                  "Actual Loops": 1,
+                  "Shared Hit Blocks": 9,
+                  "Shared Read Blocks": 0,
+                  "Plans": []
+                },
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "structured_receipts",
+                  "Index Name": "structured_receipts_latest_identity_v1_idx",
+                  "Actual Startup Time": 0.026,
+                  "Actual Total Time": 0.037,
+                  "Actual Rows": 13,
+                  "Actual Loops": 25,
+                  "Rows Removed by Filter": 0,
+                  "Shared Hit Blocks": 163,
+                  "Shared Read Blocks": 0,
+                  "Plans": []
+                }
+              ]
+            },
+            {
+              "Node Type": "Subquery Scan",
+              "Actual Startup Time": 1.379,
+              "Actual Total Time": 1.398,
+              "Actual Rows": 25,
+              "Actual Loops": 1,
+              "Shared Hit Blocks": 172,
+              "Shared Read Blocks": 0,
+              "Plans": [
+                {
+                  "Node Type": "WindowAgg",
+                  "Actual Startup Time": 1.376,
+                  "Actual Total Time": 1.386,
+                  "Actual Rows": 25,
+                  "Actual Loops": 1,
+                  "Shared Hit Blocks": 172,
+                  "Shared Read Blocks": 0,
+                  "Plans": [
+                    {
+                      "Node Type": "CTE Scan",
+                      "Actual Startup Time": 0.51,
+                      "Actual Total Time": 1.309,
+                      "Actual Rows": 25,
+                      "Actual Loops": 1,
+                      "Shared Hit Blocks": 172,
+                      "Shared Read Blocks": 0,
+                      "Plans": []
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "execution_ms": 1.591,
+        "planning_ms": 2.305,
+        "container_exit": 0,
+        "setup_category": "unknown"
+      }
+    ]
+  },
+  "limits_unchanged": true,
+  "full_backlog_result": "pending exact-candidate CI and hosted test",
+  "new_live_trial_started": false
+}

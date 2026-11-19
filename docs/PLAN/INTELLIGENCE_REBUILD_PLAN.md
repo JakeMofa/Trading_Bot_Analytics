@@ -1,3 +1,26 @@
+## November 19 — retained-data drain before any new live trial
+
+The user requires the retained PP22 data to be drained and archived before
+another live rotation. Collection remains OFF. The 4,888 pending structured
+records and 5,241 raw rows remain intact. Older PP21 A/B already have passing
+archive/readback evidence and remain attached; do not reseal or reset them.
+
+A bounded timed write isolated the timeout to the final receipt/revision/
+checkpoint pipeline (3.144 s). Checkout was 0.313 s; projection updates 0.150 s.
+The old revision query's read-only EXPLAIN ANALYZE timed out under 3.5 s.
+The scoped materialized-selection replacement completed the same hosted
+25-record query in 1.591 ms database execution (0.511 s including connection
+and checks). It preserves exact canonical bytes, receipt checks and aggregate
+byte suppression. No permission, timeout or batch-limit changes are involved.
+Seven native sync safety tests and three retained-cardinality regressions pass;
+the old query fails the new bounded-plan regression. These are query results,
+not full-cycle throughput proof. Require exact-source CI, then write/fresh
+readback/local ACK across the retained backlog above 13.6 records/s before
+considering another live trial. Any failed or ambiguous write holds and must
+be reconciled. Seal/archive initial A under separate OFF maintenance controls;
+that work must never claim the failed live trial passed or authorize deletion.
+[Diagnosis](evidence/pp22-sync-query-diagnosis-2026-11-19.json).
+
 ## Active master plan — PP rotation, usable history, and archive performance
 
 November 19, 2026. Scope is read-only collection and deterministic analysis for

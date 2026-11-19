@@ -130,7 +130,7 @@ class NativeColdSourceTests(unittest.TestCase):
                 return self.inner.__exit__(*args)
             def execute(self, statement, values=None):
                 cursor = self.inner.execute(statement, values)
-                if 'WITH sizes' in statement:
+                if 'WITH selected' in statement:
                     rows = cursor.fetchall()
                     fetched.extend(rows)
                     return SimpleNamespace(fetchall=lambda: rows)

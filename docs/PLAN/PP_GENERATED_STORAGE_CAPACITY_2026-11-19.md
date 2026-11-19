@@ -140,3 +140,18 @@ The local nested Docker reproduction is diagnostic evidence only: Docker Desktop
 had 6.9 GiB free, so that run substituted the host disk-headroom gate. The real
 Linux daemon, restricted roles, migration, table query and credential paths were
 exercised. Unmodified hosted CI remains the qualification gate.
+
+Both corrected local nested-Linux controller diagnostics passed at source
+`4158ff2`: one reused the migrated schema and one reset its own disposable volume
+to test the absent-table installation. They verified service startup, API/SSE,
+restart persistence, consumed authority rejection and forward-preserving recovery;
+the local disk-gate limitation above still applies. Hosted follow-up runs
+44553965587/44553955246 exposed an integration-test adapter that only overrode
+the application SQL helper. That adapter now supplies the storage reader hook
+with a separate actual reader login and verifies READ ONLY identity, preserving
+its admin-session temporary outbox fixture. Hosted qualification is rerun.
+
+The updated lifetime-inventory integration passed against disposable native
+PostgreSQL 17 with a distinct SCRAM reader credential, zero skips, exact unchanged
+shared catalog and final migration-schema validation. All 212 local deploy
+controls passed (five environment-specific skips).

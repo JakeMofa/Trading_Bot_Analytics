@@ -3814,3 +3814,10 @@ diagnostic reproduced the exact permission failure, with its disk-gate
 substitution explicitly excluded from qualification. Exact-source hosted CI
 and the separate PP fenced-runtime task remain required.
 [Diagnosis, scope and limitations](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).
+
+The corrected controller passed both clean-volume and existing-schema local
+nested-Linux diagnostics at `4158ff2` under the documented disk-gate limitation.
+Hosted follow-up found the lifetime-inventory SQL fixture also needed the reader
+hook; it now exercises the actual reader login and READ ONLY transaction while
+retaining its temporary outbox fixture. Exact-source hosted qualification is
+rerun; this does not change runtime source or grants.

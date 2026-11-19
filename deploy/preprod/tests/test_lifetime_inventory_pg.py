@@ -10,7 +10,8 @@ from controller import DeploymentHold
 from linux_actions import LinuxActions
 
 
-@unittest.skipUnless(os.getenv('TRADEBOT_TEST_HISTORY_V2_DSN'), 'isolated PostgreSQL required')
+@unittest.skipUnless(all(os.getenv(key) for key in ('TRADEBOT_TEST_HISTORY_V2_DSN',
+    'TRADEBOT_TEST_READER_DSN')), 'isolated PostgreSQL admin and reader required')
 class LifetimeInventoryTests(unittest.TestCase):
     def test_synced_history_pending_limit_and_recovery_digest(self):
         import psycopg
@@ -25,6 +26,16 @@ class LifetimeInventoryTests(unittest.TestCase):
                     if isinstance(value, bool):
                         return 't' if value else 'f'
                     return json.dumps(value)
+                def _reader_sql(self, budget, query):
+                    # The outbox fixture uses the admin session's temp table;
+                    # generated-storage preservation uses its real reader ACL.
+                    with psycopg.connect(os.environ['TRADEBOT_TEST_READER_DSN'],connect_timeout=5,
+                                         options='-c default_transaction_read_only=on') as reader:
+                        identity=reader.execute("SELECT current_user,current_setting('transaction_read_only')").fetchone()
+                        if identity!=('tradebot_reader','on'):
+                            raise AssertionError('inventory fixture reader identity/read-only mismatch')
+                        value=reader.execute(query).fetchone()[0]
+                    return ('t' if value else 'f') if isinstance(value,bool) else json.dumps(value)
             actions = FixtureActions()
             actions._outbox_release_preflight(None)
             initial_inventory = actions._inventory(None)

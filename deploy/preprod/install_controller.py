@@ -224,6 +224,7 @@ if __name__=='__main__':
     a=sub.add_parser('authorize-raw-archive-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-seal-count',type=int,required=True);a.add_argument('--expected-manifest-count',type=int,required=True)
     for op in ('start', 'stop', 'status'):
         sub.add_parser('structured-sync-' + op)
+        sub.add_parser('sealed-archive-' + op)
     args=parser.parse_args()
     try:
         HostBinding.from_marker().validate()
@@ -237,7 +238,14 @@ if __name__=='__main__':
                     'unused_authority_requires_reconciliation')
             if ACTIVE.exists() or ACTIVE.is_symlink():
                 require(_read_active()['state']=='generated_restored','unfinished_transition_requires_leave')
-        if args.operation.startswith('structured-sync-'):
+        if args.operation.startswith('sealed-archive-'):
+            from controller import Budget
+            from raw_archive_probe_control import recurring_start
+            from structured_probe_control import recurring_control
+            op = args.operation.rsplit('-', 1)[1]
+            result = (recurring_start(LIB/'controller.pyz') if op == 'start'
+                      else recurring_control(op, Budget(65), archive=True))
+        elif args.operation.startswith('structured-sync-'):
             from controller import Budget
             from structured_probe_control import recurring_start, recurring_control
             op = args.operation.rsplit('-', 1)[1]

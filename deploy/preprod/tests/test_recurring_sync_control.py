@@ -46,6 +46,31 @@ class RecurringControlTests(unittest.TestCase):
             self.assertEqual(sync.recurring_control('stop', MagicMock())['status'], 'off')
         sync.fence_recurring_sync()
 
+    def test_archive_and_sync_have_independent_owners_and_one_release_fence(self):
+        from raw_archive_probe_control import recurring_start
+        archive_state = sync.SYNC_STATE.with_name('archive.json')
+        marker = b'{"status": "sealed_archive_worker_ready"}'
+        row = dict(Id='f'*64, State=dict(Running=True))
+        self.actions._json.return_value = {}
+        with patch.object(sync, 'ARCHIVE_STATE', archive_state), \
+             patch('raw_archive_probe_control.preflight', return_value=(self.ctx,self.actions,'b'*64)), \
+             patch('raw_archive_probe_control._stage_local_secret', return_value=contextlib.nullcontext()), \
+             patch('raw_archive_probe_control._compose') as compose, \
+             patch('raw_archive_probe_profile.validate_recurring_profile'), \
+             patch.object(sync, '_sync_container', return_value=row), \
+             patch.object(sync.Budget, 'run', return_value=marker):
+            sync._write_sync_owner(self.owner)
+            self.assertEqual(recurring_start(Path('bundle'))['status'],'started')
+            self.assertIn('sealed_archive', compose.call_args.args[-2])
+            with self.assertRaises(DeploymentHold):
+                sync.fence_recurring_sync()
+            with patch.object(sync, '_sync_container', side_effect=[row,None,None]):
+                sync.recurring_control('stop',MagicMock(),archive=True)
+            self.assertFalse(archive_state.exists())
+            self.assertTrue(sync.SYNC_STATE.exists())
+            with self.assertRaises(DeploymentHold):
+                sync.fence_recurring_sync()
+
     def test_foreign_or_unconfirmed_worker_keeps_fence(self):
         sync._write_sync_owner(self.owner)
         with patch.object(sync, '_sync_container', side_effect=DeploymentHold('mismatch')):

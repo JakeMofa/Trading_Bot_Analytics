@@ -515,6 +515,32 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         with self.assertRaises(ArchiveIntegrityError):
             b.read_revisions([1], max_bytes=8192, timeout_seconds=5)
 
+        from postgres.archive_codec import ArchiveLimits, CycleBudget
+        from postgres.pp_retirement_verify import RetirementTransport
+        scoped = RetirementTransport(None, a, origin_id=origin, generation_id=a.generation_id)
+        with CycleBudget(ArchiveLimits()) as budget:
+            reserved = len(encoded([first]))
+            timeout = budget.request(reserved)
+            self.assertEqual(scoped.read_structured_authenticated(
+                [first], max_bytes=8192, timeout_seconds=timeout), [first])
+            self.assertEqual(budget.bytes, reserved + len(encoded(second)))
+        with self.assertRaises(ArchiveLimit):
+            a.read_retirement_revisions([first], max_bytes=reserved, timeout_seconds=5)
+        # B's projection cannot authenticate itself. A's immutable envelope
+        # survives, but the altered B price must hold retirement.
+        with connect() as connection:
+            connection.execute("UPDATE history_v2.current_prices SET price=9 WHERE origin_id=%s",
+                               (origin,))
+        with self.assertRaises(ArchiveIntegrityError):
+            a.read_retirement_revisions([first], max_bytes=8192, timeout_seconds=5)
+        with connect() as connection:
+            connection.execute("UPDATE history_v2.current_prices SET price=100.2400 WHERE origin_id=%s",
+                               (origin,))
+            connection.execute("DELETE FROM history_v2.structured_revision_payloads WHERE origin_id=%s AND generation_id=%s",
+                               (origin, b.generation_id))
+        with self.assertRaises(ArchiveIntegrityError):
+            a.read_retirement_revisions([first], max_bytes=8192, timeout_seconds=5)
+
     def test_parent_import_precedes_lower_id_dependent(self):
         import psycopg
         from psycopg.rows import dict_row

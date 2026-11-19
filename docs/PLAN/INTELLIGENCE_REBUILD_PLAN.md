@@ -143,6 +143,30 @@ Keep environment-specific prediction IDs, calculation results and local capture
 IDs independently addressable. This checkpoint adds no canonical-event schema
 or cross-origin deduplication to the archive writer.
 
+### PP retirement readback of prices that advance in B
+
+The PP diagnostic compares every requested sealed structured envelope against
+its original local record and receipt. In the same PostgreSQL read-only
+repeatable-read transaction it checks the generation checkpoint, locates the
+highest outbox ID per affected entity across this origin, verifies any newer
+revision and its own generation checkpoint, and compares the current projection
+to that authenticated revision. Missing immutable payloads, ambiguous IDs,
+changed projections, deadline expiry and insufficient read budget preserve A.
+The collector can continue writing B during the read. The generated PostgreSQL
+17 regression fetched A's historical price after B advanced the projected
+price and rejected both a corrupted projection and a missing newer envelope.
+
+The PP operator confirmed at 02:19:42 UTC on November 19 that the cloud
+revision payload table was absent. Runtime capture, migration and exact
+receipt-bound backfill have separate qualification. The last measured A had
+4,845 raw rows and a peak of 804 rows in a UTC minute. The recurring archive
+worker handles up to 500 rows per object with 128 manifests. The final proof
+currently has 24 requests, 16 MiB and 20 seconds for all raw and structured
+reads combined. A two-market run at that peak would put about 28,965 rows in
+A, requiring at least 58 raw reads alone. A 30-minute deadline and the ability
+to retire a live A remain unqualified. The diagnostic grants no deletion
+authority. The hosted privileged-mutation boundary still requires a decision.
+
 ### Exact sealed PP readback and local retirement
 
 The one-shot source command `python -m postgres.pp_retirement_verify --sealed UUID

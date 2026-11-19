@@ -28,6 +28,25 @@ class Target:
             raise ValueError('exact distinct generations, digest and positive row count required')
 
 
+class RetirementTransport(ScopedArchiveTransport):
+    """Exact, read-only sealed-generation structured proof, scoped to this command."""
+    def read_structured_authenticated(self, records, *, max_bytes, timeout_seconds):
+        from .archive_codec import ACTIVE_BUDGET, ArchiveLimit, encoded
+        from .history_v2_envelope import validate_outbox_stream
+        validate_outbox_stream(records, origin_id=self.origin_id, generation_id=self.generation_id)
+        budget = ACTIVE_BUDGET.get()
+        if budget is None:
+            raise ArchiveLimit('retirement operation budget required')
+        requested = len(encoded(records))
+        # The worker reserved these exact A bytes. Any newer revision in B
+        # must also fit the remaining cycle and page budget.
+        allowance = min(max_bytes, requested + budget.limits.max_cycle_bytes - budget.bytes)
+        rows, size = self.structured.read_retirement_revisions(
+            records, max_bytes=allowance, timeout_seconds=timeout_seconds)
+        budget.account(size - requested)
+        return rows
+
+
 def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN):
     target.validate()
     if (repository.environment != 'preprod' or transport.origin_id != origin
@@ -50,7 +69,7 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
             raise LifecycleHold('concurrent opposite-slot persistence unobserved')
         budget.check()
     return {'status':'fresh_readback_verified','retirement_authorized':False,
-            'policy_version':'pp-retirement-readback-v1','sealed':target.sealed,
+            'policy_version':'pp-retirement-readback-v2','sealed':target.sealed,
             'collecting':target.collecting,'opposite_slot_new_rows':after['committed_rows']-before['committed_rows'],
             **readback}
 
@@ -85,7 +104,7 @@ def main():
             FILES['TRADEBOT_PP_STORAGE_'+key+'_FILE'] for key in ('API_KEY','AUTH_EMAIL','AUTH_PASSWORD','AUTH_UID')))
         structured=HistoryV2PostgresTransport(PPHistoryConnectionFactory(),origin_id=ORIGIN,
             generation_id=target.sealed,expected_database='postgres',expected_role='tradebot_pp_history')
-        scoped=ScopedArchiveTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed)
+        scoped=RetirementTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed)
         print(json.dumps(verify(LifecycleRepository(factory),scoped,target),sort_keys=True))
         return 0
     except Exception as error:

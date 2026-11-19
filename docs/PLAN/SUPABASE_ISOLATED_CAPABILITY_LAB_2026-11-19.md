@@ -135,6 +135,36 @@ seconds for 50, including handoff. The existing reviewed row ceiling is 50.
 Next measurement should use actual host page bytes and separate cloud commit,
 authenticated readback and local ACK timings.
 
+## Full structured write, verify, and ACK qualification
+
+A disposable PostgreSQL 17 cluster ran the real active worker, installed
+schema and trial writer role, durable local outbox, and exact hosted-side
+receipt/revision checks. It applied no PP or hosted changes. Every successful
+page had 50 equal canonical envelopes and 50 persisted local ACKs. The first
+comparison used two pages per arm at each injected wait. With 50 ms per
+counted database wait, batching (`69af6ef`) cut 25 waits to 15 and the median
+complete page went from 1.489 s to 0.950 s. With zero injection it went from
+99 ms to 98 ms.
+
+For the revision query rewrite (`d9ab8d4`), each arm processed eight consecutive
+50-row pages in two runs with reversed order, 50 ms of simulated wait and a
+100 ms handoff. Both versions persisted all 400 exact ACKs per run. The revised
+source measured 48.61–49.02 records/sec compared with 25.92–25.99 records/sec
+for the previous batching code. Median write, fresh readback and local ACK
+for the revision fix were approximately 640–652, 238–240, and 17–19 ms.
+The result exercises sustained work against a generated backlog in the lab.
+Network, TLS, hosted contention, and PP CPU limits require separate evidence.
+
+On the actual stopped PP backlog, the original batching candidate held on
+the first 50-row write. The release trace put about 3.14 s in its final writer
+batch and recorded a transaction timeout during the revision SELECT before
+ACK. The estimated old plan rescanned the selected generation through
+repeated joins. The replacement selects scoped rows once and applies the same
+byte and exactness checks. A hosted read-only test on the same 25 IDs took
+1.591 ms of database execution with the new query, and the old query hit
+its 3.5 s timeout. The full hosted write-to-ACK result is still open.
+[Hosted query diagnosis in d9ab8d4](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d9ab8d4/docs/PLAN/evidence/pp22-sync-query-diagnosis-2026-11-19.json)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

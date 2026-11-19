@@ -8,6 +8,14 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **PP22 structured sync full-cycle qualification.** Generated exact
+  50-row pages exercised write, fresh authenticated readback and persisted
+  local ACK. The revision query fix processed 400 canonical records per run
+  at 48.61–49.02 records/sec with simulated waits. The hosted revision SELECT
+  improved separately. The actual PP full-cycle rate above 14 rows/sec and
+  retained backlog drain are still open, with A kept attached.
+  [Independent load fixture](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
+
 - [x] **PP21 old A/B Supabase drain.** Old A remained verified with 57
   private Storage objects covering 28,411 raw rows. Sealed old B with the
   collector durably OFF and archived its 9,784 raw rows as 20 authenticated

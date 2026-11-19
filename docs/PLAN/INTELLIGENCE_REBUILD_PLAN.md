@@ -82,9 +82,12 @@ establish live PP or production dashboard parity.
   page. It still needs a matched PP measurement and full-audit margin.
   An isolated local query study found a matching raw cursor index cut the
   generated 57-page sweep from 4.416 s to 0.740 s with identical row/page
-  hashes. The tested outbox index did not show a material improvement. Profile
-  the actual PP raw plan and local inventory separately, then measure index
-  write/WAL and lock costs before selecting a change.
+  hashes. The same sweep on the full local schema fell from 4.613 s to
+  0.761 s with identical hashes. The index added about 4% bulk-insert time
+  and 15% WAL in the generated write trial. The tested outbox index did not
+  show a material improvement. Profile the actual PP raw plan and local
+  inventory separately. If PP reproduces the raw scan, qualify a sealed-child
+  index to keep its write cost off the active generation.
   [Local retention query study](PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)
   Keep the 50-row sync write configuration
   until separate 75-row throughput and exact acknowledgement evidence.

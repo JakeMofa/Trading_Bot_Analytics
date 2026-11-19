@@ -52,19 +52,43 @@ Generated outbox IDs were contiguous by generation, and the sweep excludes
 preflight count, structured record conversion, and full inventory work.
 Measure those phases separately on representative PP evidence.
 
-## Qualification to pursue
+## Full-schema PostgreSQL 17 qualification
+
+A second disposable cluster applied all local PostgreSQL migrations and used
+generated data from two origins. Three warmed reads kept the same production
+page function and 500-row limit. Five 5,000-row inserts per arm used fresh
+partitions and alternated which arm ran first.
+
+| Measurement | Current | Cursor index |
+| --- | ---: | ---: |
+| Median 28,411-row sweep, 57 pages | 4.613 s | 0.761 s |
+| Median 5,000-row bulk insert | 0.242 s | 0.253 s |
+| Median WAL per 5,000 inserted rows | 5,603,688 bytes | 6,421,672 bytes |
+
+The extra bulk-insert time was about 4% and additional WAL about 15% in this
+fixture. All six sweeps matched on row count, page count and ordered canonical
+page digest
+(`ecc3a6fdc7f41a005ee585b0c0f60599f4040641a702cfa8919e3c6d8f9474dc`).
+A concurrent build on the quiet 28,411-row child took 64 ms, generated about
+2.23 MB of WAL and produced a valid, ready 2.47 MB index. Under a held
+`ROW EXCLUSIVE` lock, a regular child build hit the configured 250 ms lock
+timeout. PostgreSQL refused a concurrent build on the partitioned parent
+with SQLSTATE `0A000`. Bulk inserts and a quiet build do not establish live
+collector latency, concurrent build duration or rollover behavior.
+
+## Remaining qualification
 
 1. Ask the release operator for the exact retained A mid-page size and payload
    query plans under the existing scoped reader. Start with plain `EXPLAIN`.
    Any timed read should keep the current bounds and stay outside a critical
    retention operation. Record the actual relation, collation, scan, sorting,
    Buffers when measured, and phase timings.
-2. If PP shows the same repeated raw scan, qualify the matching cursor index
-   on a disposable copy of the full schema. Compare active-write overhead,
-   index size, WAL, lock time, and behavior when partitions are created or
-   retired. Include multiple origins in the fixture. Recheck identical page
-   boundaries, raw hashes and protected evidence. Choose the PP migration
-   method only after that evidence.
+2. If PP shows the same repeated raw scan, qualify an index on a sealed
+   generation child before considering any index on active generations.
+   Look up the relation through the registered generation UUID. Test that a
+   failed or retried build cannot advance archive or retirement state, the
+   successor continues writing, and its own archived hashes still match.
+   Account for build and lock time separately from the verification sweep.
 3. Keep the live gates intact. A faster local scan reduces time spent inside
    exact verification. It does not authorize retirement or remove any raw,
    receipt, structured projection, reader, or permit check. The full audit

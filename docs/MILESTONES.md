@@ -11,10 +11,12 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 - [ ] **PP A/B retirement and deterministic dashboard history.** The
   [five-step master plan](PLAN/INTELLIGENCE_REBUILD_PLAN.md) now binds the actual
   legacy FastAPI and SQLite contracts, PP release recovery, both rotations, and
-  deterministic history parity across retirement. An isolated raw cursor study
-  preserved exact 57-page hashes and reduced the generated local sweep from
-  4.416 s to 0.740 s. Actual PP query plans, write costs, full retained-A
-  verification and multi-generation deterministic parity remain to be verified.
+  deterministic history parity across retirement. The full-schema raw cursor
+  study preserved exact hashes and reduced the generated 57-page sweep from
+  4.613 s to 0.761 s. The fixture measured about 4% more bulk-insert time
+  and 15% more WAL with the index. Actual PP query plans, live write overhead,
+  full retained-A verification and multi-generation deterministic parity
+  remain to be verified.
   [Local query study](PLAN/PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)
 
 Documentation update October 7: [PROGRESS_SUMMARY.md](PROGRESS_SUMMARY.md) summarizes completed work, recorded validation, partial features, and remaining gaps. Reviewed against this checklist and commit history; no new live verification or implementation milestone is claimed.

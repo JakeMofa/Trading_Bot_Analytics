@@ -4231,3 +4231,24 @@ and unsupported context limitations remain open. Existing old verified A plus
 disabled collecting B cannot become a fresh A-first trial while both slots stay
 occupied; source fences rather than relabeling or retrospectively passing A.
 [Executable procedure, source constraints and qualification](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md).
+
+
+### November 19 UTC — source-only stopped historical B drain candidate
+
+The user requested preserving/draining old PP21 A/B to Supabase before a fresh
+trial. Old B remains collecting-disabled, which correctly excludes it from raw
+sealed archival. A default-off exact-old-origin local maintenance command now
+seals reviewed B only under global admission and worker/writer locks, binding
+its UUID/count/epoch and a fresh operation/source receipt. It leaves the writer
+pointing to sealed B, creates no successor, changes no A seal, and grants no
+retirement or original-trial authority. Identical retry preserves its original
+maintenance seal; normal writer activation then rejects the sealed state.
+
+Twenty generated/native tests pass without skips on disposable local PostgreSQL
+17.2. Genuine Store capture and an in-flight write prove the OFF/count barrier;
+wrong scope/count/epoch, enabled/other collectors and journal rollback preserve
+data. Existing bounded structured/raw workers reject corrupt/unavailable
+readback, then archive/verify successfully without removal. Retained A metadata
+and catalog, raw/core/dedup/source-body evidence remain exact. Hosted release,
+actual cloud drain/readback and independently scoped fresh trial remain pending.
+No schema/grant/host/cloud operation occurred. [Finite route and limitations](PP_HISTORICAL_DRAIN_SOURCE_2026-11-19.md).

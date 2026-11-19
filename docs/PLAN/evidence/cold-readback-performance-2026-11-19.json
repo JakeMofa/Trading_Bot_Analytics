@@ -1,0 +1,2877 @@
+{
+  "scope": "generated local PostgreSQL cleartext TCP protocol; not PP/TLS bandwidth or production performance",
+  "source_sha": "c3a05d3ce522ada5fa4a5259f7bc128193c456bf",
+  "psycopg_version": "3.2.13",
+  "libpq_version": 170006,
+  "connection_execute_signature": "(self, query: 'Query', params: 'Params | None' = None, *, prepare: 'bool | None' = None, binary: 'bool' = False) -> 'Cursor[Row]'",
+  "server_version": "17.2 Homebrew",
+  "bytea_output": "hex",
+  "records": 500,
+  "fixture_composition": {
+    "core.candles": 499,
+    "core.current_prices": 1
+  },
+  "distinct_projection_keys": 500,
+  "newer_replacement_fixture": {
+    "generations": 1,
+    "records": 1,
+    "canonical_envelope_bytes": 4039,
+    "canonical_envelope_sha256": "847401531b5a7c1b9fac70311f66e575e6c49d9c8416c0992ad63cd48e4a7f76"
+  },
+  "canonical_page_bytes": 1975325,
+  "stored_envelope_bytes": 1974824,
+  "canonical_page_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+  "samples": [
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "pair": 1,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.006766125006834045,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.0072992909990716726,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002376332995481789,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07092212498537265,
+          "revision_local_canonical_validation_hash_seconds": 0.061246500990819186
+        }
+      ],
+      "revision_total_seconds": 0.07092212498537265,
+      "revision_execute_seconds": 0.0072992909990716726,
+      "revision_fetch_type_decode_seconds": 0.002376332995481789,
+      "revision_local_canonical_validation_hash_seconds": 0.061246500990819186,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 4106836
+      },
+      "whole_operation_seconds": 0.07874770800117403,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 4203,
+        "server_to_client": 4107568
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "pair": 1,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0023149170156102628,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004775374982273206,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0004101250087842345,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06651666699326597,
+          "revision_local_canonical_validation_hash_seconds": 0.06133116700220853
+        }
+      ],
+      "revision_total_seconds": 0.06651666699326597,
+      "revision_execute_seconds": 0.004775374982273206,
+      "revision_fetch_type_decode_seconds": 0.0004101250087842345,
+      "revision_local_canonical_validation_hash_seconds": 0.06133116700220853,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 2135120
+      },
+      "whole_operation_seconds": 0.0699516250169836,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 4203,
+        "server_to_client": 2135852
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "pair": 2,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0023280000023078173,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004709041997557506,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003444169997237623,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06644916598452255,
+          "revision_local_canonical_validation_hash_seconds": 0.06139570698724128
+        }
+      ],
+      "revision_total_seconds": 0.06644916598452255,
+      "revision_execute_seconds": 0.004709041997557506,
+      "revision_fetch_type_decode_seconds": 0.0003444169997237623,
+      "revision_local_canonical_validation_hash_seconds": 0.06139570698724128,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 2135120
+      },
+      "whole_operation_seconds": 0.0699479169852566,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 4203,
+        "server_to_client": 2135852
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "pair": 2,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.002178665978135541,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.0068804580077994615,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0024357499787583947,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07037316699279472,
+          "revision_local_canonical_validation_hash_seconds": 0.061056959006236866
+        }
+      ],
+      "revision_total_seconds": 0.07037316699279472,
+      "revision_execute_seconds": 0.0068804580077994615,
+      "revision_fetch_type_decode_seconds": 0.0024357499787583947,
+      "revision_local_canonical_validation_hash_seconds": 0.061056959006236866,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 4106836
+      },
+      "whole_operation_seconds": 0.07363870900007896,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 4203,
+        "server_to_client": 4107568
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "pair": 3,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.002227041986770928,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.007149457989726216,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002286834002006799,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07049687500693835,
+          "revision_local_canonical_validation_hash_seconds": 0.06106058301520534
+        }
+      ],
+      "revision_total_seconds": 0.07049687500693835,
+      "revision_execute_seconds": 0.007149457989726216,
+      "revision_fetch_type_decode_seconds": 0.002286834002006799,
+      "revision_local_canonical_validation_hash_seconds": 0.06106058301520534,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 4106836
+      },
+      "whole_operation_seconds": 0.07379704201593995,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 4203,
+        "server_to_client": 4107568
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "pair": 3,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0021332080068532377,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004633666976587847,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.00039520900463685393,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06618508297833614,
+          "revision_local_canonical_validation_hash_seconds": 0.06115620699711144
+        }
+      ],
+      "revision_total_seconds": 0.06618508297833614,
+      "revision_execute_seconds": 0.004633666976587847,
+      "revision_fetch_type_decode_seconds": 0.00039520900463685393,
+      "revision_local_canonical_validation_hash_seconds": 0.06115620699711144,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 2135120
+      },
+      "whole_operation_seconds": 0.0693310419737827,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 4203,
+        "server_to_client": 2135852
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "pair": 1,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.002433499990729615,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006736333016306162,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002338249993044883,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07010137499310076,
+          "revision_local_canonical_validation_hash_seconds": 0.06102679198374972
+        }
+      ],
+      "revision_total_seconds": 0.07010137499310076,
+      "revision_execute_seconds": 0.006736333016306162,
+      "revision_fetch_type_decode_seconds": 0.002338249993044883,
+      "revision_local_canonical_validation_hash_seconds": 0.06102679198374972,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 4106836
+      },
+      "projection_pipeline_seconds": 0.03826245799427852,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.2183697499858681,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 163726,
+        "server_to_client": 6168753
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "pair": 1,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0022375840053427964,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004889999981969595,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003935830027330667,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06641108400071971,
+          "revision_local_canonical_validation_hash_seconds": 0.06112750101601705
+        }
+      ],
+      "revision_total_seconds": 0.06641108400071971,
+      "revision_execute_seconds": 0.004889999981969595,
+      "revision_fetch_type_decode_seconds": 0.0003935830027330667,
+      "revision_local_canonical_validation_hash_seconds": 0.06112750101601705,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 2135120
+      },
+      "projection_pipeline_seconds": 0.0378430419950746,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.2143584580044262,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 163726,
+        "server_to_client": 4197037
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "pair": 2,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.00205370900221169,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.0042946250177919865,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.00034679201780818403,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06524487500428222,
+          "revision_local_canonical_validation_hash_seconds": 0.06060345796868205
+        }
+      ],
+      "revision_total_seconds": 0.06524487500428222,
+      "revision_execute_seconds": 0.0042946250177919865,
+      "revision_fetch_type_decode_seconds": 0.00034679201780818403,
+      "revision_local_canonical_validation_hash_seconds": 0.06060345796868205,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 2135120
+      },
+      "projection_pipeline_seconds": 0.03875829101889394,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.2178553749981802,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 163726,
+        "server_to_client": 4197037
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "pair": 2,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0021651670103892684,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006409374997019768,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0023368749825749546,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07095587500953116,
+          "revision_local_canonical_validation_hash_seconds": 0.06220962502993643
+        }
+      ],
+      "revision_total_seconds": 0.07095587500953116,
+      "revision_execute_seconds": 0.006409374997019768,
+      "revision_fetch_type_decode_seconds": 0.0023368749825749546,
+      "revision_local_canonical_validation_hash_seconds": 0.06220962502993643,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 4106836
+      },
+      "projection_pipeline_seconds": 0.035630500002298504,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.21628229197813198,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 163726,
+        "server_to_client": 6168753
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "pair": 3,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.002359000005526468,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006427082989830524,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002270583005156368,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06855133399949409,
+          "revision_local_canonical_validation_hash_seconds": 0.0598536680045072
+        }
+      ],
+      "revision_total_seconds": 0.06855133399949409,
+      "revision_execute_seconds": 0.006427082989830524,
+      "revision_fetch_type_decode_seconds": 0.002270583005156368,
+      "revision_local_canonical_validation_hash_seconds": 0.0598536680045072,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 4106836
+      },
+      "projection_pipeline_seconds": 0.038642667001113296,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.21426308300578967,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 163726,
+        "server_to_client": 6168753
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "pair": 3,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0020576669776346534,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004264832998160273,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003961249894928187,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06513324999832548,
+          "revision_local_canonical_validation_hash_seconds": 0.06047229201067239
+        }
+      ],
+      "revision_total_seconds": 0.06513324999832548,
+      "revision_execute_seconds": 0.004264832998160273,
+      "revision_fetch_type_decode_seconds": 0.0003961249894928187,
+      "revision_local_canonical_validation_hash_seconds": 0.06047229201067239,
+      "revision_protocol_bytes": {
+        "client_to_server": 3832,
+        "server_to_client": 2135120
+      },
+      "projection_pipeline_seconds": 0.03730483300751075,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.2082726249936968,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 163726,
+        "server_to_client": 4197037
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "pair": 1,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0017130829801317304,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006545207987073809,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0021604170033242553,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06883229201775976,
+          "revision_local_canonical_validation_hash_seconds": 0.06012666702736169
+        }
+      ],
+      "revision_total_seconds": 0.06883229201775976,
+      "revision_execute_seconds": 0.006545207987073809,
+      "revision_fetch_type_decode_seconds": 0.0021604170033242553,
+      "revision_local_canonical_validation_hash_seconds": 0.06012666702736169,
+      "revision_protocol_bytes": null,
+      "whole_operation_seconds": 0.07123850000789389,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "pair": 1,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.001591499982168898,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.003971541009377688,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.00036145898047834635,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06365050000022165,
+          "revision_local_canonical_validation_hash_seconds": 0.05931750001036562
+        }
+      ],
+      "revision_total_seconds": 0.06365050000022165,
+      "revision_execute_seconds": 0.003971541009377688,
+      "revision_fetch_type_decode_seconds": 0.00036145898047834635,
+      "revision_local_canonical_validation_hash_seconds": 0.05931750001036562,
+      "revision_protocol_bytes": null,
+      "whole_operation_seconds": 0.06589804100804031,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "pair": 2,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0015358750242739916,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004011292010545731,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003073750121984631,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06437054101843387,
+          "revision_local_canonical_validation_hash_seconds": 0.060051873995689675
+        }
+      ],
+      "revision_total_seconds": 0.06437054101843387,
+      "revision_execute_seconds": 0.004011292010545731,
+      "revision_fetch_type_decode_seconds": 0.0003073750121984631,
+      "revision_local_canonical_validation_hash_seconds": 0.060051873995689675,
+      "revision_protocol_bytes": null,
+      "whole_operation_seconds": 0.06661987499683164,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "pair": 2,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0017741250048857182,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006698707991745323,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002209332975326106,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.0688893329934217,
+          "revision_local_canonical_validation_hash_seconds": 0.059981292026350275
+        }
+      ],
+      "revision_total_seconds": 0.0688893329934217,
+      "revision_execute_seconds": 0.006698707991745323,
+      "revision_fetch_type_decode_seconds": 0.002209332975326106,
+      "revision_local_canonical_validation_hash_seconds": 0.059981292026350275,
+      "revision_protocol_bytes": null,
+      "whole_operation_seconds": 0.07132299998193048,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "pair": 3,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0015924169856589288,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006414917006623,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0022287909814622253,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07442279197857715,
+          "revision_local_canonical_validation_hash_seconds": 0.06577908399049193
+        }
+      ],
+      "revision_total_seconds": 0.07442279197857715,
+      "revision_execute_seconds": 0.006414917006623,
+      "revision_fetch_type_decode_seconds": 0.0022287909814622253,
+      "revision_local_canonical_validation_hash_seconds": 0.06577908399049193,
+      "revision_protocol_bytes": null,
+      "whole_operation_seconds": 0.07658683400950395,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "pair": 3,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0015797920059412718,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.00403541699051857,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003578329924494028,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06952312498469837,
+          "revision_local_canonical_validation_hash_seconds": 0.0651298750017304
+        }
+      ],
+      "revision_total_seconds": 0.06952312498469837,
+      "revision_execute_seconds": 0.00403541699051857,
+      "revision_fetch_type_decode_seconds": 0.0003578329924494028,
+      "revision_local_canonical_validation_hash_seconds": 0.0651298750017304,
+      "revision_protocol_bytes": null,
+      "whole_operation_seconds": 0.0717994160077069,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "pair": 1,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.002633041003718972,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.0068174999905750155,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0022757079859729856,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07066499997745268,
+          "revision_local_canonical_validation_hash_seconds": 0.06157179200090468
+        }
+      ],
+      "revision_total_seconds": 0.07066499997745268,
+      "revision_execute_seconds": 0.0068174999905750155,
+      "revision_fetch_type_decode_seconds": 0.0022757079859729856,
+      "revision_local_canonical_validation_hash_seconds": 0.06157179200090468,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.030163749994244426,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.21048529201652855,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "pair": 1,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0019111669971607625,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004100874997675419,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0004102500097360462,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.0671790839987807,
+          "revision_local_canonical_validation_hash_seconds": 0.06266795899136923
+        }
+      ],
+      "revision_total_seconds": 0.0671790839987807,
+      "revision_execute_seconds": 0.004100874997675419,
+      "revision_fetch_type_decode_seconds": 0.0004102500097360462,
+      "revision_local_canonical_validation_hash_seconds": 0.06266795899136923,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.0295527080015745,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.20335925000836141,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "pair": 2,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0017950409965123981,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.003990457975305617,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003125420189462602,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.0648999169934541,
+          "revision_local_canonical_validation_hash_seconds": 0.06059691699920222
+        }
+      ],
+      "revision_total_seconds": 0.0648999169934541,
+      "revision_execute_seconds": 0.003990457975305617,
+      "revision_fetch_type_decode_seconds": 0.0003125420189462602,
+      "revision_local_canonical_validation_hash_seconds": 0.06059691699920222,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.03311462499550544,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.21405062498524785,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "pair": 2,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0022457920131273568,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006365457986248657,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002412166999420151,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07240570799331181,
+          "revision_local_canonical_validation_hash_seconds": 0.063628083007643
+        }
+      ],
+      "revision_total_seconds": 0.07240570799331181,
+      "revision_execute_seconds": 0.006365457986248657,
+      "revision_fetch_type_decode_seconds": 0.002412166999420151,
+      "revision_local_canonical_validation_hash_seconds": 0.063628083007643,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.03114379200269468,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.2150453749927692,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "pair": 3,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0020867499988526106,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006578167027328163,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.00229725000099279,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07126112500554882,
+          "revision_local_canonical_validation_hash_seconds": 0.06238570797722787
+        }
+      ],
+      "revision_total_seconds": 0.07126112500554882,
+      "revision_execute_seconds": 0.006578167027328163,
+      "revision_fetch_type_decode_seconds": 0.00229725000099279,
+      "revision_local_canonical_validation_hash_seconds": 0.06238570797722787,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.038996332994429395,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.2223825839755591,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "pair": 3,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 0,
+      "setup_seconds": 0.0024289170105475932,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.00459150000824593,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0005001660028938204,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06860754199442454,
+          "revision_local_canonical_validation_hash_seconds": 0.06351587598328479
+        }
+      ],
+      "revision_total_seconds": 0.06860754199442454,
+      "revision_execute_seconds": 0.00459150000824593,
+      "revision_fetch_type_decode_seconds": 0.0005001660028938204,
+      "revision_local_canonical_validation_hash_seconds": 0.06351587598328479,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.03100550000090152,
+      "reconstruction_accounted_bytes": 1975325,
+      "whole_operation_seconds": 0.214687416999368,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "pair": 1,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0023762919881846756,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006641750020207837,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002512416976969689,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07384341699071229,
+          "revision_local_canonical_validation_hash_seconds": 0.06468924999353476
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00095158297335729,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 9.29099041968584e-06,
+          "revision_protocol_bytes": {
+            "client_to_server": 1944,
+            "server_to_client": 8680
+          },
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.00117591698653996,
+          "revision_local_canonical_validation_hash_seconds": 0.00021504302276298404
+        }
+      ],
+      "revision_total_seconds": 0.07501933397725224,
+      "revision_execute_seconds": 0.007593332993565127,
+      "revision_fetch_type_decode_seconds": 0.002521707967389375,
+      "revision_local_canonical_validation_hash_seconds": 0.06490429301629774,
+      "revision_protocol_bytes": {
+        "client_to_server": 5776,
+        "server_to_client": 4115516
+      },
+      "projection_pipeline_seconds": 0.0378068329882808,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.22647875000257045,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 165934,
+        "server_to_client": 6177623
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "pair": 1,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0034908340021502227,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004250041005434468,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0005332920118235052,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06660825002472848,
+          "revision_local_canonical_validation_hash_seconds": 0.0618249170074705
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.0006132089765742421,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 4.542001988738775e-06,
+          "revision_protocol_bytes": {
+            "client_to_server": 1944,
+            "server_to_client": 4653
+          },
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0008199160220101476,
+          "revision_local_canonical_validation_hash_seconds": 0.00020216504344716668
+        }
+      ],
+      "revision_total_seconds": 0.06742816604673862,
+      "revision_execute_seconds": 0.0048632499820087105,
+      "revision_fetch_type_decode_seconds": 0.0005378340138122439,
+      "revision_local_canonical_validation_hash_seconds": 0.06202708205091767,
+      "revision_protocol_bytes": {
+        "client_to_server": 5776,
+        "server_to_client": 2139773
+      },
+      "projection_pipeline_seconds": 0.04446174998884089,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.2356738339876756,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 165934,
+        "server_to_client": 4201880
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "pair": 2,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0024227910034824163,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.00458849998540245,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0004146670107729733,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06704037499730475,
+          "revision_local_canonical_validation_hash_seconds": 0.06203720800112933
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.0005864159902557731,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 7.208000170066953e-06,
+          "revision_protocol_bytes": {
+            "client_to_server": 1944,
+            "server_to_client": 4653
+          },
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0008370830037165433,
+          "revision_local_canonical_validation_hash_seconds": 0.0002434590132907033
+        }
+      ],
+      "revision_total_seconds": 0.0678774580010213,
+      "revision_execute_seconds": 0.005174915975658223,
+      "revision_fetch_type_decode_seconds": 0.00042187501094304025,
+      "revision_local_canonical_validation_hash_seconds": 0.06228066701442003,
+      "revision_protocol_bytes": {
+        "client_to_server": 5776,
+        "server_to_client": 2139773
+      },
+      "projection_pipeline_seconds": 0.03954254201380536,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.21820925001520663,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 165934,
+        "server_to_client": 4201880
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "pair": 2,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0022185000125318766,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006726833991706371,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0025024999922607094,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07021175001864322,
+          "revision_local_canonical_validation_hash_seconds": 0.060982416034676135
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00047933298628777266,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 7.000024197623134e-06,
+          "revision_protocol_bytes": {
+            "client_to_server": 1944,
+            "server_to_client": 8680
+          },
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0006829579942859709,
+          "revision_local_canonical_validation_hash_seconds": 0.00019662498380057514
+        }
+      ],
+      "revision_total_seconds": 0.07089470801292919,
+      "revision_execute_seconds": 0.007206166977994144,
+      "revision_fetch_type_decode_seconds": 0.0025095000164583325,
+      "revision_local_canonical_validation_hash_seconds": 0.06117904101847671,
+      "revision_protocol_bytes": {
+        "client_to_server": 5776,
+        "server_to_client": 4115516
+      },
+      "projection_pipeline_seconds": 0.040312958997674286,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.22211829200387,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 165934,
+        "server_to_client": 6177623
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "pair": 3,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.002133125002728775,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006665083026746288,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0024424580042250454,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 4106836
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07056441699387506,
+          "revision_local_canonical_validation_hash_seconds": 0.06145687596290372
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.0004543340182863176,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 7.541995728388429e-06,
+          "revision_protocol_bytes": {
+            "client_to_server": 1944,
+            "server_to_client": 8680
+          },
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0006629170093219727,
+          "revision_local_canonical_validation_hash_seconds": 0.0002010409953072667
+        }
+      ],
+      "revision_total_seconds": 0.07122733400319703,
+      "revision_execute_seconds": 0.0071194170450326055,
+      "revision_fetch_type_decode_seconds": 0.002449999999953434,
+      "revision_local_canonical_validation_hash_seconds": 0.06165791695821099,
+      "revision_protocol_bytes": {
+        "client_to_server": 5776,
+        "server_to_client": 4115516
+      },
+      "projection_pipeline_seconds": 0.0358694999886211,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.21662204200401902,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 165934,
+        "server_to_client": 6177623
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "pair": 3,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0021939580037724227,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004096209013368934,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.00042275001760572195,
+          "revision_protocol_bytes": {
+            "client_to_server": 3832,
+            "server_to_client": 2135120
+          },
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06635629100492224,
+          "revision_local_canonical_validation_hash_seconds": 0.061837331973947585
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00046720801037736237,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 8.040980901569128e-06,
+          "revision_protocol_bytes": {
+            "client_to_server": 1944,
+            "server_to_client": 4653
+          },
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0006949999951757491,
+          "revision_local_canonical_validation_hash_seconds": 0.00021975100389681756
+        }
+      ],
+      "revision_total_seconds": 0.06705129100009799,
+      "revision_execute_seconds": 0.004563417023746297,
+      "revision_fetch_type_decode_seconds": 0.0004307909985072911,
+      "revision_local_canonical_validation_hash_seconds": 0.0620570829778444,
+      "revision_protocol_bytes": {
+        "client_to_server": 5776,
+        "server_to_client": 2139773
+      },
+      "projection_pipeline_seconds": 0.039598166971700266,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.2180780839989893,
+      "whole_operation_protocol_bytes": {
+        "client_to_server": 165934,
+        "server_to_client": 4201880
+      },
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "pair": 1,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.001962250011274591,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.00640820901026018,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.002304666006239131,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07041333298548125,
+          "revision_local_canonical_validation_hash_seconds": 0.06170045796898194
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00039000000106170774,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 7.6669966802001e-06,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0005882910045329481,
+          "revision_local_canonical_validation_hash_seconds": 0.0001906240067910403
+        }
+      ],
+      "revision_total_seconds": 0.0710016239900142,
+      "revision_execute_seconds": 0.006798209011321887,
+      "revision_fetch_type_decode_seconds": 0.002312333002919331,
+      "revision_local_canonical_validation_hash_seconds": 0.06189108197577298,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.03104533301666379,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.21598320800694637,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "pair": 1,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.001962499984074384,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.004178541974397376,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.00040099999750964344,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.0660717920109164,
+          "revision_local_canonical_validation_hash_seconds": 0.06149225003900938
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00042354100150987506,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 3.2910029403865337e-06,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0006305829738266766,
+          "revision_local_canonical_validation_hash_seconds": 0.00020375096937641501
+        }
+      ],
+      "revision_total_seconds": 0.06670237498474307,
+      "revision_execute_seconds": 0.004602082975907251,
+      "revision_fetch_type_decode_seconds": 0.00040429100045002997,
+      "revision_local_canonical_validation_hash_seconds": 0.06169600100838579,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.030341625009896234,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.20764658399275504,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "pair": 2,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.001895166002213955,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.003975958010414615,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003099160094279796,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06445387500571087,
+          "revision_local_canonical_validation_hash_seconds": 0.060168000985868275
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00037195798358879983,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 2.70901364274323e-06,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0005515000084415078,
+          "revision_local_canonical_validation_hash_seconds": 0.00017683301120996475
+        }
+      ],
+      "revision_total_seconds": 0.06500537501415238,
+      "revision_execute_seconds": 0.004347915994003415,
+      "revision_fetch_type_decode_seconds": 0.0003126250230707228,
+      "revision_local_canonical_validation_hash_seconds": 0.06034483399707824,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.034459459013305604,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.20373474998632446,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "pair": 2,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0019477079913485795,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.00648870799341239,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0022887089871801436,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06888016700395383,
+          "revision_local_canonical_validation_hash_seconds": 0.060102750023361295
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.0003790829796344042,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 7.208000170066953e-06,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0005637080175802112,
+          "revision_local_canonical_validation_hash_seconds": 0.00017741703777574003
+        }
+      ],
+      "revision_total_seconds": 0.06944387502153404,
+      "revision_execute_seconds": 0.0068677909730467945,
+      "revision_fetch_type_decode_seconds": 0.0022959169873502105,
+      "revision_local_canonical_validation_hash_seconds": 0.060280167061137035,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.030490208009723574,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.20494087500264868,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "pair": 3,
+      "binary": false,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0017610829963814467,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.006477000017184764,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0027017499960493296,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.07100554197677411,
+          "revision_local_canonical_validation_hash_seconds": 0.06182679196354002
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00037637498462572694,
+          "result_formats": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 8.458009688183665e-06,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0005814580072183162,
+          "revision_local_canonical_validation_hash_seconds": 0.0001966250129044056
+        }
+      ],
+      "revision_total_seconds": 0.07158699998399243,
+      "revision_execute_seconds": 0.006853375001810491,
+      "revision_fetch_type_decode_seconds": 0.0027102080057375133,
+      "revision_local_canonical_validation_hash_seconds": 0.06202341697644442,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.03030362501158379,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.20750774999032728,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "pair": 3,
+      "binary": true,
+      "request_timeout_seconds": 4,
+      "distinct_projection_keys": 500,
+      "newer_replacement_generations": 1,
+      "setup_seconds": 0.0018353750056121498,
+      "revision_calls": [
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000019",
+          "rows": 500,
+          "revision_execute_seconds": 0.00397504199645482,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 0.0003778329992201179,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 1974824,
+          "revision_total_seconds": 0.06917495801462792,
+          "revision_local_canonical_validation_hash_seconds": 0.06482208301895298
+        },
+        {
+          "generation_id": "00000000-0000-4000-8000-000000000020",
+          "rows": 1,
+          "revision_execute_seconds": 0.00038695798139087856,
+          "result_formats": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1
+          ],
+          "result_oids": [
+            20,
+            20,
+            20,
+            17,
+            25,
+            25,
+            25,
+            25,
+            25
+          ],
+          "revision_fetch_type_decode_seconds": 3.6669953260570765e-06,
+          "revision_protocol_bytes": null,
+          "decoded_envelope_bytes": 4039,
+          "revision_total_seconds": 0.0005813329771626741,
+          "revision_local_canonical_validation_hash_seconds": 0.00019070800044573843
+        }
+      ],
+      "revision_total_seconds": 0.06975629099179059,
+      "revision_execute_seconds": 0.004361999977845699,
+      "revision_fetch_type_decode_seconds": 0.000381499994546175,
+      "revision_local_canonical_validation_hash_seconds": 0.06501279101939872,
+      "revision_protocol_bytes": null,
+      "projection_pipeline_seconds": 0.02935291701578535,
+      "reconstruction_accounted_bytes": 1979364,
+      "whole_operation_seconds": 0.20854812499601394,
+      "whole_operation_protocol_bytes": null,
+      "returned_canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "returned_count": 500
+    }
+  ],
+  "summary": [
+    {
+      "route": "counting_proxy",
+      "path": "revisions",
+      "modes": {
+        "false": {
+          "setup_seconds": 0.003723944323913505,
+          "revision_execute_seconds": 0.00710973566553245,
+          "revision_fetch_type_decode_seconds": 0.002366305658748994,
+          "revision_local_canonical_validation_hash_seconds": 0.0611213476707538,
+          "whole_operation_seconds": 0.07539448633906431,
+          "min_whole_operation_seconds": 0.07363870900007896,
+          "max_whole_operation_seconds": 0.07874770800117403,
+          "server_to_client_protocol_bytes": 4107568,
+          "revision_server_to_client_protocol_bytes": 4106836
+        },
+        "true": {
+          "setup_seconds": 0.0022587083415904394,
+          "revision_execute_seconds": 0.004706027985472853,
+          "revision_fetch_type_decode_seconds": 0.00038325033771495026,
+          "revision_local_canonical_validation_hash_seconds": 0.06129436032885375,
+          "whole_operation_seconds": 0.06974352799200763,
+          "min_whole_operation_seconds": 0.0693310419737827,
+          "max_whole_operation_seconds": 0.0699516250169836,
+          "server_to_client_protocol_bytes": 2135852,
+          "revision_server_to_client_protocol_bytes": 2135120
+        }
+      },
+      "s2c_reduction_percent": 48.00202942471068
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g0",
+      "modes": {
+        "false": {
+          "setup_seconds": 0.0023192223355484507,
+          "revision_execute_seconds": 0.0065242636677188175,
+          "revision_fetch_type_decode_seconds": 0.0023152359935920686,
+          "revision_local_canonical_validation_hash_seconds": 0.06103002833939778,
+          "whole_operation_seconds": 0.21630504165659659,
+          "min_whole_operation_seconds": 0.21426308300578967,
+          "max_whole_operation_seconds": 0.2183697499858681,
+          "server_to_client_protocol_bytes": 6168753,
+          "revision_server_to_client_protocol_bytes": 4106836
+        },
+        "true": {
+          "setup_seconds": 0.0021163199950630465,
+          "revision_execute_seconds": 0.004483152665973951,
+          "revision_fetch_type_decode_seconds": 0.00037883333667802316,
+          "revision_local_canonical_validation_hash_seconds": 0.060734416998457164,
+          "whole_operation_seconds": 0.21349548599876775,
+          "min_whole_operation_seconds": 0.2082726249936968,
+          "max_whole_operation_seconds": 0.2178553749981802,
+          "server_to_client_protocol_bytes": 4197037,
+          "revision_server_to_client_protocol_bytes": 2135120
+        }
+      },
+      "s2c_reduction_percent": 31.96295912642312
+    },
+    {
+      "route": "counting_proxy",
+      "path": "retirement_g1",
+      "modes": {
+        "false": {
+          "setup_seconds": 0.0022426390011484423,
+          "revision_execute_seconds": 0.0073063056721972925,
+          "revision_fetch_type_decode_seconds": 0.0024937359946003803,
+          "revision_local_canonical_validation_hash_seconds": 0.06258041699766181,
+          "whole_operation_seconds": 0.22173969467015317,
+          "min_whole_operation_seconds": 0.21662204200401902,
+          "max_whole_operation_seconds": 0.22647875000257045,
+          "server_to_client_protocol_bytes": 6177623,
+          "revision_server_to_client_protocol_bytes": 4115516
+        },
+        "true": {
+          "setup_seconds": 0.0027025276698016873,
+          "revision_execute_seconds": 0.004867194327137743,
+          "revision_fetch_type_decode_seconds": 0.00046350000775419176,
+          "revision_local_canonical_validation_hash_seconds": 0.0621216106810607,
+          "whole_operation_seconds": 0.22398705600062385,
+          "min_whole_operation_seconds": 0.2180780839989893,
+          "max_whole_operation_seconds": 0.2356738339876756,
+          "server_to_client_protocol_bytes": 4201880,
+          "revision_server_to_client_protocol_bytes": 2139773
+        }
+      },
+      "s2c_reduction_percent": 31.982252720828065
+    },
+    {
+      "route": "direct_tcp",
+      "path": "revisions",
+      "modes": {
+        "false": {
+          "setup_seconds": 0.0016932083235587925,
+          "revision_execute_seconds": 0.00655294432848071,
+          "revision_fetch_type_decode_seconds": 0.0021995136533708624,
+          "revision_local_canonical_validation_hash_seconds": 0.0619623476814013,
+          "whole_operation_seconds": 0.07304944466644277,
+          "min_whole_operation_seconds": 0.07123850000789389,
+          "max_whole_operation_seconds": 0.07658683400950395
+        },
+        "true": {
+          "setup_seconds": 0.0015690556707947205,
+          "revision_execute_seconds": 0.0040060833368139965,
+          "revision_fetch_type_decode_seconds": 0.00034222232837540406,
+          "revision_local_canonical_validation_hash_seconds": 0.061499749669261895,
+          "whole_operation_seconds": 0.06810577733752628,
+          "min_whole_operation_seconds": 0.06589804100804031,
+          "max_whole_operation_seconds": 0.0717994160077069
+        }
+      },
+      "s2c_reduction_percent": null
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g0",
+      "modes": {
+        "false": {
+          "setup_seconds": 0.00232186100523298,
+          "revision_execute_seconds": 0.006587041668050612,
+          "revision_fetch_type_decode_seconds": 0.0023283749954619757,
+          "revision_local_canonical_validation_hash_seconds": 0.06252852766192518,
+          "whole_operation_seconds": 0.21597108366161896,
+          "min_whole_operation_seconds": 0.21048529201652855,
+          "max_whole_operation_seconds": 0.2223825839755591
+        },
+        "true": {
+          "setup_seconds": 0.0020450416680735848,
+          "revision_execute_seconds": 0.004227610993742322,
+          "revision_fetch_type_decode_seconds": 0.0004076526771920423,
+          "revision_local_canonical_validation_hash_seconds": 0.06226025065795208,
+          "whole_operation_seconds": 0.21069909733099243,
+          "min_whole_operation_seconds": 0.20335925000836141,
+          "max_whole_operation_seconds": 0.214687416999368
+        }
+      },
+      "s2c_reduction_percent": null
+    },
+    {
+      "route": "direct_tcp",
+      "path": "retirement_g1",
+      "modes": {
+        "false": {
+          "setup_seconds": 0.0018903469996682059,
+          "revision_execute_seconds": 0.006839791662059724,
+          "revision_fetch_type_decode_seconds": 0.0024394859986690185,
+          "revision_local_canonical_validation_hash_seconds": 0.061398222004451476,
+          "whole_operation_seconds": 0.2094772776666408,
+          "min_whole_operation_seconds": 0.20494087500264868,
+          "max_whole_operation_seconds": 0.21598320800694637
+        },
+        "true": {
+          "setup_seconds": 0.0018976803306334962,
+          "revision_execute_seconds": 0.004437332982585455,
+          "revision_fetch_type_decode_seconds": 0.00036613867268897593,
+          "revision_local_canonical_validation_hash_seconds": 0.06235120867495425,
+          "whole_operation_seconds": 0.2066431529916978,
+          "min_whole_operation_seconds": 0.20373474998632446,
+          "max_whole_operation_seconds": 0.20854812499601394
+        }
+      },
+      "s2c_reduction_percent": null
+    }
+  ],
+  "guard_checks": [
+    {
+      "binary": false,
+      "guard": "bounded_envelope_suppression",
+      "passed": true
+    },
+    {
+      "binary": false,
+      "guard": "wrong_generation",
+      "passed": true
+    },
+    {
+      "binary": false,
+      "guard": "wrong_role_identity",
+      "passed": true
+    },
+    {
+      "binary": false,
+      "guard": "corrupt_receipt",
+      "passed": true
+    },
+    {
+      "binary": false,
+      "guard": "noncanonical_envelope",
+      "passed": true
+    },
+    {
+      "binary": false,
+      "guard": "corrupt_current_projection",
+      "passed": true
+    },
+    {
+      "binary": true,
+      "guard": "bounded_envelope_suppression",
+      "passed": true
+    },
+    {
+      "binary": true,
+      "guard": "wrong_generation",
+      "passed": true
+    },
+    {
+      "binary": true,
+      "guard": "wrong_role_identity",
+      "passed": true
+    },
+    {
+      "binary": true,
+      "guard": "corrupt_receipt",
+      "passed": true
+    },
+    {
+      "binary": true,
+      "guard": "noncanonical_envelope",
+      "passed": true
+    },
+    {
+      "binary": true,
+      "guard": "corrupt_current_projection",
+      "passed": true
+    }
+  ],
+  "deployed_query_codec_probes": [
+    {
+      "deployed_source": "74a850b",
+      "binary": false,
+      "full_g1_readback_pass": true,
+      "returned_count": 500,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "result_oids": [
+        20,
+        20,
+        17,
+        25,
+        25,
+        25,
+        25,
+        25
+      ],
+      "result_formats": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "request_timeout_seconds": 4
+    },
+    {
+      "deployed_source": "74a850b",
+      "binary": true,
+      "full_g1_readback_pass": true,
+      "returned_count": 500,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "result_oids": [
+        20,
+        20,
+        17,
+        25,
+        25,
+        25,
+        25,
+        25
+      ],
+      "result_formats": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "request_timeout_seconds": 4
+    }
+  ],
+  "deployed_transport_source_sha256": "97a203a6ac8ae79a13aa0b21d95bd87f8e6d932e584d2001caa79994d043f325",
+  "source_changes": false,
+  "runtime_changes": false,
+  "request_timeout_seconds": 4,
+  "warmed_analyzed_fixture": true,
+  "proxy_tcp_nodelay_both_sockets": true,
+  "fixture_path": "/tmp/tradebot-cold-perf-ukuhf4g6",
+  "fixture_stopped": true,
+  "initial_requested_source_sha": "417d81366f3681de4ee21a00cea77a4fe343e63c",
+  "transport_file_sha256": "b3097c1b8f78417ffc6f3c7929d289b42badc9efe546f768b7341fd3ae74aeb6",
+  "benchmark_harness_sha256": "f1d89a9c3edeeb173fb2d534cff86ba84b8a82e4c60f83fc1433434954af4da2",
+  "transport_identical_to_initial_requested_sha": true,
+  "physical_measurement_boundary": "Forwarded TCP stream payload bytes in both directions, including PostgreSQL framing/startup/query/transaction/termination messages; excludes IP/TCP headers, TLS, Supavisor and unrelated host-interface traffic.",
+  "validation": {
+    "matched_successful_read_calls": 36,
+    "expected_rows_per_call": 500,
+    "all_exact_canonical_hashes_match": true,
+    "all_successful_calls_under_requested_four_seconds": true,
+    "negative_guard_checks_passed": 12,
+    "old_deployed_query_codec_probes_passed": 2,
+    "source_runtime_profile_flag_grant_changes": false
+  },
+  "primary_sources": [
+    {
+      "title": "Psycopg 3.2.13 Connection source",
+      "url": "https://raw.githubusercontent.com/psycopg/psycopg/3.2.13/psycopg/psycopg/connection.py"
+    },
+    {
+      "title": "Psycopg binary parameters/results",
+      "url": "https://www.psycopg.org/psycopg3/docs/basic/params.html#binary-parameters-and-results"
+    },
+    {
+      "title": "PostgreSQL 17 bytea formats",
+      "url": "https://www.postgresql.org/docs/17/datatype-binary.html"
+    }
+  ],
+  "limitations": [
+    "Generated warm/analyzed 499-candle+1-current-price fixture, K=500; not actual PP mix or cardinality.",
+    "G1 is exactly one newer generation with one replacement record.",
+    "No TLS, pooler, VM network or concurrent live workload.",
+    "36 successful calls, three alternating pairs per route/path, not production percentiles or statistically powered speed estimates.",
+    "No archive upload/raw readback/local deletion/retirement ticket or full A/B lifecycle.",
+    "No production grant/role/adapter qualification and no transport source change.",
+    "Elapsed phases are client observations: execute includes server/network/libpq result buffering; fetchall measures loader conversion; residual canonical validation/hash time is derived.",
+    "74a850b direct-domain codec success is native PG17.2+psycopg3.2.13 only, not a live PP/Supavisor qualification."
+  ],
+  "deployed_query_codec_source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f"
+}

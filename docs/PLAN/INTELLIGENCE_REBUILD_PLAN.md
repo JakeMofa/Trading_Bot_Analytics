@@ -1,3 +1,28 @@
+## November 19 UTC — measured cold-readback followup, documentation only
+
+PR #164 merged at `a4e39d1` after exact green. Additional research remains separate:
+no further source, profile, permission, host or live-operation change. The hosted
+read-only EXPLAIN for a retained 500-ID scope uses the existing receipt/revision
+primary keys; cumulative SQL timings mix page sizes and are not full-path latency.
+Runtime-role SET ROLE was denied, so the plan is explicitly connector-role only.
+
+An isolated native PG17.2/psycopg3.2.13 benchmark completed 36 matched 500-row
+reads, 12 negative checks and two exact deployed-query codec probes under the
+unchanged four-second cap. Narrow binary result format reduced measured
+revision PostgreSQL stream bytes by 48% and full structured readback by 32%,
+including a B-replacement case. This is not a PP speedup or full-retirement proof.
+The fixture was stopped. No new application implementation was added.
+
+The release-supplied 2.499–3.393s rich-page timings imply 187.425–254.475s for 75
+pages against 240s before raw/local work. Reserve remains unknown. Recommend a
+separately qualified four-call full-path text/binary PP probe bounded to 25s,
+then consider reuse only after explicit retirement-path wiring/qualification.
+Release ownership, all checks/deadlines and VM-local live predictions remain.
+
+[Concise recommendation and exact probe](PP_READBACK_BENCHMARK_HANDOFF_2026-11-19.md) ·
+[Native benchmark](COLD_READBACK_PERFORMANCE_2026-11-19.md) ·
+[Hosted baseline](evidence/hosted-readback-baseline-2026-11-19.json)
+
 ## November 19 UTC — hosted candidate reconciled with PP18 source
 
 The cold-history candidate was reviewed against preprod `7338c057`, preserving

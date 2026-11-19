@@ -1,3 +1,22 @@
+## November 19 UTC — offline Coinbase delay diagnosis and timing candidate
+
+The07:10:14pp.17 sample had40.960s source→application-dequeue delay and only0.671s
+receipt→API delay. Event IDs advanced during the incident;515rawprices drained
+across40.498receipt-seconds but15.529source-seconds. Serial sink backpressure is
+supported as an inference, not a proven attribution to local DB vs upstream/TCP.
+A reconnect or packet loss is not established by the later trade-ID jump.
+
+A separate defaultOFF `TRADEBOT_PP_COINBASE_TIMING=true` candidate adds bounded
+parser-ingress/dequeue/actual-worker-save timing and fixed reconnect diagnostics.
+It preserves every received raw tick, original timestamps, durable ordering and
+existing reconnect limits. Seven focused tests plus344backendrun/40explicit skips
+passed; actual loopback fragmentation/heartbeat/slow-save coverage passed.
+No release, live connection or market endpoint changed. Exact source Linux CI and
+any future enabled-run evidence remain separate requirements.
+
+[Diagnosis, official references and measurement contract](PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md)
+and [captured offline evidence](evidence/pp17-coinbase-lag-0710-offline-2026-11-19.json).
+
 ## November 19 UTC — hosted history research and cold structured page candidate
 
 Official hosted Pipelines docs currently describe outbound Supabase Postgres →

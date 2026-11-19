@@ -15,6 +15,7 @@ from urllib.parse import quote
 import httpx
 from websockets.asyncio.client import connect as websocket_connect
 
+from .coinbase_timing import ACTIVE_TIMING, observed_connection
 from .contract import source_timestamp
 from .live_contract import coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
 from .live_diagnostics import SourceHTTPFailure, SourceTransportFailure
@@ -77,13 +78,21 @@ async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):
     Connection failure is reported to the owning collector, which owns retry
     and health state. This function never silently fills a missing interval.
     """
-    async with connector(COINBASE_WS, ping_interval=20, ping_timeout=20,
-                         open_timeout=10, max_size=MAX_RESPONSE_BYTES,
-                         max_queue=128) as websocket:
+    timing = ACTIVE_TIMING.get()
+    options = dict(ping_interval=20, ping_timeout=20, open_timeout=10,
+                   max_size=MAX_RESPONSE_BYTES, max_queue=128)
+    if timing is not None:
+        timing.connection_attempt()
+        options['create_connection'] = observed_connection(timing)
+    async with connector(COINBASE_WS, **options) as websocket:
         await websocket.send(json.dumps({'type': 'subscribe', 'product_ids': ['BTC-USD'],
                                          'channels': ['ticker', 'heartbeat']}))
         while not stop.is_set():
+            if timing is not None:
+                timing.read_started()
             raw = await asyncio.wait_for(websocket.recv(), timeout=10)
+            if timing is not None:
+                timing.read_completed()
             if not isinstance(raw, str) or len(raw.encode('utf-8')) > MAX_RESPONSE_BYTES:
                 raise ValueError('Coinbase frame exceeds bound')
             message = json.loads(raw, parse_float=Decimal)
@@ -91,6 +100,8 @@ async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):
                 raise ValueError('invalid Coinbase feed response')
             received = datetime.now(timezone.utc).isoformat()
             event = coinbase_ticker(message, received, raw_wire=raw)
+            if timing is not None:
+                timing.parsed(event)
             if event is not None:
                 yield event
 

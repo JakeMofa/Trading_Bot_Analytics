@@ -1,0 +1,169 @@
+{
+  "scope": "offline captured evidence only; no host or market traffic",
+  "runtime_source_sha": "1c753c6ba731d92115c2fb2d81d236e0675eb409",
+  "samples": [
+    {
+      "operator_at": "2026-11-19T07:09:24.621929+00:00",
+      "server_generated_at": "2026-11-19T07:09:24.630419+00:00",
+      "event_id": "exchange-trade-1136505769",
+      "source_time": "2026-11-19T07:09:15.180605Z",
+      "received_at": "2026-11-19T07:09:23.797566+00:00",
+      "source_to_dequeue_seconds": 8.616961,
+      "receipt_to_api_seconds": 0.832853
+    },
+    {
+      "operator_at": "2026-11-19T07:09:29.603945+00:00",
+      "server_generated_at": "2026-11-19T07:09:29.630330+00:00",
+      "event_id": "exchange-trade-1136505848",
+      "source_time": "2026-11-19T07:09:17.467406Z",
+      "received_at": "2026-11-19T07:09:29.119577+00:00",
+      "source_to_dequeue_seconds": 11.652171,
+      "receipt_to_api_seconds": 0.510753
+    },
+    {
+      "operator_at": "2026-11-19T07:09:34.615402+00:00",
+      "server_generated_at": "2026-11-19T07:09:34.650465+00:00",
+      "event_id": "exchange-trade-1136505917",
+      "source_time": "2026-11-19T07:09:17.513666Z",
+      "received_at": "2026-11-19T07:09:34.423040+00:00",
+      "source_to_dequeue_seconds": 16.909374,
+      "receipt_to_api_seconds": 0.227425
+    },
+    {
+      "operator_at": "2026-11-19T07:09:39.578881+00:00",
+      "server_generated_at": "2026-11-19T07:09:39.640615+00:00",
+      "event_id": "exchange-trade-1136505975",
+      "source_time": "2026-11-19T07:09:17.750020Z",
+      "received_at": "2026-11-19T07:09:39.190298+00:00",
+      "source_to_dequeue_seconds": 21.440278,
+      "receipt_to_api_seconds": 0.450317
+    },
+    {
+      "operator_at": "2026-11-19T07:09:44.657654+00:00",
+      "server_generated_at": "2026-11-19T07:09:44.684773+00:00",
+      "event_id": "exchange-trade-1136506031",
+      "source_time": "2026-11-19T07:09:24.752695Z",
+      "received_at": "2026-11-19T07:09:43.297072+00:00",
+      "source_to_dequeue_seconds": 18.544377,
+      "receipt_to_api_seconds": 1.387701
+    },
+    {
+      "operator_at": "2026-11-19T07:09:49.695626+00:00",
+      "server_generated_at": "2026-11-19T07:09:49.667653+00:00",
+      "event_id": "exchange-trade-1136506117",
+      "source_time": "2026-11-19T07:09:32.712455Z",
+      "received_at": "2026-11-19T07:09:49.112332+00:00",
+      "source_to_dequeue_seconds": 16.399877,
+      "receipt_to_api_seconds": 0.555321
+    },
+    {
+      "operator_at": "2026-11-19T07:09:54.620133+00:00",
+      "server_generated_at": "2026-11-19T07:09:54.646427+00:00",
+      "event_id": "exchange-trade-1136506187",
+      "source_time": "2026-11-19T07:09:32.823173Z",
+      "received_at": "2026-11-19T07:09:54.504643+00:00",
+      "source_to_dequeue_seconds": 21.68147,
+      "receipt_to_api_seconds": 0.141784
+    },
+    {
+      "operator_at": "2026-11-19T07:09:59.628356+00:00",
+      "server_generated_at": "2026-11-19T07:09:59.654484+00:00",
+      "event_id": "exchange-trade-1136506245",
+      "source_time": "2026-11-19T07:09:32.831121Z",
+      "received_at": "2026-11-19T07:09:59.021578+00:00",
+      "source_to_dequeue_seconds": 26.190457,
+      "receipt_to_api_seconds": 0.632906
+    },
+    {
+      "operator_at": "2026-11-19T07:10:04.628651+00:00",
+      "server_generated_at": "2026-11-19T07:10:04.654501+00:00",
+      "event_id": "exchange-trade-1136506283",
+      "source_time": "2026-11-19T07:09:32.837793Z",
+      "received_at": "2026-11-19T07:10:04.087293+00:00",
+      "source_to_dequeue_seconds": 31.2495,
+      "receipt_to_api_seconds": 0.567208
+    },
+    {
+      "operator_at": "2026-11-19T07:10:09.659968+00:00",
+      "server_generated_at": "2026-11-19T07:10:09.683688+00:00",
+      "event_id": "exchange-trade-1136506360",
+      "source_time": "2026-11-19T07:09:33.034158Z",
+      "received_at": "2026-11-19T07:10:09.192038+00:00",
+      "source_to_dequeue_seconds": 36.15788,
+      "receipt_to_api_seconds": 0.49165
+    },
+    {
+      "operator_at": "2026-11-19T07:10:14.642487+00:00",
+      "server_generated_at": "2026-11-19T07:10:14.666480+00:00",
+      "event_id": "exchange-trade-1136506416",
+      "source_time": "2026-11-19T07:09:33.035341Z",
+      "received_at": "2026-11-19T07:10:13.995072+00:00",
+      "source_to_dequeue_seconds": 40.959731,
+      "receipt_to_api_seconds": 0.671408
+    },
+    {
+      "operator_at": "2026-11-19T07:10:19.670972+00:00",
+      "server_generated_at": "2026-11-19T07:10:19.667964+00:00",
+      "event_id": "exchange-trade-1136506990",
+      "source_time": "2026-11-19T07:10:19.014383Z",
+      "received_at": "2026-11-19T07:10:19.072941+00:00",
+      "source_to_dequeue_seconds": 0.058558,
+      "receipt_to_api_seconds": 0.595023
+    },
+    {
+      "operator_at": "2026-11-19T07:10:24.644286+00:00",
+      "server_generated_at": "2026-11-19T07:10:24.670376+00:00",
+      "event_id": "exchange-trade-1136507009",
+      "source_time": "2026-11-19T07:10:24.086099Z",
+      "received_at": "2026-11-19T07:10:24.095546+00:00",
+      "source_to_dequeue_seconds": 0.009447,
+      "receipt_to_api_seconds": 0.57483
+    }
+  ],
+  "raw_interval": [
+    {
+      "source": "coinbase",
+      "kind": "price",
+      "n": 515,
+      "first_receipt": "2026-11-19 07:09:34.017559+00:00",
+      "last_receipt": "2026-11-19 07:10:14.515699+00:00",
+      "first_source": "2026-11-19T07:09:17.513666Z",
+      "last_source": "2026-11-19T07:09:33.042728Z",
+      "max_receipt_availability": "0.000000"
+    },
+    {
+      "source": "polymarket_us",
+      "kind": "quote",
+      "n": 6,
+      "first_receipt": "2026-11-19 07:09:37.393317+00:00",
+      "last_receipt": "2026-11-19 07:10:11.277318+00:00",
+      "first_source": "2026-11-19T07:09:10.753571557Z",
+      "last_source": "2026-11-19T07:10:10.708386666Z",
+      "max_receipt_availability": "0.000000"
+    },
+    {
+      "source": "polymarket_us",
+      "kind": "market",
+      "n": 1,
+      "first_receipt": "2026-11-19 07:09:43.183926+00:00",
+      "last_receipt": "2026-11-19 07:09:43.183926+00:00",
+      "first_source": "2026-11-19T07:00:04Z",
+      "last_source": "2026-11-19T07:00:04Z",
+      "max_receipt_availability": "0.000000"
+    }
+  ],
+  "conclusions": {
+    "proven": [
+      "new source identities persisted during age growth",
+      "delay already present at application recv/dequeue timestamp",
+      "API hydration/publication adds less than1second at41second-age sample",
+      "max_receipt_availability0 is not commit-timing proof"
+    ],
+    "inference": "serial persistence backpressure plausibly drains a faster source burst; upstream/network/parser/TCP contributions remain unseparated",
+    "unproven": [
+      "exact per-save duration",
+      "parser ingress queue wait",
+      "cause of fresh-head jump, including whether reconnect occurred"
+    ]
+  }
+}

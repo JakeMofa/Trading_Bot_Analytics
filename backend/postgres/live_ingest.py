@@ -10,6 +10,7 @@ from collections import deque
 from datetime import datetime, timezone
 import time
 
+from .coinbase_timing import ACTIVE_TIMING, configured_timing
 from .live_sources import (coinbase_once, discover_polymarket_15m,
                            fetch_coinbase_closed_candles, fetch_polymarket_bbo)
 from .live_diagnostics import LiveDiagnostic, diagnose
@@ -47,13 +48,27 @@ def _live_store(store):
 
 
 async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
-                           pause=_pause_or_stop, clock=time.monotonic):
+                           pause=_pause_or_stop, clock=time.monotonic, timing=None):
     """Persist serially; retry only bounded transient source disconnects.
 
     A new subscription may replay a source event. Store's durable identity and
     content-hash check handles that replay; this loop never synthesizes ticks.
     """
     _live_store(store)
+    timing = timing if timing is not None else configured_timing()
+    token = ACTIVE_TIMING.set(timing)
+    try:
+        return await _coinbase_session(store, stop, source=source, pause=pause,
+                                       clock=clock, timing=timing)
+    finally:
+        try:
+            if timing is not None:
+                timing.flush('session_exit')
+        finally:
+            ACTIVE_TIMING.reset(token)
+
+
+async def _coinbase_session(store, stop, *, source, pause, clock, timing):
     failures = deque()
     reconnects = 0
     while not stop.is_set():
@@ -61,7 +76,27 @@ async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
             async for event in source(stop):
                 if stop.is_set():
                     break
-                await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
+                if timing is None:
+                    await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
+                else:
+                    submitted = timing.clock()
+                    worker = {}
+                    outcome = 'raised'
+                    def persist():
+                        worker['started'] = timing.clock()
+                        worker['started_at'] = timing.wall().isoformat()
+                        try:
+                            return store.ingest(event)
+                        finally:
+                            worker['completed'] = timing.clock()
+                            worker['completed_at'] = timing.wall().isoformat()
+                    try:
+                        await _step('coinbase_write', asyncio.to_thread(persist))
+                        outcome = 'returned'
+                    finally:
+                        if worker.get('completed') is None:
+                            outcome = 'inflight_at_cancel'
+                        timing.saved(submitted=submitted, worker=worker, outcome=outcome)
             return
         except Exception as error:
             diagnostic = error if isinstance(error, LiveDiagnostic) else diagnose('coinbase_stream', error)
@@ -76,6 +111,8 @@ async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
             delay = COINBASE_RECONNECT_DELAYS[len(failures)]
             failures.append(now)
             reconnects += 1
+            if timing is not None:
+                timing.reconnect(diagnostic.code, reconnects, delay)
             await pause(stop, delay)
 
 

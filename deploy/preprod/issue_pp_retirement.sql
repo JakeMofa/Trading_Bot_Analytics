@@ -1,6 +1,10 @@
 -- The single result is a capability. Only run psql with -X -qAt, with
 -- stdout redirected to the one-shot private file, never to logs or evidence.
 \set ON_ERROR_STOP on
+\if :{?window_profile}
+\else
+\set window_profile standard
+\endif
 BEGIN;
 SET LOCAL ROLE tradebot_owner;
 SET LOCAL statement_timeout='2s';
@@ -10,10 +14,14 @@ INSERT INTO archive.pp_retirement_permits
      history_reader_proof,authority_scope,expires_at)
 SELECT a.generation_id,b.generation_id,a.seal_hash,a.seal_count,:'release_sha',
        :'policy_epoch_hash',:'history_reader_proof','pp-admin-change-freeze-v1',
-       clock_timestamp()+interval '2 minutes'
+       CASE WHEN :'window_profile'='two_markets' THEN
+           least(clock_timestamp()+interval '295 seconds',a.sealed_at+interval '30 minutes')
+       ELSE clock_timestamp()+interval '2 minutes' END
 FROM archive.generations a JOIN ops.writer_state w ON w.origin_id=a.origin_id
 JOIN archive.generations b ON b.origin_id=w.origin_id AND b.generation_id=w.generation_id
-WHERE current_database()='tradebot_pp' AND session_user='tradebot_migrator'
+WHERE :'window_profile' IN ('standard','two_markets')
+  AND (:'window_profile'='standard' OR a.sealed_at+interval '30 minutes'>clock_timestamp())
+  AND current_database()='tradebot_pp' AND session_user='tradebot_migrator'
   AND EXISTS(SELECT FROM ops.environment_identity WHERE environment='preprod' AND foundation_version=1)
   AND a.origin_id='pp-live-pp' AND a.generation_id=:'sealed' AND a.seal_hash=:'seal_hash'
   AND a.seal_count=:'row_count'::bigint AND a.state='verified' AND a.hold_reason IS NULL

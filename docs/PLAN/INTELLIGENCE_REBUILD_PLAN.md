@@ -151,6 +151,52 @@ deployment and actual retirement are separate. The proposed operator sequence:
 No live permit or local DROP has been issued. The 30-minute seal-to-removal
 target still requires actual PP evidence. Production remains outside this route.
 
+## November 19 — bounded two-market final verification profile
+
+Default PP and production archive/readback limits remain in force for ordinary
+cycles. The PP operator can select `--two-market-window` with
+`TRADEBOT_PP_TWO_MARKET_READBACK=true` for one reviewed seal and its actual
+B successor. This mode uses 192 budgeted calls, 128 MiB cumulative compressed
+raw and decoded structured envelopes, 500 rows per page, 2 MiB per raw object,
+4 MiB per decoded page, four seconds per remote operation and **240 seconds
+maximum final work**. The earlier of the work deadline and the persisted
+database seal time plus 30 minutes stops work. Startup alignment, archive
+delays and time already spent in B cannot reset the seal clock. Local manifest
+and generation locks, complete authenticated readback, evidence, reader
+drainage and B persistence checks still apply. Generic limits remain 24
+calls/16 MiB/20 seconds. Full PP runtime and cloud timing are outstanding.
+
+Sizing includes the original 4,845 raw and 5,268 structured records plus up to
+45 minutes of A (startup alignment plus two complete markets). The measured
+804 raw rows/minute and 13.25 structured rows/second project to 41,025 raw
+and 41,043 structured, about 83 objects and 83 structured pages at 500 per
+call plus machine authentication. Read-only measurement on PP found
+8,309,661 canonical bytes across all 5,268 structured records and 11 pages.
+The largest 500-row page was 842,854 bytes (about 1,577 bytes/row overall). A linear extrapolation gives
+roughly 65 MB structured plus 5.25 MB compressed raw before newer projection
+envelopes or a larger workload. Every actual sealed generation still requires
+its own local inventory. These bounds cover a qualification attempt, not a
+production sizing claim. The earlier ten-object synthetic transfer measured
+14.564 seconds for upload plus two verified reads; this does not measure
+full-window cloud, database or filesystem performance.
+
+The generated native PostgreSQL 17 peak scenario prepared and re-read 41,025
+raw rows and 41,043 structured records using the isolated in-memory archive.
+It charged 166 read calls and 65,689,621 bytes while B committed 83 writes on
+separate database connections. Preparation, archival, inventory and fresh
+readback together took 36.39 seconds locally. An expired 30-minute window
+issued zero further cloud calls and retained A. The generated fixture omits
+real network delays and uses synthetic structured revisions. No PP drop or
+budget change was applied by this work.
+
+Run inventory first. After the exact scope passes, a qualified operator may
+pass `-v window_profile=two_markets` to the existing ticket issuer. This
+ticket lasts at most 295 seconds within the existing five-minute SQL maximum
+and expires by the seal deadline. Standard issuance remains two minutes.
+Inventory never issues a ticket. If commit acknowledgment arrives after the
+deadline, record the confirmed committed result as late and fail the timing
+criterion. Keep A on any precommit failure.
+
 ## Current PP checkpoint — November 18, 2026
 
 ### pp.14 deployment and real structured history result — November 19 UTC

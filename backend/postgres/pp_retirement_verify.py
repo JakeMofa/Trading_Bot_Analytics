@@ -5,6 +5,7 @@ import json
 import os
 import re
 import uuid
+from datetime import timedelta
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, encoded
 from .archive_transport import ScopedArchiveTransport
@@ -12,6 +13,39 @@ from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import FILES, ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
 from .pp_structured_probe import LOCAL_DSN, private_dsn
+
+
+@dataclass(frozen=True)
+class TwoMarketReadbackLimits(ArchiveLimits):
+    """Supervised PP-only readback. A page and its network deadline stay small."""
+    max_requests: int = 192
+    max_cycle_bytes: int = 128 * 1024 * 1024
+    max_seconds: float = 240.0
+
+    def __post_init__(self):
+        # verify_local_chunk narrows max_rows for the final short object.
+        if (type(self.max_rows) is not int or not 1 <= self.max_rows <= 500
+                or (self.max_requests, self.max_cycle_bytes, self.max_seconds,
+                    self.max_object_bytes, self.max_decoded_bytes, self.request_timeout_seconds)
+                != (192, 128*1024**2, 240, 2*1024**2, 4*1024**2, 4)):
+            raise ValueError('unexpected two-market verification limits')
+
+
+def bound_seal_window(db, generation, budget, sampled_before):
+    checked_at = db.execute('SELECT clock_timestamp() AS checked_at').fetchone()['checked_at']
+    sealed_at = generation['sealed_at']
+    if not sealed_at or sealed_at > checked_at:
+        raise LifecycleHold('invalid PP generation seal time')
+    ends_at = sealed_at + timedelta(minutes=30)
+    # Anchor at the monotonic instant BEFORE the database query to avoid
+    # extending the wall deadline by round-trip/lock wait. Every connection and
+    # cloud call already enforces the remaining monotonic operation budget.
+    end_monotonic = sampled_before + (ends_at - checked_at).total_seconds()
+    budget.deadline = min(budget.deadline, end_monotonic)
+    budget.check()
+    remaining = max(1, int((budget.deadline - budget.clock()) * 1000))
+    db.execute("SELECT set_config('transaction_timeout',%s,true)",(f'{remaining}ms',))
+    return ends_at, end_monotonic
 
 
 @dataclass(frozen=True)
@@ -142,7 +176,14 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
         permit.validate()
         if origin != ORIGIN or inventory_only or not isinstance(transport, RetirementTransport):
             raise LifecycleHold('retirement permit requires exact PP cloud readback')
+    windowed = isinstance(limits, TwoMarketReadbackLimits)
+    if windowed and origin != ORIGIN and not origin.startswith('generated-'):
+        raise LifecycleHold('two-market profile is restricted to PP')
     with CycleBudget(limits) as budget, repository.retirement(target.sealed) as (db, generation, manifests):
+        if windowed:
+            sampled = budget.clock()
+            expires_at, window_end = bound_seal_window(db, generation, budget, sampled)
+
         if permit is not None:
             # FK inserts block on the generation UPDATE lock; existing catalog
             # entries must also remain immutable for this local transaction.
@@ -157,7 +198,16 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
         if (not before or before['generation_id'] != target.collecting
                 or before['slot'] == generation['slot']):
             raise LifecycleHold('reviewed active slot changed')
+        if windowed:
+            active_start = db.execute('SELECT started_at FROM archive.generations WHERE generation_id=%s',
+                                      (target.collecting,)).fetchone()
+            if (generation['slot'] != 'A' or before['slot'] != 'B' or not active_start or
+                    active_start['started_at'] != generation['sealed_at']):
+                raise LifecycleHold('two-market verification requires the actual A to B handoff')
         estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
+        if windowed:
+            estimate.update(profile='pp-two-market-v1', seal_deadline_utc=expires_at.isoformat(),
+                            remaining_work_seconds=round(budget.deadline-budget.clock(),3))
         if inventory_only or estimate['fit'] == 'exceeds_limits':
             return {'status':'HOLD' if estimate['fit'] == 'exceeds_limits' else 'inventory_only',
                     'retirement_authorized':False, 'sealed':target.sealed, 'collecting':target.collecting,
@@ -172,8 +222,22 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
         if permit is not None:
             retire_with_permit(db, generation, target, permit,
                                after['committed_rows'] - before['committed_rows'])
+            if windowed:
+                # Recheck the DB clock after DROP, with rollback still possible.
+                late = db.execute('SELECT clock_timestamp()>=%s AS late',(expires_at,)).fetchone()['late']
+                if late:
+                    raise LifecycleHold('PP seal deadline expired before commit')
             budget.check()
-    return {'status':'retired_pp' if permit else 'fresh_readback_verified',
+    operation_timely = budget.clock() < budget.deadline
+    timely = not windowed or budget.clock() < window_end
+    status = 'retired_pp' if permit else 'fresh_readback_verified'
+    if not timely:
+        # A successful commit is final even if commit confirmation was slow.
+        status += '_after_seal_deadline'
+    elif windowed and not operation_timely:
+        status += '_after_operation_deadline'
+    return {'status':status, 'seal_deadline_met':timely if windowed else None,
+            'operation_deadline_met':operation_timely if windowed else None,
             'retirement_authorized':permit is not None,
             'policy_version':'pp-retirement-readback-v2','sealed':target.sealed,
             'collecting':target.collecting,'opposite_slot_new_rows':after['committed_rows']-before['committed_rows'],
@@ -187,6 +251,8 @@ def main():
     parser.add_argument('--seal-hash',required=True)
     parser.add_argument('--count',required=True,type=int)
     parser.add_argument('--inventory-only', action='store_true', help='estimate locally without cloud credentials or requests')
+    parser.add_argument('--two-market-window', action='store_true',
+                        help='use the scoped PP budget within 30 minutes of the actual seal')
     parser.add_argument('--retire-with-pp-permit', action='store_true',
                         help='consume the separately issued private exact-generation ticket')
     args=parser.parse_args()
@@ -211,6 +277,11 @@ def main():
             validate_schema(db,'preprod')
         if args.inventory_only and args.retire_with_pp_permit:
             raise LifecycleHold('inventory and retirement are mutually exclusive')
+        limits = ArchiveLimits()
+        if args.two_market_window:
+            if os.environ.get('TRADEBOT_PP_TWO_MARKET_READBACK') != 'true':
+                raise LifecycleHold('explicit PP two-market readback gate required')
+            limits = TwoMarketReadbackLimits()
         permit = None
         if args.retire_with_pp_permit:
             if os.environ.get('TRADEBOT_PP_EXACT_RETIREMENT') != 'true':
@@ -222,17 +293,17 @@ def main():
                             os.environ.get('TRADEBOT_PP_HISTORY_READER_PROOF_SHA256',''))
             permit.validate()
         if args.inventory_only:
-            result = verify(LifecycleRepository(factory), None, target, inventory_only=True)
+            result = verify(LifecycleRepository(factory), None, target, inventory_only=True, limits=limits)
             print(json.dumps(result,sort_keys=True))
-            return 1 if result['status'] == 'HOLD' else 0
+            return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
         raw=SupabaseStorageTransport.from_machine_files(*(
             FILES['TRADEBOT_PP_STORAGE_'+key+'_FILE'] for key in ('API_KEY','AUTH_EMAIL','AUTH_PASSWORD','AUTH_UID')))
         structured=HistoryV2PostgresTransport(PPHistoryConnectionFactory(),origin_id=ORIGIN,
             generation_id=target.sealed,expected_database='postgres',expected_role='tradebot_pp_history')
         scoped=RetirementTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed)
-        result = verify(LifecycleRepository(factory),scoped,target,permit=permit)
+        result = verify(LifecycleRepository(factory),scoped,target,permit=permit,limits=limits)
         print(json.dumps(result,sort_keys=True))
-        return 1 if result['status'] == 'HOLD' else 0
+        return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
     except Exception as error:
         print(json.dumps({'status':'HOLD','retirement_authorized':False,
                           'reason':getattr(error,'code',type(error).__name__),

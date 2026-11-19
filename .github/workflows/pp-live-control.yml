@@ -30,7 +30,7 @@ on:
         required: false
         type: string
       max_seconds:
-        description: Session ON duration, 1 to 1800 seconds
+        description: Session ON duration, 1 to 4560 seconds
         required: false
         type: string
 

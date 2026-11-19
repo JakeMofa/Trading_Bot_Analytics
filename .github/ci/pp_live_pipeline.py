@@ -84,7 +84,7 @@ def command_for(env, api, profile):
         if operation == 'off':
             return 'session-v1 off', {'operation': 'off'}
         seconds = env.get('PP_LIVE_SECONDS', '')
-        require(seconds.isdigit() and 1 <= int(seconds) <= 1800, 'bounded session seconds required')
+        require(seconds.isdigit() and 1 <= int(seconds) <= 4560, 'bounded session seconds required')
         return 'session-v1 on ' + str(int(seconds)), {'operation': 'on', 'max_seconds': int(seconds)}
     sha = env.get('APPROVED_REVISION', '')
     require(pipeline.SHA.fullmatch(sha) is not None, 'exact PP source required')

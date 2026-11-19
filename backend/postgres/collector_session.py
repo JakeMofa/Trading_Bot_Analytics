@@ -15,7 +15,7 @@ async def run_session(store, client, stop: asyncio.Event, *, owner_check,
                       supervisor=run_bounded):
     """Fail closed at every activation boundary and leave the writer OFF."""
     if not callable(owner_check) or not callable(enable_collector) or \
-            not callable(disable_collector) or not 0 < max_seconds <= 1800:
+            not callable(disable_collector) or not 0 < max_seconds <= 4560:
         raise ValueError('bounded session and durable ownership controls required')
 
     try:

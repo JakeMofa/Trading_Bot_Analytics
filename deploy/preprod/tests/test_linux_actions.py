@@ -137,7 +137,7 @@ class ConfigTests(unittest.TestCase):
             live['services'][name]['environment'].update(
                 TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
         live['services']['lifecycle']['environment'].update(
-            TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_QUALIFIED_GENERATION_BYTES='33554432')
+            TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets')
         live['services']['operator']['environment'].update(
             TRADEBOT_PP_LIVE_CONTROL='true',TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
         live['services']['operator']['secrets'].append({'source':'app_dsn','target':'app_dsn'})

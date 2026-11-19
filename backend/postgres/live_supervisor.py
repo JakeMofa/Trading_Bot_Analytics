@@ -36,7 +36,7 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     persist OFF in PostgreSQL before considering a stop complete.
     """
     _live_store(store)
-    if not callable(owner_check) or not callable(disable_collector) or not 0 < max_seconds <= 1800:
+    if not callable(owner_check) or not callable(disable_collector) or not 0 < max_seconds <= 4560:
         raise ValueError('bounded session, ownership checker and durable stop required')
     if not 1 <= market_interval <= 10 or not 60 <= candle_interval <= 300:
         raise ValueError('source cadence outside qualified bounds')

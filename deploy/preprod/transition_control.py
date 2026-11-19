@@ -275,7 +275,7 @@ def session(command, controller_path):
     HostBinding.from_marker().validate()
     parts = command.split(' ')
     require(parts[0] == 'session-v1' and ((len(parts) == 3 and parts[1] == 'on'
-        and parts[2].isdigit() and 1 <= int(parts[2]) <= 1800)
+        and parts[2].isdigit() and 1 <= int(parts[2]) <= 4560)
         or (parts == ['session-v1', 'off'])), 'invalid_session_command')
     active = _read_active()
     require(active['state'] in ('ready_off', 'entering', 'leaving', 'recovery_unproven'),

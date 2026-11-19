@@ -57,7 +57,7 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None)
 
     if session is not None:
         @app.post('/collector/on', status_code=202)
-        async def on(max_seconds: int = Query(default=900, ge=1, le=1800),
+        async def on(max_seconds: int = Query(default=900, ge=1, le=4560),
                      authorization: str | None = Header(default=None)):
             require_operator(authorization)
             try:

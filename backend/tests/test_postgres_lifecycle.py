@@ -88,7 +88,7 @@ class RotationConfigurationTests(unittest.TestCase):
         for origin, session, seconds in (
             ('generated-pp', generation, 60),
             ('pp-live-test', 'not-a-uuid', 60),
-            ('pp-live-test', generation, 1801),
+            ('pp-live-test', generation, 4561),
             ('pp-live-test', generation, True),
         ):
             with self.subTest(origin=origin, session=session, seconds=seconds), self.assertRaises(LifecycleHold):
@@ -122,8 +122,8 @@ class RotationConfigurationTests(unittest.TestCase):
                 configuration({key: value for key, value in live.items() if key != missing})
         self.assertEqual(configuration(live)['origin_id'], 'pp-live-fixture')
         qualified = {**live, 'TRADEBOT_ENVIRONMENT':'preprod', 'TRADEBOT_ORIGIN_ID':'pp-live-pp',
-                     'TRADEBOT_QUALIFIED_GENERATION_BYTES':'33554432'}
-        self.assertEqual(configuration(qualified)['policy'].qualified_size_bytes, 32 * 1024**2)
+                     'TRADEBOT_PP_WINDOW_POLICY':'two-official-markets'}
+        self.assertTrue(configuration(qualified)['market_pair_trial'])
         for key, value in [('TRADEBOT_QUALIFIED_GENERATION_BYTES', '1'),
                            ('TRADEBOT_ORIGIN_ID', 'pp-live-fixture')]:
             with self.assertRaises(ValueError):

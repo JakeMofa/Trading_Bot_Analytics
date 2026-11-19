@@ -166,7 +166,7 @@ def authorize_live_enter(source,artifact,controller,image):
 
 def authorize_live_on(seconds):
     HostBinding.from_marker().validate()
-    require(isinstance(seconds,int) and 1<=seconds<=1800,'invalid_live_session_duration')
+    require(isinstance(seconds,int) and 1<=seconds<=4560,'invalid_live_session_duration')
     active=_read_active()
     require(active['state']=='ready_off','live_profile_not_ready')
     checked_bundle(LIB/'controller.pyz',active['controller_sha256'])

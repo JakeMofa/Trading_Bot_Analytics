@@ -32,8 +32,8 @@ class OperatorSession:
                 'failure_code': self._last_failure_code}
 
     async def start(self, *, max_seconds: int):
-        if not isinstance(max_seconds, int) or isinstance(max_seconds, bool) or not 1 <= max_seconds <= 1800:
-            raise ValueError('session deadline must be 1..1800 seconds')
+        if not isinstance(max_seconds, int) or isinstance(max_seconds, bool) or not 1 <= max_seconds <= 4560:
+            raise ValueError('session deadline must be 1..4560 seconds')
         async with self._lock:
             if self._task is not None and not self._task.done():
                 raise SessionBusy('PP collector session already running')

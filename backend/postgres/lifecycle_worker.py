@@ -36,16 +36,18 @@ def configuration(environ):
     if mode != 'pp_live' and origin.startswith('pp-live-'):
         raise ValueError('PP live origin cannot be used for test lifecycle')
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')
-    if mode == 'pp_live' and size is not None and (
-            environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
-            origin != 'pp-live-pp' or size != str(32 * 1024 * 1024)):
-        raise ValueError('PP size trial requires the exact 32 MiB live profile')
+    trial = environ.get('TRADEBOT_PP_WINDOW_POLICY')
+    if trial is not None and (trial != 'two-official-markets' or mode != 'pp_live'
+            or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin != 'pp-live-pp'):
+        raise ValueError('invalid PP market-window qualification profile')
+    if mode == 'pp_live' and size is not None:
+        raise ValueError('PP live size override unavailable')
     pending = int(environ.get('TRADEBOT_OUTBOX_MAX_PENDING', '10000'))
     if not 10 <= pending <= 100000:
         raise ValueError('pending outbox bound must be 10..100000')
     return {'origin_id': origin, 'mode': mode,
             'policy': RotationPolicy(int(size) if size else None),
-            'pending_outbox_limit': pending}
+            'pending_outbox_limit': pending, 'market_pair_trial': trial is not None}
 
 
 def read_dsn(environ):
@@ -106,9 +108,11 @@ def main(argv=None):
     while not stop.is_set():
         try:
             result = repository.switch_if_due(config['origin_id'], config['policy'],
-                                              require_live_lease=config['mode'] == 'pp_live')
+                                              require_live_lease=config['mode'] == 'pp_live',
+                                              market_pair_trial=config['market_pair_trial'])
             result.update(archive='held_no_qualified_transport', retirement='off')
-            if config['mode'] == 'pp_live' and result.get('reason') == 'other_slot_not_retired':
+            if config['mode'] == 'pp_live' and result.get('reason') in (
+                    'other_slot_not_retired','pp_window_relation_limit'):
                 # The repository atomically committed OFF with the hold. The
                 # supervisor must not keep presenting this as normal rotation.
                 if result.get('collector_enabled') is not False:

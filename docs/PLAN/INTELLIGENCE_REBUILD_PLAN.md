@@ -57,28 +57,37 @@ A 10,003-pending fixture stopped admission and inventory. Local controller suite
 ran 180 tests with four platform skips. PP runtime deployment and representative
 scan timing remain open.
 
-### PP size-trigger qualification candidate
+### Two-market PP window qualification candidate
 
-The bounded PP live Compose overlay pins a 32 MiB raw relation threshold for
-`tradebot_pp` / `pp-live-pp`. The switcher rechecks the live collector lease
-under the writer lock before applying either trigger. Startup in ready/OFF
-mode leaves A in place. The 72-hour age trigger, occupied-slot stop and
-1,800-second collector session limit still apply.
+For the explicit PP qualification overlay, A begins its **observation** at the next
+complete official BTC 15-minute interval after collector enable. Its earlier
+partial data remains part of the sealed raw generation and its archive. Verify
+two consecutive exact market IDs and 900-second boundaries with on-time Polymarket
+source/receipt evidence in A; switch on the first lifecycle tick after both end.
+The operator observer independently checks continuity and freshness. B's 30-minute
+observation starts at its actual atomic switch. Keep the verified A until a separate
+retirement qualification passes. The normal 72-hour rotation policy still applies
+outside this PP test overlay.
 
-The November 17 diagnostic measured A growing from 2,711,552 to 9,109,504
-bytes over 282 seconds (about 22,688 bytes/s). At that single observed rate,
-33,554,432 bytes would be reached in about 18 minutes from the last A size.
-An empty B has about 24.6 minutes of size runway at that rate, versus about
-12 minutes left in the session at the projected switch. Actual B starts with
-relation overhead. These are forecasts from two samples. Before ON, check A's
-identity, current age/size/rows, B availability, projected time to the first
-and second triggers, free bytes, pending outbox and archive-worker readiness.
-If A is already due or live growth differs, recompute the observation window.
-During the session measure size and time from seal through authenticated
-readback alongside B writes. If A stays occupied when B is due, the existing
-controller durably stops intake. A successful observation establishes only
-the observed size, growth and archive characteristics.
-[Source measurements](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md)
+The exact ON permit may request up to 4,560 seconds on PP (up to 15 minutes
+of alignment, two 30-minute observations and one minute for sampling). ON remains
+bounded by the durable PostgreSQL lease and the supervisor. OFF survives restart.
+Use controls from a reviewed PP workflow revision that accepts this duration.
+A hard stop at the first size check at or above 32 MiB retains the generation
+and durably disables collection. Sampling every 30 seconds permits growth between
+checks. No early switch counts as two markets. For this profile, record the first
+blocking condition, the generation, measured allocation, lease and exact markets.
+
+**Capacity decision before ON.** The previous PP diagnostic measured growth from
+2,711,552 to 9,109,504 bytes over 282 seconds (~22,688 bytes/s). From that A
+allocation, 32 MiB would be reached in about 18 minutes. Over 30–45 minutes the
+projected A allocation is roughly 48–67 MiB. An initially empty B would add
+about 39 MiB in 30 minutes. At the prior rate **this full-window test cannot fit
+the existing 32 MiB guard**. Check fresh A/slot allocation, arrival rates, archive
+manifest/chunk limits, pending outbox, mount capacity and WAL working space. If
+the full-window estimate still exceeds the guard, review a measured qualification
+budget before a live attempt. This candidate applies no larger cap.
+[Measured PP diagnostic](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md).
 
 ### PP execution sequence
 

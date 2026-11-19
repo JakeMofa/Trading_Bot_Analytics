@@ -241,7 +241,7 @@ def evaluate(samples, checks, elapsed):
 
 
 def observe(api, seconds, *, clock=time.monotonic, sleeper=time.sleep):
-    if not 1 <= seconds <= 1800:
+    if not 1 <= seconds <= 4560:
         raise ValueError("observation duration must fit one bounded session")
     start = clock()
     samples, checks = [], []
@@ -263,7 +263,7 @@ def observe(api, seconds, *, clock=time.monotonic, sleeper=time.sleep):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", required=True, help="Caller-supplied loopback SSH tunnel, e.g. http://127.0.0.1:18000")
-    parser.add_argument("--seconds", type=int, default=1500, help="1-1800; PASS requires >=1200")
+    parser.add_argument("--seconds", type=int, default=1500, help="1-4560; PASS requires >=1200")
     parser.add_argument("--output", type=Path, required=True, help="Local sanitized JSON report")
     args = parser.parse_args()
     api = PrivateAPI(args.base_url)

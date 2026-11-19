@@ -24,6 +24,22 @@ capture is OFF, old receipts have not been backfilled and production is
 unchanged. Measure the additional bytes before promotion. The privileged
 archive-mutation gate for local removal remains independent.
 
+### PP and production captures of the same venue event
+
+**Implemented.** Archive, receipt and checkpoint identities include origin and
+generation. If PP and production observe the same tick, both captures keep
+their source and receipt timestamps, provenance and archive identities. Stored
+capture identity alone does not establish overlap between the two feeds.
+
+**Planned.** A common Supabase dataset view may count an event once when its
+venue, feed and stable venue event ID identify the same event and its exact
+source content agrees. Keep links to every original capture and its observation
+time. Preserve both payloads and flag the conflict when the same venue identity
+has different source content. Missing stable venue IDs leave overlap unresolved.
+Keep environment-specific prediction IDs, calculation results and local capture
+IDs independently addressable. This checkpoint adds no canonical-event schema
+or cross-origin deduplication to the archive writer.
+
 ### Exact sealed PP readback and local retirement
 
 The one-shot source command `python -m postgres.pp_retirement_verify --sealed UUID

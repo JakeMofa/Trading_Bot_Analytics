@@ -4181,3 +4181,30 @@ prediction HTTP omits snapshot IDs. #185's 2,000-row scan cannot cover real
 retained A; indexed bounded reading, cross-generation merge where needed, live
 labels and recalculation remain gates. Checkpoint 3 stays OPEN.
 [Evidence shape, qualification and live gaps](PP_TWO_GENERATION_HISTORY_EVIDENCE_2026-11-19.md).
+
+
+### November 19 UTC — source-only symmetric exact retirement readback
+
+The two-market verifier previously hardcoded sealed A and collecting B despite
+its exact UUID targets and underlying SQL retirement authority already supporting
+opposite slots. It now accepts A→B or B→fresh-A only when both slots are valid
+and the collecting generation's actual start exactly matches the sealed
+generation's actual seal. The two-market permit issuer now checks that same
+handoff timestamp. Standard-profile behavior, all request/byte/time limits, each
+30-minute seal deadline, admin freeze, one-use exact ticket and environment gates
+remain. Migration 0003 and every applied migration checksum are unchanged; the
+privileged function already checks opposite slots and exact UUIDs. Profile
+windows remain enforced by the existing issuer/verifier layer rather than a new
+database authority or migration.
+
+Eleven generated/native controls pass without skips on a fresh disposable local
+PostgreSQL 17 fixture with restricted migrator, lifecycle and app logins. Actual
+psql issuance and privileged removal succeed first for A while B commits, then
+for B while a distinct fresh A commits, consuming two distinct tickets. Wrong
+handoff time rejects issuance and verification; an original-A target and used
+first ticket cannot authorize B. Separate both-leg raw/structured readback
+rejects unavailable raw, corrupt structured records and expired seal windows.
+Existing reader drain, protected evidence, rollback, forged checkpoint and permit
+reuse tests also pass. Generated transports represent remote archives; these
+results are not hosted cloud readback, real-market capture or PP retirement
+evidence. No host/deployment, cloud, grants or schema action occurred.

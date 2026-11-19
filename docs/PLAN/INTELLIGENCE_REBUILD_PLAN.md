@@ -1,3 +1,29 @@
+## November 19 UTC — independent dashboard evidence acceptance candidate
+
+A local offline evidence audit now distinguishes current-market numerical saved
+forecasts/live estimates, truthful abstentions, unavailable output and stale or
+unbound output. Existing `live_observe.py` counts distinct prediction IDs and a
+nonempty history list; those checks alone do not prove any numerical forecast,
+market binding or fresh model input. This supplementary audit requires original
+state fields and reports integrity separately from numerical acceptance. An
+honest abstention can pass integrity while numerical evidence stays INCOMPLETE.
+
+[Executable and evidence contract](PP_DASHBOARD_EVIDENCE_2026-11-19.md) documents
+UTC source/input/feature ages, exact snapshot binding, the dashboard's 10-second
+live-tick limit and before/after writer-generation observation brackets. Missing
+richer payloads cannot be reconstructed from ID-only observer reports. No rendered
+browser display, raw archive correctness or retirement authority is implied.
+
+The separately authorized temporary local conductor records allowlisted fields
+from its existing API responses only, with latency/source SHA/UTC/monotonic time;
+it adds no API requests or host configuration. Its pure wrapper was compiled and
+tested for one inner request/one captured record without running the conductor.
+The committed helper remains offline and the deployed observer/runtime are
+unchanged. Generated fixture tests cover stale/prior-market forecasts, honest
+abstain, missing evidence and exact decimal preservation. Real combined-trial
+acceptance remains OPEN until run evidence is processed; preserve the pp17
+release freeze, no promotion or merge by this candidate.
+
 ## November 19 UTC — actual PP connection reuse comparison, read path only
 
 A bounded PP-only test used the restricted history identity to read the same50

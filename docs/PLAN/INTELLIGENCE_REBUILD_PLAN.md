@@ -44,7 +44,15 @@ discovery or missing first quote waits for the next normal poll, and unavailable
 data remains visible as such. Check the exact writer and its write advancement,
 plus the dashboard and history, around both swaps and both retirement commits.
 Record the observed outcomes from the live trial separately from fixture and
-read-only verifier results.
+read-only verifier results. The isolated PostgreSQL control run passed all eight
+selected cases on the combined source, including native two-switch persistence,
+the occupied-slot hold, both permit-bound removals and second-leg readback
+rejections. The switch fixture simulates the first retirement, and the
+permit fixture uses generated archive transport. Live PP remains OFF. Follow
+the [two-leg configuration](PP_SEAMLESS_CYCLE_SOURCE_2026-11-19.md) and
+[before-and-after dashboard capture](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md)
+only after exact CI, a qualified fresh start, matching release controls, two
+current archive freeze windows and a fresh production-fence check.
 
 ### Legacy dashboard contracts to carry forward
 

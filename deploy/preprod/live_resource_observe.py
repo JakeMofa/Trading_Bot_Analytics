@@ -21,6 +21,8 @@ HOST = 'tradebot-preprod-01'
 CONTAINER = 'tradebot-pp-foundation-postgres-1'
 VOLUME = 'tradebot_pp_pgdata'
 ORIGIN = 'pp-live-pp'
+TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
+ORIGINS = (ORIGIN, TRIAL_ORIGIN)
 ROW_LIMIT = 10001
 SEGMENT = re.compile(r'[0-9A-F]{24}(?:\.partial)?')
 SQL_SHELL = ('export PGPASSWORD="$(cat /run/secrets/reader)"; '
@@ -30,7 +32,7 @@ SQL = """BEGIN READ ONLY;
 SET LOCAL statement_timeout='3000ms';
 SELECT json_build_object(
   'writer', (SELECT json_build_object('generation_id',generation_id,
-      'epoch',epoch,'collector_enabled',collector_enabled,
+      'epoch',epoch,'collector_enabled',collector_enabled,'session_id',collector_session_id,
       'lease_expires_at',collector_lease_expires_at)
     FROM ops.writer_state WHERE origin_id='pp-live-pp'),
   'generations', (SELECT coalesce(json_agg(json_build_object(
@@ -166,7 +168,8 @@ def memory_available(path=Path('/proc/meminfo')):
     return int(text[0]) * 1024
 
 
-def collect(phase):
+def collect(phase, *, origin=ORIGIN):
+    require(origin in ORIGINS, 'exact_pp_resource_origin_required')
     host_binding()
     inspect = json.loads(run(['docker', 'inspect', CONTAINER], timeout=8))
     container_binding(inspect)
@@ -174,12 +177,12 @@ def collect(phase):
     require(isinstance(volumes, list) and len(volumes) == 1
             and volumes[0].get('Name') == VOLUME, 'unexpected_pp_volume')
     result = json.loads(run(['docker', 'exec', '-i', CONTAINER, 'sh', '-ec', SQL_SHELL],
-                            input_bytes=SQL.encode(), timeout=8, max_output=32768))
+                            input_bytes=SQL.replace(ORIGIN, origin).encode(), timeout=8, max_output=32768))
     validate_database_result(result)
     disk = shutil.disk_usage('/')
     return {'scope': 'pp_live_read_only_resource_sample', 'phase': phase,
             'observed_at_utc': datetime.now(timezone.utc).isoformat(),
-            'origin_id': ORIGIN, 'database': result,
+            'origin_id': origin, 'database': result,
             **wal_allocation(volumes[0].get('Mountpoint')),
             'filesystem_free_bytes': disk.free,
             'host_memory_available_bytes': memory_available(),
@@ -190,9 +193,10 @@ def collect(phase):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--phase', required=True, choices=('before', 'mid', 'after'))
+    parser.add_argument('--origin', choices=ORIGINS, default=ORIGIN)
     args = parser.parse_args()
     try:
-        print(json.dumps(collect(args.phase), sort_keys=True))
+        print(json.dumps(collect(args.phase, origin=args.origin), sort_keys=True))
         return 0
     except (OSError, ValueError, KeyError, json.JSONDecodeError, ObservationHold):
         print(json.dumps({'scope': 'pp_live_read_only_resource_sample',

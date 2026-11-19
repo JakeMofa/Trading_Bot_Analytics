@@ -30,7 +30,12 @@ on:
         required: false
         type: string
       max_seconds:
-        description: Session ON duration, 1 to 4560 seconds
+        description: Session ON duration, up to 4560 seconds or exactly 6600 for a bound two-leg PP cycle
+        required: false
+        type: string
+
+      cycle_initial_a:
+        description: Canonical initial A generation UUID for a separately bound two-leg cycle
         required: false
         type: string
 
@@ -54,6 +59,7 @@ jobs:
       PP_DEPLOYMENT_RUN_ID: ${{ inputs.deployment_run_id }}
       PP_LIVE_IMAGE_ID: ${{ inputs.image_id }}
       PP_LIVE_SECONDS: ${{ inputs.max_seconds }}
+      PP_CYCLE_INITIAL_A: ${{ inputs.cycle_initial_a }}
       GH_TOKEN: ${{ github.token }}
       PIPELINE_REPORT: ci-evidence/pp-live/preflight.json
     steps:
@@ -88,6 +94,7 @@ jobs:
       PP_DEPLOYMENT_RUN_ID: ${{ inputs.deployment_run_id }}
       PP_LIVE_IMAGE_ID: ${{ inputs.image_id }}
       PP_LIVE_SECONDS: ${{ inputs.max_seconds }}
+      PP_CYCLE_INITIAL_A: ${{ inputs.cycle_initial_a }}
       GH_TOKEN: ${{ github.token }}
       PP_DEPLOY_KEY: ${{ secrets.PP_DEPLOY_KEY }}
       PP_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_DEPLOY_KNOWN_HOSTS }}

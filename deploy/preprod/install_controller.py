@@ -13,7 +13,8 @@ import uuid
 import zipfile
 
 from controller import HostBinding,Request,require
-from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _read_active
+from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _cycle_args, _read_active
+from linux_actions import CYCLE_SESSION_MAX_SECONDS
 
 PROBE_AUTHORITY=Path('/run/tradebot-pp-deploy/structured-probe.json')
 RAW_ARCHIVE_AUTHORITY=Path('/run/tradebot-pp-deploy/raw-archive-probe.json')
@@ -153,9 +154,9 @@ def _scope_permit(path,fields):
             'expires_at':permit['expires_at'],'deployment_dispatched':False}
 
 
-def authorize_live_enter(source,artifact,controller,image):
+def authorize_live_enter(source,artifact,controller,image,initial_a=None):
     HostBinding.from_marker().validate()
-    request=TransitionRequest('enter',source,artifact,controller,image)
+    request=TransitionRequest('enter',source,artifact,controller,image,initial_a=initial_a)
     request.validate()
     checked_bundle(LIB/'controller.pyz',controller)
     _candidate(request)
@@ -166,13 +167,15 @@ def authorize_live_enter(source,artifact,controller,image):
 
 def authorize_live_on(seconds):
     HostBinding.from_marker().validate()
-    require(isinstance(seconds,int) and 1<=seconds<=4560,'invalid_live_session_duration')
     active=_read_active()
+    cycle=_cycle_args(active)
+    require(type(seconds) is int and (seconds==CYCLE_SESSION_MAX_SECONDS if cycle else 1<=seconds<=4560),
+            'invalid_live_session_duration')
     require(active['state']=='ready_off','live_profile_not_ready')
     checked_bundle(LIB/'controller.pyz',active['controller_sha256'])
     return _scope_permit(ON_AUTHORITY,{k:active[k] for k in ('environment','instance','source_sha',
         'artifact_sha256','controller_sha256','image_id')}|
-        {'transition_nonce':active['nonce'],'scope':'pp_live_session_on','max_seconds':seconds})
+        {'transition_nonce':active['nonce'],'scope':'pp_live_session_on','max_seconds':seconds}|cycle)
 
 
 def authorize_structured_probe(generation_id,expected_state,first_outbox_id):
@@ -219,6 +222,7 @@ if __name__=='__main__':
     a=sub.add_parser('install');a.add_argument('--bundle',type=Path,required=True);a.add_argument('--sha256',required=True);a.add_argument('--public-key-file',type=Path,required=True)
     a=sub.add_parser('authorize');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True)
     a=sub.add_parser('authorize-live-enter');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True);a.add_argument('--image-id',required=True)
+    a.add_argument('--initial-a')
     a=sub.add_parser('authorize-live-on');a.add_argument('--max-seconds',type=int,required=True)
     a=sub.add_parser('authorize-structured-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-state',required=True);a.add_argument('--first-outbox-id',type=int,required=True)
     a=sub.add_parser('authorize-raw-archive-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-seal-count',type=int,required=True);a.add_argument('--expected-manifest-count',type=int,required=True)
@@ -256,7 +260,7 @@ if __name__=='__main__':
         elif args.operation=='authorize':
             result=authorize(args.source_sha,args.artifact_sha256,args.controller_sha256)
         elif args.operation=='authorize-live-enter':
-            result=authorize_live_enter(args.source_sha,args.artifact_sha256,args.controller_sha256,args.image_id)
+            result=authorize_live_enter(args.source_sha,args.artifact_sha256,args.controller_sha256,args.image_id,args.initial_a)
         elif args.operation=='authorize-structured-probe':
             result=authorize_structured_probe(args.generation_id,args.expected_state,args.first_outbox_id)
         elif args.operation=='authorize-raw-archive-probe':

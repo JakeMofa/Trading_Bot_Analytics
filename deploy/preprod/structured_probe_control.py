@@ -199,7 +199,8 @@ def preflight(installed: Path, budget: Budget):
     context = _candidate(request)
     actions = _image_binding(context, budget)
     _owned_runtime(actions, context, budget)
-    actions._runtime(context, budget, live=True)
+    actions._runtime(context, budget, live=True,
+                     **({'initial_a': active['initial_a']} if active.get('initial_a') else {}))
     _files()
     for name in EXPECTED_MODULES:
         path = context.source / name

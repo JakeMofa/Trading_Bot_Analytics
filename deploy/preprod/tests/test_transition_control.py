@@ -97,6 +97,26 @@ class TransitionGateTests(unittest.TestCase):
             with self.assertRaises(DeploymentHold):
                 gate.TransitionRequest.parse(changed)
 
+    def test_cycle_anchor_is_bound_and_off_needs_no_cycle_argument(self):
+        anchor = str(uuid.uuid4())
+        command = ('transition-v1 preprod tradebot-preprod-01 enter ' + 'a'*40 + ' ' +
+                   'b'*64 + ' ' + 'c'*64 + ' sha256:' + 'd'*64)
+        parsed = gate.TransitionRequest.parse(f'{command} {anchor}')
+        self.assertEqual(parsed.bindings()['initial_a'], anchor)
+        with self.assertRaises(DeploymentHold):
+            gate.TransitionRequest.parse(f'{command.replace(" enter ", " leave ")} {anchor}')
+        with self.assertRaises(DeploymentHold):
+            gate.TransitionRequest.parse(f'{command} {anchor.upper()}')
+        with patch.object(gate.HostBinding, 'from_marker'), \
+             patch.object(gate, '_read_active', return_value={'initial_a': anchor}), \
+             patch.object(gate, '_secure_file') as controller:
+            for invalid in ('session-v1 on 6600', f'session-v1 on 4560 {anchor}',
+                            f'session-v1 on 6601 {anchor}',
+                            f'session-v1 on 6600 {uuid.uuid4()}'):
+                with self.subTest(invalid=invalid), self.assertRaises(DeploymentHold):
+                    gate.session(invalid, Path('/trusted/controller.pyz'))
+            controller.assert_not_called()
+
     def test_scope_permit_is_one_use_and_cannot_authorize_other_image(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

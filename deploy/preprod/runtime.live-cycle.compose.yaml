@@ -1,0 +1,10 @@
+# Root controller includes this only for a permit-bound PP two-leg cycle.
+services:
+  lifecycle:
+    environment:
+      TRADEBOT_PP_WINDOW_POLICY: ${TRADEBOT_PP_WINDOW_POLICY:?PP cycle policy required}
+      TRADEBOT_PP_CYCLE_INITIAL_A: ${TRADEBOT_PP_CYCLE_INITIAL_A:?PP cycle initial A required}
+  operator:
+    environment:
+      TRADEBOT_PP_WINDOW_POLICY: ${TRADEBOT_PP_WINDOW_POLICY:?PP cycle policy required}
+      TRADEBOT_PP_CYCLE_INITIAL_A: ${TRADEBOT_PP_CYCLE_INITIAL_A:?PP cycle initial A required}

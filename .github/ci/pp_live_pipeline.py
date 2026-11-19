@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import uuid
 import zipfile
 
 import environment_pipeline as pipeline
@@ -80,12 +81,24 @@ def command_for(env, api, profile):
             and env.get('GITHUB_REPOSITORY') == pipeline.REPO, 'reviewed manual PP controls required')
     controls = api.read('/git/ref/heads/' + env['GITHUB_REF_NAME'])
     require(controls['object']['sha'] == env.get('GITHUB_SHA'), 'PP control branch moved')
+    anchor = env.get('PP_CYCLE_INITIAL_A', '')
+    if anchor:
+        try:
+            canonical = str(uuid.UUID(anchor))
+        except ValueError:
+            canonical = None
+        require(canonical == anchor and operation in ('enter', 'on'),
+                'canonical PP cycle initial A required for enter or on')
     if operation in ('on', 'off'):
         if operation == 'off':
             return 'session-v1 off', {'operation': 'off'}
         seconds = env.get('PP_LIVE_SECONDS', '')
-        require(seconds.isdigit() and 1 <= int(seconds) <= 4560, 'bounded session seconds required')
-        return 'session-v1 on ' + str(int(seconds)), {'operation': 'on', 'max_seconds': int(seconds)}
+        require(re.fullmatch(r'[0-9]{1,4}', seconds) is not None
+                and (int(seconds) == 6600 if anchor else 1 <= int(seconds) <= 4560),
+                'bounded session seconds required')
+        binding = {'initial_a': anchor} if anchor else {}
+        return ('session-v1 on ' + str(int(seconds)) + (' ' + anchor if anchor else ''),
+                {'operation': 'on', 'max_seconds': int(seconds)} | binding)
     sha = env.get('APPROVED_REVISION', '')
     require(pipeline.SHA.fullmatch(sha) is not None, 'exact PP source required')
     candidate, _ = load_candidate(api, env.get('RELEASE_VERSION', ''), sha)
@@ -98,6 +111,9 @@ def command_for(env, api, profile):
         exact_deployed_ci(api, candidate, branch)
     command = 'transition-v1 preprod tradebot-preprod-01 ' + operation + ' ' + sha + ' ' + \
         candidate['artifact_sha256'] + ' ' + profile['controller_sha256'] + ' ' + image
+    if anchor:
+        command += ' ' + anchor
+        proof['initial_a'] = anchor
     return command, {**proof, 'operation': operation, 'release_version': candidate['version']}
 
 
@@ -125,12 +141,13 @@ def transport(profile, command, env):
         return json.loads(result.stdout)
 
 
-def validated_result(operation, result):
+def validated_result(operation, result, initial_a=None):
     expected = {'enter':'PP_LIVE_READY_OFF', 'leave':'PP_GENERATED_RESTORED',
                 'on':'PP_LIVE_ON', 'off':'PP_LIVE_OFF'}[operation]
     require(result.get('gate') == expected and result.get('origin_id') ==
             ('generated-pp' if operation == 'leave' else 'pp-live-pp')
-            and result.get('collector_enabled') is (operation == 'on'), 'PP live result mismatch')
+            and result.get('collector_enabled') is (operation == 'on')
+            and result.get('initial_a') == initial_a, 'PP live result mismatch')
     return {'gate': expected, 'origin_id': result['origin_id'],
             'collector_enabled': result['collector_enabled']}
 
@@ -148,7 +165,8 @@ def main():
         command, proof = command_for(env, api, profile)
         report = {'gate': 'PASS', 'scope': 'pp_live_preflight', **proof}
         if args.stage == 'execute':
-            host_result = validated_result(proof['operation'], transport(profile, command, env))
+            host_result = validated_result(proof['operation'], transport(profile, command, env),
+                                           proof.get('initial_a'))
             report.update({key: value for key, value in host_result.items() if key != 'gate'})
             report['host_gate'] = host_result['gate']
             report['scope'] = 'pp_live_host_result'

@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 from controller import Budget, Context, DeploymentHold, HostBinding, Request, _secure_file, require
-from linux_actions import LinuxActions, RUNTIME_SECRETS
+from linux_actions import LinuxActions, RUNTIME_SECRETS, CYCLE_SESSION_MAX_SECONDS, cycle_environment
 
 ROOT = Path('/var/lib/tradebot-pp/deployments')
 ACTIVE = ROOT / 'active-live-transition.json'
@@ -76,13 +76,15 @@ class TransitionRequest:
     image_id: str
     environment: str = 'preprod'
     instance: str = 'tradebot-preprod-01'
+    initial_a: str | None = None
 
     @classmethod
     def parse(cls, command):
         require(isinstance(command, str) and len(command) <= 512, 'invalid_transition_command')
         parts = command.split(' ')
-        require(len(parts) == 8 and parts[0] == 'transition-v1', 'invalid_transition_command')
-        request = cls(parts[3], parts[4], parts[5], parts[6], parts[7], parts[1], parts[2])
+        require(len(parts) in (8, 9) and parts[0] == 'transition-v1', 'invalid_transition_command')
+        request = cls(parts[3], parts[4], parts[5], parts[6], parts[7], parts[1], parts[2],
+                      parts[8] if len(parts) == 9 else None)
         request.validate()
         return request
 
@@ -91,10 +93,13 @@ class TransitionRequest:
                 and self.instance == 'tradebot-preprod-01', 'wrong_transition_scope')
         Request(self.source_sha, self.artifact_sha256, self.controller_sha256).validate()
         require(IMAGE.fullmatch(self.image_id) is not None, 'invalid_transition_image')
+        require(self.initial_a is None or self.operation == 'enter', 'invalid_pp_cycle_transition')
+        cycle_environment(self.initial_a)
 
     def bindings(self):
-        return {key: getattr(self, key) for key in ('environment', 'instance', 'operation',
+        binding = {key: getattr(self, key) for key in ('environment', 'instance', 'operation',
             'source_sha', 'artifact_sha256', 'controller_sha256', 'image_id')}
+        return binding | ({'initial_a': self.initial_a} if self.initial_a is not None else {})
 
 
 def _consume(path, expected):
@@ -102,6 +107,7 @@ def _consume(path, expected):
     content, info = _secure_file(path)
     permit = json.loads(content)
     require(permit.get('version') == 1 and all(permit.get(k) == v for k, v in expected.items())
+            and permit.get('initial_a') == expected.get('initial_a')
             and permit.get('paid_ai_enabled') is False and permit.get('cloud_enabled') is False
             and permit.get('retirement_enabled') is False and permit.get('production_data_mounted') is False,
             'transition_authority_scope_mismatch')
@@ -140,6 +146,7 @@ def _read_active():
             and HEX64.fullmatch(data.get('controller_sha256', ''))
             and IMAGE.fullmatch(data.get('image_id', '')),
             'invalid_active_transition_binding')
+    cycle_environment(data.get('initial_a'))
     return data
 
 
@@ -218,7 +225,7 @@ def transition(request, controller_path):
         active = {**request.bindings(), 'version': 1, 'nonce': nonce, 'state': 'entering'}
         _atomic_json(ACTIVE, active, new=True)
         try:
-            result = LiveTransition(actions, context, budget).enter()
+            result = LiveTransition(actions, context, budget, **_cycle_args(active)).enter()
             require(result.get('gate') == 'PP_LIVE_READY_OFF' and result.get('collector_enabled') is False,
                     'live_ready_off_not_proven')
             _atomic_json(ACTIVE, {**active, 'state': 'ready_off'})
@@ -227,7 +234,7 @@ def transition(request, controller_path):
             # The component attempts restoration itself. A fresh recovery budget
             # covers a work-budget expiry without reusing the consumed permit.
             try:
-                recovered = LiveTransition(actions, context, Budget(180)).leave()
+                recovered = LiveTransition(actions, context, Budget(180), **_cycle_args(active)).leave()
                 require(recovered.get('gate') == 'PP_GENERATED_RESTORED'
                         and recovered.get('collector_enabled') is False,
                         'generated_restoration_unproven')
@@ -250,7 +257,7 @@ def transition(request, controller_path):
         return {'gate': 'PP_GENERATED_RESTORED', 'collector_enabled': False,
                 'origin_id': 'generated-pp', 'idempotent': True}
     _atomic_json(ACTIVE, {**active, 'state': 'leaving'})
-    result = LiveTransition(actions, context, budget).leave()
+    result = LiveTransition(actions, context, budget, **_cycle_args(active)).leave()
     require(result.get('gate') == 'PP_GENERATED_RESTORED' and result.get('collector_enabled') is False,
             'generated_restoration_unproven')
     _atomic_json(ACTIVE, {**active, 'state': 'generated_restored'})
@@ -291,15 +298,27 @@ def _prove_off(transition, source_sha, budget):
         transition._live_off()
 
 
+def _cycle_args(active):
+    initial_a = active.get('initial_a')
+    return {'initial_a': initial_a} if initial_a is not None else {}
+
+
 def session(command, controller_path):
     """ON is one-use; OFF remains available when HTTP control has failed."""
     from live_transition import LiveTransition
     HostBinding.from_marker().validate()
     parts = command.split(' ')
-    require(parts[0] == 'session-v1' and ((len(parts) == 3 and parts[1] == 'on'
-        and parts[2].isdigit() and 1 <= int(parts[2]) <= 4560)
-        or (parts == ['session-v1', 'off'])), 'invalid_session_command')
+    require(parts[:2] == ['session-v1', 'on'] and len(parts) in (3, 4)
+            or parts == ['session-v1', 'off'], 'invalid_session_command')
     active = _read_active()
+    cycle = _cycle_args(active)
+    if parts[1] == 'on':
+        initial_a = parts[3] if len(parts) == 4 else None
+        require(initial_a == active.get('initial_a'), 'pp_cycle_session_binding_mismatch')
+        require(re.fullmatch(r'[0-9]{1,4}', parts[2]) is not None, 'invalid_session_command')
+        seconds = int(parts[2])
+        require(seconds == CYCLE_SESSION_MAX_SECONDS if cycle else 1 <= seconds <= 4560,
+                'invalid_session_command')
     require(active['state'] in ('ready_off', 'entering', 'leaving', 'recovery_unproven'),
             'no_live_transition_to_control')
     request = TransitionRequest('leave', active['source_sha'], active['artifact_sha256'],
@@ -324,16 +343,15 @@ def session(command, controller_path):
             _operator(token, '/collector/off')
         except (OSError, ValueError, DeploymentHold, urllib.error.HTTPError):
             pass
-        _prove_off(LiveTransition(actions, context, budget), request.source_sha, budget)
+        _prove_off(LiveTransition(actions, context, budget, **cycle), request.source_sha, budget)
         return {'gate': 'PP_LIVE_OFF', 'origin_id': 'pp-live-pp', 'collector_enabled': False}
     require(active['state'] == 'ready_off', 'live_profile_not_ready')
-    seconds = int(parts[2])
-    actions._runtime(context, budget, live=True)
+    actions._runtime(context, budget, live=True, **cycle)
     actions._host_operator(live=True)
     actions._live_filesystem(context, budget)
     _consume(ON_AUTHORITY, {k: active[k] for k in ('environment', 'instance', 'source_sha',
         'artifact_sha256', 'controller_sha256', 'image_id')} |
-        {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds})
+        {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds} | cycle)
     token_path = RUNTIME_SECRETS / 'operator_token'
     info = token_path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_uid == 10001 and stat.S_IMODE(info.st_mode) == 0o400,
@@ -341,6 +359,11 @@ def session(command, controller_path):
     token = token_path.read_text().strip()
     require(HEX64.fullmatch(token) is not None, 'unsafe_operator_token')
     try:
+        if cycle:
+            state = _operator(token, '/collector/status')
+            require(state.get('generation_id') == cycle['initial_a']
+                    and state.get('collector_enabled') is False,
+                    'pp_cycle_initial_generation_not_ready')
         accepted = _operator(token, '/collector/on', seconds=seconds)
         require(accepted.get('accepted') is True and accepted.get('origin_id') == 'pp-live-pp',
                 'collector_on_not_accepted')
@@ -354,12 +377,12 @@ def session(command, controller_path):
                 remaining = (expiry - datetime.now(timezone.utc)).total_seconds()
                 require(0 < remaining <= seconds + 15, 'collector_lease_exceeds_session_bound')
                 return {'gate': 'PP_LIVE_ON', 'origin_id': 'pp-live-pp',
-                        'collector_enabled': True, 'max_seconds': seconds}
+                        'collector_enabled': True, 'max_seconds': seconds} | cycle
             require(time.monotonic() < deadline, 'collector_on_not_durable')
             time.sleep(.2)
     except Exception:
         try:
-            LiveTransition(actions, context, Budget(90))._live_off()
+            LiveTransition(actions, context, Budget(90), **cycle)._live_off()
         except Exception:
             raise DeploymentHold('collector_on_failed_off_unproven') from None
         raise DeploymentHold('collector_on_failed_off_proven') from None

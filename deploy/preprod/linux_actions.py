@@ -56,6 +56,20 @@ BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_EN
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
 OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
 OUTBOX_ORIGINS=('generated-pp','pp-live-pp')
+CYCLE_SESSION_MAX_SECONDS=6600
+CYCLE_POLICY='two-official-markets-cycle'
+
+
+def cycle_environment(initial_a):
+    if initial_a is None:
+        return {}
+    try:
+        valid = isinstance(initial_a, str) and str(uuid.UUID(initial_a)) == initial_a
+    except ValueError:
+        valid = False
+    require(valid, 'invalid_pp_cycle_anchor')
+    return {'TRADEBOT_PP_WINDOW_POLICY': CYCLE_POLICY,
+            'TRADEBOT_PP_CYCLE_INITIAL_A': initial_a}
 
 
 def memory_bytes(value):
@@ -65,7 +79,7 @@ def memory_bytes(value):
     return int(match[1])*{'':1,'k':1024,'m':1024**2,'g':1024**3}[match[2]]
 
 
-def expected_environment(service, *, live=False):
+def expected_environment(service, *, live=False, initial_a=None):
     env={**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
     if service=='lifecycle':
         env['TRADEBOT_GENERATED_LOCAL_STORAGE']='false' if live else 'true'
@@ -80,6 +94,8 @@ def expected_environment(service, *, live=False):
         if service=='operator':
             env.update(TRADEBOT_PP_LIVE_CONTROL='true',
                        TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
+        if service in ('lifecycle','operator'):
+            env.update(cycle_environment(initial_a))
     return env
 
 
@@ -681,7 +697,7 @@ class LinuxActions:
                 'generated_durable_headroom_not_proven')
         self._compose(context,budget,['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
 
-    def _runtime(self,context,budget,*,live=False):
+    def _runtime(self,context,budget,*,live=False,initial_a=None):
         for service in SERVICES:
             ids=self._ids(context,budget,[service])
             require(len(ids)==1,'missing_runtime_service')
@@ -696,7 +712,10 @@ class LinuxActions:
                     and host.get('CapDrop')==['ALL'] and host.get('NanoCpus')==int(CPUS[service]*1_000_000_000)
                     and host.get('RestartPolicy',{}).get('Name')=='unless-stopped','runtime_resource_or_privilege_mismatch')
             env=dict(item.split('=',1) for item in config.get('Env',[]) if '=' in item)
-            require(all(env.get(key)==value for key,value in expected_environment(service,live=live).items())
+            expected_env=expected_environment(service,live=live,initial_a=initial_a)
+            require(all(env.get(key)==value for key,value in expected_env.items())
+                    and all(env.get(key)==expected_env.get(key) for key in
+                            ('TRADEBOT_PP_WINDOW_POLICY','TRADEBOT_PP_CYCLE_INITIAL_A'))
                     and all(env.get(key,'false')=='false' for key in OPTIONAL_DISABLED)
                     and not env.get('TRADEBOT_DATABASE_DSN'),'runtime_flag_mismatch')
             network_settings=row['NetworkSettings']

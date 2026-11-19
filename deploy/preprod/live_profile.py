@@ -9,14 +9,14 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS
+from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS, cycle_environment
 from controller import require
 
 
 LIVE_ORIGIN = 'pp-live-pp'
 
 
-def validate_live_profile(base: dict, live: dict, source, image, *, reader=False):
+def validate_live_profile(base: dict, live: dict, source, image, *, reader=False, initial_a=None):
     validate_config(base, source, image)
     expected = deepcopy(base)
     for name in ('api', 'calculation', 'lifecycle'):
@@ -28,6 +28,8 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
     operator = expected['services']['operator']
     operator['environment'].update(TRADEBOT_PP_LIVE_CONTROL='true',
                                    TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
+    for service in ('lifecycle', 'operator'):
+        expected['services'][service]['environment'].update(cycle_environment(initial_a))
     target = operator['secrets'][0]['target']
     require(target in ('lifecycle_dsn', '/run/secrets/lifecycle_dsn'),
             'unreviewed_pp_operator_secret_shape')

@@ -25,6 +25,17 @@ class PPLivePipelineTests(unittest.TestCase):
         self.assertEqual(module.command_for(env, API(), {'controller_sha256':'b'*64}),
                          ('session-v1 off', {'operation':'off'}))
 
+    def test_transport_exposes_only_allowlisted_filesystem_failures(self):
+        from types import SimpleNamespace
+        for reason,expected in [('pp_filesystem_reserve','pp_filesystem_reserve'),
+                                ('arbitrary_secret','controller_report_unavailable')]:
+            body=json.dumps({'gate':'BLOCKED','environment':'preprod','reason':reason}).encode()
+            with self.subTest(reason=reason), patch.object(module.pipeline,'bounded_process',
+                    return_value=SimpleNamespace(returncode=1,stdout=body)):
+                with self.assertRaisesRegex(module.pipeline.PipelineHold,expected):
+                    module.transport({'user':'test','host':'127.0.0.1'},'session-v1 on 100',
+                                     {'PP_DEPLOY_KEY':'fixture','PP_DEPLOY_KNOWN_HOSTS':'fixture'})
+
     def test_long_pp_session_has_an_explicit_finite_bound(self):
         class API:
             def read(self, path):

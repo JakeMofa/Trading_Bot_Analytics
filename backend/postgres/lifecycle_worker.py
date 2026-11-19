@@ -112,7 +112,7 @@ def main(argv=None):
                                               market_pair_trial=config['market_pair_trial'])
             result.update(archive='held_no_qualified_transport', retirement='off')
             if config['mode'] == 'pp_live' and result.get('reason') in (
-                    'other_slot_not_retired','pp_window_relation_limit'):
+                    'other_slot_not_retired','pp_filesystem_reserve','pp_filesystem_sample_unavailable'):
                 # The repository atomically committed OFF with the hold. The
                 # supervisor must not keep presenting this as normal rotation.
                 if result.get('collector_enabled') is not False:

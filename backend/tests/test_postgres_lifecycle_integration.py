@@ -15,6 +15,7 @@ import threading
 import unittest
 import uuid
 from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded, wire
@@ -371,9 +372,27 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
                 'lastPriceSample':{'ts':ts},'bestBid':{'value':'0.49'}}},market,ts))
         def rotate(instant):
             return repo.switch_if_due(origin,now=instant,require_live_lease=True,market_pair_trial=True)
+        space = {'filesystem_free_bytes':11*1024**3,'filesystem_floor_bytes':10*1024**3,'space_hold':None}
+        sampler = patch('postgres.pp_space.sample', return_value=space)
+        sensor = sampler.start()
+        self.addCleanup(sampler.stop)
+        # Real generated relation above the previous fixture threshold. The
+        # marker records are deterministic and never sent to an external service.
+        with self.app_factory() as connection:
+            connection.execute("""INSERT INTO raw.events
+                (generation_id,origin_id,source,event_id,kind,received_at,available_at,payload,content_hash)
+                SELECT %s,%s,'fixture',i::text,'fixture',now(),now(),jsonb_build_object('body',body),
+                       encode(sha256(convert_to(body,'UTF8')),'hex')
+                FROM generate_series(1,528) i
+                CROSS JOIN LATERAL (SELECT string_agg(md5(i::text||':'||j::text),'' ORDER BY j) body
+                    FROM generate_series(1,2048) j) pad""", (gen['generation_id'],origin))
         sample(0)
         sample(15)
-        self.assertEqual(rotate(at(30))['status'],'collecting')
+        before = rotate(at(30))
+        self.assertGreater(before['allocated_bytes'], 32 * 1024**2)
+        self.assertLess(before['allocated_bytes'], 64 * 1024**2)
+        self.assertEqual(before['filesystem_free_bytes'], space['filesystem_free_bytes'])
+        self.assertEqual(before['status'],'collecting')
         self.assertEqual(rotate(at(45))['status'],'collecting')
         sample(30)
         self.assertEqual(rotate(at(45)-timedelta(microseconds=1))['status'],'collecting')
@@ -383,13 +402,19 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(result['next_generation_started_at'],actual.isoformat())
         self.assertFalse(rotate(at(75))['b_observation_elapsed'])
         self.assertTrue(rotate(actual+timedelta(minutes=30))['b_observation_elapsed'])
-        from unittest.mock import patch
-        with patch('postgres.lifecycle.PP_WINDOW_ALLOCATION_STOP_BYTES', 1):
-            held=rotate(actual+timedelta(minutes=30))
-        self.assertEqual(held['reason'],'pp_window_relation_limit')
-        with self.assertRaisesRegex(LifecycleHold,'allocation limit'):
-            repo.enable_collector(origin,session_id=str(uuid.uuid4()),
-                                  expected_generation_id=result['generation_id'],max_seconds=60)
+        for reason, free in [('pp_filesystem_reserve', 10*1024**3-1),
+                             ('pp_filesystem_sample_unavailable', None)]:
+            sensor.return_value = dict(space, filesystem_free_bytes=free, space_hold=reason)
+            held = rotate(actual+timedelta(minutes=30))
+            self.assertEqual((held['reason'],held['filesystem_free_bytes']), (reason,free))
+            self.assertFalse(repo.collector_state(origin)['stored_enabled'])
+            with self.assertRaisesRegex(LifecycleHold,reason):
+                repo.enable_collector(origin,session_id=str(uuid.uuid4()),
+                                      expected_generation_id=result['generation_id'],max_seconds=60)
+            if free is not None:
+                sensor.return_value = space
+                repo.enable_collector(origin,session_id=str(uuid.uuid4()),
+                                      expected_generation_id=result['generation_id'],max_seconds=60)
         self.assertFalse(repo.collector_state(origin)['stored_enabled'])
         self.assertEqual(repo.generation(gen['generation_id'])['state'],'sealed')
 

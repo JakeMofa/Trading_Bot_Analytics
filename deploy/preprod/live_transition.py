@@ -51,6 +51,7 @@ class LiveTransition:
 
     def _check_live_off(self):
         self.actions._runtime(self.context,self.budget,live=True)
+        self.actions._live_filesystem(self.context,self.budget)
         deadline=time.monotonic()+5
         while True:
             try:
@@ -104,6 +105,7 @@ class LiveTransition:
         self.actions._host()
         self._profile()
         self.actions._postgres(self.context,self.budget)
+        self.actions._live_filesystem(self.context,self.budget)
         self.actions._runtime(self.context,self.budget)
         self.actions._host_api()
         self.actions._host_operator()

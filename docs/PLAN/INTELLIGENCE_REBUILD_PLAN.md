@@ -96,21 +96,53 @@ The exact ON permit may request up to 4,560 seconds on PP (up to 15 minutes
 of alignment, two 30-minute observations and one minute for sampling). ON remains
 bounded by the durable PostgreSQL lease and the supervisor. OFF survives restart.
 Use controls from a reviewed PP workflow revision that accepts this duration.
-A hard stop at the first size check at or above 32 MiB retains the generation
-and durably disables collection. Sampling every 30 seconds permits growth between
-checks. No early switch counts as two markets. For this profile, record the first
-blocking condition, the generation, measured allocation, lease and exact markets.
+For the two-market PP profile, the existing host reserve of 10 GiB free is
+checked on the **PostgreSQL data filesystem** at admission and each live
+lifecycle tick. The switch itself uses observed market boundaries. A low or
+unavailable sample disables the writer lease durably and preserves both slots.
+The controller binds the actual Docker volume and read-only mounts before ON;
+each worker reads fresh kernel filesystem statistics without reading a secret.
+The archived generation, receipt and occupied-slot safety rules still apply.
+A historical fixture-size hold remains recorded and requires review.
 
-**Capacity decision before ON.** The previous PP diagnostic measured growth from
-2,711,552 to 9,109,504 bytes over 282 seconds (~22,688 bytes/s). From that A
-allocation, 32 MiB would be reached in about 18 minutes. Over 30–45 minutes the
-projected A allocation is roughly 48–67 MiB. An initially empty B would add
-about 39 MiB in 30 minutes. At the prior rate **this full-window test cannot fit
-the existing 32 MiB guard**. Check fresh A/slot allocation, arrival rates, archive
-manifest/chunk limits, pending outbox, mount capacity and WAL working space. If
-the full-window estimate still exceeds the guard, review a measured qualification
-budget before a live attempt. This candidate applies no larger cap.
-[Measured PP diagnostic](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md).
+### PP window qualification measurements
+
+At 00:56:57 UTC on November 19, a pinned read-only PP sample found the
+collector OFF, A at 4,845 rows and 9,109,504 bytes, database 60,430,003
+bytes, 56,779,476,992 filesystem bytes free, and 1,192,636,416 bytes of
+available RAM. Allocated WAL was 33,554,432 bytes. WAL written was
+170,415,907 bytes since November 13 at 00:57:11 UTC (whole cluster).
+Core relations occupied 14,114,816 bytes including 3,620,864 of indexes;
+ops 27,787,264 including 6,569,984 of indexes; raw 9,437,184 including
+2,547,712 of indexes; archive 155,648 including 114,688 of indexes.
+These are current sizes. Matched live-period samples with the same WAL
+stats reset are required for WAL write rate and per-schema/index growth.
+
+An offline estimate uses the November 17 live interval (282 seconds, 3,456
+new rows, 6,397,952 additional raw relation bytes and 15,859,712 additional
+database bytes). Allow 2,730 seconds of A growth including startup alignment
+and the switch poll and 1,860 seconds of B including sampling. The projection
+is **71,047,125 bytes for A** and **42,199,258 additional bytes for B**.
+Database growth over 4,560 seconds projects to 256,454,918 bytes. The
+projected A has 38,303 rows and needs at least 77 of the allowed 128 manifests
+at 500 rows per chunk. The actual decoded-byte bound can require more.
+A faster feed, large payloads, long readers, transient WAL retention, temp
+files, cumulative outbox and upload stalls must be measured during the run.
+
+On November 18 CST the pinned PP operator verified major/minor device 66305
+on the host data volume, host lifecycle bind, and their corresponding
+container mounts, each reporting 56,779,345,920 free bytes where measured.
+The candidate worker sampler independently read 56,779,321,344 free bytes
+from the existing read-only mount. This profile has no per-relation size cap.
+Observe raw/total growth, free bytes, memory, WAL, live performance and
+archive progress. A tested generated relation over 32 MiB exercises the
+timer with sufficient space. A low, missing or stale sample keeps PP OFF
+until a fresh authorized admission and adequate free space are verified.
+The sampler interval permits concurrent growth between measurements.
+For recovery explicitly stop collection, verify durable OFF and return to
+the qualified generated profile; retain local files and all committed rows.
+Production retains its own policy. Subsequent deployment and live acceptance
+are recorded separately from these source qualification measurements.
 
 ### PP execution sequence
 
@@ -129,7 +161,7 @@ and [PR CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44425
 | 1. Verify one real page | Review #130, release its exact tested successor on PP with matching controller and profile, and keep the collector OFF. Select 25 pending PP identities. Record connect, write, fresh readback and local ACK timings. Pass when those exact 25 cloud receipts, final values, generation checkpoint and local ACKs agree within the existing budgets. | Reconcile committed receipts against local ACKs first. For another timeout, capture sanitized phase, statement category, elapsed time and query count. Group independent projection reads or pipeline independent writes if network waits dominate. Inspect the specific query plan or lock wait if server time dominates. Reproduce the failed phase before another cloud attempt. |
 | 2. Prove recurring sync | Run the existing bounded drain under a supervised PP lifecycle worker. Each cycle reads back committed history before marking local rows synced. Give sealed generations priority. Drain the recorded backlog, verify restart and safe retries with backoff, and measure full-cycle ACK rate, oldest pending age and outage headroom. Require measured spare throughput over observed arrivals and a shrinking backlog during catch-up. | Keep pending rows durable. Investigate the measured slow phase and repeat that test. A single successful page establishes correctness only. |
 | 3. Qualify the release inventory | In parallel with step 2, fix the deployment inventory that counts synced rows toward its 10,000-row limit. Test with more than 10,000 lifetime rows, including protected and pending records. Prove release and recovery still detect missing or changed evidence. For continuous operation, qualify bounded storage for synced evidence, including exact recovery and reference checks. | Preserve original rows until their replacement evidence passes. Before starting a long trial, verify that its projected growth leaves the deployment and recovery paths usable. |
-| 4. Exercise the real A/B flow | Prepare the sealed-generation archive route and exercise corruption, outage and reader-hold cases on generated data first. Then run PP for 30–45 minutes across a real 15-minute market boundary. Use a qualified PP size trigger for A → B. While B acknowledges live writes, upload sealed A's raw objects to private Storage, download them with the runtime identity, and match checksum, count and identities to the manifest. Record B's writes during verification, dashboard generation, query latency, zero two-second API timeouts, sub-second save/heartbeat delays and feature/input ages within 30 s. Report each observed switch. | On an archive error retain A and record B's remaining runway. On a feed or rollover error retain the evidence and report the affected interval. Finish the trial with PP collection durably OFF. |
+| 4. Exercise the real A/B flow | Prepare the sealed-generation archive route and exercise corruption, outage and reader-hold cases on generated data first. After a capacity decision, observe two full consecutive official 15-minute intervals in A, switch to B, and observe B for 30 minutes from the actual switch. Allow startup alignment within the exact bounded lease. While B acknowledges live writes, upload sealed A's raw objects to private Storage, download them with the runtime identity, and match checksum, count and identities to the manifest. Record B's writes during verification, dashboard generation, query latency, zero two-second API timeouts, sub-second save/heartbeat delays and feature/input ages within 30 s. Report each observed switch. | On an archive error retain A and record B's remaining runway. On a feed or rollover error retain the evidence and report the affected interval. Finish the trial with PP collection durably OFF. |
 | 5. Qualify retirement | After verified archive coverage, prove protected references, archived history/replay, reader drainage and protection against archive mutation through removal. At the separate retirement gate, retire the eligible PP partition and verify safe slot reuse and actual disk/WAL usage. | Keep the partition. Production cutover, first production archive verification and retirement enablement retain their separate Phase 1.75 gates. |
 
 PostgreSQL applies the timeout to the whole transaction. Psycopg can send
@@ -186,8 +218,8 @@ operator lease runs. Prove B's actual continued collection with advancing
 persisted event IDs during A verification. Keep retirement at its separate
 authorization gate.
 
-PP collection ON currently has a hard 1,800-second lease. The release can
-exercise A → B within that interval using the qualified size trigger. Both
+Earlier PP releases bounded ON to 1,800 seconds. The two-market qualification
+uses the explicitly authorized time budget above. Both
 the application and the SQL retirement function restrict partition removal
 to generated qualification data. Successful real archive readback keeps A
 local. If B reaches its next switch while A occupies the other slot, collection

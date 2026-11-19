@@ -308,6 +308,7 @@ def session(command, controller_path):
     seconds = int(parts[2])
     actions._runtime(context, budget, live=True)
     actions._host_operator(live=True)
+    actions._live_filesystem(context, budget)
     _consume(ON_AUTHORITY, {k: active[k] for k in ('environment', 'instance', 'source_sha',
         'artifact_sha256', 'controller_sha256', 'image_id')} |
         {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds})

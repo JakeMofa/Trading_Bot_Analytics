@@ -245,6 +245,41 @@ class ConfigTests(unittest.TestCase):
 
 
 class ActionTests(unittest.TestCase):
+    def test_live_filesystem_validates_volume_and_container_bind_before_sampling(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            data = root/'volumes'/a.PG_VOLUME/'_data'
+            data.mkdir(parents=True)
+            secret = root/'lifecycle_dsn'
+            secret.touch()
+            device = str(data.stat().st_dev).encode()
+            pg = {'Type':'volume','Source':str(data),'Destination':'/var/lib/postgresql/data','Name':a.PG_VOLUME}
+            bind = {'Type':'bind','Source':str(secret),'Destination':'/run/secrets/lifecycle_dsn','RW':False}
+            actions = a.LinuxActions()
+            budget = Mock()
+            def inspect(_budget, ids):
+                return [{'Mounts':[pg] if ids==['postgres'] else [bind]}]
+            with patch.object(a,'RUNTIME_SECRETS',root), \
+                 patch.object(actions,'_ids',side_effect=lambda _c,_b,services:services), \
+                 patch.object(actions,'_inspect',side_effect=inspect), \
+                 patch.object(a.shutil,'disk_usage',return_value=SimpleNamespace(free=10*1024**3)) as space:
+                budget.run.return_value=device
+                actions._live_filesystem(None,budget)
+                space.assert_called_with(data)
+                budget.run.side_effect = [device,b'0']
+                with self.assertRaisesRegex(c.DeploymentHold,'device_mismatch'):
+                    actions._live_filesystem(None,budget)
+                budget.run.side_effect = None
+                bind['RW']=True
+                with self.assertRaisesRegex(c.DeploymentHold,'runtime_binding'):
+                    actions._live_filesystem(None,budget)
+                bind['RW']=False
+                space.return_value.free-=1
+                with self.assertRaisesRegex(c.DeploymentHold,'filesystem_reserve'):
+                    actions._live_filesystem(None,budget)
+
     def setUp(self):
         self.temp=tempfile.TemporaryDirectory()
         source=Path(self.temp.name)/'source';source.mkdir()

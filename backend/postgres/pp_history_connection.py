@@ -14,6 +14,7 @@ import stat
 import time
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable
+from .retirement_accounting import phase
 
 
 PP_POOLER_HOST = 'aws-1-us-west-2.pooler.supabase.com'
@@ -132,9 +133,10 @@ class PPHistoryConnectionFactory:
             import psycopg
             from psycopg.rows import dict_row
 
-            connection = psycopg.connect(secret.decode('utf-8').strip(),
-                                         row_factory=dict_row,
-                                         connect_timeout=connect_timeout)
+            with phase('history_connect'):
+                connection = psycopg.connect(secret.decode('utf-8').strip(),
+                                             row_factory=dict_row,
+                                             connect_timeout=connect_timeout)
             if time.monotonic() >= deadline:
                 connection.close()
                 raise ArchiveLimit('private PP history connection deadline reached')

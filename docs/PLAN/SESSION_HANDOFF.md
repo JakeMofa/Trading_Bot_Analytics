@@ -1,5 +1,17 @@
 # Resume here
 
+**November 19 UTC — retained PP22 drain/archive PASS.** Collector remains OFF;
+4,888 pending structured records acknowledged at 38.683/s, all 5,241 raw rows
+archived in 11 objects, and independent readback of 5,651 structured rows plus
+all raw objects passed. No deletion or new live trial. Exact maintenance source
+`3850776`, CI 44636450530 PASS. Follow the opening
+[master roadmap](INTELLIGENCE_REBUILD_PLAN.md) and its linked evidence.
+Preserve current uncommitted runtime sync/reuse wiring and Coinbase gap hydration;
+qualify that release and safe fresh admission before another live rehearsal.
+Never reset or reuse the sealed one-use trial origin as an empty trial.
+
+## Historical handoff entries
+
 **Current PP checkpoint, November 19 UTC:** pp.16 is deployed and ready with its collector OFF. Follow the [master roadmap](INTELLIGENCE_REBUILD_PLAN.md) for the 50-row sync, measured raw transfer scope, and pending combined live run. Earlier entries below are historical.
 
 **November 19 UTC** — pp.15 is deployed to PP and real structured archival passed for 25 records. Read the [master roadmap](INTELLIGENCE_REBUILD_PLAN.md) for release evidence, sync timings and the outstanding A-retirement gate. PP is ready with its collector OFF. Earlier entries below are historical.

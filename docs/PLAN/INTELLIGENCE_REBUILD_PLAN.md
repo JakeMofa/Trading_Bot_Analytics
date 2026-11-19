@@ -1,36 +1,29 @@
-## November 19 — retained-data drain before any new live trial
+## November 19 — retained PP22 drain and archive PASS
 
-The user requires the retained PP22 data to be drained and archived before
-another live rotation. Collection remains OFF. The 4,888 pending structured
-records and 5,241 raw rows remain intact. Older PP21 A/B already have passing
-archive/readback evidence and remain attached; do not reseal or reset them.
+Completed before any new live rotation, with PP collection durably OFF.
+Exact drain source `a9e51dd` passed CI 44635662957; maintenance source
+`3850776` passed CI 44636450530. All **4,888 pending structured records**
+were written, freshly read back and acknowledged in **126.359 seconds**
+(**38.683 records/s**, above the unchanged 13.6/s prerequisite). The 98 pages
+used at most 50 records; no failures, retries or timeouts occurred. Final
+structured count is 5,651 acknowledged, zero pending.
 
-A bounded timed write isolated the timeout to the final receipt/revision/
-checkpoint pipeline (3.144 s). Checkout was 0.313 s; projection updates 0.150 s.
-The old revision query's read-only EXPLAIN ANALYZE timed out under 3.5 s.
-The scoped materialized-selection replacement completed the same hosted
-25-record query in 1.591 ms database execution (0.511 s including connection
-and checks). It preserves exact canonical bytes, receipt checks and aggregate
-byte suppression. No permission, timeout or batch-limit changes are involved.
-Seven native sync safety tests and three retained-cardinality regressions pass;
-the old query fails the new bounded-plan regression. These are query results,
-not full-cycle throughput proof. Require exact-source CI, then write/fresh
-readback/local ACK across the retained backlog above 13.6 records/s before
-considering another live trial. Any failed or ambiguous write holds and must
-be reconciled. Seal/archive initial A under separate OFF maintenance controls;
-that work must never claim the failed live trial passed or authorize deletion.
-[Diagnosis](evidence/pp22-sync-query-diagnosis-2026-11-19.json).
+Sealed initial A without a successor, then archived all **5,241 raw rows in
+11 objects**, in 18.243 seconds of archive-worker elapsed time. Independent
+read-only credentials verified every object and all 5,651 structured rows:
+25 requests, 9,838,974 bytes, within the 240-second audit budget. Raw remains
+attached, with the same seal digest. **No local deletion was authorized or
+performed.** Prior PP21 A/B archives remain preserved.
 
-The initial-A maintenance helper now passes ten native PostgreSQL tests plus
-independent review. It requires exact trial identity, reviewed epoch/counts,
-zero pending records, all PP collectors OFF, source binding and locks. It seals
-without creating a successor, resetting the origin or deleting any data.
-Independent reader-role audit verifies complete raw and structured history.
-Hosted execution waits exact-source CI and the completed structured drain.
-The writer remains pointed at sealed A afterward; it cannot restart under the
-old admission. A later live rehearsal must preserve this archive and use a
-reviewed new admission rather than reset the old origin.
+This passes the user's drain/archive prerequisite, not the failed original
+live trial or concurrent throughput acceptance. No new live run started.
+The deployed application remains pp.22. Runtime wiring of the measured
+connection-reuse/sync-barrier path and Coinbase gap hydration is under review.
+The old one-use origin cannot be reset: a new qualified admission must preserve
+its sealed data before another A → B → fresh A rehearsal. Production,
+retirement and paid AI settings are unchanged. Phase 1.75/I7 remain OPEN.
 
+[Sanitized full drain/archive/readback evidence](evidence/pp22-retained-drain-archive-2026-11-19.json).
 
 ## Active master plan — PP rotation, usable history, and archive performance
 

@@ -14,7 +14,8 @@ import json
 import uuid
 
 from . import pp_space
-from .rehearsal_profile import canonical_anchor, lease_cap, require_cycle_alignment
+from .rehearsal_profile import (canonical_anchor, lease_cap, require_cycle_alignment,
+                                CYCLE_ORIGINS, TRIAL_ORIGIN)
 from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
@@ -152,7 +153,9 @@ class LifecycleRepository:
             cap = lease_cap(rehearsal_anchor)
         except ValueError as error:
             raise LifecycleHold(str(error)) from None
-        if rehearsal_anchor is not None and (origin_id != 'pp-live-pp' or expected_generation_id != rehearsal_anchor
+        if origin_id == TRIAL_ORIGIN and rehearsal_anchor is None:
+            raise LifecycleHold('exact trial origin requires two-leg cycle admission')
+        if rehearsal_anchor is not None and (origin_id not in CYCLE_ORIGINS or expected_generation_id != rehearsal_anchor
                                               or max_seconds != cap):
             raise LifecycleHold('two-leg rehearsal requires exact initial PP A')
         if isinstance(max_seconds, bool) or not isinstance(max_seconds, int) or not 1 <= max_seconds <= cap:
@@ -196,7 +199,7 @@ class LifecycleRepository:
                 raise LifecycleHold('PP window allocation limit requires review')
             if generation['hold_reason'] == 'other_slot_not_retired':
                 raise LifecycleHold('occupied generation slot blocks PP collector restart')
-            if origin_id == 'pp-live-pp' or generation['hold_reason'] in (
+            if origin_id in CYCLE_ORIGINS or generation['hold_reason'] in (
                     'pp_filesystem_reserve','pp_filesystem_sample_unavailable'):
                 space = pp_space.sample()
                 if space['space_hold']:
@@ -362,7 +365,7 @@ class LifecycleRepository:
                 raise LifecycleHold('invalid PP market-window qualification')
             if rehearsal_anchor is not None:
                 canonical_anchor(rehearsal_anchor)
-                if not market_pair_trial or self.environment != 'preprod' or origin_id != 'pp-live-pp':
+                if not market_pair_trial or self.environment != 'preprod' or origin_id not in CYCLE_ORIGINS:
                     raise LifecycleHold('invalid two-leg PP rehearsal scope')
             if require_live_lease:
                 # The writer row is locked. Use database time so ready/OFF,

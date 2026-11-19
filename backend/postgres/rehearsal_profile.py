@@ -8,6 +8,9 @@ NORMAL_LEASE_CAP_SECONDS = 4560
 # outgoing pairs, B's original seal window and scheduling margin stay finite.
 CYCLE_LEASE_CAP_SECONDS = 60 + 3600 + 900 + 1800 + 240
 CYCLE_POLICY = 'two-official-markets-cycle'
+# One reviewed trial namespace in the SAME environment database, not a wildcard.
+TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
+CYCLE_ORIGINS = frozenset({'pp-live-pp', TRIAL_ORIGIN})
 
 
 def canonical_anchor(value):
@@ -24,12 +27,14 @@ def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
     if policy != CYCLE_POLICY:
+        if environ.get('TRADEBOT_ORIGIN_ID') == TRIAL_ORIGIN:
+            raise ValueError('exact trial origin requires explicit two-leg cycle profile')
         if anchor is not None:
             raise ValueError('cycle identity requires explicit cycle profile')
         return None
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod'
             or environ.get('TRADEBOT_DATA_MODE') != 'pp_live'
-            or environ.get('TRADEBOT_ORIGIN_ID') != 'pp-live-pp'):
+            or environ.get('TRADEBOT_ORIGIN_ID') not in CYCLE_ORIGINS):
         raise ValueError('two-leg rehearsal requires isolated PP live scope')
     return canonical_anchor(anchor)
 

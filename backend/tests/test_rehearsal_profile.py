@@ -32,10 +32,24 @@ class ProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cycle_anchor({k:v for k,v in ENV.items() if k!='TRADEBOT_PP_CYCLE_INITIAL_A'})
 
+    def test_single_exact_trial_scope_requires_cycle_and_keeps_legacy_profile(self):
+        from postgres.rehearsal_profile import TRIAL_ORIGIN
+        trial={**ENV,'TRADEBOT_ORIGIN_ID':TRIAL_ORIGIN}
+        self.assertEqual(cycle_anchor(trial),A)
+        self.assertEqual(configuration(trial)['rehearsal_anchor'],A)
+        for origin in (TRIAL_ORIGIN+'-other','pp-live-pp-trial-20261120-01'):
+            with self.assertRaises(ValueError):cycle_anchor({**trial,'TRADEBOT_ORIGIN_ID':origin})
+        for policy in (None,'two-official-markets'):
+            wrong={**trial,'TRADEBOT_PP_WINDOW_POLICY':policy}
+            with self.assertRaises(ValueError):cycle_anchor(wrong)
+        legacy={**ENV,'TRADEBOT_PP_WINDOW_POLICY':'two-official-markets'}
+        legacy.pop('TRADEBOT_PP_CYCLE_INITIAL_A')
+        self.assertTrue(configuration(legacy)['market_pair_trial'])
+
     def test_lease_rejects_wrong_cycle_before_database(self):
         repo=LifecycleRepository(lambda:self.fail('opened database'))
         for origin,generation,seconds,anchor in (
-            ('pp-live-pp',A,6600,None),('pp-live-other',A,6600,A),
+            ('pp-live-pp',A,6600,None),('pp-live-pp-trial-20261119-01',A,60,None),('pp-live-other',A,6600,A),
             ('pp-live-pp',str(uuid.uuid4()),6600,A),
             ('pp-live-pp',A,6601,A),('pp-live-pp',A,900,A)):
             with self.subTest(seconds=seconds), self.assertRaises(LifecycleHold):

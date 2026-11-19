@@ -28,14 +28,14 @@ class GeneratedStorageIntegration(unittest.TestCase):
         owner=lambda:connect_migrator(os.environ['TRADEBOT_TEST_MIGRATOR_DSN'])
         repo=LifecycleRepository(lifecycle)
         generated=repo.bootstrap('generated-pp')['generation_id']
-        live=repo.bootstrap('pp-live-pp')['generation_id']
+        live=repo.bootstrap('pp-live-generated-storage-ci')['generation_id']
         # Existing source evidence is retained. Fill only the remaining pending
         # slots; no reset, fake ACK, truncate or delete is used in this test.
         with owner() as db:
             count=db.execute("SELECT count(*) n FROM ops.outbox WHERE origin_id='generated-pp' AND acknowledged_at IS NULL").fetchone()['n']
             self.assertLessEqual(count,10000)
             for origin,generation,amount,ack in [('generated-pp',generated,10000-count,False),
-                                               ('pp-live-pp',live,42133,True)]:
+                                               ('pp-live-generated-storage-ci',live,42133,True)]:
                 db.execute('''INSERT INTO ops.outbox(origin_id,generation_id,entity_type,entity_id,content_hash,
                     payload,created_at,acknowledged_at)
                     SELECT %s,%s,'core.candles','["'||%s||'","coinbase","BTC-USD",60,'||(1000000+i*60)||']',
@@ -59,7 +59,7 @@ class GeneratedStorageIntegration(unittest.TestCase):
             initial_through=db.execute("SELECT max(id) n FROM ops.outbox WHERE origin_id='generated-pp'").fetchone()['n']
         before=state('generated-pp',include_ack=False)
         self.assertEqual(before['pending'],10000)
-        live_before=state('pp-live-pp',include_ack=True)
+        live_before=state('pp-live-generated-storage-ci',include_ack=True)
         store=Store(Settings(dsn=os.environ['TRADEBOT_TEST_APP_DSN']))
         with self.assertRaises(StorageHold):store.require_generated_headroom()
         # Crash after independent durable storage readback, before local ACK.
@@ -120,7 +120,7 @@ class GeneratedStorageIntegration(unittest.TestCase):
         after=state('generated-pp',include_ack=False)
         self.assertEqual((after['n'],after['digest']),(before['n'],before['digest']))
         self.assertLess(after['pending'],10000)
-        self.assertEqual(state('pp-live-pp',include_ack=True),live_before)
+        self.assertEqual(state('pp-live-generated-storage-ci',include_ack=True),live_before)
         # A genuinely new process runs the exact bootstrap CLI used by CD,
         # reading a private lifecycle DSN and returning scoped proof only.
         import subprocess,sys,tempfile
@@ -147,7 +147,7 @@ class GeneratedStorageIntegration(unittest.TestCase):
             worker=CalculationWorker(store);worker.discover_once()
             self.assertIsNotNone(worker.calculate_once())
             self.assertLessEqual(state('generated-pp',include_ack=False)['pending'],10000)
-        self.assertEqual(state('pp-live-pp',include_ack=True),live_before)
+        self.assertEqual(state('pp-live-generated-storage-ci',include_ack=True),live_before)
         # Exercise real HTTP/SSE acceptance across independent API/acceptance
         # processes after recovery, using only this generated fixture database.
         import socket,time,urllib.request
@@ -193,11 +193,11 @@ class GeneratedStorageIntegration(unittest.TestCase):
                     with factory() as db:db.execute(statement)
         with owner() as db:
             # SQL origin constraint independently excludes PP live envelopes.
-            bad=json.loads(bytes(stored[0]['envelope']));bad['origin_id']='pp-live-pp';bad['generation_id']=live
+            bad=json.loads(bytes(stored[0]['envelope']));bad['origin_id']='pp-live-generated-storage-ci';bad['generation_id']=live
             value=encoded(bad)
             with self.assertRaises(psycopg.errors.CheckViolation):
                 with db.transaction():
                     db.execute('''INSERT INTO archive.generated_outbox_storage
                         (origin_id,outbox_id,generation_id,envelope,envelope_hash) VALUES(%s,%s,%s,%s,%s)''',
-                        ('pp-live-pp',99999999,live,value,sha256(value)))
-        self.assertEqual(state('pp-live-pp',include_ack=True),live_before)
+                        ('pp-live-generated-storage-ci',99999999,live,value,sha256(value)))
+        self.assertEqual(state('pp-live-generated-storage-ci',include_ack=True),live_before)

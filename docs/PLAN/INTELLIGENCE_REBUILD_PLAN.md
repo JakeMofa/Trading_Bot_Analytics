@@ -1,3 +1,30 @@
+## November 19 UTC — actual pp.17 retained-A envelopes fully recovered
+
+On exact pp.17 `1c753c6`, generated CD44474562747 and ready-off44474879676 passed.
+Fresh PP inspection confirmed A UUID`2f5ab434-14c0-4a61-8b8e-145c9a05f0e6`,
+collectorOFF/no session,5268acknowledged/0pending rows, IDs7314–12789. Local-only
+inventory bound5268canonical envelopes across106pages/8,309,756batch-encoded bytes
+and streamSHA256`ca1c43921214fb97de475dff132d2194aae6398332a55ecc29b59bda436d4431`.
+
+The exact-scope receipt-backed repair **PASSED** in207.372s/212cloud operations;
+every appended envelope received independent authenticated readback. It changed
+no localACK or projection and issued no retirement authority. A separate complete
+application readback then downloaded and compared **5268/5268** original envelopes
+in82.600s/106new cloud operations. Independent SQL additionally hashed all8,304,382
+canonical stored-envelope bytes (newline-delimited stream), matching the local
+SHA exactly, with0missing/changed receipts. The difference from batch bytes is
+array/separator overhead, not missing evidence.
+
+Both bound root operations exited successfully after owned-oneoff and temporary
+credential cleanup; the controller lock was released. The release owner then
+began its separately authorized live trial. No post-trial OFF snapshot is claimed.
+The repair used the initial default fresh-connection pp.17 transport; optional
+reuse remains a separate unmerged/defaultOFF candidate. Raw A remains local:
+structured recovery alone proves neither raw archive recovery nor safe retirement.
+Genuine new-write capture validation follows actual live acknowledgements.
+
+[Exact release, scope, readbacks and independent whole-body hash evidence](evidence/pp17-exact-envelope-backfill-2026-11-19.json).
+
 ## November 19 UTC — Supabase dashboard audit, observation only
 
 Completed a read-only page-by-page dashboard inspection covering database schema,

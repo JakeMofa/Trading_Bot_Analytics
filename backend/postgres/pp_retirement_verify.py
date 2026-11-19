@@ -14,6 +14,7 @@ from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import FILES, ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
 from .pp_structured_probe import LOCAL_DSN, private_dsn
+from .rehearsal_profile import TRIAL_ORIGIN
 
 
 @dataclass(frozen=True)
@@ -170,17 +171,16 @@ def inventory(connection, generation_id, manifests, budget, *, fresh_machine_ses
 @accounted
 def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN, inventory_only=False, permit=None):
     target.validate()
+    windowed = isinstance(limits, TwoMarketReadbackLimits)
+    scoped_live = origin == ORIGIN or (origin == TRIAL_ORIGIN and windowed)
     if (repository.environment != 'preprod' or
             (not inventory_only and (transport.origin_id != origin or transport.generation_id != target.sealed)) or
-            (origin != ORIGIN and not origin.startswith('generated-'))):
+            (not scoped_live and not origin.startswith('generated-'))):
         raise LifecycleHold('wrong retirement readback environment or generation')
     if permit is not None:
         permit.validate()
-        if origin != ORIGIN or inventory_only or not isinstance(transport, RetirementTransport):
+        if not scoped_live or inventory_only or not isinstance(transport, RetirementTransport):
             raise LifecycleHold('retirement permit requires exact PP cloud readback')
-    windowed = isinstance(limits, TwoMarketReadbackLimits)
-    if windowed and origin != ORIGIN and not origin.startswith('generated-'):
-        raise LifecycleHold('two-market profile is restricted to PP')
     with CycleBudget(limits) as budget:
         bind_budget(budget)
         with measured_context(repository.retirement(target.sealed),
@@ -210,7 +210,7 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
                         active_start['started_at'] != generation['sealed_at']):
                     raise LifecycleHold('two-market verification requires the actual opposite-slot handoff')
             with phase('inventory'):
-                estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
+                estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=scoped_live)
             if windowed:
                 estimate.update(profile='pp-two-market-v1', seal_deadline_utc=expires_at.isoformat(),
                                 remaining_work_seconds=round(budget.deadline-budget.clock(),3))

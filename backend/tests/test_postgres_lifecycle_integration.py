@@ -815,6 +815,13 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assert_partition_present(self.first)
 
     def test_real_pp_permit_commits_only_after_fresh_read_and_independent_b_commit(self):
+        self._exercise_exact_pp_permits('pp-live-pp')
+
+    def test_exact_trial_origin_uses_two_market_permits_without_legacy_origin_aliasing(self):
+        from postgres.rehearsal_profile import TRIAL_ORIGIN
+        self._exercise_exact_pp_permits(TRIAL_ORIGIN)
+
+    def _exercise_exact_pp_permits(self, origin):
         from postgres.connection import connect_migrator
         from postgres.pp_retirement_verify import Permit, RetirementTransport, Target, TwoMarketReadbackLimits, verify
         from psycopg import sql
@@ -823,7 +830,6 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
 
         if (os.getenv('TRADEBOT_DATA_MODE'), os.getenv('TRADEBOT_ORIGIN_ID')) != ('generated','generated-pp'):
             self.skipTest('dedicated generated CI harness required')
-        origin='pp-live-pp'
         owner=lambda: connect_migrator(os.environ['TRADEBOT_TEST_MIGRATOR_DSN'])
         with owner() as db:
             self.assertIsNone(db.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s',
@@ -882,6 +888,8 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
                            (start,now.replace(tzinfo=None).isoformat())):
             self.assertNotEqual(issue(left,right).returncode,0)
         self.assertNotEqual(issue(start,end,collecting=sealed).returncode,0)
+        if origin != 'pp-live-pp':
+            self.assertNotEqual(issue(start,end,window_profile='standard').returncode,0)
         result = issue(start,end)
         self.assertEqual(result.returncode,0,result.stderr)
         permit = replace(permit,ticket=str(uuid.UUID(result.stdout.strip())))

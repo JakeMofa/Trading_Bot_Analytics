@@ -4129,3 +4129,18 @@ prediction HTTP omits snapshot IDs. #185's 2,000-row scan cannot cover real
 retained A; indexed bounded reading, cross-generation merge where needed, live
 labels and recalculation remain gates. Checkpoint 3 stays OPEN.
 [Evidence shape, qualification and live gaps](PP_TWO_GENERATION_HISTORY_EVIDENCE_2026-11-19.md).
+
+### November 19 — executable read-only HTTP history capture (source only)
+
+Added a loopback-only GET evidence client for exact two-UUID retained/retired
+history pairs, with immutable UUID bindings as each becomes known. It uses the
+existing `/history/archive/{uuid}` route for both attached sealed/verified rows
+and authenticated retired archive rows; no restricted-DB fallback is needed.
+Full original HTTP bytes/hashes, exact rows/predictions, state and initial SSE,
+UTC/monotonic timings and explicit missing-data gaps are retained under bounded
+request/page/byte/deadline limits. Nine network-free tests pass; real host/tunnel,
+cloud, permissions and retirement operations were not performed. Current chart
+and unsupported context limitations remain open. Existing old verified A plus
+disabled collecting B cannot become a fresh A-first trial while both slots stay
+occupied; source fences rather than relabeling or retrospectively passing A.
+[Executable procedure, source constraints and qualification](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md).

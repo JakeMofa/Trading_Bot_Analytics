@@ -309,6 +309,36 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         # Ambiguous post-commit response: replay must not overwrite or count
         # another receipt, and fresh readback still proves the first commit.
         transport.put_structured(records, timeout_seconds=5)
+        # Hash-only receipts from the prior release cannot reconstruct an
+        # earlier revision. An opt-in, exact local backfill supplies the bytes
+        # without rewriting today's projection or its generation checkpoint.
+        previous=HistoryV2PostgresTransport(factory,origin_id=origin,generation_id=generation,
+            expected_database=binding['database'],expected_role=binding['role'],retain_revisions=True)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.read_revisions([2],max_bytes=4096,timeout_seconds=5)
+        previous.backfill_verified_revisions(records[:2],timeout_seconds=5)
+        previous.backfill_verified_revisions(records[:2],timeout_seconds=5)
+        previous.put_structured(records,timeout_seconds=5)
+        self.assertEqual(previous.read_revisions([2,3],max_bytes=8192,timeout_seconds=5),records[1:])
+        # Explicitly simulate privileged mutation; normal PP cannot update.
+        with factory() as connection:
+            connection.execute("""UPDATE history_v2.structured_revision_payloads SET envelope=%s
+                WHERE origin_id=%s AND generation_id=%s AND outbox_id=2""",
+                (encoded(records[-1]),origin,generation))
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.read_revisions([2],max_bytes=4096,timeout_seconds=5)
+        with factory() as connection:
+            connection.execute("""UPDATE history_v2.structured_revision_payloads SET envelope=%s
+                WHERE origin_id=%s AND generation_id=%s AND outbox_id=2""",
+                (encoded(records[1]),origin,generation))
+        with self.assertRaises(ArchiveLimit):
+            previous.read_revisions([2,3],max_bytes=1,timeout_seconds=5)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.backfill_verified_revisions([dict(records[1],payload={**first,'price':'0.00'})],
+                                                 timeout_seconds=5)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.backfill_verified_revisions([dict(records[1],id=999)],timeout_seconds=5)
+
         with factory() as connection:
             receipts = connection.execute('''SELECT count(*) AS count FROM
                 history_v2.structured_receipts WHERE origin_id=%s''', (origin,)).fetchone()
@@ -384,11 +414,69 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 SET cursor='{"outbox_id":3}'::jsonb,content_hash=%s
                 WHERE origin_id=%s AND generation_id=%s AND dataset='structured:outbox' ''',
                 (sha256(encoded({'outbox_id': 3})), origin, generation))
+        # PostgreSQL prevents a dangling envelope even for a privileged test writer.
+        with self.assertRaises(psycopg.errors.ForeignKeyViolation), factory() as connection:
+            connection.execute('''DELETE FROM history_v2.structured_receipts
+                WHERE origin_id=%s AND outbox_id=2''', (origin,))
+        # Simulate a privileged removal of both halves of the recovery evidence.
         with factory() as connection:
+            connection.execute('''DELETE FROM history_v2.structured_revision_payloads
+                WHERE origin_id=%s AND outbox_id=2''', (origin,))
             connection.execute('''DELETE FROM history_v2.structured_receipts
                 WHERE origin_id=%s AND outbox_id=2''', (origin,))
         with self.assertRaises(ArchiveIntegrityError):
             transport.put_structured(records, timeout_seconds=5)
+
+    def test_b_price_update_preserves_a_revision_and_failed_append_rolls_back(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        from postgres.archive_codec import ArchiveUnavailable
+
+        def connect(*, timeout_seconds=5):
+            return psycopg.connect(DSN, row_factory=dict_row,
+                                   connect_timeout=math.ceil(timeout_seconds))
+
+        with connect() as connection:
+            identity = connection.execute(
+                'SELECT current_database() AS database, current_user AS role').fetchone()
+        origin = self.origin
+
+        def generation():
+            return HistoryV2PostgresTransport(
+                connect, origin_id=origin, generation_id=str(uuid.uuid4()),
+                expected_database=identity['database'], expected_role=identity['role'],
+                retain_revisions=True)
+
+        def price(stream, index, value):
+            at = datetime(2026, 11, 18, tzinfo=timezone.utc) + timedelta(seconds=index)
+            event = dict(origin_id=origin, source='coinbase', symbol='BTC-USD',
+                         event_id=f'tick-{index}', generation_id=stream.generation_id,
+                         source_time=at.isoformat(), source_epoch=str(int(at.timestamp())),
+                         received_at=at.isoformat(), available_at=at.isoformat(),
+                         price=value, size=None, payload={'source':'generated'},
+                         content_hash=f'{index:064x}')
+            return envelope(index, 'core.current_prices', event, stream.generation_id)
+
+        a, b = generation(), generation()
+        first, second = price(a, 1, '100.2300'), price(b, 2, '100.2400')
+        a.put_structured([first], timeout_seconds=5)
+        with (patch.object(b, '_append_revisions', side_effect=RuntimeError('injected')),
+              self.assertRaises(ArchiveUnavailable)):
+            b.put_structured([second], timeout_seconds=5)
+        with connect() as connection:
+            current = connection.execute(
+                'SELECT price::text AS price FROM history_v2.current_prices WHERE origin_id=%s',
+                (origin,)).fetchone()
+            count = connection.execute(
+                'SELECT count(*) AS n FROM history_v2.structured_receipts WHERE origin_id=%s',
+                (origin,)).fetchone()
+        self.assertEqual((current['price'], count['n']), ('100.2300', 1))
+        b.put_structured([second], timeout_seconds=5)
+        self.assertEqual(b.read_structured_authenticated(
+            [second], max_bytes=8192, timeout_seconds=5), [second])
+        self.assertEqual(a.read_revisions([1], max_bytes=8192, timeout_seconds=5), [first])
+        with self.assertRaises(ArchiveIntegrityError):
+            b.read_revisions([1], max_bytes=8192, timeout_seconds=5)
 
     def test_parent_import_precedes_lower_id_dependent(self):
         import psycopg

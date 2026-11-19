@@ -6,6 +6,10 @@ research run in parallel. Keep the live calculation on the VM, with one
 collector and visible freshness and coverage. Keep production and PP origins
 separate. One-hour collection, trading and paid AI remain deferred.
 
+Prepare the deterministic history probe from step 4 before either retirement
+in step 3. Save its exact input IDs, values and recalculated output against
+retained data, then repeat the same query after each partition drop.
+
 | Step | Work and current evidence | Acceptance |
 | --- | --- | --- |
 | 1. Restore PP release and preserve both generations | PP20 stopped at a generated smoke-queue cap. [#177](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/177) merged the generated-storage fix. [#181](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/181) merged the fenced PP21 forward recovery source. PP21 exact CI and publication passed. Host recovery and normal deployment acceptance are still separate. | The release operator proves the intended image and schema, preserves A/B identities and counts, and passes smoke and normal deployment acceptance. |

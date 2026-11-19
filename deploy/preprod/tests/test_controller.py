@@ -278,6 +278,15 @@ class BudgetTests(unittest.TestCase):
             c.Budget(3).run([sys.executable,'-c','import sys; print("secret",file=sys.stderr); sys.exit(2)'])
         self.assertNotIn('secret',str(error.exception))
 
+    def test_opt_in_nonzero_status_returns_only_bounded_stdout(self):
+        command = [sys.executable, '-c',
+                   'import sys; print("fixed-code"); print("secret",file=sys.stderr); sys.exit(7)']
+        self.assertEqual(c.Budget(3).run(command,return_status=True,output_limit=64),
+                         (7,b'fixed-code\n'))
+        with self.assertRaisesRegex(c.DeploymentHold,'child_output_bound'):
+            c.Budget(3).run([sys.executable,'-c','print("x"*1000)'],
+                            return_status=True,output_limit=64)
+
     def test_child_timeout_and_output_bomb_are_terminated(self):
         with self.assertRaises(c.DeploymentHold):
             c.Budget(.1).run([sys.executable,'-c','import time; time.sleep(5)'])

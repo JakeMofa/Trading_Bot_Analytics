@@ -3758,3 +3758,19 @@ modeled full rich pages improve only slightly at 42k and more at 250k. Receipt
 write WAL and index storage increase. No hosted DDL, flag activation, grant,
 auth/cap/clock change or retroactive trial pass is included. [Evidence and
 standalone concurrent migration/rollback gates](PP_RECEIPT_LATEST_INDEX_2026-11-19.md).
+
+### Generated smoke pending-capacity candidate, November 19 UTC
+
+PP20 exposed a persistent generated backlog: 9,997→10,000 pending rows under
+`generated-pp` blocked the next candle before API smoke, independently of the
+42,133 acknowledged/zero-pending live rows. The source candidate gives generated
+smoke an append-only local PostgreSQL envelope destination, committed bytes and
+independent authenticated READ ONLY exact readback before genuine source ACK.
+Existing source/raw data and the 10,000 pending cap remain. Generated bootstrap
+must prove 128 admission slots before service start, acceptance checks before
+seeding, and periodic generated cycles consume pending work under fixed cycle
+and storage limits. Live mode/probes do not enable this capability; no cloud
+receipt or raw-retirement authority is produced. Source/schema/profile/native
+qualification passed; no host/cloud/apply action occurred. Fenced-runtime
+forward bootstrap stays a separate reviewed operator task. [Storage scope,
+constraints, faults and retained-data proof](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).

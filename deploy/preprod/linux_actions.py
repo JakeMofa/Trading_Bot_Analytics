@@ -67,6 +67,8 @@ def memory_bytes(value):
 
 def expected_environment(service, *, live=False):
     env={**BASE_ENV,'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/'+ROLE_SECRET[service]}
+    if service=='lifecycle':
+        env['TRADEBOT_GENERATED_LOCAL_STORAGE']='false' if live else 'true'
     if service=='operator':
         env.update(TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp',
                    TRADEBOT_OPERATOR_TOKEN_FILE='/run/secrets/operator_token')
@@ -553,7 +555,8 @@ class LinuxActions:
                     'core.feature_snapshots':'origin_id,snapshot_id,content_hash','core.predictions':'origin_id,prediction_id,content_hash',
                     'core.outcomes':'origin_id,outcome_id,content_hash','raw.events':'generation_id,origin_id,source,event_id,content_hash',
                     'core.snapshot_evidence':'origin_id,snapshot_id,evidence_id',
-                    'ops.outbox':'id,origin_id,entity_type,entity_id,content_hash'}
+                    'ops.outbox':'id,origin_id,entity_type,entity_id,content_hash',
+                    'archive.generated_outbox_storage':"origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at"}
         for table,identity in identities.items():
             exists=self._sql(budget,"SELECT to_regclass('"+table+"') IS NOT NULL")
             if exists=='f':result[table]=None;continue
@@ -660,6 +663,12 @@ class LinuxActions:
         require(self.migrated,'explicit_migration_required')
         evidence=self._json(self._oneoff(context,budget,'lifecycle',['python','-m','postgres.lifecycle_worker','--once','--bootstrap']))
         require(evidence.get('retirement')=='off' and evidence.get('archive')=='held_no_qualified_transport','generated_bootstrap_not_proven')
+        stored=evidence.get('generated_storage',{})
+        require(stored.get('scope')=='durable_generated_local_storage' and
+                type(stored.get('pending')) is int and 0<=stored['pending']<=9872 and
+                type(stored.get('headroom')) is int and stored['headroom']==10000-stored['pending'] and
+                stored.get('raw_retirement_authorized') is False and stored.get('cloud_receipts') is False,
+                'generated_durable_headroom_not_proven')
         self._compose(context,budget,['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
 
     def _runtime(self,context,budget,*,live=False):
@@ -775,6 +784,7 @@ class LinuxActions:
             accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))
             require(accepted.get('status')=='pass' and accepted.get('scope')=='generated_local_api'
                     and accepted.get('origin_id')=='generated-pp' and accepted.get('collector_enabled') is False
+                    and accepted.get('generated_headroom_verified') is True
                     and accepted.get('sse_connections')==2 and accepted.get('acknowledged_events',0)>=20
                     and 0<=accepted.get('api_max_seconds',999)<2
                     and all(accepted.get(key) is True for key in ('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',

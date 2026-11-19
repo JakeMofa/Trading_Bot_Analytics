@@ -2,7 +2,7 @@
 
 ## Current PP checkpoint — November 18, 2026
 
-The dedicated PP deployment identity verified installed controller `5b7c457296e4` from source `c9ec5e9d7a` through the pinned host route. This qualifies the controller identity used for the next PP release. Release installation, live B collection, sealed-A cloud readback and retirement have separate evidence. [PP controller identity run 44433405035](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44433405035)
+The private PP deployment identity verified installed controller `b6fd975e0c80` from source `7c9c365af9`. This controller measures the PostgreSQL filesystem reserve for the market-timed window. The older controller was qualified for the pp.13 candidate, which was published without deployment. PP's previous collector remained OFF with 5,268 pending structured records in the last read-only inventory. Application deployment, structured readback, sealed-generation verification and retirement are separately recorded. [PP identity run 44436600122](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44436600122)
 
 ### Sealed PP retirement decision
 

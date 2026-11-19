@@ -115,6 +115,9 @@ Integrated source validation on preprod `2d706a7`: **383 backend tests run,
 history transport/inventory tests passed** in a disposable official-foundation
 PG17 cluster using CI-style package invocation. The reader used distinct
 generated SCRAM authentication through the supplied reader DSN, not a changed
-admin username/password. The cluster was stopped and removed. No hosted data,
+admin username/password. Missing-SELECT coverage uses an already denied
+authority table without changing shared ACLs. Exact before/after catalog
+equality and final migration/schema validation also passed. The cluster was
+stopped and removed. No hosted data,
 operator credentials or live host were accessed. The exact 57-object/63-page
 hosted replay remains a separate, unexecuted qualification.

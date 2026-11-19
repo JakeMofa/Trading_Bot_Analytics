@@ -772,12 +772,15 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 candidate.audit(reader,scoped,replace(target,structured_rows=2))
             self.assertEqual(len(raw.calls),calls)
             # Missing existing local SELECT fails before any cloud/raw read.
-            # This revoke/restore is fixture-only, never an audit operation.
-            with local() as db: db.execute('REVOKE SELECT ON ops.outbox FROM tradebot_reader')
-            try:
+            # Use an already denied authority table: never mutate shared ACLs.
+            denied = 'archive.pp_retirement_permits'
+            with reader() as db:
+                allowed = db.execute(
+                    "SELECT has_table_privilege(current_user,%s,'SELECT') AS allowed",
+                    (denied,)).fetchone()['allowed']
+                self.assertFalse(allowed)
+            with patch.object(candidate,'LOCAL_TABLES',(*candidate.LOCAL_TABLES,denied)):
                 with self.assertRaises(LifecycleHold): candidate.audit(reader,scoped,target)
-            finally:
-                with local() as db: db.execute('GRANT SELECT ON ops.outbox TO tradebot_reader')
             self.assertEqual(len(raw.calls),calls)
             # The same existing reader has no hosted-schema grants in this
             # fixture. Authenticated preflight rejects before any raw read.

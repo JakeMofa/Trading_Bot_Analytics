@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import time
+import json
 
 from psycopg import sql
 from psycopg.types.json import Jsonb
@@ -27,11 +28,14 @@ class HistoryV2PostgresTransport:
 
     def __init__(self, connection_factory, *, origin_id: str,
                  generation_id: str, expected_database: str,
-                 expected_role: str):
+                 expected_role: str, retain_revisions: bool = False):
         if (not callable(connection_factory) or origin_id != PP_STRUCTURED_ORIGIN or
                 not generation_id or
                 not expected_database or not expected_role):
             raise ValueError('private structured importer binding required')
+        if type(retain_revisions) is not bool:
+            raise ValueError('boolean revision-retention selection required')
+        self.retain_revisions = retain_revisions
         self.connection_factory = connection_factory
         self.origin_id, self.generation_id = origin_id, generation_id
         self.expected_database, self.expected_role = expected_database, expected_role
@@ -115,6 +119,107 @@ class HistoryV2PostgresTransport:
                 (origin_id,generation_id,outbox_id,entity_type,entity_id,
                  content_hash,payload_hash,envelope_hash) VALUES {}''').format(placeholders)
             connection.execute(statement, [value for row in page for value in row])
+
+    def _append_revisions(self, connection, records):
+        # Handle replay/backfill with the same receipt verification and a
+        # byte-exact conflict check. Only the reviewed PP role may append.
+        for start in range(0,len(records),25):
+            page=records[start:start+25]
+            values=[(self.origin_id,self.generation_id,r['id'],encoded(r)) for r in page]
+            placeholders=sql.SQL(',').join(sql.SQL('(%s,%s,%s,%s)') for _ in values)
+            connection.execute(sql.SQL("""INSERT INTO history_v2.structured_revision_payloads
+                (origin_id,generation_id,outbox_id,envelope) VALUES {}
+                ON CONFLICT (origin_id,generation_id,outbox_id) DO NOTHING""").format(placeholders),
+                [v for row in values for v in row])
+            actual=self._read_revisions(connection,[r['id'] for r in page],sum(len(v[3]) for v in values))
+            if encoded(actual) != encoded(page):
+                raise ArchiveIntegrityError('stored historical envelope conflicts')
+
+    def _read_revisions(self, connection, ids, max_bytes):
+        # One statement, one snapshot. The window sums sizes, not payloads.
+        # The bytes are sent to the client only if the entire batch fits.
+        rows=connection.execute("""WITH sizes AS (
+                SELECT outbox_id, sum(octet_length(envelope)) OVER () total
+                FROM history_v2.structured_revision_payloads
+                WHERE origin_id=%s AND generation_id=%s AND outbox_id=ANY(%s::bigint[]))
+            SELECT p.outbox_id,s.total,CASE WHEN s.total<=%s THEN p.envelope END AS envelope,
+                   r.entity_type,r.entity_id,r.content_hash,r.payload_hash,r.envelope_hash
+            FROM sizes s JOIN history_v2.structured_revision_payloads p ON
+                p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=s.outbox_id
+            JOIN history_v2.structured_receipts r ON (r.origin_id,r.generation_id,r.outbox_id)=
+                    (p.origin_id,p.generation_id,p.outbox_id)
+            ORDER BY p.outbox_id""", (self.origin_id,self.generation_id,ids,max_bytes,
+                                      self.origin_id,self.generation_id)).fetchall()
+        if [r['outbox_id'] for r in rows] != ids:
+            raise ArchiveIntegrityError('historical revision or receipt missing')
+        records=[]
+        for row in rows:
+            if row['total']>max_bytes or row['envelope'] is None:
+                raise ArchiveLimit('stored revision batch exceeds read bound')
+            raw=bytes(row['envelope'])
+            try:
+                record=json.loads(raw)
+            except (ValueError,UnicodeError):
+                raise ArchiveIntegrityError('stored revision encoding invalid') from None
+            if (not isinstance(record,dict) or record.get('id')!=row['outbox_id'] or
+                    encoded(record)!=raw):
+                raise ArchiveIntegrityError('stored revision not canonical')
+            validate_outbox_stream([record],origin_id=self.origin_id,generation_id=self.generation_id)
+            self._check_receipt(row,record)
+            records.append(record)
+        return records
+
+    def backfill_verified_revisions(self, records, *, timeout_seconds):
+        """Insert original bytes for independently matched existing receipts only."""
+        if not self.retain_revisions:
+            raise ArchiveIntegrityError('historical revision backfill disabled')
+        self._validate(records)
+        deadline=self._deadline(timeout_seconds)
+        try:
+            with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
+                remaining=deadline-time.monotonic()
+                if remaining<=0:
+                    raise ArchiveLimit('historical revision backfill deadline reached')
+                with connection.transaction():
+                    self._limit(connection,remaining)
+                    self._identity(connection)
+                    receipts=self._receipts(connection,records)
+                    for record in records:
+                        receipt=receipts.get(record['id'])
+                        if receipt is None:
+                            raise ArchiveIntegrityError('existing receipt required for backfill')
+                        self._check_receipt(receipt,record)
+                    self._append_revisions(connection,records)
+            if time.monotonic()>=deadline:
+                raise ArchiveLimit('historical revision backfill deadline reached')
+        except (ArchiveIntegrityError,ArchiveLimit):
+            raise
+        except Exception:
+            raise ArchiveUnavailable('historical revision backfill unavailable') from None
+
+    def read_revisions(self, ids, *, max_bytes, timeout_seconds):
+        """Recover prior PP revisions directly from private history by exact IDs."""
+        if (not isinstance(ids,list) or not 1<=len(ids)<=500 or
+                any(type(x) is not int or not 0<x<2**63 for x in ids) or ids!=sorted(set(ids)) or
+                type(max_bytes) is not int or not 1<=max_bytes<=4*1024**2):
+            raise ArchiveLimit('invalid historical revision read bound')
+        deadline=self._deadline(timeout_seconds)
+        try:
+            with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
+                remaining=deadline-time.monotonic()
+                if remaining<=0:
+                    raise ArchiveLimit('historical revision connection deadline reached')
+                with connection.transaction():
+                    self._limit(connection,remaining)
+                    self._identity(connection)
+                    records=self._read_revisions(connection,ids,max_bytes)
+            if time.monotonic()>=deadline:
+                raise ArchiveLimit('historical revision read deadline reached')
+            return records
+        except (ArchiveIntegrityError,ArchiveLimit):
+            raise
+        except Exception:
+            raise ArchiveUnavailable('historical revision read unavailable') from None
 
     @staticmethod
     def _check_receipt(receipt, record):
@@ -212,6 +317,8 @@ class HistoryV2PostgresTransport:
                                              payload_hash, envelope_hash))
                         inserted += 1
                     self._insert_receipts(connection, new_receipts)
+                    if self.retain_revisions:
+                        self._append_revisions(connection,records)
                     last_id = records[-1]['id']
                     cursor = {'outbox_id': max(last_id, previous_id)}
                     digest = sha256(encoded(cursor))

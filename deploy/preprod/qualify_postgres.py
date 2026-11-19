@@ -499,6 +499,10 @@ def main():
             receipt_contract=qualify_structured_receipts(CI_FOUNDATION_SECRETS)
             PHASE='generated_pp_receipt_grants'
             pp_receipt_grants=qualify_pp_receipt_grants(CI_FOUNDATION_SECRETS)
+            PHASE='generated_pp_immutable_revision_envelopes'
+            revision_ddl=(REPO/'supabase/migrations/20261119020000_pp_structured_revision_payloads.sql').read_text()
+            f.sql('BEGIN;\n'+revision_ddl+'\nCOMMIT;', CI_FOUNDATION_SECRETS, timeout=40)
+            f.sql((REPO/'deploy/preprod/tests/pp_revision_envelopes.sql').read_text(),CI_FOUNDATION_SECRETS)
             PHASE='generated_pp_storage_policy'
             pp_storage_policy=qualify_pp_storage_policy(CI_FOUNDATION_SECRETS)
             env['TRADEBOT_TEST_HISTORY_V2_DSN']=dsns['admin']

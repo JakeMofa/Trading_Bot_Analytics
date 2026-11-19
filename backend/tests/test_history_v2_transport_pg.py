@@ -309,6 +309,36 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         # Ambiguous post-commit response: replay must not overwrite or count
         # another receipt, and fresh readback still proves the first commit.
         transport.put_structured(records, timeout_seconds=5)
+        # Hash-only receipts from the prior release cannot reconstruct an
+        # earlier revision. An opt-in, exact local backfill supplies the bytes
+        # without rewriting today's projection or its generation checkpoint.
+        previous=HistoryV2PostgresTransport(factory,origin_id=origin,generation_id=generation,
+            expected_database=binding['database'],expected_role=binding['role'],retain_revisions=True)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.read_revisions([2],max_bytes=4096,timeout_seconds=5)
+        previous.backfill_verified_revisions(records[:2],timeout_seconds=5)
+        previous.backfill_verified_revisions(records[:2],timeout_seconds=5)
+        previous.put_structured(records,timeout_seconds=5)
+        self.assertEqual(previous.read_revisions([2,3],max_bytes=8192,timeout_seconds=5),records[1:])
+        # Explicitly simulate privileged mutation; normal PP cannot update.
+        with factory() as connection:
+            connection.execute("""UPDATE history_v2.structured_revision_payloads SET envelope=%s
+                WHERE origin_id=%s AND generation_id=%s AND outbox_id=2""",
+                (encoded(records[-1]),origin,generation))
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.read_revisions([2],max_bytes=4096,timeout_seconds=5)
+        with factory() as connection:
+            connection.execute("""UPDATE history_v2.structured_revision_payloads SET envelope=%s
+                WHERE origin_id=%s AND generation_id=%s AND outbox_id=2""",
+                (encoded(records[1]),origin,generation))
+        with self.assertRaises(ArchiveLimit):
+            previous.read_revisions([2,3],max_bytes=1,timeout_seconds=5)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.backfill_verified_revisions([dict(records[1],payload={**first,'price':'0.00'})],
+                                                 timeout_seconds=5)
+        with self.assertRaises(ArchiveIntegrityError):
+            previous.backfill_verified_revisions([dict(records[1],id=999)],timeout_seconds=5)
+
         with factory() as connection:
             receipts = connection.execute('''SELECT count(*) AS count FROM
                 history_v2.structured_receipts WHERE origin_id=%s''', (origin,)).fetchone()

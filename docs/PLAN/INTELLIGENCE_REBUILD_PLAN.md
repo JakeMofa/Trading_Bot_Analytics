@@ -4,6 +4,26 @@
 
 The dedicated PP deployment identity verified installed controller `5b7c457296e4` from source `c9ec5e9d7a` through the pinned host route. This qualifies the controller identity used for the next PP release. Release installation, live B collection, sealed-A cloud readback and retirement have separate evidence. [PP controller identity run 44433405035](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44433405035)
 
+### Recoverable structured revisions in private Supabase history
+
+The proposed additive migration `20261119020000_pp_structured_revision_payloads.sql`
+preserves the canonical UTF-8 envelope bytes for each exact
+(origin, generation, outbox ID). An insert must match the envelope SHA-256 on
+its existing receipt. The restricted PP role may append and read its own origin.
+Rolling the live projection forward leaves earlier exact decimal strings, source
+times and provenance recoverable. Generated PostgreSQL tests exercise old
+receipt backfill, retries, payload corruption, limited retrieval, isolation and
+forbidden mutation. A stored receipt alone still cannot reconstruct its input.
+
+The opt-in importer writes projections, receipts and envelopes in one database
+transaction. A bounded backfill needs exact locally retained envelopes and
+existing matching cloud receipts; missing or conflicting evidence stops the
+operation. Retrieval by IDs authenticates the connection and recomputes hashes
+from returned bytes. The migration has not been applied to Supabase, runtime
+capture is OFF, old receipts have not been backfilled and production is
+unchanged. Measure the additional bytes before promotion. The privileged
+archive-mutation gate for local removal remains independent.
+
 ### Exact sealed PP readback and local retirement
 
 The one-shot source command `python -m postgres.pp_retirement_verify --sealed UUID

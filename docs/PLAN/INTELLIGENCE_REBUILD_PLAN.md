@@ -1,3 +1,101 @@
+## November 19 UTC — hosted candidate reconciled with PP18 source
+
+The cold-history candidate was reviewed against preprod `7338c057`, preserving
+both the hosted research and Coinbase timing evidence. Default API construction
+registers no structured-history route; the optional reader remains unconfigured.
+No workflow, cloud setting, deployment or pinned PP18 runtime changed.
+
+The reconciled backend passed **372 tests, 46 explicit skips**. A fresh disposable
+local PostgreSQL 17 fixture passed **75 combined cold-reader/shared history
+transport tests, three unrelated fixture skips**, including exact envelope
+readback and receipt metadata bounds; its owned server was stopped. These local
+checks do not qualify hosted credentials, live activation or sustained headroom.
+Exact source CI remains a separate merge gate.
+
+## November 19 UTC — cold-history edge-case review and bounded dispatch
+
+After reconciling preprod `74a850b` (including the separate rollover fix), the
+full pinned backend passed **365 run, 319 passed, 46 explicit fixture/platform
+skips**. All qualified cold-component file hashes remain unchanged. This merge
+preserves both workstreams and performs no live rollout.
+
+The source-only candidate in PR #164 passed [exact-source Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44480584156)
+at `5a44c7f`, including backend, dependency, controls, PP foundation and PostgreSQL
+lifecycle jobs. It closes three reproduced edge cases:
+receipt metadata is budgeted and suppressed in SQL before transfer, the page
+clock includes manifest/validation/copy work with remaining-budget handoff, and
+API admission happens before a dedicated cold worker receives work. HTTP
+cancellation cannot release the slot while the source is still active; shutdown
+and rejected submissions have cleanup coverage. Live/local endpoints use their
+existing worker path. Source default remains OFF and no runtime injects the route.
+
+Full pinned backend: **362 run, 316 passed, 46 explicit platform/fixture skips**.
+Separate native PostgreSQL17 qualification: **75 run, 72 passed, 3 unrelated
+app-fixture skips**, including 13 generic history/import/reuse tests and six
+cold-source tests. Native proof corrupted each of five receipt text fields to
+1MiB and tested aggregate overflow across two rows; over-budget fields and
+envelopes returned NULL before client transfer. Temporary databases were stopped.
+The 256KiB envelope and 256KiB receipt-text budgets are separate; fixed row,
+protocol and TLS overhead are additional. No hosted-role or PP/prod qualification
+follows from generated tests. [Source/test evidence](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md).
+
+The user-requested deeper read-only navigation is complete within the defined
+project/catalog scope: all 31 integration overviews and 31 linked public docs,
+plus private database details, safe Auth/template pages, Storage/Realtime,
+observability/advisors and project settings. Secret, personal-data, mutation,
+setup and recursive-global-doc boundaries are explicit. The browser observes
+Grafana as a third installed integration; this research made no installation.
+The specific function advisor finding was classified using read-only metadata
+and official PostgreSQL source, without invoking or changing the function.
+Four unindexed-history-FK suggestions call for query-plan review, not blind DDL.
+The release chat received scope, findings and tested-source progress and
+continues its rollover/archive work separately. No live cloud, collector or
+retirement action was performed here.
+
+[Deep navigation and 31-card assessment](SUPABASE_DEEP_NAVIGATION_2026-11-19.md) ·
+[Prioritized next uses and advisory nuance](SUPABASE_NEXT_STEPS_2026-11-19.md) ·
+[Function metadata](evidence/supabase-function-advisory-2026-11-19.json).
+
+## November 19 UTC — hosted Supabase integration investigation and local candidate
+
+Parallel research combines PR #157's dashboard audit, PR #155's actual PP
+receipt-read measurements, PR #159's default-off generated reuse qualification,
+current hosted read-only SQL and official product documentation. The existing
+uncommitted cold-history prototype was found and its six offline tests rerun
+successfully; its original worktree remains intact. Reuse this design for the
+structured-history application gap rather than start another archive engine.
+
+At 06:52:08 UTC exact read-only SQL counted 5,268 PP receipts and 400 immutable
+revision payloads; concurrent release-owned backfill can change these counts.
+All twelve private history tables had RLS, with zero replication slots. No
+separate structured-reader SQL role was observed. At 06:52:35 UTC raw catalog
+metadata counted 980 objects/339,576,344 bytes, not verified object contents.
+These snapshots establish neither complete backfill nor production qualification.
+
+Current official Pipelines FAQ (updated November 16) lists public-alpha
+BigQuery/ClickHouse/DuckLake/Snowflake, superseding the older private-alpha,
+BigQuery-only result returned by documentation search and repeated in the prior
+prototype research. Project entitlement still needs independent verification.
+Managed analytics does not replace the existing receipt-bound archive contract.
+
+Decision: keep live RAM/local PostgreSQL on each VM, private background structured
+history and authenticated raw Storage. Build one default-off bounded structured
+cold-reader candidate with a separately scoped SELECT-only identity, trusted
+manifest selection and explicit coverage. The local candidate ran 65 affected tests: 51 passed and 14 existing
+full-application/history fixture skips, including four native PostgreSQL17
+cold-reader tests. Its optional API hook accepts server-registered queries,
+requires scope-bound continuation and limits concurrent reads. The route is
+absent by default; no runtime profile injects it. Hosted grants, deployment, real payload comparison,
+production support and raw disaster-recovery proof remain OPEN. The release chat
+continues to own collection, backfill, deployment and retirement; this milestone
+performs no cloud writes or live control actions. No merge/deploy is implied.
+
+[Candidate and validation](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md) ·
+[Measured investigation](HOSTED_SUPABASE_INVESTIGATION_2026-11-19.md) ·
+[17-capability matrix](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md) ·
+[Browser coverage](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md) ·
+[Timestamped evidence](evidence/hosted-supabase-investigation-2026-11-19.json)
+
 ## November 19 UTC — offline Coinbase delay diagnosis and timing candidate
 
 The07:10:14pp.17 sample had40.960s source→application-dequeue delay and only0.671s
@@ -68,10 +166,11 @@ Genuine new-write capture validation follows actual live acknowledgements.
 
 ## November 19 UTC — hosted history research and cold structured page candidate
 
-Official hosted Pipelines docs currently describe outbound Supabase Postgres →
-BigQuery, not the local-PG → private history_v2 envelope/receipt import. The ETL
-library offers other modules/custom destinations but does not prove managed
-availability here. WAL/replica identity, replay and lifecycle-delete semantics
+The original research used older hosted Pipelines documentation. The expanded
+review above supersedes its BigQuery-only/private-alpha statement: the current
+FAQ lists four public-alpha destinations with organization-dependent access.
+This remains outbound analytics, not the local-PG → private history_v2 verified
+envelope/receipt import. WAL/replica identity, replay and lifecycle-delete semantics
 need separate qualification. No replication slot, RPC, Data API exposure, grant,
 S3 key, paid feature or cloud setting changed.
 

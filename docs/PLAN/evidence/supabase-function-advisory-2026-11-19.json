@@ -1,0 +1,17 @@
+{
+  "observed_at_utc": "2026-11-19T07:41:19.646145Z",
+  "method": "bounded read-only SQL metadata; no function invocation, body, secret or setting change",
+  "function": "public.rls_auto_enable",
+  "language": "plpgsql",
+  "return_type": "event_trigger",
+  "security_definer": true,
+  "explicit_search_path_setting_present": true,
+  "search_path_value_or_safety_verified": false,
+  "effective_execute": {
+    "anon": true,
+    "authenticated": true
+  },
+  "body_verified": false,
+  "rpc_execution_tested_on_hosted": false,
+  "interpretation": "Execute grants and advisor findings warrant review. PL/pgSQL event-trigger ordinary-call restrictions must be considered; grants alone do not demonstrate successful RPC body execution."
+}

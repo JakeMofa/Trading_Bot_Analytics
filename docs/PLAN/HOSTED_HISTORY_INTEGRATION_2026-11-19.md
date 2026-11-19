@@ -53,11 +53,12 @@ S3 key to replace the existing narrowly scoped HTTP reader. Storage object
 integrity remains a separate contract from relational receipts.
 [S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication)
 
-Current hosted Pipelines setup/FAQ identifies Supabase Postgres as source and
-BigQuery as the managed destination, says Analytics Buckets replication is no
-longer supported, and labels the feature private alpha. Those hosted-specific
-pages control this decision; availability must be verified before planning a
-new destination. [Pipelines setup](https://supabase.com/docs/guides/database/replication/pipelines),
+The expanded November 19 review corrects the older documentation returned by
+search: the current official FAQ (updated November 16) lists BigQuery,
+ClickHouse, DuckLake and Snowflake as public-alpha managed destinations, with
+organization-dependent availability. Analytics Buckets ingestion remains a
+separate capability. Use the [expanded integration matrix](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md)
+for current product constraints; no destination was activated here. [Pipelines setup](https://supabase.com/docs/guides/database/replication/pipelines),
 [Pipelines FAQ](https://supabase.com/docs/guides/database/replication/pipelines-faq)
 
 The open-source ETL README separately lists ClickHouse, BigQuery, DuckLake and

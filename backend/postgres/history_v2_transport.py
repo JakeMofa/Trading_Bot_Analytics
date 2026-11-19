@@ -48,8 +48,10 @@ class HistoryV2PostgresTransport:
     def _validate(self, records, *, max_bytes=4 * 1024 * 1024):
         validate_outbox_stream(records, origin_id=self.origin_id,
                                generation_id=self.generation_id)
-        if len(encoded(records)) > max_bytes:
+        canonical = encoded(records)
+        if len(canonical) > max_bytes:
             raise ArchiveLimit('private structured batch exceeds byte bound')
+        return canonical
 
     @staticmethod
     def _limit(connection, timeout_seconds, *, catalog_search_path=False):
@@ -158,7 +160,8 @@ class HistoryV2PostgresTransport:
             if encoded(actual) != encoded(page):
                 raise ArchiveIntegrityError('stored historical envelope conflicts')
 
-    def _read_revisions(self, connection, ids, max_bytes, *, generation_id=None):
+    def _read_revisions(self, connection, ids, max_bytes, *, generation_id=None,
+                        _canonical_envelopes=None):
         generation_id = generation_id or self.generation_id
         # One statement/snapshot bounds envelope bytes and all selected receipt
         # text separately. Sum lengths rather than concatenate corrupt metadata.
@@ -206,8 +209,13 @@ class HistoryV2PostgresTransport:
                     encoded(record)!=raw):
                 raise ArchiveIntegrityError('stored revision not canonical')
             validate_outbox_stream([record],origin_id=self.origin_id,generation_id=generation_id)
-            self._check_receipt(row,record)
+            # raw has already passed exact canonical re-encoding above. Hash
+            # those same authenticated bytes instead of serializing them again.
+            self._check_receipt_hashes(row,record,
+                sha256(encoded(record['payload'])),sha256(raw))
             records.append(record)
+            if _canonical_envelopes is not None:
+                _canonical_envelopes.append(raw)
         return records
 
     def backfill_verified_revisions(self, records, *, timeout_seconds):
@@ -283,7 +291,7 @@ class HistoryV2PostgresTransport:
 
     def read_retirement_revisions(self, records, *, max_bytes, timeout_seconds):
         """Read the exact historical inputs and authenticate their current projections."""
-        self._validate(records, max_bytes=max_bytes)
+        expected = self._validate(records, max_bytes=max_bytes)
         deadline = self._deadline(timeout_seconds)
         try:
             with measured_context(self.connection_factory(timeout_seconds=timeout_seconds),
@@ -301,10 +309,20 @@ class HistoryV2PostgresTransport:
                         checked=self._checkpoint_covers(connection, self.generation_id, records[-1]['id'],
                             verify_latest_index=self.indexed_latest)
                     with phase('history_exact_revisions'):
-                        archived = self._read_revisions(connection, [r['id'] for r in records], max_bytes)
-                        if encoded(archived) != encoded(records):
+                        canonical_envelopes = []
+                        archived = self._read_revisions(connection, [r['id'] for r in records], max_bytes,
+                            _canonical_envelopes=canonical_envelopes)
+                        # Every element is the exact canonical byte sequence
+                        # already checked by _read_revisions, in checked ID order.
+                        # Joining them is exactly the canonical JSON array used
+                        # before; keep byte equality, rather than hash equality.
+                        canonical = b'[' + b','.join(canonical_envelopes) + b']'
+                        if canonical != expected:
                             raise ArchiveIntegrityError('historical retirement revision mismatch')
-                    size = len(encoded(archived))
+                    size = len(canonical)
+                    # Do not retain the temporary byte copies while the wider
+                    # latest-receipt and projection reads are in flight.
+                    del canonical_envelopes, canonical, expected
                     final = {(r['entity_type'], r['entity_id']): r for r in archived}
                     with phase('history_latest_receipts'):
                         from .history_v2_latest_receipts import latest_receipts
@@ -354,6 +372,10 @@ class HistoryV2PostgresTransport:
     @staticmethod
     def _check_receipt(receipt, record):
         payload_hash, envelope_hash = HistoryV2PostgresTransport._receipt_hashes(record)
+        HistoryV2PostgresTransport._check_receipt_hashes(receipt,record,payload_hash,envelope_hash)
+
+    @staticmethod
+    def _check_receipt_hashes(receipt, record, payload_hash, envelope_hash):
         if (receipt['entity_type'] != record['entity_type'] or
                 receipt['entity_id'] != record['entity_id'] or
                 receipt['content_hash'] != record['content_hash'] or

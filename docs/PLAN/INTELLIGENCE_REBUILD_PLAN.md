@@ -1,3 +1,17 @@
+## November 19 UTC — canonical exact-read byte reuse source candidate
+
+A narrow source candidate reuses the exact expected serialization and canonical/
+receipt-validated original envelopes for the existing full byte comparison and
+size charge. It preserves the original receipt, origin, checkpoint, newer
+revision, current projection, read-only and deadline checks. Matched generated
+PG17 proof with text results/fresh connections/indexed latest measured full
+500-row reads at 292.919→218.404 ms (G=0) and 290.744→219.630 ms (G=1), with 32
+successful full reads and 22 matched corruption/scope guards. This is source
+qualification only; no PP/prod host, deployment, cloud or runtime change.
+Native timing does not establish PP's needed full-audit reserve. Exact-source CI,
+matched PP first-page comparison and actual full-audit margin remain unqualified.
+[Decision, reproducible harness and evidence](PP_READBACK_CANONICAL_BYTE_REUSE_2026-11-19.md)
+
 ## PP19 retained A audit, November 19 UTC
 
 PP19 `5efc4bb` passed [exact source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502994609)
@@ -3861,3 +3875,19 @@ generation UUID. Exclude inputs unavailable at the forecast cutoff and join
 later official outcomes only as labels. Check exact input and feature parity
 against the same window before retirement and report gaps or duplicates.
 Archive integrity and application replay each require their own evidence.
+
+### PP21 controller identity and fenced forward procedure, November 19 UTC
+
+Read-only PP inspection confirms the preserved PP20 stopped profile, exact 10,000
+pending generated rows, 42,133 acknowledged live rows, both collectors OFF, and
+unchanged live A 28,411/B 9,784 raw rows. The exact 0219819 code-only controller
+transfer installed 9a7b with previous 1e10 retained and no DB/authority change.
+Dedicated identity run 44557716430 passed. The qualified profile now binds 9a7b.
+A separate source candidate supplies a one-use, PP20-state-pinned forward
+bootstrap: unchanged migration inventory, migration4, genuine generated storage
+readback/ACK/headroom, full smoke and failure fencing, with separate operator
+receipts that cannot replace normal CD. Ledger 4 is a forward compatibility
+boundary; no old-image or DB rollback, A/B deletion, cloud action, live ON or
+renewed expired-trial authority is included. Actual reader SQL/native controls
+pass; host migration/bootstrap and normal exact-source CD remain pending.
+[Procedure, compatibility and gates](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md).

@@ -587,17 +587,20 @@ class LifecycleRepository:
 
     @contextmanager
     def _origin_lock(self, namespace, origin_id):
-        if getattr(self._worker_session, 'connection', None) is not None:
-            raise LifecycleHold('nested worker session lock')
+        locked = getattr(self._worker_session, 'connection', None)
         budget = ACTIVE_BUDGET.get()
         if budget:
             budget.check()
-            if budget.deadline - budget.clock() <= 5:
+            if locked is None and budget.deadline - budget.clock() <= 5:
                 raise ArchiveLimit('insufficient cycle time for sync lock connection')
-        with self.connection_factory() as connection:
-            connection.autocommit = True
-            connection.execute("SET statement_timeout='1000ms'")
+        with (self.connection_factory() if locked is None else nullcontext(locked)) as connection:
+            if locked is None:
+                connection.autocommit = True
+                connection.execute("SET statement_timeout='1000ms'")
             key = namespace + origin_id
+            held_keys = getattr(self._worker_session, 'held_keys', frozenset())
+            if key in held_keys:
+                raise LifecycleHold('another structured sync worker is active')
             acquired = connection.execute('''SELECT
                 pg_try_advisory_lock(hashtextextended(%s,0)) AS acquired''',
                 (key,)).fetchone()['acquired']
@@ -606,12 +609,15 @@ class LifecycleRepository:
             # One synchronous worker owns this backend until unlock. Autocommit
             # keeps the lock session idle between individual local transactions.
             self._worker_session.connection = connection
+            self._worker_session.held_keys = held_keys | {key}
             try:
                 if budget:
                     budget.check()
                 yield
             finally:
-                del self._worker_session.connection
+                self._worker_session.held_keys = held_keys
+                if locked is None:
+                    del self._worker_session.connection
                 # Connection close releases the lock even if this unlock fails.
                 connection.execute('SELECT pg_advisory_unlock(hashtextextended(%s,0))',
                                    (key,))

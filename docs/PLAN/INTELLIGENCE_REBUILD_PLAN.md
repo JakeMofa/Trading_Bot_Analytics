@@ -1,3 +1,23 @@
+## November 19, 2026 UTC — recurring structured drain clears all retained A rows
+
+On PP release `v0.2.0-pp.15`, the installed recurring worker acknowledged **5,243 A records across 210 pages in 431.490 seconds (12.15/s)**. The slowest page took 2.677 seconds. The run ended with zero retries, zero holds and zero pending records. The operator stopped the idle worker and confirmed it was OFF. Independent Supabase and PP queries matched all 5,268 origin/generation-scoped outbox IDs and content hashes, including 25 acknowledged by the preceding probe. The structured checkpoint reached ID 12789.
+
+The most recent retained live interval created 3,738 outbox records in 282.031 seconds (13.25/s). The measured 25-record worker drained slower than that arrival rate. Collection remained OFF for the transfer, so concurrent headroom remains open.
+
+With the collector OFF, a read-only pass packed A’s 4,845 raw events into 10 chunks totaling 620,549 compressed bytes in 5.299 seconds. Each chunk held 47,101–66,029 bytes. These bytes stayed in memory on PP. The available live raw worker accepts only sealed generations, and the synthetic Storage probe has a much smaller fixed payload. Representative raw upload/readback time and full seal-to-retirement time remain open. The A/B switch and deletion were held.
+
+[Measured page durations, raw sizes and reconciled digest](evidence/pp15-recurring-drain-2026-11-19.json)
+
+## November 19, 2026 UTC — real PP structured page verified in Supabase
+
+Release `v0.2.0-pp.15` from `7175fc60fbb4d06caa8fb47f41221d34783d3d23` passed [exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44441802100), [publication](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44442308753), [PP CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44442439908) and [ready-off](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44442754589). API/SSE and schema smoke passed on generated data. The authorized structured probe then used real retained PP records while collection was OFF.
+
+- All 25 records (IDs 7314–7338) passed authenticated projection and receipt readback. PP acknowledged exactly those IDs. Its pending count fell from 5,268 to 5,243. An independent Supabase query found 25 distinct receipts for the exact origin and generation, previously zero, and checkpoint 7338.
+- Docker process elapsed time was 5.954 seconds (4.20 records/s). End-to-end controller time, including SSH and container management, was 9.265 seconds (2.70 records/s). These timings cover one cold invocation. Sustained drain throughput and headroom over live arrivals still need measurement with the persistent worker.
+- The raw A generation remained local. PP has yet to demonstrate the complete seal, raw upload, fresh verification, protected history, reader drainage and authorized retirement within 30 minutes while B persists new writes. The collector and retirement remained OFF throughout this probe. The preceding pp.14 failed attempt remains recorded.
+
+[Exact page, timings and release evidence](evidence/pp15-structured-page-2026-11-19.json)
+
 ## November 18, 2026 — PP transaction-budget pipeline candidate (source only)
 
 - pp.14 failed its first real 25-row page with PostgreSQL SQLSTATE `25P04`

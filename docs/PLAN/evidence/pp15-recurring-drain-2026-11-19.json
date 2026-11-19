@@ -1,0 +1,92 @@
+{
+  "actual_pp_release": "v0.2.0-pp.15",
+  "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+  "collector_enabled": false,
+  "worker_start": "2026-11-19T02:18:55.292942383Z",
+  "last_acknowledgement": "2026-11-19T02:26:06.783055651Z",
+  "elapsed_seconds": 431.490113,
+  "acknowledged": 5243,
+  "rows_per_second": 12.150915726775876,
+  "max_page_seconds": 2.6765,
+  "median_page_seconds": 1.9144999999999999,
+  "pages": 210,
+  "retries": 0,
+  "holds": 0,
+  "generation_acknowledged_total": 5268,
+  "generation_pending": 0,
+  "supabase_distinct_receipts": 5268,
+  "first_cloud_id": 7314,
+  "last_cloud_id_and_checkpoint": 12789,
+  "matched_origin_generation_outbox_identity_and_content_hash_digest": "209578a722224b712bf659969e4b471f88bff22db3ecbcd59aac43b2ab74f5a9",
+  "historical_outbox_ingress": [
+    {
+      "arrivals": 1530,
+      "first": "2026-11-18 00:42:34.222143+00:00",
+      "last": "2026-11-18 00:45:13.023483+00:00",
+      "seconds": "158.801340"
+    },
+    {
+      "arrivals": 3738,
+      "first": "2026-11-18 01:38:54.695066+00:00",
+      "last": "2026-11-18 01:43:36.725706+00:00",
+      "seconds": "282.030640"
+    }
+  ],
+  "generation_raw_snapshot": {
+    "actual_rows": 4845,
+    "max_pg_payload_bytes": 1134,
+    "max_raw_text_bytes": 3717,
+    "max_calendar_minute": 804,
+    "partition_bytes": 9109504
+  },
+  "local_readonly_pack": {
+    "pages": [
+      [
+        500,
+        64139
+      ],
+      [
+        500,
+        63443
+      ],
+      [
+        500,
+        66029
+      ],
+      [
+        500,
+        62054
+      ],
+      [
+        500,
+        63457
+      ],
+      [
+        500,
+        63041
+      ],
+      [
+        500,
+        64757
+      ],
+      [
+        500,
+        65171
+      ],
+      [
+        500,
+        61357
+      ],
+      [
+        345,
+        47101
+      ]
+    ],
+    "total_rows": 4845,
+    "gzip_bytes": 620549,
+    "local_read_pack_seconds": 5.299272621050477
+  },
+  "transfer_occurred": false,
+  "local_retirement_occurred": false,
+  "final_structured_worker_status": "off"
+}

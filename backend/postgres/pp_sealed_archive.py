@@ -5,7 +5,6 @@ import os
 import signal
 from threading import Event
 
-from .cloud_origin_binding import cloud_binding
 from .cloud_runtime_profile import selected_cloud_origin,cloud_files,storage_paths
 from .archive_codec import ArchiveError, ArchiveLimit, ArchiveLimits, ArchiveUnavailable, CycleBudget
 from .archive_transport import ScopedArchiveTransport
@@ -28,7 +27,7 @@ class RawWorker(ArchiveWorker):
 
 
 def cycle(repository, raw, origin=ORIGIN):
-    cloud_binding(origin)
+    # The HTTP entrypoint validates the exact cloud origin before credentials.
     with CycleBudget(LIMITS) as budget, repository.raw_archive_lock(origin):
         with repository.transaction() as connection:
             row = connection.execute("""SELECT generation_id,seal_count FROM archive.generations

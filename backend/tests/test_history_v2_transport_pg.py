@@ -1,7 +1,7 @@
 """Disposable isolated PostgreSQL proof; never connects to Supabase."""
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 import os
 import math
@@ -131,6 +131,178 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         self.assertIsNone(rows[50]['acknowledged_at'])
         self.assertIsNone(rows[50]['exact_receipt'])
         self.assertFalse(rows[50]['exact_payload'])
+
+    def test_full_path_session_reuse_commits_reads_and_acks_same_workload(self):
+        import json
+        import psycopg
+        from psycopg.rows import dict_row
+        from psycopg.types.json import Jsonb
+        from postgres.pp_history_session import ReusablePPHistoryConnectionFactory
+        from postgres.pp_structured_drain import drain_bounded
+        from postgres.pp_structured_service import RECURRING_LIMITS
+
+        def local():
+            return psycopg.connect(DSN,row_factory=dict_row)
+        with local() as db:
+            identity=db.execute('SELECT current_database() db,current_user role').fetchone()
+        results=[]
+        for reuse in (False,True):
+            origin=self.origin+('-reused' if reuse else '-cold')
+            repository=LifecycleRepository(local)
+            generation=str(repository.bootstrap(origin)['generation_id'])
+            with local() as db:
+                start=datetime(2026,11,18,tzinfo=timezone.utc)
+                for index in range(100):
+                    stamp=start+timedelta(seconds=index)
+                    price=dict(origin_id=origin,source='coinbase',symbol='BTC-USD',
+                        event_id=f'trade-{index}',generation_id=generation,
+                        source_time=stamp.isoformat(),source_epoch=str(int(stamp.timestamp())),
+                        received_at=stamp.isoformat(),available_at=stamp.isoformat(),
+                        price=f'100.{index:04d}',size='1E-8',
+                        payload={'generated':True,'padding':'p'*700},content_hash=f'{index+1:064x}')
+                    candle=dict(origin_id=origin,source='coinbase',symbol='BTC-USD',
+                        granularity=60,time=int(start.timestamp())+index*60,
+                        low='99.0000',high='101.0000',open='100.0000',close='100.1000',
+                        volume='1.00000000',first_seen=stamp.isoformat(),
+                        payload={'generated':True,'padding':'c'*500},content_hash=f'{index+1:064x}')
+                    table,payload=('core.current_prices',price) if index%2 else ('core.candles',candle)
+                    key=envelope(index+1,table,payload,generation)['entity_id']
+                    db.execute('''INSERT INTO ops.outbox(origin_id,generation_id,entity_type,
+                        entity_id,content_hash,payload,created_at) VALUES(%s,%s,%s,%s,%s,%s,%s)''',
+                        (origin,generation,table,key,payload['content_hash'],Jsonb(payload),stamp))
+            connections=[]
+            transactions=[]
+            class Traced(DelayedConnection):
+                @contextmanager
+                def transaction(self):
+                    with self.inner.transaction():
+                        transactions.append(self.inner.execute('SELECT txid_current() n').fetchone()['n'])
+                        yield
+            def opened(secret=None,deadline=None,**kwargs):
+                time.sleep(.2)
+                connection=Traced(local())
+                connections.append(connection)
+                return connection
+            remote=ReusablePPHistoryConnectionFactory() if reuse else opened
+            try:
+                with (patch('postgres.history_v2_transport.PP_STRUCTURED_ORIGIN',origin),
+                      patch('postgres.active_structured.PP_STRUCTURED_ORIGIN',origin),
+                      patch('postgres.pp_structured_drain.PP_STRUCTURED_ORIGIN',origin),
+                      patch.object(remote,'_validated_dsn',side_effect=lambda timeout:(b'generated',time.monotonic()+timeout)) if reuse else nullcontext(),
+                      patch.object(remote,'_open',side_effect=opened) if reuse else nullcontext()):
+                    transports=[]
+                    def transport(selected,**kwargs):
+                        result=HistoryV2PostgresTransport(remote,origin_id=origin,
+                            generation_id=selected,expected_database=identity['db'],
+                            expected_role=identity['role'],retain_revisions=True)
+                        transports.append(result)
+                        return result
+                    started=time.monotonic()
+                    pages=[drain_bounded(repository,transport,execute=True,limits=RECURRING_LIMITS)
+                           for _ in range(2)]
+                    elapsed=time.monotonic()-started
+                    self.assertEqual(sum(page['acknowledged'] for page in pages),100)
+                    self.assertEqual(len(connections),1 if reuse else 4)
+                    self.assertEqual(len(set(transactions)),4)
+                    with local() as db:
+                        rows=db.execute('''SELECT o.*,p.envelope FROM ops.outbox o
+                            JOIN history_v2.structured_revision_payloads p
+                            ON(p.origin_id,p.generation_id,p.outbox_id)=(o.origin_id,o.generation_id,o.id)
+                            WHERE o.generation_id=%s ORDER BY o.id''',(generation,)).fetchall()
+                        self.assertEqual(len(rows),100)
+                        for row in rows:
+                            self.assertIsNotNone(row['acknowledged_at'])
+                            canonical={key:row[key] for key in ('id','origin_id','generation_id',
+                                'entity_type','entity_id','content_hash','payload')}
+                            self.assertEqual(bytes(row['envelope']),encoded(canonical))
+                        checkpoint=db.execute("SELECT row_count FROM history_v2.generation_checkpoints WHERE origin_id=%s AND generation_id=%s",(origin,generation)).fetchone()
+                        self.assertEqual(checkpoint['row_count'],100)
+                    results.append(dict(reuse=reuse,acknowledged=100,seconds=elapsed,
+                        rows_per_second=100/elapsed,physical_connections=len(connections),
+                        distinct_committed_transactions=len(set(transactions)),envelopes=100))
+            finally:
+                if reuse:remote.close()
+        print('generated_full_sync_session_comparison '+json.dumps(results),flush=True)
+
+    def test_reused_session_rollback_ambiguous_commit_and_role_failure_never_ack(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        from psycopg.types.json import Jsonb
+        from postgres.active_structured import ActiveStructuredWorker
+        from postgres.archive_codec import ArchiveLimits, ArchiveUnavailable
+        from postgres.pp_history_session import ReusablePPHistoryConnectionFactory
+        def local():
+            return psycopg.connect(DSN,row_factory=dict_row)
+        repository=LifecycleRepository(local)
+        origin=self.origin
+        generation=str(repository.bootstrap(origin)['generation_id'])
+        with local() as db:
+            identity=db.execute('SELECT current_database() db,current_user role').fetchone()
+            for index in range(3):
+                stamp=datetime(2026,11,18,tzinfo=timezone.utc)+timedelta(seconds=index)
+                payload=dict(origin_id=origin,source='coinbase',symbol='BTC-USD',
+                    event_id=f'trade-{index}',generation_id=generation,
+                    source_time=stamp.isoformat(),source_epoch=str(int(stamp.timestamp())),
+                    received_at=stamp.isoformat(),available_at=stamp.isoformat(),
+                    price=f'100.{index:04d}',size='1E-8',payload={'generated':True},
+                    content_hash=f'{index+1:064x}')
+                key=envelope(index+1,'core.current_prices',payload,generation)['entity_id']
+                db.execute("INSERT INTO ops.outbox(origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at) VALUES(%s,%s,'core.current_prices',%s,%s,%s,%s)",
+                    (origin,generation,key,payload['content_hash'],Jsonb(payload),stamp))
+        connections=[]
+        class ResponseLoss(DelayedConnection):
+            def wait(self):
+                self.roundtrips+=1
+            @contextmanager
+            def transaction(self):
+                with self.inner.transaction():
+                    yield
+                if self.lose_response:
+                    self.lose_response=False
+                    raise RuntimeError('generated loss after durable commit')
+        def opened(secret,deadline):
+            connection=ResponseLoss(local())
+            connection.lose_response=len(connections)==1
+            connections.append(connection)
+            return connection
+        remote=ReusablePPHistoryConnectionFactory()
+        try:
+            with (patch('postgres.active_structured.PP_STRUCTURED_ORIGIN',origin),
+                  patch.object(remote,'_validated_dsn',side_effect=lambda timeout:(b'generated',time.monotonic()+timeout)),
+                  patch.object(remote,'_open',side_effect=opened)):
+                transport=HistoryV2PostgresTransport(remote,origin_id=origin,generation_id=generation,
+                    expected_database=identity['db'],expected_role=identity['role'],retain_revisions=True)
+                worker=ActiveStructuredWorker(repository,transport,origin_id=origin,
+                    limits=ArchiveLimits(max_rows=3,max_requests=2,max_seconds=20,request_timeout_seconds=4))
+                original=transport._insert_receipts
+                def fail_before_commit(db,rows):
+                    original(db,rows)
+                    raise RuntimeError('generated failure before commit')
+                with patch.object(transport,'_insert_receipts',side_effect=fail_before_commit), self.assertRaises(ArchiveUnavailable):
+                    worker.cycle(generation)
+                self.assertTrue(connections[0].closed)
+                with local() as db:
+                    self.assertEqual(db.execute("SELECT count(*) n FROM history_v2.structured_receipts WHERE origin_id=%s",(origin,)).fetchone()['n'],0)
+                    self.assertEqual(db.execute("SELECT count(*) n FROM history_v2.current_prices WHERE origin_id=%s",(origin,)).fetchone()['n'],0)
+                with self.assertRaises(ArchiveUnavailable):
+                    worker.cycle(generation)
+                self.assertTrue(connections[1].closed)
+                transport.expected_role='generated_wrong_role'
+                with self.assertRaises(ArchiveIntegrityError):
+                    worker.cycle(generation)
+                self.assertTrue(connections[2].closed)
+                with local() as db:
+                    self.assertEqual(db.execute("SELECT count(*) n FROM ops.outbox WHERE generation_id=%s AND acknowledged_at IS NOT NULL",(generation,)).fetchone()['n'],0)
+                    self.assertEqual(db.execute("SELECT count(*) n FROM history_v2.structured_revision_payloads WHERE origin_id=%s",(origin,)).fetchone()['n'],3)
+                transport.expected_role=identity['role']
+                self.assertEqual(worker.cycle(generation)['acknowledged'],3)
+                self.assertEqual(len(connections),4)
+                with local() as db:
+                    self.assertEqual(db.execute("SELECT count(*) n FROM history_v2.structured_receipts WHERE origin_id=%s",(origin,)).fetchone()['n'],3)
+                    self.assertEqual(db.execute("SELECT row_count FROM history_v2.generation_checkpoints WHERE origin_id=%s",(origin,)).fetchone()['row_count'],3)
+                    self.assertEqual(db.execute("SELECT count(*) n FROM ops.outbox WHERE generation_id=%s AND acknowledged_at IS NOT NULL",(generation,)).fetchone()['n'],3)
+        finally:
+            remote.close()
 
     def test_generated_a_pending_blocks_b_until_acknowledged(self):
         import psycopg

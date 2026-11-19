@@ -30,7 +30,25 @@ cloud connection/query adapter or register a second historical endpoint.
 
 ## Qualification
 
-Seven new generated tests passed, including one native PostgreSQL 17.2 test with
+An independent review found that the initial outcome fixture bypassed the real
+ingestion wrapper. A native regression now calls `Store.ingest` for a generated
+Polymarket-shaped outcome, reads its actual outbox/protected evidence, and uses
+the existing authenticated structured transport. The initial `88c59ac` reader
+fails this regression with `official outcome evidence unproved`; the corrected
+reader accepts `payload.data` plus matching provenance, event identity, result
+and exact final value. Flattened or inconsistent proof fails explicitly.
+
+All eight research tests pass without skips on disposable local PostgreSQL
+17.2; 41 surrounding cold/history/lifecycle/envelope tests also pass. The native case preserves a delayed outcome's exact final decimal,
+synthetic provenance and independent label cutoff while collecting, sealed and
+after actual generated raw partition retirement. The label remains absent one
+microsecond before availability and is included at availability; outcomes never
+enter predictor inputs. This is generated evidence, not a real official outcome
+reconciliation or API/runtime qualification. Exact final comparisons use Decimal
+equality so an exponent-form captured string and PostgreSQL numeric projection
+can agree without losing the original captured spelling.
+
+The initial seven generated tests passed, including one native PostgreSQL 17.2 test with
 an actual transactional raw partition DROP through the existing generated
 retirement gates. The PG test writes and independently reads actual local
 `history_v2` projections, receipts, and immutable envelopes through the existing

@@ -1,3 +1,17 @@
+## November 19 UTC — source-only point-in-time outcome proof correction
+
+The bounded research prototype's initial flat outcome fixture did not match
+`Store.ingest`/`_protect` wrappers. An actual ingestion regression reproduces
+the failure on `88c59ac`. The source-only correction binds wrapped data and
+provenance to the protected evidence and checks event identity/result/exact
+final value. Eight tests pass without skips on disposable local PostgreSQL
+17.2, including independent outcome cutoffs and identical application labels
+before sealing and after generated raw partition DROP/authenticated archive
+readback. [Scope and limitations](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md).
+No API wiring, PP/production release, cloud/host operations, real collector,
+paid AI, retirement authority or merge is included. Real outcome reconciliation,
+whole-market coverage and application historical parity remain open.
+
 ## PP19 retained A audit, November 19 UTC
 
 PP19 `5efc4bb` passed [exact source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502994609)

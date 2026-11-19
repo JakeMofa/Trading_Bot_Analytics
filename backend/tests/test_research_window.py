@@ -58,11 +58,13 @@ def fixture():
             probability_up='0.50000000000000000001',probability_down='0.49999999999999999999',
             assumptions_json={},payload={})
     add('core.protected_evidence',evidence_id='official',generation_id=generation,source='polymarket_us',
-        event_id='result',kind='outcome',market_id='market',source_time=LABEL,
-        source_epoch='1794442800',received_at=LABEL,available_at=LABEL,payload={'result':'UP'})
+        event_id='o1',kind='outcome',market_id='market',source_time=LABEL,
+        source_epoch='1794442800',received_at=LABEL,available_at=LABEL,payload={'data':{'result':'UP','final':'100001.00000001'},
+            'provenance':{'data_mode':'generated'},'normalized':{'price':None,'size':None,'symbol':None}})
     add('core.outcomes',outcome_id='o1',market_id='market',evidence_id='official',result='UP',
         final='100001.00000001',source_time=LABEL,source_epoch='1794442800',confirmed_at=LABEL,
-        available_at=LABEL,payload={'settlement_source':'official_fixture'})
+        available_at=LABEL,payload={'data':{'result':'UP','final':'100001.00000001'},
+            'provenance':{'data_mode':'generated'}})
     source=Mock(origin_id=ORIGIN,generation_id=generation)
     source.read_revisions.side_effect=lambda ids,**kw:deepcopy([r for r in records if r['id'] in ids])
     transport=ImmutableMemoryTransport()
@@ -127,7 +129,7 @@ class ResearchWindowTests(unittest.TestCase):
         self.assertEqual([r['snapshot_id'] for r in page['saved_features']],['s1'])
         self.assertEqual(page['saved_forecasts'],[])
         self.assertEqual(len(page['official_outcome_labels']),1)
-        records[-2]['payload']['payload']['result']='DOWN'
+        records[-2]['payload']['payload']['data']['result']='DOWN'
         with self.assertRaises(ArchiveIntegrityError):read(reader,records)
 
     def test_future_saved_calculation_inputs_never_look_available(self):
@@ -137,6 +139,17 @@ class ResearchWindowTests(unittest.TestCase):
             repo,transport,source,records,reader=fixture()
             records[0]['payload']['payload'].update(data)
             records[1]['payload']['evidence_json'].update(data)
+            with self.assertRaises(ArchiveIntegrityError):read(reader,records)
+
+    def test_outcome_requires_matching_ingestion_wrapper_and_identity(self):
+        for mutate in (
+                lambda proof, outcome: proof.update(payload={'result':'UP'}),
+                lambda proof, outcome: proof['payload'].update(provenance=None),
+                lambda proof, outcome: outcome['payload'].update(provenance={'data_mode':'other'}),
+                lambda proof, outcome: outcome.update(final='100001.00000002'),
+                lambda proof, outcome: proof.update(event_id='different-event')):
+            repo,transport,source,records,reader=fixture()
+            mutate(records[-2]['payload'],records[-1]['payload'])
             with self.assertRaises(ArchiveIntegrityError):read(reader,records)
 
     def test_limits_cutoff_and_deadline(self):
@@ -167,6 +180,7 @@ class ResearchWindowPostgresTests(unittest.TestCase):
             identity=db.execute('SELECT current_database() db,current_user role').fetchone()
             self.assertEqual(identity['db'],'tradebot_pp')
         memory,objects,_,records,_=fixture()
+        records = records[:-2]  # Outcome evidence below must come from actual ingestion.
         repo=LifecycleRepository(local)
         origin='generated-research-'+uuid.uuid4().hex
         initial=datetime(2026,11,12,tzinfo=timezone.utc)
@@ -192,6 +206,18 @@ class ResearchWindowPostgresTests(unittest.TestCase):
                 row['id']=db.execute('''INSERT INTO ops.outbox(origin_id,generation_id,entity_type,
                     entity_id,content_hash,payload,created_at) VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING id''',
                     (origin,generation,row['entity_type'],row['entity_id'],row['content_hash'],Jsonb(row['payload']),CUTOFF)).fetchone()['id']
+        from postgres.config import Settings
+        from postgres.store import Store
+        store = Store(Settings(origin_id=origin, dsn=dsn))
+        received = '2026-11-12T00:19:00+00:00'
+        provenance = {'data_mode':'generated','generator':'research_outcome_test',
+                      'settlement_source':'synthetic_only'}
+        store.ingest(dict(source='polymarket_us',event_id='ingested-outcome',kind='outcome',
+            market_id='market',source_time=END,received_at=received,available_at=LABEL,
+            payload={'result':'UP','final':'1.0000100000000000000000001E5'},
+            provenance=provenance,raw_payload={'fixture':'captured official-shaped response'}))
+        records = ArchiveWorker.structured_records(repo.outbox(generation, limit=50))
+        self.assertEqual(len([r for r in records if r['entity_type']=='core.outcomes']), 1)
         with patch('postgres.history_v2_transport.PP_STRUCTURED_ORIGIN',origin):
             cloud=HistoryV2PostgresTransport(lambda **kw:local(),origin_id=origin,generation_id=generation,
                 expected_database=identity['db'],expected_role=identity['role'],retain_revisions=True)
@@ -206,6 +232,13 @@ class ResearchWindowPostgresTests(unittest.TestCase):
         source=Revisions()
         reader=ResearchWindow(ArchiveHistory(repo,objects),source,origin_id=origin,generation_id=generation)
         active=read(reader,records)
+        self.assertEqual(len(active['official_outcome_labels']),1)
+        label=active['official_outcome_labels'][0]
+        self.assertEqual(label['final'],'100001.00000000000000000001')
+        self.assertEqual(label['payload']['data']['final'],'1.0000100000000000000000001E5')
+        self.assertEqual(label['payload']['provenance'],provenance)
+        self.assertEqual(read(reader,records,labels_as_of='2026-11-12T00:19:59.999999+00:00')['official_outcome_labels'],[])
+        self.assertFalse(any(r['kind']=='outcome' for r in active['inputs']))
         switched=repo.switch_if_due(origin,RotationPolicy(qualified_size_bytes=1),now=initial+timedelta(hours=1))
         self.assertEqual(switched['status'],'switched')
         sealed=read(reader,records)
@@ -222,3 +255,4 @@ class ResearchWindowPostgresTests(unittest.TestCase):
             self.assertEqual(encoded(active[key]),encoded(sealed[key]))
             self.assertEqual(encoded(active[key]),encoded(retired[key]))
         self.assertEqual(retired['provenance']['raw_pages'][0]['tier'],'authenticated_archive')
+        self.assertEqual(read(reader,records,labels_as_of='2026-11-12T00:19:59.999999+00:00')['official_outcome_labels'],[])

@@ -7,7 +7,7 @@ also bind the reviewed immutable records. This is not whole-market discovery.
 from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timezone, timedelta
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import time
 import re
 import uuid
@@ -36,6 +36,16 @@ def instant(value):
 def epoch(value):
     delta = value - datetime(1970, 1, 1, tzinfo=timezone.utc)
     return Decimal(delta.days * 86400 + delta.seconds) + Decimal(delta.microseconds) / 1000000
+
+
+def same_final(left, right):
+    if left is None or right is None:
+        return left is None and right is None
+    try:
+        a, b = Decimal(str(left)), Decimal(str(right))
+        return a.is_finite() and b.is_finite() and a == b
+    except (InvalidOperation, ValueError):
+        return False
 
 
 class ResearchWindow:
@@ -187,8 +197,21 @@ class ResearchWindow:
         labels = []
         for outcome in by_table['core.outcomes']:
             proof = evidence.get(outcome['evidence_id'])
+            # Store.ingest wraps captured data/provenance; _protect adds only
+            # normalized price/size/symbol beside that wrapper. Never accept a
+            # flattened synthetic result as proof of an ingested outcome.
+            captured = proof.get('payload') if proof else None
+            outcome_payload = outcome.get('payload')
             if (not proof or proof['source'] != 'polymarket_us' or proof['kind'] != 'outcome'
-                    or proof['payload'].get('result') != outcome['result']):
+                    or proof['event_id'] != outcome['outcome_id']
+                    or not isinstance(captured, dict)
+                    or not isinstance(captured.get('data'), dict)
+                    or not isinstance(captured.get('provenance'), dict)
+                    or not isinstance(outcome_payload, dict)
+                    or outcome_payload.get('data') != captured['data']
+                    or outcome_payload.get('provenance') != captured['provenance']
+                    or captured['data'].get('result') != outcome['result']
+                    or not same_final(captured['data'].get('final'), outcome['final'])):
                 raise ArchiveIntegrityError('official outcome evidence unproved')
             if all(instant(r[k]) <= label_cutoff for r, k in
                    ((outcome, 'available_at'), (outcome, 'confirmed_at'),

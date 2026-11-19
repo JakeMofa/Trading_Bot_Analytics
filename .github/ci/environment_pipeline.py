@@ -47,7 +47,7 @@ CONTROLLER_REASONS = frozenset({
     'existing_postgres_required', 'postgres_identity_mismatch',
     'postgres_durability_disabled', 'postgres_resource_mismatch',
     'insufficient_host_headroom', 'invalid_inventory_evidence',
-    'outbox_inventory_exceeds_release_bound', 'unexpected_outbox_origin',
+    'outbox_inventory_exceeds_release_bound','outbox_inventory_invalid', 'unexpected_outbox_origin',
     'prior_oneoff_requires_operator_inspection', 'inventory_exceeds_generated_bound',
     'database_changed_after_writer_fence', 'candidate_writer_fence_failed',
     'prior_ack_state_unproven', 'pre_migration_database_changed',

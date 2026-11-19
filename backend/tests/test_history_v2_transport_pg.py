@@ -77,6 +77,61 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         binding.start()
         self.addCleanup(binding.stop)
 
+    def test_recurring_page_advances_exactly_fifty_after_authenticated_readback(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        from psycopg.types.json import Jsonb
+        from postgres.pp_structured_drain import drain_bounded
+        from postgres.pp_structured_service import RECURRING_LIMITS
+
+        def local():
+            return psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
+                                   options='-c timezone=UTC')
+
+        repository = LifecycleRepository(local)
+        origin = self.origin
+        generation = str(repository.bootstrap(origin)['generation_id'])
+        start = datetime(2026, 11, 18, tzinfo=timezone.utc)
+        with local() as db:
+            identity = db.execute('SELECT current_database() AS db, current_user AS role').fetchone()
+            for index in range(51):
+                stamp = start + timedelta(seconds=index)
+                price = dict(origin_id=origin, source='coinbase', symbol='BTC-USD',
+                    event_id=f'trade-{index}', generation_id=generation, source_time=stamp.isoformat(),
+                    source_epoch=str(int(stamp.timestamp())), received_at=stamp.isoformat(),
+                    available_at=stamp.isoformat(), price=f'100.{index:04d}', size='1E-8',
+                    payload={'generated': True, 'padding': 'p' * 700}, content_hash=f'{index+1:064x}')
+                key = envelope(index + 1, 'core.current_prices', price, generation)['entity_id']
+                db.execute("""INSERT INTO ops.outbox
+                    (origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at)
+                    VALUES (%s,%s,'core.current_prices',%s,%s,%s,%s)""",
+                    (origin, generation, key, price['content_hash'], Jsonb(price), stamp))
+
+        def transport(selected, *, timeout_seconds):
+            self.assertEqual(selected, generation)
+            return HistoryV2PostgresTransport(lambda *, timeout_seconds: DelayedConnection(local()),
+                origin_id=origin, generation_id=selected, expected_database=identity['db'],
+                expected_role=identity['role'], retain_revisions=True)
+
+        with patch('postgres.active_structured.PP_STRUCTURED_ORIGIN', origin), \
+                patch('postgres.pp_structured_drain.PP_STRUCTURED_ORIGIN', origin):
+            result = drain_bounded(repository, transport, execute=True, limits=RECURRING_LIMITS)
+        self.assertEqual((result['cycles'], result['acknowledged'], result['cloud_operations']), (1, 50, 2))
+        with local() as db:
+            rows = db.execute("""SELECT o.id,o.acknowledged_at,
+                r.content_hash=o.content_hash AS exact_receipt,p.envelope IS NOT NULL AS exact_payload
+                FROM ops.outbox o LEFT JOIN history_v2.structured_receipts r
+                  ON (r.origin_id,r.generation_id,r.outbox_id)=(o.origin_id,o.generation_id,o.id)
+                LEFT JOIN history_v2.structured_revision_payloads p
+                  ON (p.origin_id,p.generation_id,p.outbox_id)=(o.origin_id,o.generation_id,o.id)
+                WHERE o.generation_id=%s ORDER BY o.id""", (generation,)).fetchall()
+        self.assertEqual(len(rows), 51)
+        self.assertTrue(all(row['acknowledged_at'] and row['exact_receipt'] and row['exact_payload']
+                            for row in rows[:50]))
+        self.assertIsNone(rows[50]['acknowledged_at'])
+        self.assertIsNone(rows[50]['exact_receipt'])
+        self.assertFalse(rows[50]['exact_payload'])
+
     def test_generated_a_pending_blocks_b_until_acknowledged(self):
         import psycopg
         from psycopg.rows import dict_row

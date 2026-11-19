@@ -247,7 +247,7 @@ class BoundedDrainTests(unittest.TestCase):
     def test_unreviewed_limits_rejected(self):
         for kwargs in ({'max_cycles': 13}, {'max_rows': 301},
                        {'max_cloud_operations': 25}, {'max_seconds': 181},
-                       {'max_cycle_rows': 26}, {'handoff_seconds': 1},
+                       {'max_cycle_rows': 51}, {'handoff_seconds': 1},
                        {'max_cycles': True}, {'max_seconds': float('nan')}):
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 DrainLimits(**kwargs)

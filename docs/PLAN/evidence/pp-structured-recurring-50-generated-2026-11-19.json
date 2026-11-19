@@ -1,0 +1,70 @@
+{
+  "qualification": "isolated native PostgreSQL 17, generated records",
+  "network_model": "100 ms per sequential SQL call or pipeline flush; 200 ms per remote connection",
+  "per_case_rows": 100,
+  "retained_revisions": true,
+  "actor": "restricted PP origin in code, disposable local database with generated records and test database administrator role",
+  "measured_interval": "fresh local outbox selection through authenticated cloud readback and local ACK, including 100 ms unlocked handoff per page",
+  "cases": [
+    {
+      "batch": 25,
+      "shape": "mixed",
+      "elapsed": 9.511906458996236,
+      "acked": 100,
+      "rows_s": 10.51313955105407,
+      "slowest_page": 2.290359999984503,
+      "max_put": 1.5013465420051944,
+      "max_authenticated_read": 0.7419725409999955
+    },
+    {
+      "batch": 50,
+      "shape": "mixed",
+      "elapsed": 5.55585229099961,
+      "acked": 100,
+      "rows_s": 17.9990386285104,
+      "slowest_page": 2.7403498330095317,
+      "max_put": 1.949502958013909,
+      "max_authenticated_read": 0.749654459010344
+    },
+    {
+      "batch": 25,
+      "shape": "mutable",
+      "elapsed": 9.525611999997636,
+      "acked": 100,
+      "rows_s": 10.498013146034587,
+      "slowest_page": 2.282682332996046,
+      "max_put": 1.5071845829952508,
+      "max_authenticated_read": 0.7495823749923147
+    },
+    {
+      "batch": 50,
+      "shape": "mutable",
+      "elapsed": 5.419999791018199,
+      "acked": 100,
+      "rows_s": 18.450185213238548,
+      "slowest_page": 2.6125046249944717,
+      "max_put": 1.832132040988654,
+      "max_authenticated_read": 0.7434528339945246
+    },
+    {
+      "batch": 25,
+      "shape": "distinct",
+      "elapsed": 9.55059720799909,
+      "acked": 100,
+      "rows_s": 10.470549414045557,
+      "slowest_page": 2.313040125009138,
+      "max_put": 1.5060895410133526,
+      "max_authenticated_read": 0.7770091250131372
+    },
+    {
+      "batch": 50,
+      "shape": "distinct",
+      "elapsed": 6.267977415991481,
+      "acked": 100,
+      "rows_s": 15.954109812978928,
+      "slowest_page": 3.347445167019032,
+      "max_put": 2.4629106250067707,
+      "max_authenticated_read": 0.7996953749970999
+    }
+  ]
+}

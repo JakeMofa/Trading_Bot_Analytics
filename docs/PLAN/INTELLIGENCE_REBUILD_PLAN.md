@@ -251,6 +251,14 @@ reviewed probe network and mounts. A durable owner record fences CD and mode
 transitions until the operator proves the worker stopped. Release, host
 installation and sustained throughput qualification are pending.
 
+### November 19 UTC — qualified recurring page comparison on isolated PostgreSQL
+
+The real PP 25-row worker cleared its backlog at 12.15 acknowledgements/s versus 13.25 arrivals/s during the latest retained live interval. The source candidate selects 50 rows for the recurring worker. The one-shot operator probe remains capped at 25. Requests remain serial with a four-second deadline each, two authenticated operations per page, 256 KiB decoded per page and the existing 100 ms unlocked handoff. Oversize pages are bounded by the existing byte-aware query.
+
+On an isolated PostgreSQL 17 database, generated cases covered mixed candles/price revisions, one mutable price key and distinct candle keys. The fixture added 100 ms per SQL round trip or pipeline boundary and 200 ms per remote connection. All 600 rows were verified remotely and acknowledged locally. Each case includes local page reads, authenticated readback, exact revision payload retention, local ACK and the unlocked handoff. On 25-row pages the cases sustained 10.47–10.51 rows/s. On 50-row pages they sustained 15.95–18.45 rows/s. Slowest 50-row upload was 2.463 s, authenticated readback 0.800 s and full page 3.348 s. Production pooler performance, the behavior of future page shapes and sustained overlap with a collecting B remain unqualified. PP's deployed release and its real collector stay held at the recorded baseline.
+
+[Generated comparison and bounds](evidence/pp-structured-recurring-50-generated-2026-11-19.json)
+
 ### PP release inventory implementation
 
 The release controller now fingerprints the complete outbox, including payloads,

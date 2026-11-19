@@ -706,6 +706,106 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         with self.assertRaises(ArchiveIntegrityError):
             transport.put_structured(records, timeout_seconds=5)
 
+    def test_expired_retained_audit_is_read_only_and_never_authorizes_retirement(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        from psycopg.types.json import Jsonb
+        from postgres.archive_codec import ArchiveLimits, encoded
+        from postgres.lifecycle import ArchiveWorker
+        from postgres.pp_retirement_verify import RetirementTransport
+        from postgres import pp_retained_archive_audit as candidate
+        from postgres.connection import connect
+        from backend.tests.postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
+
+        def local(): return psycopg.connect(DSN,row_factory=dict_row,options='-c timezone=UTC')
+        repo=LifecycleRepository(local)
+        origin=self.origin
+        a=str(repo.bootstrap(origin,datetime.now(timezone.utc)-timedelta(hours=73))['generation_id'])
+        rawrow=generated_rows(a,1,origin)[0]
+        with local() as db:
+            cols=list(rawrow)
+            db.execute('INSERT INTO raw.events('+','.join(cols)+') VALUES ('+
+                ','.join('%s::jsonb' if c=='payload' else '%s' for c in cols)+')',
+                [encoded(rawrow[c]).decode() if c=='payload' else rawrow[c] for c in cols])
+            stamp=datetime.now(timezone.utc).replace(microsecond=0)
+            payload=dict(origin_id=origin,source='coinbase',symbol='BTC-USD',event_id='audit',
+                generation_id=a,source_time=stamp.isoformat(),source_epoch=str(int(stamp.timestamp())),
+                received_at=stamp.isoformat(),available_at=stamp.isoformat(),price='100.2300',
+                size=None,payload={'generated':True},content_hash='a'*64)
+            key=envelope(1,'core.current_prices',payload,a)['entity_id']
+            index=db.execute('INSERT INTO ops.outbox(origin_id,generation_id,entity_type,entity_id,\n                content_hash,payload,created_at,acknowledged_at) VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id',
+                (origin,a,'core.current_prices',key,'a'*64,Jsonb(payload),stamp,stamp)).fetchone()['id']
+            identity=db.execute('SELECT current_database() db,current_user role').fetchone()
+        record=envelope(index,'core.current_prices',payload,a)
+        remote=HistoryV2PostgresTransport(lambda **kwargs:local(),origin_id=origin,generation_id=a,
+            expected_database=identity['db'],expected_role=identity['role'],retain_revisions=True)
+        remote.put_structured([record],timeout_seconds=4)
+        b=str(repo.switch_if_due(origin,now=datetime.now(timezone.utc)-timedelta(hours=1))['generation_id'])
+        raw=ImmutableMemoryTransport()
+        ArchiveWorker(repo,raw,ArchiveLimits()).archive_cycle(a)
+        generation=repo.generation(a)
+        target=candidate.AuditTarget(a,b,generation['seal_hash'],1,1,1,1,
+            (generation['sealed_at']+timedelta(minutes=30)).isoformat())
+        reader_dsn=os.environ['TRADEBOT_TEST_READER_DSN']
+        reader=lambda:connect(reader_dsn,environment='preprod',readonly=True)
+        scoped=RetirementTransport(raw,remote,origin_id=origin,generation_id=a)
+        with patch.object(candidate,'ORIGIN',origin):
+            result=candidate.audit(reader,scoped,target)
+            self.assertEqual(result['status'],'retained_archive_audit_verified')
+            self.assertTrue(result['original_seal_expired_at_audit_start'])
+            self.assertFalse(result['original_trial_satisfied'])
+            self.assertFalse(result['retirement_authorized'])
+            self.assertEqual((result['raw_count'],result['structured_count'],result['requests']),(1,1,3))
+            self.assertEqual(result['local_role'],'tradebot_reader')
+            self.assertEqual(repo.generation(a)['seal_hash'],generation['seal_hash'])
+            with local() as db:
+                self.assertEqual(db.execute('SELECT count(*) n FROM raw.events WHERE generation_id=%s',(a,)).fetchone()['n'],1)
+                self.assertEqual(db.execute('SELECT count(*) n FROM ops.outbox WHERE generation_id=%s',(a,)).fetchone()['n'],1)
+            # Lifecycle/admin identity cannot be passed off as a reader, before
+            # any raw/cloud call. No permission grant is attempted.
+            calls=len(raw.calls)
+            with self.assertRaises(LifecycleHold): candidate.audit(local,scoped,target)
+            self.assertEqual(len(raw.calls),calls)
+            # Wrong inventory refuses before authenticated cloud requests.
+            from dataclasses import replace
+            with self.assertRaises(LifecycleHold):
+                candidate.audit(reader,scoped,replace(target,structured_rows=2))
+            self.assertEqual(len(raw.calls),calls)
+            # Missing existing local SELECT fails before any cloud/raw read.
+            # Use an already denied authority table: never mutate shared ACLs.
+            denied = 'archive.pp_retirement_permits'
+            with reader() as db:
+                allowed = db.execute(
+                    "SELECT has_table_privilege(current_user,%s,'SELECT') AS allowed",
+                    (denied,)).fetchone()['allowed']
+                self.assertFalse(allowed)
+            with patch.object(candidate,'LOCAL_TABLES',(*candidate.LOCAL_TABLES,denied)):
+                with self.assertRaises(LifecycleHold): candidate.audit(reader,scoped,target)
+            self.assertEqual(len(raw.calls),calls)
+            # The same existing reader has no hosted-schema grants in this
+            # fixture. Authenticated preflight rejects before any raw read.
+            wrong_remote=HistoryV2PostgresTransport(lambda **kwargs:reader(),origin_id=origin,
+                generation_id=a,expected_database='tradebot_pp',expected_role='tradebot_reader')
+            with self.assertRaises(LifecycleHold):
+                candidate.audit(reader,RetirementTransport(raw,wrong_remote,origin_id=origin,generation_id=a),target)
+            self.assertEqual(len(raw.calls),calls)
+            # Bind the original wall deadline independently from operation time.
+            with self.assertRaises(LifecycleHold):
+                candidate.audit(reader,scoped,replace(target,original_deadline_utc=(
+                    generation['sealed_at']+timedelta(minutes=31)).isoformat()))
+            self.assertEqual(len(raw.calls),calls)
+            with patch.object(raw,'read_authenticated',return_value=b'corrupt'):
+                with self.assertRaises(ArchiveIntegrityError) as caught:
+                    candidate.audit(reader,scoped,target)
+            self.assertEqual(caught.exception.retirement_accounting['failed_phase'],'raw_read_decode')
+            self.assertEqual(repo.generation(a)['state'],'verified')
+            # Reader snapshot itself denies data mutation at the SQL layer.
+            from postgres.archive_codec import CycleBudget
+            with CycleBudget(candidate.TwoMarketReadbackLimits()) as budget:
+                with self.assertRaises(psycopg.errors.ReadOnlySqlTransaction):
+                    with candidate.local_snapshot(reader,budget) as db:
+                        db.execute('UPDATE ops.outbox SET acknowledged_at=NULL WHERE generation_id=%s',(a,))
+
     def test_retirement_readback_reuses_session_with_fresh_snapshots_and_failure_discard(self):
         """Matched full readback worker, generated in-memory raw + real local PG.
 

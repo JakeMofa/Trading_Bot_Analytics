@@ -57,6 +57,16 @@ admission. Keep the 30-minute seal deadline and the exact retirement
 requirements. The Coinbase display gap has its own source repair.
 [PP22 live hold and preservation evidence](evidence/pp22-live-initial-a-hold-2026-11-19.json).
 
+The opt-in transaction batching candidate `69af6ef` passed exact CI. One
+classified read-only PP comparison used the same 25 acknowledged records and
+the same scoped reader with a four-second transport budget. The baseline
+reported `ArchiveUnavailable` after 4.369 s. The candidate returned all 25
+canonical records in 3.784 s. Earlier wrapper attempts returned no timed
+receipt. The classified comparison did not start collection or write records
+or acknowledgements. One successful read cannot establish import-and-ACK rate
+or qualification for another live window.
+[Exact comparison](evidence/pp22-structured-readback-comparison-2026-11-19.json).
+
 A fresh read-only PP21 inventory confirmed historic live A is verified and still
 attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,
 and the writer is OFF with no session or unused authority. All 42,133

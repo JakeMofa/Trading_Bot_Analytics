@@ -57,6 +57,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   fewer remote transaction round trips and sustainable sync before a new
   live attempt.
   [Live evidence](PLAN/evidence/pp22-live-initial-a-hold-2026-11-19.json)
+  The exact-CI batching candidate returned the same 25 receipts/revisions in
+  3.784 s in a classified read-only PP comparison; the released code's read
+  held at 4.369 s. Sustained put, readback and local ACK remain unqualified.
+  [Comparison](PLAN/evidence/pp22-structured-readback-comparison-2026-11-19.json)
 
 - [ ] **Paired SSE and Realtime latency.** Three local runs matched all 180
   generated tick IDs and prices. Local Realtime median was 66–90 ms and the

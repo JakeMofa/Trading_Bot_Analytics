@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres import pp_sealed_archive as archive
+from postgres.pp_retirement_report import bound_catalog
 from postgres.archive_codec import ArchiveUnavailable
 from postgres_lifecycle_fixtures import MemoryRepository, ImmutableMemoryTransport, generated_rows
 
@@ -39,6 +40,19 @@ class SealedFixture(MemoryRepository):
 
 
 class ArchiveTests(unittest.TestCase):
+    def test_archive_catalog_is_bound_to_readback_and_exact_object(self):
+        repo = SealedFixture(3)
+        archive.cycle(repo, ImmutableMemoryTransport())
+        g = dict(repo.record, verified_at='sample')
+        rows = [dict(m, verified_at='sample', verification={'method':'fresh_authenticated_readback'})
+                for m in repo.manifests(g['generation_id'])]
+        self.assertTrue(bound_catalog(g, rows))
+        for patch_values in ({'object_key':'other/file'}, {'verification':None},
+                             {'row_count':1}, {'manifest_id':'raw.events:999999999999'}):
+            with self.subTest(patch_values=patch_values):
+                self.assertFalse(bound_catalog(g, [dict(rows[0], **patch_values)]))
+        self.assertFalse(bound_catalog(dict(g, seal_hash='0'*64), rows))
+
     def test_sealed_backlog_and_observed_peak_projection(self):
         for count in (4845, 36180):
             with self.subTest(count=count):

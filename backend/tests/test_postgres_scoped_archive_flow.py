@@ -22,7 +22,7 @@ from postgres.config import Settings
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.store import Store
 from postgres.supabase_storage import SupabaseStorageTransport
-from postgres import pp_raw_archive_probe, pp_sealed_archive
+from postgres import pp_raw_archive_probe, pp_sealed_archive, pp_retirement_report
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport, generated_rows
 
 
@@ -216,6 +216,25 @@ class ScopedArchivePostgresFlowTests(unittest.TestCase):
         self.assertEqual({str(row['generation_id']): row['state'] for row in states},
                          {first_id: 'verified', second_id: 'collecting'})
         self.assertGreater(wal_bytes, Decimal(0))
+
+        # Take two separate committed snapshots while a reader holds the old slot.
+        # Inject another B acknowledgement between them and require A to survive.
+        def save_during_report(_seconds):
+            ack = store.ingest({**b_event, 'event_id': 'b-during-report-' + uuid.uuid4().hex})
+            self.assertFalse(ack['duplicate'])
+        with repository.reader_lease(first_id, 'generated-retirement-audit'):
+            audit = pp_retirement_report.report(lifecycle, first_id, origin=origin,
+                                                between_samples=save_during_report)
+        self.assertEqual(audit['retained_rows'], inserted)
+        self.assertTrue(audit['catalog_readback_bound'])
+        self.assertTrue(audit['opposite_slot_advanced'])
+        self.assertIn('active_reader_leases', audit['holds'])
+        self.assertFalse(audit['retirement_authorized'])
+        self.assertEqual(repository.generation(first_id)['state'], 'verified')
+        audit = pp_retirement_report.report(lifecycle, first_id, origin=origin,
+                                            between_samples=lambda _seconds: None)
+        self.assertIn('opposite_slot_advancement_unproven', audit['holds'])
+        self.assertNotIn('active_reader_leases', audit['holds'])
 
     def test_b_write_survives_a_archive_and_unqualified_retirement_is_blocked(self):
         lifecycle = lambda: connect(os.environ['TRADEBOT_TEST_LIFECYCLE_DSN'],

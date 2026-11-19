@@ -54,3 +54,28 @@ authorization gate remains in force; local raw retirement stays OFF.
 
 Official references: [Auth Admin create user](https://supabase.com/docs/reference/python/auth-admin-createuser),
 [Storage access control](https://supabase.com/docs/guides/storage/security/access-control).
+
+## PP archived-history reader
+
+For the dashboard/API reader, use the same private operator-side Admin Auth
+route with `--purpose history-reader`, a dedicated machine email and a new
+private output directory. The implementation stages `history_reader_email`,
+`history_reader_password` and `history_reader_uid`. A successful response
+must echo the dedicated reader UID and the admin-controlled metadata
+`tradebot_role=pp_storage_history_reader` and `tradebot_origin=pp-live-pp`.
+Keep the privileged Admin key on the operator host.
+
+Independently verify the distinct reader and writer UIDs. Bind those IDs in
+`supabase/review/pp_history_reader_policies.sql.in` and review the rendered
+exact-bucket, exact-origin policy. The PP release expects authenticated GET of
+known archived bytes, denial of wrong-origin access and list/upload/replace/
+move/delete operations, and exact source/image binding. Use separately scoped
+sacrificial HTTP fixtures for mutation-denial tests. The earlier writer's
+successful uploads do not establish the reader's authority.
+
+After the effective HTTP proof, install the reader's separate publishable
+project key and three dedicated Auth files as `0400` owned by UID 10001 in PP's
+runtime secret directory. The root-owned `0400` scope proof and its hash-bound
+authority marker bind the exact application image and source. The host
+controller validates those bindings before including the optional reader
+overlay. Requalify the binding for the release that will serve archived history.

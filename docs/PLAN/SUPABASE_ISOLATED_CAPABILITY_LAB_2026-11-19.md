@@ -107,8 +107,12 @@ workstation and ends when the isolated local Supabase Realtime client receives
 the same tick. This measures added local mirror delivery, with no hosted
 network comparison or browser rendering measurement. The observer closed
 after the bounded sample. Dashboard routing, collector, and hosted Supabase
-settings were unchanged. B and fresh A await their switch receipts. A bounded
-structured query under live load is a separate operator-coordinated check.
+settings were unchanged. The release owner stopped the trial in initial A
+after structured sync failed to keep up. A 50-row page committed to Supabase
+before its local ACK deadline and was reconciled by exact readback. The 25-row
+fallback acknowledged 250 rows in 66 seconds while the input rate was about
+14 rows per second. B and fresh A were unobserved, and the optional 500-row
+read under live load was held to avoid adding load during recovery.
 [PP22 deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44624765516)
 
 ## Product scope and decisions

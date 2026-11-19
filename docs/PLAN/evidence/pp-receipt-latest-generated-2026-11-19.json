@@ -1,0 +1,1369 @@
+{
+  "scope": "generated_local_pg17_no_cloud",
+  "server_version_num": "170002",
+  "prepare_threshold": null,
+  "work_mem": "4MB",
+  "index_variant": "md5_exact_residual_no_include",
+  "cases": [
+    {
+      "receipts": 42133,
+      "hot_key_revisions": 37340,
+      "stages": [
+        {
+          "indexed": false,
+          "keys": 73,
+          "returned_rows": 73,
+          "samples_ms": {
+            "rank": [
+              60.62529099290259,
+              60.743541980627924,
+              62.35191601444967
+            ],
+            "lateral": [
+              270.41487500537187,
+              253.28195799374953,
+              269.2310410202481
+            ]
+          },
+          "median_ms": {
+            "rank": 60.743541980627924,
+            "lateral": 269.2310410202481
+          },
+          "plans": {
+            "rank": {
+              "planning_ms": 0.087,
+              "execution_ms": 62.901,
+              "temp_read_blocks": 619,
+              "temp_written_blocks": 620,
+              "node_types": [
+                "Subquery Scan",
+                "WindowAgg",
+                "Sort",
+                "Hash Join",
+                "Seq Scan",
+                "Hash",
+                "Function Scan"
+              ],
+              "index_names": [],
+              "nodes": [
+                {
+                  "Node Type": "Subquery Scan",
+                  "Plan Rows": 1,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 619,
+                  "Temp Written Blocks": 620,
+                  "Shared Hit Blocks": 2050,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "WindowAgg",
+                  "Plan Rows": 13,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 619,
+                  "Temp Written Blocks": 620,
+                  "Shared Hit Blocks": 2050,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Sort",
+                  "Plan Rows": 13,
+                  "Actual Rows": 37412,
+                  "Actual Loops": 1,
+                  "Sort Method": "external merge",
+                  "Sort Space Used": 4952,
+                  "Sort Space Type": "Disk",
+                  "Temp Read Blocks": 619,
+                  "Temp Written Blocks": 620,
+                  "Shared Hit Blocks": 2050,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash Join",
+                  "Plan Rows": 13,
+                  "Actual Rows": 37412,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 2050,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Seq Scan",
+                  "Relation Name": "structured_receipts",
+                  "Plan Rows": 43667,
+                  "Actual Rows": 42133,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 2050,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            },
+            "lateral": {
+              "planning_ms": 0.064,
+              "execution_ms": 268.59,
+              "temp_read_blocks": 456,
+              "temp_written_blocks": 632,
+              "node_types": [
+                "Nested Loop",
+                "Function Scan",
+                "Limit",
+                "Sort",
+                "Seq Scan"
+              ],
+              "index_names": [],
+              "nodes": [
+                {
+                  "Node Type": "Nested Loop",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 456,
+                  "Temp Written Blocks": 632,
+                  "Shared Hit Blocks": 149650,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Limit",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 456,
+                  "Temp Written Blocks": 632,
+                  "Shared Hit Blocks": 149650,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Sort",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Sort Method": "quicksort",
+                  "Sort Space Used": 25,
+                  "Sort Space Type": "Memory",
+                  "Temp Read Blocks": 456,
+                  "Temp Written Blocks": 632,
+                  "Shared Hit Blocks": 149650,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Seq Scan",
+                  "Relation Name": "structured_receipts",
+                  "Plan Rows": 1,
+                  "Actual Rows": 512,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 149650,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "indexed": true,
+          "keys": 73,
+          "returned_rows": 73,
+          "samples_ms": {
+            "rank": [
+              58.926875004544854,
+              58.895082998787984,
+              59.385708009358495
+            ],
+            "lateral": [
+              0.7889159896876663,
+              0.44195898226462305,
+              0.5583750025834888
+            ]
+          },
+          "median_ms": {
+            "rank": 58.926875004544854,
+            "lateral": 0.5583750025834888
+          },
+          "plans": {
+            "rank": {
+              "planning_ms": 0.06,
+              "execution_ms": 60.924,
+              "temp_read_blocks": 619,
+              "temp_written_blocks": 620,
+              "node_types": [
+                "Subquery Scan",
+                "WindowAgg",
+                "Sort",
+                "Hash Join",
+                "Seq Scan",
+                "Hash",
+                "Function Scan"
+              ],
+              "index_names": [],
+              "nodes": [
+                {
+                  "Node Type": "Subquery Scan",
+                  "Plan Rows": 1,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 619,
+                  "Temp Written Blocks": 620,
+                  "Shared Hit Blocks": 2121,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "WindowAgg",
+                  "Plan Rows": 12,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 619,
+                  "Temp Written Blocks": 620,
+                  "Shared Hit Blocks": 2121,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Sort",
+                  "Plan Rows": 12,
+                  "Actual Rows": 37412,
+                  "Actual Loops": 1,
+                  "Sort Method": "external merge",
+                  "Sort Space Used": 4952,
+                  "Sort Space Type": "Disk",
+                  "Temp Read Blocks": 619,
+                  "Temp Written Blocks": 620,
+                  "Shared Hit Blocks": 2121,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash Join",
+                  "Plan Rows": 12,
+                  "Actual Rows": 37412,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 2121,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Seq Scan",
+                  "Relation Name": "structured_receipts",
+                  "Plan Rows": 42133,
+                  "Actual Rows": 42133,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 2121,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            },
+            "lateral": {
+              "planning_ms": 0.048,
+              "execution_ms": 0.209,
+              "temp_read_blocks": 0,
+              "temp_written_blocks": 0,
+              "node_types": [
+                "Nested Loop",
+                "Function Scan",
+                "Limit",
+                "Index Scan"
+              ],
+              "index_names": [
+                "structured_receipts_latest_identity_v1_idx"
+              ],
+              "nodes": [
+                {
+                  "Node Type": "Nested Loop",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 305,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Limit",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 305,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "structured_receipts",
+                  "Index Name": "structured_receipts_latest_identity_v1_idx",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 305,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "write_no_index": {
+        "rows_per_batch": 500,
+        "samples_ms": [
+          19.43233300698921,
+          23.52904199506156,
+          22.060415998566896
+        ],
+        "median_ms": 22.060415998566896,
+        "wal_insert_bytes": [
+          283080,
+          279152,
+          279280
+        ]
+      },
+      "index_build_seconds": 0.107409040996572,
+      "index_bytes": 5218304,
+      "write_indexed": {
+        "rows_per_batch": 500,
+        "samples_ms": [
+          22.68137500504963,
+          21.326459012925625,
+          21.256874984828755
+        ],
+        "median_ms": 21.326459012925625,
+        "wal_insert_bytes": [
+          411968,
+          361832,
+          357904
+        ]
+      },
+      "max_key_page": {
+        "indexed": true,
+        "keys": 500,
+        "returned_rows": 500,
+        "samples_ms": {
+          "rank": [
+            21.65725000668317,
+            23.523541021859273,
+            21.620458021061495
+          ],
+          "lateral": [
+            2.246542018838227,
+            2.1510829974431545,
+            2.2797090059611946
+          ]
+        },
+        "median_ms": {
+          "rank": 21.65725000668317,
+          "lateral": 2.246542018838227
+        },
+        "plans": {
+          "rank": {
+            "planning_ms": 0.056,
+            "execution_ms": 28.573,
+            "temp_read_blocks": 837,
+            "temp_written_blocks": 837,
+            "node_types": [
+              "Subquery Scan",
+              "WindowAgg",
+              "Gather Merge",
+              "Incremental Sort",
+              "Merge Join",
+              "Sort",
+              "Seq Scan",
+              "Sort",
+              "Function Scan"
+            ],
+            "index_names": [],
+            "nodes": [
+              {
+                "Node Type": "Subquery Scan",
+                "Plan Rows": 1,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 837,
+                "Temp Written Blocks": 837,
+                "Shared Hit Blocks": 2179,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "WindowAgg",
+                "Plan Rows": 30,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 837,
+                "Temp Written Blocks": 837,
+                "Shared Hit Blocks": 2179,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Gather Merge",
+                "Plan Rows": 30,
+                "Actual Rows": 37839,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 837,
+                "Temp Written Blocks": 837,
+                "Shared Hit Blocks": 2179,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Incremental Sort",
+                "Plan Rows": 18,
+                "Actual Rows": 18920,
+                "Actual Loops": 2,
+                "Temp Read Blocks": 837,
+                "Temp Written Blocks": 837,
+                "Shared Hit Blocks": 2179,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Merge Join",
+                "Plan Rows": 18,
+                "Actual Rows": 18920,
+                "Actual Loops": 2,
+                "Temp Read Blocks": 423,
+                "Temp Written Blocks": 423,
+                "Shared Hit Blocks": 2121,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Sort",
+                "Plan Rows": 24784,
+                "Actual Rows": 21066,
+                "Actual Loops": 2,
+                "Sort Method": "external merge",
+                "Sort Space Used": 3384,
+                "Sort Space Type": "Disk",
+                "Temp Read Blocks": 423,
+                "Temp Written Blocks": 423,
+                "Shared Hit Blocks": 2121,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Seq Scan",
+                "Relation Name": "structured_receipts",
+                "Plan Rows": 24784,
+                "Actual Rows": 21066,
+                "Actual Loops": 2,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2121,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Sort",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 2,
+                "Sort Method": "quicksort",
+                "Sort Space Used": 48,
+                "Sort Space Type": "Memory",
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Function Scan",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 2,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0
+              }
+            ]
+          },
+          "lateral": {
+            "planning_ms": 0.048,
+            "execution_ms": 1.227,
+            "temp_read_blocks": 0,
+            "temp_written_blocks": 0,
+            "node_types": [
+              "Nested Loop",
+              "Function Scan",
+              "Limit",
+              "Index Scan"
+            ],
+            "index_names": [
+              "structured_receipts_latest_identity_v1_idx"
+            ],
+            "nodes": [
+              {
+                "Node Type": "Nested Loop",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2013,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Function Scan",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Limit",
+                "Plan Rows": 1,
+                "Actual Rows": 1,
+                "Actual Loops": 500,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2013,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Index Scan",
+                "Relation Name": "structured_receipts",
+                "Index Name": "structured_receipts_latest_identity_v1_idx",
+                "Plan Rows": 1,
+                "Actual Rows": 1,
+                "Actual Loops": 500,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2013,
+                "Shared Read Blocks": 0
+              }
+            ]
+          }
+        }
+      },
+      "semantics": [
+        {
+          "case": "normal",
+          "rows": 73,
+          "keys": 73,
+          "cardinality_guard_holds": false
+        },
+        {
+          "case": "missing",
+          "rows": 73,
+          "keys": 74,
+          "cardinality_guard_holds": true
+        },
+        {
+          "case": "max_id_cross_generation_tie",
+          "rows": 74,
+          "keys": 73,
+          "cardinality_guard_holds": true
+        },
+        {
+          "case": "forced_hash_collision_exact_residual",
+          "equal": true
+        },
+        {
+          "case": "long_identity_no_new_btree_limit",
+          "entity_id_bytes": 8192,
+          "equal": true
+        }
+      ],
+      "full_rich_page": {
+        "scope": "generated_full_rich_page_excludes_raw_and_local_inventory",
+        "rows": 500,
+        "distinct_keys": 500,
+        "encoded_A_bytes": 852583,
+        "additional_newer_B_bytes": 1786,
+        "setup_model_seconds": 0.32,
+        "wait_model_seconds": 0.1,
+        "samples": {
+          "rank": [
+            {
+              "seconds": 1.6935104579897597,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.7275152080110274,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.7241947500151582,
+              "waits": 11,
+              "sql": 508
+            }
+          ],
+          "indexed": [
+            {
+              "seconds": 1.688854750012979,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.7002803749928717,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.6769025410176255,
+              "waits": 11,
+              "sql": 508
+            }
+          ]
+        },
+        "median_seconds": {
+          "rank": 1.7241947500151582,
+          "indexed": 1.688854750012979
+        }
+      }
+    },
+    {
+      "receipts": 250000,
+      "hot_key_revisions": 221550,
+      "stages": [
+        {
+          "indexed": false,
+          "keys": 73,
+          "returned_rows": 73,
+          "samples_ms": {
+            "rank": [
+              167.57349998806603,
+              169.21374999219552,
+              174.65958298998885
+            ],
+            "lateral": [
+              1825.4694170027506,
+              1757.8295830171555,
+              1865.5453340034
+            ]
+          },
+          "median_ms": {
+            "rank": 169.21374999219552,
+            "lateral": 1825.4694170027506
+          },
+          "plans": {
+            "rank": {
+              "planning_ms": 0.088,
+              "execution_ms": 171.064,
+              "temp_read_blocks": 3667,
+              "temp_written_blocks": 3674,
+              "node_types": [
+                "Subquery Scan",
+                "WindowAgg",
+                "Gather Merge",
+                "Sort",
+                "Hash Join",
+                "Seq Scan",
+                "Hash",
+                "Function Scan"
+              ],
+              "index_names": [],
+              "nodes": [
+                {
+                  "Node Type": "Subquery Scan",
+                  "Plan Rows": 1,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 11967,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "WindowAgg",
+                  "Plan Rows": 67,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 11967,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Gather Merge",
+                  "Plan Rows": 67,
+                  "Actual Rows": 221622,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 11967,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Sort",
+                  "Plan Rows": 28,
+                  "Actual Rows": 73874,
+                  "Actual Loops": 3,
+                  "Sort Method": "external merge",
+                  "Sort Space Used": 9944,
+                  "Sort Space Type": "Disk",
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 11967,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash Join",
+                  "Plan Rows": 28,
+                  "Actual Rows": 73874,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 11879,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Seq Scan",
+                  "Relation Name": "structured_receipts",
+                  "Plan Rows": 104797,
+                  "Actual Rows": 83333,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 11807,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            },
+            "lateral": {
+              "planning_ms": 0.064,
+              "execution_ms": 1755.461,
+              "temp_read_blocks": 490,
+              "temp_written_blocks": 3750,
+              "node_types": [
+                "Nested Loop",
+                "Function Scan",
+                "Limit",
+                "Sort",
+                "Seq Scan"
+              ],
+              "index_names": [],
+              "nodes": [
+                {
+                  "Node Type": "Nested Loop",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 490,
+                  "Temp Written Blocks": 3750,
+                  "Shared Hit Blocks": 861911,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Limit",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 490,
+                  "Temp Written Blocks": 3750,
+                  "Shared Hit Blocks": 861911,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Sort",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Sort Method": "quicksort",
+                  "Sort Space Used": 25,
+                  "Sort Space Type": "Memory",
+                  "Temp Read Blocks": 490,
+                  "Temp Written Blocks": 3750,
+                  "Shared Hit Blocks": 861911,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Seq Scan",
+                  "Relation Name": "structured_receipts",
+                  "Plan Rows": 1,
+                  "Actual Rows": 3036,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 861911,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "indexed": true,
+          "keys": 73,
+          "returned_rows": 73,
+          "samples_ms": {
+            "rank": [
+              167.95170799014159,
+              164.87004101509228,
+              172.2367500187829
+            ],
+            "lateral": [
+              1.0658329993020743,
+              0.5041249969508499,
+              0.7505000103265047
+            ]
+          },
+          "median_ms": {
+            "rank": 167.95170799014159,
+            "lateral": 0.7505000103265047
+          },
+          "plans": {
+            "rank": {
+              "planning_ms": 0.073,
+              "execution_ms": 172.928,
+              "temp_read_blocks": 3667,
+              "temp_written_blocks": 3674,
+              "node_types": [
+                "Subquery Scan",
+                "WindowAgg",
+                "Gather Merge",
+                "Sort",
+                "Hash Join",
+                "Seq Scan",
+                "Hash",
+                "Function Scan"
+              ],
+              "index_names": [],
+              "nodes": [
+                {
+                  "Node Type": "Subquery Scan",
+                  "Plan Rows": 1,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 12039,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "WindowAgg",
+                  "Plan Rows": 64,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 12039,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Gather Merge",
+                  "Plan Rows": 64,
+                  "Actual Rows": 221622,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 12039,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Sort",
+                  "Plan Rows": 27,
+                  "Actual Rows": 73874,
+                  "Actual Loops": 3,
+                  "Sort Method": "external merge",
+                  "Sort Space Used": 9944,
+                  "Sort Space Type": "Disk",
+                  "Temp Read Blocks": 3667,
+                  "Temp Written Blocks": 3674,
+                  "Shared Hit Blocks": 12039,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash Join",
+                  "Plan Rows": 27,
+                  "Actual Rows": 73874,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 11951,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Seq Scan",
+                  "Relation Name": "structured_receipts",
+                  "Plan Rows": 104167,
+                  "Actual Rows": 83333,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 11879,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Hash",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 3,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            },
+            "lateral": {
+              "planning_ms": 0.071,
+              "execution_ms": 0.309,
+              "temp_read_blocks": 0,
+              "temp_written_blocks": 0,
+              "node_types": [
+                "Nested Loop",
+                "Function Scan",
+                "Limit",
+                "Index Scan"
+              ],
+              "index_names": [
+                "structured_receipts_latest_identity_v1_idx"
+              ],
+              "nodes": [
+                {
+                  "Node Type": "Nested Loop",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 378,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Function Scan",
+                  "Plan Rows": 73,
+                  "Actual Rows": 73,
+                  "Actual Loops": 1,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 0,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Limit",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 378,
+                  "Shared Read Blocks": 0
+                },
+                {
+                  "Node Type": "Index Scan",
+                  "Relation Name": "structured_receipts",
+                  "Index Name": "structured_receipts_latest_identity_v1_idx",
+                  "Plan Rows": 1,
+                  "Actual Rows": 1,
+                  "Actual Loops": 73,
+                  "Temp Read Blocks": 0,
+                  "Temp Written Blocks": 0,
+                  "Shared Hit Blocks": 378,
+                  "Shared Read Blocks": 0
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "write_no_index": {
+        "rows_per_batch": 500,
+        "samples_ms": [
+          20.13666700804606,
+          19.042083993554115,
+          18.906334007624537
+        ],
+        "median_ms": 19.042083993554115,
+        "wal_insert_bytes": [
+          283056,
+          279264,
+          279344
+        ]
+      },
+      "index_build_seconds": 0.5498106659797486,
+      "index_bytes": 30883840,
+      "write_indexed": {
+        "rows_per_batch": 500,
+        "samples_ms": [
+          23.318708001170307,
+          21.39279100811109,
+          21.41274997848086
+        ],
+        "median_ms": 21.41274997848086,
+        "wal_insert_bytes": [
+          411848,
+          362048,
+          357824
+        ]
+      },
+      "max_key_page": {
+        "indexed": true,
+        "keys": 500,
+        "returned_rows": 500,
+        "samples_ms": {
+          "rank": [
+            166.89525000401773,
+            165.71549998479895,
+            166.94250001455657
+          ],
+          "lateral": [
+            3.1917500018607825,
+            2.5894170103129,
+            2.8834999829996377
+          ]
+        },
+        "median_ms": {
+          "rank": 166.89525000401773,
+          "lateral": 2.8834999829996377
+        },
+        "plans": {
+          "rank": {
+            "planning_ms": 0.074,
+            "execution_ms": 178.554,
+            "temp_read_blocks": 3672,
+            "temp_written_blocks": 3679,
+            "node_types": [
+              "Subquery Scan",
+              "WindowAgg",
+              "Gather Merge",
+              "Sort",
+              "Hash Join",
+              "Seq Scan",
+              "Hash",
+              "Function Scan"
+            ],
+            "index_names": [],
+            "nodes": [
+              {
+                "Node Type": "Subquery Scan",
+                "Plan Rows": 1,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 3672,
+                "Temp Written Blocks": 3679,
+                "Shared Hit Blocks": 12039,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "WindowAgg",
+                "Plan Rows": 160,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 3672,
+                "Temp Written Blocks": 3679,
+                "Shared Hit Blocks": 12039,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Gather Merge",
+                "Plan Rows": 160,
+                "Actual Rows": 222049,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 3672,
+                "Temp Written Blocks": 3679,
+                "Shared Hit Blocks": 12039,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Sort",
+                "Plan Rows": 67,
+                "Actual Rows": 74016,
+                "Actual Loops": 3,
+                "Sort Method": "external merge",
+                "Sort Space Used": 9984,
+                "Sort Space Type": "Disk",
+                "Temp Read Blocks": 3672,
+                "Temp Written Blocks": 3679,
+                "Shared Hit Blocks": 12039,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Hash Join",
+                "Plan Rows": 67,
+                "Actual Rows": 74016,
+                "Actual Loops": 3,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 11951,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Seq Scan",
+                "Relation Name": "structured_receipts",
+                "Plan Rows": 104167,
+                "Actual Rows": 83333,
+                "Actual Loops": 3,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 11879,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Hash",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 3,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Function Scan",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 3,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0
+              }
+            ]
+          },
+          "lateral": {
+            "planning_ms": 0.071,
+            "execution_ms": 1.742,
+            "temp_read_blocks": 0,
+            "temp_written_blocks": 0,
+            "node_types": [
+              "Nested Loop",
+              "Function Scan",
+              "Limit",
+              "Index Scan"
+            ],
+            "index_names": [
+              "structured_receipts_latest_identity_v1_idx"
+            ],
+            "nodes": [
+              {
+                "Node Type": "Nested Loop",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2513,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Function Scan",
+                "Plan Rows": 500,
+                "Actual Rows": 500,
+                "Actual Loops": 1,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 0,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Limit",
+                "Plan Rows": 1,
+                "Actual Rows": 1,
+                "Actual Loops": 500,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2513,
+                "Shared Read Blocks": 0
+              },
+              {
+                "Node Type": "Index Scan",
+                "Relation Name": "structured_receipts",
+                "Index Name": "structured_receipts_latest_identity_v1_idx",
+                "Plan Rows": 1,
+                "Actual Rows": 1,
+                "Actual Loops": 500,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Shared Hit Blocks": 2513,
+                "Shared Read Blocks": 0
+              }
+            ]
+          }
+        }
+      },
+      "semantics": [
+        {
+          "case": "normal",
+          "rows": 73,
+          "keys": 73,
+          "cardinality_guard_holds": false
+        },
+        {
+          "case": "missing",
+          "rows": 73,
+          "keys": 74,
+          "cardinality_guard_holds": true
+        },
+        {
+          "case": "max_id_cross_generation_tie",
+          "rows": 74,
+          "keys": 73,
+          "cardinality_guard_holds": true
+        },
+        {
+          "case": "forced_hash_collision_exact_residual",
+          "equal": true
+        },
+        {
+          "case": "long_identity_no_new_btree_limit",
+          "entity_id_bytes": 8192,
+          "equal": true
+        }
+      ],
+      "full_rich_page": {
+        "scope": "generated_full_rich_page_excludes_raw_and_local_inventory",
+        "rows": 500,
+        "distinct_keys": 500,
+        "encoded_A_bytes": 852583,
+        "additional_newer_B_bytes": 1786,
+        "setup_model_seconds": 0.32,
+        "wait_model_seconds": 0.1,
+        "samples": {
+          "rank": [
+            {
+              "seconds": 1.8655124169890769,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.8987653749936726,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.8737407909939066,
+              "waits": 11,
+              "sql": 508
+            }
+          ],
+          "indexed": [
+            {
+              "seconds": 1.7157692500040866,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.6925942499947269,
+              "waits": 11,
+              "sql": 508
+            },
+            {
+              "seconds": 1.705614542006515,
+              "waits": 11,
+              "sql": 508
+            }
+          ]
+        },
+        "median_seconds": {
+          "rank": 1.8737407909939066,
+          "indexed": 1.705614542006515
+        }
+      }
+    }
+  ],
+  "source_base": "5efc4bb774b41e65c174aa53882629908ad96ad3",
+  "captured_at_utc": "2026-11-19T10:45:36.513804+00:00",
+  "source_sha256": {
+    "backend/postgres/history_v2_latest_receipts.py": "fce6e4371de78d816d01ee3ef55996dd163745e7c05b573dbdb60e0d13f179a1",
+    "backend/postgres/history_v2_transport.py": "552e3db903ac8a1b8f4b397aafba251f6e0ec292a8872e0896a7a375e32a82c8",
+    "supabase/migrations/20261119103056_pp_receipt_latest_identity_index.sql": "d2c6d7bbbd6a511a3614b195704add678e89c74c5c1bb2b0e9948d34db934d67",
+    "deploy/preprod/bench_receipt_latest.py": "82beeba1f747e05914524d90ebc549b00257fac3439eb3d774774ef2cb7d320d"
+  }
+}

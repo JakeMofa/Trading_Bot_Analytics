@@ -29,13 +29,17 @@ class HistoryV2PostgresTransport:
 
     def __init__(self, connection_factory, *, origin_id: str,
                  generation_id: str, expected_database: str,
-                 expected_role: str, retain_revisions: bool = False):
+                 expected_role: str, retain_revisions: bool = False,
+                 indexed_latest: bool = False):
         if (not callable(connection_factory) or origin_id != PP_STRUCTURED_ORIGIN or
                 not generation_id or
                 not expected_database or not expected_role):
             raise ValueError('private structured importer binding required')
         if type(retain_revisions) is not bool:
             raise ValueError('boolean revision-retention selection required')
+        if type(indexed_latest) is not bool:
+            raise ArchiveIntegrityError('boolean PP latest receipt opt-in required')
+        self.indexed_latest = indexed_latest
         self.retain_revisions = retain_revisions
         self.connection_factory = connection_factory
         self.origin_id, self.generation_id = origin_id, generation_id
@@ -48,7 +52,7 @@ class HistoryV2PostgresTransport:
             raise ArchiveLimit('private structured batch exceeds byte bound')
 
     @staticmethod
-    def _limit(connection, timeout_seconds):
+    def _limit(connection, timeout_seconds, *, catalog_search_path=False):
         if (isinstance(timeout_seconds, bool) or
                 not isinstance(timeout_seconds, (int, float)) or
                 not 0 < timeout_seconds <= 60):
@@ -56,8 +60,9 @@ class HistoryV2PostgresTransport:
         milliseconds = max(1, int(timeout_seconds * 1000))
         # PostgreSQL 17 bounds the entire import/readback transaction, not
         # merely each statement. Unsupported servers fail closed here.
+        setting = ",set_config('search_path','pg_catalog',true)" if catalog_search_path else ''
         connection.execute("""SELECT set_config('transaction_timeout',%s,true),
-            set_config('statement_timeout',%s,true), set_config('lock_timeout',%s,true)""",
+            set_config('statement_timeout',%s,true), set_config('lock_timeout',%s,true)"""+setting,
             (f'{milliseconds}ms', f'{milliseconds}ms', f'{min(milliseconds, 1000)}ms'))
 
     @staticmethod
@@ -257,15 +262,24 @@ class HistoryV2PostgresTransport:
         except Exception:
             raise ArchiveUnavailable('historical revision read unavailable') from None
 
-    def _checkpoint_covers(self, connection, generation_id, last_id):
+    def _checkpoint_covers(self, connection, generation_id, last_id, *, verify_latest_index=False):
+        columns='cursor,content_hash'
+        parameters=(self.origin_id,generation_id)
+        if verify_latest_index:
+            from .history_v2_latest_receipts import ABI_SQL,INDEX_NAME
+            columns+=',('+ABI_SQL+') AS latest_index_valid'
+            parameters=(INDEX_NAME,*parameters)
         row = connection.execute(
-            """SELECT cursor,content_hash FROM history_v2.generation_checkpoints
+            'SELECT '+columns+""" FROM history_v2.generation_checkpoints
                WHERE origin_id=%s AND generation_id=%s AND dataset='structured:outbox'""",
-            (self.origin_id, generation_id)).fetchone()
+            parameters).fetchone()
         if (not row or type(row['cursor'].get('outbox_id')) is not int or
                 row['cursor']['outbox_id'] < last_id or
                 row['content_hash'] != sha256(encoded(row['cursor']))):
             raise ArchiveIntegrityError('private structured checkpoint mismatch')
+        if verify_latest_index:
+            from .history_v2_latest_receipts import checked_index
+            return checked_index(connection,row['latest_index_valid'])
 
     def read_retirement_revisions(self, records, *, max_bytes, timeout_seconds):
         """Read the exact historical inputs and authenticate their current projections."""
@@ -282,9 +296,10 @@ class HistoryV2PostgresTransport:
                     # projection reads on this connection use the same snapshot.
                     with phase('history_identity_checkpoint'):
                         connection.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
-                        self._limit(connection, remaining)
+                        self._limit(connection, remaining,catalog_search_path=self.indexed_latest)
                         self._identity(connection)
-                        self._checkpoint_covers(connection, self.generation_id, records[-1]['id'])
+                        checked=self._checkpoint_covers(connection, self.generation_id, records[-1]['id'],
+                            verify_latest_index=self.indexed_latest)
                     with phase('history_exact_revisions'):
                         archived = self._read_revisions(connection, [r['id'] for r in records], max_bytes)
                         if encoded(archived) != encoded(records):
@@ -292,16 +307,9 @@ class HistoryV2PostgresTransport:
                     size = len(encoded(archived))
                     final = {(r['entity_type'], r['entity_id']): r for r in archived}
                     with phase('history_latest_receipts'):
-                        receipts = connection.execute("""
-                            SELECT entity_type,entity_id,generation_id,outbox_id FROM (
-                                SELECT r.entity_type,r.entity_id,r.generation_id,r.outbox_id,
-                                       rank() OVER (PARTITION BY r.entity_type,r.entity_id
-                                                    ORDER BY r.outbox_id DESC) AS position
-                                FROM history_v2.structured_receipts r
-                                JOIN unnest(%s::text[],%s::text[]) k(entity_type,entity_id)
-                                USING (entity_type,entity_id) WHERE r.origin_id=%s
-                            ) revisions WHERE position=1
-                            """, ([k[0] for k in final], [k[1] for k in final], self.origin_id)).fetchall()
+                        from .history_v2_latest_receipts import latest_receipts
+                        receipts = latest_receipts(connection,self.origin_id,list(final),
+                            indexed=self.indexed_latest,_checked=checked)
                     if len(receipts) != len(final):
                         raise ArchiveIntegrityError('latest projection receipt missing')
                     changed = {}

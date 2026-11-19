@@ -1,0 +1,17 @@
+{
+  "scope": "pp_controller_identity_only",
+  "environment": "preprod",
+  "instance": "tradebot-preprod-01",
+  "qualification_commit": "0219819cdd49ee34199566443e7a391dff8bb078",
+  "qualification_run": 44557716430,
+  "qualification_result": "PASS",
+  "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+  "artifact_name": "pp-controller-identity-44557716430",
+  "artifact_gate": "IDENTITY_PASS",
+  "artifact_database_changed": false,
+  "application_deployed_by_identity_check": false,
+  "live_collection_enabled_by_identity_check": false,
+  "cloud_write_enabled_by_identity_check": false,
+  "retirement_enabled_by_identity_check": false,
+  "production_changed_by_identity_check": false
+}

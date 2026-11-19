@@ -1,0 +1,163 @@
+{
+  "synthetic_generation": "7eb0e05c-8893-43e7-8869-b40d1078e3c6",
+  "uploads": [
+    {
+      "bytes": 64139,
+      "seconds": 1.7058039939729497
+    },
+    {
+      "bytes": 63443,
+      "seconds": 0.9901323809754103
+    },
+    {
+      "bytes": 66029,
+      "seconds": 0.2956535540288314
+    },
+    {
+      "bytes": 62054,
+      "seconds": 0.45639613701496273
+    },
+    {
+      "bytes": 63457,
+      "seconds": 0.20810243801679462
+    },
+    {
+      "bytes": 63041,
+      "seconds": 0.27734599297400564
+    },
+    {
+      "bytes": 64757,
+      "seconds": 0.18955038697458804
+    },
+    {
+      "bytes": 65171,
+      "seconds": 0.3678973049391061
+    },
+    {
+      "bytes": 61357,
+      "seconds": 0.20129497605375946
+    },
+    {
+      "bytes": 47101,
+      "seconds": 0.412732444005087
+    }
+  ],
+  "first_reads": [
+    {
+      "bytes": 64139,
+      "seconds": 0.40131311397999525
+    },
+    {
+      "bytes": 63443,
+      "seconds": 0.4702017999952659
+    },
+    {
+      "bytes": 66029,
+      "seconds": 0.5887444469844922
+    },
+    {
+      "bytes": 62054,
+      "seconds": 1.882699575042352
+    },
+    {
+      "bytes": 63457,
+      "seconds": 1.2861491639632732
+    },
+    {
+      "bytes": 63041,
+      "seconds": 0.8295158030232415
+    },
+    {
+      "bytes": 64757,
+      "seconds": 0.8801784969400615
+    },
+    {
+      "bytes": 65171,
+      "seconds": 0.9077689169207588
+    },
+    {
+      "bytes": 61357,
+      "seconds": 0.8535102129681036
+    },
+    {
+      "bytes": 47101,
+      "seconds": 0.5123046439839527
+    }
+  ],
+  "final_reads": [
+    {
+      "bytes": 64139,
+      "seconds": 0.027762571000494063
+    },
+    {
+      "bytes": 63443,
+      "seconds": 0.0328192668966949
+    },
+    {
+      "bytes": 66029,
+      "seconds": 0.030984264914877713
+    },
+    {
+      "bytes": 62054,
+      "seconds": 0.025964363012462854
+    },
+    {
+      "bytes": 63457,
+      "seconds": 0.03416210797149688
+    },
+    {
+      "bytes": 63041,
+      "seconds": 0.022045467980206013
+    },
+    {
+      "bytes": 64757,
+      "seconds": 0.03413035208359361
+    },
+    {
+      "bytes": 65171,
+      "seconds": 0.16032445000018924
+    },
+    {
+      "bytes": 61357,
+      "seconds": 0.02568531595170498
+    },
+    {
+      "bytes": 47101,
+      "seconds": 0.05588082305621356
+    }
+  ],
+  "starts_collector": false,
+  "writes_retirement_records": false,
+  "status": "verified",
+  "requests": 31,
+  "total_seconds": 14.564375977031887,
+  "release": "v0.2.0-pp.16",
+  "source": "8b31c369d8576bc829805e8764d0b2a3a23dbb44",
+  "script_commit": "91553857986d344067bf656a6388f3bc4259776f",
+  "ci_run": 44465118048,
+  "scope_report": "pp-raw-transfer-scope-2026-11-19.json",
+  "identity_role": "restricted PP Storage machine user",
+  "timing_clock": "time.monotonic (seconds)",
+  "attempt_recorded_utc": "2026-11-19T05:37:30.877458+00:00",
+  "watchdog_sha256": "427f7c167c1499abf08fb4c65dc64ad0d96840fa546b1432fa34f9b3a83e26dd",
+  "watchdog_smoke": {
+    "probe": "isolated_watchdog",
+    "exit": "137",
+    "seconds": 1.2335669490275905,
+    "network": "none",
+    "secrets": 0
+  },
+  "exact_remote_object_count": 10,
+  "exact_remote_keys_and_sizes_reconciled": true,
+  "observed_removed_container": true,
+  "preexisting_synthetic_keys": 0,
+  "upload_bytes": 620549,
+  "authenticated_read_bytes": 1241098,
+  "raw_generation_sealed": false,
+  "collector_enabled": false,
+  "phase_seconds": {
+    "uploads": 5.104909608955495,
+    "first_reads": 8.612386173801497,
+    "final_reads": 0.4497589828679338
+  }
+}

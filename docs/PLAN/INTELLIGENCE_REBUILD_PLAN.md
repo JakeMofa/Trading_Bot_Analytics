@@ -1,3 +1,11 @@
+## November 19 UTC — measured PP → Supabase raw transfer passed
+
+Ten synthetic objects matched the ten compressed chunk sizes measured from the 4,845 retained A events. Uploading 620,549 bytes took **5.105 seconds**, immediate authenticated byte-for-byte readback took **8.612 seconds**, and a second authenticated readback took **0.450 seconds**. Total elapsed inside the probe was **14.564 seconds** across 31 requests, including machine authentication. A separate private catalog query matched all ten keys and lengths. The test objects remain in their isolated synthetic generation.
+
+PP stayed on pp.16 with its collector OFF and no pending structured records. The benchmark used the existing PP Storage identity and ordinary egress. The one-shot container was removed. These measurements qualify transport for this fixture’s size. The actual raw generation has not been sealed or retired. A real two-market run still needs simultaneous dashboard/prediction freshness, new structured arrivals and acknowledgements using the 50-row service, raw archival and A’s complete retirement/replay evidence. Historical revisions and retirement authorization have separate gates.
+
+[Exact scope](evidence/pp-raw-transfer-scope-2026-11-19.json) · [Per-object timings and reconciliation](evidence/pp16-raw-transfer-result-2026-11-19.json)
+
 ## November 19 UTC — 50-row recurring synchronization deployed on PP
 
 Release `v0.2.0-pp.16` runs on PP at `8b31c369d8576bc829805e8764d0b2a3a23dbb44`. [Exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44462245847), [publication](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464395647), [manual deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464522646) and [ready-off transition](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464821715) passed. The deployed API/SSE and schema smoke used generated data. A separate read-only PP query confirmed no collector session, zero pending PP structured records and no collision with the proposed synthetic Storage generation. The reserved cloud prefix contained zero objects. The temporary private runner deregistered.

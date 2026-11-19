@@ -15,7 +15,7 @@ retained data, then repeat the same query after each partition drop.
 | 1. Restore PP release and preserve both generations | PP20 stopped at a generated smoke-queue cap. [#177](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/177) merged the generated-storage fix. [#181](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/181) merged the fenced PP21 forward recovery source. PP21 host recovery, [normal deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44562705669) and the independent retention snapshot passed. A and B still hold 28,411 and 9,784 raw rows. All 42,133 live acknowledgements matched, pending records and outcome counts remained zero, and collection stayed off. | The release operator proves the intended image and schema, preserves A/B identities and counts, and passes smoke and normal deployment acceptance. |
 | 2. Finish exact readback and measure the bottlenecks | The hosted receipt index and tie-preserving lookup lowered the same 500-row read from 4.712 s to 2.729 s. The full audit still held at 239.608 s after 57 raw objects and 62 of 63 structured pages. [#178](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/178) records it. | Same first page remains under four seconds. Full protected, receipt, revision, projection and raw-object verification passes all scoped pages within 240 seconds with measured margin and the existing request/byte budgets. Record restricted-reader proof. A read-only replay cannot authorize DROP or qualify collection continuity. |
 | 3. Prove a full A → B → fresh A trial | PP18 observed the first switch and archived A's 28,411 raw rows, but B stopped after 20m32s and A remained attached. Obtain fresh release-owned authority for another trial. | Collect two full 15-minute markets in each outgoing generation. While the successor keeps writing, verify and retire the exact outgoing partition within the existing 30-minute seal window. Repeat for B with a fresh A generation. Bind each run to a fresh seal and its permit. Verify continued successor writes, forecast freshness or explicit abstention, and retrieval of both retired UUIDs. Keep shared core history and deduplication intact. |
-| 4. Make history usable by deterministic calculations across rotation | The offline `88c59ac` prototype composes one reviewed market/generation before and after a generated partition drop. It returns saved snapshots and predictions and separate labels in the generated case. The release team found a protected outcome wrapper mismatch with actual `Store.ingest` and assigned a native ingestion-to-retirement test with the fix. PP's raw API is generation-specific, its saved prediction endpoint reads local PostgreSQL, and its history-context endpoint still marks linked prior cases unsupported. | A bounded market/time query merges retained and retired generations by origin and generation UUID. Use the same availability cutoff, global ordering and event deduplication on both paths. Prove identical input IDs, exact values, links and recalculated deterministic features across an A/B boundary before and after retirement. Required missing generations or manifests fail explicitly. Report capture gaps. Qualify real PP and production scopes separately. |
+| 4. Make history usable by deterministic calculations across rotation | The offline `88c59ac` prototype composes one reviewed market/generation before and after a generated partition drop. It returns saved snapshots and predictions and separate labels in the generated case. [#185](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/185) corrects the protected outcome wrapper to actual `Store.ingest`; its native ingestion-to-retirement regression and eight research tests pass. This source prototype does not recompute deterministic features. PP's raw API is generation-specific, its saved prediction endpoint reads local PostgreSQL, and its history-context endpoint still marks linked prior cases unsupported. | A bounded market/time query merges retained and retired generations by origin and generation UUID. Use the same availability cutoff, global ordering and event deduplication on both paths. Prove identical input IDs, exact values, links and recalculated deterministic features across an A/B boundary before and after retirement. Required missing generations or manifests fail explicitly. Report capture gaps. Qualify real PP and production scopes separately. |
 | 5. Rebuild dashboard research and evaluate deterministic signals first | Use the actual legacy contracts below as a behavior reference. Build chronological comparisons from verified 15-minute windows and versioned feature/prediction evidence. | Test the actual PP browser at rollover before and after retirement. It distinguishes saved forecast, current estimate, matched historical cases, official outcomes and explicit gaps. Training/evaluation splits by market and time. Optional AI explanation stays a separate contract with paid calls disabled. |
 
 ### Legacy dashboard contracts to carry forward
@@ -139,6 +139,20 @@ follows its explicit unlock. No schema, release, host, cloud, collection or AI
 activation changed. Official outcome
 reconciliation, deterministic replay, evaluation/context/case retrieval and
 ensemble/AI migration remain separate application parity work.
+
+## November 19 UTC — source-only point-in-time outcome proof correction
+
+The bounded research prototype's initial flat outcome fixture did not match
+`Store.ingest`/`_protect` wrappers. An actual ingestion regression reproduces
+the failure on `88c59ac`. The source-only correction binds wrapped data and
+provenance to the protected evidence and checks event identity/result/exact
+final value. Eight tests pass without skips on disposable local PostgreSQL
+17.2, including independent outcome cutoffs and identical application labels
+before sealing and after generated raw partition DROP/authenticated archive
+readback. [Scope and limitations](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md).
+No API wiring, PP/production release, cloud/host operations, real collector,
+paid AI, retirement authority or merge is included. Real outcome reconciliation,
+whole-market coverage and application historical parity remain open.
 
 ## PP19 retained A audit, November 19 UTC
 
@@ -4043,3 +4057,17 @@ This closes generated recovery/deployment, not a new real collector session,
 trial/retirement pass. Schema 4 compatibility and preserving all genuine ACKs
 remain mandatory. Source freeze released only after these proofs.
 [Completed procedure and exact sanitized receipts](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md).
+
+### November 19 — source-only point-in-time application parity prototype
+
+Added an unregistered offline composition for one reviewed 15-minute market
+window, preserving captured Polymarket inputs and exact saved feature/forecast
+links across collecting, sealed and retired raw generations. Snapshot publication
+availability requires independently reviewed protected calculation-input evidence;
+`as_of` alone is insufficient. Delayed/future inputs are excluded or rejected and
+official outcomes remain separate labels under their own cutoff. Seven generated
+tests pass, including actual native PG17 partition retirement plus independent
+local history_v2 receipt/envelope readback; 29 relevant existing tests pass.
+No cloud/host/runtime/API/retirement activation occurred. Single-generation and
+reviewed-manifest bounds do not establish full historical coverage or runtime
+application parity. [Evidence, interfaces and remaining gates](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md).

@@ -105,7 +105,7 @@ does not activate the option on PP. The running collector reads RAM/local
 PostgreSQL independently of explicit historical requests.
 
 
-The private PP deployment identity verified installed controller `b6fd975e0c80` from source `7c9c365af9`. This controller measures the PostgreSQL filesystem reserve for the market-timed window. The older controller was qualified for the pp.13 candidate, which was published without deployment. PP's previous collector remained OFF with 5,268 pending structured records in the last read-only inventory. Application deployment, structured readback, sealed-generation verification and retirement are separately recorded. [PP identity run 44436600122](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44436600122)
+The private PP deployment identity verified installed controller `86ba11c5a23b` from source `886e6ba740` for the revised structured transfer. The pp.14 application and exact-page timeout remain recorded separately. Source qualification alone leaves collection and retirement OFF. [PP controller identity run 44441240976](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44441240976)
 
 ### Recoverable structured revisions in private Supabase history
 

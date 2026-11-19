@@ -1,3 +1,11 @@
+## November 19 UTC — PP controller bound for revision capture and sealed-window verification
+
+Combined source `3adbc3a` passed exact CI 44472117753. The old PP session closed with collection OFF. An installation check and dedicated deployment identity confirmed the installed controller SHA-256 `a72679fde847b69ab7e84671e34b3bdc0464791d3ddf16502adc37a12511f7fe`. The PP deployment profile now references that proof. The combined application release, repair of 5,268 historical structured envelopes, live switch and verified retirement remain distinct qualification steps. [Controller identity evidence](evidence/pp-controller-identity-2026-11-19-a72679fd.json)
+
+## November 19 UTC — PP archive reader qualified with real private Storage
+
+The dedicated history reader used the pp.16 image and four scoped credential files, then authenticated and verified a 64,139-byte PP object against its SHA-256. The private bucket hid an existing foreign-origin key and returned an empty listing. It rejected upload and replacement. A move and a batch delete left the 74-byte synthetic witness at its original key with its original checksum and version. The writer and reader have separate identities. PP retained the witness and its earlier benchmark objects. The operator installed the four reader credentials and root-owned proof before binding the reader to a release. Application retrieval following actual PP partition retirement remains a separate gate. [HTTP and catalog evidence](evidence/pp-storage-reader-qualification-2026-11-19.json)
+
 ## November 19 UTC — actual PP connection reuse comparison, read path only
 
 A bounded PP-only test used the restricted history identity to read the same50

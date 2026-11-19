@@ -288,6 +288,14 @@ reviewed probe network and mounts. A durable owner record fences CD and mode
 transitions until the operator proves the worker stopped. Release, host
 installation and sustained throughput qualification are pending.
 
+### November 19 UTC — synthetic Storage transfer scope before live rotation
+
+The measured active PP generation packed to 10 chunks totaling 620,549 bytes. The prior PP Storage proof contains a single 126-byte object. The reviewed raw worker requires a sealed generation. Prepare an independent PP transport measurement with 10 clearly synthetic gzip objects matching all measured chunk sizes, using the deployed restricted PP writer and the existing PP network. The operator script’s default prints the exact scope offline.
+
+The single execution may perform up to **31 requests in 60 seconds**, with four-second request deadlines. This includes machine authentication, 10 create-only uploads, 10 immediate authenticated reads and 10 final authenticated reads. Expected body transfer is 620,549 bytes up and 1,241,098 bytes down. Existing keys, unexpected HTTP responses, oversized or different bytes, deadline expiry and additional calls stop the operation. Partial uploads stay retained for reconciliation. The operator must bind the exact tested script, PP host/image, four existing Storage credential files, empty synthetic namespace and confirmed collector-OFF state. No SQL credential is mounted and the probe cannot record local manifests or retire a partition. Its results qualify transport for this footprint only. The 30-minute seal-to-retirement measurement remains a separate live checkpoint.
+
+[Reviewed keys, sizes, source hash and execution scope](evidence/pp-raw-transfer-scope-2026-11-19.json)
+
 ### November 19 UTC — qualified recurring page comparison on isolated PostgreSQL
 
 The real PP 25-row worker cleared its backlog at 12.15 acknowledgements/s versus 13.25 arrivals/s during the latest retained live interval. The source candidate selects 50 rows for the recurring worker. The one-shot operator probe remains capped at 25. Requests remain serial with a four-second deadline each, two authenticated operations per page, 256 KiB decoded per page and the existing 100 ms unlocked handoff. Oversize pages are bounded by the existing byte-aware query.

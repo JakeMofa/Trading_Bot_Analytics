@@ -25,6 +25,14 @@ COINBASE_RETRYABLE = frozenset({
 })
 
 
+# Only a failed quote GET can be retried by the regular discovery cycle.
+# Storage, ownership, authentication and decoded data errors stay fatal.
+POLYMARKET_QUOTE_UNAVAILABLE = frozenset({
+    'polymarket_bbo.http_404', 'polymarket_bbo.http_429', 'polymarket_bbo.http_5xx',
+    'polymarket_bbo.timeout', 'polymarket_bbo.transport',
+})
+
+
 async def _pause_or_stop(stop: asyncio.Event, delay: float):
     try:
         await asyncio.wait_for(stop.wait(), timeout=delay)
@@ -118,9 +126,9 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     try:
         quote = await _step('polymarket_bbo', fetch(client, market))
     except LiveDiagnostic as error:
-        if error.code != 'polymarket_bbo.http_404':
+        if error.code not in POLYMARKET_QUOTE_UNAVAILABLE:
             raise
-        logging.getLogger(__name__).warning('pp_quote_unavailable reason=matching_routes_not_found')
+        logging.getLogger(__name__).warning('pp_quote_unavailable reason=%s', error.code)
         return None
     if quote is None:
         logging.getLogger(__name__).warning('pp_quote_unavailable reason=matching_book_empty')

@@ -199,8 +199,6 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
             ('discovery', SourceTransportFailure(timeout=True, message='secret-url'),
              'polymarket_discovery.timeout'),
             ('bbo', SourceHTTPFailure(403, 'secret-provider-body'), 'polymarket_bbo.http_4xx'),
-            ('bbo', SourceHTTPFailure(429, 'secret-provider-body'), 'polymarket_bbo.http_429'),
-            ('bbo', SourceTransportFailure(timeout=True, message='secret-url'), 'polymarket_bbo.timeout'),
             ('bbo', ValueError('secret-invalid-payload'), 'polymarket_bbo.invalid_or_unavailable'),
         )
         for stage, failure, code in failures:

@@ -46,7 +46,15 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
             if len(requests) <= 2:
                 return httpx.Response(404)
             data = {'marketSlug': 'new', 'state': 'MARKET_STATE_OPEN'}
-            if len(requests) > 3:
+            if len(requests) == 4:
+                raise httpx.ReadTimeout('private raw response', request=request)
+            if len(requests) == 5:
+                return httpx.Response(429)
+            if len(requests) == 6:
+                return httpx.Response(503)
+            if len(requests) == 7:
+                raise httpx.ConnectError('private transport details', request=request)
+            if len(requests) > 7:
                 data['bestAsk'] = {'value': '0.5300'}
             return httpx.Response(200, json={'marketData': data})
         async def cycle(s, client, st, **kw):
@@ -65,9 +73,9 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
             await stop.wait()
         async with httpx.AsyncClient(transport=httpx.MockTransport(reply)) as client:
             await run_bounded(store, client, stop, owner_check=lambda: True,
-                              disable_collector=store.disable, max_seconds=5,
+                              disable_collector=store.disable, max_seconds=12,
                               market_interval=1, market=cycle, coinbase=cb, candles=candle)
-        self.assertEqual([e['kind'] for e in saved], ['market','price','market','market','quote'])
+        self.assertEqual([e['kind'] for e in saved], ['market', 'price'] + ['market'] * 6 + ['quote'])
         self.assertEqual(saved[-1]['market_id'], 'new')
         self.assertEqual(saved[-1]['payload']['best_ask'], '0.5300')
         self.assertEqual(store.stops, 1)

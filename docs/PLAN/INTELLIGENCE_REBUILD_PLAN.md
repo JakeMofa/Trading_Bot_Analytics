@@ -4294,3 +4294,17 @@ checks pass. Trial ON and legacy cloud sidecars remain explicitly held until
 separate exact trial writer/reader credentials and cloud readiness proofs are
 integrated; no deployment or host/cloud action is claimed. See
 [scope and evidence](PP_TRIAL_HOST_PREPARATION_2026-11-19.md).
+
+### November 19 — exact trial reader attestation and isolated API overlay
+
+Added isolated source-bound v1 trial-reader attestation and an API-only overlay
+introducing four dedicated read-only Auth secrets. Authority binds final source,
+image, exact trial origin/anchor and distinct Auth UIDs to exact proof bytes.
+Proof separates actual hosted old-origin/list/upload/sign/public denials from
+native production-origin/replace/move/delete policy denials; no new unperformed
+host probe is required. Only the UID credential is read; all four credentials
+require fixed ownership/mode/link/size checks. Six generated tests and eight
+backend wiring tests pass. No host/cloud call, marker/secret staging or runtime
+activation occurred. Host normalized-profile/start integration and final
+operator attestation remain separate gates.
+[Exact schemas, evidence split and integration contract](PP_TRIAL_READER_ATTESTATION_2026-11-19.md).

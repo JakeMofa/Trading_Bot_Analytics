@@ -1,8 +1,9 @@
 # PP saved forecast hydration consistency
 
 Source-only candidate based on preprod
-`c1da8d688dd8e9b860c473c965feb9099435ef97`. Keep unmerged during the PP21
-change freeze. No schema, release, host, cloud or collection action is included.
+`c1da8d688dd8e9b860c473c965feb9099435ef97`. Source integration follows the
+explicit PP21 freeze unlock. No schema, release, host, cloud or collection action
+is included.
 
 ## Reproduced behavior
 

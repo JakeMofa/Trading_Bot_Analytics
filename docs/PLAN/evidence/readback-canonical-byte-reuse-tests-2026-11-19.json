@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "run": 41,
+  "skipped": 0,
+  "failures": 0,
+  "errors": 0,
+  "skip_reasons": [],
+  "scope": "generated local fixtures only; no cloud",
+  "postgres_version": "17.2 Homebrew",
+  "psycopg_version": "3.2.13",
+  "fixture_path": "/tmp/tradebot-cold-eja4ot5n",
+  "fixture_stopped": true
+}

@@ -1,3 +1,17 @@
+## November 19 UTC — canonical exact-read byte reuse source candidate
+
+A narrow source candidate reuses the exact expected serialization and canonical/
+receipt-validated original envelopes for the existing full byte comparison and
+size charge. It preserves the original receipt, origin, checkpoint, newer
+revision, current projection, read-only and deadline checks. Matched generated
+PG17 proof with text results/fresh connections/indexed latest measured full
+500-row reads at 292.919→218.404 ms (G=0) and 290.744→219.630 ms (G=1), with 32
+successful full reads and 22 matched corruption/scope guards. This is source
+qualification only; no PP/prod host, deployment, cloud or runtime change.
+Native timing does not establish PP's needed full-audit reserve. Exact-source CI,
+matched PP first-page comparison and actual full-audit margin remain unqualified.
+[Decision, reproducible harness and evidence](PP_READBACK_CANONICAL_BYTE_REUSE_2026-11-19.md)
+
 ## November 19 UTC — source-only PP snapshot binding and chart coverage fix
 
 An independent parity audit reproduced a PostgreSQL read-committed hydration
@@ -15,8 +29,9 @@ comparison used existing indexes, with 0.089 ms median / 0.271 ms p95 for the
 linked read versus 0.222 / 0.363 ms for the old two reads. These local timings do
 not establish PP runtime latency. [Reproduction and limitations](PP_HYDRATION_CONSISTENCY_2026-11-19.md).
 
-This remains an unmerged source-only candidate during the PP21 freeze. No schema,
-release, host, cloud, collection or AI activation changed. Official outcome
+This source-only fix was staged during the PP21 freeze; source integration
+follows its explicit unlock. No schema, release, host, cloud, collection or AI
+activation changed. Official outcome
 reconciliation, deterministic replay, evaluation/context/case retrieval and
 ensemble/AI migration remain separate application parity work.
 

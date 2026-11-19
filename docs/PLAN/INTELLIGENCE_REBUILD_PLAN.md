@@ -32,6 +32,24 @@ counts **all** outbox rows per origin against 10,000, including ACKed rows;
 ACK does not free that lifetime release bound. Any bounded-ledger solution
 must preserve verified evidence for protected references and release recovery.
 
+### PP release inventory implementation
+
+The release controller now fingerprints the complete outbox, including payloads,
+ACK timestamps and protected-reference identities. It checks the 10,000 pending
+rows per origin admission bound independently. For raw and core it fingerprints
+all previously reviewed identity/hash columns across the full table. SHA-256
+pages keep the inner aggregate small. Read-only preflight exercises the scans
+before stopping services. The same evidence is compared under the writer fence
+and during recovery. Server statements have a 19-second timeout within the
+existing 20-second command budget. Cost still grows with history, and eventual
+compaction of independently verified evidence remains a separate storage task.
+
+Generated PostgreSQL 17 exercised 10,103 lifetime rows, including 10,100 ACKed
+rows. Mutations above the old boundary changed the raw and outbox fingerprints.
+A 10,003-pending fixture stopped admission and inventory. Local controller suite
+ran 180 tests with four platform skips. PP runtime deployment and representative
+scan timing remain open.
+
 ### PP execution sequence
 
 **Resume at step 1.** Receipt batching in PR #130 passed Linux CI at

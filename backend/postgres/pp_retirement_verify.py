@@ -47,7 +47,7 @@ class RetirementTransport(ScopedArchiveTransport):
         return rows
 
 
-def inventory(connection, generation_id, manifests, budget):
+def inventory(connection, generation_id, manifests, budget, *, fresh_machine_session):
     """Price the fresh readback using only local sealed records and their real page boundaries."""
     limits = budget.limits
     count = connection.execute(
@@ -56,6 +56,7 @@ def inventory(connection, generation_id, manifests, budget):
     result = {
         'raw_objects': len(manifests), 'raw_bytes': sum(m['byte_count'] for m in manifests),
         'structured_rows': count, 'structured_pages_examined': 0, 'structured_bytes_examined': 0,
+        'auth_calls_reserved': int(bool(manifests) and fresh_machine_session),
         'request_limit': limits.max_requests, 'byte_limit': limits.max_cycle_bytes,
         'deadline_seconds': limits.max_seconds,
     }
@@ -64,7 +65,8 @@ def inventory(connection, generation_id, manifests, budget):
         budget.check()
         remaining = count - rows_seen
         pages = (remaining + limits.max_rows - 1) // limits.max_rows
-        result['requests_minimum'] = len(manifests) + result['structured_pages_examined'] + pages
+        result['requests_minimum'] = (len(manifests) + result['auth_calls_reserved'] +
+                                      result['structured_pages_examined'] + pages)
         result['bytes_minimum'] = result['raw_bytes'] + result['structured_bytes_examined']
         result['structured_inventory_complete'] = remaining == 0
         if any(m['row_count'] > limits.max_rows or m['byte_count'] > limits.max_object_bytes
@@ -113,7 +115,7 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
         if (not before or before['generation_id'] != target.collecting
                 or before['slot'] == generation['slot']):
             raise LifecycleHold('reviewed active slot changed')
-        estimate = inventory(db, target.sealed, manifests, budget)
+        estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
         if inventory_only or estimate['fit'] == 'exceeds_limits':
             return {'status':'HOLD' if estimate['fit'] == 'exceeds_limits' else 'inventory_only',
                     'retirement_authorized':False, 'sealed':target.sealed, 'collecting':target.collecting,

@@ -731,6 +731,10 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(len(self.transport.calls), baseline)
         costs = estimate['inventory']
         self.assertEqual((costs['raw_objects'], costs['structured_pages_examined']), (10, 11))
+        from postgres.pp_retirement_verify import inventory
+        with CycleBudget(limits) as budget, self.repository.retirement(sealed) as (db, _, manifests):
+            cold = inventory(db, sealed, manifests, budget, fresh_machine_session=True)
+        self.assertEqual((cold['auth_calls_reserved'], cold['requests_minimum']), (1, 22))
         self.assertEqual(costs['structured_rows'], structured_count)
         self.assertTrue(costs['structured_inventory_complete'])
         first_read = self.transport.read_authenticated

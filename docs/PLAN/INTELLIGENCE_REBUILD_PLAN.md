@@ -176,7 +176,7 @@ actual readback share the existing time budget. No estimate certifies latency,
 wire-protocol overhead or remote immutability. The November 19 actual A
 inventory reported 4,845 raw rows packed into ten objects (620,549 compressed
 bytes) and 5,268 structured records. That is at least 21 read calls at 500
-records per page. The forthcoming A seal may have different coverage. The
+records per page plus the initial PP machine authentication (22 budgeted calls). The forthcoming A seal may have different coverage. The
 native CI case uses those row counts with generated values, exercises 10 B
 commits during fresh A raw reads and keeps the local A relation.
 

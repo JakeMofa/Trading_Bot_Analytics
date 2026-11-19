@@ -23,12 +23,17 @@ class RuntimeHistory:
                 raise HistoryError('history_origin_mismatch', 'generation belongs to another origin')
             # Local history needs no cloud identity. Cloud retrieval is created
             # only for an explicit request for a retired generation.
-            if generation['state'] == 'retired':
-                raw = self.raw_factory()
-                transport = ScopedArchiveTransport(raw, None, origin_id=self.origin_id,
-                                                    generation_id=generation_id)
-            else:
-                transport = None
+            # Transport construction is lazy. A seal can retire between the
+            # initial identity lookup and the repository's locked snapshot.
+            owner = self
+            class LazyRaw:
+                def read_authenticated(self, key, **options):
+                    nonlocal raw
+                    if raw is None:
+                        raw = owner.raw_factory()
+                    return raw.read_authenticated(key, **options)
+            transport = ScopedArchiveTransport(LazyRaw(), None,
+                origin_id=self.origin_id, generation_id=generation_id)
             return ArchiveHistory(self.repository, transport, ArchiveLimits()).read_generation(
                 generation_id, **kwargs)
         finally:
@@ -62,6 +67,8 @@ def configured_history(settings, store, environ):
     class ReadRepository(LifecycleRepository):
         def local_history(self, generation_id, after, limits):
             with self.transaction() as connection:
+                connection.execute("SET LOCAL lock_timeout='250ms'")
+                connection.execute('LOCK TABLE raw.events IN ACCESS SHARE MODE')
                 generation = connection.execute(
                     'SELECT * FROM archive.generations WHERE generation_id=%s',
                     (generation_id,)).fetchone()
@@ -69,8 +76,9 @@ def configured_history(settings, store, environ):
                     raise LifecycleHold('unknown history generation')
                 if generation['state'] == 'retired':
                     return generation, None, False
-                # The SELECT's relation lock protects the rows while reading.
-                # A concurrent drop before it begins becomes unavailable.
+                # Parent and attached partition relation locks precede state
+                # lookup, so transactional retirement cannot remove the rows
+                # between that lookup and the page query.
                 rows, more = self._page(connection, generation_id, after, limits)
                 return generation, rows, more
 

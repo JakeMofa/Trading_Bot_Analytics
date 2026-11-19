@@ -16,32 +16,36 @@ class RuntimeArchiveHistoryTests(unittest.TestCase):
         reader = RuntimeHistory(repo,factory,origin_id='pp-live-pp')
         generation = '00000000-0000-0000-0000-000000000001'
         with patch('postgres.runtime_history.ArchiveHistory') as history:
-            history.return_value.read_generation.return_value = {'rows':[]}
+            def fetch(*args, **kwargs):
+                transport = history.call_args.args[1]
+                transport.read_authenticated(transport._prefix+'fixture', max_bytes=1024, timeout_seconds=1)
+                return {'rows':[]}
+            history.return_value.read_generation.side_effect = fetch
             self.assertEqual(reader.read_generation(generation),{'rows':[]})
             self.assertEqual(history.call_args.args[1].generation_id,generation)
             raw.close.assert_called_once()
             history.return_value.read_generation.side_effect=HistoryError('corrupt','failed')
             with self.assertRaises(HistoryError):
                 reader.read_generation(generation)
-        self.assertEqual(raw.close.call_count,2)
+        self.assertEqual(raw.close.call_count,1)
 
     def test_wrong_origin_and_busy_do_not_open_cloud(self):
         repo, factory = Mock(), Mock()
         repo.generation.return_value = dict(origin_id='production',state='retired')
         reader = RuntimeHistory(repo,factory,origin_id='pp-live-pp')
         with self.assertRaises(HistoryError):
-            reader.read_generation('generation')
+            reader.read_generation('00000000-0000-0000-0000-000000000001')
         factory.assert_not_called()
         reader._admission.acquire()
         with self.assertRaisesRegex(HistoryError,'already running'):
-            reader.read_generation('generation')
+            reader.read_generation('00000000-0000-0000-0000-000000000001')
         reader._admission.release()
 
     def test_local_does_not_open_cloud_and_defaults_off(self):
         repo, factory = Mock(), Mock()
         repo.generation.return_value = dict(origin_id='pp-live-pp',state='sealed')
         with patch('postgres.runtime_history.ArchiveHistory'):
-            RuntimeHistory(repo,factory,origin_id='pp-live-pp').read_generation('generation')
+            RuntimeHistory(repo,factory,origin_id='pp-live-pp').read_generation('00000000-0000-0000-0000-000000000001')
         factory.assert_not_called()
         self.assertIsNone(configured_history(Settings(),Mock(),{}))
         with self.assertRaises(ValueError):

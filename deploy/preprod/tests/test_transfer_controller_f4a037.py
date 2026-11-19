@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import zipfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -28,6 +29,14 @@ class SuccessorTransferTests(unittest.TestCase):
         bundle_spec.loader.exec_module(builder)
         cls.bundle = Path(cls.folder.name) / 'controller.pyz'
         cls.result = builder.build(cls.bundle)
+        # Keep this archived transfer's strict ten-member protocol fixture;
+        # current installer modules are validated in their own bundle tests.
+        legacy=io.BytesIO()
+        with zipfile.ZipFile(cls.bundle) as source,zipfile.ZipFile(legacy,'w') as target:
+            for info in source.infolist():
+                if info.filename in transfer.ZIP_MEMBERS:target.writestr(info,source.read(info.filename))
+        cls.bundle.write_bytes(legacy.getvalue())
+        cls.result.update(sha256=transfer.digest(legacy.getvalue()),bytes=len(legacy.getvalue()))
         # This one-use transfer is pinned to f4a037 bytes. Exercise its wire
         # validation with the current generated bundle without requiring the
         # mutable controller source to remain at that historical revision.

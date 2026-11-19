@@ -37,17 +37,24 @@ LIMITS = ArchiveLimits(max_rows=25, max_object_bytes=256 * 1024,
                        max_seconds=20, request_timeout_seconds=4)
 
 
-def check_environment(environ: dict[str, str]) -> None:
+def check_environment(environ: dict[str, str], *, origin_id=ORIGIN, files=None) -> None:
+    from .cloud_origin_binding import cloud_binding
+    cloud_binding(origin_id)
+    paths = FILES if files is None else files
+    if origin_id != ORIGIN:
+        from .cloud_runtime_profile import selected_cloud_origin,cloud_files
+        if selected_cloud_origin(environ) != origin_id or paths not in (cloud_files(origin_id),cloud_files(origin_id,reader=True)):
+            raise LifecycleHold('trial raw origin/profile/secret mismatch')
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
             environ.get('TRADEBOT_DATA_MODE') != 'pp_live' or
-            environ.get('TRADEBOT_ORIGIN_ID') != ORIGIN or
+            environ.get('TRADEBOT_ORIGIN_ID') != origin_id or
             environ.get('TRADEBOT_PP_RAW_ARCHIVE_ONE_SHOT') != 'true'):
         raise LifecycleHold('exact PP archive one-shot identity required')
     if any(environ.get(flag, 'false').lower() not in ('false', '0', 'off')
            for flag in OFF_FLAGS):
         raise LifecycleHold('persistent cloud, collector, retirement and paid AI must remain OFF')
     if environ.get('TRADEBOT_DATABASE_DSN') or any(
-            environ.get(name) != path for name, path in FILES.items()):
+            environ.get(name) != path for name, path in paths.items()):
         raise LifecycleHold('exact independent PP archive secret paths required')
 
 

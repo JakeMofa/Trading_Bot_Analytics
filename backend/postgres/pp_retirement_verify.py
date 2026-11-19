@@ -11,9 +11,12 @@ from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, en
 from .archive_transport import ScopedArchiveTransport
 from .retirement_accounting import accounted, bind_budget, measured_context, phase
 from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
-from .pp_raw_archive_probe import FILES, ORIGIN, check_environment
+from .pp_raw_archive_probe import ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
 from .pp_structured_probe import LOCAL_DSN, private_dsn
+from .rehearsal_profile import TRIAL_ORIGIN
+from .cloud_origin_binding import cloud_binding
+from .cloud_runtime_profile import selected_cloud_origin,cloud_files,storage_paths,require_trial_files
 
 
 @dataclass(frozen=True)
@@ -170,17 +173,16 @@ def inventory(connection, generation_id, manifests, budget, *, fresh_machine_ses
 @accounted
 def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN, inventory_only=False, permit=None):
     target.validate()
+    windowed = isinstance(limits, TwoMarketReadbackLimits)
+    scoped_live = origin == ORIGIN or (origin == TRIAL_ORIGIN and windowed)
     if (repository.environment != 'preprod' or
             (not inventory_only and (transport.origin_id != origin or transport.generation_id != target.sealed)) or
-            (origin != ORIGIN and not origin.startswith('generated-'))):
+            (not scoped_live and not origin.startswith('generated-'))):
         raise LifecycleHold('wrong retirement readback environment or generation')
     if permit is not None:
         permit.validate()
-        if origin != ORIGIN or inventory_only or not isinstance(transport, RetirementTransport):
+        if not scoped_live or inventory_only or not isinstance(transport, RetirementTransport):
             raise LifecycleHold('retirement permit requires exact PP cloud readback')
-    windowed = isinstance(limits, TwoMarketReadbackLimits)
-    if windowed and origin != ORIGIN and not origin.startswith('generated-'):
-        raise LifecycleHold('two-market profile is restricted to PP')
     with CycleBudget(limits) as budget:
         bind_budget(budget)
         with measured_context(repository.retirement(target.sealed),
@@ -206,11 +208,11 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
             if windowed:
                 active_start = db.execute('SELECT started_at FROM archive.generations WHERE generation_id=%s',
                                           (target.collecting,)).fetchone()
-                if (generation['slot'] != 'A' or before['slot'] != 'B' or not active_start or
+                if ({generation['slot'], before['slot']} != {'A', 'B'} or not active_start or
                         active_start['started_at'] != generation['sealed_at']):
-                    raise LifecycleHold('two-market verification requires the actual A to B handoff')
+                    raise LifecycleHold('two-market verification requires the actual opposite-slot handoff')
             with phase('inventory'):
-                estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
+                estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=scoped_live)
             if windowed:
                 estimate.update(profile='pp-two-market-v1', seal_deadline_utc=expires_at.isoformat(),
                                 remaining_work_seconds=round(budget.deadline-budget.clock(),3))
@@ -258,11 +260,16 @@ def retirement_history_factory(environ):
     reuse = environ.get('TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION', 'false')
     if reuse not in ('true', 'false'):
         raise LifecycleHold('exact PP retirement session reuse opt-in required')
-    return ReusablePPHistoryConnectionFactory() if reuse == 'true' else PPHistoryConnectionFactory()
+    factory_type=ReusablePPHistoryConnectionFactory if reuse == 'true' else PPHistoryConnectionFactory
+    origin=selected_cloud_origin(environ)
+    if origin==ORIGIN: return factory_type()
+    files=cloud_files(origin,reader=True)
+    return factory_type(files['TRADEBOT_PP_HISTORY_DSN_FILE'],files['TRADEBOT_PP_HISTORY_CA_FILE'],origin_id=origin,reader=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--origin',choices=(ORIGIN,TRIAL_ORIGIN),help='optional exact origin assertion; must match the reviewed environment')
     parser.add_argument('--sealed',required=True)
     parser.add_argument('--collecting',required=True)
     parser.add_argument('--seal-hash',required=True)
@@ -278,7 +285,15 @@ def main():
     try:
         target=Target(args.sealed, args.collecting, args.seal_hash, args.count)
         target.validate()
-        check_environment(os.environ)
+        origin=selected_cloud_origin(os.environ)
+        if args.origin is not None and args.origin != origin:
+            raise LifecycleHold('CLI origin does not match reviewed environment')
+        reader=origin==TRIAL_ORIGIN
+        require_trial_files(os.environ,origin,reader=reader,structured=True,storage=True)
+        files=cloud_files(origin,reader=reader)
+        check_environment(os.environ,origin_id=origin,files=files)
+        if reader and not args.two_market_window:
+            raise LifecycleHold('trial retirement readback requires exact two-market window')
         if os.environ.get('TRADEBOT_PP_RETIREMENT_READBACK') != 'true':
             raise LifecycleHold('explicit one-shot readback required')
         from .connection import connect
@@ -310,16 +325,15 @@ def main():
                             os.environ.get('TRADEBOT_PP_HISTORY_READER_PROOF_SHA256',''))
             permit.validate()
         if args.inventory_only:
-            result = verify(LifecycleRepository(factory), None, target, inventory_only=True, limits=limits)
+            result = verify(LifecycleRepository(factory), None, target, inventory_only=True, limits=limits,origin=origin)
             print(json.dumps(result,sort_keys=True))
             return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
         history_factory = retirement_history_factory(os.environ)
-        raw=SupabaseStorageTransport.from_machine_files(*(
-            FILES['TRADEBOT_PP_STORAGE_'+key+'_FILE'] for key in ('API_KEY','AUTH_EMAIL','AUTH_PASSWORD','AUTH_UID')))
-        structured=HistoryV2PostgresTransport(history_factory,origin_id=ORIGIN,
-            generation_id=target.sealed,expected_database='postgres',expected_role='tradebot_pp_history')
-        scoped=RetirementTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed)
-        result = verify(LifecycleRepository(factory),scoped,target,permit=permit,limits=limits)
+        raw=SupabaseStorageTransport.from_machine_files(*storage_paths(files),reader=reader,origin_id=origin)
+        structured=HistoryV2PostgresTransport(history_factory,origin_id=origin,
+            generation_id=target.sealed,expected_database='postgres',expected_role=cloud_binding(origin).role(reader=reader))
+        scoped=RetirementTransport(raw,structured,origin_id=origin,generation_id=target.sealed)
+        result = verify(LifecycleRepository(factory),scoped,target,permit=permit,limits=limits,origin=origin)
         print(json.dumps(result,sort_keys=True))
         return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
     except Exception as error:

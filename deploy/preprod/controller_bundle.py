@@ -80,6 +80,11 @@ except (DeploymentHold,OSError,ValueError) as error:
                       'pp_filesystem_container_identity',
                       'pp_filesystem_runtime_binding',
                       'pp_filesystem_reserve',
+                      'invalid_pp_cycle_anchor', 'pp_cycle_session_binding_mismatch',
+                      'pp_cycle_initial_generation_not_ready',
+                      'invalid_pp_trial_origin', 'pp_trial_requires_anchor','invalid_pp_trial_origin','pp_trial_requires_anchor',
+                      'pp_trial_archive_readiness_unqualified','trial_cloud_profile_not_yet_qualified',
+                      'pp_trial_session_binding_mismatch','pp_trial_preparation_unproven',
                       'pp_filesystem_sample_unavailable','stop_recurring_structured_sync_first','stop_recurring_archive_first',
                       'generated_runtime_check_failed',
                       'generated_api_readiness_timeout',
@@ -97,7 +102,8 @@ def build(destination):
     files={'__main__.py':ENTRY.encode()}
     for name in ('controller.py','linux_actions.py','live_profile.py','live_transition.py',
                  'transition_control.py','structured_probe_profile.py','structured_probe_control.py',
-                 'raw_archive_probe_profile.py','raw_archive_probe_control.py'):
+                 'raw_archive_probe_profile.py','raw_archive_probe_control.py',
+                 'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py'):
         files[name]=(HERE/name).read_bytes()
     with target.open('xb') as output:
         with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as bundle:

@@ -1,0 +1,48 @@
+{
+  "live_trial_started": false,
+  "migrations": [
+    {
+      "name": "pp_trial_20261119_01_structured_scoped_roles",
+      "version": "20261119205126"
+    },
+    {
+      "name": "pp_trial_20261119_01_private_storage_scope",
+      "version": "20261119205343"
+    }
+  ],
+  "origin": "pp-live-pp-trial-20261119-01",
+  "preprod_staging": {
+    "authority_staged": false,
+    "collector_started": false,
+    "legacy_files_replaced": false,
+    "private_files_staged": 10,
+    "status": "PASS"
+  },
+  "storage_smoke": {
+    "bytes": 210,
+    "hosted_denial_checks": {
+      "public_read_denied": true,
+      "reader_hosted_create_denied": true,
+      "reader_listing_yields_no_objects": true,
+      "reader_old_origin_get_denied": true,
+      "reader_signed_url_denied": true,
+      "scope": "isolated synthetic trial Storage and read-only check of a known existing old key",
+      "status": "PASS",
+      "writer_listing_yields_no_objects": true,
+      "writer_old_origin_get_denied": true,
+      "writer_signed_url_denied": true
+    },
+    "independent_reader_authenticated_exact_readback": true,
+    "synthetic_objects": 1,
+    "writer_authenticated_exact_readback": true
+  },
+  "structured_smoke": {
+    "exact_readback": true,
+    "live_trial_data_rows": 0,
+    "observer_sql_wrong_origin_denied": true,
+    "sql_reader_insert_denied": true,
+    "status": "PASS",
+    "synthetic_receipts": 1,
+    "synthetic_revisions": 1
+  }
+}

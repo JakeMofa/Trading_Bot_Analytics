@@ -7,6 +7,8 @@ start this coordinator without automatic restart, and durably disable it on exit
 from __future__ import annotations
 
 import asyncio
+
+from .rehearsal_profile import lease_cap, CYCLE_ORIGINS
 from datetime import datetime, timezone
 
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
@@ -26,7 +28,7 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                       candle_interval: float = 60,
                       coinbase=coinbase_session, market=polymarket_cycle,
                       candles=coinbase_candle_cycle,
-                      clock=lambda: datetime.now(timezone.utc)):
+                      clock=lambda: datetime.now(timezone.utc), rehearsal_anchor=None):
     """Run three independent read-only feed tasks while ownership stays valid.
 
     Source-only Coinbase transport retries are bounded in coinbase_session;
@@ -36,7 +38,9 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     persist OFF in PostgreSQL before considering a stop complete.
     """
     _live_store(store)
-    if not callable(owner_check) or not callable(disable_collector) or not 0 < max_seconds <= 4560:
+    if rehearsal_anchor is not None and store.settings.origin_id not in CYCLE_ORIGINS:
+        raise ValueError('two-leg rehearsal requires exact PP origin')
+    if not callable(owner_check) or not callable(disable_collector) or not 0 < max_seconds <= lease_cap(rehearsal_anchor):
         raise ValueError('bounded session, ownership checker and durable stop required')
     if not 1 <= market_interval <= 10 or not 60 <= candle_interval <= 300:
         raise ValueError('source cadence outside qualified bounds')

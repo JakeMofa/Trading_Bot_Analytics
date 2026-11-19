@@ -22,13 +22,14 @@ from .operator_session import OperatorSession
 from .collector_session import run_session
 from .config import Settings
 from .store import Store
+from .rehearsal_profile import cycle_anchor, lease_cap
 
 
 def _owner_reader(app_dsn, connector=connect):
     return LifecycleRepository(lambda: connector(app_dsn, environment='preprod', readonly=True))
 
 
-def build_live_session(repository, origin, app_dsn):
+def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None):
     """Prepare a PP-only, explicitly started source task with a finite lease."""
     store = Store(Settings(environment='preprod', data_mode='pp_live',
                            origin_id=origin, dsn=app_dsn))
@@ -38,6 +39,8 @@ def build_live_session(repository, origin, app_dsn):
     async def run(stop, max_seconds):
         generation = await asyncio.to_thread(repository.bootstrap, origin)
         generation_id = str(generation['generation_id'])
+        if rehearsal_anchor is not None and generation_id != rehearsal_anchor:
+            raise ValueError('two-leg initial A differs from configured generation')
         session_id = str(uuid.uuid4())
         enabled = False
 
@@ -48,7 +51,8 @@ def build_live_session(repository, origin, app_dsn):
         def enable():
             nonlocal enabled
             result = repository.enable_collector(origin, session_id=session_id,
-                         expected_generation_id=generation_id, max_seconds=max_seconds)
+                         expected_generation_id=generation_id, max_seconds=max_seconds,
+                         **({'rehearsal_anchor': rehearsal_anchor} if rehearsal_anchor else {}))
             enabled = True
             return result
 
@@ -56,9 +60,10 @@ def build_live_session(repository, origin, app_dsn):
             return await run_session(store, client, stop, owner_check=owner_check,
                          enable_collector=enable,
                          disable_collector=lambda: repository.disable_collector(origin),
-                         max_seconds=max_seconds)
+                         max_seconds=max_seconds,
+                         **({'rehearsal_anchor': rehearsal_anchor} if rehearsal_anchor else {}))
 
-    return OperatorSession(run, lambda: repository.disable_collector(origin))
+    return OperatorSession(run, lambda: repository.disable_collector(origin), rehearsal_anchor=rehearsal_anchor)
 
 
 def fence_live_startup(repository, origin):
@@ -113,6 +118,9 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
                  'ENABLE_SUPABASE_SYNC', 'ENABLE_LOCAL_RETENTION'):
         if environ.get(name, 'false').lower() not in ('false', '0', 'off'):
             raise ValueError('operator runtime requires disabled feature flags')
+    anchor = cycle_anchor(environ)
+    if anchor is not None and environ.get('TRADEBOT_PP_LIVE_CONTROL') != 'true':
+        raise ValueError('two-leg rehearsal requires explicit live control')
     root = Path(secret_dir)
     dsn = _secret(root, 'lifecycle_dsn', expected_uid=expected_uid)
     token = _secret(root, 'operator_token', expected_uid=expected_uid)
@@ -143,9 +151,11 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
             validate_schema(connection, 'preprod')
         fence_live_startup(repository, origin)
         status_repository = _owner_reader(app_dsn, connector)
-        session = session_builder(repository, origin, app_dsn)
+        session = session_builder(repository, origin, app_dsn,
+                    **({'rehearsal_anchor': anchor} if anchor else {}))
     return create_operator_app(repository, origin_id=origin, token=token,
-                               session=session, status_repository=status_repository)
+                               session=session, status_repository=status_repository, max_session_seconds=lease_cap(anchor),
+                               required_session_seconds=lease_cap(anchor) if anchor else None)
 
 
 def main():

@@ -30,10 +30,13 @@ WHERE :'freeze_started_at' ~ 'T[0-9:.]+(Z|[+-][0-9]{2}:[0-9]{2})$'
   AND :'freeze_ends_at' ~ 'T[0-9:.]+(Z|[+-][0-9]{2}:[0-9]{2})$'
   AND f.starts<=f.issued AND f.issued<f.ends AND f.ends-f.starts<=interval '295 seconds'
   AND :'window_profile' IN ('standard','two_markets')
-  AND (:'window_profile'='standard' OR a.sealed_at+interval '30 minutes'>f.issued)
+  AND (:'window_profile'='standard' OR (a.sealed_at+interval '30 minutes'>f.issued
+       AND b.started_at=a.sealed_at))
   AND current_database()='tradebot_pp' AND session_user='tradebot_migrator'
   AND EXISTS(SELECT FROM ops.environment_identity WHERE environment='preprod' AND foundation_version=1)
-  AND a.origin_id='pp-live-pp' AND a.generation_id=:'sealed' AND a.seal_hash=:'seal_hash'
+  AND (a.origin_id='pp-live-pp' OR
+       (a.origin_id='pp-live-pp-trial-20261119-01' AND :'window_profile'='two_markets'))
+  AND a.generation_id=:'sealed' AND a.seal_hash=:'seal_hash'
   AND a.seal_count=:'row_count'::bigint AND a.state='verified' AND a.hold_reason IS NULL
   AND a.verified_at IS NOT NULL AND b.generation_id=:'collecting' AND b.state='collecting'
   AND a.slot<>b.slot AND w.collector_enabled AND w.collector_lease_expires_at>clock_timestamp()

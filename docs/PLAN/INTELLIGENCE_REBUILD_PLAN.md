@@ -18,6 +18,42 @@ retained data, then repeat the same query after each partition drop.
 | 4. Make history usable by deterministic calculations across rotation | The offline `88c59ac` prototype composes one reviewed market/generation before and after a generated partition drop. It returns saved snapshots and predictions and separate labels in the generated case. [#185](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/185) corrects the protected outcome wrapper to actual `Store.ingest`; its native ingestion-to-retirement regression and eight research tests pass. This source prototype does not recompute deterministic features. PP's raw API is generation-specific, its saved prediction endpoint reads local PostgreSQL, and its history-context endpoint still marks linked prior cases unsupported. | A bounded market/time query merges retained and retired generations by origin and generation UUID. Use the same availability cutoff, global ordering and event deduplication on both paths. Prove identical input IDs, exact values, links and recalculated deterministic features across an A/B boundary before and after retirement. Required missing generations or manifests fail explicitly. Report capture gaps. Qualify real PP and production scopes separately. |
 | 5. Rebuild dashboard research and evaluate deterministic signals first | Use the actual legacy contracts below as a behavior reference. Build chronological comparisons from verified 15-minute windows and versioned feature/prediction evidence. | Test the actual PP browser at rollover before and after retirement. It distinguishes saved forecast, current estimate, matched historical cases, official outcomes and explicit gaps. Training/evaluation splits by market and time. Optional AI explanation stays a separate contract with paid calls disabled. |
 
+### Checkpoint 3 continuation — November 19, 2026
+
+A fresh read-only PP21 inventory confirmed historic live A is verified and still
+attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,
+and the writer is OFF with no session or unused authority. All 42,133
+acknowledgements remain recorded with no pending entries. A's original 30-minute
+seal deadline expired. Neither re-enabling B nor reusing A's earlier permit
+starts a fresh A-first trial. Preserve both partitions. A fresh start with its
+own qualified scope, or separately approved historical maintenance followed by
+a fresh A admission, is required before a live dispatch.
+
+The two-leg candidate binds an exact initial A UUID and an explicit PP-only
+finite session. Keep the existing normal 4,560-second ceiling. For this trial
+only, a 6,600-second session admits within the final minute before an official
+15-minute boundary: 60 seconds before A, 1,800 seconds of A markets, up to 900
+seconds for B's first full market, 1,800 seconds of B markets, and 1,800
+seconds to finish B's archive and retirement. The remaining 240 seconds cover
+scheduling overhead. Actual source delays can still exhaust the lease. Each
+seal keeps its own original 30-minute deadline and exact verified-retirement
+authority. Hold if a target slot is occupied or safety evidence is incomplete.
+
+The same collector session must keep writing through A → B → fresh A. A late
+discovery or missing first quote waits for the next normal poll, and unavailable
+data remains visible as such. Check the exact writer and its write advancement,
+plus the dashboard and history, around both swaps and both retirement commits.
+Record the observed outcomes from the live trial separately from fixture and
+read-only verifier results. The isolated PostgreSQL control run passed all eight
+selected cases on the combined source, including native two-switch persistence,
+the occupied-slot hold, both permit-bound removals and second-leg readback
+rejections. The switch fixture simulates the first retirement, and the
+permit fixture uses generated archive transport. Live PP remains OFF. Follow
+the [two-leg configuration](PP_SEAMLESS_CYCLE_SOURCE_2026-11-19.md) and
+[before-and-after dashboard capture](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md)
+only after exact CI, a qualified fresh start, matching release controls, two
+current archive freeze windows and a fresh production-fence check.
+
 ### Legacy dashboard contracts to carry forward
 
 - Review the actual production legacy FastAPI source at `d56b4a7`, separately
@@ -4112,3 +4148,175 @@ unchanged. A fresh full A→B→fresh-A trial and deterministic history parity a
 still required. Prior PP19/PP20 holds remain historical evidence, and this
 single result does not establish a causal whole-audit speedup percentage.
 [Source, operator receipt and qualification boundaries](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md).
+
+
+### November 19 UTC — source-only delayed-discovery continuity correction
+
+Transient Polymarket US discovery GET failures previously escaped the market
+cycle and stopped all feeds even though matching empty discovery and quote
+unavailability already waited for the next scheduled poll. Discovery 404, 429,
+5xx, timeout and transport failures now wait for that same bounded cadence.
+No source event, timestamp or replacement identity is synthesized. Authentication,
+malformed/ambiguous/incomplete discovery, invalid quotes, write rejection and
+ownership/lease failures remain fatal. Existing deadlines and retry cadence stay
+unchanged; temporary source delay never grants storage or retirement authority.
+
+A generated fake-clock supervisor regression uses the actual httpx source clients
+across a quarter-hour boundary: old-only listing, 429, 503, timeout, transport
+error, double-404 quote routes, empty matching BBO and first exact new-market
+quote. Eight normalized Coinbase ticks persist during the gap; the old market
+is never queried again and original quote sample times remain intact. The live
+source/supervisor/ingest/fence suites pass 39 tests (one native PostgreSQL query
+test skipped without its disposable DSNs); Coinbase reconnect/timing suites pass
+14. Store already reads the locked writer generation per event and ownership
+checks bind the session/lease, so the collector itself caches no active UUID.
+Native two-switch rotation and runtime/controller qualification remain separate.
+No host/deployment, real collector, cloud or paid AI action occurred.
+
+### November 19 — two-generation offline history evidence contract
+
+Added an offline capture-parity auditor for two exact origin/generation UUID
+windows, reusing #185 `ResearchWindow` and the actual dashboard HTTP history
+contracts. Five generated tests retain immutable golden collecting/sealed/retired
+captures and reject changed exact values/times, duplicate/missing forecasts,
+wrong bindings and float coercion. Seven existing research unit tests and fifteen
+dashboard evidence tests pass; native PG research skips without an explicit
+isolated DSN. This is model retirement with an explicitly generated HTTP store,
+not a new native/drop/live two-rotation qualification. No host/cloud/deployment,
+collector/lease change, API registration or feature recalculation occurred.
+Actual chart remains current/local raw only; context outcomes unsupported;
+prediction HTTP omits snapshot IDs. #185's 2,000-row scan cannot cover real
+retained A; indexed bounded reading, cross-generation merge where needed, live
+labels and recalculation remain gates. Checkpoint 3 stays OPEN.
+[Evidence shape, qualification and live gaps](PP_TWO_GENERATION_HISTORY_EVIDENCE_2026-11-19.md).
+
+
+### November 19 UTC — source-only symmetric exact retirement readback
+
+The two-market verifier previously hardcoded sealed A and collecting B despite
+its exact UUID targets and underlying SQL retirement authority already supporting
+opposite slots. It now accepts A→B or B→fresh-A only when both slots are valid
+and the collecting generation's actual start exactly matches the sealed
+generation's actual seal. The two-market permit issuer now checks that same
+handoff timestamp. Standard-profile behavior, all request/byte/time limits, each
+30-minute seal deadline, admin freeze, one-use exact ticket and environment gates
+remain. Migration 0003 and every applied migration checksum are unchanged; the
+privileged function already checks opposite slots and exact UUIDs. Profile
+windows remain enforced by the existing issuer/verifier layer rather than a new
+database authority or migration.
+
+Eleven generated/native controls pass without skips on a fresh disposable local
+PostgreSQL 17 fixture with restricted migrator, lifecycle and app logins. Actual
+psql issuance and privileged removal succeed first for A while B commits, then
+for B while a distinct fresh A commits, consuming two distinct tickets. Wrong
+handoff time rejects issuance and verification; an original-A target and used
+first ticket cannot authorize B. Separate both-leg raw/structured readback
+rejects unavailable raw, corrupt structured records and expired seal windows.
+Existing reader drain, protected evidence, rollback, forged checkpoint and permit
+reuse tests also pass. Generated transports represent remote archives; these
+results are not hosted cloud readback, real-market capture or PP retirement
+evidence. No host/deployment, cloud, grants or schema action occurred.
+
+### November 19 — executable read-only HTTP history capture (source only)
+
+Added a loopback-only GET evidence client for exact two-UUID retained/retired
+history pairs, with immutable UUID bindings as each becomes known. It uses the
+existing `/history/archive/{uuid}` route for both attached sealed/verified rows
+and authenticated retired archive rows; no restricted-DB fallback is needed.
+Full original HTTP bytes/hashes, exact rows/predictions, state and initial SSE,
+UTC/monotonic timings and explicit missing-data gaps are retained under bounded
+request/page/byte/deadline limits. Nine network-free tests pass; real host/tunnel,
+cloud, permissions and retirement operations were not performed. Current chart
+and unsupported context limitations remain open. Existing old verified A plus
+disabled collecting B cannot become a fresh A-first trial while both slots stay
+occupied; source fences rather than relabeling or retrospectively passing A.
+[Executable procedure, source constraints and qualification](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md).
+
+
+### November 19 UTC — source-only stopped historical B drain candidate
+
+The user requested preserving/draining old PP21 A/B to Supabase before a fresh
+trial. Old B remains collecting-disabled, which correctly excludes it from raw
+sealed archival. A default-off exact-old-origin local maintenance command now
+seals reviewed B only under global admission and worker/writer locks, binding
+its UUID/count/epoch and a fresh operation/source receipt. It leaves the writer
+pointing to sealed B, creates no successor, changes no A seal, and grants no
+retirement or original-trial authority. Identical retry preserves its original
+maintenance seal; normal writer activation then rejects the sealed state.
+
+Twenty generated/native tests pass without skips on disposable local PostgreSQL
+17.2. Genuine Store capture and an in-flight write prove the OFF/count barrier;
+wrong scope/count/epoch, enabled/other collectors and journal rollback preserve
+data. Existing bounded structured/raw workers reject corrupt/unavailable
+readback, then archive/verify successfully without removal. Retained A metadata
+and catalog, raw/core/dedup/source-body evidence remain exact. Hosted release,
+actual cloud drain/readback and independently scoped fresh trial remain pending.
+No schema/grant/host/cloud operation occurred. [Finite route and limitations](PP_HISTORICAL_DRAIN_SOURCE_2026-11-19.md).
+
+### November 19 — exact fresh-trial cloud authority candidate (source only)
+
+Prepared an additive review-only cloud scope for exact
+`pp-live-pp-trial-20261119-01`: separate structured writer/reader NOLOGIN roles,
+new independent Storage Auth identities and exact origin-hashed raw path. Existing
+old-origin identities/policies/data stay unchanged. Explicit adapter arguments
+pin trial DSN role/app name, JWT admin metadata, raw prefix and read-only verifier
+behavior; no environment prefix widens cloud access. Six unit controls and six
+owned disposable native PG17 tests pass, including genuine immutable receipt/
+envelope readback through a separate read-only role. No cloud inventory/mutation,
+Auth provisioning, secret deployment, host action or collector activation occurred.
+Service wiring, fresh grant/catalog review, actual new identities/secrets, bounded
+live API denials/readback and separate old A/B disposition remain prerequisites.
+[Policy artifacts, exact dependencies and reversible deployment](PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md).
+
+### November 19 — exact trial cloud application wiring (source only)
+
+Wired structured recurring service, sealed raw worker, retirement CLI and lazy
+API archive history to exact trial cloud bindings and fixed independent
+writer/reader secret targets. Origin now flows through bounded outbox selection
+and Active/SealedStructuredWorker rather than selecting legacy pending rows.
+Trial writers/verifier require the reviewed cycle profile/anchor; verifier uses
+only the separate read-only SQL/Auth identities and its existing bounded-window
+checks. Legacy defaults and fresh readback-before-ACK remain. Eight new generated
+wiring controls plus 67 surrounding controls pass (75 total, including six owned
+native PG17 policy tests, no skips). No host/cloud call, deployment, secret/grant
+application or collector/retirement action occurred. Host Compose integration,
+trial-reader proof and actual bounded cloud readback remain separate gates.
+[Fixed mount contract, evidence and remaining gates](PP_TRIAL_CLOUD_RUNTIME_2026-11-19.md).
+
+### November 19 — source-only exact trial host preparation
+
+The host-control candidate binds the one exact trial origin and initial-A UUID
+into existing enter/ON authority. Permit-bound enter stops generated services,
+prepares an exact OFF A under the shared database admission fence, preserves
+historic A/B, then proves the trial API/operator OFF. Permit-free leave/OFF never
+prepares. Native restricted-role allocation and host/profile/authority fixture
+checks pass. Trial ON and legacy cloud sidecars remain explicitly held until
+separate exact trial writer/reader credentials and cloud readiness proofs are
+integrated; no deployment or host/cloud action is claimed. See
+[scope and evidence](PP_TRIAL_HOST_PREPARATION_2026-11-19.md).
+
+### November 19 — exact trial reader attestation and isolated API overlay
+
+Added isolated source-bound v1 trial-reader attestation and an API-only overlay
+introducing four dedicated read-only Auth secrets. Authority binds final source,
+image, exact trial origin/anchor and distinct Auth UIDs to exact proof bytes.
+Proof separates actual hosted old-origin/list/upload/sign/public denials from
+native production-origin/replace/move/delete policy denials; no new unperformed
+host probe is required. Only the UID credential is read; all four credentials
+require fixed ownership/mode/link/size checks. Six generated tests and eight
+backend wiring tests pass. No host/cloud call, marker/secret staging or runtime
+activation occurred. Host normalized-profile/start integration and final
+operator attestation remain separate gates.
+[Exact schemas, evidence split and integration contract](PP_TRIAL_READER_ATTESTATION_2026-11-19.md).
+
+### November 19 — source-only exact trial child/readiness continuation
+
+The dedicated trial structured/raw child profiles now mount only their separate
+writer identities. Independent API reader attestation selects reader-only Auth
+mounts. Root starts remain explicit and source/image/anchor-bound; normal legacy
+probe/profile negatives are preserved. ON authority issue and dispatch both
+require exact writer proof, independent reader proof and both owned children
+running before the existing one-use permit can be consumed. OFF/leave recovery
+never depends on optional reader evidence. Generated profile/guard tests pass,
+including actual Compose normalization. No collector ON or deployment occurred
+in this source milestone. [Proof schema and limits](PP_TRIAL_CLOUD_HOST_2026-11-19.md).

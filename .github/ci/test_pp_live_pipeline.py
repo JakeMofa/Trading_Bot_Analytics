@@ -47,6 +47,43 @@ class PPLivePipelineTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module.command_for({**env,'PP_LIVE_SECONDS':'4561'}, API(), {})
 
+    def test_exact_trial_on_and_permit_free_off_result(self):
+        class API:
+            def read(self,_path):return {'object':{'sha':'a'*40}}
+        anchor='b98ac4e9-b073-4df7-bc5b-90fa51c4f039';trial='pp-live-pp-trial-20261119-01'
+        env=dict(PP_LIVE_OPERATION='on',GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REF_NAME='preprod',
+            GITHUB_SHA='a'*40,GITHUB_REPOSITORY=module.pipeline.REPO,PP_LIVE_SECONDS='6600',
+            PP_CYCLE_INITIAL_A=anchor,PP_TRIAL_ORIGIN=trial)
+        command,proof=module.command_for(env,API(),{})
+        self.assertEqual(command,'session-v1 on 6600 '+anchor+' '+trial)
+        self.assertEqual(proof['trial_origin'],trial)
+        for change in ({'PP_TRIAL_ORIGIN':trial+'-other'},{'PP_CYCLE_INITIAL_A':''}):
+            with self.assertRaises(ValueError):module.command_for({**env,**change},API(),{})
+        self.assertEqual(module.validated_result('off',dict(gate='PP_LIVE_OFF',origin_id=trial,collector_enabled=False))['origin_id'],trial)
+        with self.assertRaises(ValueError):module.validated_result('off',dict(gate='PP_LIVE_OFF',origin_id=trial+'-other',collector_enabled=False))
+
+    def test_cycle_needs_exact_anchor_and_finite_duration(self):
+        class API:
+            def read(self, _path):
+                return {'object': {'sha': 'a'*40}}
+        anchor = 'b98ac4e9-b073-4df7-bc5b-90fa51c4f039'
+        env = {'PP_LIVE_OPERATION': 'on', 'GITHUB_EVENT_NAME': 'workflow_dispatch',
+               'GITHUB_REF_NAME': 'preprod', 'GITHUB_SHA': 'a'*40,
+               'GITHUB_REPOSITORY': module.pipeline.REPO, 'PP_LIVE_SECONDS': '6600',
+               'PP_CYCLE_INITIAL_A': anchor}
+        command, proof = module.command_for(env, API(), {})
+        self.assertEqual(command, f'session-v1 on 6600 {anchor}')
+        self.assertEqual(proof['initial_a'], anchor)
+        for change in ({'PP_CYCLE_INITIAL_A': ''}, {'PP_CYCLE_INITIAL_A': anchor.upper()},
+                       {'PP_LIVE_SECONDS': '6599'}, {'PP_LIVE_SECONDS': '6601'},
+                       {'PP_LIVE_OPERATION': 'off'}):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                module.command_for(env | change, API(), {})
+        result = {'gate': 'PP_LIVE_ON', 'origin_id': 'pp-live-pp', 'collector_enabled': True}
+        with self.assertRaises(ValueError):
+            module.validated_result('on', result, anchor)
+        module.validated_result('on', result | {'initial_a': anchor}, anchor)
+
     def test_enter_command_binds_generated_proof_and_exact_source_ci(self):
         class API:
             def read(self, path):

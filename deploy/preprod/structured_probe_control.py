@@ -199,7 +199,10 @@ def preflight(installed: Path, budget: Budget):
     context = _candidate(request)
     actions = _image_binding(context, budget)
     _owned_runtime(actions, context, budget)
-    actions._runtime(context, budget, live=True)
+    actions._runtime(context, budget, live=True,
+                     **({'initial_a': active['initial_a']} | ({'trial_origin':active['trial_origin']} if active.get('trial_origin') else {})
+                        if active.get('initial_a') else {}))
+    require(not active.get('trial_origin'),'trial_cloud_profile_not_yet_qualified')
     _files()
     for name in EXPECTED_MODULES:
         path = context.source / name
@@ -394,7 +397,9 @@ def recurring_control(operation, budget, *, archive=False):
     row = _sync_container(owner, budget, archive=archive)
     if operation == 'status':
         return {'status': 'running' if row and row['State']['Running'] else 'stopped',
-                'source_sha': owner['source_sha'], 'retirement': 'off'}
+                'source_sha': owner['source_sha'], 'retirement': 'off'} | (
+                    {key:owner[key] for key in ('origin_id','initial_a','writer_proof_sha256')}
+                    if owner.get('origin_id')=='pp-live-pp-trial-20261119-01' else {})
     if row:
         env = LinuxActions._environment(owner['image'])
         if row['State']['Running']:

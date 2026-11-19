@@ -13,6 +13,7 @@ import pp20_forward_bootstrap as f
 class ForwardPreservationSQL(unittest.TestCase):
     def test_actual_reader_fingerprints_cover_original_rows_without_ddl(self):
         import psycopg
+        from postgres.migrate import load_migrations
         dsn=os.environ['TRADEBOT_TEST_READER_DSN']
         with psycopg.connect(dsn,connect_timeout=5,options='-c default_transaction_read_only=on') as db:
             self.assertEqual(db.execute("SELECT current_user,current_setting('transaction_read_only')").fetchone(),
@@ -24,7 +25,7 @@ class ForwardPreservationSQL(unittest.TestCase):
                 _json=staticmethod(json.loads)
                 def _reader_sql(self,budget,query):return json.dumps(db.execute(query).fetchone()[0])
             state=f.database_state(ReaderActions(),None)
-            self.assertEqual(state['versions'],[1,2,3,4])
+            self.assertEqual(state['versions'], [item.version for item in load_migrations()])
             self.assertIn('raw_cutoff',state)
             before=f.preserved_state(ReaderActions(),None,through,cutoff)
             self.assertEqual(before,f.preserved_state(ReaderActions(),None,through,cutoff))

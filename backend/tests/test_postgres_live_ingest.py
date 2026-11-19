@@ -8,7 +8,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.live_ingest import coinbase_candle_cycle, coinbase_session, polymarket_cycle
-from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
+from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure, SourceTransportFailure
 from postgres.store import StorageHold
 
 
@@ -107,17 +107,33 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
             await polymarket_cycle(store, None, asyncio.Event(), discover=discover, fetch=fetch)
         self.assertEqual([e['event_id'] for e in store.events], ['market'])
 
-    async def test_discovery_http_status_and_missing_market_are_distinct(self):
+    async def test_transient_discovery_waits_for_next_cycle_without_writes(self):
         store = FakeStore()
-        async def missing(*_):
-            return None
-        self.assertIsNone(await polymarket_cycle(store, None, asyncio.Event(), discover=missing))
-        async def rejected(*_):
-            raise SourceHTTPFailure(503, 'private-response-body')
-        with self.assertRaises(LiveDiagnostic) as caught:
-            await polymarket_cycle(store, None, asyncio.Event(), discover=rejected)
-        self.assertEqual(caught.exception.code, 'polymarket_discovery.http_5xx')
-        self.assertNotIn('private', str(caught.exception))
+        for error in [SourceHTTPFailure(status, 'private-response')
+                      for status in (404, 429, 500, 503)] + [
+                SourceTransportFailure(timeout=timeout, message='private-transport')
+                for timeout in (True, False)]:
+            async def unavailable(*_):
+                raise error
+            async def fetch(*_):
+                self.fail('no quote fetch without a discovered current market')
+            with self.subTest(error=error.category), self.assertLogs('postgres.live_ingest') as logs:
+                self.assertIsNone(await polymarket_cycle(store, None, asyncio.Event(),
+                                                        discover=unavailable, fetch=fetch))
+            self.assertNotIn('private', str(logs.output))
+            self.assertEqual(store.events, [])
+
+    async def test_discovery_auth_and_invalid_data_remain_fatal(self):
+        for error in (SourceHTTPFailure(401, 'private'), SourceHTTPFailure(403, 'private'),
+                      ValueError('ambiguous active market'), ValueError('pagination limit')):
+            store = FakeStore()
+            async def rejected(*_):
+                raise error
+            with self.subTest(error=type(error)), self.assertRaises(LiveDiagnostic) as caught:
+                await polymarket_cycle(store, None, asyncio.Event(), discover=rejected)
+            self.assertTrue(caught.exception.code.startswith('polymarket_discovery.'))
+            self.assertNotIn('private', str(caught.exception))
+            self.assertEqual(store.events, [])
 
     async def test_coinbase_backpressure_and_stop(self):
         store, stop = FakeStore(), asyncio.Event()

@@ -5,10 +5,11 @@ import os
 import signal
 from threading import Event
 
+from .cloud_runtime_profile import selected_cloud_origin,cloud_files,storage_paths
 from .archive_codec import ArchiveError, ArchiveLimit, ArchiveLimits, ArchiveUnavailable, CycleBudget
 from .archive_transport import ScopedArchiveTransport
 from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
-from .pp_raw_archive_probe import FILES, OFF_FLAGS, ORIGIN
+from .pp_raw_archive_probe import OFF_FLAGS, ORIGIN
 from .pp_structured_probe import LOCAL_DSN, private_dsn
 
 
@@ -26,6 +27,7 @@ class RawWorker(ArchiveWorker):
 
 
 def cycle(repository, raw, origin=ORIGIN):
+    # The HTTP entrypoint validates the exact cloud origin before credentials.
     with CycleBudget(LIMITS) as budget, repository.raw_archive_lock(origin):
         with repository.transaction() as connection:
             row = connection.execute("""SELECT generation_id,seal_count FROM archive.generations
@@ -58,11 +60,11 @@ def cycle(repository, raw, origin=ORIGIN):
                 'generation_id': generation, 'retirement': 'off'}
 
 
-def serve(repository, raw, stopped):
+def serve(repository, raw, stopped, *, origin=ORIGIN):
     delay = 1
     while not stopped.is_set():
         try:
-            result = cycle(repository, raw)
+            result = cycle(repository, raw,origin=origin)
             delay = 5 if result['status'] == 'idle' else 0.1
         except (ArchiveUnavailable, LifecycleHold) as error:
             result = {'status': 'waiting', 'reason': error.code}
@@ -79,9 +81,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--execute', action='store_true')
     args = parser.parse_args(argv)
-    required = {name: FILES[name] for name in FILES if 'HISTORY' not in name}
+    try:
+        origin=selected_cloud_origin(os.environ)
+        files=cloud_files(origin)
+    except ValueError:
+        return 1
+    required = {name: files[name] for name in files if 'HISTORY' not in name}
     required.update(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
-                    TRADEBOT_ORIGIN_ID=ORIGIN, TRADEBOT_PP_SEALED_ARCHIVE='true')
+                    TRADEBOT_ORIGIN_ID=origin, TRADEBOT_PP_SEALED_ARCHIVE='true')
     if (not args.execute or any(os.getenv(k) != v for k, v in required.items())
             or os.getenv('TRADEBOT_DATABASE_DSN') or
             any(os.getenv(flag, 'false').lower() not in ('false', 'off', '0') for flag in OFF_FLAGS)):
@@ -99,12 +106,10 @@ def main(argv=None):
             if connection.execute('SELECT current_user AS role').fetchone()['role'] != 'tradebot_lifecycle':
                 raise LifecycleHold('wrong database role')
             validate_schema(connection, 'preprod')
-        raw = SupabaseStorageTransport.from_machine_files(*(
-            FILES['TRADEBOT_PP_STORAGE_' + name + '_FILE']
-            for name in ('API_KEY', 'AUTH_EMAIL', 'AUTH_PASSWORD', 'AUTH_UID')))
+        raw = SupabaseStorageTransport.from_machine_files(*storage_paths(files),origin_id=origin)
         try:
             print(json.dumps({'status': 'sealed_archive_worker_ready'}), flush=True)
-            return serve(LifecycleRepository(factory), raw, stopped)
+            return serve(LifecycleRepository(factory), raw, stopped,origin=origin)
         finally:
             raw.close()
     except Exception as error:

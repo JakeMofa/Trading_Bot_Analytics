@@ -1,0 +1,64 @@
+# Opt-in PP archive worker. The controller stages the local lifecycle DSN during launch.
+services:
+  sealed_archive:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    profiles: [trial_sealed_archive]
+    command: [python, -m, postgres.pp_sealed_archive, --execute]
+    user: '0:0'
+    restart: 'no'
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: /app/backend
+      TRADEBOT_ENVIRONMENT: preprod
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-01
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
+      TRADEBOT_COLLECTOR_ENABLED: 'false'
+      TRADEBOT_CLOUD_ENABLED: 'false'
+      TRADEBOT_RETIREMENT_ENABLED: 'false'
+      ENABLE_SUPABASE_SYNC: 'false'
+      ENABLE_LOCAL_RETENTION: 'false'
+      ENABLE_OPENAI_ANALYST: 'false'
+      TRADEBOT_PP_SEALED_ARCHIVE: 'true'
+      TRADEBOT_PP_WINDOW_POLICY: two-official-markets-cycle
+      TRADEBOT_PP_CYCLE_INITIAL_A: ${TRADEBOT_PP_CYCLE_INITIAL_A:?trial anchor required}
+      TRADEBOT_PP_STORAGE_API_KEY_FILE: /run/secrets/trial_archive_api_key
+      TRADEBOT_PP_STORAGE_AUTH_EMAIL_FILE: /run/secrets/trial_archive_email
+      TRADEBOT_PP_STORAGE_AUTH_PASSWORD_FILE: /run/secrets/trial_archive_password
+      TRADEBOT_PP_STORAGE_AUTH_UID_FILE: /run/secrets/trial_archive_uid
+    secrets:
+      - {source: probe_local_dsn, target: /run/secrets/lifecycle_dsn}
+      - trial_archive_api_key
+      - trial_archive_email
+      - trial_archive_password
+      - trial_archive_uid
+    networks: [database, raw_archive_probe_egress]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+secrets:
+  probe_local_dsn:
+    file: /run/tradebot-pp-deploy/probe-local-dsn
+  trial_archive_api_key:
+    file: /etc/tradebot/cloud/trial_20261119_01_archive_api_key
+  trial_archive_email:
+    file: /etc/tradebot/cloud/trial_20261119_01_archive_email
+  trial_archive_password:
+    file: /etc/tradebot/cloud/trial_20261119_01_archive_password
+  trial_archive_uid:
+    file: /etc/tradebot/cloud/trial_20261119_01_archive_uid
+networks:
+  raw_archive_probe_egress:
+    driver: bridge

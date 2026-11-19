@@ -1,0 +1,92 @@
+{
+  "scope": "offline_two_generation_capture_parity_only",
+  "result": "PASS",
+  "source_sha": "d2ca040bb11b70c1a809e6b056ca7ebb1c6c8d05",
+  "bundle_sha256": "ce1ccbb2e0c7ceca28d98fe0e70a9f8d8809164e6dc57cd55015b04181137e7a",
+  "windows": [
+    {
+      "origin_id": "generated-lifecycle-unit",
+      "generation_id": "00000000-0000-0000-0000-000000000001",
+      "phases": {
+        "collecting": {
+          "input_count": 3,
+          "feature_count": 1,
+          "forecast_count": 1,
+          "label_count": 1,
+          "research_sha256": "9c6c88128a97ec75bf983055167ddf1244a0e3e0051061f8ff815e0bc834727d",
+          "capture_sha256": "3a55b4fac41e7a4f519cf5b83280275cb5b68650acf1e5cd010f1b07ddd09d01",
+          "chart_status": "missing",
+          "context_status": "unsupported"
+        },
+        "sealed": {
+          "input_count": 3,
+          "feature_count": 1,
+          "forecast_count": 1,
+          "label_count": 1,
+          "research_sha256": "9c6c88128a97ec75bf983055167ddf1244a0e3e0051061f8ff815e0bc834727d",
+          "capture_sha256": "e6a90aac249fff6e6523e98d5bb83cb633514b69054d814a48e44702bbfe31b3",
+          "chart_status": "missing",
+          "context_status": "unsupported"
+        },
+        "retired": {
+          "input_count": 3,
+          "feature_count": 1,
+          "forecast_count": 1,
+          "label_count": 1,
+          "research_sha256": "9c6c88128a97ec75bf983055167ddf1244a0e3e0051061f8ff815e0bc834727d",
+          "capture_sha256": "24415ae07fead03379585ef11e92814d504db1db9de30fab50c930cd9ce4ab67",
+          "chart_status": "missing",
+          "context_status": "unsupported"
+        }
+      }
+    },
+    {
+      "origin_id": "generated-lifecycle-unit",
+      "generation_id": "00000000-0000-0000-0000-000000000002",
+      "phases": {
+        "collecting": {
+          "input_count": 3,
+          "feature_count": 1,
+          "forecast_count": 1,
+          "label_count": 1,
+          "research_sha256": "371c7b49780a390e1b55bff8d40888950d55ef61ded86a3b56b64c68f67e8589",
+          "capture_sha256": "55e99d9082299a9ce8ba54772b505317a244e5ec55460ff6edb9f499581916fb",
+          "chart_status": "missing",
+          "context_status": "unsupported"
+        },
+        "sealed": {
+          "input_count": 3,
+          "feature_count": 1,
+          "forecast_count": 1,
+          "label_count": 1,
+          "research_sha256": "371c7b49780a390e1b55bff8d40888950d55ef61ded86a3b56b64c68f67e8589",
+          "capture_sha256": "3d173fa79f115198405ad000bafccd0c0984dca01ac5d73f764545341d7644ad",
+          "chart_status": "missing",
+          "context_status": "unsupported"
+        },
+        "retired": {
+          "input_count": 3,
+          "feature_count": 1,
+          "forecast_count": 1,
+          "label_count": 1,
+          "research_sha256": "371c7b49780a390e1b55bff8d40888950d55ef61ded86a3b56b64c68f67e8589",
+          "capture_sha256": "fa92958210f2e37e4db9d50b945bd618cc0ffb130e2e5f13a62ab0c1a6b9e4fd",
+          "chart_status": "missing",
+          "context_status": "unsupported"
+        }
+      }
+    }
+  ],
+  "failures": [],
+  "missing_evidence": [],
+  "not_proven": [
+    "capture authenticity or receipt verification",
+    "real partition retirement or deadline",
+    "whole-market coverage",
+    "feature or forecast recomputation",
+    "historical chart availability (chart route selects current market)",
+    "historical outcome API support (context route is unsupported)",
+    "multi-generation window merge",
+    "live two-generation qualification"
+  ]
+}

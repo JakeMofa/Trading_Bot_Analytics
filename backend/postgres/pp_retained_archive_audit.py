@@ -1,4 +1,4 @@
-"""Finite read-only proof of retained PP A; never retirement qualification.
+"""Finite read-only proof of retained PP archives; never retirement qualification.
 
 This intentionally does not call verify()/bind_seal_window(): an expired seal is
 reported as expired, never moved. A later audit can measure the same workload
@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import json
 import os
+import re
+import uuid
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, CycleBudget
 from .history_v2_envelope import CLOUD_COLUMNS
@@ -40,9 +42,16 @@ class AuditTarget:
     raw_objects: int
     structured_pages: int
     original_deadline_utc: str
+    historical_off: bool = False
 
     def validate(self):
-        Target(self.sealed,self.collecting,self.seal_hash,self.count).validate()
+        if self.historical_off:
+            if (str(uuid.UUID(self.sealed)) != self.sealed or self.collecting != self.sealed
+                    or not re.fullmatch('[0-9a-f]{64}', self.seal_hash)
+                    or type(self.count) is not int or self.count < 1):
+                raise LifecycleHold('exact historical OFF writer and seal required')
+        else:
+            Target(self.sealed,self.collecting,self.seal_hash,self.count).validate()
         deadline=datetime.fromisoformat(self.original_deadline_utc)
         if deadline.tzinfo is None or deadline.astimezone(timezone.utc).isoformat() != self.original_deadline_utc:
             raise LifecycleHold('exact original UTC seal deadline required')
@@ -121,13 +130,18 @@ def audit(factory,transport,target):
             generation=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s AND generation_id=%s',
                 (ORIGIN,target.sealed)).fetchone()
             manifests=LifecycleRepository._manifests(db,target.sealed)
-            if (not generation or generation['slot'] != 'A' or generation['seal_count'] != target.count
+            slot = 'B' if target.historical_off else 'A'
+            if (not generation or generation['slot'] != slot or generation['seal_count'] != target.count
                     or generation['seal_hash'] != target.seal_hash or not bound_catalog(generation,manifests)
                     or len(manifests) != target.raw_objects):
-                raise LifecycleHold('reviewed retained A seal or catalog changed')
-            active=db.execute('SELECT generation_id FROM ops.writer_state WHERE origin_id=%s',(ORIGIN,)).fetchone()
+                raise LifecycleHold('reviewed retained seal or catalog changed')
+            active=db.execute('''SELECT generation_id,collector_enabled,collector_session_id,
+                collector_lease_expires_at FROM ops.writer_state WHERE origin_id=%s''',(ORIGIN,)).fetchone()
             if not active or str(active['generation_id']) != target.collecting:
-                raise LifecycleHold('reviewed opposite generation changed')
+                raise LifecycleHold('reviewed writer generation changed')
+            if target.historical_off and (active['collector_enabled'] or active['collector_session_id'] is not None
+                    or active['collector_lease_expires_at'] is not None):
+                raise LifecycleHold('reviewed historical writer is not durably OFF')
             actual=db.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                 (target.sealed,)).fetchone()['count']
             if actual != target.count:
@@ -160,7 +174,8 @@ def audit(factory,transport,target):
         'structured_role':transport.structured.expected_role,
         'structured_transactions':'repeatable_read_read_only',
         'latest_receipt_lookup':'indexed_tie_safe_lateral' if transport.structured.indexed_latest else 'rank',
-        'sealed':target.sealed,'opposite':target.collecting,'inventory':estimate,**readback}
+        'sealed':target.sealed,'opposite':None if target.historical_off else target.collecting,
+        'historical_off':target.historical_off,'inventory':estimate,**readback}
 
 
 def check_environment(environ):
@@ -180,11 +195,14 @@ def main():
     for name in ('sealed','collecting','seal-hash','original-deadline-utc'): parser.add_argument('--'+name,required=True)
     for name in ('count','structured-rows','raw-objects','structured-pages'):
         parser.add_argument('--'+name,type=int,required=True)
+    parser.add_argument('--historical-off', action='store_true',
+                        help='audit the exact historical sealed B whose writer pointer stays OFF')
     args=parser.parse_args()
     raw=history=None
     try:
         target=AuditTarget(args.sealed,args.collecting,args.seal_hash,args.count,
-            args.structured_rows,args.raw_objects,args.structured_pages,args.original_deadline_utc)
+            args.structured_rows,args.raw_objects,args.structured_pages,args.original_deadline_utc,
+            historical_off=args.historical_off)
         target.validate()
         check_environment(os.environ)
         from .connection import connect

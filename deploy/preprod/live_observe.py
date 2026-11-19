@@ -14,6 +14,10 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
+LEGACY_ORIGIN = 'pp-live-pp'
+TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
+ORIGINS = (LEGACY_ORIGIN, TRIAL_ORIGIN)
+
 INTERVAL = 5
 CHECK_INTERVAL = 60
 TIMEOUT = 2
@@ -133,7 +137,7 @@ def sample_once(api, now=None):
     return sample
 
 
-def contract_check(api):
+def contract_check(api, *, origin=LEGACY_ORIGIN):
     check = {"at": utcnow().isoformat(), "error": None}
     try:
         dashboard, dashboard_latency = api.get("/dashboard")
@@ -147,7 +151,7 @@ def contract_check(api):
             "chart_ok": isinstance(chart.get("points"), list) and bool(chart["points"]),
             "sse_ok": frame.get("environment") == "preprod"
                       and frame.get("data_mode") == "pp_live"
-                      and frame.get("origin_id") == "pp-live-pp",
+                      and frame.get("origin_id") == origin,
             "dashboard_latency_ms": round(dashboard_latency * 1000, 3),
             "history_latency_ms": round(predictions_latency * 1000, 3),
             "chart_latency_ms": round(chart_latency * 1000, 3),
@@ -158,12 +162,12 @@ def contract_check(api):
     return check
 
 
-def evaluate(samples, checks, elapsed):
+def evaluate(samples, checks, elapsed, *, origin=LEGACY_ORIGIN):
     errors = [row for row in samples if row.get("error")]
     live = [row for row in samples if not row.get("error")
             and row.get("environment") == "preprod"
             and row.get("data_mode") == "pp_live"
-            and row.get("origin_id") == "pp-live-pp"]
+            and row.get("origin_id") == origin]
     after_warmup = [row for row in live if (iso(row["at"]) - iso(samples[0]["at"])).total_seconds() >= 60] if samples else []
     market_ids = list(dict.fromkeys(row.get("market_id") for row in live if row.get("market_id")))
     first_end = iso(next((row.get("market_end") for row in live if row.get("market_id") == (market_ids[0] if market_ids else None)), None))
@@ -223,7 +227,7 @@ def evaluate(samples, checks, elapsed):
             incomplete.append(key + "_not_demonstrated")
     status = "FAIL" if concrete_failures else "INCOMPLETE" if incomplete else "PASS"
     return {
-        "result": status, "scope": "pp_live_private_api_observation",
+        "result": status, "scope": "pp_live_private_api_observation", "origin_id": origin,
         "elapsed_seconds": round(elapsed, 3), "samples": len(samples),
         "api_errors": len(errors), "max_api_latency_ms": max_latency,
         "market_ids": market_ids, "real_boundary": bool(boundary),
@@ -240,8 +244,11 @@ def evaluate(samples, checks, elapsed):
     }
 
 
-def observe(api, seconds, *, clock=time.monotonic, sleeper=time.sleep):
-    if not 1 <= seconds <= 4560:
+def observe(api, seconds, *, origin=LEGACY_ORIGIN, clock=time.monotonic, sleeper=time.sleep):
+    if origin not in ORIGINS:
+        raise ValueError("exact PP origin required")
+    cap = 6600 if origin == TRIAL_ORIGIN else 4560
+    if not 1 <= seconds <= cap:
         raise ValueError("observation duration must fit one bounded session")
     start = clock()
     samples, checks = [], []
@@ -255,19 +262,20 @@ def observe(api, seconds, *, clock=time.monotonic, sleeper=time.sleep):
         samples.append(sample_once(api))
         next_sample += INTERVAL
         if now >= next_check:
-            checks.append(contract_check(api))
+            checks.append(contract_check(api, origin=origin))
             next_check += CHECK_INTERVAL
-    return samples, checks, evaluate(samples, checks, clock() - start)
+    return samples, checks, evaluate(samples, checks, clock() - start, origin=origin)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base-url", required=True, help="Caller-supplied loopback SSH tunnel, e.g. http://127.0.0.1:18000")
-    parser.add_argument("--seconds", type=int, default=1500, help="1-4560; PASS requires >=1200")
+    parser.add_argument("--origin", choices=ORIGINS, default=LEGACY_ORIGIN)
+    parser.add_argument("--seconds", type=int, default=1500, help="1-4560 for legacy, 1-6600 for the exact trial")
     parser.add_argument("--output", type=Path, required=True, help="Local sanitized JSON report")
     args = parser.parse_args()
     api = PrivateAPI(args.base_url)
-    samples, checks, summary = observe(api, args.seconds)
+    samples, checks, summary = observe(api, args.seconds, origin=args.origin)
     report = {"summary": summary, "samples": samples, "checks": checks}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("x") as stream:

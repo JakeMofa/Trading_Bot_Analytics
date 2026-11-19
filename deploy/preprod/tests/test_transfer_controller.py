@@ -38,7 +38,13 @@ class TransferControls(unittest.TestCase):
         spec.loader.exec_module(builder)
         bundle_path = Path(cls.bundle_folder.name) / 'controller.pyz'
         builder.build(bundle_path)
-        cls.valid_bundle = bundle_path.read_bytes()
+        # Historical transfer keeps its exact ten-member boundary. New child
+        # modules belong to the current installer, not this generated fixture.
+        legacy=io.BytesIO()
+        with zipfile.ZipFile(bundle_path) as source,zipfile.ZipFile(legacy,'w') as target:
+            for info in source.infolist():
+                if info.filename in transfer.ZIP_MEMBERS:target.writestr(info,source.read(info.filename))
+        cls.valid_bundle=legacy.getvalue()
 
     @classmethod
     def tearDownClass(cls):

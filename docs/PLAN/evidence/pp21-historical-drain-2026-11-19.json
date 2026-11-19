@@ -1,0 +1,41 @@
+{
+  "fresh_trial_started": false,
+  "historical_a": {
+    "cloud_bytes": 3623081,
+    "generation": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+    "raw_rows": 28411,
+    "structured_receipts": 31162,
+    "structured_revisions": 31162,
+    "verified_objects": 57
+  },
+  "historical_b": {
+    "cloud_bytes": 1260310,
+    "generation": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+    "raw_rows": 9784,
+    "readback": {
+      "bytes": 19667952,
+      "objects_read": 20,
+      "operation_deadline_met": true,
+      "outer_elapsed_seconds": 82.914,
+      "raw_count": 9784,
+      "requests": 44,
+      "retained_independent_postcondition": true,
+      "status": "retained_archive_audit_verified",
+      "structured_count": 10971
+    },
+    "sealed_at_utc": "2026-11-19T20:44:05.13447+00:00",
+    "structured_receipts": 10971,
+    "structured_revisions": 10971,
+    "verified_at_utc": "2026-11-19T20:45:17.216447+00:00",
+    "verified_objects": 20,
+    "worker_and_preservation_wall_seconds": 47.6
+  },
+  "local_deletion_performed": false,
+  "pending_structured_rows": 0,
+  "pp21_source": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+  "raw_and_outbox_fingerprints_unchanged": true,
+  "scope": "historical_preprod_archive_only",
+  "seal_source": "c215d4b25e5d8f69b9bb8f09a8beb5597551c111",
+  "seal_source_ci": 44610742055,
+  "writer_off": true
+}

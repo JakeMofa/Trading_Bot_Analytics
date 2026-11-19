@@ -13,6 +13,7 @@ import time
 from .active_structured import ActiveStructuredWorker, SealedStructuredWorker, PP_STRUCTURED_ORIGIN
 from .archive_codec import ArchiveLimit, ArchiveLimits
 from .lifecycle import LifecycleHold
+from .cloud_origin_binding import TRIAL_ORIGIN
 
 
 @dataclass(frozen=True)
@@ -40,13 +41,16 @@ class DrainLimits:
 
 
 def drain_bounded(repository, transport_factory, *, execute=False,
-                  limits=DrainLimits(), clock=time.monotonic, sleep=time.sleep):
+                  limits=DrainLimits(), clock=time.monotonic, sleep=time.sleep, origin_id=None):
     """Drain sealed A before collecting B, under finite independent budgets.
 
     Each selected generation is rechecked inside the origin-wide advisory lock
     by its worker. Its local ACK occurs only after authenticated cloud readback.
     A failure propagates; callers must reconcile cloud receipts and local ACKs.
     """
+    origin = PP_STRUCTURED_ORIGIN if origin_id is None else origin_id
+    if origin not in (PP_STRUCTURED_ORIGIN,TRIAL_ORIGIN):
+        raise LifecycleHold('exact reviewed PP structured drain origin required')
     if execute is not True:
         raise LifecycleHold('explicit PP structured drain execution required')
     if repository.pending_outbox_limit != 10_000:
@@ -56,7 +60,7 @@ def drain_bounded(repository, transport_factory, *, execute=False,
     while cycles < limits.max_cycles and rows_done < limits.max_rows:
         if deadline - clock() < 10:
             break
-        pending = repository.structured_pending_generations(PP_STRUCTURED_ORIGIN)
+        pending = repository.structured_pending_generations(origin)
         if not pending:
             return {'status': 'drained', 'acknowledged': rows_done,
                     'cycles': cycles, 'cloud_operations': operations,
@@ -87,7 +91,7 @@ def drain_bounded(repository, transport_factory, *, execute=False,
         # it performs no network I/O and passes this budget to any connection.
         worker = worker_type(repository, transport_factory(
             generation, timeout_seconds=cycle_seconds),
-                             origin_id=PP_STRUCTURED_ORIGIN, limits=cycle_limits)
+                             origin_id=origin, limits=cycle_limits)
         result = worker.cycle(generation)
         if result.get('status') == 'idle':
             # Selection precedes the worker's origin lock. Another worker may

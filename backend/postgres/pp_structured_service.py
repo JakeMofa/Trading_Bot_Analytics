@@ -5,6 +5,8 @@ import signal
 import threading
 import time
 
+from .cloud_origin_binding import cloud_binding
+from .cloud_runtime_profile import selected_cloud_origin,cloud_files,require_trial_files
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable
 from .connection import connect
 from .history_v2_transport import HistoryV2PostgresTransport
@@ -57,7 +59,10 @@ def main():
     remote = None
     reuse = False
     try:
-        check_environment(os.environ, recurring=True)
+        origin=selected_cloud_origin(os.environ)
+        check_environment(os.environ, recurring=True,origin_id=origin)
+        require_trial_files(os.environ,origin,structured=True)
+        files=cloud_files(origin)
         reuse = session_reuse_requested(os.environ)
         dsn = private_dsn(LOCAL_DSN)
 
@@ -70,17 +75,20 @@ def main():
             validate_schema(conn, 'preprod')
         repo = LifecycleRepository(local, environment='preprod', pending_outbox_limit=MAX_PENDING)
         capture = retain_revisions(os.environ)
-        remote = (ReusablePPHistoryConnectionFactory() if reuse
-                  else PPHistoryConnectionFactory())
+        factory_type=ReusablePPHistoryConnectionFactory if reuse else PPHistoryConnectionFactory
+        if origin==ORIGIN:
+            remote=factory_type()
+        else:
+            remote=factory_type(files['TRADEBOT_PP_HISTORY_DSN_FILE'],files['TRADEBOT_PP_HISTORY_CA_FILE'],origin_id=origin)
 
         def transport(generation, *, timeout_seconds):
-            return HistoryV2PostgresTransport(remote, origin_id=ORIGIN,
+            return HistoryV2PostgresTransport(remote, origin_id=origin,
                 generation_id=generation, expected_database='postgres',
-                expected_role='tradebot_pp_history', retain_revisions=capture)
+                expected_role=cloud_binding(origin).writer_role, retain_revisions=capture)
 
         def page():
             return drain_bounded(repo, transport, execute=True,
-                                 limits=RECURRING_LIMITS)
+                                 limits=RECURRING_LIMITS,origin_id=origin)
 
         emit(dict(status='structured_worker_ready'))
         return supervise(page, stop, emit)

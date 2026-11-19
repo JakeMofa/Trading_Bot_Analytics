@@ -194,10 +194,10 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
 
     async def test_new_market_errors_stop_durably_with_sanitized_code(self):
         failures = (
-            ('discovery', SourceHTTPFailure(429, 'secret-provider-body'),
-             'polymarket_discovery.http_429'),
-            ('discovery', SourceTransportFailure(timeout=True, message='secret-url'),
-             'polymarket_discovery.timeout'),
+            ('discovery', SourceHTTPFailure(403, 'secret-provider-body'),
+             'polymarket_discovery.http_4xx'),
+            ('discovery', ValueError('secret-invalid-discovery'),
+             'polymarket_discovery.invalid_or_unavailable'),
             ('bbo', SourceHTTPFailure(403, 'secret-provider-body'), 'polymarket_bbo.http_4xx'),
             ('bbo', ValueError('secret-invalid-payload'), 'polymarket_bbo.invalid_or_unavailable'),
         )

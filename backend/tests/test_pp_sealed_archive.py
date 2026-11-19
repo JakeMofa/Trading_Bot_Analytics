@@ -18,7 +18,7 @@ class SealedFixture(MemoryRepository):
         self.count = count
 
     @contextmanager
-    def structured_sync_lock(self, origin):
+    def raw_archive_lock(self, origin):
         assert origin == archive.ORIGIN
         yield
 

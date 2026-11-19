@@ -26,7 +26,7 @@ class RawWorker(ArchiveWorker):
 
 
 def cycle(repository, raw, origin=ORIGIN):
-    with CycleBudget(LIMITS) as budget, repository.structured_sync_lock(origin):
+    with CycleBudget(LIMITS) as budget, repository.raw_archive_lock(origin):
         with repository.transaction() as connection:
             row = connection.execute("""SELECT generation_id,seal_count FROM archive.generations
                 WHERE origin_id=%s AND state='sealed' ORDER BY sealed_at,generation_id LIMIT 1""",

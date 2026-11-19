@@ -192,7 +192,10 @@ class ScopedArchivePostgresFlowTests(unittest.TestCase):
             worker = ArchiveWorker(repository,
                 ScopedArchiveTransport(raw, ImmutableMemoryTransport(),
                     origin_id=origin, generation_id=first_id), ArchiveLimits(max_rows=500))
-            result = pp_sealed_archive.cycle(repository, raw, origin=origin)
+            # A real structured worker may own its own sync lock during the
+            # archive. Raw I/O must not stop that worker or the B collector.
+            with repository.structured_sync_lock(origin):
+                result = pp_sealed_archive.cycle(repository, raw, origin=origin)
             self.assertEqual(result['status'], 'archived')
             with self.assertRaisesRegex(LifecycleHold, 'runtime retirement disabled'):
                 worker.retire_generated(first_id, qualification_enabled=True)

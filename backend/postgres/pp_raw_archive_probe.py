@@ -111,7 +111,7 @@ def archive_once(repository, transport, *, generation_id: str,
     pinned = PinnedRepository(repository, generation_id, expected_seal_count,
                               expected_manifest_count)
     with CycleBudget(LIMITS) as overall:
-        with repository.structured_sync_lock(ORIGIN):
+        with repository.raw_archive_lock(ORIGIN), repository.structured_sync_lock(ORIGIN):
             # No cloud call is made if the reviewed seal or progress changed.
             pinned.generation(generation_id)
             pinned.manifests(generation_id)

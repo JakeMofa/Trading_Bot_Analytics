@@ -1,5 +1,5 @@
 """Generated fail-closed checks for the unmounted PP raw archive entrypoint."""
-from contextlib import contextmanager, redirect_stdout
+from contextlib import contextmanager, nullcontext, redirect_stdout
 import io
 from pathlib import Path
 import sys
@@ -34,6 +34,9 @@ class FakeRepository:
     def structured_sync_lock(self, origin):
         self.calls.append(('lock', origin))
         yield
+
+    def raw_archive_lock(self, origin):
+        return nullcontext()
 
     def generation(self, generation_id):
         self.calls.append(('generation', generation_id))
@@ -117,6 +120,9 @@ class ProbeTests(unittest.TestCase):
 
     def test_progress_race_after_initial_review_stops_before_raw_upload(self):
         class RacingRepository(MemoryRepository):
+            def raw_archive_lock(self, origin):
+                return nullcontext()
+
             @contextmanager
             def structured_sync_lock(self, origin):
                 self.lock_origin = origin

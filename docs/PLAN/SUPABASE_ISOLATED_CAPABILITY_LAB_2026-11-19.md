@@ -162,7 +162,25 @@ ACK. The estimated old plan rescanned the selected generation through
 repeated joins. The replacement selects scoped rows once and applies the same
 byte and exactness checks. A hosted read-only test on the same 25 IDs took
 1.591 ms of database execution with the new query, and the old query hit
-its 3.5 s timeout. The full hosted write-to-ACK result is still open.
+its 3.5 s timeout.
+
+Exact-CI `a9e51dd` passed the entire real PP backlog with the collector off.
+All 4,888 pending rows completed durable write, fresh authenticated readback
+and local acknowledgement across 98 contiguous pages in 126.358883 seconds,
+or 38.68347 rows/sec. No errors or retries occurred. The retained generation
+had 5,241 raw rows, 5,651 total structured ACKs, and zero pending.
+
+| PP stage | Median | p95 |
+| --- | ---: | ---: |
+| Supabase write | 678 ms | 835 ms |
+| Fresh verified readback | 245 ms | 331 ms |
+| Local ACK | 96 ms | 145 ms |
+| Entire page | 1,153 ms | 1,395 ms |
+
+The longest page took 2.501 seconds. The real stopped backlog exceeds the
+14 rows/sec target. Sustained concurrent intake and the A/B/fresh-A trial
+remain separate. The release owner will archive and audit the stopped A
+before another live start. A remains attached.
 [Hosted query diagnosis in d9ab8d4](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d9ab8d4/docs/PLAN/evidence/pp22-sync-query-diagnosis-2026-11-19.json)
 
 ## Product scope and decisions

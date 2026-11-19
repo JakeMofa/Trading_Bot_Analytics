@@ -1,0 +1,250 @@
+{
+  "audit_date_utc": "2026-11-19",
+  "project": "TokenBot",
+  "project_ref": "xttdqeimdujweijxcuro",
+  "method": "Read-only dashboard UI metadata inspection; no project mutations, credential reveal/copy, channel subscription, deployment or paid feature activation.",
+  "ui_coverage": {
+    "database": [
+      "Schema Visualizer",
+      "Tables/public",
+      "Functions/public",
+      "Triggers/Data/public",
+      "Triggers/Event",
+      "Enumerated Types/public",
+      "Extensions",
+      "Indexes/public",
+      "Publications",
+      "Policies/public",
+      "Policies/history_v2",
+      "Migrations",
+      "Pipelines",
+      "Settings",
+      "Scheduled Backups",
+      "Roles"
+    ],
+    "storage": [
+      "Files/buckets",
+      "Policies",
+      "Analytics",
+      "Vectors",
+      "S3",
+      "URL Signing Keys/algorithm metadata only"
+    ],
+    "services": [
+      "Auth/Users",
+      "Auth/Providers",
+      "Auth/Sessions",
+      "Auth/Attack Protection",
+      "Auth/MFA",
+      "Auth/Rate Limits",
+      "Auth/URL Configuration",
+      "Edge Functions",
+      "Compute",
+      "Realtime Inspector"
+    ],
+    "observability": [
+      "Overview",
+      "Query Performance",
+      "API Gateway",
+      "Database Connections",
+      "Database",
+      "Data API",
+      "Auth",
+      "Storage",
+      "Realtime",
+      "Edge Functions",
+      "Unified Logs"
+    ],
+    "integrations": [
+      "Catalog",
+      "Cron overview",
+      "Queues overview",
+      "Database Webhooks overview",
+      "Data API overview/settings"
+    ],
+    "settings": [
+      "General",
+      "Infrastructure",
+      "Integrations",
+      "Log Drains",
+      "JWT Keys/algorithm metadata only"
+    ]
+  },
+  "metrics": {
+    "overview_last_24h": {
+      "cpu_percent": 2,
+      "memory_percent": 55,
+      "disk_percent": 21,
+      "io_balance_percent": 99,
+      "peak_connections": "8/60",
+      "database_error_percent": 9.1,
+      "gateway_warning_percent": 6.8,
+      "storage_warning_percent": 5.7
+    },
+    "database_last_60m": {
+      "memory_usage_mb": "395.83",
+      "memory_commitment_gb": "1.19",
+      "commitment_warning": "Severe",
+      "cpu_percent": "2.21",
+      "network_throughput_kb_s": "48.8"
+    },
+    "connections_instantaneous": {
+      "connections": "13/60",
+      "active_queries": 0,
+      "idle_in_transaction": 0,
+      "blocked_queries": 0
+    },
+    "gateway_last_60m": {
+      "requests": 56,
+      "response_errors": 4,
+      "response_speed_ms": "311.48",
+      "example_successful_raw_put_ms": "972.00",
+      "example_successful_raw_get_ms": "893.00",
+      "example_auth_token_average_ms": "834.00"
+    },
+    "storage_last_60m": {
+      "requests": 50,
+      "response_speed_ms": "225.8",
+      "ingress_mb": "0.6215"
+    },
+    "query_performance_cumulative": {
+      "slow_queries": 22,
+      "cache_hit_percent": "99.98",
+      "average_rows_per_call": "3.5",
+      "legacy_public_checkpoint_upsert": {
+        "calls": 30641,
+        "max_ms": 45,
+        "rounded_mean_ms": 0
+      },
+      "legacy_public_candle_upsert": {
+        "calls": 6923,
+        "max_ms": 38,
+        "mean_ms": 1
+      }
+    },
+    "limits": "Different time windows and cumulative query statistics are not interchangeable; browser audit traffic and deliberate permission tests may be present. Small example request samples do not establish PP-only production percentiles."
+  },
+  "exposure_security": {
+    "data_api": {
+      "schemas_exposed": "2/3",
+      "tables_exposed": "0/22",
+      "functions_exposed": "1/3",
+      "automatically_expose_new_tables": true,
+      "max_rows": 1000,
+      "extra_search_path": [
+        "public",
+        "extensions"
+      ],
+      "history_v2_exposed": false
+    },
+    "public_tables": {
+      "count": 10,
+      "rls_enabled": true,
+      "policies_visible": 0,
+      "realtime_enabled": false
+    },
+    "database": {
+      "ssl_enforcement": false,
+      "network_restrictions": "All IP addresses allowed",
+      "pool_size": 15,
+      "max_clients": 200,
+      "log_connections": false,
+      "log_disconnections": false,
+      "banned_ips": 0
+    },
+    "auth": {
+      "email_enabled": true,
+      "other_listed_providers_enabled": false,
+      "custom_providers": 0,
+      "allow_signup": true,
+      "confirm_email": true,
+      "anonymous_signin": false,
+      "manual_linking": false,
+      "single_session": false,
+      "session_timebox_hours": 0,
+      "inactivity_hours": 0,
+      "access_token_seconds": 3600,
+      "refresh_replay_detection": true,
+      "refresh_reuse_seconds": 10,
+      "captcha": false,
+      "leaked_password_prevention": false,
+      "totp": true,
+      "max_factors": 10,
+      "phone_mfa": false,
+      "aal1_duration_limit": true,
+      "signup_signin_per_5m_ip": 30,
+      "refresh_per_5m_ip": 150,
+      "verification_per_5m_ip": 30,
+      "site_url": "http://localhost:3000",
+      "redirect_urls": 0
+    },
+    "role_metadata": {
+      "custom_role_visible": "tradebot_pp_history",
+      "other_project_role": "postgres",
+      "role_detail_privileges_not_reaudited": true
+    },
+    "signing_metadata": {
+      "storage_algorithm": "HS512 (Shared secret)",
+      "storage_standby_keys": 0,
+      "jwt_current_algorithm": "HS256 (Shared Secret)",
+      "secret_values_inspected": false
+    }
+  },
+  "capacity_recovery": {
+    "region": "us-west-2",
+    "compute": "Nano",
+    "nano_memory_gb": "0.5",
+    "micro_ui_offer": "Free Upgrade; 1 GB RAM; same displayed $0.01344/hour as Nano",
+    "read_replicas": 0,
+    "database_mb": "117.2",
+    "wal_mb": "128",
+    "system_mb": "167.9",
+    "used_disk_gb": "0.40",
+    "provisioned_disk_gb": 2,
+    "spend_cap": true,
+    "first_autoscale_gb": 8,
+    "daily_physical_backups_visible": "2026-11-12 through 2026-11-18",
+    "storage_objects_in_database_backups": false,
+    "postgres_version": "17.11.0.003",
+    "upgrade_offered": "17.12.0.000"
+  },
+  "product_disposition": {
+    "installed_integrations": [
+      "Data API",
+      "Vault"
+    ],
+    "cron_queues_webhooks": "Not installed; install controls only inspected",
+    "pipelines": 0,
+    "edge_functions": 0,
+    "realtime_publication_tables": 0,
+    "analytics_vectors": "Empty create-bucket screens; private alpha warnings",
+    "compute_product": "Inaccessible private alpha; waitlist offered (distinct from Postgres compute sizing)",
+    "s3_protocol": true,
+    "s3_access_keys": 0,
+    "storage_buckets": [
+      "market-raw",
+      "knowledge",
+      "backups"
+    ],
+    "privatelink": "Team/Enterprise only; no connections",
+    "log_drains": "No configured drain visible; destination cards display Additional $60",
+    "dbt_stack_event_catalog_search": "No results; not proof these capabilities cannot be used externally"
+  },
+  "gaps": [
+    "Database IOPS, disk throughput, database/pooler connections and disk usage report panels failed to load; overview/capacity sources separately loaded.",
+    "Data API last-hour metrics showed no data and a refresh-delay notice.",
+    "No actual backup restore, raw object recovery, PITR test, privileged role detail review, key material or API-key page audit.",
+    "Auth OAuth apps/server/passkeys/hooks/email templates/audit/performance subpages not exhaustively audited.",
+    "Warning/error rates need expected-negative-test versus operational-failure classification.",
+    "Official documentation/changelog and live SQL/advisor evidence are separate parent investigations, not claimed as UI observations."
+  ],
+  "decision": "Keep existing local hot reads and explicit background Supabase history/raw retrieval. Profile actual PP connection reuse, statement count and upload/readback timings before changing architecture. No runtime/settings change or merge during pp17 freeze.",
+  "followups": [
+    "Review automatic Data API exposure and the one exposed function; preserve private history_v2 and role predicates.",
+    "Compatibility-review SSL enforcement and egress allowlisting; current OFF/all-IP facts do not imply missing authentication.",
+    "Review signup, abuse controls, machine-token renewal and credential rotation separately from history throughput.",
+    "Investigate memory commitment and the displayed same-price Micro option; do not claim it fixes network latency.",
+    "Reconcile separate raw-object backup/recovery proof with the immutable archive contract.",
+    "Record PP phase latency, rows/bytes per page, requests, reconnects, retries and receipt/hash correctness before/after any optimization; keep all existing deadlines and retirement gates."
+  ]
+}

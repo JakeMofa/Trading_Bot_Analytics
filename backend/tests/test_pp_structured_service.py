@@ -13,6 +13,23 @@ import postgres.pp_structured_service as service
 
 
 class StructuredServiceTests(unittest.TestCase):
+    def test_opt_in_reuse_selects_single_session_and_closes_on_stop(self):
+        with (patch.dict(service.os.environ, {'TRADEBOT_PP_REUSE_HISTORY_SESSION':'true'}),
+              patch.object(service.signal, 'signal'),
+              patch.object(service, 'check_environment'),
+              patch.object(service, 'private_dsn'),
+              patch.object(service, 'connect') as connection,
+              patch.object(service, 'validate_schema'),
+              patch.object(service, 'LifecycleRepository'),
+              patch.object(service, 'PPHistoryConnectionFactory') as cold,
+              patch.object(service, 'ReusablePPHistoryConnectionFactory') as reused,
+              patch.object(service, 'supervise', return_value=0)):
+            connection.return_value.__enter__.return_value.execute.return_value.fetchone.return_value = {'login':'tradebot_lifecycle'}
+            self.assertEqual(service.main(), 0)
+            cold.assert_not_called()
+            reused.assert_called_once_with()
+            reused.return_value.close.assert_called_once_with()
+
     def test_recurring_runtime_binds_explicit_capture_without_raising_other_flags(self):
         for enabled in ('true', 'false'):
             with (self.subTest(enabled=enabled),

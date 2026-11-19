@@ -101,6 +101,19 @@ class PPLivePipelineTests(unittest.TestCase):
                 with self.assertRaises(module.pipeline.PipelineHold):
                     module.validated_result(operation, {**expected, 'collector_enabled': not enabled})
 
+    def test_dispatch_operation_choices_are_all_literal_strings(self):
+        # YAML 1.1 treats a bare on/off as a boolean. GitHub rejected the
+        # resulting operator choice at dispatch, before creating any job.
+        from pathlib import Path
+        import re
+        import ast
+        workflow = (Path(__file__).resolve().parent.parent /
+                    'workflows/pp-live-control.yml').read_text()
+        section = workflow.split('      operation:', 1)[1].split('      source_branch:', 1)[0]
+        choices = re.search(r'^        options: (.+)$', section, re.MULTILINE)
+        self.assertIsNotNone(choices)
+        self.assertEqual(ast.literal_eval(choices.group(1)), ['enter', 'leave', 'on', 'off'])
+
     def test_workflow_uses_private_runner_and_shared_pp_concurrency(self):
         text = (HERE.parent/'workflows/pp-live-control.yml').read_text()
         self.assertIn('group: tradebot-preprod', text)

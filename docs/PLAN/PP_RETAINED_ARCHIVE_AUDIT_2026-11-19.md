@@ -110,9 +110,11 @@ reject before raw GETs. A direct mutation attempt inside the local snapshot is
 rejected by PostgreSQL READ ONLY. These are correctness controls, not a hosted
 57-object/63-page performance result; that exact replay remains unexecuted.
 
-Source validation: 382 backend tests passed (48 isolated/external DSN skips);
-all 15 history transport tests passed in a disposable native PG17 cluster using
-CI-style `backend.tests.test_history_v2_transport_pg` package invocation. The
-cluster was stopped and removed. No hosted data, operator credentials or live
-host were accessed. The audit scope/role/default-OFF unit cases also passed
-separately after the original-deadline binding was added.
+Integrated source validation on preprod `2d706a7`: **383 backend tests run,
+334 passed and 49 explicit isolated/external DSN skips**. All **16 native
+history transport/inventory tests passed** in a disposable official-foundation
+PG17 cluster using CI-style package invocation. The reader used distinct
+generated SCRAM authentication through the supplied reader DSN, not a changed
+admin username/password. The cluster was stopped and removed. No hosted data,
+operator credentials or live host were accessed. The exact 57-object/63-page
+hosted replay remains a separate, unexecuted qualification.

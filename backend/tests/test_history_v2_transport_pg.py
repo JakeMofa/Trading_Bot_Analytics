@@ -710,7 +710,6 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         import psycopg
         from psycopg.rows import dict_row
         from psycopg.types.json import Jsonb
-        from psycopg.conninfo import make_conninfo
         from postgres.archive_codec import ArchiveLimits, encoded
         from postgres.lifecycle import ArchiveWorker
         from postgres.pp_retirement_verify import RetirementTransport
@@ -747,7 +746,7 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         generation=repo.generation(a)
         target=candidate.AuditTarget(a,b,generation['seal_hash'],1,1,1,1,
             (generation['sealed_at']+timedelta(minutes=30)).isoformat())
-        reader_dsn=make_conninfo(DSN,user='tradebot_reader')
+        reader_dsn=os.environ['TRADEBOT_TEST_READER_DSN']
         reader=lambda:connect(reader_dsn,environment='preprod',readonly=True)
         scoped=RetirementTransport(raw,remote,origin_id=origin,generation_id=a)
         with patch.object(candidate,'ORIGIN',origin):

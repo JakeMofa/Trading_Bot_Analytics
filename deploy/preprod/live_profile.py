@@ -16,10 +16,11 @@ from controller import require
 LIVE_ORIGIN = 'pp-live-pp'
 
 
-def validate_live_profile(base: dict, live: dict, source, image, *, reader=False, initial_a=None, trial_origin=None):
+def validate_live_profile(base: dict, live: dict, source, image, *, reader=False, initial_a=None, trial_origin=None, trial_reader=False):
     validate_config(base, source, image)
     origin=live_origin(trial_origin)
     require(not (trial_origin and reader),'trial_reader_requires_independent_profile')
+    require(not trial_reader or (trial_origin is not None and not reader),'trial_reader_requires_exact_scope')
     expected = deepcopy(base)
     for name in ('api', 'calculation', 'lifecycle'):
         expected['services'][name]['environment'].update(
@@ -45,5 +46,12 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
         for name in HISTORY_READER_FILES:
             expected['secrets'][name] = {'name': expected['name']+'_'+name, 'file':str(RUNTIME_SECRETS/name)}
             api['secrets'].append({'source':name, 'target':('/run/secrets/' if target.startswith('/') else '')+name})
+    if trial_reader:
+        from trial_history_reader import TRIAL_HISTORY_READER_FILES
+        api=expected['services']['api']
+        api['environment']['TRADEBOT_PP_ARCHIVE_HISTORY']='true'
+        for name in TRIAL_HISTORY_READER_FILES:
+            expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(RUNTIME_SECRETS/name)}
+            api['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
     require(live == expected, 'unreviewed_pp_live_profile_difference')
     return live

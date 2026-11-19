@@ -23,16 +23,20 @@ class LiveTransition:
         self.origin=live_origin(trial_origin)
         self.cycle = cycle_environment(initial_a,trial_origin)
 
-    def _compose_live(self, args, *, timeout=60):
+    def _compose_live(self, args, *, timeout=60, include_reader=True):
         image = self.context.image
         require(isinstance(image,str) and image.startswith('sha256:'), 'unbound_live_image')
-        overlay = ['-f',str(self.folder/'runtime.history-reader.compose.yaml')] if (not self.trial_origin and history_reader_enabled(self.context)) else []
+        overlay = ['-f',str(self.folder/'runtime.history-reader.compose.yaml')] if (include_reader and not self.trial_origin and history_reader_enabled(self.context)) else []
         env = self.actions._environment(image)
         if self.cycle:
             env.update(self.cycle)
             overlay.extend(['-f', str(self.folder/'runtime.live-cycle.compose.yaml')])
         if self.trial_origin:
             overlay.extend(['-f',str(self.folder/'runtime.live-trial.compose.yaml')])
+        if self.trial_origin and include_reader:
+            from trial_history_reader import trial_history_reader_enabled,TRIAL_HISTORY_READER_OVERLAY
+            if trial_history_reader_enabled(self.context,self.initial_a):
+                overlay.extend(['-f',str(self.folder/TRIAL_HISTORY_READER_OVERLAY)])
         profiles = ['--profile','migration'] if args and args[0] == 'config' else []
         return self.budget.run(['docker','compose','--env-file','/dev/null',
             '--project-name',PROJECT,'--project-directory',str(self.folder),
@@ -41,12 +45,18 @@ class LiveTransition:
             '-f',str(self.folder/'runtime.live.compose.yaml'),*overlay,*profiles,*args],
             cwd=self.context.source,env=env,timeout=timeout)
 
-    def _profile(self):
+    def _profile(self, *, include_reader=True):
         base=self.actions._json(self.actions._compose(self.context,self.budget,
             ['config','--format','json']))
-        live=self.actions._json(self._compose_live(['config','--format','json']))
-        validate_live_profile(base,live,self.context.source,self.context.image,reader=(not self.trial_origin and history_reader_enabled(self.context)),
-                              initial_a=self.initial_a,trial_origin=self.trial_origin)
+        live=self.actions._json(self._compose_live(['config','--format','json'],include_reader=include_reader))
+        validate_live_profile(base,live,self.context.source,self.context.image,reader=(include_reader and not self.trial_origin and history_reader_enabled(self.context)),
+                              initial_a=self.initial_a,trial_origin=self.trial_origin,
+                              trial_reader=(include_reader and self._trial_reader()))
+
+    def _trial_reader(self):
+        if not self.trial_origin:return False
+        from trial_history_reader import trial_history_reader_enabled
+        return trial_history_reader_enabled(self.context,self.initial_a)
 
     def _prepare_trial(self):
         # Runs only inside permit-bound enter, after generated services stop.
@@ -62,7 +72,7 @@ class LiveTransition:
     def _live_off(self):
         # Use the lifecycle role even if operator HTTP is unavailable. Its
         # writer-row lock drains an in-flight acknowledged write before OFF.
-        live=lambda args,timeout:self._compose_live(args,timeout=timeout)
+        live=lambda args,timeout:self._compose_live(args,timeout=timeout,include_reader=False)
         result=self.actions._json(self.actions._oneoff(self.context,self.budget,'lifecycle',
             ['python','-m','postgres.lifecycle_worker','--stop-collector'],timeout=30,compose=live))
         require(result.get('environment')=='preprod' and result.get('origin_id')==self.origin
@@ -161,7 +171,7 @@ class LiveTransition:
     def leave(self):
         """Turn durable writes OFF before returning all app services to generated."""
         self.actions._host()
-        self._profile()
+        self._profile(include_reader=False)
         self.actions._postgres(self.context,self.budget)
         self._live_off()
         self._restore_generated()

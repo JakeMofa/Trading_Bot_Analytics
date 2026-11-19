@@ -352,9 +352,9 @@ def session(command, controller_path):
         _prove_off(LiveTransition(actions, context, budget, **cycle), request.source_sha, budget)
         return {'gate': 'PP_LIVE_OFF', 'origin_id': live_origin(active.get('trial_origin')), 'collector_enabled': False}
     require(active['state'] == 'ready_off', 'live_profile_not_ready')
-    # This source slice qualifies local preparation/OFF only. Trial cloud
-    # worker mounts and independent-reader readiness remain separate gates.
-    require(not active.get('trial_origin'),'pp_trial_archive_readiness_unqualified')
+    if active.get('trial_origin'):
+        from trial_cloud_control import require_ready
+        require_ready(context,active['initial_a'],budget)
     actions._runtime(context, budget, live=True, **cycle)
     actions._host_operator(live=True,**({'trial_origin':active['trial_origin']} if active.get('trial_origin') else {}))
     actions._live_filesystem(context, budget)

@@ -102,7 +102,8 @@ def build(destination):
     files={'__main__.py':ENTRY.encode()}
     for name in ('controller.py','linux_actions.py','live_profile.py','live_transition.py',
                  'transition_control.py','structured_probe_profile.py','structured_probe_control.py',
-                 'raw_archive_probe_profile.py','raw_archive_probe_control.py'):
+                 'raw_archive_probe_profile.py','raw_archive_probe_control.py',
+                 'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py'):
         files[name]=(HERE/name).read_bytes()
     with target.open('xb') as output:
         with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as bundle:

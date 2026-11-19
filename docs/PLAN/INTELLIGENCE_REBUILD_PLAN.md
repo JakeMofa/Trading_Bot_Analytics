@@ -4308,3 +4308,15 @@ backend wiring tests pass. No host/cloud call, marker/secret staging or runtime
 activation occurred. Host normalized-profile/start integration and final
 operator attestation remain separate gates.
 [Exact schemas, evidence split and integration contract](PP_TRIAL_READER_ATTESTATION_2026-11-19.md).
+
+### November 19 — source-only exact trial child/readiness continuation
+
+The dedicated trial structured/raw child profiles now mount only their separate
+writer identities. Independent API reader attestation selects reader-only Auth
+mounts. Root starts remain explicit and source/image/anchor-bound; normal legacy
+probe/profile negatives are preserved. ON authority issue and dispatch both
+require exact writer proof, independent reader proof and both owned children
+running before the existing one-use permit can be consumed. OFF/leave recovery
+never depends on optional reader evidence. Generated profile/guard tests pass,
+including actual Compose normalization. No collector ON or deployment occurred
+in this source milestone. [Proof schema and limits](PP_TRIAL_CLOUD_HOST_2026-11-19.md).

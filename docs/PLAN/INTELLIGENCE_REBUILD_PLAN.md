@@ -74,7 +74,73 @@ does not activate the option on PP. The running collector reads RAM/local
 PostgreSQL independently of explicit historical requests.
 
 
-The dedicated PP deployment identity verified installed controller `5b7c457296e4` from source `c9ec5e9d7a` through the pinned host route. This qualifies the controller identity used for the next PP release. Release installation, live B collection, sealed-A cloud readback and retirement have separate evidence. [PP controller identity run 44433405035](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44433405035)
+The private PP deployment identity verified installed controller `b6fd975e0c80` from source `7c9c365af9`. This controller measures the PostgreSQL filesystem reserve for the market-timed window. The older controller was qualified for the pp.13 candidate, which was published without deployment. PP's previous collector remained OFF with 5,268 pending structured records in the last read-only inventory. Application deployment, structured readback, sealed-generation verification and retirement are separately recorded. [PP identity run 44436600122](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44436600122)
+
+### Recoverable structured revisions in private Supabase history
+
+The proposed additive migration `20261119020000_pp_structured_revision_payloads.sql`
+preserves the canonical UTF-8 envelope bytes for each exact
+(origin, generation, outbox ID). An insert must match the envelope SHA-256 on
+its existing receipt. The restricted PP role may append and read its own origin.
+Rolling the live projection forward leaves earlier exact decimal strings, source
+times and provenance recoverable. Generated PostgreSQL tests exercise old
+receipt backfill, retries, payload corruption, limited retrieval, isolation and
+forbidden mutation. A stored receipt alone still cannot reconstruct its input.
+
+The opt-in importer writes projections, receipts and envelopes in one database
+transaction. A bounded backfill needs exact locally retained envelopes and
+existing matching cloud receipts; missing or conflicting evidence stops the
+operation. Retrieval by IDs authenticates the connection and recomputes hashes
+from returned bytes. The migration has not been applied to Supabase, runtime
+capture is OFF, old receipts have not been backfilled and production is
+unchanged. Measure the additional bytes before promotion. The privileged
+archive-mutation gate for local removal remains independent.
+
+### PP and production captures of the same venue event
+
+**Implemented.** Archive, receipt and checkpoint identities include origin and
+generation. If PP and production observe the same tick, both captures keep
+their source and receipt timestamps, provenance and archive identities. Stored
+capture identity alone does not establish overlap between the two feeds.
+
+**Planned.** A common Supabase dataset view may count an event once when its
+venue, feed and stable venue event ID identify the same event and its exact
+source content agrees. Keep links to every original capture and its observation
+time. Preserve both payloads and flag the conflict when the same venue identity
+has different source content. Missing stable venue IDs leave overlap unresolved.
+Keep environment-specific prediction IDs, calculation results and local capture
+IDs independently addressable. This checkpoint adds no canonical-event schema
+or cross-origin deduplication to the archive writer.
+
+### Exact sealed PP readback and local retirement
+
+The one-shot source command `python -m postgres.pp_retirement_verify --sealed UUID
+--collecting UUID --seal-hash SHA256 --count ROWS` uses the bounded, PP-only
+archive probe credential mounts and requires the extra explicit
+`TRADEBOT_PP_RETIREMENT_READBACK=true` opt-in. Supply reviewed identities from
+the local retirement report. The command rechecks sealed local contents against
+fresh authenticated object reads, pages through acknowledged structured outbox
+records for exact authenticated receipt/projection comparisons, checks protected
+references and readers, and requires committed rows to advance in the named
+opposite slot during the same verification. Its single operation uses the
+existing bounded request/byte/time policy. A changed projection, transport
+timeout, request exhaustion, or missing proof keeps local data. It issues no
+deletion token. Cloud execution and full-window performance are outstanding.
+
+The isolated generated retirement exercise spans multiple structured pages,
+rejects changed targets, missing later-page receipts, and real unleased SQL
+readers, and rehearses failure after the physical DROP before commit. Local
+partition removal and retired state commit atomically; a rolled-back DROP
+preserves raw A, and durable B rows survive. The code bounds DDL lock waits
+to 5 ms to avoid queuing behind an unmanaged reader during B collection.
+The actual PP command retains the local generation. Privileged service keys
+bypass Storage RLS, and the hosted S3 compatibility documentation excludes
+immutable Object Lock. A final read immediately before local commit cannot prove
+the remote object remained immutable in the intervening interval. A reviewed
+enforceable mutation fence or an explicitly revised authority policy and the
+supported live archive-history path are required before enabling real removal.
+[Supabase Storage RLS](https://supabase.com/docs/guides/storage/security/access-control)
+and [S3 compatibility](https://supabase.com/docs/guides/storage/s3/compatibility).
 
 ### Sealed PP retirement decision
 

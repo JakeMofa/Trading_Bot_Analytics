@@ -504,16 +504,16 @@ class LifecycleRepository:
             return digest
 
     @staticmethod
-    def _pending(connection, generation_id, limit, *, include_acknowledged=False, max_bytes=4 * 1024 * 1024):
+    def _pending(connection, generation_id, limit, *, include_acknowledged=False, max_bytes=4 * 1024 * 1024, after_id=0):
         condition = '' if include_acknowledged else 'AND acknowledged_at IS NULL'
         sizes = connection.execute(f'''SELECT id,octet_length(row_to_json(o)::text) AS bytes
-            FROM ops.outbox o WHERE generation_id=%s {condition} ORDER BY id LIMIT %s''',
-                                   (generation_id, limit)).fetchall()
+            FROM ops.outbox o WHERE generation_id=%s AND id>%s {condition} ORDER BY id LIMIT %s''',
+                                   (generation_id, after_id, limit)).fetchall()
         chosen, total = [], 0
         for row in sizes:
             cost = row['bytes'] * 2 + 256
             if total + cost > max_bytes:
-                if include_acknowledged or not chosen:
+                if not chosen:
                     raise ArchiveLimit('structured readback exceeds byte bound')
                 break
             chosen.append(row['id'])
@@ -521,7 +521,7 @@ class LifecycleRepository:
         if not chosen:
             return []
         return connection.execute(f'''SELECT * FROM ops.outbox WHERE generation_id=%s {condition}
-            AND id<=%s ORDER BY id LIMIT %s''', (generation_id, chosen[-1], limit)).fetchall()
+            AND id>%s AND id<=%s ORDER BY id LIMIT %s''', (generation_id, after_id, chosen[-1], limit)).fetchall()
 
     def outbox(self, generation_id, limit, max_bytes=4 * 1024 * 1024):
         with self.transaction() as connection:
@@ -667,6 +667,9 @@ class LifecycleRepository:
         self._checkpoint(connection, generation, 'retirement:fresh-readback',
                          {'gate_scope': 'immutable-generated', 'authorized_txid': txid,
                           'sha256': digest, 'row_count': generation['seal_count'], 'retirement_enabled': True})
+        # An unleased SQL reader may start during remote verification. Avoid
+        # queuing an exclusive parent-table lock behind it and stalling B.
+        connection.execute("SET LOCAL lock_timeout='5ms'")
         connection.execute('SELECT archive.retire_generation_partition(%s,%s)',
                            (generation['origin_id'], generation['generation_id']))
 
@@ -784,6 +787,56 @@ class ArchiveWorker:
                 'raw_rows': len(rows), 'requests': budget.requests, 'bytes': budget.bytes,
                 'retirement': 'held_cp6_authority_unqualified'}
 
+    def fresh_retirement_readback(self, connection, generation, manifests, budget):
+        """Compare the exact sealed raw and structured rows under the caller's generation lock.
+
+        Keep all authenticated reads inside one bounded operation. A caller may
+        use this as diagnostic evidence; it grants no authority to remove data.
+        """
+        generation_id = generation['generation_id']
+        digest = validate_manifest_chain(manifests, generation)
+        if digest != generation['seal_hash']:
+            raise ArchiveIntegrityError('sealed manifest set changed')
+        # Preflight total cost before any network request. Final readback is
+        # one bounded operation, never assembled from prior cycle proofs.
+        if len(manifests) + 1 > self.limits.max_requests:
+            raise ArchiveLimit('final readback exceeds request budget')
+        if sum(item['byte_count'] for item in manifests) > self.limits.max_cycle_bytes:
+            raise ArchiveLimit('final readback exceeds byte budget')
+        for manifest in manifests:
+            decoded = read_verified(self.transport, manifest, budget)
+            self.repository.verify_local_chunk(connection, generation_id, manifest, decoded, self.limits)
+            budget.check()
+        after_id = 0
+        structured_count = 0
+        while True:
+            budget.check()
+            rows = self.repository._pending(connection, generation_id,
+                self.limits.max_rows, include_acknowledged=True,
+                max_bytes=self.limits.max_decoded_bytes, after_id=after_id)
+            if not rows:
+                break
+            records = self.structured_records(rows)
+            ids = [row['id'] for row in records]
+            if (ids[0] <= after_id or ids != sorted(set(ids)) or
+                    any(row['origin_id'] != generation['origin_id'] or
+                        str(row['generation_id']) != str(generation_id) for row in records)):
+                raise ArchiveIntegrityError('final structured page identity mismatch')
+            size = len(encoded(records))
+            if size > self.limits.max_decoded_bytes:
+                raise ArchiveLimit('final structured readback exceeds byte budget')
+            retrieved = self.transport.read_structured_authenticated(
+                records, max_bytes=self.limits.max_decoded_bytes,
+                timeout_seconds=budget.request(size))
+            budget.check()
+            if encoded(retrieved) != encoded(records):
+                raise ArchiveIntegrityError('final structured readback mismatch')
+            structured_count += len(rows)
+            after_id = ids[-1]
+        return {'manifest_digest':digest,'raw_count':generation['seal_count'],
+                'objects_read':len(manifests),'structured_count':structured_count,
+                'last_structured_id':after_id,'requests':budget.requests,'bytes':budget.bytes}
+
     def retire_generated(self, generation_id, *, qualification_enabled=False):
         """Only isolated immutable mock qualification; no production/cloud permit.
 
@@ -798,35 +851,8 @@ class ArchiveWorker:
             with budget, self.repository.retirement(generation_id) as (connection, generation, manifests):
                 if not generation['origin_id'].startswith('generated-'):
                     raise LifecycleHold('only isolated generated origins may retire')
-                digest = validate_manifest_chain(manifests, generation)
-                if digest != generation['seal_hash']:
-                    raise ArchiveIntegrityError('sealed manifest set changed')
-                # Preflight total cost before any network request. Final readback is
-                # one bounded operation, never assembled from prior cycle proofs.
-                if len(manifests) + 1 > self.limits.max_requests:
-                    raise ArchiveLimit('final readback exceeds request budget')
-                if sum(item['byte_count'] for item in manifests) > self.limits.max_cycle_bytes:
-                    raise ArchiveLimit('final readback exceeds byte budget')
-                for manifest in manifests:
-                    decoded = read_verified(self.transport, manifest, budget)
-                    self.repository.verify_local_chunk(connection, generation_id, manifest, decoded, self.limits)
-                    budget.check()
-                rows = self.repository._pending(connection, generation_id,
-                                                self.limits.max_rows + 1, include_acknowledged=True,
-                                                max_bytes=self.limits.max_decoded_bytes)
-                if len(rows) > self.limits.max_rows:
-                    raise ArchiveLimit('final structured readback exceeds row budget')
-                records = self.structured_records(rows)
-                if records:
-                    size = len(encoded(records))
-                    if size > self.limits.max_decoded_bytes:
-                        raise ArchiveLimit('final structured readback exceeds byte budget')
-                    retrieved = self.transport.read_structured_authenticated(
-                        records, max_bytes=self.limits.max_decoded_bytes,
-                        timeout_seconds=budget.request(size))
-                    budget.check()
-                    if encoded(retrieved) != encoded(records):
-                        raise ArchiveIntegrityError('final structured readback mismatch')
+                readback = self.fresh_retirement_readback(connection, generation, manifests, budget)
+                digest = readback['manifest_digest']
                 budget.check()
                 self.repository.retire_in_transaction(connection, generation, digest)
             return {'status': 'retired_generated', 'generation_id': generation_id,

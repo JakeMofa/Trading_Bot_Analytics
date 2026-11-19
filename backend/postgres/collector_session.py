@@ -7,15 +7,17 @@ from __future__ import annotations
 
 import asyncio
 
+from .rehearsal_profile import lease_cap
+
 from .live_supervisor import CollectorHold, run_bounded
 
 
 async def run_session(store, client, stop: asyncio.Event, *, owner_check,
                       enable_collector, disable_collector, max_seconds: float,
-                      supervisor=run_bounded):
+                      supervisor=run_bounded, rehearsal_anchor=None):
     """Fail closed at every activation boundary and leave the writer OFF."""
     if not callable(owner_check) or not callable(enable_collector) or \
-            not callable(disable_collector) or not 0 < max_seconds <= 4560:
+            not callable(disable_collector) or not 0 < max_seconds <= lease_cap(rehearsal_anchor):
         raise ValueError('bounded session and durable ownership controls required')
 
     try:
@@ -31,7 +33,8 @@ async def run_session(store, client, stop: asyncio.Event, *, owner_check,
             raise CollectorHold('PP collector ownership lost during activation')
         return await supervisor(store, client, stop, owner_check=owner_check,
                                 disable_collector=disable_collector,
-                                max_seconds=max_seconds)
+                                max_seconds=max_seconds,
+                                **({'rehearsal_anchor': rehearsal_anchor} if rehearsal_anchor else {}))
     finally:
         # Also covers an ambiguous enable result or failure before the
         # supervisor starts. OFF is idempotent and must be acknowledged.

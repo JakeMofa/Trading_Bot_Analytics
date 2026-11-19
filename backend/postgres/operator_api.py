@@ -14,7 +14,7 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from .operator_session import SessionBusy, SessionStopUnproven
 
 
-def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None):
+def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None, max_session_seconds=4560, required_session_seconds=None):
     if not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
         raise ValueError('operator origin must be a distinct PP live origin')
     if not isinstance(token, str) or len(token) < 32 or len(token) > 256 or not token.isascii():
@@ -58,9 +58,11 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
 
     if session is not None:
         @app.post('/collector/on', status_code=202)
-        async def on(max_seconds: int = Query(default=900, ge=1, le=4560),
+        async def on(max_seconds: int = Query(default=900, ge=1, le=max_session_seconds),
                      authorization: str | None = Header(default=None)):
             require_operator(authorization)
+            if required_session_seconds is not None and max_seconds != required_session_seconds:
+                raise HTTPException(422, 'explicit complete two-leg session budget required')
             try:
                 result = await session.start(max_seconds=max_seconds)
             except SessionBusy:

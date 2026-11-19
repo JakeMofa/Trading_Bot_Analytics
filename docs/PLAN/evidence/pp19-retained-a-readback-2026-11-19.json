@@ -1,0 +1,170 @@
+{
+  "available_bytes_before": 1063268352,
+  "controller_sha256": "1e10e1064d37a1629098d90793d3ad7719d127368881b8305f49ce8c1a4907c5",
+  "evidence_scope": "read_only_retained_archive_audit",
+  "image_id": "sha256:36923156e4879f00be3d1bc7568475c818f4798ca4e40e9856a912ce7a5814f2",
+  "original_trial_satisfied": false,
+  "outer_elapsed_seconds": 72.558,
+  "phase_accounting": {
+    "diagnostics_unavailable": false,
+    "elapsed_seconds": 67.51035,
+    "exhausted_limit": null,
+    "failed_phase": "history_projections",
+    "logical_bytes": 4428956,
+    "nested_phase_totals_overlap": true,
+    "phases": {
+      "history_checkout": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 0.320807,
+        "requests": 0,
+        "seconds": 0.624555
+      },
+      "history_connect": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 0.320401,
+        "requests": 0,
+        "seconds": 0.62278
+      },
+      "history_exact_revisions": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 1.142899,
+        "requests": 0,
+        "seconds": 1.142899
+      },
+      "history_identity_checkpoint": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.205828,
+        "requests": 0,
+        "seconds": 0.205828
+      },
+      "history_latest_receipts": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 2.05096,
+        "requests": 0,
+        "seconds": 2.05096
+      },
+      "history_newer_revisions": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.101279,
+        "requests": 0,
+        "seconds": 0.101279
+      },
+      "history_projections": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.261247,
+        "requests": 0,
+        "seconds": 0.261247
+      },
+      "history_release": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 2.9e-05,
+        "requests": 0,
+        "seconds": 4.2e-05
+      },
+      "history_transaction": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 3.909655,
+        "requests": 0,
+        "seconds": 4.220288
+      },
+      "inventory": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 16.87509,
+        "requests": 0,
+        "seconds": 16.87509
+      },
+      "local_finish": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.000574,
+        "requests": 0,
+        "seconds": 0.000574
+      },
+      "local_open": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.106066,
+        "requests": 0,
+        "seconds": 0.106066
+      },
+      "raw_auth_token": {
+        "calls": 57,
+        "logical_bytes": 0,
+        "max_seconds": 0.811375,
+        "requests": 1,
+        "seconds": 0.811932
+      },
+      "raw_local_compare": {
+        "calls": 57,
+        "logical_bytes": 0,
+        "max_seconds": 1.095987,
+        "requests": 0,
+        "seconds": 18.803263
+      },
+      "raw_read_decode": {
+        "calls": 57,
+        "logical_bytes": 3623081,
+        "max_seconds": 1.411527,
+        "requests": 58,
+        "seconds": 25.946086
+      },
+      "structured_local_page": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.207091,
+        "requests": 0,
+        "seconds": 0.207091
+      },
+      "structured_readback": {
+        "calls": 1,
+        "logical_bytes": 805875,
+        "max_seconds": 4.711504,
+        "requests": 1,
+        "seconds": 4.711504
+      }
+    },
+    "remaining_seconds": 172.489744,
+    "requests": 60,
+    "sqlstate": null
+  },
+  "profile": "generated_restored",
+  "reason": "archive_unavailable",
+  "reconciliation": {
+    "a_count": 28411,
+    "a_present": true,
+    "a_retired": false,
+    "a_state": "verified",
+    "at": "2026-11-19T10:24:57.179441+00:00",
+    "audit_containers_remaining": 0,
+    "b_rows": 9784,
+    "collector_enabled": false,
+    "pending": 0,
+    "session_absent": true,
+    "staging_dirs_remaining": 0,
+    "structured_total": 42133
+  },
+  "release": "v0.2.0-pp.19",
+  "retirement_authorized": false,
+  "source_sha": "5efc4bb774b41e65c174aa53882629908ad96ad3",
+  "status": "HOLD",
+  "workflows": {
+    "cd": 44504027993,
+    "controller_identity": 44502043684,
+    "enter_failed": 44504441451,
+    "generated_restored": 44504872224,
+    "preprod_ci": 44503703854,
+    "release": 44503849697,
+    "source_ci": 44502994609
+  },
+  "wrapper_exit": 1
+}

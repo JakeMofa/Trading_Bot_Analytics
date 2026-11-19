@@ -3,7 +3,8 @@ from copy import deepcopy
 from threading import RLock
 
 from .calculation import baseline
-from .domain import timestamp, utcnow
+from .domain import timestamp, utcnow, decimal_text
+from .contract import source_timestamp
 
 
 class LiveState:
@@ -49,6 +50,36 @@ class LiveState:
                 self._storage_status = value
                 self._touch()
 
+    def publish_price(self, price):
+        """Gap-only Coinbase publication; never mutates an active-market bundle.
+
+        Source spelling and exact decimals stay intact. Stale input may remain
+        diagnostic, but reads cannot make it fresh or create a forecast.
+        """
+        now = self.clock()
+        with self._lock:
+            market = self._market
+            if market and timestamp(market['start']) <= now < timestamp(market['end']):
+                return False  # Discovery won the race; await atomic hydrate.
+            try:
+                if not price or price.get('origin') != self.settings.origin_id or price.get('source') != 'coinbase':
+                    return False
+                decimal_text(price['price_usd'],positive=True)
+                cutoff = source_timestamp(now.isoformat())[1]
+                source, received, available = (source_timestamp(price[key])[1]
+                    for key in ('source_time','received_at','available_at'))
+                if max(source,received,available) > cutoff:
+                    return False
+                if self._price is not None:
+                    old = tuple(source_timestamp(self._price[key])[1] for key in ('source_time','received_at'))
+                    if (source,received) <= old:
+                        return False
+            except (ValueError,TypeError,KeyError):
+                return False
+            self._price = deepcopy(price)
+            self._touch()
+            return True
+
     def publish(self, market_id, price, quote, snapshot, prediction):
         now = self.clock()
         with self._lock:
@@ -93,7 +124,7 @@ class LiveState:
                 freshness_at = observed_at or (observation.get('source_time') if observation else None)
                 age = (now-timestamp(freshness_at)).total_seconds() if freshness_at else None
                 match = name == 'coinbase' or bool(observation and observation.get('market_id') == (market or {}).get('id'))
-                status = 'fresh' if age is not None and 0 <= age <= 30 and match and active else 'stale' if observation else 'missing'
+                status = 'fresh' if age is not None and 0 <= age <= 30 and match and (name == 'coinbase' or active) else 'stale' if observation else 'missing'
                 feed_name = 'coinbase_stream' if name == 'coinbase' else 'polymarket_rest' if rest_book else 'polymarket_stream'
                 feeds[feed_name] = {'source': feed_name, 'status': status,
                                         'freshness_basis': 'received_at' if rest_book else 'source_time',

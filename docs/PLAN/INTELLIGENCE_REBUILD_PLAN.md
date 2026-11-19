@@ -4320,3 +4320,21 @@ running before the existing one-use permit can be consumed. OFF/leave recovery
 never depends on optional reader evidence. Generated profile/guard tests pass,
 including actual Compose normalization. No collector ON or deployment occurred
 in this source milestone. [Proof schema and limits](PP_TRIAL_CLOUD_HOST_2026-11-19.md).
+
+### November 19 — offline PP22 discovery-gap reference-price patch
+
+Prepared a separate source candidate from `0c86b47`; no live release, preprod
+branch, host or cloud runtime was changed. When no market is active, API
+hydration now performs one scoped Coinbase current-price read without candles
+and publishes only that reference observation. Exact origin/source, finite
+positive decimal, original nanosecond source/receive/availability cutoffs and
+monotonic event ordering are checked. A concurrent discovery of an active
+market discards the gap read; normal active-market hydration and its DB-call
+count stay unchanged. Coinbase freshness is independently source-timed while
+missing/expired markets still suppress quotes/features/forecasts/live estimates
+and keep overall health degraded. Five new generated regressions and 17 existing
+application/dashboard controls pass (22 passes); two explicit-DSN native cases
+skip. Tests execute actual local HTTP state/SSE routes and actual dashboard
+acceptState/tick JavaScript, verify continuing tick IDs through a discovery gap,
+no extra gap reads once active, and old/future/foreign/missing/stale rejection.
+This candidate is not deployed and does not alter the ongoing PP22 live trial.

@@ -1,3 +1,28 @@
+## PP19 retained A audit, November 19 UTC
+
+PP19 `5efc4bb` passed [exact source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502994609)
+and [preprod deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44504027993).
+[Live-profile entry](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44504441451)
+failed at the 1 GiB available-memory floor on the 2 GiB VM. After confirming durable OFF and an empty pending outbox, the operator
+stopped the PP calculation and lifecycle services already covered by the recovery operation. The original headroom guard passed and
+[generated service restoration](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44504872224) succeeded.
+Collection remained off. A separate read-only audit used the exact image, existing local reader, GET-only raw archive identity and
+read-only structured transactions. Reusable history sessions were enabled only in that one-shot container.
+
+**Raw A passed. Structured A remains on hold.** All 57 archived objects (3,623,081 compressed bytes) were authenticated, decoded
+and compared with retained A. Inventory took 16.875 s, raw read/decode 25.946 s and local comparison 18.803 s. The first
+500-row structured page returned `archive_unavailable` during projection verification. The page took 4.712 s; its latest-receipt
+phase took 2.051 s and exact revision reads took 1.143 s. The underlying SQLSTATE was unavailable. The audit ended after 67.510 s
+(72.558 s including container startup and exit), with 172.490 s remaining, 60 logical requests and 4,428,956 logical bytes charged.
+The overall deadline, request and byte caps did not exhaust. These timings do not establish the cause of the earlier PP18 HOLD.
+
+At 10:24:57 UTC A remained attached with 28,411 rows, B retained 9,784 rows, the PP outbox held 42,133 acknowledged structured
+rows and zero pending. The collector was durably OFF with no session. Audit container and staged credentials were removed.
+The outstanding qualification is exact structured receipt, revision and projection verification across all 63 pages under the
+existing per-page limits. Reproduce the first page and compare the latest-receipt query plan before scheduling a new bounded audit.
+The original 30-minute verdict remains failed; a future audit cannot authorize deletion or establish concurrent B collection.
+[Sanitized timing and reconciliation](evidence/pp19-retained-a-readback-2026-11-19.json)
+
 ## November 19 UTC — PP18 observed switch, retained A, early B stop
 
 PP18 pinned source `74a850bc` observed A→B, and raw A verification covered

@@ -14,7 +14,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   deterministic history parity across retirement. The full-schema raw cursor
   study preserved exact hashes and reduced the generated 57-page sweep from
   4.613 s to 0.761 s. The fixture measured about 4% more bulk-insert time
-  and 15% more WAL with the index. Actual PP query plans, live write overhead,
+  and 15% more WAL with the index. PP21 passed normal deployment and the
+  independent retention snapshot with both generations intact. The release
+  team is checking the live-ingest outcome envelope against the point-in-time
+  prototype. Actual PP query plans, live write overhead,
   full retained-A verification and multi-generation deterministic parity
   remain to be verified.
   [Local query study](PLAN/PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)

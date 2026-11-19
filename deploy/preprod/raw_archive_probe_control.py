@@ -46,7 +46,7 @@ def _storage_files():
     require(str(uuid.UUID(uid)) == uid, 'invalid_pp_storage_auth_identity')
 
 
-def _compose(actions, context, budget, files, args, timeout):
+def _compose(actions, context, budget, files, args, timeout, *, profile="raw_archive_probe"):
     folder = context.source / 'deploy/preprod'
     command = ['docker', 'compose', '--env-file', '/dev/null',
                '--project-name', PROJECT,
@@ -54,7 +54,7 @@ def _compose(actions, context, budget, files, args, timeout):
     for name in ('compose.yaml', 'runtime.compose.yaml', *files):
         command += ['-f', str(folder / name)]
     return budget.run([*command, '--profile', 'migration', '--profile',
-                       'raw_archive_probe', *args], cwd=context.source,
+                       profile, *args], cwd=context.source,
                       env=actions._environment(context.image), timeout=timeout)
 
 

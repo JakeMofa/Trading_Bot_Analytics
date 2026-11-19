@@ -65,3 +65,20 @@ def validate_raw_archive_profile(base: dict, live: dict, probe: dict, source, im
     expected['services']['raw_archive_probe'] = service
     require(probe == expected, 'unreviewed_raw_archive_profile_difference')
     return probe
+
+
+def validate_recurring_profile(validated_probe, actual):
+    """Reuse the checked raw worker boundary, subtract both history credentials."""
+    expected = deepcopy(validated_probe)
+    service = expected['services'].pop('raw_archive_probe')
+    for name in ('pp_history_dsn', 'pp_history_ca'):
+        del expected['secrets'][name]
+        service['secrets'] = [item for item in service['secrets'] if item['source'] != name]
+    for key in ('TRADEBOT_PP_HISTORY_CA_FILE', 'TRADEBOT_PP_HISTORY_DSN_FILE',
+                'TRADEBOT_PP_RAW_ARCHIVE_ONE_SHOT'):
+        del service['environment'][key]
+    service['environment']['TRADEBOT_PP_SEALED_ARCHIVE'] = 'true'
+    service['command'] = ['python', '-m', 'postgres.pp_sealed_archive', '--execute']
+    service['profiles'] = ['sealed_archive']
+    expected['services']['sealed_archive'] = service
+    require(actual == expected, 'unreviewed_recurring_archive_profile_difference')

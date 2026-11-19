@@ -94,6 +94,7 @@ def main(argv=None):
             FILES['TRADEBOT_PP_STORAGE_' + name + '_FILE']
             for name in ('API_KEY', 'AUTH_EMAIL', 'AUTH_PASSWORD', 'AUTH_UID')))
         try:
+            print(json.dumps({'status': 'sealed_archive_worker_ready'}), flush=True)
             return serve(LifecycleRepository(factory), raw, stopped)
         finally:
             raw.close()

@@ -1,4 +1,4 @@
-# Opt-in PP archive worker. Mount a dedicated root-only lifecycle DSN before launch.
+# Opt-in PP archive worker. The controller stages the local lifecycle DSN during launch.
 services:
   sealed_archive:
     image: ${PP_APP_IMAGE:?supply qualified local image ID}
@@ -34,12 +34,12 @@ services:
       TRADEBOT_PP_STORAGE_AUTH_PASSWORD_FILE: /run/secrets/supabase_auth_password
       TRADEBOT_PP_STORAGE_AUTH_UID_FILE: /run/secrets/supabase_auth_uid
     secrets:
-      - {source: sealed_local_dsn, target: /run/secrets/lifecycle_dsn}
+      - {source: probe_local_dsn, target: /run/secrets/lifecycle_dsn}
       - pp_storage_api_key
       - supabase_auth_email
       - supabase_auth_password
       - supabase_auth_uid
-    networks: [database, sealed_archive_egress]
+    networks: [database, raw_archive_probe_egress]
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,8 +47,8 @@ services:
       driver: json-file
       options: {max-size: 5m, max-file: '2'}
 secrets:
-  sealed_local_dsn:
-    file: /etc/tradebot/cloud/pp_sealed_lifecycle_dsn
+  probe_local_dsn:
+    file: /run/tradebot-pp-deploy/probe-local-dsn
   pp_storage_api_key:
     file: /etc/tradebot/cloud/pp_storage_api_key
   supabase_auth_email:
@@ -58,5 +58,5 @@ secrets:
   supabase_auth_uid:
     file: /etc/tradebot/cloud/supabase_auth_uid
 networks:
-  sealed_archive_egress:
+  raw_archive_probe_egress:
     driver: bridge

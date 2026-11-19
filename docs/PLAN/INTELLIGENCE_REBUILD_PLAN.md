@@ -4320,3 +4320,22 @@ running before the existing one-use permit can be consumed. OFF/leave recovery
 never depends on optional reader evidence. Generated profile/guard tests pass,
 including actual Compose normalization. No collector ON or deployment occurred
 in this source milestone. [Proof schema and limits](PP_TRIAL_CLOUD_HOST_2026-11-19.md).
+
+
+### Source-only final fresh-A tail drain — November 19 UTC
+
+The requested end-of-trial drain has a separate default-off exact-trial command,
+leaving the historic-B command unchanged. After all PP writers are durably OFF,
+it binds the original admission anchor, exact A/B/fresh-A chain and both timely
+completed retirement receipts, current final-A UUID/epoch/count and both source
+identities. It seals only final A, keeps its pointer/partition, records proof
+hashes and allocates no successor or retirement authority. The existing scoped
+structured/raw workers can then ACK and archive that final generation under
+unchanged page/request/byte/deadline limits.
+
+25 generated/native tests pass without skips on disposable PostgreSQL 17.2,
+including genuine Store capture, both actual permit-bound predecessor removals,
+OFF-only final seal, drift/failure rejection, bounded existing-worker readback
+and retained-data/replay checks. No #190 release/profile, preprod HEAD, schema,
+cloud or host action changed. Actual final PP/cloud drain remains an operator
+step. [Exact invocation and evidence limits](PP_FINAL_TRIAL_DRAIN_SOURCE_2026-11-19.md).

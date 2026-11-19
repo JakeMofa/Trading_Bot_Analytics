@@ -4112,3 +4112,27 @@ unchanged. A fresh full A→B→fresh-A trial and deterministic history parity a
 still required. Prior PP19/PP20 holds remain historical evidence, and this
 single result does not establish a causal whole-audit speedup percentage.
 [Source, operator receipt and qualification boundaries](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md).
+
+
+### November 19 UTC — source-only delayed-discovery continuity correction
+
+Transient Polymarket US discovery GET failures previously escaped the market
+cycle and stopped all feeds even though matching empty discovery and quote
+unavailability already waited for the next scheduled poll. Discovery 404, 429,
+5xx, timeout and transport failures now wait for that same bounded cadence.
+No source event, timestamp or replacement identity is synthesized. Authentication,
+malformed/ambiguous/incomplete discovery, invalid quotes, write rejection and
+ownership/lease failures remain fatal. Existing deadlines and retry cadence stay
+unchanged; temporary source delay never grants storage or retirement authority.
+
+A generated fake-clock supervisor regression uses the actual httpx source clients
+across a quarter-hour boundary: old-only listing, 429, 503, timeout, transport
+error, double-404 quote routes, empty matching BBO and first exact new-market
+quote. Eight normalized Coinbase ticks persist during the gap; the old market
+is never queried again and original quote sample times remain intact. The live
+source/supervisor/ingest/fence suites pass 39 tests (one native PostgreSQL query
+test skipped without its disposable DSNs); Coinbase reconnect/timing suites pass
+14. Store already reads the locked writer generation per event and ownership
+checks bind the session/lease, so the collector itself caches no active UUID.
+Native two-switch rotation and runtime/controller qualification remain separate.
+No host/deployment, real collector, cloud or paid AI action occurred.

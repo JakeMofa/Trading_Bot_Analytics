@@ -102,3 +102,14 @@ server time fails; stale/future model inputs relative to server time still fail.
 No synchronized-clock, network-freshness or exact switch-time claim is made.
 The actual switch gate remains INCOMPLETE until evidence brackets a real switch.
 This offline reporting correction does not change the deployed API or trial.
+
+A live numerical payload aged 10–30 seconds is classified
+`dashboard_suppressed_numeric`: the existing dashboard hides its headline at ten
+seconds, even though the API's publisher allows a thirty-second source price.
+It is neither a fresh displayed number nor invalid publication by itself. A
+current-market null-probability `reference_price_not_fresh` abstention may retain
+an old source timestamp for diagnosis; that stale input is the reason to abstain,
+not evidence of a stale numeric forecast. Neither class counts toward numerical
+acceptance. Stale numerical output beyond the publisher bound still fails.
+Continuous feed health remains the original observer's separate acceptance gate;
+this classifier does not waive any observed stale-feed episode.

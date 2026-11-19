@@ -107,7 +107,10 @@ def classify(state, at, name):
         reasons.append('prior_or_unbound_market')
     if feature.get('market_id') != market.get('id'):
         reasons.append('feature_market_mismatch')
-    if not (result['forecast_age_seconds'] is not None and 0 <= result['forecast_age_seconds'] <= 30):
+    forecast_age = result['forecast_age_seconds']
+    live_abstain = (name == 'live_estimate' and output.get('probability_up') is None
+                    and isinstance(output.get('abstain_reason'), str) and output['abstain_reason'].strip())
+    if forecast_age is None or forecast_age < 0 or (forecast_age > 30 and not live_abstain):
         reasons.append('forecast_stale_or_time_missing')
     if not (result['feature_age_seconds'] is not None and 0 <= result['feature_age_seconds'] <= 30):
         reasons.append('feature_stale_or_time_missing')
@@ -145,13 +148,17 @@ def classify(state, at, name):
                 reasons.append('saved_candles_stale_or_missing')
         else:
             input_age = result['input_price_age_seconds']
-            if input_age is None or not 0 <= input_age <= 10:
-                reasons.append('live_tick_outside_dashboard_ten_second_limit')
+            if input_age is None or not 0 <= input_age <= 30:
+                reasons.append('live_tick_outside_publisher_thirty_second_limit')
+            elif input_age > 10:
+                result['dashboard_suppression_reason'] = 'live_tick_outside_dashboard_ten_second_limit'
             candle_age = quality.get('candle_age_seconds')
             if not isinstance(candle_age, (float, int, Decimal)) or isinstance(candle_age, bool) or not 0 <= float(candle_age) + (result['feature_age_seconds'] or 0) < 120:
                 reasons.append('live_candles_stale_or_missing')
     if reasons and result['classification'] in ('active_numeric', 'truthful_abstain'):
         result['classification'] = 'stale_or_unbound'
+    elif result['classification'] == 'active_numeric' and result.get('dashboard_suppression_reason'):
+        result['classification'] = 'dashboard_suppressed_numeric'
     return result
 
 
@@ -249,7 +256,7 @@ def summarize(records, generations=()):
             'observations': samples,
             'historical_items_observed_not_current_numeric_proof': sum(
                 len(r.get('history') or []) for r in records),
-            'not_proven': ['rendered browser display', 'continuous SSE coverage', 'collector/lease ownership',
+            'not_proven': ['rendered browser display', 'continuous SSE coverage', 'continuous feed freshness (original observer gate required)', 'collector/lease ownership',
                            'archive correctness or retirement authority', 'prediction quality or calibration']}
 
 

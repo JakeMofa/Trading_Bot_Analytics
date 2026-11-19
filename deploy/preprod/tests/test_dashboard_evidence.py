@@ -72,10 +72,11 @@ class DashboardEvidenceTests(unittest.TestCase):
             self.assertIn(issue,result['observations'][0]['saved']['issues'])
 
     def test_live_dashboard_ten_second_limit_distinct_from_saved(self):
-        r=record(20);r['state']['coinbase']['source_time']=BASE.isoformat()
+        r=record(20);r['state']['coinbase']['source_time']=BASE.isoformat();r['state']['live_estimate']['as_of']=BASE.isoformat()
         result=audit.summarize([r],generations())
         self.assertEqual(result['observations'][0]['saved']['classification'],'active_numeric')
-        self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
+        self.assertEqual(result['observations'][0]['live']['classification'],'dashboard_suppressed_numeric')
+        self.assertEqual(result['failures'],[])
 
     def test_live_asof_must_match_captured_tick_not_just_be_recent(self):
         r=record(20);r['state']['live_estimate']['as_of']=BASE.isoformat()
@@ -119,6 +120,18 @@ class DashboardEvidenceTests(unittest.TestCase):
         result=audit.summarize([row],generations())
         self.assertIn('state_generated_time_missing_or_invalid',result['failures'])
         self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
+
+    def test_stale_source_truthful_abstain_not_numeric_failure(self):
+        row=record(50,abstain=True)
+        row['state']['coinbase']['source_time']=BASE.isoformat()
+        row['state']['live_estimate']['as_of']=BASE.isoformat()
+        row['state']['live_estimate']['abstain_reason']='reference_price_not_fresh'
+        result=audit.summarize([row])
+        self.assertEqual(result['observations'][0]['live']['classification'],'truthful_abstain')
+        self.assertEqual(result['failures'],[])
+        self.assertEqual(result['numeric_forecast_result'],'INCOMPLETE')
+        row['state']['live_estimate'].update(probability_up='0.6',probability_down='0.4',abstain_reason=None)
+        self.assertEqual(audit.summarize([row])['observations'][0]['live']['classification'],'stale_or_unbound')
 
     def test_capture_allowlist_no_headers_or_secret_nested_price(self):
         r=record(5);state=deepcopy(r['state']);state['headers']={'Authorization':'secret'}

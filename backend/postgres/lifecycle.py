@@ -14,6 +14,7 @@ import json
 import uuid
 
 from . import pp_space
+from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
                             pack_chunk, read_verified, row_cursor, sha256, wire)
@@ -819,33 +820,38 @@ class ArchiveWorker:
         if sum(item['byte_count'] for item in manifests) > self.limits.max_cycle_bytes:
             raise ArchiveLimit('final readback exceeds byte budget')
         for manifest in manifests:
-            decoded = read_verified(self.transport, manifest, budget)
-            self.repository.verify_local_chunk(connection, generation_id, manifest, decoded, self.limits)
+            with phase('raw_read_decode'):
+                decoded = read_verified(self.transport, manifest, budget)
+            with phase('raw_local_compare'):
+                self.repository.verify_local_chunk(connection, generation_id, manifest, decoded, self.limits)
             budget.check()
         after_id = 0
         structured_count = 0
         while True:
             budget.check()
-            rows = self.repository._pending(connection, generation_id,
-                self.limits.max_rows, include_acknowledged=True,
-                max_bytes=self.limits.max_decoded_bytes, after_id=after_id)
-            if not rows:
-                break
-            records = self.structured_records(rows)
-            ids = [row['id'] for row in records]
-            if (ids[0] <= after_id or ids != sorted(set(ids)) or
-                    any(row['origin_id'] != generation['origin_id'] or
-                        str(row['generation_id']) != str(generation_id) for row in records)):
-                raise ArchiveIntegrityError('final structured page identity mismatch')
-            size = len(encoded(records))
-            if size > self.limits.max_decoded_bytes:
-                raise ArchiveLimit('final structured readback exceeds byte budget')
-            retrieved = self.transport.read_structured_authenticated(
-                records, max_bytes=self.limits.max_decoded_bytes,
-                timeout_seconds=budget.request(size))
+            with phase('structured_local_page'):
+                rows = self.repository._pending(connection, generation_id,
+                    self.limits.max_rows, include_acknowledged=True,
+                    max_bytes=self.limits.max_decoded_bytes, after_id=after_id)
+                if not rows:
+                    break
+                records = self.structured_records(rows)
+                ids = [row['id'] for row in records]
+                if (ids[0] <= after_id or ids != sorted(set(ids)) or
+                        any(row['origin_id'] != generation['origin_id'] or
+                            str(row['generation_id']) != str(generation_id) for row in records)):
+                    raise ArchiveIntegrityError('final structured page identity mismatch')
+                size = len(encoded(records))
+                if size > self.limits.max_decoded_bytes:
+                    raise ArchiveLimit('final structured readback exceeds byte budget')
+            with phase('structured_readback'):
+                retrieved = self.transport.read_structured_authenticated(
+                    records, max_bytes=self.limits.max_decoded_bytes,
+                    timeout_seconds=budget.request(size))
             budget.check()
-            if encoded(retrieved) != encoded(records):
-                raise ArchiveIntegrityError('final structured readback mismatch')
+            with phase('structured_compare'):
+                if encoded(retrieved) != encoded(records):
+                    raise ArchiveIntegrityError('final structured readback mismatch')
             structured_count += len(rows)
             after_id = ids[-1]
         return {'manifest_digest':digest,'raw_count':generation['seal_count'],

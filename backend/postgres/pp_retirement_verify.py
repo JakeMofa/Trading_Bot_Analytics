@@ -9,6 +9,7 @@ from datetime import timedelta
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, encoded
 from .archive_transport import ScopedArchiveTransport
+from .retirement_accounting import accounted, bind_budget, measured_context, phase
 from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import FILES, ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
@@ -166,6 +167,7 @@ def inventory(connection, generation_id, manifests, budget, *, fresh_machine_ses
             return result
 
 
+@accounted
 def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN, inventory_only=False, permit=None):
     target.validate()
     if (repository.environment != 'preprod' or
@@ -179,55 +181,60 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
     windowed = isinstance(limits, TwoMarketReadbackLimits)
     if windowed and origin != ORIGIN and not origin.startswith('generated-'):
         raise LifecycleHold('two-market profile is restricted to PP')
-    with CycleBudget(limits) as budget, repository.retirement(target.sealed) as (db, generation, manifests):
-        if windowed:
-            sampled = budget.clock()
-            expires_at, window_end = bound_seal_window(db, generation, budget, sampled)
-
-        if permit is not None:
-            # FK inserts block on the generation UPDATE lock; existing catalog
-            # entries must also remain immutable for this local transaction.
-            db.execute('SELECT manifest_id FROM archive.manifests WHERE generation_id=%s FOR SHARE',
-                       (target.sealed,)).fetchall()
-            manifests = repository._manifests(db, target.sealed)
-
-        if (generation['origin_id'] != origin or generation['seal_count'] != target.count
-                or generation['seal_hash'] != target.seal_hash or not bound_catalog(generation,manifests)):
-            raise LifecycleHold('reviewed seal or authenticated catalog changed')
-        before = active_sample(db, origin)
-        if (not before or before['generation_id'] != target.collecting
-                or before['slot'] == generation['slot']):
-            raise LifecycleHold('reviewed active slot changed')
-        if windowed:
-            active_start = db.execute('SELECT started_at FROM archive.generations WHERE generation_id=%s',
-                                      (target.collecting,)).fetchone()
-            if (generation['slot'] != 'A' or before['slot'] != 'B' or not active_start or
-                    active_start['started_at'] != generation['sealed_at']):
-                raise LifecycleHold('two-market verification requires the actual A to B handoff')
-        estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
-        if windowed:
-            estimate.update(profile='pp-two-market-v1', seal_deadline_utc=expires_at.isoformat(),
-                            remaining_work_seconds=round(budget.deadline-budget.clock(),3))
-        if inventory_only or estimate['fit'] == 'exceeds_limits':
-            return {'status':'HOLD' if estimate['fit'] == 'exceeds_limits' else 'inventory_only',
-                    'retirement_authorized':False, 'sealed':target.sealed, 'collecting':target.collecting,
-                    'cloud_requests':0, 'inventory':estimate}
-        worker = ArchiveWorker(repository, transport, limits)
-        readback = worker.fresh_retirement_readback(db, generation, manifests, budget)
-        after = active_sample(db, origin)
-        if (not after or after['generation_id'] != target.collecting
-                or after['slot'] != before['slot'] or after['committed_rows'] <= before['committed_rows']):
-            raise LifecycleHold('concurrent opposite-slot persistence unobserved')
-        budget.check()
-        if permit is not None:
-            retire_with_permit(db, generation, target, permit,
-                               after['committed_rows'] - before['committed_rows'])
+    with CycleBudget(limits) as budget:
+        bind_budget(budget)
+        with measured_context(repository.retirement(target.sealed),
+                              enter='local_open', finish='local_finish') as (db, generation, manifests):
             if windowed:
-                # Recheck the DB clock after DROP, with rollback still possible.
-                late = db.execute('SELECT clock_timestamp()>=%s AS late',(expires_at,)).fetchone()['late']
-                if late:
-                    raise LifecycleHold('PP seal deadline expired before commit')
+                sampled = budget.clock()
+                expires_at, window_end = bound_seal_window(db, generation, budget, sampled)
+
+            if permit is not None:
+                # FK inserts block on the generation UPDATE lock; existing catalog
+                # entries must also remain immutable for this local transaction.
+                db.execute('SELECT manifest_id FROM archive.manifests WHERE generation_id=%s FOR SHARE',
+                           (target.sealed,)).fetchall()
+                manifests = repository._manifests(db, target.sealed)
+
+            if (generation['origin_id'] != origin or generation['seal_count'] != target.count
+                    or generation['seal_hash'] != target.seal_hash or not bound_catalog(generation,manifests)):
+                raise LifecycleHold('reviewed seal or authenticated catalog changed')
+            before = active_sample(db, origin)
+            if (not before or before['generation_id'] != target.collecting
+                    or before['slot'] == generation['slot']):
+                raise LifecycleHold('reviewed active slot changed')
+            if windowed:
+                active_start = db.execute('SELECT started_at FROM archive.generations WHERE generation_id=%s',
+                                          (target.collecting,)).fetchone()
+                if (generation['slot'] != 'A' or before['slot'] != 'B' or not active_start or
+                        active_start['started_at'] != generation['sealed_at']):
+                    raise LifecycleHold('two-market verification requires the actual A to B handoff')
+            with phase('inventory'):
+                estimate = inventory(db, target.sealed, manifests, budget, fresh_machine_session=origin == ORIGIN)
+            if windowed:
+                estimate.update(profile='pp-two-market-v1', seal_deadline_utc=expires_at.isoformat(),
+                                remaining_work_seconds=round(budget.deadline-budget.clock(),3))
+            if inventory_only or estimate['fit'] == 'exceeds_limits':
+                return {'status':'HOLD' if estimate['fit'] == 'exceeds_limits' else 'inventory_only',
+                        'retirement_authorized':False, 'sealed':target.sealed, 'collecting':target.collecting,
+                        'cloud_requests':0, 'inventory':estimate}
+            worker = ArchiveWorker(repository, transport, limits)
+            readback = worker.fresh_retirement_readback(db, generation, manifests, budget)
+            after = active_sample(db, origin)
+            if (not after or after['generation_id'] != target.collecting
+                    or after['slot'] != before['slot'] or after['committed_rows'] <= before['committed_rows']):
+                raise LifecycleHold('concurrent opposite-slot persistence unobserved')
             budget.check()
+            if permit is not None:
+                with phase('permit_drop'):
+                    retire_with_permit(db, generation, target, permit,
+                                       after['committed_rows'] - before['committed_rows'])
+                if windowed:
+                    # Recheck the DB clock after DROP, with rollback still possible.
+                    late = db.execute('SELECT clock_timestamp()>=%s AS late',(expires_at,)).fetchone()['late']
+                    if late:
+                        raise LifecycleHold('PP seal deadline expired before commit')
+                budget.check()
     operation_timely = budget.clock() < budget.deadline
     timely = not windowed or budget.clock() < window_end
     status = 'retired_pp' if permit else 'fresh_readback_verified'
@@ -244,6 +251,16 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
             'inventory':estimate, **readback}
 
 
+def retirement_history_factory(environ):
+    """Separate one-shot opt-in: recurring worker settings cannot enable reuse."""
+    from .pp_history_connection import PPHistoryConnectionFactory
+    from .pp_history_session import ReusablePPHistoryConnectionFactory
+    reuse = environ.get('TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION', 'false')
+    if reuse not in ('true', 'false'):
+        raise LifecycleHold('exact PP retirement session reuse opt-in required')
+    return ReusablePPHistoryConnectionFactory() if reuse == 'true' else PPHistoryConnectionFactory()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sealed',required=True)
@@ -257,6 +274,7 @@ def main():
                         help='consume the separately issued private exact-generation ticket')
     args=parser.parse_args()
     raw=None
+    history_factory=None
     try:
         target=Target(args.sealed, args.collecting, args.seal_hash, args.count)
         target.validate()
@@ -266,7 +284,6 @@ def main():
         from .connection import connect
         from .history_v2_transport import HistoryV2PostgresTransport
         from .migrate import validate_schema
-        from .pp_history_connection import PPHistoryConnectionFactory
         from .supabase_storage import SupabaseStorageTransport
         dsn = private_dsn(LOCAL_DSN)
         def factory():
@@ -296,9 +313,10 @@ def main():
             result = verify(LifecycleRepository(factory), None, target, inventory_only=True, limits=limits)
             print(json.dumps(result,sort_keys=True))
             return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
+        history_factory = retirement_history_factory(os.environ)
         raw=SupabaseStorageTransport.from_machine_files(*(
             FILES['TRADEBOT_PP_STORAGE_'+key+'_FILE'] for key in ('API_KEY','AUTH_EMAIL','AUTH_PASSWORD','AUTH_UID')))
-        structured=HistoryV2PostgresTransport(PPHistoryConnectionFactory(),origin_id=ORIGIN,
+        structured=HistoryV2PostgresTransport(history_factory,origin_id=ORIGIN,
             generation_id=target.sealed,expected_database='postgres',expected_role='tradebot_pp_history')
         scoped=RetirementTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed)
         result = verify(LifecycleRepository(factory),scoped,target,permit=permit,limits=limits)
@@ -308,9 +326,12 @@ def main():
         print(json.dumps({'status':'HOLD','retirement_authorized':False,
                           'reason':getattr(error,'code',type(error).__name__),
                           'partition_outcome':('inspect_generation_and_ticket' if args.retire_with_pp_permit
-                                               else 'readback_only')}))
+                                               else 'readback_only'),
+                          'phase_accounting':getattr(error,'retirement_accounting',None)}))
         return 1
     finally:
+        if history_factory is not None and hasattr(history_factory, 'close'):
+            history_factory.close()
         if raw is not None:
             raw.close()
 

@@ -14,6 +14,7 @@ import json
 from psycopg import sql
 from psycopg.types.json import Jsonb
 
+from .retirement_accounting import measured_context, phase
 from .archive_codec import (ArchiveIntegrityError, ArchiveLimit,
                             ArchiveUnavailable, encoded, sha256, wire)
 from .history_v2_envelope import (CLOUD_COLUMNS, IMPORT_ORDER, MUTABLE_PROJECTIONS,
@@ -271,32 +272,36 @@ class HistoryV2PostgresTransport:
         self._validate(records, max_bytes=max_bytes)
         deadline = self._deadline(timeout_seconds)
         try:
-            with self.connection_factory(timeout_seconds=timeout_seconds) as connection:
+            with measured_context(self.connection_factory(timeout_seconds=timeout_seconds),
+                                  enter='history_checkout', finish='history_release') as connection:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise ArchiveLimit('retirement readback deadline reached')
-                with connection.transaction():
+                with phase('history_transaction'), connection.transaction():
                     # B is free to advance. All receipt, envelope, cursor and
                     # projection reads on this connection use the same snapshot.
-                    connection.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
-                    self._limit(connection, remaining)
-                    self._identity(connection)
-                    self._checkpoint_covers(connection, self.generation_id, records[-1]['id'])
-                    archived = self._read_revisions(connection, [r['id'] for r in records], max_bytes)
-                    if encoded(archived) != encoded(records):
-                        raise ArchiveIntegrityError('historical retirement revision mismatch')
+                    with phase('history_identity_checkpoint'):
+                        connection.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+                        self._limit(connection, remaining)
+                        self._identity(connection)
+                        self._checkpoint_covers(connection, self.generation_id, records[-1]['id'])
+                    with phase('history_exact_revisions'):
+                        archived = self._read_revisions(connection, [r['id'] for r in records], max_bytes)
+                        if encoded(archived) != encoded(records):
+                            raise ArchiveIntegrityError('historical retirement revision mismatch')
                     size = len(encoded(archived))
                     final = {(r['entity_type'], r['entity_id']): r for r in archived}
-                    receipts = connection.execute("""
-                        SELECT entity_type,entity_id,generation_id,outbox_id FROM (
-                            SELECT r.entity_type,r.entity_id,r.generation_id,r.outbox_id,
-                                   rank() OVER (PARTITION BY r.entity_type,r.entity_id
-                                                ORDER BY r.outbox_id DESC) AS position
-                            FROM history_v2.structured_receipts r
-                            JOIN unnest(%s::text[],%s::text[]) k(entity_type,entity_id)
-                            USING (entity_type,entity_id) WHERE r.origin_id=%s
-                        ) revisions WHERE position=1
-                        """, ([k[0] for k in final], [k[1] for k in final], self.origin_id)).fetchall()
+                    with phase('history_latest_receipts'):
+                        receipts = connection.execute("""
+                            SELECT entity_type,entity_id,generation_id,outbox_id FROM (
+                                SELECT r.entity_type,r.entity_id,r.generation_id,r.outbox_id,
+                                       rank() OVER (PARTITION BY r.entity_type,r.entity_id
+                                                    ORDER BY r.outbox_id DESC) AS position
+                                FROM history_v2.structured_receipts r
+                                JOIN unnest(%s::text[],%s::text[]) k(entity_type,entity_id)
+                                USING (entity_type,entity_id) WHERE r.origin_id=%s
+                            ) revisions WHERE position=1
+                            """, ([k[0] for k in final], [k[1] for k in final], self.origin_id)).fetchall()
                     if len(receipts) != len(final):
                         raise ArchiveIntegrityError('latest projection receipt missing')
                     changed = {}
@@ -309,25 +314,27 @@ class HistoryV2PostgresTransport:
                         if index <= prior['id']:
                             raise ArchiveIntegrityError('conflicting latest revision identity')
                         changed.setdefault(gen, {})[index] = key
-                    for gen, by_id in changed.items():
-                        ids = sorted(by_id)
-                        self._checkpoint_covers(connection, gen, ids[-1])
-                        current = self._read_revisions(connection, ids, max_bytes-size,
-                                                       generation_id=gen)
-                        for r in current:
-                            key = by_id[r['id']]
-                            if (r['entity_type'], r['entity_id']) != key:
-                                raise ArchiveIntegrityError('latest revision identity mismatch')
-                            if r['entity_type'] in MUTABLE_PROJECTIONS:
-                                projection_order(final[key], r)
-                            elif encoded(r['payload']) != encoded(final[key]['payload']):
-                                raise ArchiveIntegrityError('immutable historical entity changed')
-                            size += len(encoded(r))
-                            final[key] = r
-                    projections = self._projection_rows(connection, final.values())
-                    for key, r in final.items():
-                        if not cloud_row_matches(r, wire(projections[key])):
-                            raise ArchiveIntegrityError('current projection lacks matching revision')
+                    with phase('history_newer_revisions'):
+                        for gen, by_id in changed.items():
+                            ids = sorted(by_id)
+                            self._checkpoint_covers(connection, gen, ids[-1])
+                            current = self._read_revisions(connection, ids, max_bytes-size,
+                                                           generation_id=gen)
+                            for r in current:
+                                key = by_id[r['id']]
+                                if (r['entity_type'], r['entity_id']) != key:
+                                    raise ArchiveIntegrityError('latest revision identity mismatch')
+                                if r['entity_type'] in MUTABLE_PROJECTIONS:
+                                    projection_order(final[key], r)
+                                elif encoded(r['payload']) != encoded(final[key]['payload']):
+                                    raise ArchiveIntegrityError('immutable historical entity changed')
+                                size += len(encoded(r))
+                                final[key] = r
+                    with phase('history_projections'):
+                        projections = self._projection_rows(connection, final.values())
+                        for key, r in final.items():
+                            if not cloud_row_matches(r, wire(projections[key])):
+                                raise ArchiveIntegrityError('current projection lacks matching revision')
             if time.monotonic() >= deadline:
                 raise ArchiveLimit('retirement readback deadline reached')
             return archived, size

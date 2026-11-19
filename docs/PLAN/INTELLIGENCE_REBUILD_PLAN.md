@@ -1,3 +1,30 @@
+## November 19 UTC — PP18 observed switch, retained A, early B stop
+
+PP18 pinned source `74a850bc` observed A→B, and raw A verification covered
+28,411 rows / 57 chunks in **498.625812s** after 08:30:04.617214 seal. Full final
+verification returned **HOLD `archive_limit`**; A stayed attached, with no
+retirement. The 247.855136s ticket→container-die interval includes startup and
+finalization; the exhausted dimension and dominant phase are not established.
+
+The required 30-minute B run **FAILED**: durable OFF 08:50:36.853109 after
+`ownership.lease_lost` and lifecycle-role connection saturation, only
+**20m32.235895s** after A seal. B retained 9,784 raw rows. Post-OFF drain completed
+with A 31,162/B 10,971 structured ACKs, zero pending, both workers OFF and final
+DB sample 08:56:09.912353. No B archive/retirement success is claimed.
+
+Independent 690-payload audit reports publication integrity **PASS** and strict
+numeric switch continuity **INCOMPLETE**. First post-bracket sample lacked
+forecasts; saved/live numeric recovered 08:30:25.738910. Truthful stale-reference
+abstentions, UI age suppression, rollover empty charts and  91.281s observer gap
+remain explicit. API sampled latency and DB/WAL counters do not prove continuous
+feed freshness or CPU/RSS/headroom; only preflight disk-free was measured.
+
+[Full qualified observation](PP18_COMBINED_OBSERVATION_2026-11-19.md) ·
+[Sanitized combined evidence](evidence/pp18-combined-observation-2026-11-19.json).
+Next gates are lifecycle connection-budget/lease continuity and bounded full-path
+verification qualification. No legacy/prod, trading, deployment, setting or
+retirement authority follows from this docs-only milestone.
+
 ## November 19 UTC — measured cold-readback followup, documentation only
 
 PR #164 merged at `a4e39d1` after exact green. Additional research remains separate:
@@ -3648,3 +3675,22 @@ The PP quote poll waits until its next scheduled cycle after an empty book, miss
 ## PP collector control under lifecycle connection pressure
 
 PP18 exposed connection contention during archival and lease monitoring. The source correction checks the exact collector session and database expiry with the PP application role in a read-only transaction. Each recurring worker reuses its advisory-lock connection for short local transactions and releases transaction locks before remote I/O. The PP controller can release an owned worker of the same build to reprove a failed durable OFF within its original deadline. An isolated PG17 fixture filled all three lifecycle connections, rejected a fourth, preserved ownership checks, detected genuine expiry, and proved durable OFF after freeing one connection. The PP deployment and sustained B run require separate evidence.
+
+### PP.18 retirement diagnosis and default-off session reuse, November 19 UTC
+
+PP18 completed A→B and remote raw archival, but final fresh proof returned HOLD
+`archive_limit` around 240 seconds and retained A. That trial did not satisfy the
+original seal-plus-30-minute retirement condition. Standalone inventory took
+20.009 seconds for 63 structured pages/57 raw objects; the final attempt has no
+phase trace sufficient to attribute the timeout precisely.
+
+A source-only successor adds bounded sanitized phase accounting to fresh proof
+and a separate exact default-off retirement session reuse flag. The existing
+240s/128MiB/192-request caps, short per-page read-only transactions, identity and
+revision/projection checks, fail/discard behavior, and seal deadline remain.
+Three matched isolated full-worker readback pairs preserve exact raw/A/newer-B
+bytes and logical charges while reducing two physical opens to one; injected
+setup latency produces 0.478–0.497s reused versus 0.689–0.713s cold. Those local
+results establish correctness under reuse, not a hosted end-to-end timing pass.
+No deployment, permit retry, deletion, binary codec, policy or clock change is
+included. [Qualification and limitations](PP_RETIREMENT_PHASE_REUSE_2026-11-19.md).

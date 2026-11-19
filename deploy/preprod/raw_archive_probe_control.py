@@ -46,7 +46,7 @@ def _storage_files():
     require(str(uuid.UUID(uid)) == uid, 'invalid_pp_storage_auth_identity')
 
 
-def _compose(actions, context, budget, files, args, timeout):
+def _compose(actions, context, budget, files, args, timeout, *, profile="raw_archive_probe"):
     folder = context.source / 'deploy/preprod'
     command = ['docker', 'compose', '--env-file', '/dev/null',
                '--project-name', PROJECT,
@@ -54,7 +54,7 @@ def _compose(actions, context, budget, files, args, timeout):
     for name in ('compose.yaml', 'runtime.compose.yaml', *files):
         command += ['-f', str(folder / name)]
     return budget.run([*command, '--profile', 'migration', '--profile',
-                       'raw_archive_probe', *args], cwd=context.source,
+                       profile, *args], cwd=context.source,
                       env=actions._environment(context.image), timeout=timeout)
 
 
@@ -146,3 +146,45 @@ def run(command: str, installed: Path):
             'generation_id': generation, 'raw_coverage': result['raw_coverage'],
             'raw_rows': raw_rows, 'outbox_rows': outbox_rows,
             'retirement': 'off', 'cloud_operations_max': 8}
+
+
+def recurring_start(installed):
+    import time
+    from raw_archive_probe_profile import validate_recurring_profile
+    from structured_probe_control import (ARCHIVE_STATE, _require_stopped, _write_sync_owner,
+                                          _sync_container, recurring_control)
+    _require_stopped(ARCHIVE_STATE)
+    budget = Budget(120)
+    context, actions, digest = preflight(installed, budget)
+    require(digest == context.request.controller_sha256, 'recurring_archive_controller_mismatch')
+    live = ('runtime.live.compose.yaml',)
+    probe = actions._json(_compose(actions, context, budget,
+        live + ('runtime.raw-archive-probe.compose.yaml',), ['config','--format','json'], 15))
+    files = live + ('runtime.sealed-archive.compose.yaml',)
+    actual = actions._json(_compose(actions, context, budget, files,
+        ['config','--format','json'], 15, profile='sealed_archive'))
+    validate_recurring_profile(probe, actual)
+    owner = dict(attempt_id=actions.attempt_id, image=context.image,
+                 source_sha=context.request.source_sha)
+    _write_sync_owner(owner, ARCHIVE_STATE)
+    try:
+        with _stage_local_secret():
+            _compose(actions, context, budget, files, ['run','--detach','--no-deps','--name',
+                'tradebot-pp-sealed-' + actions.attempt_id,
+                '--label','tradebot.deployment_attempt=' + actions.attempt_id,
+                '--label','tradebot.deployment_source=' + context.request.source_sha,
+                'sealed_archive'], 30, profile='sealed_archive')
+            for _ in range(20):
+                row = _sync_container(owner, budget, archive=True)
+                require(row and row['State']['Running'], 'archive_worker_failed_start')
+                raw = budget.run(['docker','logs','--tail','8',row['Id']],
+                                 env=actions._environment(context.image),timeout=5)
+                if b'{"status": "sealed_archive_worker_ready"}' in raw.splitlines():
+                    break
+                time.sleep(0.25)
+            else:
+                raise DeploymentHold('archive_worker_readiness_timeout')
+    except BaseException:
+        recurring_control('stop', Budget(65), archive=True)
+        raise
+    return {'status':'started','retirement':'off'}

@@ -508,13 +508,16 @@ class LifecycleRepository:
                 AND acknowledged_at IS NULL LIMIT 1''',
                 (origin_id, generation_id)).fetchone() is not None
 
-    @contextmanager
     def structured_sync_lock(self, origin_id):
-        """One same-origin structured writer across generation/cloud/ACK work.
+        """Serialize structured imports and fresh receipt acknowledgements."""
+        return self._origin_lock('tradebot-structured-sync:', origin_id)
 
-        This is a session advisory lock, released automatically if its owning
-        connection dies. A contending worker holds before cloud I/O.
-        """
+    def raw_archive_lock(self, origin_id):
+        """Serialize archive manifest writers independently of structured I/O."""
+        return self._origin_lock('tradebot-raw-archive:', origin_id)
+
+    @contextmanager
+    def _origin_lock(self, namespace, origin_id):
         budget = ACTIVE_BUDGET.get()
         if budget:
             budget.check()
@@ -523,7 +526,7 @@ class LifecycleRepository:
         with self.connection_factory() as connection:
             connection.autocommit = True
             connection.execute("SET statement_timeout='1000ms'")
-            key = 'tradebot-structured-sync:' + origin_id
+            key = namespace + origin_id
             acquired = connection.execute('''SELECT
                 pg_try_advisory_lock(hashtextextended(%s,0)) AS acquired''',
                 (key,)).fetchone()['acquired']

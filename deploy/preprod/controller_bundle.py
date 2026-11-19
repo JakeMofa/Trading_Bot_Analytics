@@ -11,7 +11,7 @@ from pathlib import Path
 from controller import Controller,DeploymentHold,HostBinding,Request,RootAuthorization,_secure_file,require
 from linux_actions import LinuxActions
 from transition_control import ACTIVE,_read_active,session,transition,TransitionRequest
-from structured_probe_control import PUBLIC_FAILURE_CODES,run as structured_probe_run
+from structured_probe_control import PUBLIC_FAILURE_CODES,fence_recurring_sync,run as structured_probe_run
 from raw_archive_probe_control import run as raw_archive_probe_run
 
 def interrupted(signum,frame):
@@ -40,6 +40,7 @@ def main():
         signal.signal(getattr(signal,name),interrupted)
     installed=Path(sys.argv[0]).resolve()
     if command.startswith('transition-v1 '):
+        fence_recurring_sync()
         result=transition(TransitionRequest.parse(command),installed)
         print(json.dumps(result,sort_keys=True),flush=True)
         return 0 if result.get('gate') in ('PP_LIVE_READY_OFF','PP_GENERATED_RESTORED') else 1
@@ -56,6 +57,7 @@ def main():
         print(json.dumps(result,sort_keys=True),flush=True)
         return 0 if result.get('gate') in ('PP_RAW_ARCHIVE_PREFLIGHT_PASS','PP_RAW_ARCHIVE_ONCE_PASS') else 1
     request=Request.parse(command)
+    fence_recurring_sync()
     if ACTIVE.exists() or ACTIVE.is_symlink():
         require(_read_active()['state']=='generated_restored','unfinished_transition_blocks_deploy')
     controller=Controller(binding,RootAuthorization("/run/tradebot-pp-deploy/authorization.json"),
@@ -70,7 +72,8 @@ except (DeploymentHold,OSError,ValueError) as error:
     # Publish only these fixed, non-sensitive leave-stage codes. All other
     # adapter/child diagnostics retain the existing generic public result.
     reason=str(error)
-    if reason not in PUBLIC_FAILURE_CODES and reason not in ('generated_runtime_check_failed',
+    if reason not in PUBLIC_FAILURE_CODES and reason not in ('stop_recurring_structured_sync_first','stop_recurring_archive_first',
+                      'generated_runtime_check_failed',
                       'generated_api_readiness_timeout',
                       'generated_operator_readiness_timeout',
                       'generated_api_state_check_failed',

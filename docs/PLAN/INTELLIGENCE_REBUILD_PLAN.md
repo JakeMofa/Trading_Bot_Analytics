@@ -32,6 +32,13 @@ counts **all** outbox rows per origin against 10,000, including ACKed rows;
 ACK does not free that lifetime release bound. Any bounded-ledger solution
 must preserve verified evidence for protected references and release recovery.
 
+PR #131 prepares a default-off, root-controlled recurring service for the second checkpoint.
+It selects sealed generations first, sends a page at a time, acknowledges
+after authenticated readback and backs off after a cloud outage. The root installer starts, stops and inspects the exact worker using the
+reviewed probe network and mounts. A durable owner record fences CD and mode
+transitions until the operator proves the worker stopped. Release, host
+installation and sustained throughput qualification are pending.
+
 ### PP release inventory implementation
 
 The release controller now fingerprints the complete outbox, including payloads,
@@ -100,6 +107,62 @@ must measure. These mechanisms address different stages of the plan.
 [Transaction limits](https://www.postgresql.org/docs/17/runtime-config-client.html#GUC-TRANSACTION-TIMEOUT),
 [Psycopg pipeline behavior](https://www.psycopg.org/psycopg3/docs/advanced/pipeline.html),
 [partition maintenance](https://www.postgresql.org/docs/17/ddl-partitioning.html#DDL-PARTITIONING-MAINTENANCE).
+
+### Measured PP raw archive capacity
+
+Bounded read-only PP inventory on November 19 UTC found slot A collecting,
+4,845 raw rows and 9,109,504 allocated partition bytes. Nonempty minutes
+peaked at 804 raw rows/minute. A 30–45 minute interval at that observed peak
+would add 24,120–36,180 raw rows. Treat this as a scenario and record actual
+counts at switch. The existing 25-row page and 128-manifest diagnostic can
+cover at most 3,200 rows including existing data. The current A already exceeds
+that bound. PR #132 makes this an early hold and exercises durable two-page
+resume, corrupt/failed readback, and B commits during each readback in CI.
+
+The opt-in `postgres.pp_sealed_archive --execute` entrypoint and
+`runtime.sealed-archive.compose.yaml` overlay select sealed PP generations and
+resume durable manifest progress. Each cycle reads at most 500 raw rows and
+4 MiB decoded, verifies the restricted Storage readback, and yields between
+pages. Transient Storage failures back off up to 60 seconds. The worker waits
+for structured evidence to sync first. Synthetic payloads at 4,845 and 36,180
+rows passed in 10 and 73 pages respectively with an injected readback failure.
+The 128-manifest limit still applies, so the 64,000-row maximum is lower for
+large payloads. A bounded read-only PP inventory of the actual A rows, ordered as the archive
+worker reads them, found ten 500-row-or-smaller pages, largest conservative
+page size 1,720,208 bytes and largest single-row allowance 11,860 bytes. These
+fit the 4 MiB decoded budget. Measure compressed sizes and throughput during
+the PP run. Root operator commands `sealed-archive-start/status/stop` use a
+distinct ownership record, exact image, private Storage credentials and the
+staged lifecycle DSN. The archive container mounts no history login. Deploy and
+mode transitions require both workers stopped. The recurring raw and structured workers
+use independent origin locks, so slow Storage readback leaves the structured
+worker free to ACK. The diagnostic that can perform both operations takes
+both locks. Stop waits for the owned
+container to exit and preserves its fence if cleanup cannot be confirmed.
+
+For larger generations, resume from the last verified manifest using the
+indexed generation and manifest sequence, fetch exactly one bounded raw page,
+then atomically advance its cursor after create-only upload and authenticated
+readback. Stream ordered manifest pages for final coverage validation under
+a repeatable snapshot, preserving the existing seal digest format. Include
+history retrieval in the pagination change. Qualify with at least the observed
+4,845-row shape and a 36,180-row generated burst, independently measuring
+archive throughput against B growth and available disk. Exercise page 129,
+crash after upload, corrupt readback, and generation identity on restart.
+The prepared live host profile marker stays in ready_off even while an
+operator lease runs. Prove B's actual continued collection with advancing
+persisted event IDs during A verification. Keep retirement at its separate
+authorization gate.
+
+PP collection ON currently has a hard 1,800-second lease. The release can
+exercise A → B within that interval using the qualified size trigger. Both
+the application and the SQL retirement function restrict partition removal
+to generated qualification data. Successful real archive readback keeps A
+local. If B reaches its next switch while A occupies the other slot, collection
+stops. Continuous live reuse requires separate reviewed PP retirement covering
+committed structured history, raw replay, protected references, reader drainage,
+remote mutation authority and recovery, plus a durable collector ownership
+policy for sessions beyond 30 minutes.
 
 ## Current PP release checkpoint — November 18, 2026 CST
 

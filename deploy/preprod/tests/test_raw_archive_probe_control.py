@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from controller import DeploymentHold
 import raw_archive_probe_control as control
-from raw_archive_probe_profile import validate_raw_archive_profile
+from raw_archive_probe_profile import validate_raw_archive_profile, validate_recurring_profile
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -22,7 +22,7 @@ IMAGE = 'sha256:' + 'a' * 64
 GENERATION = '11111111-1111-4111-8111-111111111111'
 
 
-def rendered(*overlays):
+def rendered(*overlays, profile="raw_archive_probe"):
     env = {**os.environ, 'PP_APP_IMAGE': IMAGE,
            'PP_SECRET_DIR': '/etc/tradebot/pp-postgres',
            'PP_RUNTIME_SECRET_DIR': '/etc/tradebot/pp-runtime'}
@@ -31,7 +31,7 @@ def rendered(*overlays):
                '--project-directory', str(FOLDER)]
     for name in ('compose.yaml', 'runtime.compose.yaml', *overlays):
         command.extend(('-f', str(FOLDER / name)))
-    command.extend(('--profile', 'migration', '--profile', 'raw_archive_probe',
+    command.extend(('--profile', 'migration', '--profile', profile,
                     'config', '--format', 'json'))
     return json.loads(subprocess.check_output(command, env=env, timeout=5))
 
@@ -61,6 +61,15 @@ class ProfileTests(unittest.TestCase):
         self.assertIn('no-new-privileges:true', service['security_opt'])
         self.assertEqual(set(service['networks']), {'database', 'raw_archive_probe_egress'})
         self.assertFalse(service.get('ports') or service.get('volumes'))
+
+    def test_recurring_archive_privileges(self):
+        profile = rendered('runtime.live.compose.yaml','runtime.sealed-archive.compose.yaml',
+                           profile='sealed_archive')
+        self.check(self.probe)
+        validate_recurring_profile(self.probe, profile)
+        profile['services']['sealed_archive']['secrets'].append({'source':'pp_history_dsn'})
+        with self.assertRaises(DeploymentHold):
+            validate_recurring_profile(self.probe, profile)
 
     def test_unsafe_profile_changes_stop(self):
         mutations = (

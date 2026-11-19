@@ -282,3 +282,127 @@ def run(command: str, installed: Path):
     return {'gate': 'PP_STRUCTURED_ONCE_PASS', 'origin_id': 'pp-live-pp',
             'acknowledged': result['acknowledged'], 'retirement': 'off',
             'cloud_operations_max': 2}
+
+
+# Only the root operator installer invokes these operations, under the same
+# controller lock as CD and transitions. Persist ownership before Docker runs.
+SYNC_STATE = ACTIVE.with_name('structured-sync-owner.json')
+
+
+ARCHIVE_STATE = ACTIVE.with_name('sealed-archive-owner.json')
+
+
+def _require_stopped(path):
+    require(not path.exists() and not path.is_symlink(),
+            'stop_recurring_structured_sync_first' if path == SYNC_STATE else 'stop_recurring_archive_first')
+
+
+def fence_recurring_sync():
+    for path in (SYNC_STATE, ARCHIVE_STATE):
+        _require_stopped(path)
+
+
+def _write_sync_owner(owner, path=None):
+    path = path or SYNC_STATE
+    import json
+    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | os.O_WRONLY, 0o600)
+    with os.fdopen(descriptor, 'w') as out:
+        json.dump(owner, out)
+        out.flush()
+        os.fsync(out.fileno())
+    parent = os.open(path.parent, os.O_DIRECTORY | os.O_RDONLY)
+    try:
+        os.fsync(parent)
+    finally:
+        os.close(parent)
+
+
+def recurring_start(installed):
+    import time
+    _require_stopped(SYNC_STATE)
+    budget = Budget(120)
+    context, actions, digest = preflight(installed, budget)
+    require(digest == context.request.controller_sha256,
+            'recurring_controller_digest_mismatch')
+    name = 'tradebot-pp-sync-' + actions.attempt_id
+    owner = dict(attempt_id=actions.attempt_id, image=context.image,
+                 source_sha=context.request.source_sha)
+    _write_sync_owner(owner)
+    # Reuse the exact validated probe network, image, secrets and isolation.
+    # Only the two mutually exclusive mode flags and the module differ.
+    args = ['run', '--detach', '--no-deps', '--name', name,
+            '--label', 'tradebot.deployment_attempt=' + actions.attempt_id,
+            '--label', 'tradebot.deployment_source=' + context.request.source_sha,
+            '-e', 'TRADEBOT_PP_STRUCTURED_ONE_SHOT=false',
+            '-e', 'TRADEBOT_PP_STRUCTURED_RECURRING=true',
+            'structured_probe', 'python', '-m', 'postgres.pp_structured_service']
+    try:
+        with _stage_local_secret():
+            _compose(actions, context, budget,
+                     ('runtime.live.compose.yaml', 'runtime.structured-probe.compose.yaml'),
+                     args, 30)
+            for _ in range(20):
+                row = _sync_container(owner, budget)
+                require(row and row['State']['Running'], 'recurring_worker_failed_start')
+                raw = budget.run(['docker', 'logs', '--tail', '8', row['Id']],
+                                 env=actions._environment(context.image), timeout=5)
+                if any(line == b'{"status": "structured_worker_ready"}'
+                       for line in raw.splitlines()):
+                    break
+                time.sleep(0.25)
+            else:
+                raise DeploymentHold('recurring_worker_readiness_timeout')
+    except Exception:
+        recurring_control('stop', Budget(60))
+        raise
+    return {'status': 'started', 'retirement': 'off'}
+
+
+def _sync_container(owner, budget, *, archive=False):
+    attempt, image, source = (owner.get(k, '') for k in ('attempt_id', 'image', 'source_sha'))
+    require(re.fullmatch('[a-f0-9]{32}', attempt) and
+            re.fullmatch('sha256:[a-f0-9]{64}', image) and
+            re.fullmatch('[a-f0-9]{40}', source), 'bad_recurring_worker_owner')
+    name = ('tradebot-pp-sealed-' if archive else 'tradebot-pp-sync-') + attempt
+    env = LinuxActions._environment(image)
+    ids = budget.run(['docker', 'ps', '-a', '--no-trunc', '--filter',
+                      'name=^/' + name + '$', '--format', '{{.ID}}'],
+                     env=env, timeout=10).decode().split()
+    if not ids:
+        return None
+    require(len(ids) == 1 and re.fullmatch('[a-f0-9]{64}', ids[0]),
+            'ambiguous_recurring_worker')
+    row = LinuxActions()._inspect(budget, ids)[0]
+    labels = row['Config']['Labels']
+    require(row['Image'] == image and row['Id'] == ids[0] and row['Name'] == '/' + name
+            and labels.get('com.docker.compose.project') == PROJECT
+            and labels.get('com.docker.compose.service') == ('sealed_archive' if archive else 'structured_probe')
+            and labels.get('tradebot.deployment_attempt') == attempt
+            and labels.get('tradebot.deployment_source') == source
+            and row['HostConfig']['RestartPolicy']['Name'] in ('no', ''),
+            'recurring_worker_ownership_mismatch')
+    return row
+
+
+def recurring_control(operation, budget, *, archive=False):
+    path = ARCHIVE_STATE if archive else SYNC_STATE
+    import json
+    require(operation in ('stop', 'status'), 'bad_recurring_worker_operation')
+    if not path.exists() and not path.is_symlink():
+        return {'status': 'off'}
+    owner = json.loads(_secure_file(path)[0])
+    row = _sync_container(owner, budget, archive=archive)
+    if operation == 'status':
+        return {'status': 'running' if row and row['State']['Running'] else 'stopped',
+                'source_sha': owner['source_sha'], 'retirement': 'off'}
+    if row:
+        env = LinuxActions._environment(owner['image'])
+        if row['State']['Running']:
+            budget.run(['docker', 'stop', '--time', '30', row['Id']], env=env, timeout=35)
+        row = _sync_container(owner, budget, archive=archive)
+        if row:
+            require(not row['State']['Running'], 'recurring_worker_still_running')
+            budget.run(['docker', 'rm', row['Id']], env=env, timeout=8)
+        require(_sync_container(owner, budget, archive=archive) is None, 'recurring_worker_still_present')
+    path.unlink()
+    return {'status': 'off'}

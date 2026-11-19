@@ -16,8 +16,10 @@ historical retirement HOLD.
   writer state. This audit does not require B to advance while the collector is
   OFF and cannot claim concurrent B persistence evidence.
 - The exact original seal hash must be supplied from the reviewed retained
-  generation binding; the audit rejects any mismatch before cloud I/O. Do not
-  invent a hash or recover credentials to fill this field. Original seal deadline
+  generation binding; the audit rejects any mismatch before cloud I/O. The final
+  read-only snapshot at 08:56:09.912353 UTC records seal hash
+  `bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250`.
+  Original seal deadline
   from recorded inventory is `2026-11-19T09:00:04.617214+00:00`.
 - All 57 authenticated raw GETs/decode/local exact row comparisons and all 63
   rich structured reads/local exact envelope comparisons run in one bounded
@@ -87,13 +89,13 @@ Required CLI scope arguments:
 ```
 --sealed 2f5ab434-14c0-4a61-8b8e-145c9a05f0e6
 --collecting 23f4ccb8-c243-4eae-bbd2-8c75aae9816a
---seal-hash <reviewed-original-seal-hash>
+--seal-hash bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250
 --original-deadline-utc 2026-11-19T09:00:04.617214+00:00
 --count 28411 --structured-rows 31162 --raw-objects 57 --structured-pages 63
 ```
 
 This is a candidate binding, not a runnable dispatch: sealed must bind the
-released source/image, staged reader files, exact seal hash and exclusive host
+released source/image, staged reader files, unchanged recorded seal and exclusive host
 window before executing. The candidate adds no host controller/deploy changes.
 
 ## Native qualification

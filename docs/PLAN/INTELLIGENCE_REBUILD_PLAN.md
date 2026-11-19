@@ -94,23 +94,16 @@ The exact ON permit may request up to 4,560 seconds on PP (up to 15 minutes
 of alignment, two 30-minute observations and one minute for sampling). ON remains
 bounded by the durable PostgreSQL lease and the supervisor. OFF survives restart.
 Use controls from a reviewed PP workflow revision that accepts this duration.
-A hard stop at the first size check at or above 32 MiB retains the generation
-and durably disables collection. Sampling every 30 seconds permits growth between
-checks. No early switch counts as two markets. For this profile, record the first
-blocking condition, the generation, measured allocation, lease and exact markets.
+For the two-market PP profile, the existing host reserve of 10 GiB free is
+checked on the **PostgreSQL data filesystem** at admission and each live
+lifecycle tick. The switch itself uses observed market boundaries. A low or
+unavailable sample disables the writer lease durably and preserves both slots.
+The controller binds the actual Docker volume and read-only mounts before ON;
+each worker reads fresh kernel filesystem statistics without reading a secret.
+The archived generation, receipt and occupied-slot safety rules still apply.
+A historical fixture-size hold remains recorded and requires review.
 
-**Capacity decision before ON.** The previous PP diagnostic measured growth from
-2,711,552 to 9,109,504 bytes over 282 seconds (~22,688 bytes/s). From that A
-allocation, 32 MiB would be reached in about 18 minutes. Over 30–45 minutes the
-projected A allocation is roughly 48–67 MiB. An initially empty B would add
-about 39 MiB in 30 minutes. At the prior rate **this full-window test cannot fit
-the existing 32 MiB guard**. Check fresh A/slot allocation, arrival rates, archive
-manifest/chunk limits, pending outbox, mount capacity and WAL working space. If
-the full-window estimate still exceeds the guard, review a measured qualification
-budget before a live attempt. This candidate applies no larger cap.
-[Measured PP diagnostic](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md).
-
-### PP window capacity option awaiting a separate scope decision
+### PP window qualification measurements
 
 At 00:56:57 UTC on November 19, a pinned read-only PP sample found the
 collector OFF, A at 4,845 rows and 9,109,504 bytes, database 60,430,003
@@ -134,20 +127,20 @@ at 500 rows per chunk. The actual decoded-byte bound can require more.
 A faster feed, large payloads, long readers, transient WAL retention, temp
 files, cumulative outbox and upload stalls must be measured during the run.
 
-The unselected fixed PP capacity option is **96 MiB per active relation**.
-It leaves 29,616,171 bytes above the projected A and fails the doubled-rate
-scenario. It has no effect on the default 32 MiB overlay. Selecting it requires
-a reviewed change binding the exact Compose and host profile to
-`two-official-markets-96mib`, the PP database/origin and one bounded session
-under the existing lease. Do not reuse a previous permit. Capture host and
-database measurements before ON, during collection, at the actual switch
-and after OFF. Interrupt on capacity or memory pressure, feed degradation,
-archive integrity failure or lost observation. Leave local retirement OFF.
-For recovery, explicitly turn collection OFF, prove durable OFF, leave the
-qualification profile and restore the reviewed 32 MiB binding. Preserve A, B
-and committed rows. If an active slot already exceeds 32 MiB, keep intake
-OFF pending reconciliation. The only generated size test uses scaled relation
-thresholds; no 96 MiB performance or capacity acceptance is claimed.
+On November 18 CST the pinned PP operator verified major/minor device 66305
+on the host data volume, host lifecycle bind, and their corresponding
+container mounts, each reporting 56,779,345,920 free bytes where measured.
+The candidate worker sampler independently read 56,779,321,344 free bytes
+from the existing read-only mount. This profile has no per-relation size cap.
+Observe raw/total growth, free bytes, memory, WAL, live performance and
+archive progress. A tested generated relation over 32 MiB exercises the
+timer with sufficient space. A low, missing or stale sample keeps PP OFF
+until a fresh authorized admission and adequate free space are verified.
+The sampler interval permits concurrent growth between measurements.
+For recovery explicitly stop collection, verify durable OFF and return to
+the qualified generated profile; retain local files and all committed rows.
+Production retains its own policy. Subsequent deployment and live acceptance
+are recorded separately from these source qualification measurements.
 
 ### PP execution sequence
 
@@ -223,8 +216,8 @@ operator lease runs. Prove B's actual continued collection with advancing
 persisted event IDs during A verification. Keep retirement at its separate
 authorization gate.
 
-PP collection ON currently has a hard 1,800-second lease. The release can
-exercise A → B within that interval using the qualified size trigger. Both
+Earlier PP releases bounded ON to 1,800 seconds. The two-market qualification
+uses the explicitly authorized time budget above. Both
 the application and the SQL retirement function restrict partition removal
 to generated qualification data. Successful real archive readback keeps A
 local. If B reaches its next switch while A occupies the other slot, collection

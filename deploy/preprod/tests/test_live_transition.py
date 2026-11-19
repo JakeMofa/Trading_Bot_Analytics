@@ -12,6 +12,7 @@ from live_transition import LiveTransition
 
 
 class Actions:
+    def _live_filesystem(self,context,budget):self.calls.append('bound_filesystem')
     def __init__(self):
         self.calls=[]
         self.fail_live=False

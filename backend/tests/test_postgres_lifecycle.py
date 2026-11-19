@@ -124,13 +124,6 @@ class RotationConfigurationTests(unittest.TestCase):
         qualified = {**live, 'TRADEBOT_ENVIRONMENT':'preprod', 'TRADEBOT_ORIGIN_ID':'pp-live-pp',
                      'TRADEBOT_PP_WINDOW_POLICY':'two-official-markets'}
         self.assertTrue(configuration(qualified)['market_pair_trial'])
-        self.assertFalse(configuration(qualified)['capacity_trial_96mib'])
-        candidate = {**qualified, 'TRADEBOT_PP_WINDOW_POLICY':'two-official-markets-96mib'}
-        self.assertTrue(configuration(candidate)['capacity_trial_96mib'])
-        for change in ({'TRADEBOT_ENVIRONMENT': 'production'}, {'TRADEBOT_ORIGIN_ID':'pp-live-other'},
-                       {'TRADEBOT_DATA_MODE':'generated'}, {'TRADEBOT_PP_WINDOW_POLICY':'two-official-markets-128mib'}):
-            with self.subTest(change=change), self.assertRaises(ValueError):
-                configuration({**candidate, **change})
         for key, value in [('TRADEBOT_QUALIFIED_GENERATION_BYTES', '1'),
                            ('TRADEBOT_ORIGIN_ID', 'pp-live-fixture')]:
             with self.assertRaises(ValueError):

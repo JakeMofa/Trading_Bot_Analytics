@@ -382,6 +382,40 @@ class LinuxActions:
                 and info.st_nlink==1 and info.st_size<=65 and bool(re.fullmatch('[0-9a-f]{64}',token.read_text().strip())),
                 'unsafe_operator_token')
 
+    def _live_filesystem(self, context, budget):
+        # Independently bind the running containers to the PostgreSQL volume
+        # before READY_OFF and ON. Per-tick statvfs uses this same existing RO
+        # bind, so the worker receives no PostgreSQL directory access.
+        pgids = self._ids(context,budget,['postgres'])
+        require(len(pgids)==1, 'pp_filesystem_database_identity')
+        row = self._inspect(budget,pgids)[0]
+        mounts = [m for m in row['Mounts'] if m.get('Destination')=='/var/lib/postgresql/data']
+        require(len(mounts)==1 and mounts[0].get('Type')=='volume'
+                and mounts[0].get('Name')==PG_VOLUME, 'pp_filesystem_volume_binding')
+        pgpath = Path(mounts[0]['Source'])
+        secret = RUNTIME_SECRETS/'lifecycle_dsn'
+        require(pgpath.is_absolute() and pgpath.parts[-3:]==('volumes',PG_VOLUME,'_data')
+                and stat.S_ISDIR(pgpath.lstat().st_mode) and stat.S_ISREG(secret.lstat().st_mode),
+                'pp_filesystem_source_binding')
+        device = pgpath.stat().st_dev
+        require(secret.stat().st_dev==device, 'pp_filesystem_device_mismatch')
+        for service, target in [('postgres','/var/lib/postgresql/data'),
+                                ('lifecycle','/run/secrets/lifecycle_dsn'),
+                                ('operator','/run/secrets/lifecycle_dsn')]:
+            ids = pgids if service=='postgres' else self._ids(context,budget,[service])
+            require(len(ids)==1, 'pp_filesystem_container_identity')
+            if service!='postgres':
+                info = self._inspect(budget,ids)[0]
+                pins = [m for m in info['Mounts'] if m.get('Destination')==target]
+                require(len(pins)==1 and pins[0].get('Type')=='bind' and pins[0].get('RW') is False
+                        and pins[0].get('Source')==str(secret), 'pp_filesystem_runtime_binding')
+            raw = budget.run(['docker','exec',ids[0],'stat','-c','%d',target],
+                             env=self._environment('unused'),timeout=5)
+            require(raw.strip()==str(device).encode(), 'pp_filesystem_device_mismatch')
+        # Sample the real volume last; neither a stale reading nor '/' is
+        # accepted as headroom for a different filesystem.
+        require(shutil.disk_usage(pgpath).free >= 10 * 1024**3, 'pp_filesystem_reserve')
+
     def _postgres(self,context,budget):
         ids=self._ids(context,budget,['postgres'])
         require(len(ids)==1,'existing_postgres_required')

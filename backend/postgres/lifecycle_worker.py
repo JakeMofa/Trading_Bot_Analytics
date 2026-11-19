@@ -37,7 +37,7 @@ def configuration(environ):
         raise ValueError('PP live origin cannot be used for test lifecycle')
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')
     trial = environ.get('TRADEBOT_PP_WINDOW_POLICY')
-    if trial is not None and (trial not in ('two-official-markets','two-official-markets-96mib') or mode != 'pp_live'
+    if trial is not None and (trial != 'two-official-markets' or mode != 'pp_live'
             or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin != 'pp-live-pp'):
         raise ValueError('invalid PP market-window qualification profile')
     if mode == 'pp_live' and size is not None:
@@ -47,8 +47,7 @@ def configuration(environ):
         raise ValueError('pending outbox bound must be 10..100000')
     return {'origin_id': origin, 'mode': mode,
             'policy': RotationPolicy(int(size) if size else None),
-            'pending_outbox_limit': pending, 'market_pair_trial': trial is not None,
-            'capacity_trial_96mib': trial == 'two-official-markets-96mib'}
+            'pending_outbox_limit': pending, 'market_pair_trial': trial is not None}
 
 
 def read_dsn(environ):
@@ -110,11 +109,10 @@ def main(argv=None):
         try:
             result = repository.switch_if_due(config['origin_id'], config['policy'],
                                               require_live_lease=config['mode'] == 'pp_live',
-                                              market_pair_trial=config['market_pair_trial'],
-                                              capacity_trial_96mib=config['capacity_trial_96mib'])
+                                              market_pair_trial=config['market_pair_trial'])
             result.update(archive='held_no_qualified_transport', retirement='off')
             if config['mode'] == 'pp_live' and result.get('reason') in (
-                    'other_slot_not_retired','pp_window_relation_limit'):
+                    'other_slot_not_retired','pp_filesystem_reserve','pp_filesystem_sample_unavailable'):
                 # The repository atomically committed OFF with the hold. The
                 # supervisor must not keep presenting this as normal rotation.
                 if result.get('collector_enabled') is not False:

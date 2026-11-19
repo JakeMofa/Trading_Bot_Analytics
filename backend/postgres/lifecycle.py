@@ -12,6 +12,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import uuid
 
+from . import pp_space
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
                             pack_chunk, read_verified, row_cursor, sha256, wire)
@@ -38,10 +39,6 @@ class _DeadlineConnection:
         result = self.connection.execute(query, parameters)
         self.budget.check()
         return result
-
-
-PP_WINDOW_ALLOCATION_STOP_BYTES = 32 * 1024**2
-PP_CAPACITY_TRIAL_STOP_BYTES = 96 * 1024**2
 
 
 @dataclass(frozen=True)
@@ -179,6 +176,16 @@ class LifecycleRepository:
                 raise LifecycleHold('PP window allocation limit requires review')
             if generation['hold_reason'] == 'other_slot_not_retired':
                 raise LifecycleHold('occupied generation slot blocks PP collector restart')
+            if origin_id == 'pp-live-pp' or generation['hold_reason'] in (
+                    'pp_filesystem_reserve','pp_filesystem_sample_unavailable'):
+                space = pp_space.sample()
+                if space['space_hold']:
+                    raise LifecycleHold(space['space_hold'])
+                # A fresh admission can clear only a previously recorded disk hold.
+                connection.execute('''UPDATE archive.generations SET hold_reason=NULL
+                    WHERE generation_id=%s AND hold_reason IN
+                    ('pp_filesystem_reserve','pp_filesystem_sample_unavailable')''',
+                    (expected_generation_id,))
             result = connection.execute('''UPDATE ops.writer_state SET collector_enabled=true,
                 collector_session_id=%s::uuid,
                 collector_lease_expires_at=clock_timestamp()+(%s * interval '1 second'),
@@ -293,7 +300,7 @@ class LifecycleRepository:
             ORDER BY m.start_epoch,m.market_id LIMIT 3""",
             (start,origin,now,generation)).fetchall()
 
-    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False, market_pair_trial=False, capacity_trial_96mib=False) -> dict:
+    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False, market_pair_trial=False) -> dict:
         now = now or utcnow()
         with self.transaction() as connection:
             writer = connection.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
@@ -303,8 +310,6 @@ class LifecycleRepository:
             if market_pair_trial and (not require_live_lease or self.environment!='preprod'
                                       or not origin_id.startswith('pp-live-')):
                 raise LifecycleHold('invalid PP market-window qualification')
-            if capacity_trial_96mib and (not market_pair_trial or origin_id != 'pp-live-pp'):
-                raise LifecycleHold('invalid PP capacity qualification')
             if require_live_lease:
                 # The writer row is locked. Use database time so ready/OFF,
                 # expired or stopped sessions cannot seal A during deployment.
@@ -320,6 +325,16 @@ class LifecycleRepository:
                                        (origin_id,)).fetchone()['count']
             if count > 2:
                 raise LifecycleHold('nonretired generation bound exceeded')
+            space = pp_space.sample() if market_pair_trial else {}
+            if space.get('space_hold'):
+                reason = space['space_hold']
+                connection.execute("""UPDATE archive.generations SET hold_reason=%s
+                    WHERE generation_id=%s""", (reason, writer['generation_id']))
+                connection.execute("""UPDATE ops.writer_state SET collector_enabled=false,
+                    collector_session_id=NULL,collector_lease_expires_at=NULL,epoch=epoch+1,
+                    updated_at=%s WHERE origin_id=%s""", (now, origin_id))
+                return {'status':'held','reason':reason,'collector_enabled':False,
+                        'generation_id':writer['generation_id'], **space}
             pending = connection.execute('''SELECT count(*) AS count FROM
                 (SELECT 1 FROM ops.outbox WHERE origin_id=%s AND acknowledged_at IS NULL LIMIT %s) o''',
                                          (origin_id, self.pending_outbox_limit + 1)).fetchone()['count']
@@ -333,22 +348,12 @@ class LifecycleRepository:
                                             ('raw.' + current['partition_name'],)).fetchone()['size']
             if allocation is None:
                 raise LifecycleHold('collecting partition missing')
-            allocation_stop = PP_CAPACITY_TRIAL_STOP_BYTES if capacity_trial_96mib else PP_WINDOW_ALLOCATION_STOP_BYTES
-            if market_pair_trial and allocation >= allocation_stop:
-                connection.execute("""UPDATE archive.generations SET hold_reason='pp_window_relation_limit'
-                                   WHERE generation_id=%s""", (current['generation_id'],))
-                connection.execute("""UPDATE ops.writer_state SET collector_enabled=false,
-                    collector_session_id=NULL,collector_lease_expires_at=NULL,epoch=epoch+1,
-                    updated_at=%s WHERE origin_id=%s""", (now, origin_id))
-                return {'status':'held','reason':'pp_window_relation_limit','collector_enabled':False,
-                        'generation_id':current['generation_id'],'allocated_bytes':allocation,
-                        'allocation_stop_bytes':allocation_stop}
             if market_pair_trial and current['slot']=='B':
                 # Report elapsed B observation using the actual switch time.
                 # Normal operator OFF / lease expiry owns orderly shutdown.
                 return {'status':'collecting','generation_id':current['generation_id'],
                         'allocated_bytes':allocation,
-                        'b_observation_elapsed': now-current['started_at'] >= timedelta(minutes=30)}
+                        'b_observation_elapsed': now-current['started_at'] >= timedelta(minutes=30), **space}
             pair = []
             if market_pair_trial:
                 # writer.updated_at records actual lease enable or last rotation.
@@ -360,7 +365,7 @@ class LifecycleRepository:
                 reason = policy.due(current['started_at'], now, allocation)
             if not reason:
                 return {'status': 'collecting', 'generation_id': current['generation_id'],
-                        'allocated_bytes': allocation}
+                        'allocated_bytes': allocation, **space}
             slot = 'B' if current['slot'] == 'A' else 'A'
             occupied = connection.execute('''SELECT 1 FROM archive.generations
                 WHERE origin_id=%s AND slot=%s AND state<>'retired' LIMIT 1''',
@@ -393,7 +398,7 @@ class LifecycleRepository:
                 WHERE origin_id=%s''', (new['generation_id'], now, origin_id))
             return {'status': 'switched', 'reason': reason, 'sealed_generation_id': current['generation_id'],
                     'generation_id': new['generation_id'], 'slot': slot, 'seal_count': count,
-                    **({'window_market_ids':[row['market_id'] for row in pair],
+                    **({**space, 'window_market_ids':[row['market_id'] for row in pair],
                         'window_start_epoch':str(pair[0]['start_epoch']),
                         'window_end_epoch':str(pair[-1]['end_epoch']),
                         'next_generation_started_at':now.isoformat()} if pair else {})}

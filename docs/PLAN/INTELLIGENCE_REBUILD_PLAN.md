@@ -17,6 +17,55 @@ any future enabled-run evidence remain separate requirements.
 [Diagnosis, official references and measurement contract](PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md)
 and [captured offline evidence](evidence/pp17-coinbase-lag-0710-offline-2026-11-19.json).
 
+## November 19 UTC — genuine new pp.17 immutable capture verified
+
+During the authorized live trial, an independent read-only check compared the
+first50acknowledged PP rows beyond the historical cutoff12789: IDs13595–13644,
+created07:06:09.098333–07:06:13.193928UTC. All50original envelopes matched cloud
+receipt-backed canonical bodies exactly (60,800batch bytes,
+SHA256`a793c776d58dbdf8bc235ebfc4fdbf2b06819cf987a3a8ec7cc63804c17b626c`).
+The sample includes32current-price revisions,17candles and1market. The actual
+recurring worker was running with revision captureTRUE and session reuseOFF on
+exact pp.17 source1c753c6/image6f76adb3. Collector/session wereON and new committed
+outbox IDs advanced14503→14511during the comparison. This verifies that original
+new price revisions remain recoverable while later writes continue.
+
+The check used one authenticated cloud read and changed no cloud/local data,
+ACK or cursor. Owned-oneoff/credential staging cleanup passed and its controller
+lock was released. Historical5268/5268recovery plus this new-write sample now
+satisfy the structured-envelope checkpoint. This sample covers input/market
+revisions; whole-generation raw archival/retirement, forecast freshness and
+sustained sync headroom remain separate live-trial gates.
+
+[Exact new capture, types, identities, hash and concurrent progress](evidence/pp17-new-live-envelope-capture-2026-11-19.json).
+
+## November 19 UTC — actual pp.17 retained-A envelopes fully recovered
+
+On exact pp.17 `1c753c6`, generated CD44474562747 and ready-off44474879676 passed.
+Fresh PP inspection confirmed A UUID`2f5ab434-14c0-4a61-8b8e-145c9a05f0e6`,
+collectorOFF/no session,5268acknowledged/0pending rows, IDs7314–12789. Local-only
+inventory bound5268canonical envelopes across106pages/8,309,756batch-encoded bytes
+and streamSHA256`ca1c43921214fb97de475dff132d2194aae6398332a55ecc29b59bda436d4431`.
+
+The exact-scope receipt-backed repair **PASSED** in207.372s/212cloud operations;
+every appended envelope received independent authenticated readback. It changed
+no localACK or projection and issued no retirement authority. A separate complete
+application readback then downloaded and compared **5268/5268** original envelopes
+in82.600s/106new cloud operations. Independent SQL additionally hashed all8,304,382
+canonical stored-envelope bytes (newline-delimited stream), matching the local
+SHA exactly, with0missing/changed receipts. The difference from batch bytes is
+array/separator overhead, not missing evidence.
+
+Both bound root operations exited successfully after owned-oneoff and temporary
+credential cleanup; the controller lock was released. The release owner then
+began its separately authorized live trial. No post-trial OFF snapshot is claimed.
+The repair used the initial default fresh-connection pp.17 transport; optional
+reuse is merged as a separate default-OFF source candidate and is not deployed. Raw A remains local:
+structured recovery alone proves neither raw archive recovery nor safe retirement.
+Genuine new-write capture validation follows actual live acknowledgements.
+
+[Exact release, scope, readbacks and independent whole-body hash evidence](evidence/pp17-exact-envelope-backfill-2026-11-19.json).
+
 ## November 19 UTC — hosted history research and cold structured page candidate
 
 Official hosted Pipelines docs currently describe outbound Supabase Postgres →
@@ -58,7 +107,10 @@ honest abstention can pass integrity while numerical evidence stays INCOMPLETE.
 [Executable and evidence contract](PP_DASHBOARD_EVIDENCE_2026-11-19.md) documents
 UTC source/input/feature ages, exact snapshot binding, the dashboard's 10-second
 live-tick limit and before/after writer-generation observation brackets. Missing
-richer payloads cannot be reconstructed from ID-only observer reports. No rendered
+richer payloads cannot be reconstructed from ID-only observer reports. A later
+actual-run audit exposed small cross-host clock offsets: input/forecast ages now
+use API generated_at, while operator-minus-server deltas remain separately
+disclosed and out-of-band delivery/clock qualification stays incomplete. No rendered
 browser display, raw archive correctness or retirement authority is implied.
 
 The separately authorized temporary local conductor records allowlisted fields
@@ -3460,3 +3512,11 @@ Only upgrade when measured need appears:
 ### PP live workflow dispatch choice correction, November 19 UTC
 
 The first ON submission for pp.17 received GitHub HTTP 422 before a workflow was created. The operation choice used bare YAML `on` and `off`. Both background workers stopped and PP confirmed the collector OFF. A dedicated regression now requires four quoted string choices in the manual workflow. The installed PP controller and application image are independently bound to pp.17. The dispatch failure provides no live-collection evidence.
+
+### PP.17 live collector stopped at a market boundary, November 19 UTC
+
+CD run 44474562747 and READY_OFF 44474879676 qualified image `6f76adb3…`. The hosted repair and independent readback matched all 5,268 initial PP envelopes. Live ON 44476959330 then collected from the official feeds, published forecasts and independently verified 50 new hosted envelopes. At 07:15:34 UTC, with more than an hour left on the lease, the private operator reported `polymarket_bbo.invalid_or_unavailable` as discovery entered the 07:15 market. The collector had stopped itself before the observer sent OFF. Both background workers stopped. A retained all 11,041 raw rows, 11,989 structured rows were acknowledged, and none remained pending. A did not seal, B did not start, and no raw partition retired. At 07:10:14 the Coinbase input measured 41.492 seconds old, and the app truthfully abstained. [Session evidence](evidence/pp17-live-boundary-stop-2026-11-19.json)
+
+A read of the same market's official `/book` endpoint exposed a reproducible parser defect: the fallback returns `bids[].px`, `offers[].px` and `transactTime`, while the collector expected a flat BBO response. The rejected live body was never stored, so the precise wire variant remains unknown. The successor parses both formats, records the book's exchange transaction time distinctly, and allows the next scheduled discovery following a matching empty book or a double 404. Invalid identities, prices, timestamps and oversized responses still stop collection with a specific diagnostic. A concurrent regression kept Coinbase writing through two missing-book responses before the first new-market quote. Both official endpoints subsequently passed a read-only translation for market 2680845. Full PP handoff, archive and retirement remain open.
+
+The PP quote poll waits until its next scheduled cycle after an empty book, missing route, timeout, connection error, 429 or 5xx. A supervised regression exercises all six with a continuing Coinbase write and verifies that the first new-market quote is saved under its own identity. Authentication, malformed data, identity mismatch and write failures still stop the session.

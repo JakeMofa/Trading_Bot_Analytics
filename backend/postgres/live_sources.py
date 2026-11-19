@@ -17,7 +17,7 @@ from websockets.asyncio.client import connect as websocket_connect
 
 from .coinbase_timing import ACTIVE_TIMING, observed_connection
 from .contract import source_timestamp
-from .live_contract import coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
+from .live_contract import QuoteContractError, coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
 from .live_diagnostics import SourceHTTPFailure, SourceTransportFailure
 
 
@@ -187,14 +187,17 @@ async def fetch_polymarket_bbo(client: httpx.AsyncClient, market_event: dict):
                     async for chunk in response.aiter_bytes():
                         body.extend(chunk)
                         if len(body) > MAX_RESPONSE_BYTES:
-                            raise ValueError('Polymarket BBO exceeds byte bound')
+                            raise QuoteContractError('response_limit', 'Polymarket BBO exceeds byte bound')
                 except httpx.StreamConsumed:
                     body = bytearray(response.content)
                     if len(body) > MAX_RESPONSE_BYTES:
-                        raise ValueError('Polymarket BBO exceeds byte bound')
+                        raise QuoteContractError('response_limit', 'Polymarket BBO exceeds byte bound')
         except httpx.HTTPError as error:
             raise SourceTransportFailure(timeout=isinstance(error, httpx.TimeoutException),
                                          message='Polymarket BBO unavailable') from None
-        return polymarket_bbo(json.loads(body, parse_float=Decimal), market_event,
-                              datetime.now(timezone.utc).isoformat())
+        try:
+            raw = json.loads(body, parse_float=Decimal)
+        except (ValueError, UnicodeError):
+            raise QuoteContractError('invalid_json', 'invalid quote document') from None
+        return polymarket_bbo(raw, market_event, datetime.now(timezone.utc).isoformat(), route=route)
     raise ValueError('Polymarket BBO unavailable')

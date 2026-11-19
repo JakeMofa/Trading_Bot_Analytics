@@ -86,6 +86,17 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(caught.exception.code, 'polymarket_market_write.write_rejected')
         self.assertNotIn('private', str(caught.exception))
 
+    async def test_rejected_quote_credentials_stop_collection(self):
+        store = FakeStore()
+        async def market(*_):
+            return {'market_id': 'current', 'event_id': 'current-market'}
+        for status in (401, 403):
+            async def denied(*_):
+                raise SourceHTTPFailure(status, 'private credentials')
+            with self.assertRaisesRegex(LiveDiagnostic, 'polymarket_bbo.http_4xx'):
+                await polymarket_cycle(store, None, asyncio.Event(), discover=market, fetch=denied)
+        self.assertEqual([e['event_id'] for e in store.events], ['current-market'] * 2)
+
     async def test_mismatched_quote_is_not_persisted(self):
         store = FakeStore()
         async def discover(*_):

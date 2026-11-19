@@ -107,38 +107,78 @@ def polymarket_market(raw, received_at):
     }
 
 
-def polymarket_bbo(raw, market_event, received_at):
-    """Preserve one US market BBO without calling its prices probabilities."""
+class QuoteContractError(ValueError):
+    def __init__(self, category, message):
+        self.category = category
+        super().__init__(message)
+
+
+def _quote_price(item):
+    if item is None:
+        return None
+    amount = item.get('value') if isinstance(item, dict) else item
+    try:
+        number = exact_decimal(amount)
+        if not 0 <= number <= 1:
+            raise ValueError('outside unit interval')
+    except ValueError:
+        raise QuoteContractError('invalid_quote', 'invalid unit interval quote') from None
+    return str(amount)
+
+
+def _book_price(data, side):
+    levels = data.get(side, [])
+    if not isinstance(levels, list):
+        raise QuoteContractError('invalid_quote', 'invalid order book side')
+    prices = []
+    for level in levels:
+        if not isinstance(level, dict) or level.get('px') is None:
+            raise QuoteContractError('invalid_quote', 'order book level lacks price')
+        prices.append(_quote_price(level['px']))
+    best = max if side == 'bids' else min
+    return best(prices, key=exact_decimal) if prices else None
+
+
+def polymarket_bbo(raw, market_event, received_at, *, route='bbo'):
+    """Return a matching official quote, or None for a recognized empty book."""
     source_timestamp(received_at)
     data = raw.get('marketData') if isinstance(raw, dict) else None
     if not isinstance(data, dict) or data.get('marketSlug') != market_event['payload']['slug']:
-        raise ValueError('BBO market identity mismatch')
-    sample = data.get('lastPriceSample') or {}
-    original = sample.get('ts') if isinstance(sample, dict) else None
+        raise QuoteContractError('identity_mismatch', 'BBO market identity mismatch')
+    book = route == 'book' and not any(k in data for k in ('bestBid', 'bestAsk'))
+    if book:
+        bid = _book_price(data, 'bids')
+        ask = _book_price(data, 'offers')
+        original = data.get('transactTime')
+        time_role = 'order_book_transaction_time'
+    else:
+        bid = _quote_price(data.get('bestBid'))
+        ask = _quote_price(data.get('bestAsk'))
+        sample = data.get('lastPriceSample')
+        if sample is not None and not isinstance(sample, dict):
+            raise QuoteContractError('invalid_source_time', 'invalid BBO price sample')
+        original = (sample or {}).get('ts')
+        time_role = 'last_price_sample_not_book_update'
     if original is not None:
-        source_timestamp(original)
-    def value(name):
-        item = data.get(name)
-        if item is None:
-            return None
-        amount = item.get('value') if isinstance(item, dict) else item
-        number = exact_decimal(amount)
-        if not 0 <= number <= 1:
-            raise ValueError('BBO quote outside unit interval')
-        return str(amount)
-    payload = {'slug': data['marketSlug'], 'best_bid': value('bestBid'),
-               'best_ask': value('bestAsk'), 'long_quote': value('longQuote'),
-               'short_quote': value('shortQuote'), 'up_probability': None,
+        try:
+            source_timestamp(original)
+        except ValueError:
+            raise QuoteContractError('invalid_source_time', 'invalid quote source timestamp') from None
+    payload = {'slug': data['marketSlug'], 'best_bid': bid, 'best_ask': ask,
+               'long_quote': _quote_price(data.get('longQuote')),
+               'short_quote': _quote_price(data.get('shortQuote')), 'up_probability': None,
                'down_probability': None}
-    if payload['best_bid'] is None and payload['best_ask'] is None:
-        raise ValueError('BBO has no bid or ask')
+    if bid is None and ask is None:
+        # Protobuf JSON can omit unpopulated fields. Require an actual venue
+        # state or explicit price/level fields before interpreting empty sides.
+        if data.get('state') == 'MARKET_STATE_OPEN' or any(
+                key in data for key in (('bids', 'offers') if book else ('bestBid', 'bestAsk'))):
+            return None
+        raise QuoteContractError('invalid_quote', 'unrecognized empty quote response')
     return {'source': 'polymarket_us',
-            # Each REST response is a distinct observation, even when the
-            # book and its last trade sample are unchanged between polls.
             'event_id': 'bbo-' + market_event['market_id'] + '-' + content_hash([raw, received_at]),
             'kind': 'quote', 'market_id': market_event['market_id'],
             'source_time': original, 'received_at': received_at,
             'payload': payload, 'raw_payload': canonical_json(raw),
-            'provenance': {**PROVENANCE, 'feed': 'polymarket_us_bbo',
-                           'source_time_role': 'last_price_sample_not_book_update',
-                           'quote_prices_are_probabilities': False}}
+            'provenance': {**PROVENANCE, 'feed': 'polymarket_us_book' if book else 'polymarket_us_bbo',
+                           'source_time_role': time_role, 'quote_prices_are_probabilities': False}}

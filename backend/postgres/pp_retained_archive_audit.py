@@ -52,13 +52,20 @@ class AuditTarget:
             raise LifecycleHold('exact finite retained audit scope required')
 
 
-def require_select(db, tables):
-    rows=db.execute('''SELECT relation, has_schema_privilege(current_user,
+def require_select(db, tables, *, latest_index=False):
+    columns="""relation, has_schema_privilege(current_user,
         split_part(relation,'.',1),'USAGE') AND
-        has_table_privilege(current_user,relation,'SELECT') AS allowed
-        FROM unnest(%s::text[]) relation''',(list(tables),)).fetchall()
+        has_table_privilege(current_user,relation,'SELECT') AS allowed"""
+    parameters=(list(tables),)
+    if latest_index:
+        from .history_v2_latest_receipts import ABI_SQL,INDEX_NAME
+        columns+=',('+ABI_SQL+') AS latest_index_valid'
+        parameters=(INDEX_NAME,*parameters)
+    rows=db.execute('SELECT '+columns+' FROM unnest(%s::text[]) relation',parameters).fetchall()
     if len(rows) != len(tables) or any(row['allowed'] is not True for row in rows):
         raise LifecycleHold('audit requires existing SELECT privileges; grants are not automatic')
+    if latest_index and any(row['latest_index_valid'] is not True for row in rows):
+        raise ArchiveIntegrityError('PP latest receipt index ABI unavailable')
 
 
 @contextmanager
@@ -95,9 +102,9 @@ def remote_preflight(structured,budget):
             db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
             remaining=deadline-budget.clock()
             if remaining <= 0: raise ArchiveLimit('audit preflight page deadline reached')
-            structured._limit(db,remaining)
+            structured._limit(db,remaining,catalog_search_path=structured.indexed_latest)
             structured._identity(db)
-            require_select(db,REMOTE_TABLES)
+            require_select(db,REMOTE_TABLES,latest_index=structured.indexed_latest)
     if budget.clock() >= deadline: raise ArchiveLimit('audit preflight page deadline reached')
     budget.check()
 
@@ -152,6 +159,7 @@ def audit(factory,transport,target):
         'operation_deadline_met':timely, 'local_role':'tradebot_reader',
         'structured_role':transport.structured.expected_role,
         'structured_transactions':'repeatable_read_read_only',
+        'latest_receipt_lookup':'indexed_tie_safe_lateral' if transport.structured.indexed_latest else 'rank',
         'sealed':target.sealed,'opposite':target.collecting,'inventory':estimate,**readback}
 
 
@@ -182,13 +190,15 @@ def main():
         from .connection import connect
         from .pp_structured_probe import private_dsn
         from .history_v2_transport import HistoryV2PostgresTransport
+        from .history_v2_latest_receipts import indexed_latest_requested
         from .supabase_storage import SupabaseStorageTransport
         from pathlib import Path
         dsn=private_dsn(Path(LOCAL_DSN))
         factory=lambda:connect(dsn,environment='preprod',readonly=True)
         history=retirement_history_factory(os.environ)
         structured=HistoryV2PostgresTransport(history,origin_id=ORIGIN,generation_id=target.sealed,
-            expected_database='postgres',expected_role='tradebot_pp_history')
+            expected_database='postgres',expected_role='tradebot_pp_history',
+            indexed_latest=indexed_latest_requested(os.environ))
         raw=SupabaseStorageTransport.from_machine_files('/run/secrets/history_reader_api_key',
             '/run/secrets/history_reader_email','/run/secrets/history_reader_password',
             '/run/secrets/history_reader_uid',reader=True)

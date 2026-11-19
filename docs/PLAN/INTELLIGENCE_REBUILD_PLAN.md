@@ -3739,3 +3739,22 @@ and sealed's coordinated host window. [Candidate scope and native controls](PP_R
 ## PP19 controller identity
 
 The dedicated PP deploy identity verified the release controller built from `414e3c232ba54d61bc4a71e8315fd3d1b1e620e3` in [run 44502043684](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502043684). The previously installed controller is retained for recovery. This proof qualifies the controller binding. PP19 application deployment and the read-only audit of retained A still require their own results.
+
+### PP.19 latest-receipt tail diagnosis and guarded candidate, November 19 UTC
+
+The read-only retained-A audit verified all 57 raw objects, then held on its
+first 500 structured page after 4.711504s. Latest-receipt lookup took 2.050960s;
+cycle time remained 172.490s. Independent actual plans scan 42,133 receipts for
+73 keys and spill sorts. Separate runtime-role cumulative statistics show a
+1950.347ms server maximum, supporting a genuine metadata-query tail without
+attributing one individual statement to that audit.
+
+The source candidate keeps rank default and adds an exact audit-only opt-in
+for tie-preserving lateral probes plus a hash/exact-identity index. Startup and
+per-page ABI validation reject absent/wrong/invalid indexes; the per-page check
+is fused into the existing checkpoint query, adding no wait or SQL statement.
+Generated 42k/250k metadata probes avoid sort spills and match rank semantics;
+modeled full rich pages improve only slightly at 42k and more at 250k. Receipt
+write WAL and index storage increase. No hosted DDL, flag activation, grant,
+auth/cap/clock change or retroactive trial pass is included. [Evidence and
+standalone concurrent migration/rollback gates](PP_RECEIPT_LATEST_INDEX_2026-11-19.md).

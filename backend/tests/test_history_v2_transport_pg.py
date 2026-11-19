@@ -761,6 +761,13 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
             with local() as db:
                 self.assertEqual(db.execute('SELECT count(*) n FROM raw.events WHERE generation_id=%s',(a,)).fetchone()['n'],1)
                 self.assertEqual(db.execute('SELECT count(*) n FROM ops.outbox WHERE generation_id=%s',(a,)).fetchone()['n'],1)
+            # Opt-in with no supporting ABI refuses before raw GETs.
+            calls=len(raw.calls)
+            remote.indexed_latest=True
+            try:
+                with self.assertRaises(ArchiveIntegrityError): candidate.audit(reader,scoped,target)
+            finally: remote.indexed_latest=False
+            self.assertEqual(len(raw.calls),calls)
             # Lifecycle/admin identity cannot be passed off as a reader, before
             # any raw/cloud call. No permission grant is attempted.
             calls=len(raw.calls)
@@ -805,6 +812,97 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 with self.assertRaises(psycopg.errors.ReadOnlySqlTransaction):
                     with candidate.local_snapshot(reader,budget) as db:
                         db.execute('UPDATE ops.outbox SET acknowledged_at=NULL WHERE generation_id=%s',(a,))
+
+    def test_indexed_latest_receipt_abi_and_duplicate_max_are_fail_closed(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        from postgres.history_v2_latest_receipts import latest_receipts,INDEX_NAME
+        migration=Path(__file__).resolve().parents[2]/'supabase/migrations/20261119103056_pp_receipt_latest_identity_index.sql'
+        def local(): return psycopg.connect(DSN,row_factory=dict_row,autocommit=True)
+        a,b,c=(str(uuid.uuid4()) for _ in range(3))
+        selected=[('core.current_prices','price'),('core.candles','candle')]
+        with local() as db:
+            self.assertIsNone(db.execute('SELECT to_regclass(%s) object',('history_v2.'+INDEX_NAME,)).fetchone()['object'])
+            rows=[(self.origin,a,1,'core.current_prices','price','a'*64,'b'*64,'c'*64),
+                  (self.origin,b,2,'core.current_prices','price','a'*64,'b'*64,'c'*64),
+                  (self.origin,a,3,'core.candles','candle','a'*64,'b'*64,'c'*64),
+                  ('foreign-'+self.origin,c,999,'core.current_prices','price','a'*64,'b'*64,'c'*64)]
+            HistoryV2PostgresTransport._insert_receipts(db,rows)
+            with db.transaction():
+                db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+                expected=latest_receipts(db,self.origin,selected)
+                with self.assertRaises(ArchiveIntegrityError):
+                    latest_receipts(db,self.origin,selected,indexed=True)
+            # Exact CONCURRENTLY statement is tested in standalone autocommit.
+            db.execute(migration.read_text())
+            try:
+                def compare(selection):
+                    with db.transaction():
+                        db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+                        left=latest_receipts(db,self.origin,selection)
+                        right=latest_receipts(db,self.origin,selection,indexed=True)
+                        canonical=lambda rows: sorted(tuple(r.values()) for r in rows)
+                        self.assertEqual(canonical(left),canonical(right))
+                        return right
+                # Full rich proof: exact sealed D plus a newer E projection,
+                # under fresh short read-only transactions in both modes.
+                d,e=str(uuid.uuid4()),str(uuid.uuid4())
+                stamp=datetime(2026,11,19,tzinfo=timezone.utc)
+                def price(gen,index,value):
+                    at=stamp+timedelta(seconds=index)
+                    payload=dict(origin_id=self.origin,source='coinbase',symbol='BTC-USD',
+                        event_id=f'indexed-{index}',generation_id=gen,
+                        source_time=at.isoformat(),source_epoch=str(int(at.timestamp())),
+                        received_at=at.isoformat(),available_at=at.isoformat(),price=value,
+                        size=None,payload={'generated':True},content_hash=f'{index:064x}')
+                    return envelope(index,'core.current_prices',payload,gen)
+                identity=db.execute('SELECT current_database() db,current_user role').fetchone()
+                def transport(gen,indexed=False):
+                    return HistoryV2PostgresTransport(lambda **kwargs:local(),origin_id=self.origin,
+                        generation_id=gen,expected_database=identity['db'],expected_role=identity['role'],
+                        retain_revisions=True,indexed_latest=indexed)
+                from postgres.pp_retained_archive_audit import remote_preflight
+                from postgres.pp_retirement_verify import TwoMarketReadbackLimits
+                from postgres.archive_codec import CycleBudget
+                with CycleBudget(TwoMarketReadbackLimits()) as budget:
+                    remote_preflight(transport(d,True),budget)
+                    self.assertEqual(budget.requests,1)
+                old,new=price(d,20000,'100.2300'),price(e,20001,'100.2400')
+                transport(d).put_structured([old],timeout_seconds=4)
+                transport(e).put_structured([new],timeout_seconds=4)
+                self.assertEqual(transport(d).read_retirement_revisions([old],max_bytes=8192,timeout_seconds=4),
+                    transport(d,True).read_retirement_revisions([old],max_bytes=8192,timeout_seconds=4))
+                db.execute('UPDATE history_v2.current_prices SET price=9 WHERE origin_id=%s',(self.origin,))
+                for indexed in (False,True):
+                    with self.assertRaises(ArchiveIntegrityError):
+                        transport(d,indexed).read_retirement_revisions([old],max_bytes=8192,timeout_seconds=4)
+                db.execute('UPDATE history_v2.current_prices SET price=100.2400 WHERE origin_id=%s',(self.origin,))
+                self.assertEqual(len(compare(selected)),2)
+                self.assertEqual(len(compare(selected+[('core.markets','missing')])),2)
+                HistoryV2PostgresTransport._insert_receipts(db,[(self.origin,c,2,
+                    'core.current_prices','price','a'*64,'b'*64,'c'*64)])
+                self.assertEqual(len(compare(selected)),3) # duplicate max cannot disappear
+            finally:
+                db.execute('DROP INDEX CONCURRENTLY history_v2.'+INDEX_NAME)
+            # A same-name wrong definition must fail before the lateral query.
+            db.execute('CREATE INDEX '+INDEX_NAME+' ON history_v2.structured_receipts(origin_id)')
+            try:
+                with db.transaction():
+                    with self.assertRaises(ArchiveIntegrityError):
+                        latest_receipts(db,self.origin,selected,indexed=True)
+            finally: db.execute('DROP INDEX history_v2.'+INDEX_NAME)
+            # PostgreSQL itself creates an invalid index after a failed
+            # concurrent scan; reject that state without manual catalog writes.
+            with self.assertRaises(psycopg.errors.DivisionByZero):
+                db.execute('CREATE INDEX CONCURRENTLY '+INDEX_NAME+
+                    ' ON history_v2.structured_receipts ((1/(outbox_id-outbox_id)))')
+            try:
+                self.assertFalse(db.execute('SELECT indisvalid FROM pg_index WHERE indexrelid=to_regclass(%s)',
+                    ('history_v2.'+INDEX_NAME,)).fetchone()['indisvalid'])
+                with db.transaction():
+                    with self.assertRaises(ArchiveIntegrityError):
+                        latest_receipts(db,self.origin,selected,indexed=True)
+            finally: db.execute('DROP INDEX CONCURRENTLY history_v2.'+INDEX_NAME)
 
     def test_retirement_readback_reuses_session_with_fresh_snapshots_and_failure_discard(self):
         """Matched full readback worker, generated in-memory raw + real local PG.

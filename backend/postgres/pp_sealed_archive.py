@@ -44,7 +44,16 @@ def cycle(repository, raw, origin=ORIGIN):
                 raise ArchiveLimit('sealed generation exhausted catalog')
         transport = ScopedArchiveTransport(raw, None, origin_id=origin, generation_id=generation)
         worker = RawWorker(repository, transport, LIMITS)
-        result = worker._archive_cycle(generation, budget)
+        try:
+            result = worker._archive_cycle(generation, budget)
+        except ArchiveError as error:
+            try:
+                budget.check()
+                repository.hold(generation, error.code)
+            except Exception:
+                # Preserve the original failure when even reporting times out.
+                pass
+            raise
         return {'status': result['status'], 'rows': result['raw_rows'],
                 'generation_id': generation, 'retirement': 'off'}
 

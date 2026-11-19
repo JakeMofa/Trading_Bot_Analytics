@@ -46,7 +46,8 @@ class ArchiveTests(unittest.TestCase):
                 raw.fail_get = True
                 with self.assertRaises(ArchiveUnavailable):
                     archive.cycle(repo, raw)
-                self.assertEqual((repo.record['state'],repo.catalog), ('sealed',[]))
+                self.assertEqual((repo.record['state'],repo.record['hold_reason'],repo.catalog),
+                                 ('sealed','archive_unavailable',[]))
                 raw.fail_get = False
                 verified = 0
                 while verified < count:

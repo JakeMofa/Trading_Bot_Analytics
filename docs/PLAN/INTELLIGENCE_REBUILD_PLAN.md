@@ -21,6 +21,17 @@ be reconciled. Seal/archive initial A under separate OFF maintenance controls;
 that work must never claim the failed live trial passed or authorize deletion.
 [Diagnosis](evidence/pp22-sync-query-diagnosis-2026-11-19.json).
 
+The initial-A maintenance helper now passes ten native PostgreSQL tests plus
+independent review. It requires exact trial identity, reviewed epoch/counts,
+zero pending records, all PP collectors OFF, source binding and locks. It seals
+without creating a successor, resetting the origin or deleting any data.
+Independent reader-role audit verifies complete raw and structured history.
+Hosted execution waits exact-source CI and the completed structured drain.
+The writer remains pointed at sealed A afterward; it cannot restart under the
+old admission. A later live rehearsal must preserve this archive and use a
+reviewed new admission rather than reset the old origin.
+
+
 ## Active master plan — PP rotation, usable history, and archive performance
 
 November 19, 2026. Scope is read-only collection and deterministic analysis for

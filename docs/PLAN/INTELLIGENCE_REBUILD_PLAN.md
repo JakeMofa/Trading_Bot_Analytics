@@ -4282,3 +4282,15 @@ native PG17 policy tests, no skips). No host/cloud call, deployment, secret/gran
 application or collector/retirement action occurred. Host Compose integration,
 trial-reader proof and actual bounded cloud readback remain separate gates.
 [Fixed mount contract, evidence and remaining gates](PP_TRIAL_CLOUD_RUNTIME_2026-11-19.md).
+
+### November 19 — source-only exact trial host preparation
+
+The host-control candidate binds the one exact trial origin and initial-A UUID
+into existing enter/ON authority. Permit-bound enter stops generated services,
+prepares an exact OFF A under the shared database admission fence, preserves
+historic A/B, then proves the trial API/operator OFF. Permit-free leave/OFF never
+prepares. Native restricted-role allocation and host/profile/authority fixture
+checks pass. Trial ON and legacy cloud sidecars remain explicitly held until
+separate exact trial writer/reader credentials and cloud readiness proofs are
+integrated; no deployment or host/cloud action is claimed. See
+[scope and evidence](PP_TRIAL_HOST_PREPARATION_2026-11-19.md).

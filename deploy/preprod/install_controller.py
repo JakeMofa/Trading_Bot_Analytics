@@ -154,9 +154,9 @@ def _scope_permit(path,fields):
             'expires_at':permit['expires_at'],'deployment_dispatched':False}
 
 
-def authorize_live_enter(source,artifact,controller,image,initial_a=None):
+def authorize_live_enter(source,artifact,controller,image,initial_a=None,trial_origin=None):
     HostBinding.from_marker().validate()
-    request=TransitionRequest('enter',source,artifact,controller,image,initial_a=initial_a)
+    request=TransitionRequest('enter',source,artifact,controller,image,initial_a=initial_a,trial_origin=trial_origin)
     request.validate()
     checked_bundle(LIB/'controller.pyz',controller)
     _candidate(request)
@@ -169,6 +169,7 @@ def authorize_live_on(seconds):
     HostBinding.from_marker().validate()
     active=_read_active()
     cycle=_cycle_args(active)
+    require(not active.get('trial_origin'),'pp_trial_archive_readiness_unqualified')
     require(type(seconds) is int and (seconds==CYCLE_SESSION_MAX_SECONDS if cycle else 1<=seconds<=4560),
             'invalid_live_session_duration')
     require(active['state']=='ready_off','live_profile_not_ready')
@@ -222,7 +223,7 @@ if __name__=='__main__':
     a=sub.add_parser('install');a.add_argument('--bundle',type=Path,required=True);a.add_argument('--sha256',required=True);a.add_argument('--public-key-file',type=Path,required=True)
     a=sub.add_parser('authorize');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True)
     a=sub.add_parser('authorize-live-enter');a.add_argument('--source-sha',required=True);a.add_argument('--artifact-sha256',required=True);a.add_argument('--controller-sha256',required=True);a.add_argument('--image-id',required=True)
-    a.add_argument('--initial-a')
+    a.add_argument('--initial-a');a.add_argument('--trial-origin')
     a=sub.add_parser('authorize-live-on');a.add_argument('--max-seconds',type=int,required=True)
     a=sub.add_parser('authorize-structured-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-state',required=True);a.add_argument('--first-outbox-id',type=int,required=True)
     a=sub.add_parser('authorize-raw-archive-probe');a.add_argument('--generation-id',required=True);a.add_argument('--expected-seal-count',type=int,required=True);a.add_argument('--expected-manifest-count',type=int,required=True)
@@ -260,7 +261,7 @@ if __name__=='__main__':
         elif args.operation=='authorize':
             result=authorize(args.source_sha,args.artifact_sha256,args.controller_sha256)
         elif args.operation=='authorize-live-enter':
-            result=authorize_live_enter(args.source_sha,args.artifact_sha256,args.controller_sha256,args.image_id,args.initial_a)
+            result=authorize_live_enter(args.source_sha,args.artifact_sha256,args.controller_sha256,args.image_id,args.initial_a,args.trial_origin)
         elif args.operation=='authorize-structured-probe':
             result=authorize_structured_probe(args.generation_id,args.expected_state,args.first_outbox_id)
         elif args.operation=='authorize-raw-archive-probe':

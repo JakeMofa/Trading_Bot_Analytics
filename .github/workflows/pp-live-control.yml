@@ -34,6 +34,10 @@ on:
         required: false
         type: string
 
+      trial_origin:
+        description: Optional exact fresh trial origin pp-live-pp-trial-20261119-01 (requires anchor)
+        required: false
+        type: string
       cycle_initial_a:
         description: Canonical initial A generation UUID for a separately bound two-leg cycle
         required: false
@@ -60,6 +64,7 @@ jobs:
       PP_LIVE_IMAGE_ID: ${{ inputs.image_id }}
       PP_LIVE_SECONDS: ${{ inputs.max_seconds }}
       PP_CYCLE_INITIAL_A: ${{ inputs.cycle_initial_a }}
+      PP_TRIAL_ORIGIN: ${{ inputs.trial_origin }}
       GH_TOKEN: ${{ github.token }}
       PIPELINE_REPORT: ci-evidence/pp-live/preflight.json
     steps:
@@ -95,6 +100,7 @@ jobs:
       PP_LIVE_IMAGE_ID: ${{ inputs.image_id }}
       PP_LIVE_SECONDS: ${{ inputs.max_seconds }}
       PP_CYCLE_INITIAL_A: ${{ inputs.cycle_initial_a }}
+      PP_TRIAL_ORIGIN: ${{ inputs.trial_origin }}
       GH_TOKEN: ${{ github.token }}
       PP_DEPLOY_KEY: ${{ secrets.PP_DEPLOY_KEY }}
       PP_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_DEPLOY_KNOWN_HOSTS }}

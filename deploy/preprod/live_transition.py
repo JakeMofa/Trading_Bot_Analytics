@@ -10,25 +10,29 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment
+from linux_actions import LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment, live_origin
 from live_profile import validate_live_profile
 
 
 class LiveTransition:
-    def __init__(self, actions: LinuxActions, context, budget, *, initial_a=None):
+    def __init__(self, actions: LinuxActions, context, budget, *, initial_a=None, trial_origin=None):
         self.actions, self.context, self.budget = actions, context, budget
         self.folder = context.source / 'deploy/preprod'
         self.initial_a = initial_a
-        self.cycle = cycle_environment(initial_a)
+        self.trial_origin=trial_origin
+        self.origin=live_origin(trial_origin)
+        self.cycle = cycle_environment(initial_a,trial_origin)
 
     def _compose_live(self, args, *, timeout=60):
         image = self.context.image
         require(isinstance(image,str) and image.startswith('sha256:'), 'unbound_live_image')
-        overlay = ['-f',str(self.folder/'runtime.history-reader.compose.yaml')] if history_reader_enabled(self.context) else []
+        overlay = ['-f',str(self.folder/'runtime.history-reader.compose.yaml')] if (not self.trial_origin and history_reader_enabled(self.context)) else []
         env = self.actions._environment(image)
         if self.cycle:
             env.update(self.cycle)
             overlay.extend(['-f', str(self.folder/'runtime.live-cycle.compose.yaml')])
+        if self.trial_origin:
+            overlay.extend(['-f',str(self.folder/'runtime.live-trial.compose.yaml')])
         profiles = ['--profile','migration'] if args and args[0] == 'config' else []
         return self.budget.run(['docker','compose','--env-file','/dev/null',
             '--project-name',PROJECT,'--project-directory',str(self.folder),
@@ -41,8 +45,19 @@ class LiveTransition:
         base=self.actions._json(self.actions._compose(self.context,self.budget,
             ['config','--format','json']))
         live=self.actions._json(self._compose_live(['config','--format','json']))
-        validate_live_profile(base,live,self.context.source,self.context.image,reader=history_reader_enabled(self.context),
-                              initial_a=self.initial_a)
+        validate_live_profile(base,live,self.context.source,self.context.image,reader=(not self.trial_origin and history_reader_enabled(self.context)),
+                              initial_a=self.initial_a,trial_origin=self.trial_origin)
+
+    def _prepare_trial(self):
+        # Runs only inside permit-bound enter, after generated services stop.
+        # Permit-free leave/OFF never calls preparation.
+        live=lambda args,timeout:self._compose_live(args,timeout=timeout)
+        result=self.actions._json(self.actions._oneoff(self.context,self.budget,'lifecycle',
+            ['python','-m','postgres.pp_trial_prepare','--initial-a',self.initial_a,
+             '--source-sha',self.context.request.source_sha,'--execute'],timeout=30,compose=live))
+        require(result.get('status')=='trial_ready_off' and result.get('origin_id')==self.origin
+                and result.get('generation_id')==self.initial_a and result.get('collector_enabled') is False,
+                'pp_trial_preparation_unproven')
 
     def _live_off(self):
         # Use the lifecycle role even if operator HTTP is unavailable. Its
@@ -50,22 +65,22 @@ class LiveTransition:
         live=lambda args,timeout:self._compose_live(args,timeout=timeout)
         result=self.actions._json(self.actions._oneoff(self.context,self.budget,'lifecycle',
             ['python','-m','postgres.lifecycle_worker','--stop-collector'],timeout=30,compose=live))
-        require(result.get('environment')=='preprod' and result.get('origin_id')=='pp-live-pp'
+        require(result.get('environment')=='preprod' and result.get('origin_id')==self.origin
                 and result.get('collector_enabled') is False,'pp_live_durable_off_unproven')
         status=self.actions._json(self.actions._oneoff(self.context,self.budget,'lifecycle',
             ['python','-m','postgres.lifecycle_worker','--collector-status'],timeout=30,compose=live))
-        require(status.get('environment')=='preprod' and status.get('origin_id')=='pp-live-pp'
+        require(status.get('environment')=='preprod' and status.get('origin_id')==self.origin
                 and status.get('collector_enabled') is False,'pp_live_durable_off_unproven')
 
     def _check_live_off(self):
         self.actions._runtime(self.context,self.budget,live=True,
-                              **({'initial_a': self.initial_a} if self.cycle else {}))
+                              **(dict(initial_a=self.initial_a,**({'trial_origin':self.trial_origin} if self.trial_origin else {})) if self.cycle else {}))
         self.actions._live_filesystem(self.context,self.budget)
         deadline=time.monotonic()+5
         while True:
             try:
-                self.actions._host_operator(live=True)
-                self.actions._host_api(live=True)
+                self.actions._host_operator(live=True,**({'trial_origin':self.trial_origin} if self.trial_origin else {}))
+                self.actions._host_api(live=True,**({'trial_origin':self.trial_origin} if self.trial_origin else {}))
                 return
             except DeploymentHold:
                 if time.monotonic()>=deadline:
@@ -123,13 +138,15 @@ class LiveTransition:
             changed=True
             self.actions._compose(self.context,self.budget,
                 ['stop','--timeout','20',*SERVICES],timeout=30)
+            if self.trial_origin:
+                self._prepare_trial()
             self._compose_live(['up','-d','--no-deps','--force-recreate','--wait',
                 '--wait-timeout','40',*SERVICES])
             self._check_live_off()
-            return {'gate':'PP_LIVE_READY_OFF','origin_id':'pp-live-pp',
+            return {'gate':'PP_LIVE_READY_OFF','origin_id':self.origin,
                     'collector_enabled':False,'postgres_recreated':False,
                     'cloud_enabled':False,'retirement_enabled':False} | (
-                        {'initial_a': self.initial_a} if self.cycle else {})
+                        ({'initial_a': self.initial_a} | ({'trial_origin':self.trial_origin,'collector_on_qualified':False} if self.trial_origin else {})) if self.cycle else {})
         except Exception:
             if changed:
                 try:

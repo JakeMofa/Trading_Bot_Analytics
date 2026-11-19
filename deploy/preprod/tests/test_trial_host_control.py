@@ -53,13 +53,15 @@ class TrialHostTests(unittest.TestCase):
             artifact_sha256='b'*64,controller_sha256=digest,image_id=IMAGE)
         with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active), \
              patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate'), \
-             patch.object(gate,'_image_binding'),patch.object(gate,'_owned_runtime'),patch.object(gate,'_consume') as consume:
+             patch.object(gate,'_image_binding'),patch.object(gate,'_owned_runtime'),patch.object(gate,'_consume') as consume, \
+             patch('trial_cloud_control.require_ready',side_effect=DeploymentHold('archive_readiness_unqualified')):
             with self.assertRaisesRegex(DeploymentHold,'archive_readiness_unqualified'):
                 gate.session('session-v1 on 6600 '+A+' '+TRIAL,Path('/trusted/controller'))
             consume.assert_not_called()
         import install_controller as install
         with patch.object(install.HostBinding,'from_marker'),patch.object(install,'_read_active',return_value=active), \
-             patch.object(install,'_scope_permit') as scope:
+             patch.object(install,'_scope_permit') as scope,patch.object(install,'_candidate'), \
+             patch('trial_cloud_control.require_ready',side_effect=DeploymentHold('archive_readiness_unqualified')):
             with self.assertRaisesRegex(DeploymentHold,'archive_readiness_unqualified'):
                 install.authorize_live_on(6600)
             scope.assert_not_called()

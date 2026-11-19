@@ -733,10 +733,17 @@ class LinuxActions:
             mounts=row.get('Mounts',[])
             wanted=set(service_secrets(service,live=live))
             reader = bool(live and not trial_origin and service=='api' and history_reader_enabled(context))
-            require(env.get('TRADEBOT_PP_ARCHIVE_HISTORY','false') == ('true' if reader else 'false'),
+            trial_reader=False
+            if live and trial_origin and service=='api':
+                from trial_history_reader import trial_history_reader_enabled
+                trial_reader=trial_history_reader_enabled(context,initial_a)
+            require(env.get('TRADEBOT_PP_ARCHIVE_HISTORY','false') == ('true' if reader or trial_reader else 'false'),
                     'archive_history_runtime_flag_mismatch')
             if reader:
                 wanted.update(HISTORY_READER_FILES)
+            if trial_reader:
+                from trial_history_reader import TRIAL_HISTORY_READER_FILES
+                wanted.update(TRIAL_HISTORY_READER_FILES)
             secrets={item.get('Destination'):item for item in mounts if item.get('Destination','').startswith('/run/secrets/')}
             require(set(secrets)=={'/run/secrets/'+name for name in wanted}
                     and all(secrets['/run/secrets/'+name].get('Source')==str(RUNTIME_SECRETS/name)

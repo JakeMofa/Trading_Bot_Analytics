@@ -64,7 +64,8 @@ def checked_bundle(path,expected):
         require(set(archive.namelist())=={'__main__.py','controller.py','linux_actions.py',
             'live_profile.py','live_transition.py','transition_control.py',
             'structured_probe_profile.py','structured_probe_control.py',
-            'raw_archive_probe_profile.py','raw_archive_probe_control.py'} and len(archive.namelist())==10,
+            'raw_archive_probe_profile.py','raw_archive_probe_control.py',
+            'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py'} and len(archive.namelist())==13,
             'unexpected_bundle_members')
         require(sum(i.file_size for i in archive.infolist())<=256*1024,'bundle_expanded_bound')
     return raw
@@ -169,7 +170,12 @@ def authorize_live_on(seconds):
     HostBinding.from_marker().validate()
     active=_read_active()
     cycle=_cycle_args(active)
-    require(not active.get('trial_origin'),'pp_trial_archive_readiness_unqualified')
+    if active.get('trial_origin'):
+        from controller import Budget
+        from trial_cloud_control import require_ready
+        request=TransitionRequest('leave',active['source_sha'],active['artifact_sha256'],
+                                  active['controller_sha256'],active['image_id'])
+        require_ready(_candidate(request),active['initial_a'],Budget(60))
     require(type(seconds) is int and (seconds==CYCLE_SESSION_MAX_SECONDS if cycle else 1<=seconds<=4560),
             'invalid_live_session_duration')
     require(active['state']=='ready_off','live_profile_not_ready')
@@ -248,14 +254,22 @@ if __name__=='__main__':
             from raw_archive_probe_control import recurring_start
             from structured_probe_control import recurring_control
             op = args.operation.rsplit('-', 1)[1]
-            result = (recurring_start(LIB/'controller.pyz') if op == 'start'
-                      else recurring_control(op, Budget(65), archive=True))
+            if op=='start' and _read_active().get('trial_origin'):
+                from trial_cloud_control import start
+                result=start(LIB/'controller.pyz',archive=True)
+            else:
+                result = (recurring_start(LIB/'controller.pyz') if op == 'start'
+                          else recurring_control(op, Budget(65), archive=True))
         elif args.operation.startswith('structured-sync-'):
             from controller import Budget
             from structured_probe_control import recurring_start, recurring_control
             op = args.operation.rsplit('-', 1)[1]
-            result = (recurring_start(LIB/'controller.pyz') if op == 'start'
-                      else recurring_control(op, Budget(65)))
+            if op=='start' and _read_active().get('trial_origin'):
+                from trial_cloud_control import start
+                result=start(LIB/'controller.pyz')
+            else:
+                result = (recurring_start(LIB/'controller.pyz') if op == 'start'
+                          else recurring_control(op, Budget(65)))
         elif args.operation=='install':
             result=install(args.bundle,args.sha256,args.public_key_file)
         elif args.operation=='authorize':

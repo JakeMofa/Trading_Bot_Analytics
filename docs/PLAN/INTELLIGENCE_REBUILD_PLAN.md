@@ -34,6 +34,14 @@ required. No host/cloud operation was performed by this source milestone; cloud
 migration state is recorded separately by the operator. Safe live removal and
 complete A/B verification within30minutes remain independent open gates.
 
+## November 19 UTC — measured PP → Supabase raw transfer passed
+
+Ten synthetic objects matched the ten compressed chunk sizes measured from the 4,845 retained A events. Uploading 620,549 bytes took **5.105 seconds**, immediate authenticated byte-for-byte readback took **8.612 seconds**, and a second authenticated readback took **0.450 seconds**. Total elapsed inside the probe was **14.564 seconds** across 31 requests, including machine authentication. A separate private catalog query matched all ten keys and lengths. The test objects remain in their isolated synthetic generation.
+
+PP stayed on pp.16 with its collector OFF and no pending structured records. The benchmark used the existing PP Storage identity and ordinary egress. The one-shot container was removed. These measurements qualify transport for this fixture’s size. The actual raw generation has not been sealed or retired. A real two-market run still needs simultaneous dashboard/prediction freshness, new structured arrivals and acknowledgements using the 50-row service, raw archival and A’s complete retirement/replay evidence. Historical revisions and retirement authorization have separate gates.
+
+[Exact scope](evidence/pp-raw-transfer-scope-2026-11-19.json) · [Per-object timings and reconciliation](evidence/pp16-raw-transfer-result-2026-11-19.json)
+
 ## November 19 UTC — 50-row recurring synchronization deployed on PP
 
 Release `v0.2.0-pp.16` runs on PP at `8b31c369d8576bc829805e8764d0b2a3a23dbb44`. [Exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44462245847), [publication](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464395647), [manual deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464522646) and [ready-off transition](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44464821715) passed. The deployed API/SSE and schema smoke used generated data. A separate read-only PP query confirmed no collector session, zero pending PP structured records and no collision with the proposed synthetic Storage generation. The reserved cloud prefix contained zero objects. The temporary private runner deregistered.
@@ -92,6 +100,56 @@ Release `v0.2.0-pp.15` from `7175fc60fbb4d06caa8fb47f41221d34783d3d23` passed [e
   entry; live retirement remains disabled.
 
 # BTC Intelligence Rebuild Plan
+
+## November 19 — PP revision authority and exact retirement source
+
+At 05:38:37 UTC the reviewed additive Supabase migration
+`20261119020000_pp_structured_revision_payloads.sql` was applied, SHA-256
+`a29766873eb0ffe8c7e33522931ae0c6eb1a41dbb7dffc96122b4403c1b98d92`.
+The new table had zero envelopes, two PP-origin RLS policies and a PP login
+with SELECT/INSERT only. No ordinary anonymous, authenticated or service-role
+table grants were present. All 5,268 PP receipts remained. Existing receipts
+need exact local-envelope backfill and verified reconstruction.
+
+The local PostgreSQL migration `0003_pp_retirement_authority.sql` adds an
+owner-issued ticket for one PP A or B generation. Local migration, issuance,
+deployment and actual retirement are separate. The proposed operator sequence:
+
+1. Verify the exact released image, restricted history-reader identity,
+   recovery of the reviewed archive through that reader, protected references,
+   fresh seal, active collector and its opposite slot. Check the local inventory
+   fits the deadlines. Record the reader evidence SHA-256.
+2. An authorized operator must establish a change freeze covering **all**
+   privileged Supabase policy/object/database mutations through local commit,
+   record its scope, responsible privileged actors, expiry and SHA-256, and
+   explicitly accept the trust boundary. This is a procedural control for
+   trusted administrators; a service key or project owner can bypass ordinary
+   Storage RLS. Hold if an actor or path is uncovered or a policy change is due.
+3. With the PP migration role, use `deploy/preprod/issue_pp_retirement.sql` via
+   `psql -X -qAt -v sealed=... -v collecting=... -v seal_hash=... -v row_count=...
+   -v release_sha=... -v policy_epoch_hash=... -v history_reader_proof=... -f ...`.
+   Send its sole result directly into a private, mode-0400, one-shot file.
+   Bind that file at `/run/secrets/pp_retirement_ticket` only in the exact
+   release's supervised one-shot container. Its ticket expires after two minutes.
+4. With the existing PP verification flags and exact four target arguments,
+   enable `TRADEBOT_PP_EXACT_RETIREMENT=true`, bind the verified release and
+   evidence digests via `TRADEBOT_PP_VERIFIED_SOURCE`,
+   `TRADEBOT_PP_POLICY_EPOCH_SHA256`, and
+   `TRADEBOT_PP_HISTORY_READER_PROOF_SHA256`, and pass
+   `--retire-with-pp-permit` to `python -m postgres.pp_retirement_verify`.
+   No API or recurring worker exposes this operation. The generation and
+   manifests stay locked locally through complete fresh reads, new opposite-slot
+   commits, a final reference/reader check, a 5 ms DDL lock wait and commit.
+   The transaction consumes the ticket, records retirement and drops the exact
+   registered child. An exception before commit rolls all three changes back.
+5. After any ambiguous process/connection result, check the exact child,
+   generation state and ticket consumption from the migration identity before
+   considering any retry. Revoke an unused ticket via its exact ID on failure,
+   remove the one-shot mount, release the change freeze, then verify API history,
+   predictions, active B persistence and available disk against the same target.
+
+No live permit or local DROP has been issued. The 30-minute seal-to-removal
+target still requires actual PP evidence. Production remains outside this route.
 
 ## Current PP checkpoint — November 18, 2026
 

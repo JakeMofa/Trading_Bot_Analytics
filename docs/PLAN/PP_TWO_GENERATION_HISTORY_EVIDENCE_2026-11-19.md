@@ -67,7 +67,14 @@ research/application suites, because this slice had
 no explicit disposable `TRADEBOT_TEST_RESEARCH_DSN`. The generated repository's
 model retirement is not a native DROP or two physical rotation cycles. The
 underlying #185 native results remain prior evidence, not rerun evidence here.
-No saved features/forecasts were recalculated. Golden source SHA denotes the
+No saved features/forecasts were recalculated. The generated golden test compares every exact decoded field, but projects only
+`research.provenance.raw_pages[].sha256` to a hash-count-preserving sentinel:
+compressed gzip bytes can differ with Python/zlib/platform builds. Actual capture
+and report object hashes remain unchanged and validated; runtime archive checksum
+verification is never bypassed. This corrects cross-platform CI golden failures
+without normalizing source times, values, links, envelope hashes or raw payloads.
+
+Golden source SHA denotes the
 reviewed base contract, not an immutable deployed runtime identity.
 
 Reproduce with FastAPI/httpx and existing backend dependencies installed:

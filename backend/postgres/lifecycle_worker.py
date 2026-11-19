@@ -9,7 +9,7 @@ import signal
 import threading
 
 from .lifecycle import LifecycleRepository, RotationPolicy
-from .rehearsal_profile import cycle_anchor, CYCLE_POLICY
+from .rehearsal_profile import cycle_anchor, CYCLE_POLICY, CYCLE_ORIGINS
 
 
 def configuration(environ):
@@ -40,7 +40,7 @@ def configuration(environ):
     trial = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = cycle_anchor(environ)
     if trial is not None and (trial not in ('two-official-markets', CYCLE_POLICY) or mode != 'pp_live'
-            or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin != 'pp-live-pp'):
+            or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin not in CYCLE_ORIGINS):
         raise ValueError('invalid PP market-window qualification profile')
     if mode == 'pp_live' and size is not None:
         raise ValueError('PP live size override unavailable')

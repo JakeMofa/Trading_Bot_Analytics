@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import asyncio
 
-from .rehearsal_profile import lease_cap
+from .rehearsal_profile import lease_cap, CYCLE_ORIGINS
 from datetime import datetime, timezone
 
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
@@ -38,7 +38,7 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     persist OFF in PostgreSQL before considering a stop complete.
     """
     _live_store(store)
-    if rehearsal_anchor is not None and store.settings.origin_id != 'pp-live-pp':
+    if rehearsal_anchor is not None and store.settings.origin_id not in CYCLE_ORIGINS:
         raise ValueError('two-leg rehearsal requires exact PP origin')
     if not callable(owner_check) or not callable(disable_collector) or not 0 < max_seconds <= lease_cap(rehearsal_anchor):
         raise ValueError('bounded session, ownership checker and durable stop required')

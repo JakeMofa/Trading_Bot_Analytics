@@ -14,7 +14,8 @@ import uuid
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 from postgres.connection import connect,connect_migrator
-from postgres.lifecycle import LifecycleRepository,LifecycleHold
+from postgres.lifecycle import LifecycleRepository,LifecycleHold,RotationPolicy
+from postgres.rehearsal_profile import TRIAL_ORIGIN
 from postgres.live_contract import polymarket_market,polymarket_bbo,coinbase_ticker
 from postgres.store import Store,StorageHold
 
@@ -28,9 +29,65 @@ class NativeCycleTests(unittest.TestCase):
     def test_occupied_a_stops_cycle_without_recycling_old_retained_rows(self):
         self._exercise_cycle(occupied=True)
 
-    def _exercise_cycle(self, occupied=False):
+    def test_exact_trial_cycle_preserves_old_generations_and_shared_database_fence(self):
         from psycopg import sql
-        origin='pp-live-pp'
+        old='pp-live-pp'
+        owner=lambda:connect_migrator(os.environ['TRADEBOT_TEST_MIGRATOR_DSN'])
+        repo=LifecycleRepository(lambda:connect(os.environ['TRADEBOT_TEST_LIFECYCLE_DSN']))
+        with owner() as db:
+            self.assertIsNone(db.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s',(old,)).fetchone())
+        generations=[]
+        def cleanup():
+            repo.disable_collector(old)
+            with owner() as db:
+                for generation in generations:
+                    db.execute(sql.SQL('DROP TABLE IF EXISTS raw.{}').format(
+                        sql.Identifier('events_g_'+generation.replace('-',''))))
+                for table in ('core.current_prices','ops.outbox','ops.dedup','ops.feed_health',
+                              'ops.worker_checkpoints','ops.writer_state','archive.generations'):
+                    db.execute(sql.SQL('DELETE FROM {} WHERE origin_id=%s').format(
+                        sql.Identifier(*table.split('.'))),(old,))
+        self.addCleanup(cleanup)
+        a=repo.bootstrap(old);generations.append(str(a['generation_id']))
+        store=Store(SimpleNamespace(origin_id=old,environment='preprod',data_mode='pp_live',
+            dsn=os.environ['TRADEBOT_TEST_APP_DSN'],outbox_max_pending=10000))
+        space={'space_hold':None,'filesystem_free_bytes':20*1024**3,'filesystem_floor_bytes':10*1024**3}
+        with patch('postgres.pp_space.sample',return_value=space):
+            repo.enable_collector(old,session_id=str(uuid.uuid4()),expected_generation_id=generations[0],max_seconds=60)
+            def tick(number):
+                ts=datetime.now(timezone.utc).isoformat()
+                return coinbase_ticker({'type':'ticker','product_id':'BTC-USD',
+                    'trade_id':str(number),'time':ts,'price':'100000.1234567890123456789'},ts)
+            store.ingest(tick(1))
+            b=repo.switch_if_due(old,RotationPolicy(1),require_live_lease=True)
+            generations.append(str(b['generation_id']))
+            store.ingest(tick(2))
+            repo.disable_collector(old)
+            def retained():
+                with owner() as db:
+                    metadata=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s ORDER BY generation_id',(old,)).fetchall()
+                    raw=db.execute('SELECT * FROM raw.events WHERE origin_id=%s ORDER BY event_id',(old,)).fetchall()
+                return metadata,raw
+            before=retained()
+            self.assertEqual(len(before[1]),2)
+            def before_enable(trial_repo,anchor):
+                # The retired-preservation namespace shares the exact same
+                # environment-wide admission lock and active-lease exclusion.
+                repo.enable_collector(old,session_id=str(uuid.uuid4()),expected_generation_id=generations[1],max_seconds=60)
+                try:
+                    with self.assertRaisesRegex(LifecycleHold,'another PP live collector'):
+                        trial_repo.enable_collector(TRIAL_ORIGIN,session_id=str(uuid.uuid4()),
+                            expected_generation_id=anchor,max_seconds=6600,rehearsal_anchor=anchor)
+                    self.assertFalse(trial_repo.collector_state(TRIAL_ORIGIN)['collector_enabled'])
+                finally:repo.disable_collector(old)
+            def after_enable(_repo,_anchor):
+                with self.assertRaisesRegex(LifecycleHold,'another PP live collector'):
+                    repo.enable_collector(old,session_id=str(uuid.uuid4()),expected_generation_id=generations[1],max_seconds=60)
+            self._exercise_cycle(origin=TRIAL_ORIGIN,before_enable=before_enable,after_enable=after_enable)
+            self.assertEqual(retained(),before)
+
+    def _exercise_cycle(self, occupied=False, *, origin='pp-live-pp', before_enable=None, after_enable=None):
+        from psycopg import sql
         owner=lambda:connect_migrator(os.environ['TRADEBOT_TEST_MIGRATOR_DSN'])
         factory=lambda:connect(os.environ['TRADEBOT_TEST_LIFECYCLE_DSN'])
         repo=LifecycleRepository(factory)
@@ -68,8 +125,10 @@ class NativeCycleTests(unittest.TestCase):
             rolled_back=repo.collector_state(origin)
             self.assertFalse(rolled_back['stored_enabled'])
             self.assertIsNone(rolled_back['collector_lease_expires_at'])
+            if before_enable is not None:before_enable(repo,anchor)
             enabled=repo.enable_collector(origin,session_id=session,expected_generation_id=anchor,
                                           max_seconds=6600,rehearsal_anchor=anchor)
+            if after_enable is not None:after_enable(repo,anchor)
             expires=enabled['lease_expires_at']
             with owner() as db:
                 db.execute('UPDATE ops.writer_state SET updated_at=%s WHERE origin_id=%s',(start,origin))

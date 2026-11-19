@@ -43,7 +43,50 @@ Data API last-hour metrics had no data. Catalog searches for dbt/stack/event
 returned no results, which is a UI coverage limit, not a universal capability
 claim. Full Auth subpages, restore/PITR and secret material are outside this audit.
 This docs-only milestone does not close PP qualification or authorize promotion;
-keep its branch isolated and do not merge to preprod during the freeze.
+The release owner subsequently unlocked source-only merges for PRs 157–160;
+runtime/controller/cloud mutation restrictions remain in force.
+
+## November 19 UTC — default-OFF PP history session reuse candidate
+
+A separate source candidate recognizes only explicit
+`TRADEBOT_PP_REUSE_HISTORY_SESSION=true` for the restricted recurring PP worker.
+No Compose profile, controller, release flag or deployed pp.17 transport changes.
+The absent flag preserves the current fresh-connection path; malformed flags HOLD.
+The opt-in owns one physical session, admits no simultaneous checkout or waiting
+queue, revalidates private DSN/TLS/role bindings on every borrow, and leaves all
+transport identity checks and four-second request caps intact. Each import and
+fresh readback uses a distinct committed transaction. No old transaction or
+snapshot survives checkout. Errors, unfinished transactions and deadline expiry
+discard the session without ACK/retry; ordinary receipt reconciliation remains
+responsible for ambiguous commit recovery. Valid password rotation reconnects;
+unsafe bindings HOLD. Idle30s/lifetime300s eligibility bounds require
+reconnection on the next checkout; shutdown closes the single retained session. No new dependency or cloud privilege is added.
+
+Generated PostgreSQL17 full-path comparison includes local selection, projection/
+receipt/envelope commit, separate authenticated readback, localACK and exact
+100-envelope/checkpoint comparison for each arm (two50-row pages). At100ms per
+observable SQL wait and200ms connection setup, cold took5.447s (18.36ACK/s,
+four physical sessions) and reuse4.837s (20.67ACK/s, one session). Both completed
+four distinct committed transactions and100 exact ACKs/envelopes. Fault injection
+proves precommit rollback, lost commit response, wrong-role rejection, discard/
+reconnect and idempotent receipt recovery without premature ACK or duplicate
+checkpoint counting. Ten session unit tests and the existing binding/service
+checks and all13 native history/transport tests passed; full local pinned backend
+331 run/40 explicit platform/environment skips passed. Exact Linux CI and any future PP activation/full-path measurement
+remain required. This is separate from the actual PP receipt-read comparison;
+its40.17% read-only improvement is not a measured full-sync improvement.
+
+[Generated full-path evidence](evidence/pp-session-reuse-full-path-generated-2026-11-19.json).
+No host action, PP/cloud write or preprod merge was performed by this candidate;
+initial pp.17 evidence and retained-A backfill continue on the default path.
+
+## November 19 UTC — PP controller bound for revision capture and sealed-window verification
+
+Combined source `3adbc3a` passed exact CI 44472117753. The old PP session closed with collection OFF. An installation check and dedicated deployment identity confirmed the installed controller SHA-256 `a72679fde847b69ab7e84671e34b3bdc0464791d3ddf16502adc37a12511f7fe`. The PP deployment profile now references that proof. The combined application release, repair of 5,268 historical structured envelopes, live switch and verified retirement remain distinct qualification steps. [Controller identity evidence](evidence/pp-controller-identity-2026-11-19-a72679fd.json)
+
+## November 19 UTC — PP archive reader qualified with real private Storage
+
+The dedicated history reader used the pp.16 image and four scoped credential files, then authenticated and verified a 64,139-byte PP object against its SHA-256. The private bucket hid an existing foreign-origin key and returned an empty listing. It rejected upload and replacement. A move and a batch delete left the 74-byte synthetic witness at its original key with its original checksum and version. The writer and reader have separate identities. PP retained the witness and its earlier benchmark objects. The operator installed the four reader credentials and root-owned proof before binding the reader to a release. Application retrieval following actual PP partition retirement remains a separate gate. [HTTP and catalog evidence](evidence/pp-storage-reader-qualification-2026-11-19.json)
 
 ## November 19 UTC — actual PP connection reuse comparison, read path only
 

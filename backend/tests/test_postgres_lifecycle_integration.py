@@ -748,6 +748,70 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertFalse(proof['retirement_authorized'])
         self.assert_partition_present(self.first)
 
+    def test_real_pp_permit_commits_only_after_fresh_read_and_independent_b_commit(self):
+        from postgres.connection import connect_migrator
+        from postgres.pp_retirement_verify import Permit, RetirementTransport, Target, verify
+        from psycopg import sql
+
+        if (os.getenv('TRADEBOT_DATA_MODE'), os.getenv('TRADEBOT_ORIGIN_ID')) != ('generated','generated-pp'):
+            self.skipTest('dedicated generated CI harness required')
+        origin='pp-live-pp'
+        owner=lambda: connect_migrator(os.environ['TRADEBOT_TEST_MIGRATOR_DSN'])
+        with owner() as db:
+            self.assertIsNone(db.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s',
+                                         (origin,)).fetchone())
+        self.origin=origin
+        a=self.repository.bootstrap(origin,self.started)
+        sealed=a['generation_id']
+        children=[sealed]
+        permit=Permit(str(uuid.uuid4()), 'a'*40, 'b'*64, 'c'*64)
+        def cleanup():
+            with owner() as db:
+                for gen in children:
+                    for table in ('archive.reader_leases','archive.manifests','archive.checkpoints',
+                                  'ops.writer_state'):
+                        db.execute(sql.SQL('DELETE FROM {} WHERE origin_id=%s AND generation_id=%s')
+                            .format(sql.Identifier(*table.split('.'))),(origin,gen))
+                    child='events_g_'+gen.replace('-','')
+                    db.execute(sql.SQL('DROP TABLE IF EXISTS raw.{}').format(sql.Identifier(child)))
+                    db.execute('DELETE FROM archive.generations WHERE origin_id=%s AND generation_id=%s',
+                               (origin,gen))
+                db.execute('DELETE FROM archive.pp_retirement_permits WHERE ticket=%s',(permit.ticket,))
+        self.addCleanup(cleanup)
+        original=self.insert(1)
+        active=self.rotate()['generation_id']
+        children.append(active)
+        self.archive_all(sealed)
+        target=Target(sealed,active,self.repository.generation(sealed)['seal_hash'],1)
+        with owner() as db:
+            db.execute("""UPDATE ops.writer_state SET collector_enabled=true,collector_session_id=%s,
+                          collector_lease_expires_at=now()+interval '2 minutes' WHERE origin_id=%s""",
+                       (str(uuid.uuid4()),origin))
+            db.execute("""INSERT INTO archive.pp_retirement_permits(ticket,sealed_id,collecting_id,seal_hash,
+                seal_count,release_sha,policy_epoch_hash,history_reader_proof,authority_scope,expires_at)
+                VALUES(%s,%s,%s,%s,1,%s,%s,%s,'pp-admin-change-freeze-v1',now()+interval '2 minutes')""",
+                (permit.ticket,sealed,active,target.seal_hash,permit.release,permit.policy_epoch,permit.history_reader_proof))
+        scoped=RetirementTransport(self.transport,None,origin_id=origin,generation_id=sealed)
+        check=lambda: verify(self.repository,scoped,target,origin=origin,permit=permit)
+        with self.assertRaisesRegex(LifecycleHold,'unobserved'):
+            check()
+        saved=self.transport.read_authenticated
+        def advance(*args,**kwargs):
+            self.insert(42)  # Separate app connection commits B before returning A.
+            return saved(*args,**kwargs)
+        self.transport.read_authenticated=advance
+        result=check()
+        self.assertEqual((result['status'],result['opposite_slot_new_rows']),('retired_pp',1))
+        self.transport.read_authenticated=saved
+        with owner() as db:
+            self.assertIsNone(db.execute('SELECT to_regclass(%s) AS relation',
+                    ('raw.'+a['partition_name'],)).fetchone()['relation'])
+            self.assertIsNotNone(db.execute('SELECT used_at FROM archive.pp_retirement_permits WHERE ticket=%s',
+                                  (permit.ticket,)).fetchone()['used_at'])
+        history=ArchiveHistory(self.repository,self.transport,self.limits)
+        self.assertEqual(history.read_generation(sealed)['rows'], wire([original]))
+        self.assertEqual(self.repository.generation(active)['state'],'collecting')
+
     def test_a_b_a_reuse_new_generation_ids_and_history_after_real_drop(self):
         original = [self.insert(index) for index in range(7)]
         switched = self.rotate()

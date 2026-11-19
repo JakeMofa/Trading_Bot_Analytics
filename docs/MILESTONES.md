@@ -41,7 +41,9 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   generated tick IDs and prices. Local Realtime median was 66–90 ms and the
   app's 250 ms SSE path had a 122–137 ms median. The paired median favored
   Realtime locally by 37–55 ms, while Realtime arrived later on 52 of 180
-  ticks. Actual PP replay awaits the release owner's rehearsal ON receipt.
+  ticks. PP22 initial A matched 16 live VM ticks, with 71.867 ms median and
+  103.014 ms p95 added by the isolated local mirror. B and fresh A await
+  their switch receipts. Hosted Realtime latency remains unmeasured.
   [Methods and limits](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [x] **Isolated Supabase capability lab.** Generated local tests covered

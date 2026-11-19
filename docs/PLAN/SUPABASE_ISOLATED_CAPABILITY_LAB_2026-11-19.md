@@ -88,6 +88,29 @@ proved the mirror on 30 exact pairs at 68.893 ms median and 133.221 ms p95
 after SSE receipt. The release owner supplies the actual collector ON receipt
 and access window. Hosted TokenBot stays outside the experiment.
 
+## PP22 live rehearsal observation
+
+The PP22 release owner confirmed collector ON and approved a single passive SSE
+subscriber for up to 30 seconds or 30 distinct IDs during each steady
+generation. On November 19 just after 22:15 UTC, one 29.5-second observation
+matched 16 exact Coinbase tick IDs and prices in initial A
+(`94107d29-626f-480a-b61a-ce6a10f44301`, origin
+`pp-live-pp-trial-20261119-01`). The mirror rate limit was one sample per
+second. Repeated or rate-limited frames were excluded.
+
+| Leg | Matched IDs | Added median | Added p95 | Range |
+| --- | ---: | ---: | ---: | ---: |
+| Initial A | 16 | 71.867 ms | 103.014 ms | 37.023–103.014 ms |
+
+The elapsed time starts at actual VM SSE receipt on the observation
+workstation and ends when the isolated local Supabase Realtime client receives
+the same tick. This measures added local mirror delivery, with no hosted
+network comparison or browser rendering measurement. The observer closed
+after the bounded sample. Dashboard routing, collector, and hosted Supabase
+settings were unchanged. B and fresh A await their switch receipts. A bounded
+structured query under live load is a separate operator-coordinated check.
+[PP22 deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44624765516)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

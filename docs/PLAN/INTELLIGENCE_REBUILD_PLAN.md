@@ -1,6 +1,8 @@
 ## November 19 UTC — cold-history edge-case review and bounded dispatch
 
-The source-only candidate in PR #164 now closes three reproduced edge cases:
+The source-only candidate in PR #164 passed [exact-source Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44480584156)
+at `5a44c7f`, including backend, dependency, controls, PP foundation and PostgreSQL
+lifecycle jobs. It closes three reproduced edge cases:
 receipt metadata is budgeted and suppressed in SQL before transfer, the page
 clock includes manifest/validation/copy work with remaining-budget handoff, and
 API admission happens before a dedicated cold worker receives work. HTTP
@@ -18,14 +20,22 @@ The 256KiB envelope and 256KiB receipt-text budgets are separate; fixed row,
 protocol and TLS overhead are additional. No hosted-role or PP/prod qualification
 follows from generated tests. [Source/test evidence](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md).
 
-User requested deeper read-only navigation after the initial39-context audit.
-A separate browser agent has read all31 integration overviews and opened all31
-linked public documentation destinations; nested navigation is still in progress.
-The browser now observes Grafana as a third installed integration. This research
-made no installation; installed-state differences are timestamped observations.
-The release chat was notified of scope, findings and progress and continues its
-rollover/archive work separately. No live cloud, collector or retirement action
-was performed here.
+The user-requested deeper read-only navigation is complete within the defined
+project/catalog scope: all 31 integration overviews and 31 linked public docs,
+plus private database details, safe Auth/template pages, Storage/Realtime,
+observability/advisors and project settings. Secret, personal-data, mutation,
+setup and recursive-global-doc boundaries are explicit. The browser observes
+Grafana as a third installed integration; this research made no installation.
+The specific function advisor finding was classified using read-only metadata
+and official PostgreSQL source, without invoking or changing the function.
+Four unindexed-history-FK suggestions call for query-plan review, not blind DDL.
+The release chat received scope, findings and tested-source progress and
+continues its rollover/archive work separately. No live cloud, collector or
+retirement action was performed here.
+
+[Deep navigation and 31-card assessment](SUPABASE_DEEP_NAVIGATION_2026-11-19.md) ·
+[Prioritized next uses and advisory nuance](SUPABASE_NEXT_STEPS_2026-11-19.md) ·
+[Function metadata](evidence/supabase-function-advisory-2026-11-19.json).
 
 ## November 19 UTC — hosted Supabase integration investigation and local candidate
 

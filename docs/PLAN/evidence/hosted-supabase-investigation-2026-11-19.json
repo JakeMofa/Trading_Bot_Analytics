@@ -121,5 +121,12 @@
     "completed_at_utc": "2026-11-19T07:02:15Z",
     "evidence": "supabase-browser-capabilities-2026-11-19.json",
     "all_nested_tabs_or_all_docs_read": false
+  },
+  "deep_browser_review": {
+    "status": "complete_read_only_defined_scope",
+    "integration_overviews": 31,
+    "linked_public_doc_destinations": 31,
+    "evidence": "supabase-deep-navigation-2026-11-19.json",
+    "scope_limits": "Secrets, personal rows, setup/mutation controls and recursive global documentation excluded explicitly"
   }
 }

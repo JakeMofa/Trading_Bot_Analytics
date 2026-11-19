@@ -1,0 +1,645 @@
+{
+  "status": "complete_read_only_defined_scope",
+  "observed_date_utc": "2026-11-19",
+  "project": "TokenBot",
+  "method": "Read-only Chrome via CUA; explicit overview-by-overview navigation and linked public docs. No installs/saves/execution/subscriptions/credential reveal.",
+  "integration_catalog_count": 31,
+  "integration_overviews": [
+    {
+      "name": "Data API",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/data_api/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Private bounded history HTTP after grants/RLS qualification",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/api"
+    },
+    {
+      "name": "Grafana Cloud Observability Platform",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/grafana-cloud/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Installed label now visible; ~200 Supabase metrics at one-minute cadence; does not automatically instrument PP/prod VMs",
+      "primary_docs_url_reviewed": "https://grafana.com/docs/grafana-cloud/observe-and-act/monitor-infrastructure/integrations/integration-reference/integration-supabase/"
+    },
+    {
+      "name": "Vault",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/vault/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Installed; future hosted consumer credentials; secrets not opened",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/vault"
+    },
+    {
+      "name": "Cron",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/cron/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Hosted periodic summaries/reconciliation after explicit scheduling contract",
+      "primary_docs_url_reviewed": "https://github.com/citusdata/pg_cron"
+    },
+    {
+      "name": "Queues",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/queues/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Secondary cloud work queue; cannot replace offline VM outbox",
+      "primary_docs_url_reviewed": "https://github.com/pgmq/pgmq"
+    },
+    {
+      "name": "Airtable Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/airtable_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Operational planning data only; no archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/airtable"
+    },
+    {
+      "name": "Auth0 Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/auth0_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Identity research only; no market archival benefit",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/auth0"
+    },
+    {
+      "name": "BigQuery Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/bigquery_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Optional remote research warehouse SQL; separate warehouse cost",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/bigquery"
+    },
+    {
+      "name": "Cal.com Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/cal_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Scheduling data; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/cal"
+    },
+    {
+      "name": "Calendly Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/calendly_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Scheduling data; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/calendly"
+    },
+    {
+      "name": "Clerk Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/clerk_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External identity data; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/clerk"
+    },
+    {
+      "name": "ClickHouse Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/clickhouse_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Potential analytics pushdown; docs/overview disagree on aggregate pushdown; measure",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/clickhouse"
+    },
+    {
+      "name": "Cloudflare D1 Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/cfd1_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External SQLite-like dataset federation; no durable archive substitution",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/cloudflare-d1"
+    },
+    {
+      "name": "Cognito Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/cognito_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External user pool federation; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/cognito"
+    },
+    {
+      "name": "Database Webhooks",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/webhooks/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Optional secondary-job wakeup after durable record exists",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/webhooks"
+    },
+    {
+      "name": "Firebase Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/firebase_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External app data federation; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/firebase"
+    },
+    {
+      "name": "GraphQL",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/graphiql/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Alternative bounded query surface after grants/RLS; no executed queries",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/pg_graphql"
+    },
+    {
+      "name": "HubSpot Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/hubspot_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "CRM integration; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/hubspot"
+    },
+    {
+      "name": "Iceberg Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/iceberg_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Future cold analytical tables; separate ingestion/catalog needed",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/iceberg"
+    },
+    {
+      "name": "Logflare Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/logflare_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Potential archive error/latency correlation with logs; full results use memory",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/logflare"
+    },
+    {
+      "name": "Microsoft SQL Server Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/mssql_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External research source only if adopted",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/mssql"
+    },
+    {
+      "name": "Notion Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/notion_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Rules/research notes possible later; not market evidence authority",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/notion"
+    },
+    {
+      "name": "Orb Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/orb_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Usage billing; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/orb"
+    },
+    {
+      "name": "Paddle Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/paddle_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Payments; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/paddle"
+    },
+    {
+      "name": "Redis Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/redis_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External cache SQL does not replace local hot cache; full reads use memory",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/redis"
+    },
+    {
+      "name": "S3 Vectors Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/s3_vectors_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Semantic similarity after justified embedding workload; not exact archive",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/s3_vectors"
+    },
+    {
+      "name": "S3 Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/s3_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Read-only CSV/JSONL/Parquet scans; compressed files fully in memory; scoped-JWT compatibility unproven",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/s3"
+    },
+    {
+      "name": "Slack Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/slack_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "External operations discussion research only; no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/slack"
+    },
+    {
+      "name": "Snowflake Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/snowflake_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Optional warehouse research, separate cost/access",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/snowflake"
+    },
+    {
+      "name": "Stripe Sync Engine",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/stripe_sync_engine/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Payments replication, no market archive need",
+      "primary_docs_url_reviewed": "https://github.com/stripe/sync-engine-fork"
+    },
+    {
+      "name": "Stripe Wrapper",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/stripe_wrapper/overview",
+      "status": "loaded_and_reviewed",
+      "application_assessment": "Billing SQL, no current archive need",
+      "primary_docs_url_reviewed": "https://supabase.com/docs/guides/database/extensions/wrappers/stripe"
+    }
+  ],
+  "private_database_details": [
+    {
+      "area": "Enums",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/types",
+      "observation": "No custom enum rows displayed; Create untouched"
+    },
+    {
+      "area": "Roles",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/roles",
+      "observation": "All roles viewed; PP history role expanded: login true; create roles/db, bypassRLS, superuser, replication false; no setting changed"
+    },
+    {
+      "area": "Migrations",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/migrations",
+      "observation": "10 migration metadata rows viewed; no SQL executed"
+    },
+    {
+      "area": "Private functions",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/functions?schema=history_v2",
+      "observation": "check_revision_envelope/source_epoch both Invoker; detail drawer only read; full editor body not audited"
+    },
+    {
+      "area": "Private trigger",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/triggers/data?schema=history_v2",
+      "observation": "pp_revision_check BEFORE INSERT FOR EACH ROW invokes envelope validation"
+    },
+    {
+      "area": "Private indexes",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/indexes?schema=history_v2",
+      "observation": "20 indexes; exact receipt unique btree(origin_id,generation_id,outbox_id) definition viewed; no EXPLAIN/DDL"
+    }
+  ],
+  "documentation_limits": [
+    "Reviewed direct linked page sections on operations, permissions, types and limitations; not every code example or every global Supabase docs page",
+    "Generated private DataAPI documentation opened to shell only; no credential-bearing generated examples read",
+    "Raw changelog.md browser blocked by client; official web-tool read fallback succeeded"
+  ],
+  "new_observation": "Integrations installed count now3 (DataAPI, Grafana, Vault), versus prior audit2; this agent activated nothing and does not infer who changed it.",
+  "completed_at_utc": "2026-11-19T07:43:57Z",
+  "public_integration_documentation_pages_reviewed": 31,
+  "auth_configuration": [
+    {
+      "area": "OAuth Apps",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/oauth-apps",
+      "status": "viewed",
+      "observation": "OAuth Server disabled, no apps found; New app untouched"
+    },
+    {
+      "area": "Emails",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates",
+      "status": "viewed",
+      "observation": "Built-in email transport warning;6authentication templates and7security notification templates inventoried"
+    },
+    {
+      "area": "Providers",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/providers",
+      "status": "viewed",
+      "observation": "25provider options listed; Email only enabled; signup/email confirmation ON; manual linking/anonymous OFF; no custom providers; individual credential configuration drawers not opened"
+    },
+    {
+      "area": "Passkeys",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/passkeys",
+      "status": "viewed",
+      "observation": "WebAuthn feature OFF; no changes"
+    },
+    {
+      "area": "OAuth Server",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/oauth-server",
+      "status": "viewed",
+      "observation": "Feature OFF; no endpoints activated"
+    },
+    {
+      "area": "Sessions",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/sessions",
+      "status": "viewed",
+      "observation": "Single session OFF; timebox/inactivity0; access token3600s; replay detectionON/reuse10s"
+    },
+    {
+      "area": "Rate Limits",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/rate-limits",
+      "status": "viewed",
+      "observation": "Refresh150/5min/IP; verification30/5min/IP; signup/signin30/5min/IP; IP forwardingOFF; no changes"
+    },
+    {
+      "area": "Multi-Factor",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/mfa",
+      "status": "viewed",
+      "observation": "TOTP enabled/max10factors; phone disabled; AAL1duration limitON"
+    },
+    {
+      "area": "URL Configuration",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/url-configuration",
+      "status": "viewed",
+      "observation": "Defaultlocalhost siteURL; no redirects configured; no edits"
+    },
+    {
+      "area": "Attack Protection",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/protection",
+      "status": "viewed",
+      "observation": "CAPTCHA off; leaked password protection off"
+    },
+    {
+      "area": "Auth Hooks",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/hooks",
+      "status": "viewed",
+      "observation": "Empty hook configuration; add controls untouched"
+    },
+    {
+      "area": "Performance",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/performance",
+      "status": "viewed",
+      "observation": "Auth absolute connection allowance10/60; request duration/strategy controls read only"
+    },
+    {
+      "area": "Third-Party Auth",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/third-party",
+      "status": "viewed",
+      "observation": "No provider configured; Add provider untouched"
+    },
+    {
+      "area": "SMTP",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/smtp",
+      "status": "viewed",
+      "observation": "CustomSMTP OFF; no credential fields revealed"
+    }
+  ],
+  "email_template_details": [
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/confirm-sign-up",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/invite-user",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/magic-link-or-otp",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/change-email-address",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/reset-password",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/reauthentication",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/password-changed",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/email-address-changed",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/phone-number-changed",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/sign-in-method-linked",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/sign-in-method-removed",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/mfa-method-added",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/templates/mfa-method-removed",
+      "status": "viewed_read_only",
+      "observation": "Subject/body/source/preview/template-variable controls inspected; no edits/save/send/notification toggle. Default placeholders not user values."
+    }
+  ],
+  "edge_functions": {
+    "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/functions",
+    "status": "viewed",
+    "deployments": 0,
+    "templates_inventoried": [
+      "HelloWorld",
+      "DatabaseAccess",
+      "StorageUpload",
+      "NodeAPI",
+      "Express",
+      "AIstream",
+      "AIrecipes",
+      "StripeWebhook",
+      "ResendEmail",
+      "ImageTransform",
+      "WebSocket"
+    ],
+    "template_editors_opened": false,
+    "reason": "Editor/new/deploy paths are setup workflows, not activated for read-only investigation; public examples links recorded."
+  },
+  "realtime": [
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/realtime/inspector",
+      "status": "viewed",
+      "observation": "No channel joined/no listening started"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/realtime/policies",
+      "status": "viewed",
+      "observation": "No policies created; API disabled indicator; setup/trigger controls untouched"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/realtime/settings",
+      "status": "viewed",
+      "observation": "ServiceON/public channelsON; authorization pool2/changes pool2; max200clients/100events_s/20presence_s/256KBpayload; spendcap gates largerlimits; no changes"
+    }
+  ],
+  "observability": [
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability",
+      "status": "viewed",
+      "observation": "Overview2%CPU/55%memory/21%disk/99%IO balance;26slowqueries; mixedaudit/operation traffic"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/query-performance",
+      "status": "viewed",
+      "observation": "26slowqueries/99.99%cachehit/3.9rowspercall; no SQL execution/export"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/api-overview",
+      "status": "viewed",
+      "observation": "130requests and299.16ms aggregate in UIlast60min; dominated by dashboard/adminreads; not workerbenchmark"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/connections",
+      "status": "viewed",
+      "observation": "9/60connections,1active,0idle-in-transaction,0blocked at snapshot; no querycancel"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/database",
+      "status": "viewed",
+      "observation": "378.09MBmemory/1.19GBcommitmentSevere/1.27%CPU; DB0.14GB; historyrevisiontable19.98MB; networkIOPSthroughput/pooler panels failed"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/postgrest",
+      "status": "viewed",
+      "observation": "No data/24hourrefresh notice; not zero-traffic proof"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/auth",
+      "status": "viewed",
+      "observation": "Mostcharts no data; gateway9requests/97ms aggregate reflects admin/provider-healthreads"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/edge-functions",
+      "status": "viewed",
+      "observation": "0displayed invocations withrefreshnotice; no functiondeployment"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/storage",
+      "status": "viewed",
+      "observation": "7requests/241msaggregate; bucket/analytics/vectorlisting, not rawpayload benchmark"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/realtime",
+      "status": "viewed",
+      "observation": "No data/refreshnotice across connection/broadcast/presence/lag/RLS charts"
+    }
+  ],
+  "advisors": {
+    "health": {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/advisors/health",
+      "errors": 0,
+      "warnings": 0,
+      "info": 0
+    },
+    "security": {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/advisors/security",
+      "errors": 0,
+      "warnings": 3,
+      "info": "11RLS-enabled/no-policy suggestions on10legacypublictables plus history_v2.coverage; deny-by-default is not automatically a defect",
+      "warning_titles": [
+        "Public Can Execute SECURITY DEFINER Function: public.rls_auto_enable()",
+        "Signed-In Users Can Execute SECURITY DEFINER Function: public.rls_auto_enable()",
+        "Leaked Password Protection Disabled"
+      ],
+      "warning_ids_exposed_by_viewed_ui": false,
+      "exploit_demonstrated": false,
+      "nuance": "rls_auto_enable returns event_trigger; parent is separately checking ordinary-callability. No functions/RLS/grants changed."
+    },
+    "performance": {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/advisors/performance",
+      "errors": 0,
+      "warnings": 0,
+      "info": 13,
+      "unindexed_fk_entities": [
+        "history_v2.outcomes",
+        "history_v2.predictions",
+        "history_v2.protected_evidence",
+        "history_v2.snapshot_evidence"
+      ],
+      "detail_viewed": "outcomes_origin_id_evidence_id_market_id_fkey",
+      "detail_url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/advisors/performance?preset=INFO&id=unindexed_foreign_keys_history_v2_outcomes_outcomes_origin_id_evidence_id_market_id_fkey",
+      "other_suggestions": "8unusedindexes + Authabsoluteconnectionstrategy",
+      "action": "Query-plan/workload review only; no index created/dropped, linter rerun or analysis reset"
+    }
+  },
+  "project_settings": [
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/general",
+      "status": "navigation_viewed",
+      "observation": "Projectsettings inventory read; destructive projectlifecycle controls untouched"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/infrastructure",
+      "status": "viewed",
+      "observation": "NanoOregon;141.2MBDB/128MBWAL/168MBsystem;0.43GBof2GB; no replicas; MicroUIoffer1GBsamehourlyprice; no resize"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/integrations",
+      "status": "viewed",
+      "observation": "GitHubrepo connected; deploy/automaticbranching/limitcontrols present; Vercel installavailable; PrivateLinkTeamEnterprise/no connections; no switches changed"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/log-drains",
+      "status": "viewed",
+      "observation": "No configureddrain visible;8destinationcards Additional$60; noactivation"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/addons",
+      "status": "viewed",
+      "observation": "DedicatedIPv4/PITR/customdomain allDISABLED; no activation"
+    }
+  ],
+  "storage": [
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/files",
+      "status": "viewed",
+      "observation": "Bucketslist/nav only; object contents not opened"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/files/settings",
+      "status": "viewed",
+      "observation": "Global upload50MB due spendcap; image transformationON; no change"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/files/policies",
+      "status": "viewed",
+      "observation": "7policy names/commands inspected; writerread/upload and readerexactGET predicates viewed withUIDs omitted; no Review/Save. One incidental dirty-editor discard prompt dismissed byDiscardchanges; nothing submitted."
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/analytics",
+      "status": "viewed",
+      "observation": "Privatealpha empty/newbucketcontrol; notcreated"
+    },
+    {
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/vectors",
+      "status": "viewed",
+      "observation": "Privatealpha empty/newbucketcontrol; notcreated"
+    }
+  ],
+  "storage_policy_detail_limits": "Effective permissive/restrictive policy combination and HTTPdenial evidence are not proved by UIeditor; readerdeny/select policy names inventoried, not all detaildrawers read.",
+  "wrapper_configuration_example": {
+    "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/s3_wrapper/wrappers",
+    "status": "viewed",
+    "observation": "NoS3wrappersinstalled; install link left untouched"
+  },
+  "incidental_ui_observations": [
+    "Templatevalidation TooManyRequests toast appeared during read-only template navigation; no retry/send/save/enable was requested. Audittraffic can affect logs/errors.",
+    "One longread batch timedout and reset CUAruntime; retained previous observations in toolhistory, reboundtab, continued withsmallerbatches.",
+    "Unexpected navigation during sharedtab use corrected via isolatedagenttab and directobservedURLs; no mutation."
+  ],
+  "explicitly_not_activated_or_read": [
+    {
+      "area": "API/JWT/StorageURL/Edge/Vault keys or secrets",
+      "reason": "Credential-bearing pages/reveal/create/rotate controls outside read-only capability inventory; no secret material requested"
+    },
+    {
+      "area": "IndividualAuthusers and audit log rows",
+      "reason": "PII not needed for archive design"
+    },
+    {
+      "area": "RuntimeSQL/Tableeditor record modification",
+      "reason": "No ad hocSQLrun/queries/datamutations authorized here; catalogviews used"
+    },
+    {
+      "area": "Install/create/delete/save/upgrade/subscribe/authorize/setup controls",
+      "reason": "Read-onlycloudscope; metadata andpublicdocs inspected instead"
+    },
+    {
+      "area": "Everyprovidercredentialdrawer, everypipeline destinationwizard, everywrapperconnectionwizard",
+      "reason": "Setup/credential paths; no currentconfiguredtarget to inspect; cards/docs cataloged"
+    },
+    {
+      "area": "Allrawobjectcontent/restoreflows",
+      "reason": "Separate release/recovery qualification"
+    },
+    {
+      "area": "Allrecursiveexternaldocumentationlinks/codeexamples",
+      "reason": "Scope is eachprojectnavigationarea plus primary linkedintegrationdoc; not an entireinternet/docs-corpus crawl"
+    },
+    {
+      "area": "Logsraweventrows",
+      "reason": "Could exposePII/credentials; observabilityaggregate/servicecharts inspected instead"
+    }
+  ]
+}

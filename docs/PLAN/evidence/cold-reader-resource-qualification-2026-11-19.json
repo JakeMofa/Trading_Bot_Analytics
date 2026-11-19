@@ -40,5 +40,18 @@
     "backend/postgres/cold_structured_history.py": "f0370e53126da54e1d0f1b7eb2931ebd1ead3ce32828ed5ce58bf372b6473dae",
     "backend/postgres/cold_structured_source.py": "21e8394e3ae371caf17d79a0cfab15f8df916081cffb6a1b2bfd010491e5f4e2",
     "backend/postgres/history_v2_transport.py": "b3097c1b8f78417ffc6f3c7929d289b42badc9efe546f768b7341fd3ae74aeb6"
+  },
+  "exact_source_linux_ci": {
+    "sha": "5a44c7fdd8f699507e0e5b78cdcf30124165c192",
+    "run_id": 44480584156,
+    "conclusion": "success",
+    "url": "https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44480584156",
+    "jobs": [
+      "Application and legacy SQLite compatibility",
+      "Release and deployment controls",
+      "Dependency audit",
+      "PostgreSQL PP foundation",
+      "PostgreSQL migrations and application lifecycle"
+    ]
   }
 }

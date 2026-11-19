@@ -279,7 +279,9 @@ resolved it before the reported final pass.
   the release owner's bounded backfill/capture work. Receipt counts alone are
   insufficient. This candidate does not repair missing envelopes.
 - Review server composition, API authentication/network access and process-wide
-  resource bounds before enabling a hosted/public route. No existing browser
+  resource bounds before enabling a hosted/public route. The dedicated worker
+  covers the new structured route; the existing raw-archive handler retains its
+  earlier shared `to_thread` path and needs its own contention qualification. No existing browser
   proxy or Supabase Data API grant changed. This endpoint is the application's
   optional API hook, not a deployed Supabase REST/RPC surface.
 - Keep raw Storage retrieval/verification and separate raw-object recovery

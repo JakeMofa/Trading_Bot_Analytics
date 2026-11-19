@@ -56,9 +56,10 @@ prototype rather than create another parallel cold-history design.
 
 ## Integration assessment
 
-The [parallel integration matrix](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md)
-and [browser walkthrough](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md) provide
-product-specific evidence and coverage limits.
+The [parallel integration matrix](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md),
+[initial browser walkthrough](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md) and
+[completed 31-integration deep review](SUPABASE_DEEP_NAVIGATION_2026-11-19.md)
+provide product-specific evidence and explicit coverage limits.
 
 Private PostgreSQL gives the closest fit for receipt/envelope joins and exact
 historical research. Client reuse is a separate decision from changing pooler
@@ -108,10 +109,15 @@ It adds a SELECT-only source, reviewed server query registry and optional FastAP
 composition hook. The route is absent by default. It rejects the writer role,
 effective table/column write grants and altered continuation scope; local live
 endpoints remain independent. No deployed profile or cloud privilege changed.
-The affected suite ran 65 tests: 51 passed, with 14 explicit existing-fixture
-skips. Four native PostgreSQL17 cold-reader tests passed. Hosted identity, TLS/DSN
-factory qualification and manifest authenticity remain prerequisites, not
-features proven by generated tests. Injected dependency I/O timeouts are required:
+The final full backend suite ran 362 tests: 316 passed, with 46 explicit
+platform/fixture skips. Separate native PostgreSQL17 qualification ran 75 tests:
+72 passed, three unrelated app-fixture skips, including six cold-source and 13
+generic history/import/reuse tests. [Exact-source Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44480584156)
+passed at 5a44c7f. The SQL read uses separate 256KiB envelope and 256KiB receipt-text
+budgets; fixed-row/protocol/TLS overhead is additional. Admission precedes
+dispatch to an isolated cold worker, and cancellation preserves source cleanup.
+Hosted identity, TLS/DSN factory qualification and manifest authenticity remain
+prerequisites, not features proven by generated tests. Injected dependency I/O timeouts are required:
 a post-call elapsed check cannot cancel arbitrary blocking Python code.
 
 Before any release, qualify trusted manifest/catalog selection, exact hashes and
@@ -130,3 +136,8 @@ Raw disaster recovery remains an independent release prerequisite:
 object bytes. Restore a retained raw object plus manifest/receipt to an isolated
 location and verify hashes/counts before claiming durable recovery. RLS does not
 freeze privileged administrators. This report issues no retirement ticket.
+
+The [next-step assessment](SUPABASE_NEXT_STEPS_2026-11-19.md) prioritizes existing
+telemetry, independent recovery verification and measured query-plan review.
+It also classifies the observed event-trigger function advisory without
+claiming a demonstrated ordinary-RPC exploit.

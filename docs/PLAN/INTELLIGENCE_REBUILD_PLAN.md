@@ -167,6 +167,19 @@ A, requiring at least 58 raw reads alone. A 30-minute deadline and the ability
 to retire a live A remain unqualified. The diagnostic grants no deletion
 authority. The hosted privileged-mutation boundary still requires a decision.
 
+Use the same exact-target PP diagnostic with `--inventory-only` to compute a
+local preflight without contacting either cloud transport. It reports manifest
+bytes, per-object limits, exact local outbox pages when feasible, minimum
+request/envelope bytes and the conditional allowance for newer B revisions.
+An impossible minimum returns HOLD before any request. Both the inventory and
+actual readback share the existing time budget. No estimate certifies latency,
+wire-protocol overhead or remote immutability. The November 19 actual A
+inventory reported 4,845 raw rows packed into ten objects (620,549 compressed
+bytes) and 5,268 structured records. That is at least 21 read calls at 500
+records per page. The forthcoming A seal may have different coverage. The
+native CI case uses those row counts with generated values, exercises 10 B
+commits during fresh A raw reads and keeps the local A relation.
+
 ### Exact sealed PP readback and local retirement
 
 The one-shot source command `python -m postgres.pp_retirement_verify --sealed UUID

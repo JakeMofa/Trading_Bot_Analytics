@@ -6,7 +6,8 @@ explicit isolated generated qualification, backed by a txid-bound SQL gate.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+from threading import local
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import json
@@ -87,15 +88,17 @@ class LifecycleRepository:
         self.connection_factory = connection_factory
         self.environment = environment
         self.pending_outbox_limit = pending_outbox_limit
+        self._worker_session = local()
 
     @contextmanager
     def transaction(self):
         budget = ACTIVE_BUDGET.get()
         # connect() is bounded to five seconds by the common connection contract.
         # Do not begin another connection when that reserve no longer fits.
-        if budget and budget.deadline - budget.clock() <= 5:
+        locked = getattr(self._worker_session, 'connection', None)
+        if locked is None and budget and budget.deadline - budget.clock() <= 5:
             raise ArchiveLimit('insufficient cycle time for another database connection')
-        with self.connection_factory() as connection:
+        with (self.connection_factory() if locked is None else nullcontext(locked)) as connection:
             with connection.transaction():
                 if budget:
                     budget.check()
@@ -584,6 +587,8 @@ class LifecycleRepository:
 
     @contextmanager
     def _origin_lock(self, namespace, origin_id):
+        if getattr(self._worker_session, 'connection', None) is not None:
+            raise LifecycleHold('nested worker session lock')
         budget = ACTIVE_BUDGET.get()
         if budget:
             budget.check()
@@ -598,11 +603,15 @@ class LifecycleRepository:
                 (key,)).fetchone()['acquired']
             if not acquired:
                 raise LifecycleHold('another structured sync worker is active')
+            # One synchronous worker owns this backend until unlock. Autocommit
+            # keeps the lock session idle between individual local transactions.
+            self._worker_session.connection = connection
             try:
                 if budget:
                     budget.check()
                 yield
             finally:
+                del self._worker_session.connection
                 # Connection close releases the lock even if this unlock fails.
                 connection.execute('SELECT pg_advisory_unlock(hashtextextended(%s,0))',
                                    (key,))

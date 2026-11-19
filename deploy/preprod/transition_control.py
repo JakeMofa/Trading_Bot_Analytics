@@ -269,6 +269,28 @@ def _operator(token, path, *, seconds=None):
     return json.loads(raw)
 
 
+def _prove_off(transition, source_sha, budget):
+    from structured_probe_control import recurring_control
+    try:
+        transition._live_off()
+    except DeploymentHold:
+        transition.actions._cleanup_oneoffs(transition.context, budget)
+        # A stopped source may still have a durable lease. Release only owned
+        # workers from this exact release before retrying the same OFF proof.
+        stopped = False
+        for archive in (False, True):
+            state = recurring_control('status', budget, archive=archive)
+            if state['status'] == 'running':
+                require(state['source_sha'] == source_sha, 'recurring_worker_source_mismatch')
+                require(recurring_control('stop', budget, archive=archive)['status'] == 'off',
+                        'recurring_worker_stop_unproven')
+                stopped = True
+                break
+        if not stopped:
+            raise
+        transition._live_off()
+
+
 def session(command, controller_path):
     """ON is one-use; OFF remains available when HTTP control has failed."""
     from live_transition import LiveTransition
@@ -302,7 +324,7 @@ def session(command, controller_path):
             _operator(token, '/collector/off')
         except (OSError, ValueError, DeploymentHold, urllib.error.HTTPError):
             pass
-        LiveTransition(actions, context, budget)._live_off()
+        _prove_off(LiveTransition(actions, context, budget), request.source_sha, budget)
         return {'gate': 'PP_LIVE_OFF', 'origin_id': 'pp-live-pp', 'collector_enabled': False}
     require(active['state'] == 'ready_off', 'live_profile_not_ready')
     seconds = int(parts[2])

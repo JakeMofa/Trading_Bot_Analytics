@@ -135,7 +135,7 @@ def isolate_controller_fixture(runtime_env,owned):
     # The reviewed runtime overlay mounts the existing generated lifecycle
     # secret. No credential value is read into this helper or logged.
     runtime(['up','-d','--force-recreate','--wait','--wait-timeout','60','postgres'],runtime_env)
-    f.sql("CREATE ROLE tradebot_lifecycle LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; "
+    f.sql("CREATE ROLE tradebot_lifecycle LOGIN CONNECTION LIMIT 3 NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; "
           "DO $$ BEGIN EXECUTE format('ALTER ROLE tradebot_lifecycle PASSWORD %L',"
           "btrim(pg_read_file('/run/secrets/lifecycle'),E'\\n\\r ')); END $$; "
           "GRANT CONNECT ON DATABASE tradebot_pp TO tradebot_lifecycle;",CI_FOUNDATION_SECRETS)
@@ -486,7 +486,7 @@ def main():
             passwords['lifecycle']=secrets.token_hex(32)
             REDACTIONS.extend(passwords.values())
             f.compose(['exec','-T','postgres','sh','-ec','umask 077; cat > /tmp/generated-lifecycle-password; chown postgres:postgres /tmp/generated-lifecycle-password'],CI_FOUNDATION_SECRETS,input=passwords['lifecycle'])
-            f.sql("CREATE ROLE tradebot_lifecycle LOGIN NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; DO $$ BEGIN EXECUTE format('ALTER ROLE tradebot_lifecycle PASSWORD %L',pg_read_file('/tmp/generated-lifecycle-password')); END $$; GRANT CONNECT ON DATABASE tradebot_pp TO tradebot_lifecycle;",CI_FOUNDATION_SECRETS)
+            f.sql("CREATE ROLE tradebot_lifecycle LOGIN CONNECTION LIMIT 3 NOINHERIT NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION; DO $$ BEGIN EXECUTE format('ALTER ROLE tradebot_lifecycle PASSWORD %L',pg_read_file('/tmp/generated-lifecycle-password')); END $$; GRANT CONNECT ON DATABASE tradebot_pp TO tradebot_lifecycle;",CI_FOUNDATION_SECRETS)
             f.compose(['exec','-T','postgres','rm','/tmp/generated-lifecycle-password'],CI_FOUNDATION_SECRETS)
             dsns={name:'postgresql://'+role+':'+passwords[name]+'@'+address+':5432/tradebot_pp' for name,role in {**f.ROLES,'lifecycle':'tradebot_lifecycle'}.items()}
             REDACTIONS.extend(dsns.values())

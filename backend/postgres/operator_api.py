@@ -14,12 +14,13 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from .operator_session import SessionBusy, SessionStopUnproven
 
 
-def create_operator_app(repository, *, origin_id: str, token: str, session=None):
+def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None):
     if not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
         raise ValueError('operator origin must be a distinct PP live origin')
     if not isinstance(token, str) or len(token) < 32 or len(token) > 256 or not token.isascii():
         raise ValueError('operator token must be bounded ASCII secret')
     secret = ('Bearer ' + token).encode('ascii')
+    status_repository = repository if status_repository is None else status_repository
     @asynccontextmanager
     async def lifespan(_app):
         try:
@@ -41,7 +42,7 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None)
     async def status(authorization: str | None = Header(default=None)):
         require_operator(authorization)
         try:
-            durable = await asyncio.to_thread(repository.collector_state, origin_id)
+            durable = await asyncio.to_thread(status_repository.collector_state, origin_id)
         except Exception:
             raise HTTPException(503, 'collector state unavailable') from None
         return {'environment': 'preprod', 'origin_id': origin_id,

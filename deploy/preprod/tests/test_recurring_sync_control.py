@@ -30,6 +30,29 @@ class RecurringControlTests(unittest.TestCase):
         self.owner = dict(attempt_id=self.actions.attempt_id, image=self.ctx.image,
                           source_sha=self.ctx.request.source_sha)
 
+    def test_forced_off_frees_one_owned_worker_and_reproves(self):
+        from transition_control import _prove_off
+        transition = MagicMock()
+        transition._live_off.side_effect = [DeploymentHold('off_unproven'), None]
+        budget = MagicMock()
+        with patch.object(sync, 'recurring_control', side_effect=[
+                {'status':'running', 'source_sha':'a'*40}, {'status':'off'}]) as control:
+            _prove_off(transition, 'a'*40, budget)
+        self.assertEqual(transition._live_off.call_count, 2)
+        self.assertEqual([call.args[0] for call in control.call_args_list], ['status','stop'])
+        self.assertTrue(all(call.args[1] is budget for call in control.call_args_list))
+
+    def test_forced_off_preserves_other_release_and_propagates_failure(self):
+        from transition_control import _prove_off
+        transition = MagicMock()
+        transition._live_off.side_effect = DeploymentHold('off_unproven')
+        with patch.object(sync, 'recurring_control', return_value={
+                'status':'running','source_sha':'c'*40}) as control:
+            with self.assertRaisesRegex(DeploymentHold, 'source_mismatch'):
+                _prove_off(transition, 'b'*40, MagicMock())
+        self.assertEqual(control.call_count, 1)
+        self.assertEqual(transition._live_off.call_count, 1)
+
     def test_start_proves_readiness_then_fences_deploy_until_stop(self):
         row = dict(Id='f'*64, State=dict(Running=True))
         with patch.object(sync, 'preflight', return_value=(self.ctx, self.actions, 'b'*64)), \

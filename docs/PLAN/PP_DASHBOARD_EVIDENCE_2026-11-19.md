@@ -84,3 +84,32 @@ stale/future times, snapshot mismatch, stale saved/live inputs, missing switch
 sides, malformed probabilities, secret-field omission, decimal preservation and
 the executable create-only CLI. No release/host/runner configuration changes,
 no merge during the pp17 freeze, and no runtime acceptance claimed here.
+
+## Server comparison clock and cross-host uncertainty
+
+Run evidence exposed a 22–65 ms negative operator-minus-generated delta. The
+operator and API run on different hosts; that delta combines clock offset and
+response delivery and cannot by itself establish a stale server forecast.
+The audit compares server feature/forecast/source timestamps against the API's
+`generated_at`, and places API states against database writer switch brackets
+using that server timestamp. Original operator acquisition time remains intact.
+
+A separate per-observation delta and aggregate min/max disclose the difference.
+The existing observer's -2-second tolerance and the audit's 10-second upper
+state-delivery band are reported explicitly; exceeding that band adds missing
+clock/delivery qualification, rather than blaming forecast content. Missing
+server time fails; stale/future model inputs relative to server time still fail.
+No synchronized-clock, network-freshness or exact switch-time claim is made.
+The actual switch gate remains INCOMPLETE until evidence brackets a real switch.
+This offline reporting correction does not change the deployed API or trial.
+
+A live numerical payload aged 10–30 seconds is classified
+`dashboard_suppressed_numeric`: the existing dashboard hides its headline at ten
+seconds, even though the API's publisher allows a thirty-second source price.
+It is neither a fresh displayed number nor invalid publication by itself. A
+current-market null-probability `reference_price_not_fresh` abstention may retain
+an old source timestamp for diagnosis; that stale input is the reason to abstain,
+not evidence of a stale numeric forecast. Neither class counts toward numerical
+acceptance. Stale numerical output beyond the publisher bound still fails.
+Continuous feed health remains the original observer's separate acceptance gate;
+this classifier does not waive any observed stale-feed episode.

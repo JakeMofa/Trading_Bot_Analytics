@@ -107,7 +107,10 @@ def classify(state, at, name):
         reasons.append('prior_or_unbound_market')
     if feature.get('market_id') != market.get('id'):
         reasons.append('feature_market_mismatch')
-    if not (result['forecast_age_seconds'] is not None and 0 <= result['forecast_age_seconds'] <= 30):
+    forecast_age = result['forecast_age_seconds']
+    live_abstain = (name == 'live_estimate' and output.get('probability_up') is None
+                    and isinstance(output.get('abstain_reason'), str) and output['abstain_reason'].strip())
+    if forecast_age is None or forecast_age < 0 or (forecast_age > 30 and not live_abstain):
         reasons.append('forecast_stale_or_time_missing')
     if not (result['feature_age_seconds'] is not None and 0 <= result['feature_age_seconds'] <= 30):
         reasons.append('feature_stale_or_time_missing')
@@ -145,13 +148,17 @@ def classify(state, at, name):
                 reasons.append('saved_candles_stale_or_missing')
         else:
             input_age = result['input_price_age_seconds']
-            if input_age is None or not 0 <= input_age <= 10:
-                reasons.append('live_tick_outside_dashboard_ten_second_limit')
+            if input_age is None or not 0 <= input_age <= 30:
+                reasons.append('live_tick_outside_publisher_thirty_second_limit')
+            elif input_age > 10:
+                result['dashboard_suppression_reason'] = 'live_tick_outside_dashboard_ten_second_limit'
             candle_age = quality.get('candle_age_seconds')
             if not isinstance(candle_age, (float, int, Decimal)) or isinstance(candle_age, bool) or not 0 <= float(candle_age) + (result['feature_age_seconds'] or 0) < 120:
                 reasons.append('live_candles_stale_or_missing')
     if reasons and result['classification'] in ('active_numeric', 'truthful_abstain'):
         result['classification'] = 'stale_or_unbound'
+    elif result['classification'] == 'active_numeric' and result.get('dashboard_suppression_reason'):
+        result['classification'] = 'dashboard_suppressed_numeric'
     return result
 
 
@@ -160,20 +167,29 @@ def summarize(records, generations=()):
     for record in records:
         if record.get('endpoint') not in ('/state/current', '/events'):
             continue
-        state, at = record.get('state'), instant(record.get('at'))
-        if not isinstance(state, dict) or not at:
+        state, observed_at = record.get('state'), instant(record.get('at'))
+        if not isinstance(state, dict) or not observed_at:
             missing.append('state_or_observation_time_missing')
             continue
         issues = []
         if (state.get('environment'), state.get('data_mode'), state.get('origin_id')) != ('preprod', 'pp_live', 'pp-live-pp'):
             issues.append('wrong_environment_mode_or_origin')
-        if not 0 <= (age(at, state.get('generated_at')) if instant(state.get('generated_at')) else -1) <= 10:
-            issues.append('state_generated_time_stale_or_missing')
+        at = instant(state.get('generated_at'))
+        delta = age(observed_at, state.get('generated_at'))
+        if at is None:
+            issues.append('state_generated_time_missing_or_invalid')
+        elif delta < -2 or delta > 10:
+            # Different hosts: this delta combines clock offset and delivery.
+            # It cannot establish that the server's own forecast inputs aged.
+            missing.append('cross_host_clock_or_delivery_not_qualified')
         if not record.get('source_sha'):
             missing.append('source_sha_missing')
         row = dict(at=record['at'], endpoint=record['endpoint'], source_sha=record.get('source_sha'),
                    market_id=(state.get('market') or {}).get('id'),
                    price_generation_id=(state.get('coinbase') or {}).get('generation_id'),
+                   server_generated_at=state.get('generated_at'),
+                   operator_minus_server_generated_seconds=delta,
+                   comparison_clock='server_generated_at',
                    issues=issues, saved=classify(state, at, 'forecast'),
                    live=classify(state, at, 'live_estimate'))
         samples.append(row)
@@ -192,8 +208,8 @@ def summarize(records, generations=()):
         if before.get('generation_id') == after.get('generation_id'):
             continue
         low, high = instant(before['at_utc']), instant(after['at_utc'])
-        prior = [r for r in samples if instant(r['at']) <= low]
-        later = [r for r in samples if instant(r['at']) >= high]
+        prior = [r for r in samples if instant(r.get('server_generated_at')) and instant(r['server_generated_at']) <= low]
+        later = [r for r in samples if instant(r.get('server_generated_at')) and instant(r['server_generated_at']) >= high]
         switches.append({'from_generation_id': before.get('generation_id'),
                          'to_generation_id': after.get('generation_id'),
                          'observed_after_utc': before['at_utc'], 'observed_by_utc': after['at_utc'],
@@ -208,9 +224,18 @@ def summarize(records, generations=()):
         missing.append('generation_switch_not_demonstrated')
     elif any(not s['before'] or not s['after'] for s in switches):
         missing.append('before_after_switch_state_missing')
-    market_transitions = [dict(before=left, after=right)
-                          for left, right in zip(samples, samples[1:])
-                          if left['market_id'] and right['market_id'] and left['market_id'] != right['market_id']]
+    market_transitions = []
+    previous_market_sample = None
+    intervening_missing = 0
+    for row in samples:
+        if not row['market_id']:
+            intervening_missing += 1
+            continue
+        if previous_market_sample and previous_market_sample['market_id'] != row['market_id']:
+            market_transitions.append(dict(before=previous_market_sample, after=row,
+                                           intervening_missing_market_samples=intervening_missing))
+        previous_market_sample = row
+        intervening_missing = 0
     numeric_missing = []
     if len(saved_ids) < 3:
         numeric_missing.append('fewer_than_three_active_numeric_saved_predictions')
@@ -222,6 +247,17 @@ def summarize(records, generations=()):
             'integrity_result': 'FAIL' if failures else 'INCOMPLETE' if missing else 'PASS',
             'numeric_forecast_result': 'FAIL' if failures else 'INCOMPLETE' if missing or numeric_missing else 'PASS',
             'samples': len(samples), 'classifications': counts,
+            'clock_evidence': {
+                'input_age_basis': 'server_generated_at; not operator wall clock',
+                'operator_minus_server_generated_seconds_min': min(
+                    (r['operator_minus_server_generated_seconds'] for r in samples
+                     if r['operator_minus_server_generated_seconds'] is not None), default=None),
+                'operator_minus_server_generated_seconds_max': max(
+                    (r['operator_minus_server_generated_seconds'] for r in samples
+                     if r['operator_minus_server_generated_seconds'] is not None), default=None),
+                'delta_is_not_pure_offset': True,
+                'delivery_or_clock_review_band_seconds': [-2, 10],
+                'synchronized_wall_clocks_proven': False},
             'distinct_active_numeric_saved_predictions': len(saved_ids),
             'failures': sorted(set(failures)), 'missing_evidence': sorted(set(missing)),
             'numeric_missing_evidence': numeric_missing, 'switches': switches,
@@ -229,7 +265,7 @@ def summarize(records, generations=()):
             'observations': samples,
             'historical_items_observed_not_current_numeric_proof': sum(
                 len(r.get('history') or []) for r in records),
-            'not_proven': ['rendered browser display', 'continuous SSE coverage', 'collector/lease ownership',
+            'not_proven': ['rendered browser display', 'continuous SSE coverage', 'continuous feed freshness (original observer gate required)', 'collector/lease ownership',
                            'archive correctness or retirement authority', 'prediction quality or calibration']}
 
 

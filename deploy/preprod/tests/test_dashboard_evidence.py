@@ -72,10 +72,11 @@ class DashboardEvidenceTests(unittest.TestCase):
             self.assertIn(issue,result['observations'][0]['saved']['issues'])
 
     def test_live_dashboard_ten_second_limit_distinct_from_saved(self):
-        r=record(20);r['state']['coinbase']['source_time']=BASE.isoformat()
+        r=record(20);r['state']['coinbase']['source_time']=BASE.isoformat();r['state']['live_estimate']['as_of']=BASE.isoformat()
         result=audit.summarize([r],generations())
         self.assertEqual(result['observations'][0]['saved']['classification'],'active_numeric')
-        self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
+        self.assertEqual(result['observations'][0]['live']['classification'],'dashboard_suppressed_numeric')
+        self.assertEqual(result['failures'],[])
 
     def test_live_asof_must_match_captured_tick_not_just_be_recent(self):
         r=record(20);r['state']['live_estimate']['as_of']=BASE.isoformat()
@@ -98,9 +99,48 @@ class DashboardEvidenceTests(unittest.TestCase):
         result=audit.summarize([record(10)],generations())
         self.assertEqual(result['integrity_result'],'INCOMPLETE')
         r=record(5);r['state']['generated_at']=(BASE-timedelta(minutes=2)).isoformat()
-        self.assertIn('state_generated_time_stale_or_missing',audit.summarize([r])['failures'])
+        self.assertIn('cross_host_clock_or_delivery_not_qualified',audit.summarize([r])['missing_evidence'])
         r=record(5,abstain=True);r['state']['forecast']['probability_down']='0.4'
         self.assertEqual(audit.summarize([r])['observations'][0]['saved']['classification'],'stale_or_unbound')
+
+    def test_cross_host_clock_skew_not_forecast_input_age(self):
+        rows=[record(5),record(10,generation='new'),record(15,generation='new')]
+        for row in rows:
+            row['at']=(audit.instant(row['at'])-timedelta(milliseconds=65)).isoformat()
+        result=audit.summarize(rows,generations())
+        self.assertEqual(result['numeric_forecast_result'],'PASS')
+        self.assertEqual(result['observations'][0]['live']['input_price_age_seconds'],1)
+        self.assertAlmostEqual(result['observations'][0]['operator_minus_server_generated_seconds'],-0.065)
+        self.assertFalse(result['clock_evidence']['synchronized_wall_clocks_proven'])
+        rows[0]['at']=(BASE+timedelta(seconds=30)).isoformat()
+        self.assertIn('cross_host_clock_or_delivery_not_qualified',audit.summarize(rows,generations())['missing_evidence'])
+
+    def test_missing_server_timestamp_does_not_use_operator_clock(self):
+        row=record(5);row['state']['generated_at']=None
+        result=audit.summarize([row],generations())
+        self.assertIn('state_generated_time_missing_or_invalid',result['failures'])
+        self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
+
+    def test_stale_source_truthful_abstain_not_numeric_failure(self):
+        row=record(50,abstain=True)
+        row['state']['coinbase']['source_time']=BASE.isoformat()
+        row['state']['live_estimate']['as_of']=BASE.isoformat()
+        row['state']['live_estimate']['abstain_reason']='reference_price_not_fresh'
+        result=audit.summarize([row])
+        self.assertEqual(result['observations'][0]['live']['classification'],'truthful_abstain')
+        self.assertEqual(result['failures'],[])
+        self.assertEqual(result['numeric_forecast_result'],'INCOMPLETE')
+        row['state']['live_estimate'].update(probability_up='0.6',probability_down='0.4',abstain_reason=None)
+        self.assertEqual(audit.summarize([row])['observations'][0]['live']['classification'],'stale_or_unbound')
+
+    def test_market_rollover_with_explicit_missing_market_gap(self):
+        before=record(5);gap=record(10);gap['state'].update(market=None,forecast=None,live_estimate=None)
+        after=record(15,market='B')
+        result=audit.summarize([before,gap,after])
+        self.assertEqual(len(result['market_transitions']),1)
+        self.assertEqual(result['market_transitions'][0]['intervening_missing_market_samples'],1)
+        self.assertEqual(result['market_transitions'][0]['before']['market_id'],'A')
+        self.assertEqual(result['market_transitions'][0]['after']['market_id'],'B')
 
     def test_capture_allowlist_no_headers_or_secret_nested_price(self):
         r=record(5);state=deepcopy(r['state']);state['headers']={'Authorization':'secret'}

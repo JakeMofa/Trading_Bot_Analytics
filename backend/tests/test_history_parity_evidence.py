@@ -2,6 +2,7 @@
 from copy import deepcopy
 from pathlib import Path
 import json
+import re
 import sys
 import tempfile
 import subprocess
@@ -66,7 +67,21 @@ class HistoryParityEvidenceTests(unittest.TestCase):
         cls.bundle = generated_bundle()
 
     def test_exact_two_generation_http_and_research_fixture_matches_golden(self):
-        self.assertEqual(self.bundle, json.loads(GOLDEN.read_text()))
+        def comparable_generated_capture(bundle):
+            # Compressed bytes can differ across Python/zlib builds. Preserve
+            # the real hashes in the actual capture/report; normalize only this
+            # synthetic golden comparison's raw transport object hashes. Exact
+            # decoded input strings, envelope hashes and every saved link remain.
+            result = deepcopy(bundle)
+            for window in result['windows']:
+                for phase in window['phases'].values():
+                    for page in phase['research']['provenance']['raw_pages']:
+                        self.assertTrue(all(re.fullmatch('[0-9a-f]{64}', value)
+                                            for value in page['sha256']))
+                        page['sha256'] = ['<runtime-compressed-object-sha256>' for _ in page['sha256']]
+            return result
+        self.assertEqual(comparable_generated_capture(self.bundle),
+                         comparable_generated_capture(json.loads(GOLDEN.read_text())))
         result = parity.audit(self.bundle)
         self.assertEqual(result['result'], 'PASS')
         self.assertEqual(len(result['windows']), 2)

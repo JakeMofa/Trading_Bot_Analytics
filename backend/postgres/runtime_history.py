@@ -1,5 +1,6 @@
 """Bounded archive history for explicit API requests on the selected PP origin."""
 import threading
+import uuid
 
 from .archive_codec import ArchiveLimits
 from .archive_transport import ScopedArchiveTransport
@@ -14,6 +15,11 @@ class RuntimeHistory:
         self._admission = threading.BoundedSemaphore(1)
 
     def read_generation(self, generation_id, **kwargs):
+        try:
+            if str(uuid.UUID(generation_id)) != generation_id:
+                raise ValueError()
+        except (ValueError, TypeError, AttributeError):
+            raise HistoryError('invalid_generation', 'generation must be a canonical UUID') from None
         if not self._admission.acquire(blocking=False):
             raise HistoryError('history_busy', 'historical retrieval is already running')
         raw = None

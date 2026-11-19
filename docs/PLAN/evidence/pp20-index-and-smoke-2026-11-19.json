@@ -1,0 +1,47 @@
+{
+  "release": "v0.2.0-pp.20",
+  "source_sha": "b7b4c9f1eae351c0dde1eafbd27f64571be5aa5a",
+  "artifact_sha256": "1c45affb799be7601e1d4efeb36021a387dd39074378be264840c472ec00728d",
+  "source_ci": 44510030927,
+  "preprod_ci": 44510638647,
+  "publication": 44510805747,
+  "preprod_cd": 44510969827,
+  "cd": {
+    "gate": "BLOCKED",
+    "reason": "child_failed",
+    "stage": "smoke",
+    "recovery": "stop_candidate_keep_database"
+  },
+  "hosted_index": {
+    "name": "history_v2.structured_receipts_latest_identity_v1_idx",
+    "create_sha256": "d2c6d7bbbd6a511a3614b195704add678e89c74c5c1bb2b0e9948d34db934d67",
+    "operation": "standalone concurrent create",
+    "fresh_exact_catalog_abi_valid_ready_live": true,
+    "index_size": 4087808,
+    "migration_version_recorded": false,
+    "builds_running": 0
+  },
+  "local_outbox_after_failed_smoke": {
+    "generated-pp": {
+      "pending": 10000,
+      "total": 10000,
+      "limit": 10000,
+      "new_records_in_smoke": {
+        "core.markets": 2,
+        "core.candles": 1
+      },
+      "last_commit_utc": "2026-11-19T11:02:54.056109Z"
+    },
+    "pp-live-pp": {
+      "pending": 0,
+      "total": 42133,
+      "collector_enabled": false,
+      "a_rows": 28411,
+      "b_rows": 9784
+    }
+  },
+  "app_candidate_stopped": true,
+  "postgres_healthy": true,
+  "read_only_replay_observed": false,
+  "retirement_authorized": false
+}

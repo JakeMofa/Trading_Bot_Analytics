@@ -6,8 +6,14 @@ PP18 retirement, deploy, issue a permit, alter the clock or reset a seal.
 ## Observed PP18 result
 
 PP18 completed the A to B handoff and remote raw archive. Its final fresh proof
-returned HOLD `archive_limit` at approximately 240 seconds; sealed A retained
-28,411 raw rows. The existing final trace cannot identify the exhausted phase.
+returned HOLD `archive_limit` under the unchanged 240-second operation cap;
+sealed A retained 28,411 raw rows. The final operator evidence measures
+247.855136 seconds from ticket issuance to container termination, including
+startup/finalization; verifier-exclusive elapsed, exhausted dimension and
+dominant phase are unproven. The required 30-minute B run separately failed
+after 20m32.235895s; subsequent cleanup did not make it a continuity PASS.
+[Final combined observation](PP18_COMBINED_OBSERVATION_2026-11-19.md) preserves
+those actual times and limits.
 Standalone final inventory measured 20.009 seconds, 63 structured pages / 31,162
 rows, 57 raw objects, 121 minimum logical requests, and 53,696,972 minimum logical
 bytes. The conservative newer-revision upper bound was 267,864,233 bytes, so
@@ -103,8 +109,8 @@ implementation keeps those boundaries. Supabase's
 [changelog](https://supabase.com/changelog.md) was checked for relevant changes;
 this PR changes no Supabase API, policy, migration or pooler configuration.
 
-Validation at this milestone: 379 backend tests passed (47 external/isolated DSN
-skips); all 14 history transport tests passed against a disposable local PG17
+Validation at this milestone: 379 backend tests run, 332 passed and 47 explicit
+external/isolated DSN skips; all 14 history transport tests passed against a disposable local PG17
 cluster, including the matched comparison and negative tests. `git diff --check`
 passed. The PG cluster was stopped and removed after the run; no user database,
 host runtime or hosted project was accessed.

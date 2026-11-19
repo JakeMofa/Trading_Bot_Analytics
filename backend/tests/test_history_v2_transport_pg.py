@@ -13,6 +13,7 @@ import uuid
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, encoded, sha256
 from postgres.history_v2_transport import HistoryV2PostgresTransport

@@ -3758,3 +3758,17 @@ modeled full rich pages improve only slightly at 42k and more at 250k. Receipt
 write WAL and index storage increase. No hosted DDL, flag activation, grant,
 auth/cap/clock change or retroactive trial pass is included. [Evidence and
 standalone concurrent migration/rollback gates](PP_RECEIPT_LATEST_INDEX_2026-11-19.md).
+
+### November 19 — source-only point-in-time application parity prototype
+
+Added an unregistered offline composition for one reviewed 15-minute market
+window, preserving captured Polymarket inputs and exact saved feature/forecast
+links across collecting, sealed and retired raw generations. Snapshot publication
+availability requires independently reviewed protected calculation-input evidence;
+`as_of` alone is insufficient. Delayed/future inputs are excluded or rejected and
+official outcomes remain separate labels under their own cutoff. Seven generated
+tests pass, including actual native PG17 partition retirement plus independent
+local history_v2 receipt/envelope readback; 29 relevant existing tests pass.
+No cloud/host/runtime/API/retirement activation occurred. Single-generation and
+reviewed-manifest bounds do not establish full historical coverage or runtime
+application parity. [Evidence, interfaces and remaining gates](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md).

@@ -2,6 +2,27 @@
 
 ## Current PP checkpoint — November 18, 2026
 
+### pp.14 deployment and real structured history result — November 19 UTC
+
+PP deployed **v0.2.0-pp.14** at `1a46b80` and entered ready-off. Its collector stayed
+OFF. [Exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44437167348) · [Publication](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44437594161) · [PP CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44437722926) · [Ready-off](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44438049908)
+
+The one-use `history_v2` proof **FAILED** on real outbox IDs 7314–7338. The page
+contains twelve candle identities, twelve price revisions sharing one identity and one
+market. Supabase logged SQLSTATE `25P04`, FATAL, command tag `idle in transaction`
+at 01:37:24.196 UTC for the restricted writer role. Session start was reported at
+01:37:20 UTC with one-second precision. The log did not identify the last completed SQL
+statement. The owned probe exited 1 and was removed. The local backlog remained 5,268,
+local acknowledgements remained zero and independent cloud reads found zero matching
+receipts both before and after. The pp.12 failure remains recorded separately.
+
+Hold the live test while the exact structured page cannot complete inside its existing
+transaction budget. Diagnose the verified page shape and sequential network round trips,
+qualify a changed transaction path with exact-content and atomic-rollback checks, and
+reconcile the exact identities before a reviewed successor attempt. No raw upload,
+switch, retirement or production mutation occurred during this checkpoint.
+[Sanitized evidence](evidence/pp14-structured-page-2026-11-19.json)
+
 ### Optional archived-history reader for PP
 
 The API uses its existing local application login for read-only history queries. For explicit

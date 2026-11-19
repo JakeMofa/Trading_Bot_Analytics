@@ -1,0 +1,60 @@
+{
+  "scope": "preprod_only",
+  "source_sha": "1a46b80f7c8d23a640134eefaa9570896c0e9440",
+  "version": "v0.2.0-pp.14",
+  "source_ci": 44437167348,
+  "publication": 44437594161,
+  "deployment": 44437722926,
+  "deployed_image": "sha256:b812c825ad2440dee612575ca9090b6a9b12b8951b212c0d005662021dfec0d9",
+  "collector_ready_off": 44438049908,
+  "collector_enabled": false,
+  "structured_page": {
+    "result": "FAIL",
+    "origin": "pp-live-pp",
+    "generation": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+    "slot": "A",
+    "first_id": 7314,
+    "last_id": 7338,
+    "selected_rows": 25,
+    "dedicated_role": "tradebot_pp_history",
+    "page_shape": [
+      {
+        "entity_type": "core.candles",
+        "n": 12,
+        "distinct_ids": 12,
+        "payload_bytes": 8746
+      },
+      {
+        "entity_type": "core.current_prices",
+        "n": 12,
+        "distinct_ids": 1,
+        "payload_bytes": 13172
+      },
+      {
+        "entity_type": "core.markets",
+        "n": 1,
+        "distinct_ids": 1,
+        "payload_bytes": 2427
+      }
+    ],
+    "server_event_utc": "2026-11-19T01:37:24.196Z",
+    "server_session_start_utc_at_one_second_precision": "2026-11-19T01:37:20Z",
+    "server_sqlstate": "25P04",
+    "server_command_tag": "idle in transaction",
+    "server_severity": "FATAL",
+    "database_stage_before_timeout": "unobserved",
+    "pending_before": 5268,
+    "pending_after": 5268,
+    "local_acks_before": 0,
+    "local_acks_after": 0,
+    "remote_exact_receipts_before": 0,
+    "remote_exact_receipts_after": 0,
+    "owned_probe_exit": 1,
+    "owned_probe_container_removed": true,
+    "repeat_attempted": false
+  },
+  "raw_archive": "not_run",
+  "rotation": "not_run",
+  "retirement": "off",
+  "production_changed": false
+}

@@ -117,8 +117,11 @@ def classify(state, at, name):
                               not output.get('snapshot_id') or
                               output.get('snapshot_id') != feature.get('snapshot_id')):
         reasons.append('saved_prediction_snapshot_binding_missing')
-    if name == 'live_estimate' and output.get('snapshot_as_of') != feature.get('as_of'):
-        reasons.append('live_snapshot_time_mismatch')
+    if name == 'live_estimate':
+        if output.get('snapshot_as_of') != feature.get('as_of'):
+            reasons.append('live_snapshot_time_mismatch')
+        if output.get('as_of') != (state.get('coinbase') or {}).get('source_time'):
+            reasons.append('live_tick_time_mismatch')
     p, reason = output.get('probability_up'), output.get('abstain_reason')
     if p is None and output.get('probability_down') is not None:
         reasons.append('down_probability_without_up_probability')

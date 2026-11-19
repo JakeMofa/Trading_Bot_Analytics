@@ -77,6 +77,12 @@ class DashboardEvidenceTests(unittest.TestCase):
         self.assertEqual(result['observations'][0]['saved']['classification'],'active_numeric')
         self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
 
+    def test_live_asof_must_match_captured_tick_not_just_be_recent(self):
+        r=record(20);r['state']['live_estimate']['as_of']=BASE.isoformat()
+        result=audit.summarize([r])
+        self.assertIn('live_tick_time_mismatch',result['observations'][0]['live']['issues'])
+        self.assertEqual(result['observations'][0]['live']['classification'],'stale_or_unbound')
+
     def test_malformed_probability_and_conflicting_abstain(self):
         for value,reason in [('NaN',None),('1.1',None),(True,None),('0.6','stale')]:
             r=record(5);r['state']['forecast'].update(probability_up=value,abstain_reason=reason)

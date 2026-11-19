@@ -24,6 +24,7 @@ def current_chart(client,store,worker,state,price_event,deadline,await_snapshot)
         # generated market rather than accepting an empty current chart.
         if time.monotonic()>=deadline:
             raise AssertionError('generated chart rollover exceeded acceptance deadline')
+        store.require_generated_headroom()
         events=generated_events(utcnow())
         extra=[store.ingest(event) for event in events]
         price_event=next(event for event in events if event['kind']=='price')
@@ -49,6 +50,7 @@ def qualify(base_url, timeout=20):
         raise ValueError('acceptance endpoint must be the isolated local API')
     store=Store(settings)
     store.verify()
+    store.require_generated_headroom()
     now=utcnow()
     events=generated_events(now)
     acknowledgements=[store.ingest(event) for event in events]
@@ -110,7 +112,8 @@ def qualify(base_url, timeout=20):
                 streamed_feature=streamed.get('feature_snapshot') or {}
                 if streamed_feature.get('quality',{}).get('price',{}).get('input_id')!=price_event['event_id']:
                     raise AssertionError('SSE did not carry persisted snapshot')
-    return {'status':'pass','scope':'generated_local_api','origin_id':settings.origin_id,
+    store.require_generated_headroom()
+    return {'status':'pass','scope':'generated_local_api','generated_headroom_verified':True,'origin_id':settings.origin_id,
             'acknowledged_events':len(acknowledgements),'conflict_detected':conflict_detected,
             'exact_decimal_roundtrip':True,'api_ram_after_commit':True,'sse_connections':2,
             'dashboard_contract':True,'bounded_chart':True,'prediction_history':True,

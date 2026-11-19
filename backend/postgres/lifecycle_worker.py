@@ -45,7 +45,9 @@ def configuration(environ):
     pending = int(environ.get('TRADEBOT_OUTBOX_MAX_PENDING', '10000'))
     if not 10 <= pending <= 100000:
         raise ValueError('pending outbox bound must be 10..100000')
-    return {'origin_id': origin, 'mode': mode,
+    from .generated_storage import requested
+    generated_storage=requested(environ,mode,origin)
+    return {'origin_id': origin, 'mode': mode, 'generated_storage':generated_storage,
             'policy': RotationPolicy(int(size) if size else None),
             'pending_outbox_limit': pending, 'market_pair_trial': trial is not None}
 
@@ -107,10 +109,15 @@ def main(argv=None):
         signal.signal(getattr(signal, name), lambda *_: stop.set())
     while not stop.is_set():
         try:
+            generated=None
+            if config['generated_storage']:
+                from .generated_storage import drain
+                generated=drain(repository)
             result = repository.switch_if_due(config['origin_id'], config['policy'],
                                               require_live_lease=config['mode'] == 'pp_live',
                                               market_pair_trial=config['market_pair_trial'])
             result.update(archive='held_no_qualified_transport', retirement='off')
+            if generated is not None:result['generated_storage']=generated
             if config['mode'] == 'pp_live' and result.get('reason') in (
                     'other_slot_not_retired','pp_filesystem_reserve','pp_filesystem_sample_unavailable'):
                 # The repository atomically committed OFF with the hold. The

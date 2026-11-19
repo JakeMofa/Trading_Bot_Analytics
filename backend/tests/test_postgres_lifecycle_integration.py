@@ -364,8 +364,13 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
                 'trade_id':str(uuid.uuid4()),'time':instant,
                 'price':f'10000.{number:03d}'},instant)
 
+        self.repository.disable_collector(origin)
+        idle=self.repository.switch_if_due(origin, RotationPolicy(1), require_live_lease=True)
+        self.assertEqual((idle['status'],idle['generation_id']),('idle',generation['generation_id']))
+        self.repository.enable_collector(origin, session_id=session,
+            expected_generation_id=str(generation['generation_id']), max_seconds=60)
         first=live.ingest(tick(1))
-        switched=self.repository.switch_if_due(origin, RotationPolicy(1))
+        switched=self.repository.switch_if_due(origin, RotationPolicy(1), require_live_lease=True)
         self.assertEqual((switched['status'],switched['slot']),('switched','B'))
         self.assertEqual(str(first['generation_id']),str(generation['generation_id']))
         self.assertTrue(self.repository.owns_collector(origin,session))

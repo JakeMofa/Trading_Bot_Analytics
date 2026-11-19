@@ -50,6 +50,29 @@ A 10,003-pending fixture stopped admission and inventory. Local controller suite
 ran 180 tests with four platform skips. PP runtime deployment and representative
 scan timing remain open.
 
+### PP size-trigger qualification candidate
+
+The bounded PP live Compose overlay pins a 32 MiB raw relation threshold for
+`tradebot_pp` / `pp-live-pp`. The switcher rechecks the live collector lease
+under the writer lock before applying either trigger. Startup in ready/OFF
+mode leaves A in place. The 72-hour age trigger, occupied-slot stop and
+1,800-second collector session limit still apply.
+
+The November 17 diagnostic measured A growing from 2,711,552 to 9,109,504
+bytes over 282 seconds (about 22,688 bytes/s). At that single observed rate,
+33,554,432 bytes would be reached in about 18 minutes from the last A size.
+An empty B has about 24.6 minutes of size runway at that rate, versus about
+12 minutes left in the session at the projected switch. Actual B starts with
+relation overhead. These are forecasts from two samples. Before ON, check A's
+identity, current age/size/rows, B availability, projected time to the first
+and second triggers, free bytes, pending outbox and archive-worker readiness.
+If A is already due or live growth differs, recompute the observation window.
+During the session measure size and time from seal through authenticated
+readback alongside B writes. If A stays occupied when B is due, the existing
+controller durably stops intake. A successful observation establishes only
+the observed size, growth and archive characteristics.
+[Source measurements](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md)
+
 ### PP execution sequence
 
 **Resume at step 1.** Receipt batching in PR #130 passed Linux CI at

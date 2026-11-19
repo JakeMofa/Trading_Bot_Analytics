@@ -136,12 +136,14 @@ class ConfigTests(unittest.TestCase):
         for name in ('api','calculation','lifecycle'):
             live['services'][name]['environment'].update(
                 TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
-        live['services']['lifecycle']['environment']['TRADEBOT_PP_LIVE_LIFECYCLE']='true'
+        live['services']['lifecycle']['environment'].update(
+            TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_QUALIFIED_GENERATION_BYTES='33554432')
         live['services']['operator']['environment'].update(
             TRADEBOT_PP_LIVE_CONTROL='true',TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
         live['services']['operator']['secrets'].append({'source':'app_dsn','target':'app_dsn'})
         self.assertIs(live_policy.validate_live_profile(base,live,source,IMAGE),live)
         for mutate in (
+            lambda row:row['services']['lifecycle']['environment'].update(TRADEBOT_QUALIFIED_GENERATION_BYTES='1'),
             lambda row:row['services']['api']['environment'].update(ENABLE_OPENAI_ANALYST='true'),
             lambda row:row['services']['lifecycle']['environment'].update(ENABLE_LOCAL_RETENTION='true'),
             lambda row:row['services']['operator']['secrets'].pop(),

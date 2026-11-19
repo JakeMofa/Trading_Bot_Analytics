@@ -22,7 +22,8 @@ def validate_live_profile(base: dict, live: dict, source, image):
     for name in ('api', 'calculation', 'lifecycle'):
         expected['services'][name]['environment'].update(
             TRADEBOT_DATA_MODE='pp_live', TRADEBOT_ORIGIN_ID=LIVE_ORIGIN)
-    expected['services']['lifecycle']['environment']['TRADEBOT_PP_LIVE_LIFECYCLE'] = 'true'
+    expected['services']['lifecycle']['environment'].update(
+        TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_QUALIFIED_GENERATION_BYTES='33554432')
     operator = expected['services']['operator']
     operator['environment'].update(TRADEBOT_PP_LIVE_CONTROL='true',
                                    TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')

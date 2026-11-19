@@ -16,7 +16,7 @@ import signal
 import zipfile
 import tempfile
 
-from controller import (Budget,Context,HostBinding,Request,RootAuthorization,
+from controller import (Budget,Context,DeploymentHold,HostBinding,Request,RootAuthorization,
                         _secure_file,extract_archive,require)
 from linux_actions import (LinuxActions,SERVICES,PROJECT,NETWORK,API_NETWORK,
                            MEMORY,CPUS,COMMANDS,RUNTIME_SECRETS,expected_environment,
@@ -251,8 +251,9 @@ def main():
             else:
                 authority.consume(request,datetime.now(timezone.utc))
                 result=forward(actions,context,budget,before,state['through_id'],state['raw_cutoff'])
-        except Exception:
-            result={'gate':'PP20_FORWARD_BOOTSTRAP_BLOCKED','phase':getattr(actions,'forward_phase','preflight'),
+        except Exception as error:
+            reason=str(error) if isinstance(error,DeploymentHold) and re.fullmatch('[a-z][a-z0-9_]{1,100}',str(error)) else 'forward_operator_failed'
+            result={'gate':'PP20_FORWARD_BOOTSTRAP_BLOCKED','reason':reason,'phase':getattr(actions,'forward_phase','preflight'),
                     'source_sha':request.source_sha,'database_restored':False,
                     'live_collector_enabled':False,'retirement_authorized':False,
                     'recovery':'unproven_preserve_and_inspect'}

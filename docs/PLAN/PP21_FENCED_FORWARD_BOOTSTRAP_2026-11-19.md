@@ -100,13 +100,14 @@ from this local migration.
 
 ## Validation and remaining gates
 
-Five targeted guards/fault controls pass: changed stopped profiles, migration
+Six targeted guards/fault controls pass: build-time source drift before any
+migration, changed stopped profiles, migration
 preservation faults, wrong migration versions, live ACK/outcome preservation
 failure before smoke, and exact original-row fingerprint scope. Disposable native
 PostgreSQL 17 executes the actual authenticated reader state/fingerprint SQL,
 verifies unchanged catalog and final migration validation, with zero skips. The
 same actual SQL case is included in the full isolated Linux qualification.
-All 218 deploy controls pass (six external/native skips); 54 pipeline controls pass.
+All 219 deploy controls pass (six external/native skips); 54 pipeline controls pass.
 No full PP20 operator execution is claimed by these source tests. Remaining:
 review/merge exact source, exact CI, release publication, operator preflight,
 explicit one-use forward execution, normal CD and separately bounded live work.

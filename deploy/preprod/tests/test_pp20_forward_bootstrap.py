@@ -57,6 +57,15 @@ class ForwardGuards(unittest.TestCase):
         self.assertIn(('core.outcomes','true','to_jsonb(t)'),calls)
         with self.assertRaises(c.DeploymentHold):f.preserved_state(None,None,1,"x';DELETE FROM raw.events;")
 
+    def test_source_drift_during_build_cannot_attempt_migration(self):
+        actions=Mock();actions.build.return_value='sha256:'+'a'*64
+        before={'ops.outbox':{'digest':'a'*64}}
+        with tempfile.TemporaryDirectory() as folder,patch.object(f,'preserved_state',return_value={'ops.outbox':{'digest':'b'*64}}):
+            p=Path(folder);context=c.Context(c.Request('a'*40,'b'*64,f.CONTROLLER),p,p)
+            with self.assertRaisesRegex(c.DeploymentHold,'forward_source_changed_before_migration'):
+                f.forward(actions,context,None,before,10000,'2026-11-19 11:00:00+00')
+        actions._oneoff.assert_not_called();actions.start.assert_not_called()
+
     def test_migration4_cannot_start_services_after_changed_source(self):
         actions=Mock();actions._json=json.loads
         actions.build.return_value='sha256:'+'a'*64

@@ -72,7 +72,7 @@ except (DeploymentHold,OSError,ValueError) as error:
     # Publish only these fixed, non-sensitive leave-stage codes. All other
     # adapter/child diagnostics retain the existing generic public result.
     reason=str(error)
-    if reason not in PUBLIC_FAILURE_CODES and reason not in ('stop_recurring_structured_sync_first',
+    if reason not in PUBLIC_FAILURE_CODES and reason not in ('stop_recurring_structured_sync_first','stop_recurring_archive_first',
                       'generated_runtime_check_failed',
                       'generated_api_readiness_timeout',
                       'generated_operator_readiness_timeout',

@@ -293,7 +293,8 @@ ARCHIVE_STATE = ACTIVE.with_name('sealed-archive-owner.json')
 
 
 def _require_stopped(path):
-    require(not path.exists() and not path.is_symlink(), 'stop_recurring_worker_first')
+    require(not path.exists() and not path.is_symlink(),
+            'stop_recurring_structured_sync_first' if path == SYNC_STATE else 'stop_recurring_archive_first')
 
 
 def fence_recurring_sync():

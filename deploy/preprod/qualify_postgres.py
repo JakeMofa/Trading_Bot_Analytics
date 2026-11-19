@@ -502,7 +502,8 @@ def main():
             PHASE='generated_pp_storage_policy'
             pp_storage_policy=qualify_pp_storage_policy(CI_FOUNDATION_SECRETS)
             env['TRADEBOT_TEST_HISTORY_V2_DSN']=dsns['admin']
-            command([sys.executable,'-m','unittest','backend.tests.test_history_v2_transport_pg','-v'],
+            command([sys.executable,'-m','unittest','backend.tests.test_history_v2_transport_pg',
+                     'deploy.preprod.tests.test_lifetime_inventory_pg','-v'],
                     env,timeout=90)
             PHASE='runtime_image'
             command(['docker','build','-f','deploy/preprod/Dockerfile','-t','tradebot-pg-test','.'],timeout=200)

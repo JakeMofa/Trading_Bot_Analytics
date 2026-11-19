@@ -420,6 +420,19 @@ def qualify_pp_storage_policy(secret_dir):
           secret_dir,timeout=20)
     if f.sql("SELECT count(*) FROM storage.objects;",secret_dir).strip()!='3':
         raise RuntimeError('readback amendment changed generated objects')
+    reader_uid = '00000000-0000-4000-8000-0000000000bb'
+    reader_policy = (REPO/'supabase/review/pp_history_reader_policies.sql.in').read_text()
+    # Bind the separate identity and add deliberately permissive policies to
+    # exercise the reader's restrictive gates. Roll back the isolated fixture.
+    sql = reader_policy.replace('__PP_HISTORY_READER_UID__',reader_uid).replace(
+        '__PP_STORAGE_AUTH_UID__','00000000-0000-4000-8000-0000000000aa')
+    sql = sql.replace('BEGIN;', """BEGIN;
+        INSERT INTO auth.users VALUES ('00000000-0000-4000-8000-0000000000bb',
+        'reader@example.invalid','authenticated',now(),
+        '{"tradebot_role":"pp_storage_history_reader","tradebot_origin":"pp-live-pp"}');""", 1)
+    checks = (REPO/'deploy/preprod/tests/pp_history_reader_denials.sql').read_text()
+    f.sql(sql.removesuffix('COMMIT;\n') + checks, secret_dir,timeout=20)
+    proof['history_reader_scoped_get_and_mutation_denials'] = True
     f.sql(rollback.decode('ascii'),secret_dir,timeout=20)
     if f.sql("SELECT count(*) FROM pg_policies WHERE schemaname='storage' AND tablename='objects';",
              secret_dir).strip()!='0' or \

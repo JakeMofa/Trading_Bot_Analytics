@@ -10,7 +10,7 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import LinuxActions, SERVICES, PROJECT
+from linux_actions import LinuxActions, SERVICES, PROJECT, history_reader_enabled
 from live_profile import validate_live_profile
 
 
@@ -22,19 +22,20 @@ class LiveTransition:
     def _compose_live(self, args, *, timeout=60):
         image = self.context.image
         require(isinstance(image,str) and image.startswith('sha256:'), 'unbound_live_image')
+        overlay = ['-f',str(self.folder/'runtime.history-reader.compose.yaml')] if history_reader_enabled(self.context) else []
         profiles = ['--profile','migration'] if args and args[0] == 'config' else []
         return self.budget.run(['docker','compose','--env-file','/dev/null',
             '--project-name',PROJECT,'--project-directory',str(self.folder),
             '-f',str(self.folder/'compose.yaml'),
             '-f',str(self.folder/'runtime.compose.yaml'),
-            '-f',str(self.folder/'runtime.live.compose.yaml'),*profiles,*args],
+            '-f',str(self.folder/'runtime.live.compose.yaml'),*overlay,*profiles,*args],
             cwd=self.context.source,env=self.actions._environment(image),timeout=timeout)
 
     def _profile(self):
         base=self.actions._json(self.actions._compose(self.context,self.budget,
             ['config','--format','json']))
         live=self.actions._json(self._compose_live(['config','--format','json']))
-        validate_live_profile(base,live,self.context.source,self.context.image)
+        validate_live_profile(base,live,self.context.source,self.context.image,reader=history_reader_enabled(self.context))
 
     def _live_off(self):
         # Use the lifecycle role even if operator HTTP is unavailable. Its

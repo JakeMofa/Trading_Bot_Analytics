@@ -2,6 +2,40 @@
 
 ## Current PP checkpoint — November 18, 2026
 
+### Optional archived-history reader for PP
+
+The API uses its existing local application login for read-only history queries. For explicit
+archived-history requests it can mount four separate `history_reader_*` credential files.
+The PP API remains UID 10001. Reader files are individually owned by 10001 with mode 0400
+under the existing root-managed runtime-secret directory. The API receives no lifecycle,
+structured database, archive-uploader, admin or service key. Ordinary dashboard and prediction
+queries continue using the local data path.
+
+Activation requires a distinct Supabase Auth UID with authenticated role and administrator-set
+`tradebot_role=pp_storage_history_reader`, `tradebot_origin=pp-live-pp`. Review the private
+Storage policies in `supabase/review/pp_history_reader_policies.sql.in` before applying them
+for that UID and the exact existing uploader UID. Verify scoped authenticated GET, denial of
+listing, wrong origin, upload, replacement, move and deletion, and uploader independence
+through the real restricted HTTP identities before activation. Keep the sanitized proof.
+The generated SQL fixture deliberately grants broad authenticated rights and verifies the
+reader-specific restrictive policies still deny mutation, listing and off-origin read.
+
+The exact release's PP operator can then bind the proof in root-owned mode 0400
+`/etc/tradebot/pp-runtime/history_reader_authority.json` with precisely these fields:
+`source_sha`, `image_id`, `scope=pp_raw_get_only`, `reader_uid`, and `policy_proof_sha256`.
+The accompanying root-owned mode 0400 `history_reader_proof.json` contains exactly
+`project_ref`, `bucket=market-raw`, `origin_id=pp-live-pp`, `reader_uid`,
+`effective_role=authenticated`, `authenticated_get=pass` and the ordered denied operations
+`wrong_origin, list, upload, replace, move, delete`. The controller checks its exact hash
+and fields. Presence selects the optional API-only Compose overlay on entry to the live profile.
+A missing marker leaves cloud history disabled. A stale or unsafe marker blocks the transition.
+A subsequent release needs its own binding. Roll back through the existing leave-to-generated
+transition and remove the marker before another unqualified activation.
+
+The role/policy fixture and rendered profile are generated checks. Live reader provisioning,
+HTTP rights, actual archived history after removal, privileged mutation fencing and
+one-generation retirement retain separate gates. This profile does not enable removal.
+
 ### Archive history API integration candidate
 
 The API can explicitly configure a bounded historical reader with

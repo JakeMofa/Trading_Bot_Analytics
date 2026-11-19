@@ -18,6 +18,34 @@ retained data, then repeat the same query after each partition drop.
 | 4. Make history usable by deterministic calculations across rotation | The offline `88c59ac` prototype composes one reviewed market/generation before and after a generated partition drop. It returns saved snapshots and predictions and separate labels in the generated case. [#185](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/185) corrects the protected outcome wrapper to actual `Store.ingest`; its native ingestion-to-retirement regression and eight research tests pass. This source prototype does not recompute deterministic features. PP's raw API is generation-specific, its saved prediction endpoint reads local PostgreSQL, and its history-context endpoint still marks linked prior cases unsupported. | A bounded market/time query merges retained and retired generations by origin and generation UUID. Use the same availability cutoff, global ordering and event deduplication on both paths. Prove identical input IDs, exact values, links and recalculated deterministic features across an A/B boundary before and after retirement. Required missing generations or manifests fail explicitly. Report capture gaps. Qualify real PP and production scopes separately. |
 | 5. Rebuild dashboard research and evaluate deterministic signals first | Use the actual legacy contracts below as a behavior reference. Build chronological comparisons from verified 15-minute windows and versioned feature/prediction evidence. | Test the actual PP browser at rollover before and after retirement. It distinguishes saved forecast, current estimate, matched historical cases, official outcomes and explicit gaps. Training/evaluation splits by market and time. Optional AI explanation stays a separate contract with paid calls disabled. |
 
+### Checkpoint 3 continuation — November 19, 2026
+
+A fresh read-only PP21 inventory confirmed historic live A is verified and still
+attached with 28,411 rows, live B is collecting-disabled with its 9,784 rows,
+and the writer is OFF with no session or unused authority. All 42,133
+acknowledgements remain recorded with no pending entries. A's original 30-minute
+seal deadline expired. Neither re-enabling B nor reusing A's earlier permit
+starts a fresh A-first trial. Preserve both partitions. A fresh start with its
+own qualified scope, or separately approved historical maintenance followed by
+a fresh A admission, is required before a live dispatch.
+
+The two-leg candidate binds an exact initial A UUID and an explicit PP-only
+finite session. Keep the existing normal 4,560-second ceiling. For this trial
+only, a 6,600-second session admits within the final minute before an official
+15-minute boundary: 60 seconds before A, 1,800 seconds of A markets, up to 900
+seconds for B's first full market, 1,800 seconds of B markets, and 1,800
+seconds to finish B's archive and retirement. The remaining 240 seconds cover
+scheduling overhead. Actual source delays can still exhaust the lease. Each
+seal keeps its own original 30-minute deadline and exact verified-retirement
+authority. Hold if a target slot is occupied or safety evidence is incomplete.
+
+The same collector session must keep writing through A → B → fresh A. A late
+discovery or missing first quote waits for the next normal poll, and unavailable
+data remains visible as such. Check the exact writer and its write advancement,
+plus the dashboard and history, around both swaps and both retirement commits.
+Record the observed outcomes from the live trial separately from fixture and
+read-only verifier results.
+
 ### Legacy dashboard contracts to carry forward
 
 - Review the actual production legacy FastAPI source at `d56b4a7`, separately

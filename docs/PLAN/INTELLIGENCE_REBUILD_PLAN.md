@@ -527,10 +527,11 @@ deployment and actual retirement are separate. The proposed operator sequence:
    Storage RLS. Hold if an actor or path is uncovered or a policy change is due.
 3. With the PP migration role, use `deploy/preprod/issue_pp_retirement.sql` via
    `psql -X -qAt -v sealed=... -v collecting=... -v seal_hash=... -v row_count=...
-   -v release_sha=... -v policy_epoch_hash=... -v history_reader_proof=... -f ...`.
+   -v release_sha=... -v policy_epoch_hash=... -v history_reader_proof=...
+   -v freeze_started_at=... -v freeze_ends_at=... -f ...`.
    Send its sole result directly into a private, mode-0400, one-shot file.
    Bind that file at `/run/secrets/pp_retirement_ticket` only in the exact
-   release's supervised one-shot container. Its ticket expires after two minutes.
+   release's supervised one-shot container. Supply explicit ISO timestamps with timezone for the attested freeze, at most 295 seconds long. The ticket expires at the earliest of the attested end and the standard two-minute limit. The two-market profile uses the earliest of the attested end, issuance plus 295 seconds, and the original seal plus 30 minutes. Missing, expired or future freezes yield no ticket.
 4. With the existing PP verification flags and exact four target arguments,
    enable `TRADEBOT_PP_EXACT_RETIREMENT=true`, bind the verified release and
    evidence digests via `TRADEBOT_PP_VERIFIED_SOURCE`,

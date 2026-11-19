@@ -21,6 +21,7 @@ from uuid import UUID
 
 import httpx
 
+from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveUnavailable)
 
@@ -139,6 +140,7 @@ class _MachineSession:
             self._access = None
             self._refresh = None
 
+    @phase('raw_auth_token')
     def token(self, deadline: float) -> str:
         if not self._lock.acquire(timeout=max(0.0, deadline - time.monotonic())):
             raise ArchiveUnavailable('Supabase Auth deadline exceeded')

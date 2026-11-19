@@ -48,6 +48,45 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.limits = ArchiveLimits(max_rows=4)
         self.worker = ArchiveWorker(self.repository, self.transport, self.limits)
 
+    def test_watchdog_and_off_with_three_lifecycle_connections(self):
+        from postgres.operator_runtime import _owner_reader
+        import psycopg
+        from psycopg.pq import TransactionStatus
+        origin = 'pp-live-capacity-' + uuid.uuid4().hex
+        generation = self.repository.bootstrap(origin)
+        session = str(uuid.uuid4())
+        self.repository.enable_collector(origin, session_id=session,
+            expected_generation_id=str(generation['generation_id']), max_seconds=60)
+        reader = _owner_reader(os.environ['TRADEBOT_TEST_APP_DSN'])
+        opened = []
+        def tracked():
+            connection = self.factory()
+            opened.append(connection)
+            return connection
+        raw = LifecycleRepository(tracked)
+        structured = LifecycleRepository(tracked)
+        try:
+            with raw.raw_archive_lock(origin), structured.structured_sync_lock(origin):
+                with self.factory() as scheduler:
+                    for repo, outer in zip((raw, structured), opened):
+                        with repo.transaction() as local:
+                            self.assertIs(local, outer)
+                        self.assertEqual(outer.info.transaction_status, TransactionStatus.IDLE)
+                    self.assertEqual(len(opened), 2)
+                    with self.assertRaises(psycopg.OperationalError):
+                        self.factory()
+                    self.assertTrue(reader.owns_collector(origin, session))
+                    self.assertFalse(reader.owns_collector(origin, str(uuid.uuid4())))
+                    with reader.connection_factory() as conn:
+                        self.assertEqual(conn.execute('SHOW transaction_read_only').fetchone()['transaction_read_only'], 'on')
+                    scheduler.execute("UPDATE ops.writer_state SET collector_lease_expires_at=clock_timestamp() "
+                                      "WHERE origin_id=%s", (origin,))
+                    scheduler.commit()
+                    self.assertFalse(reader.owns_collector(origin, session))
+                self.assertFalse(self.repository.disable_collector(origin)['collector_enabled'])
+        finally:
+            self.repository.disable_collector(origin)
+
     def insert(self, index, *, wait=None, locked=None):
         with self.app_factory() as connection:
             with connection.transaction():

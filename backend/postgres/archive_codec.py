@@ -88,9 +88,11 @@ class CycleBudget:
         self.limits, self.clock = limits, clock
         self.deadline = clock() + limits.max_seconds
         self.requests = self.bytes = 0
+        self.exhausted_limit = None
 
     def check(self):
         if self.clock() >= self.deadline:
+            self.exhausted_limit = 'seconds'
             raise ArchiveLimit('cycle deadline reached')
 
     def __enter__(self):
@@ -103,6 +105,7 @@ class CycleBudget:
     def request(self, byte_allowance: int = 0) -> float:
         self.check()
         if self.requests >= self.limits.max_requests:
+            self.exhausted_limit = 'requests'
             raise ArchiveLimit('cycle request limit reached')
         self.account(byte_allowance)
         self.requests += 1
@@ -110,6 +113,7 @@ class CycleBudget:
 
     def account(self, size: int):
         if size < 0 or self.bytes + size > self.limits.max_cycle_bytes:
+            self.exhausted_limit = 'logical_bytes'
             raise ArchiveLimit('cycle byte limit reached')
         self.bytes += size
 

@@ -13,6 +13,7 @@ import uuid
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, encoded, sha256
 from postgres.history_v2_transport import HistoryV2PostgresTransport
@@ -704,6 +705,148 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 WHERE origin_id=%s AND outbox_id=2''', (origin,))
         with self.assertRaises(ArchiveIntegrityError):
             transport.put_structured(records, timeout_seconds=5)
+
+    def test_retirement_readback_reuses_session_with_fresh_snapshots_and_failure_discard(self):
+        """Matched full readback worker, generated in-memory raw + real local PG.
+
+        200ms setup delay models connection overhead, not a hosted speed claim.
+        Both modes read identical sealed A bytes and a newer B envelope. Nothing
+        writes/ACKs/consumes a permit during the timed readback.
+        """
+        import json
+        import psycopg
+        from psycopg.rows import dict_row
+        from postgres.archive_codec import CycleBudget, ArchiveUnavailable
+        from postgres.lifecycle import ArchiveWorker
+        from postgres.pp_retirement_verify import RetirementTransport, TwoMarketReadbackLimits
+        from postgres.pp_history_session import ReusablePPHistoryConnectionFactory
+        from postgres.retirement_accounting import accounted, bind_budget
+        from postgres_lifecycle_fixtures import MemoryRepository, generated_rows, ImmutableMemoryTransport
+
+        def local():
+            return psycopg.connect(DSN,row_factory=dict_row)
+        with local() as db:
+            identity=db.execute('SELECT current_database() db,current_user role').fetchone()
+        a,b=str(uuid.uuid4()),str(uuid.uuid4())
+        stamp=datetime(2026,11,18,tzinfo=timezone.utc)
+        records=[]
+        for index in range(1000):
+            payload=dict(origin_id=self.origin,source='coinbase',symbol='BTC-USD',
+                granularity=60,time=int(stamp.timestamp())+index*60,
+                low='99.0000',high='101.0000',open='100.0000',close='100.1000',
+                volume='1.00000000',first_seen=stamp.isoformat(),
+                payload={'generated':True,'padding':'c'*500},content_hash=f'{index+1:064x}')
+            if index == 999:
+                payload=dict(origin_id=self.origin,source='coinbase',symbol='BTC-USD',
+                    event_id='old-price',generation_id=a,source_time=stamp.isoformat(),
+                    source_epoch=str(int(stamp.timestamp())),received_at=stamp.isoformat(),
+                    available_at=stamp.isoformat(),price='100.1000',size=None,
+                    payload={'generated':True,'padding':'p'*500},content_hash=f'{index+1:064x}')
+            records.append(envelope(index+1,'core.current_prices' if index==999 else 'core.candles',payload,a))
+        newer={**records[-1], 'id':1001,'generation_id':b,
+            'content_hash':f'{1001:064x}', 'payload':{**records[-1]['payload'],
+            'event_id':'new-price','generation_id':b,
+            'source_time':(stamp+timedelta(seconds=1)).isoformat(),
+            'source_epoch':str(int(stamp.timestamp())+1),
+            'received_at':(stamp+timedelta(seconds=1)).isoformat(),
+            'available_at':(stamp+timedelta(seconds=1)).isoformat(),
+            'price':'100.2000','content_hash':f'{1001:064x}'}}
+        def transport(factory,generation=a):
+            return HistoryV2PostgresTransport(factory,origin_id=self.origin,generation_id=generation,
+                expected_database=identity['db'],expected_role=identity['role'],retain_revisions=True)
+        writer=lambda **kwargs: local()
+        transport(writer).put_structured(records[:500],timeout_seconds=20)
+        with local() as db:
+            db.execute('ANALYZE history_v2.candles')
+            db.execute('ANALYZE history_v2.structured_receipts')
+        transport(writer).put_structured(records[500:],timeout_seconds=20)
+        transport(writer,b).put_structured([newer],timeout_seconds=20)
+        with local() as db:
+            db.execute('ANALYZE history_v2.candles')
+            db.execute('ANALYZE history_v2.structured_receipts')
+            db.execute('ANALYZE history_v2.structured_revision_payloads')
+        rawrows=generated_rows(a,500,self.origin)
+        repository=MemoryRepository(rawrows)
+        repository.record['origin_id']=self.origin
+        raw=ImmutableMemoryTransport()
+        limits=TwoMarketReadbackLimits()
+        archive=ArchiveWorker(repository,raw,limits)
+        archive.archive_cycle(a)
+        repository.outbox_rows=records
+        results=[]
+        for reuse in (False,True, True,False, False,True):
+            connections=[]
+            transactions=[]
+            class Traced:
+                def __init__(self,inner): self.inner=inner
+                def __getattr__(self,name): return getattr(self.inner,name)
+                def __enter__(self): self.inner.__enter__(); return self
+                def __exit__(self,*args): return self.inner.__exit__(*args)
+                @contextmanager
+                def transaction(self):
+                    with self.inner.transaction():
+                        # Real unique snapshot/transaction evidence; no write.
+                        yield
+                        transactions.append(self.inner.execute('SELECT txid_current() n').fetchone()['n'])
+            def opened(*args,**kwargs):
+                time.sleep(.2)
+                db=Traced(local());connections.append(db);return db
+            remote=ReusablePPHistoryConnectionFactory() if reuse else opened
+            scoped=RetirementTransport(raw,transport(remote),origin_id=self.origin,generation_id=a)
+            worker=ArchiveWorker(repository,scoped,limits)
+            @accounted
+            def readback():
+                with CycleBudget(limits) as budget:
+                    bind_budget(budget)
+                    return worker.fresh_retirement_readback(None,repository.record,repository.catalog,budget)
+            try:
+                with (patch.object(remote,'_validated_dsn',side_effect=lambda timeout:(b'generated',time.monotonic()+timeout)) if reuse else nullcontext(),
+                      patch.object(remote,'_open',side_effect=opened) if reuse else nullcontext()):
+                    started=time.monotonic();result=readback();elapsed=time.monotonic()-started
+                    self.assertEqual(result['structured_count'],1000)
+                    self.assertEqual(len(connections),1 if reuse else 2)
+                    self.assertEqual(len(set(transactions)),2)
+                    self.assertEqual(result['requests'],3)  # raw object + 2 structured pages
+                    self.assertEqual(result['phase_accounting']['phases']['history_identity_checkpoint']['calls'],2)
+                    results.append(dict(reuse=reuse,seconds=elapsed,connections=len(connections),
+                        transactions=len(set(transactions)),requests=result['requests'],logical_bytes=result['bytes']))
+                    if reuse:
+                        # Physical disconnect is surfaced: no transparent retry,
+                        # no proof continuation. Explicit next run rereads raw/A.
+                        before=len(connections)
+                        with local() as db:
+                            db.execute('UPDATE history_v2.current_prices SET price=9 WHERE origin_id=%s',(self.origin,))
+                        with self.assertRaises(ArchiveIntegrityError) as caught:
+                            readback()
+                        self.assertEqual(caught.exception.retirement_accounting['failed_phase'],'history_projections')
+                        self.assertEqual(len(connections),before)
+                        self.assertIsNone(remote._connection)
+                        with local() as db:
+                            db.execute('UPDATE history_v2.current_prices SET price=100.2000 WHERE origin_id=%s',(self.origin,))
+                        readback()
+                        original=scoped.structured._projection_rows
+                        def disconnect(db, records):
+                            db.inner.close()
+                            return original(db,records)
+                        before=len(connections)
+                        with patch.object(scoped.structured,'_projection_rows',side_effect=disconnect):
+                            with self.assertRaises(ArchiveUnavailable): readback()
+                        self.assertEqual(len(connections),before)
+                        self.assertIsNone(remote._connection)
+                        with patch.object(scoped.structured,'_identity',side_effect=ArchiveIntegrityError('injected role')):
+                            with self.assertRaises(ArchiveIntegrityError): readback()
+                        self.assertIsNone(remote._connection)
+                        before=len(raw.calls)
+                        recovered=readback()
+                        self.assertGreater(len(raw.calls),before)
+                        self.assertEqual(recovered['structured_count'],1000)
+                        self.assertEqual(repository.record['state'],'verified')
+                        self.assertEqual(repository.retire_calls,0)
+            finally:
+                if reuse: remote.close()
+        self.assertEqual(results[0]['requests'],results[1]['requests'])
+        self.assertEqual(len({r['logical_bytes'] for r in results}),1)
+        print('generated_retirement_worker_session_comparison '+json.dumps(results),flush=True)
 
     def test_b_price_update_preserves_a_revision_and_failed_append_rolls_back(self):
         import psycopg

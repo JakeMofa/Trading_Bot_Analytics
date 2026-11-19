@@ -6,13 +6,15 @@ explicit isolated generated qualification, backed by a txid-bound SQL gate.
 """
 from __future__ import annotations
 
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+from threading import local
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 import json
 import uuid
 
 from . import pp_space
+from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
                             pack_chunk, read_verified, row_cursor, sha256, wire)
@@ -87,15 +89,17 @@ class LifecycleRepository:
         self.connection_factory = connection_factory
         self.environment = environment
         self.pending_outbox_limit = pending_outbox_limit
+        self._worker_session = local()
 
     @contextmanager
     def transaction(self):
         budget = ACTIVE_BUDGET.get()
         # connect() is bounded to five seconds by the common connection contract.
         # Do not begin another connection when that reserve no longer fits.
-        if budget and budget.deadline - budget.clock() <= 5:
+        locked = getattr(self._worker_session, 'connection', None)
+        if locked is None and budget and budget.deadline - budget.clock() <= 5:
             raise ArchiveLimit('insufficient cycle time for another database connection')
-        with self.connection_factory() as connection:
+        with (self.connection_factory() if locked is None else nullcontext(locked)) as connection:
             with connection.transaction():
                 if budget:
                     budget.check()
@@ -584,25 +588,37 @@ class LifecycleRepository:
 
     @contextmanager
     def _origin_lock(self, namespace, origin_id):
+        locked = getattr(self._worker_session, 'connection', None)
         budget = ACTIVE_BUDGET.get()
         if budget:
             budget.check()
-            if budget.deadline - budget.clock() <= 5:
+            if locked is None and budget.deadline - budget.clock() <= 5:
                 raise ArchiveLimit('insufficient cycle time for sync lock connection')
-        with self.connection_factory() as connection:
-            connection.autocommit = True
-            connection.execute("SET statement_timeout='1000ms'")
+        with (self.connection_factory() if locked is None else nullcontext(locked)) as connection:
+            if locked is None:
+                connection.autocommit = True
+                connection.execute("SET statement_timeout='1000ms'")
             key = namespace + origin_id
+            held_keys = getattr(self._worker_session, 'held_keys', frozenset())
+            if key in held_keys:
+                raise LifecycleHold('another structured sync worker is active')
             acquired = connection.execute('''SELECT
                 pg_try_advisory_lock(hashtextextended(%s,0)) AS acquired''',
                 (key,)).fetchone()['acquired']
             if not acquired:
                 raise LifecycleHold('another structured sync worker is active')
+            # One synchronous worker owns this backend until unlock. Autocommit
+            # keeps the lock session idle between individual local transactions.
+            self._worker_session.connection = connection
+            self._worker_session.held_keys = held_keys | {key}
             try:
                 if budget:
                     budget.check()
                 yield
             finally:
+                self._worker_session.held_keys = held_keys
+                if locked is None:
+                    del self._worker_session.connection
                 # Connection close releases the lock even if this unlock fails.
                 connection.execute('SELECT pg_advisory_unlock(hashtextextended(%s,0))',
                                    (key,))
@@ -804,33 +820,38 @@ class ArchiveWorker:
         if sum(item['byte_count'] for item in manifests) > self.limits.max_cycle_bytes:
             raise ArchiveLimit('final readback exceeds byte budget')
         for manifest in manifests:
-            decoded = read_verified(self.transport, manifest, budget)
-            self.repository.verify_local_chunk(connection, generation_id, manifest, decoded, self.limits)
+            with phase('raw_read_decode'):
+                decoded = read_verified(self.transport, manifest, budget)
+            with phase('raw_local_compare'):
+                self.repository.verify_local_chunk(connection, generation_id, manifest, decoded, self.limits)
             budget.check()
         after_id = 0
         structured_count = 0
         while True:
             budget.check()
-            rows = self.repository._pending(connection, generation_id,
-                self.limits.max_rows, include_acknowledged=True,
-                max_bytes=self.limits.max_decoded_bytes, after_id=after_id)
-            if not rows:
-                break
-            records = self.structured_records(rows)
-            ids = [row['id'] for row in records]
-            if (ids[0] <= after_id or ids != sorted(set(ids)) or
-                    any(row['origin_id'] != generation['origin_id'] or
-                        str(row['generation_id']) != str(generation_id) for row in records)):
-                raise ArchiveIntegrityError('final structured page identity mismatch')
-            size = len(encoded(records))
-            if size > self.limits.max_decoded_bytes:
-                raise ArchiveLimit('final structured readback exceeds byte budget')
-            retrieved = self.transport.read_structured_authenticated(
-                records, max_bytes=self.limits.max_decoded_bytes,
-                timeout_seconds=budget.request(size))
+            with phase('structured_local_page'):
+                rows = self.repository._pending(connection, generation_id,
+                    self.limits.max_rows, include_acknowledged=True,
+                    max_bytes=self.limits.max_decoded_bytes, after_id=after_id)
+                if not rows:
+                    break
+                records = self.structured_records(rows)
+                ids = [row['id'] for row in records]
+                if (ids[0] <= after_id or ids != sorted(set(ids)) or
+                        any(row['origin_id'] != generation['origin_id'] or
+                            str(row['generation_id']) != str(generation_id) for row in records)):
+                    raise ArchiveIntegrityError('final structured page identity mismatch')
+                size = len(encoded(records))
+                if size > self.limits.max_decoded_bytes:
+                    raise ArchiveLimit('final structured readback exceeds byte budget')
+            with phase('structured_readback'):
+                retrieved = self.transport.read_structured_authenticated(
+                    records, max_bytes=self.limits.max_decoded_bytes,
+                    timeout_seconds=budget.request(size))
             budget.check()
-            if encoded(retrieved) != encoded(records):
-                raise ArchiveIntegrityError('final structured readback mismatch')
+            with phase('structured_compare'):
+                if encoded(retrieved) != encoded(records):
+                    raise ArchiveIntegrityError('final structured readback mismatch')
             structured_count += len(rows)
             after_id = ids[-1]
         return {'manifest_digest':digest,'raw_count':generation['seal_count'],

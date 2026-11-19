@@ -380,6 +380,38 @@ class ActionTests(unittest.TestCase):
                 self.actions.migrate(self.context,self.budget)
         self.assertFalse(self.actions.migrated)
 
+    def test_generated_storage_inventory_uses_reader_before_and_after_upgrade(self):
+        for installed in (False,True):
+            with self.subTest(installed=installed):
+                def application(_,query):
+                    self.assertNotIn('generated_outbox_storage',query)
+                    self.assertTrue(query.startswith('SELECT to_regclass('))
+                    return 'f'
+                def reader(_,query):
+                    self.assertIn('archive.generated_outbox_storage',query)
+                    if query.startswith('SELECT to_regclass('):return 't' if installed else 'f'
+                    self.assertIn("encode(sha256(envelope),'hex')",query)
+                    self.assertIn('stored_at',query)
+                    self.assertIn('GROUP BY page',query)
+                    return json.dumps({'count':2,'digest':'a'*64})
+                with patch.object(self.actions,'_sql',side_effect=application), \
+                     patch.object(self.actions,'_reader_sql',side_effect=reader) as read:
+                    inventory=self.actions._inventory(self.budget)
+                self.assertEqual(inventory['archive.generated_outbox_storage'],
+                                 {'count':2,'digest':'a'*64} if installed else None)
+                self.assertEqual(read.call_count,2 if installed else 1)
+
+    def test_generated_storage_inventory_authenticates_reader_read_only(self):
+        self.actions.pg_id=CID
+        self.budget.responses=[b't\n']
+        self.assertEqual(self.actions._reader_sql(self.budget,'SELECT true'),'t')
+        args,kwargs=self.budget.calls[0]
+        self.assertEqual(args[:4],['docker','exec','-i',CID])
+        self.assertIn('cat /run/secrets/reader',args[-1])
+        self.assertIn('-U tradebot_reader',args[-1])
+        self.assertEqual(kwargs['input'],b"BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; SELECT true; COMMIT;")
+        self.assertEqual(kwargs['timeout'],20)
+
     def test_outbox_inventory_checks_12779_rows_across_two_origins_after_oneoff(self):
         calls=[]
         def sql(_,query):
@@ -393,7 +425,8 @@ class ActionTests(unittest.TestCase):
             if "WHERE origin_id='pp-live-pp'" in query:
                 return json.dumps({'count':5268,'pending':5268,'digest':'b'*64})
             raise AssertionError('unexpected inventory query')
-        with patch.object(self.actions,'_sql',side_effect=sql):
+        with patch.object(self.actions,'_sql',side_effect=sql), \
+             patch.object(self.actions,'_reader_sql',side_effect=sql):
             original=self.actions._inventory(self.budget)
             self.actions.before_migration=original
             self.actions.fence_started=True

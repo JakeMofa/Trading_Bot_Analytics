@@ -3801,3 +3801,16 @@ qualification passed; no host/cloud/apply action occurred. Fenced-runtime
 forward bootstrap stays a separate reviewed operator task. [Storage scope,
 constraints, faults and retained-data proof](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).
 
+
+### Generated smoke controller inventory correction, November 19 UTC
+
+PR #177 full Linux CI exposed an additional controller inventory fault after
+migration: the application role correctly lacks SELECT on generated storage.
+The inventory now uses the existing reader credential for that table in the
+same bounded READ ONLY query shape; migration preservation/recovery comparisons
+and runtime grants stay unchanged. Targeted controls cover clean/upgrade table
+presence and authenticated reader selection. A local Ubuntu nested-Docker
+diagnostic reproduced the exact permission failure, with its disk-gate
+substitution explicitly excluded from qualification. Exact-source hosted CI
+and the separate PP fenced-runtime task remain required.
+[Diagnosis, scope and limitations](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md).

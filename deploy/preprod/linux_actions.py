@@ -398,6 +398,15 @@ class LinuxActions:
         return budget.run(['docker','exec','-i',self.pg_id,'sh','-ec',script],input=("BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; "+query+"; COMMIT;").encode(),
                           env=self._environment('unused'),timeout=20).decode().strip()
 
+    def _reader_sql(self,budget,query):
+        # Generated storage intentionally denies the application role SELECT.
+        # Reuse the existing authenticated reader secret, with the same bounded
+        # READ ONLY statement used for the rest of the preservation inventory.
+        require(self.pg_id is not None,'postgres_identity_not_verified')
+        script='export PGPASSWORD="$(cat /run/secrets/reader)"; exec psql -X -qAt --set ON_ERROR_STOP=1 -h 127.0.0.1 -U tradebot_reader -d tradebot_pp'
+        return budget.run(['docker','exec','-i',self.pg_id,'sh','-ec',script],input=("BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; "+query+"; COMMIT;").encode(),
+                          env=self._environment('unused'),timeout=20).decode().strip()
+
     @staticmethod
     def _host():
         HostBinding.from_marker().validate()
@@ -558,7 +567,8 @@ class LinuxActions:
                     'ops.outbox':'id,origin_id,entity_type,entity_id,content_hash',
                     'archive.generated_outbox_storage':"origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at"}
         for table,identity in identities.items():
-            exists=self._sql(budget,"SELECT to_regclass('"+table+"') IS NOT NULL")
+            read=self._reader_sql if table=='archive.generated_outbox_storage' else self._sql
+            exists=read(budget,"SELECT to_regclass('"+table+"') IS NOT NULL")
             if exists=='f':result[table]=None;continue
             require(exists=='t','invalid_inventory_evidence')
             if table=='ops.outbox':
@@ -566,7 +576,7 @@ class LinuxActions:
                 continue
             # Deterministic pages bound each inner aggregate. Only row hashes
             # and one digest per page are sorted or accumulated.
-            row=self._json(self._sql(budget,"""SELECT json_build_object('count',coalesce(sum(n),0),
+            row=self._json(read(budget,"""SELECT json_build_object('count',coalesce(sum(n),0),
                 'digest',encode(sha256(convert_to(coalesce(string_agg(page_hash,''
                     ORDER BY page),''),'UTF8')),'hex'))
                 FROM (SELECT page, count(*) AS n,

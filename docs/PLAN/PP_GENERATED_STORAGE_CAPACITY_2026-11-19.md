@@ -116,3 +116,27 @@ unchanged shared catalog after tests and final schema validation. The dedicated
 full-queue case takes about 10s on local hardware; that is not a PP performance
 promise. No generated payload, database, environment credential or secret file
 is committed.
+
+## Real Linux controller inventory correction
+
+PR #177 source CI runs 44551764623 and 44551780122 stopped after the fresh
+controller migration with `child_failed`. A disposable Ubuntu 24.04 nested Docker
+diagnostic reproduced the exact SQL error: the application role cannot SELECT
+`archive.generated_outbox_storage`. Migration 0004 deliberately withholds that
+grant; the controller's post-migration inventory and recovery inventory used
+the application connection for every table. Earlier runtime migration/API checks
+passed because they do not run this controller inventory.
+
+The controller now reads only that storage table through the existing mounted
+reader credential and an authenticated READ ONLY transaction. All other table
+connections, 1024-row digest pages, actual envelope hashing, before/after
+comparisons and recovery requirements remain the same. Writers are fenced before
+the preservation inventory. No application grant, migration checksum, pending
+cap, acknowledgement or storage admission rule changes. Targeted controls cover
+an absent pre-upgrade table, an existing table with committed rows, exact digest
+fields and the reader command/transaction bounds.
+
+The local nested Docker reproduction is diagnostic evidence only: Docker Desktop
+had 6.9 GiB free, so that run substituted the host disk-headroom gate. The real
+Linux daemon, restricted roles, migration, table query and credential paths were
+exercised. Unmodified hosted CI remains the qualification gate.

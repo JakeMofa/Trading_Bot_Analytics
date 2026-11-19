@@ -66,6 +66,23 @@ class ProvisionTests(unittest.TestCase):
             self.invoke(self.success)
         self.assertEqual(self.calls, 1)
 
+    def test_exact_trial_identity_does_not_accept_other_pp_origins(self):
+        def create(payload, key):
+            self.calls += 1
+            body = json.loads(payload)
+            self.assertEqual(body["app_metadata"], {
+                "tradebot_role": "pp_storage_history_reader",
+                "tradebot_origin": module.TRIAL_ORIGIN,
+            })
+            return 201, json.dumps(dict(id=UID, email=EMAIL,
+                                        app_metadata=body["app_metadata"])).encode()
+        for origin in ('pp-live-pp-trial-other', 'pp-live-%', 'production'):
+            with self.assertRaises(module.ProvisionError):
+                self.invoke(create, purpose="history-reader", origin=origin)
+        self.assertEqual(self.calls, 0)
+        self.assertEqual(self.invoke(create, purpose="history-reader", origin=module.TRIAL_ORIGIN), UID)
+        self.assertEqual(self.calls, 1)
+
     def test_private_history_reader_stages_distinct_files_and_verifies_role(self):
         def create(payload, key):
             body = json.loads(payload)

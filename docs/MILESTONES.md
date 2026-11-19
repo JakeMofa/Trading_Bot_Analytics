@@ -8,6 +8,27 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] **PP21 old A/B Supabase drain.** Old A remained verified with 57
+  private Storage objects covering 28,411 raw rows. Sealed old B with the
+  collector durably OFF and archived its 9,784 raw rows as 20 authenticated
+  objects. Independent B readback matched all 20 objects and 10,971 structured
+  rows in 82.914 seconds. Supabase receipt and revision counts match across both
+  generations (42,133 each). Before/after A/B raw and outbox fingerprints match
+  and pending rows are zero. Both partitions remain attached. The first
+  profile-entry attempt held and the installed leave procedure restored the
+  healthy generated profile. The drain used disposable, digest-bound workers
+  on the pinned PP21 image and left the services in generated mode.
+  [Evidence](PLAN/evidence/pp21-historical-drain-2026-11-19.json) ·
+  [Seal source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44610742055)
+
+- [ ] **Fresh PP trial origin.** Source scope is
+  `pp-live-pp-trial-20261119-01` in the existing PP database. Isolated native
+  tests pass both directions of the shared collector fence, preserve the old
+  origin, and verify exact trial retirement with its separate 30-minute
+  windows. The old A/B drain grants no deletion or fresh-trial authority.
+  Continue controller, cloud identity, exact release and live qualification.
+  [Trial scope and cloud prerequisites](PLAN/PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md)
+
 - [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**
   Exact qualified canonical-byte transport verified all 57 raw objects / 28,411
   rows and 63 structured pages / 31,162 rows. Core elapsed 214.390169 s under

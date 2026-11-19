@@ -24,6 +24,7 @@ IDENTITIES = {
     "history-reader": ("pp_storage_history_reader", "history_reader"),
 }
 ORIGIN = "pp-live-pp"
+TRIAL_ORIGIN = "pp-live-pp-trial-20261119-01"
 
 
 class ProvisionError(RuntimeError):
@@ -130,13 +131,15 @@ def _default_request(payload, key):
             return error.code, b""
 
 
-def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, request_fn=None, purpose="archive"):
+def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, request_fn=None, purpose="archive", origin=ORIGIN):
     if not execute:
         raise ProvisionError("explicit --execute required")
     if project_ref != PROJECT_REF:
         raise ProvisionError("wrong Supabase project")
     if purpose not in IDENTITIES:
         raise ProvisionError("unsupported PP Storage identity purpose")
+    if origin not in (ORIGIN, TRIAL_ORIGIN):
+        raise ProvisionError("unsupported exact PP Storage origin")
     role, prefix = IDENTITIES[purpose]
     email = _validate_email(email)
     output_dir = Path(output_dir)
@@ -145,7 +148,7 @@ def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, 
     _private_parent(output_dir.parent)
     key = _read_admin_key(admin_key_file)
     password = secrets.token_hex(32)
-    metadata = {"tradebot_role": role, "tradebot_origin": ORIGIN}
+    metadata = {"tradebot_role": role, "tradebot_origin": origin}
     payload = json.dumps({"email": email, "password": password,
                           "email_confirm": True, "app_metadata": metadata},
                          separators=(",", ":")).encode()
@@ -205,6 +208,7 @@ def main():
     parser.add_argument("--project-ref", required=True)
     parser.add_argument("--email", required=True)
     parser.add_argument("--purpose", choices=sorted(IDENTITIES), default="archive")
+    parser.add_argument("--origin", choices=(ORIGIN, TRIAL_ORIGIN), default=ORIGIN)
     parser.add_argument("--admin-key-file", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
@@ -212,7 +216,7 @@ def main():
     try:
         uid = provision(project_ref=args.project_ref, email=args.email,
                         admin_key_file=args.admin_key_file, output_dir=args.output_dir,
-                        execute=args.execute, purpose=args.purpose)
+                        execute=args.execute, purpose=args.purpose, origin=args.origin)
     except (ProvisionError, OSError, UnicodeError):
         raise SystemExit("PP Auth identity provisioning STOP; inspect private stage and reconcile") from None
     print(uid)

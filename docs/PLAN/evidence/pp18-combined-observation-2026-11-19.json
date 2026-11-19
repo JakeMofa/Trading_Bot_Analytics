@@ -1,0 +1,1287 @@
+{
+  "cleanup": {
+    "final_database": {
+      "writer": {
+        "at_utc": "2026-11-19T08:56:09.912353+00:00",
+        "db": "tradebot_pp",
+        "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "collector_enabled": false,
+        "session": false,
+        "collector_lease_expires_at": null,
+        "db_bytes": 228546227,
+        "wal_bytes": 703617490,
+        "wal_stats_since": "2026-11-13T00:57:11.724511+00:00"
+      },
+      "generations": [
+        {
+          "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+          "slot": "B",
+          "state": "collecting",
+          "sealed_at": null,
+          "verified_at": null,
+          "retired_at": null,
+          "seal_count": null,
+          "seal_hash": null,
+          "hold_reason": null,
+          "raw_events": 9784,
+          "relation_bytes": 18391040,
+          "verified_manifests": 0,
+          "verified_compressed_bytes": 0,
+          "pending": 0,
+          "acknowledged": 10971
+        },
+        {
+          "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+          "slot": "A",
+          "state": "verified",
+          "sealed_at": "2026-11-19T08:30:04.617214+00:00",
+          "verified_at": "2026-11-19T08:38:23.243026+00:00",
+          "retired_at": null,
+          "seal_count": 28411,
+          "seal_hash": "bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250",
+          "hold_reason": null,
+          "raw_events": 28411,
+          "relation_bytes": 52953088,
+          "verified_manifests": 57,
+          "verified_compressed_bytes": 3623081,
+          "pending": 0,
+          "acknowledged": 31162
+        }
+      ]
+    },
+    "worker_off": [
+      {
+        "service": "sealed-archive",
+        "result": {
+          "status": "off"
+        },
+        "utc": "2026-11-19T08:56:08.726312+00:00"
+      },
+      {
+        "service": "structured-sync",
+        "result": {
+          "status": "off"
+        },
+        "utc": "2026-11-19T08:56:09.689807+00:00"
+      }
+    ],
+    "durable_off": {
+      "origin_id": "pp-live-pp",
+      "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "collector_enabled": false,
+      "session_cleared": true,
+      "expiry_cleared": true,
+      "updated_at": "2026-11-19T08:50:36.853109+00:00"
+    },
+    "B_collection_seconds_after_A_seal": 1232.235895,
+    "post_off_backlog_first": {
+      "writer": {
+        "at_utc": "2026-11-19T08:52:44.47336+00:00",
+        "db": "tradebot_pp",
+        "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "collector_enabled": false,
+        "session": false,
+        "collector_lease_expires_at": null,
+        "db_bytes": 225785523,
+        "wal_bytes": 687016480,
+        "wal_stats_since": "2026-11-13T00:57:11.724511+00:00"
+      },
+      "generations": [
+        {
+          "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+          "slot": "B",
+          "state": "collecting",
+          "sealed_at": null,
+          "verified_at": null,
+          "retired_at": null,
+          "seal_count": null,
+          "seal_hash": null,
+          "hold_reason": null,
+          "raw_events": 9784,
+          "relation_bytes": 18391040,
+          "verified_manifests": 0,
+          "verified_compressed_bytes": 0,
+          "pending": 3173,
+          "acknowledged": 7798
+        },
+        {
+          "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+          "slot": "A",
+          "state": "verified",
+          "sealed_at": "2026-11-19T08:30:04.617214+00:00",
+          "verified_at": "2026-11-19T08:38:23.243026+00:00",
+          "retired_at": null,
+          "seal_count": 28411,
+          "seal_hash": "bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250",
+          "hold_reason": null,
+          "raw_events": 28411,
+          "relation_bytes": 52953088,
+          "verified_manifests": 57,
+          "verified_compressed_bytes": 3623081,
+          "pending": 0,
+          "acknowledged": 31162
+        }
+      ]
+    },
+    "post_off_backlog_last": {
+      "writer": {
+        "at_utc": "2026-11-19T08:56:08.264388+00:00",
+        "db": "tradebot_pp",
+        "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "collector_enabled": false,
+        "session": false,
+        "collector_lease_expires_at": null,
+        "db_bytes": 228546227,
+        "wal_bytes": 703617490,
+        "wal_stats_since": "2026-11-13T00:57:11.724511+00:00"
+      },
+      "generations": [
+        {
+          "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+          "slot": "B",
+          "state": "collecting",
+          "sealed_at": null,
+          "verified_at": null,
+          "retired_at": null,
+          "seal_count": null,
+          "seal_hash": null,
+          "hold_reason": null,
+          "raw_events": 9784,
+          "relation_bytes": 18391040,
+          "verified_manifests": 0,
+          "verified_compressed_bytes": 0,
+          "pending": 0,
+          "acknowledged": 10971
+        },
+        {
+          "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+          "slot": "A",
+          "state": "verified",
+          "sealed_at": "2026-11-19T08:30:04.617214+00:00",
+          "verified_at": "2026-11-19T08:38:23.243026+00:00",
+          "retired_at": null,
+          "seal_count": 28411,
+          "seal_hash": "bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250",
+          "hold_reason": null,
+          "raw_events": 28411,
+          "relation_bytes": 52953088,
+          "verified_manifests": 57,
+          "verified_compressed_bytes": 3623081,
+          "pending": 0,
+          "acknowledged": 31162
+        }
+      ]
+    },
+    "host_operations_owned_by": "release operator; evidence assembler made no host calls"
+  },
+  "operator_rollup": {
+    "api_sampling_errors": 0,
+    "cd": 44481336096,
+    "dashboard_sse_check_errors": 0,
+    "first_observed_live_at": "2026-11-19T07:59:08.389787+00:00",
+    "generation_snapshots": 119,
+    "history_after": null,
+    "history_before": {
+      "hashes": [
+        "ca70917b9aae8657618e4b32e6663146096d587b9e8c68aaeb0f4ffffc2445be",
+        "e8ae357131b71111688e2784c5431e5ecd0ba34502628ae23187e6467c30414c",
+        "dcfa88cc30dae6194a1aa0b9d71482692dea9d135a5e4f14eb6db9256819a161"
+      ],
+      "latency_ms": 239.3,
+      "row_count": 3,
+      "sha256": "f0a2925992112bda49f32fc4d484b6f97c0a11998549826494bebb087672d864",
+      "tier": "local_postgres"
+    },
+    "last_sample": "2026-11-19T08:50:33.314709+00:00",
+    "live_api_sample_count": 600,
+    "maximum_contract_ms": {
+      "chart_latency_ms": 471.151,
+      "dashboard_latency_ms": 248.109,
+      "history_latency_ms": 278.307,
+      "sse_latency_ms": 207.976
+    },
+    "maximum_sampled": {
+      "coinbase_age_seconds": 49.357,
+      "feature_age_seconds": 5.709,
+      "health_latency_ms": 195.908,
+      "polymarket_age_seconds": null,
+      "state_latency_ms": 215.055
+    },
+    "on": {
+      "collector_enabled": true,
+      "completed_at_utc": "2026-11-19T07:59:04.640892+00:00",
+      "controls_sha": "7338c0570068132ac44d7038224b6b6bffcfb759",
+      "gate": "PASS",
+      "host_gate": "PP_LIVE_ON",
+      "max_seconds": 4560,
+      "operation": "on",
+      "origin_id": "pp-live-pp",
+      "run_id": 44483754935,
+      "scope": "pp_live_host_result"
+    },
+    "publication": 44481208003,
+    "ready_off": 44481666300,
+    "release": "v0.2.0-pp.18",
+    "resource_peak": {
+      "max_database_bytes": 228546227,
+      "wal_bytes_written_since_observation": null
+    },
+    "retirement": null,
+    "source_ci": 44480437811,
+    "source_market_boundaries": [
+      {
+        "at": "2026-11-19T07:59:08.389787+00:00",
+        "end": "2026-11-19T08:00:00Z",
+        "market": "2685261"
+      },
+      {
+        "at": "2026-11-19T08:00:23.433555+00:00",
+        "end": "2026-11-19T08:15:00Z",
+        "market": "2685233"
+      },
+      {
+        "at": "2026-11-19T08:15:19.347793+00:00",
+        "end": "2026-11-19T08:30:00Z",
+        "market": "2684736"
+      },
+      {
+        "at": "2026-11-19T08:30:20.612927+00:00",
+        "end": "2026-11-19T08:45:00Z",
+        "market": "2684759"
+      },
+      {
+        "at": "2026-11-19T08:45:17.907202+00:00",
+        "end": "2026-11-19T09:00:00Z",
+        "market": "2684433"
+      }
+    ],
+    "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+    "states": {
+      "23f4ccb8-c243-4eae-bbd2-8c75aae9816a": {
+        "acknowledged": 10971,
+        "compressed_bytes": 0,
+        "first_seen": "2026-11-19 08:30:17.153041+00:00",
+        "last_seen": "2026-11-19T08:56:09.912353+00:00",
+        "manifests": 0,
+        "max_raw_rows": 9784,
+        "max_relation_bytes": 18391040,
+        "pending": 0,
+        "raw": 9784,
+        "retired": null,
+        "seal": null,
+        "seal_count": null,
+        "slot": "B",
+        "transitions": {
+          "collecting": "2026-11-19 08:30:17.153041+00:00"
+        },
+        "verified": null
+      },
+      "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6": {
+        "acknowledged": 31162,
+        "compressed_bytes": 3623081,
+        "first_seen": "2026-11-19 07:58:42.538713+00:00",
+        "last_seen": "2026-11-19T08:56:09.912353+00:00",
+        "manifests": 57,
+        "max_raw_rows": 28411,
+        "max_relation_bytes": 52953088,
+        "pending": 0,
+        "raw": 28411,
+        "retired": null,
+        "seal": "2026-11-19T08:30:04.617214+00:00",
+        "seal_count": 28411,
+        "slot": "A",
+        "transitions": {
+          "collecting": "2026-11-19 07:58:42.538713+00:00",
+          "sealed": "2026-11-19 08:30:17.153041+00:00",
+          "verified": "2026-11-19T08:38:37.851174+00:00"
+        },
+        "verified": "2026-11-19T08:38:23.243026+00:00"
+      }
+    },
+    "structured_pending_highwater": 6423
+  },
+  "carried_retained_scope": {
+    "local": {
+      "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "origin_id": "pp-live-pp",
+      "rows": 11989,
+      "first": 7314,
+      "through_id": 20328,
+      "sha256": "406f45fb1b89285becc59ce8a28252e2c045a475b40a6f2e280fe587c8e7f869",
+      "canonical_bytes": 18879672,
+      "seconds": 9.895904222968966
+    },
+    "hosted": {
+      "scope": "complete scoped server-side envelope/receipt/body/identity hash audit; not a new client payload download",
+      "project_id": "xttdqeimdujweijxcuro",
+      "origin_id": "pp-live-pp",
+      "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "local_snapshot_match": {
+        "rows": 11989,
+        "first_id": 7314,
+        "last_id": 20328,
+        "canonical_bytes": 18879672,
+        "canonical_stream_sha256": "406f45fb1b89285becc59ce8a28252e2c045a475b40a6f2e280fe587c8e7f869",
+        "provider": "sealed lifecycle authenticated read-only snapshot"
+      },
+      "receipts_examined": 11989,
+      "envelopes_examined": 11989,
+      "first_id": 7314,
+      "last_id": 20328,
+      "canonical_bytes": 18879672,
+      "missing_or_changed_bodies": 0,
+      "identity_mismatches": 0,
+      "canonical_stream_sha256": "406f45fb1b89285becc59ce8a28252e2c045a475b40a6f2e280fe587c8e7f869",
+      "receipt_scope_total": 11989,
+      "envelope_scope_total": 11989,
+      "cloud_writes": 0,
+      "local_access": "none"
+    },
+    "client": {
+      "status": "independent_complete_client_readback_verified",
+      "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "verified_rows": 11989,
+      "canonical_bytes": 18879672,
+      "canonical_stream_sha256": "406f45fb1b89285becc59ce8a28252e2c045a475b40a6f2e280fe587c8e7f869",
+      "cloud_operations": 24,
+      "elapsed_seconds": 46.09948466194328,
+      "writes": 0,
+      "local_ack_changes": 0,
+      "collector_enabled": false,
+      "source_sha": "1c753c6ba731d92115c2fb2d81d236e0675eb409",
+      "image_id": "sha256:6f76adb3e7150cb80afc0dddcbaa592723de3e0970aac9e5e5b5e2ed84480381"
+    },
+    "qualification": "earlier pinned1c753c6 PP retained subset11989; not full final A31162 or runtime74a850 client proof"
+  },
+  "host_metrics": {
+    "filesystem_preflight": {
+      "available_filesystem_bytes": 56671576064,
+      "minimum_reserve_bytes": 10737418240,
+      "at_utc": "2026-11-19T07:39:26Z"
+    },
+    "cpu_and_rss_measured": false,
+    "whole_run_headroom_proven": false
+  },
+  "session_outcome": {
+    "forced_off_gate": {
+      "collector_enabled": false,
+      "gate": "PP_LIVE_OFF",
+      "origin_id": "pp-live-pp",
+      "utc": "2026-11-19T08:52:26.279678+00:00"
+    },
+    "observer_stop": {
+      "at_utc": "2026-11-19T08:53:10.651252+00:00",
+      "reason": "collector durably OFF, verified; independent post-OFF backlog reader continues"
+    },
+    "required_B_continuity": "FAIL",
+    "required_minutes": 30,
+    "durable_off_utc": "2026-11-19T08:50:36.853109+00:00",
+    "operator_reported_collection_seconds_approx": 1232,
+    "diagnostic": {
+      "utc": "2026-11-19T08:52:15.542668+00:00",
+      "result": {
+        "origin_id": "pp-live-pp",
+        "collector_enabled": false,
+        "process_running": false,
+        "session_failure_code": "ownership.lease_lost"
+      }
+    },
+    "last_database_writer": {
+      "at_utc": "2026-11-19T08:56:09.912353+00:00",
+      "db": "tradebot_pp",
+      "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "collector_enabled": false,
+      "session": false,
+      "collector_lease_expires_at": null,
+      "db_bytes": 228546227,
+      "wal_bytes": 703617490,
+      "wal_stats_since": "2026-11-13T00:57:11.724511+00:00"
+    },
+    "database_sampling_failures": [
+      {
+        "at": "2026-11-19T08:51:24.096611+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:28.543073+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:33.553159+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:38.550203+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:43.562482+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:48.566837+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:53.622682+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:51:58.583886+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:03.595876+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:08.603451+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:13.617215+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:18.622198+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:24.124397+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:28.628688+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:33.641815+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:38.649654+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:43.658954+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:48.737870+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:53.677280+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:52:58.692488+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:53:03.687937+00:00",
+        "type": "AssertionError"
+      },
+      {
+        "at": "2026-11-19T08:53:08.723118+00:00",
+        "type": "AssertionError"
+      }
+    ]
+  },
+  "scope": "sanitized metadata from local PP18 captures only; not continuous observation or retirement authority",
+  "assembled_at": "2026-11-19T08:57:53.563453+00:00",
+  "runtime_source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+  "classifier_sha256": "e4df3be334199b675f80890d3e84e62db4660f0b0852de6d4c4dc9649f589f4f",
+  "input_digests": {
+    "pp18-summary.json": {
+      "bytes": 3748,
+      "sha256": "e9b84a8d0aad7e3c97e0c77acccd0e1e826e1a02177b50dee7079d74a860b8d0"
+    },
+    "live-final.jsonl": {
+      "bytes": 1181,
+      "sha256": "c21a0a7937cca5dad5338550136717ed3b48e3bc5c1a467505d700065d300ab1"
+    },
+    "live-worker-off.jsonl": {
+      "bytes": 205,
+      "sha256": "d9056936ad2b674ccceec6d3cee3e39acae0b3453a4aa63ba71485864d6b3da6"
+    },
+    "durable-off-state.json": {
+      "bytes": 212,
+      "sha256": "ae79447edad6ae6a555427ea6111fdc8dcd9257fad0de5a8765f3f4ea85dbac6"
+    },
+    "post-off-backlog.jsonl": {
+      "bytes": 13008,
+      "sha256": "c49bdd66e888b07183991ed550b8472caa19e368c158d46d4beec836e8ccfb87"
+    },
+    "retained-client.json": {
+      "bytes": 562,
+      "sha256": "f297fa2faf43ffd7e07c1cbc27236390878930cb1be44cb15be1e4733f6c7c25"
+    },
+    "retained-local.json": {
+      "bytes": 273,
+      "sha256": "829c93b762ea52aeb29546de51830e27e5dc331faf956448c90a744bd5518715"
+    },
+    "retained-hosted.json": {
+      "bytes": 949,
+      "sha256": "a7245ab2fa6d1e0810f02a2417c7916fa7b10b69badcc31bfc4e905c14feb2ff"
+    },
+    "live-off.jsonl": {
+      "bytes": 122,
+      "sha256": "bf7ca8518b4d7808bd4321f53f4b64ebac6b3e8b4d66c2a9db1d3c8cb5bfa18a"
+    },
+    "observer-stop.json": {
+      "bytes": 139,
+      "sha256": "5b72c91fb1af0e72985a895c3663da61179505cfcd2bbbf816cd0136f542d400"
+    },
+    "filesystem-preflight.json": {
+      "bytes": 116,
+      "sha256": "3cb3f04db01c14862faa123dc9f8993e8f88ffa0d8342466ed7411e776c8adc4"
+    },
+    "pre-off-diagnostic.jsonl": {
+      "bytes": 185,
+      "sha256": "8207beed5613573ff3a7c6df179bb93e7bfa259c9d30b51b3453f013ff0275fd"
+    },
+    "observation-gap.jsonl": {
+      "bytes": 1518,
+      "sha256": "bea1e5756d4ff8bc26b4a1fab73943f9f94984314a20c6fc532ac15a93b23951"
+    },
+    "live-payloads.jsonl": {
+      "bytes": 1769634,
+      "sha256": "f78075848f1e856c7c83c1fad24b431484f08838bec5990232320ff26fae1300"
+    },
+    "live-samples.jsonl": {
+      "bytes": 555062,
+      "sha256": "1a471ba83d0208cea84ac7de9d336195a339cf00ad296ac472980806f95091f9"
+    },
+    "live-contract.jsonl": {
+      "bytes": 13987,
+      "sha256": "4b230d7447a7ee3fac55034a324fcc82b9ca9a459819509c44f7bab828477b41"
+    },
+    "live-generations.jsonl": {
+      "bytes": 112516,
+      "sha256": "6c6c18feeb943947a9c6483d20e275c2c70ab884f4b672b1ee639b8093e620ae"
+    },
+    "final-inventory.json": {
+      "bytes": 818,
+      "sha256": "34fb5f7bdd7248bd5a39042ead4bc295c41e4953b0ed7ba8f1bbdbf1f7c8f7d6"
+    },
+    "final-retire-hold.json": {
+      "bytes": 132,
+      "sha256": "fa53d08d7796e7530eda2aa2c347cefde1a69b592c53ea7fb04b81c311f4867d"
+    },
+    "retirement-reconciled.json": {
+      "bytes": 500,
+      "sha256": "090c52837833748eb2f5cca33a14ad91a923269547c136c7c7817f466f3545b8"
+    },
+    "structured-service-hold.json": {
+      "bytes": 690,
+      "sha256": "af836b1a0d13801c8ade1358be60a6b3162dde78dcbded79e51c81c09585d113"
+    }
+  },
+  "dashboard": {
+    "integrity_result": "PASS",
+    "numeric_forecast_result": "INCOMPLETE",
+    "samples": 690,
+    "classifications": {
+      "saved": {
+        "unavailable": 54,
+        "truthful_abstain": 14,
+        "active_numeric": 622
+      },
+      "live": {
+        "unavailable": 54,
+        "truthful_abstain": 18,
+        "active_numeric": 530,
+        "dashboard_suppressed_numeric": 88
+      }
+    },
+    "distinct_active_numeric_saved_predictions": 555,
+    "failures": [],
+    "missing_evidence": [],
+    "numeric_missing_evidence": [
+      "numeric_saved_and_live_output_on_both_switch_sides_not_demonstrated"
+    ],
+    "clock_evidence": {
+      "input_age_basis": "server_generated_at; not operator wall clock",
+      "operator_minus_server_generated_seconds_min": -0.045687,
+      "operator_minus_server_generated_seconds_max": 0.069224,
+      "delta_is_not_pure_offset": true,
+      "delivery_or_clock_review_band_seconds": [
+        -2,
+        10
+      ],
+      "synchronized_wall_clocks_proven": false
+    },
+    "not_proven": [
+      "rendered browser display",
+      "continuous SSE coverage",
+      "continuous feed freshness (original observer gate required)",
+      "collector/lease ownership",
+      "archive correctness or retirement authority",
+      "prediction quality or calibration"
+    ]
+  },
+  "dashboard_window": {
+    "first": "2026-11-19T07:58:38.436367+00:00",
+    "last": "2026-11-19T08:53:08.626636+00:00"
+  },
+  "switches": [
+    {
+      "from_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "to_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "observed_after_utc": "2026-11-19 08:29:45.444937+00:00",
+      "observed_by_utc": "2026-11-19 08:30:17.153041+00:00",
+      "exact_switch_timestamp": null,
+      "numeric_on_both_sides": false,
+      "before": {
+        "at": "2026-11-19T08:29:40.681979+00:00",
+        "server_generated_at": "2026-11-19T08:29:40.683222+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684736",
+        "price_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "operator_minus_server_generated_seconds": -0.001243,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.828155,
+          "feature_age_seconds": 0.828155,
+          "input_price_age_seconds": 1.409436
+        },
+        "live": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 1.203794,
+          "feature_age_seconds": 0.828155,
+          "input_price_age_seconds": 1.203794
+        }
+      },
+      "after": {
+        "at": "2026-11-19T08:30:20.725197+00:00",
+        "server_generated_at": "2026-11-19T08:30:20.723238+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684759",
+        "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "operator_minus_server_generated_seconds": 0.001959,
+        "saved": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        },
+        "live": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        }
+      }
+    }
+  ],
+  "first_b_saved_and_live_numeric": {
+    "at": "2026-11-19T08:30:25.738910+00:00",
+    "server_generated_at": "2026-11-19T08:30:25.734231+00:00",
+    "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+    "market_id": "2684759",
+    "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+    "operator_minus_server_generated_seconds": 0.004679,
+    "saved": {
+      "classification": "active_numeric",
+      "abstain_reason": null,
+      "forecast_age_seconds": 5.522756,
+      "feature_age_seconds": 5.522756,
+      "input_price_age_seconds": 6.692186
+    },
+    "live": {
+      "classification": "active_numeric",
+      "abstain_reason": null,
+      "forecast_age_seconds": 1.258448,
+      "feature_age_seconds": 5.522756,
+      "input_price_age_seconds": 1.258448
+    }
+  },
+  "observation_gap_edges": [
+    {
+      "gap": {
+        "before": "2026-11-19T08:33:50.960563+00:00",
+        "after": "2026-11-19T08:35:22.241881+00:00",
+        "seconds": 91.281318
+      },
+      "before": {
+        "at": "2026-11-19T08:33:50.960563+00:00",
+        "server_generated_at": "2026-11-19T08:33:50.991264+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684759",
+        "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "operator_minus_server_generated_seconds": -0.030701,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 1.288201,
+          "feature_age_seconds": 1.288201,
+          "input_price_age_seconds": 2.117499
+        },
+        "live": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.854001,
+          "feature_age_seconds": 1.288201,
+          "input_price_age_seconds": 0.854001
+        }
+      },
+      "after": {
+        "at": "2026-11-19T08:35:22.241881+00:00",
+        "server_generated_at": "2026-11-19T08:35:22.272704+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684759",
+        "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "operator_minus_server_generated_seconds": -0.030823,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.56329,
+          "feature_age_seconds": 0.56329,
+          "input_price_age_seconds": 0.737392
+        },
+        "live": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.570582,
+          "feature_age_seconds": 0.56329,
+          "input_price_age_seconds": 0.570582
+        }
+      }
+    }
+  ],
+  "abstain_reasons": {
+    "saved": {
+      "completed_candles_missing_or_stale": 4,
+      "reference_price_not_fresh": 10
+    },
+    "live": {
+      "completed_candles_missing_or_stale": 7,
+      "reference_price_not_fresh": 11
+    }
+  },
+  "market_transitions": [
+    {
+      "before": {
+        "at": "2026-11-19T07:59:58.534999+00:00",
+        "server_generated_at": "2026-11-19T07:59:58.543648+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2685261",
+        "price_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "operator_minus_server_generated_seconds": -0.008649,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.164278,
+          "feature_age_seconds": 0.164278,
+          "input_price_age_seconds": 0.270362
+        },
+        "live": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.270362,
+          "feature_age_seconds": 0.164278,
+          "input_price_age_seconds": 0.270362
+        }
+      },
+      "after": {
+        "at": "2026-11-19T08:00:23.543138+00:00",
+        "server_generated_at": "2026-11-19T08:00:23.554921+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2685233",
+        "price_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "operator_minus_server_generated_seconds": -0.011783,
+        "saved": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        },
+        "live": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        }
+      },
+      "intervening_missing_market_samples": 5
+    },
+    {
+      "before": {
+        "at": "2026-11-19T08:14:59.432833+00:00",
+        "server_generated_at": "2026-11-19T08:14:59.436634+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2685233",
+        "price_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "operator_minus_server_generated_seconds": -0.003801,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 2.467977,
+          "feature_age_seconds": 2.467977,
+          "input_price_age_seconds": 30.066239
+        },
+        "live": {
+          "classification": "truthful_abstain",
+          "abstain_reason": "reference_price_not_fresh",
+          "forecast_age_seconds": 30.064655,
+          "feature_age_seconds": 2.467977,
+          "input_price_age_seconds": 30.064655
+        }
+      },
+      "after": {
+        "at": "2026-11-19T08:15:19.425422+00:00",
+        "server_generated_at": "2026-11-19T08:15:19.465378+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684736",
+        "price_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "operator_minus_server_generated_seconds": -0.039956,
+        "saved": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        },
+        "live": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        }
+      },
+      "intervening_missing_market_samples": 4
+    },
+    {
+      "before": {
+        "at": "2026-11-19T08:29:55.704560+00:00",
+        "server_generated_at": "2026-11-19T08:29:55.701969+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684736",
+        "price_generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "operator_minus_server_generated_seconds": 0.002591,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 0.567997,
+          "feature_age_seconds": 0.567997,
+          "input_price_age_seconds": 1.009293
+        },
+        "live": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 1.009293,
+          "feature_age_seconds": 0.567997,
+          "input_price_age_seconds": 1.009293
+        }
+      },
+      "after": {
+        "at": "2026-11-19T08:30:20.725197+00:00",
+        "server_generated_at": "2026-11-19T08:30:20.723238+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684759",
+        "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "operator_minus_server_generated_seconds": 0.001959,
+        "saved": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        },
+        "live": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        }
+      },
+      "intervening_missing_market_samples": 5
+    },
+    {
+      "before": {
+        "at": "2026-11-19T08:44:57.971233+00:00",
+        "server_generated_at": "2026-11-19T08:44:57.978160+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684759",
+        "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "operator_minus_server_generated_seconds": -0.006927,
+        "saved": {
+          "classification": "active_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 1.023291,
+          "feature_age_seconds": 1.023291,
+          "input_price_age_seconds": 14.354126
+        },
+        "live": {
+          "classification": "dashboard_suppressed_numeric",
+          "abstain_reason": null,
+          "forecast_age_seconds": 14.307512,
+          "feature_age_seconds": 1.023291,
+          "input_price_age_seconds": 14.307512
+        }
+      },
+      "after": {
+        "at": "2026-11-19T08:45:17.986460+00:00",
+        "server_generated_at": "2026-11-19T08:45:17.995735+00:00",
+        "source_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+        "market_id": "2684433",
+        "price_generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+        "operator_minus_server_generated_seconds": -0.009275,
+        "saved": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        },
+        "live": {
+          "classification": "unavailable",
+          "abstain_reason": null,
+          "forecast_age_seconds": null,
+          "feature_age_seconds": null,
+          "input_price_age_seconds": null
+        }
+      },
+      "intervening_missing_market_samples": 3
+    }
+  ],
+  "api": {
+    "active_collector_samples": 600,
+    "active_collector_input_age_seconds": {
+      "coinbase_age_seconds": {
+        "samples": 600,
+        "minimum": 0.022,
+        "median": 1.376,
+        "p95_nearest_rank": 22.15,
+        "maximum": 49.357
+      },
+      "polymarket_source_age_seconds": {
+        "samples": 583,
+        "minimum": 1.179,
+        "median": 17.811,
+        "p95_nearest_rank": 32.508,
+        "maximum": 36.398
+      },
+      "polymarket_receipt_age_seconds": {
+        "samples": 583,
+        "minimum": 0.183,
+        "median": 3.725,
+        "p95_nearest_rank": 6.733,
+        "maximum": 7.51
+      },
+      "feature_age_seconds": {
+        "samples": 582,
+        "minimum": 0.043,
+        "median": 2.874,
+        "p95_nearest_rank": 5.207,
+        "maximum": 5.709
+      }
+    },
+    "samples": 637,
+    "first": "2026-11-19T07:58:38.359128+00:00",
+    "last": "2026-11-19T08:53:08.538781+00:00",
+    "errors": 0,
+    "health_status": {
+      "degraded": 66,
+      "ok": 571
+    },
+    "storage_status": {
+      "ok": 637
+    },
+    "latency_ms": {
+      "state_latency_ms": {
+        "samples": 637,
+        "minimum": 73.213,
+        "median": 109.325,
+        "p95_nearest_rank": 129.774,
+        "maximum": 215.055
+      },
+      "health_latency_ms": {
+        "samples": 637,
+        "minimum": 69.968,
+        "median": 107.671,
+        "p95_nearest_rank": 148.247,
+        "maximum": 195.908
+      }
+    },
+    "input_age_seconds": {
+      "coinbase_age_seconds": {
+        "samples": 631,
+        "minimum": 0.022,
+        "median": 1.59,
+        "p95_nearest_rank": 34.579,
+        "maximum": 153.634
+      },
+      "polymarket_source_age_seconds": {
+        "samples": 614,
+        "minimum": 1.179,
+        "median": 19.951,
+        "p95_nearest_rank": 36.321,
+        "maximum": 177.894
+      },
+      "polymarket_receipt_age_seconds": {
+        "samples": 614,
+        "minimum": 0.183,
+        "median": 3.881,
+        "p95_nearest_rank": 7.51,
+        "maximum": 152.897
+      },
+      "feature_age_seconds": {
+        "samples": 588,
+        "minimum": 0.043,
+        "median": 2.899,
+        "p95_nearest_rank": 5.225,
+        "maximum": 28.997
+      }
+    },
+    "gaps_over_65_seconds": [
+      {
+        "before": "2026-11-19T08:33:50.876641+00:00",
+        "after": "2026-11-19T08:35:22.161498+00:00",
+        "seconds": 91.284857
+      }
+    ]
+  },
+  "contract": {
+    "samples": 53,
+    "first": "2026-11-19T07:59:08.579396+00:00",
+    "last": "2026-11-19T08:52:23.629066+00:00",
+    "checks": {
+      "dashboard_ok": {
+        "True": 53
+      },
+      "prediction_history_ok": {
+        "True": 53
+      },
+      "chart_ok": {
+        "True": 50,
+        "False": 3
+      },
+      "sse_ok": {
+        "True": 53
+      }
+    },
+    "errors": 0,
+    "latency_ms": {
+      "dashboard_latency_ms": {
+        "samples": 53,
+        "minimum": 110.279,
+        "median": 165.398,
+        "p95_nearest_rank": 228.858,
+        "maximum": 248.109
+      },
+      "history_latency_ms": {
+        "samples": 53,
+        "minimum": 88.175,
+        "median": 123.858,
+        "p95_nearest_rank": 265.427,
+        "maximum": 278.307
+      },
+      "chart_latency_ms": {
+        "samples": 53,
+        "minimum": 98.569,
+        "median": 185.439,
+        "p95_nearest_rank": 390.72,
+        "maximum": 471.151
+      },
+      "sse_latency_ms": {
+        "samples": 53,
+        "minimum": 72.881,
+        "median": 112.324,
+        "p95_nearest_rank": 146.685,
+        "maximum": 207.976
+      }
+    },
+    "gaps_over_90_seconds": [
+      {
+        "before": "2026-11-19T08:33:11.081062+00:00",
+        "after": "2026-11-19T08:35:22.315296+00:00",
+        "seconds": 131.234234
+      }
+    ]
+  },
+  "generations": {
+    "samples": 119,
+    "gaps_over_65_seconds": [
+      {
+        "before": "2026-11-19T08:33:03.566045+00:00",
+        "after": "2026-11-19T08:35:15.816756+00:00",
+        "seconds": 132.250711
+      },
+      {
+        "before": "2026-11-19T08:50:44.965751+00:00",
+        "after": "2026-11-19T08:56:09.912353+00:00",
+        "seconds": 324.946602
+      }
+    ],
+    "A_final": {
+      "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "slot": "A",
+      "state": "verified",
+      "sealed_at": "2026-11-19T08:30:04.617214+00:00",
+      "verified_at": "2026-11-19T08:38:23.243026+00:00",
+      "retired_at": null,
+      "seal_count": 28411,
+      "seal_hash": "bd8e9f5da7951f0ee72a01bf26a48133d258d42da10d24190a1738bcfdc27250",
+      "hold_reason": null,
+      "raw_events": 28411,
+      "relation_bytes": 52953088,
+      "verified_manifests": 57,
+      "verified_compressed_bytes": 3623081,
+      "pending": 0,
+      "acknowledged": 31162
+    },
+    "B_first": {
+      "at": "2026-11-19 08:30:17.153041+00:00",
+      "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "state": "collecting",
+      "raw_events": 147,
+      "pending": 147,
+      "acknowledged": 0,
+      "relation_bytes": 335872
+    },
+    "B_last": {
+      "at": "2026-11-19T08:56:09.912353+00:00",
+      "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "state": "collecting",
+      "raw_events": 9784,
+      "pending": 0,
+      "acknowledged": 10971,
+      "relation_bytes": 18391040
+    },
+    "B_counter_deltas": {
+      "raw_events": 9637,
+      "pending": -147,
+      "acknowledged": 10971,
+      "relation_bytes": 18055168
+    },
+    "sampled_database_and_wal": [
+      {
+        "at": "2026-11-19 07:58:42.538713+00:00",
+        "database_bytes": 93066931,
+        "wal_bytes_cumulative": 290422456,
+        "wal_stats_since": "2026-11-13 00:57:11.724511+00:00"
+      },
+      {
+        "at": "2026-11-19T08:56:09.912353+00:00",
+        "database_bytes": 228546227,
+        "wal_bytes_cumulative": 703617490,
+        "wal_stats_since": "2026-11-13T00:57:11.724511+00:00"
+      }
+    ]
+  },
+  "raw_verification": {
+    "sealed_at": "2026-11-19T08:30:04.617214+00:00",
+    "verified_at": "2026-11-19T08:38:23.243026+00:00",
+    "elapsed_seal_to_verified_seconds": 498.625812,
+    "rows": 28411,
+    "chunks": 57,
+    "compressed_bytes": 3623081
+  },
+  "retirement": {
+    "ticket_issue_to_container_die_seconds": 247.855136,
+    "interval_includes_startup_and_finalization": true,
+    "verifier_exclusive_elapsed_unmeasured": true,
+    "archive_limit_dimension_unproved": true,
+    "inventory": {
+      "cloud_requests": 0,
+      "collecting": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "inventory": {
+        "auth_calls_reserved": 1,
+        "byte_limit": 134217728,
+        "bytes_minimum": 53696972,
+        "bytes_upper_bound": 267864233,
+        "deadline_seconds": 240.0,
+        "fit": "conditional_on_newer_revision_bytes",
+        "profile": "pp-two-market-v1",
+        "raw_bytes": 3623081,
+        "raw_objects": 57,
+        "remaining_work_seconds": 219.991,
+        "request_limit": 192,
+        "requests_minimum": 121,
+        "seal_deadline_utc": "2026-11-19T09:00:04.617214+00:00",
+        "structured_bytes_examined": 50073891,
+        "structured_inventory_complete": true,
+        "structured_pages_examined": 63,
+        "structured_rows": 31162
+      },
+      "retirement_authorized": false,
+      "sealed": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "status": "inventory_only"
+    },
+    "verifier": {
+      "status": "HOLD",
+      "reason": "archive_limit",
+      "partition_outcome": "inspect_generation_and_ticket",
+      "retirement_authorized": false
+    },
+    "reconciliation": {
+      "captured_at": "2026-11-19T08:48:37.737712+00:00",
+      "tickets": [
+        {
+          "issued_at": "2026-11-19T08:42:59.396886+00:00",
+          "expires_at": "2026-11-19T08:47:54.396733+00:00",
+          "used_at": null,
+          "used_txid": null,
+          "expired": true
+        }
+      ],
+      "partition": {
+        "state": "verified",
+        "attached": true,
+        "local_rows": 28411,
+        "retired_at": null
+      },
+      "events": [
+        "die 1795078027252022021",
+        "destroy 1795078027293954723"
+      ],
+      "ticket_file_absent": true
+    }
+  },
+  "role_contention": {
+    "worker": [
+      {
+        "at": "2026-11-19T08:25:31.444581927Z",
+        "status": "bounded_stop",
+        "acknowledged": 36
+      },
+      {
+        "at": "2026-11-19T08:25:34.009767641Z",
+        "status": "bounded_stop",
+        "acknowledged": 8
+      },
+      {
+        "at": "2026-11-19T08:25:34.223853127Z",
+        "status": "hold",
+        "reason": "structured_page_failed"
+      }
+    ],
+    "exit_at": "2026-11-19T08:25:34.527807741Z",
+    "database_connection_rejection": {
+      "at": "2026-11-19T08:25:34.219864592Z",
+      "role": "tradebot_lifecycle",
+      "reason": "too_many_connections_for_role"
+    },
+    "sampling_role_after": "tradebot_reader",
+    "raw_worker_stopped_while_A_structured_pending": true
+  },
+  "limitations": [
+    "No continuous feed-freshness PASS: truthful stale-reference abstentions are preserved.",
+    "Numeric switch continuity remains INCOMPLETE: nearest post-bracket sample was unavailable; later numeric recovery is separately timestamped.",
+    "Observer gap does not prove uninterrupted writes or numeric publication.",
+    "Database bytes and cumulative WAL are sampled counters, not reclaim/headroom or memory/CPU proof.",
+    "Raw cloud verification is separate from full structured/raw final verifier; HOLD retained local A.",
+    "No legacy environment, production, profitability, calibration or local retirement success claim.",
+    "No secrets, DSNs, raw payloads, runner credentials or host commands included."
+  ]
+}

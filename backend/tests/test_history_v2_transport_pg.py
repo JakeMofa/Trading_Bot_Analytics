@@ -414,7 +414,14 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 SET cursor='{"outbox_id":3}'::jsonb,content_hash=%s
                 WHERE origin_id=%s AND generation_id=%s AND dataset='structured:outbox' ''',
                 (sha256(encoded({'outbox_id': 3})), origin, generation))
+        # PostgreSQL prevents a dangling envelope even for a privileged test writer.
+        with self.assertRaises(psycopg.errors.ForeignKeyViolation), factory() as connection:
+            connection.execute('''DELETE FROM history_v2.structured_receipts
+                WHERE origin_id=%s AND outbox_id=2''', (origin,))
+        # Simulate a privileged removal of both halves of the recovery evidence.
         with factory() as connection:
+            connection.execute('''DELETE FROM history_v2.structured_revision_payloads
+                WHERE origin_id=%s AND outbox_id=2''', (origin,))
             connection.execute('''DELETE FROM history_v2.structured_receipts
                 WHERE origin_id=%s AND outbox_id=2''', (origin,))
         with self.assertRaises(ArchiveIntegrityError):

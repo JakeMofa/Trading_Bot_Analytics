@@ -3690,3 +3690,18 @@ setup latency produces 0.478–0.497s reused versus 0.689–0.713s cold. Those l
 results establish correctness under reuse, not a hosted end-to-end timing pass.
 No deployment, permit retry, deletion, binary codec, policy or clock change is
 included. [Qualification and limitations](PP_RETIREMENT_PHASE_REUSE_2026-11-19.md).
+
+### Retained A read-only replay candidate, November 19 UTC
+
+An expired sealed A cannot use the two-market destructive verifier for a new
+240-second timing measurement without correctly hitting the original seal
+window. A separate finite read-only audit candidate preserves that behavior,
+uses the existing reader role and one local snapshot/ACCESS SHARE lock, and
+reuses the actual raw/local/rich structured proof under unchanged operation
+caps. It records the original deadline separately and always denies retirement
+and original-trial authority. Startup verifies existing SELECT grants locally
+and remotely; no grants or host/deployment changes are included. The planned
+exact PP18 replay is 57 raw objects + 63 structured pages, 28,411 raw / 31,162
+structured rows, with 122 minimum logical requests including authenticated
+permission preflight. Hosted timing remains unmeasured pending released source
+and sealed's coordinated host window. [Candidate scope and native controls](PP_RETAINED_ARCHIVE_AUDIT_2026-11-19.md).

@@ -1,6 +1,8 @@
 # Resume here
 
-**Latest checkpoint (November 18 CST):** `preprod` source `2e38ecd` passed CI
+**November 19 UTC** — pp.15 is deployed to PP and real structured archival passed for 25 records. Read the [master roadmap](INTELLIGENCE_REBUILD_PLAN.md) for release evidence, sync timings and the outstanding A-retirement gate. PP is ready with its collector OFF. Earlier entries below are historical.
+
+**Historical checkpoint (November 18 CST):** `preprod` source `2e38ecd` passed CI
 44422595480, and `v0.2.0-pp.12` passed manual PP CD 44423321845. The PP app
 and PostgreSQL are healthy. Mode transition 44423758592 passed, leaving PP
 `PP_LIVE_READY_OFF` with collector OFF. The first one-use `history_v2` probe

@@ -18,7 +18,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, encoded, wire
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimits, ArchiveUnavailable, CycleBudget, encoded, wire
 from postgres.history import ArchiveHistory
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.live_contract import coinbase_closed_candle, coinbase_ticker, polymarket_bbo, polymarket_market
@@ -569,6 +569,68 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         with self.factory() as connection:
             self.assertEqual(connection.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                                                 (late['generation_id'],)).fetchone()['count'], 2)
+
+    def test_exact_final_readback_pages_and_partition_drop_recovery(self):
+        from postgres.pp_retirement_verify import Target, verify
+        from psycopg.errors import LockNotAvailable
+        sealed = self.first['generation_id']
+        self.insert(1)
+        with self.app_factory() as db:
+            db.execute("""INSERT INTO ops.outbox
+                (origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at)
+                SELECT %s,%s,'fixture',i::text,repeat('1',64),jsonb_build_object('id',i),now()
+                FROM generate_series(1,6) AS i""",(self.origin,sealed))
+        active = self.rotate()['generation_id']
+        self.archive_all(sealed)
+        self.worker.sync_outbox(sealed, CycleBudget(self.limits))
+        self.transport.origin_id = self.origin
+        self.transport.generation_id = sealed
+        target = Target(sealed,active,self.repository.generation(sealed)['seal_hash'],1)
+        check = lambda exact: verify(self.repository,self.transport,exact,origin=self.origin,limits=self.limits)
+        calls = len(self.transport.calls)
+        with self.assertRaises(LifecycleHold):
+            check(replace(target, seal_hash='0'*64))
+        self.assertEqual(len(self.transport.calls),calls)
+        with self.assertRaisesRegex(LifecycleHold,'unobserved'):
+            check(target)
+        read = self.transport.read_authenticated
+        def progress(*args,**kwargs):
+            self.insert(200+len(self.transport.calls))
+            return read(*args,**kwargs)
+        self.transport.read_authenticated = progress
+        proof = check(target)
+        self.assertFalse(proof['retirement_authorized'])
+        self.assertEqual(proof['structured_count'],6)
+        self.assertEqual(proof['opposite_slot_new_rows'],1)
+        self.assertEqual(self.repository.generation(sealed)['state'],'verified')
+
+        # A later-page receipt mutation and an unmanaged SQL reader both prevent
+        # removal, even though the complete earlier readback passed.
+        last_key = list(self.transport.structured)[-1]
+        saved = self.transport.structured.pop(last_key)
+        with self.assertRaises(ArchiveUnavailable):
+            self.worker.retire_generated(sealed,qualification_enabled=True)
+        self.transport.structured[last_key]=saved
+        with self.factory() as reader:
+            reader.execute('SELECT 1 FROM raw.events WHERE generation_id=%s LIMIT 1',(sealed,))
+            with self.assertRaises(LockNotAvailable):
+                self.worker.retire_generated(sealed,qualification_enabled=True)
+        physical_drop=self.repository.retire_in_transaction
+        def interrupted(db,generation,digest):
+            physical_drop(db,generation,digest)
+            raise ConnectionResetError('simulated failure after DROP, before commit')
+        with patch.object(self.repository,'retire_in_transaction',side_effect=interrupted):
+            with self.assertRaises((ArchiveUnavailable,ConnectionResetError)):
+                self.worker.retire_generated(sealed,qualification_enabled=True)
+        self.assertEqual(self.repository.generation(sealed)['state'],'verified')
+        with self.factory() as db:
+            self.assertEqual(db.execute('SELECT count(*) n FROM raw.events WHERE generation_id=%s',
+                                        (sealed,)).fetchone()['n'],1)
+        self.worker.retire_generated(sealed,qualification_enabled=True)
+        self.assertEqual(self.repository.generation(sealed)['state'],'retired')
+        history=ArchiveHistory(self.repository,self.transport,self.limits)
+        self.assertEqual(history.read_generation(sealed)['provenance']['tier'],'authenticated_archive')
+        self.assertEqual(self.repository.switch_if_due(self.origin,RotationPolicy(1))['slot'],'A')
 
     def test_a_b_a_reuse_new_generation_ids_and_history_after_real_drop(self):
         original = [self.insert(index) for index in range(7)]

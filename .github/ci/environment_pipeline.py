@@ -28,9 +28,9 @@ REQUIRED_CHECKS = {'api', 'sse', 'schema', 'migration', 'data_correctness',
                    'collector_ownership', 'disabled_flags', 'recovery',
                    'freshness', 'market_identity'}
 PREPROD_REQUIRED_CHECKS = REQUIRED_CHECKS | {'operator_control'}
-PP_INSTALLED_CONTROLLER = '1e10e1064d37a1629098d90793d3ad7719d127368881b8305f49ce8c1a4907c5'
-PP_IDENTITY_COMMIT = '414e3c232ba54d61bc4a71e8315fd3d1b1e620e3'
-PP_IDENTITY_RUN = 44502043684
+PP_INSTALLED_CONTROLLER = '9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a'
+PP_IDENTITY_COMMIT = '0219819cdd49ee34199566443e7a391dff8bb078'
+PP_IDENTITY_RUN = 44557716430
 CONTROLLER_REASONS = frozenset({
     'entrypoint_precondition_failed', 'generated_runtime_check_failed',
     'generated_api_readiness_timeout', 'generated_operator_readiness_timeout',
@@ -62,7 +62,7 @@ CONTROLLER_REASONS = frozenset({
     'pre_migration_restore_not_proven', 'prior_container_identity_changed',
     'prior_stopped_container_changed', 'partial_prior_recovery_still_running',
     'explicit_migration_not_proven', 'generated_bootstrap_not_proven',
-    'generated_acceptance_incomplete', 'api_not_healthy',
+    'generated_acceptance_incomplete', 'generated_durable_headroom_not_proven', 'api_not_healthy',
     'freshness_or_market_not_proven', 'runtime_flag_mismatch',
     'runtime_image_or_process_mismatch', 'runtime_secret_binding_mismatch',
     'schema_check_not_proven', 'wrong_postgres_environment',

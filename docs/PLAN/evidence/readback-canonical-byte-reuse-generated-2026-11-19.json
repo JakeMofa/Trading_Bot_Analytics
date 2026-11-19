@@ -1,0 +1,2272 @@
+{
+  "scope": "generated warmed local PG17 full-path source comparison; no PP/TLS/Supavisor speedup established",
+  "baseline_source_sha": "0219819",
+  "candidate_transport_sha256": "86ab76801ce497b885ca16737450c026853d1c533890e6b055cab1f2b22e3142",
+  "driver": "3.2.13",
+  "libpq": 170006,
+  "server_version": "postgres (PostgreSQL) 17.2 (Homebrew)",
+  "records": 500,
+  "distinct_projection_keys": 500,
+  "canonical_page_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+  "canonical_page_bytes": 1975325,
+  "samples": [
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 1,
+      "seconds": 0.2946182500163559,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 2e-06,
+          "max_seconds": 2e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003952,
+          "max_seconds": 0.003952,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.1355,
+          "max_seconds": 0.1355,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004527,
+          "max_seconds": 0.004527,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.086775,
+          "max_seconds": 0.086775,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.251609,
+          "max_seconds": 0.251609,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.8e-05,
+          "max_seconds": 1.8e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 1,
+      "seconds": 0.223175999999512,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003522,
+          "max_seconds": 0.003522,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.079669,
+          "max_seconds": 0.079669,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004217,
+          "max_seconds": 0.004217,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.083931,
+          "max_seconds": 0.083931,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.171924,
+          "max_seconds": 0.171924,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.1e-05,
+          "max_seconds": 2.1e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 2,
+      "seconds": 0.22138312499737367,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.004074,
+          "max_seconds": 0.004074,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.080675,
+          "max_seconds": 0.080675,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004428,
+          "max_seconds": 0.004428,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.088466,
+          "max_seconds": 0.088466,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.178236,
+          "max_seconds": 0.178236,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.1e-05,
+          "max_seconds": 2.1e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 2,
+      "seconds": 0.2928493339859415,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003407,
+          "max_seconds": 0.003407,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.134756,
+          "max_seconds": 0.134756,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004278,
+          "max_seconds": 0.004278,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 2e-06,
+          "max_seconds": 2e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.088938,
+          "max_seconds": 0.088938,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.249506,
+          "max_seconds": 0.249506,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.4e-05,
+          "max_seconds": 2.4e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 3,
+      "seconds": 0.2928094159869943,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003372,
+          "max_seconds": 0.003372,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.139798,
+          "max_seconds": 0.139798,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004434,
+          "max_seconds": 0.004434,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.082316,
+          "max_seconds": 0.082316,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.248372,
+          "max_seconds": 0.248372,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.3e-05,
+          "max_seconds": 2.3e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 3,
+      "seconds": 0.2187640409974847,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.00355,
+          "max_seconds": 0.00355,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.079821,
+          "max_seconds": 0.079821,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004221,
+          "max_seconds": 0.004221,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.086928,
+          "max_seconds": 0.086928,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.175015,
+          "max_seconds": 0.175015,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.1e-05,
+          "max_seconds": 2.1e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 4,
+      "seconds": 0.21881287501309998,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003531,
+          "max_seconds": 0.003531,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.078889,
+          "max_seconds": 0.078889,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.00416,
+          "max_seconds": 0.00416,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.086058,
+          "max_seconds": 0.086058,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.173204,
+          "max_seconds": 0.173204,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.2e-05,
+          "max_seconds": 2.2e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 4,
+      "seconds": 0.298181083984673,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003565,
+          "max_seconds": 0.003565,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.138585,
+          "max_seconds": 0.138585,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004326,
+          "max_seconds": 0.004326,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.086773,
+          "max_seconds": 0.086773,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.253554,
+          "max_seconds": 0.253554,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.3e-05,
+          "max_seconds": 2.3e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 5,
+      "seconds": 0.2898472920060158,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003362,
+          "max_seconds": 0.003362,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.135642,
+          "max_seconds": 0.135642,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004229,
+          "max_seconds": 0.004229,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.085681,
+          "max_seconds": 0.085681,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.246966,
+          "max_seconds": 0.246966,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.1e-05,
+          "max_seconds": 2.1e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 5,
+      "seconds": 0.22290312498807907,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003462,
+          "max_seconds": 0.003462,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.079687,
+          "max_seconds": 0.079687,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004114,
+          "max_seconds": 0.004114,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.090039,
+          "max_seconds": 0.090039,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.177764,
+          "max_seconds": 0.177764,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.9e-05,
+          "max_seconds": 1.9e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 6,
+      "seconds": 0.20997774999705143,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003172,
+          "max_seconds": 0.003172,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.078134,
+          "max_seconds": 0.078134,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.003948,
+          "max_seconds": 0.003948,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.082271,
+          "max_seconds": 0.082271,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.167962,
+          "max_seconds": 0.167962,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.2e-05,
+          "max_seconds": 2.2e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 6,
+      "seconds": 0.2856793750252109,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.00355,
+          "max_seconds": 0.00355,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.133876,
+          "max_seconds": 0.133876,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004145,
+          "max_seconds": 0.004145,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.083659,
+          "max_seconds": 0.083659,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.243176,
+          "max_seconds": 0.243176,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.2e-05,
+          "max_seconds": 2.2e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 7,
+      "seconds": 0.3005436660023406,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003381,
+          "max_seconds": 0.003381,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.139081,
+          "max_seconds": 0.139081,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004323,
+          "max_seconds": 0.004323,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.084612,
+          "max_seconds": 0.084612,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.256523,
+          "max_seconds": 0.256523,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.4e-05,
+          "max_seconds": 2.4e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 7,
+      "seconds": 0.21407312498195097,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003783,
+          "max_seconds": 0.003783,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.080049,
+          "max_seconds": 0.080049,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004241,
+          "max_seconds": 0.004241,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.082714,
+          "max_seconds": 0.082714,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.171313,
+          "max_seconds": 0.171313,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.3e-05,
+          "max_seconds": 2.3e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 0,
+      "pair": 8,
+      "seconds": 0.21814549999544397,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003569,
+          "max_seconds": 0.003569,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.081573,
+          "max_seconds": 0.081573,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004152,
+          "max_seconds": 0.004152,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.08482,
+          "max_seconds": 0.08482,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.174628,
+          "max_seconds": 0.174628,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.9e-05,
+          "max_seconds": 1.9e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 0,
+      "pair": 8,
+      "seconds": 0.2888234159909189,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1975325,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003354,
+          "max_seconds": 0.003354,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.137616,
+          "max_seconds": 0.137616,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004192,
+          "max_seconds": 0.004192,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 2e-06,
+          "max_seconds": 2e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.083179,
+          "max_seconds": 0.083179,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.2465,
+          "max_seconds": 0.2465,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.9e-05,
+          "max_seconds": 1.9e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 1,
+      "seconds": 0.2830324999813456,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003069,
+          "max_seconds": 0.003069,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.131372,
+          "max_seconds": 0.131372,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004043,
+          "max_seconds": 0.004043,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000862,
+          "max_seconds": 0.000862,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.081879,
+          "max_seconds": 0.081879,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.239458,
+          "max_seconds": 0.239458,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.8e-05,
+          "max_seconds": 1.8e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 1,
+      "seconds": 0.21672116700210609,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003213,
+          "max_seconds": 0.003213,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.079826,
+          "max_seconds": 0.079826,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004188,
+          "max_seconds": 0.004188,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000873,
+          "max_seconds": 0.000873,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.086438,
+          "max_seconds": 0.086438,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.175011,
+          "max_seconds": 0.175011,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2e-05,
+          "max_seconds": 2e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 2,
+      "seconds": 0.2177042909897864,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003306,
+          "max_seconds": 0.003306,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.080037,
+          "max_seconds": 0.080037,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.00405,
+          "max_seconds": 0.00405,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000838,
+          "max_seconds": 0.000838,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.084487,
+          "max_seconds": 0.084487,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.173173,
+          "max_seconds": 0.173173,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.4e-05,
+          "max_seconds": 2.4e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 2,
+      "seconds": 0.28726454099523835,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003359,
+          "max_seconds": 0.003359,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.13689,
+          "max_seconds": 0.13689,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004158,
+          "max_seconds": 0.004158,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000917,
+          "max_seconds": 0.000917,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.081754,
+          "max_seconds": 0.081754,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.245229,
+          "max_seconds": 0.245229,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.8e-05,
+          "max_seconds": 1.8e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 3,
+      "seconds": 0.29028300000936724,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.00332,
+          "max_seconds": 0.00332,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.132486,
+          "max_seconds": 0.132486,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004189,
+          "max_seconds": 0.004189,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000898,
+          "max_seconds": 0.000898,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.089229,
+          "max_seconds": 0.089229,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.248189,
+          "max_seconds": 0.248189,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2e-05,
+          "max_seconds": 2e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 3,
+      "seconds": 0.2218360420083627,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003419,
+          "max_seconds": 0.003419,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.084516,
+          "max_seconds": 0.084516,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.00437,
+          "max_seconds": 0.00437,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000903,
+          "max_seconds": 0.000903,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.085661,
+          "max_seconds": 0.085661,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.179369,
+          "max_seconds": 0.179369,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.5e-05,
+          "max_seconds": 2.5e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 4,
+      "seconds": 0.22062387500773184,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003483,
+          "max_seconds": 0.003483,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.079506,
+          "max_seconds": 0.079506,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004151,
+          "max_seconds": 0.004151,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000881,
+          "max_seconds": 0.000881,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.089886,
+          "max_seconds": 0.089886,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.178376,
+          "max_seconds": 0.178376,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 3.6e-05,
+          "max_seconds": 3.6e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 4,
+      "seconds": 0.297797332983464,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003818,
+          "max_seconds": 0.003818,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.133202,
+          "max_seconds": 0.133202,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004177,
+          "max_seconds": 0.004177,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000896,
+          "max_seconds": 0.000896,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.093454,
+          "max_seconds": 0.093454,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.253757,
+          "max_seconds": 0.253757,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.6e-05,
+          "max_seconds": 2.6e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 5,
+      "seconds": 0.2931516249955166,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003494,
+          "max_seconds": 0.003494,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.137889,
+          "max_seconds": 0.137889,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004403,
+          "max_seconds": 0.004403,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000972,
+          "max_seconds": 0.000972,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.084742,
+          "max_seconds": 0.084742,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.249691,
+          "max_seconds": 0.249691,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.1e-05,
+          "max_seconds": 2.1e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 5,
+      "seconds": 0.21704449999378994,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003197,
+          "max_seconds": 0.003197,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.078329,
+          "max_seconds": 0.078329,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004008,
+          "max_seconds": 0.004008,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000818,
+          "max_seconds": 0.000818,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.088327,
+          "max_seconds": 0.088327,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.175104,
+          "max_seconds": 0.175104,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.5e-05,
+          "max_seconds": 2.5e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 6,
+      "seconds": 0.222279667010298,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003393,
+          "max_seconds": 0.003393,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.079675,
+          "max_seconds": 0.079675,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004302,
+          "max_seconds": 0.004302,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000847,
+          "max_seconds": 0.000847,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.08882,
+          "max_seconds": 0.08882,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.17748,
+          "max_seconds": 0.17748,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.2e-05,
+          "max_seconds": 2.2e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 6,
+      "seconds": 0.29137308400822803,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003146,
+          "max_seconds": 0.003146,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.133043,
+          "max_seconds": 0.133043,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004127,
+          "max_seconds": 0.004127,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000896,
+          "max_seconds": 0.000896,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.089701,
+          "max_seconds": 0.089701,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.249017,
+          "max_seconds": 0.249017,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.6e-05,
+          "max_seconds": 2.6e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 7,
+      "seconds": 0.28866612500860356,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003294,
+          "max_seconds": 0.003294,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.136344,
+          "max_seconds": 0.136344,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004272,
+          "max_seconds": 0.004272,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000959,
+          "max_seconds": 0.000959,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.083396,
+          "max_seconds": 0.083396,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.246581,
+          "max_seconds": 0.246581,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.9e-05,
+          "max_seconds": 1.9e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 7,
+      "seconds": 0.22492833298747428,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003425,
+          "max_seconds": 0.003425,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.080489,
+          "max_seconds": 0.080489,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004357,
+          "max_seconds": 0.004357,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000867,
+          "max_seconds": 0.000867,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.088037,
+          "max_seconds": 0.088037,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.177677,
+          "max_seconds": 0.177677,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 2.4e-05,
+          "max_seconds": 2.4e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "candidate",
+      "newer_generations": 1,
+      "pair": 8,
+      "seconds": 0.21590070801903494,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.003768,
+          "max_seconds": 0.003768,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.078914,
+          "max_seconds": 0.078914,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004046,
+          "max_seconds": 0.004046,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000814,
+          "max_seconds": 0.000814,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.08405,
+          "max_seconds": 0.08405,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.172048,
+          "max_seconds": 0.172048,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 1.8e-05,
+          "max_seconds": 1.8e-05,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    },
+    {
+      "variant": "baseline",
+      "newer_generations": 1,
+      "pair": 8,
+      "seconds": 0.29438049998134375,
+      "canonical_sha256": "9616f63207fa5d24ad130da39568ccd7f606e53ea3a45f70cc7cb66554dc9242",
+      "authenticated_size": 1979364,
+      "phases": {
+        "history_checkout": {
+          "calls": 1,
+          "seconds": 1e-06,
+          "max_seconds": 1e-06,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_identity_checkpoint": {
+          "calls": 1,
+          "seconds": 0.00327,
+          "max_seconds": 0.00327,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_exact_revisions": {
+          "calls": 1,
+          "seconds": 0.140393,
+          "max_seconds": 0.140393,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_latest_receipts": {
+          "calls": 1,
+          "seconds": 0.004352,
+          "max_seconds": 0.004352,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_newer_revisions": {
+          "calls": 1,
+          "seconds": 0.000935,
+          "max_seconds": 0.000935,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_projections": {
+          "calls": 1,
+          "seconds": 0.083007,
+          "max_seconds": 0.083007,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_transaction": {
+          "calls": 1,
+          "seconds": 0.25154,
+          "max_seconds": 0.25154,
+          "requests": 0,
+          "logical_bytes": 0
+        },
+        "history_release": {
+          "calls": 1,
+          "seconds": 0.000235,
+          "max_seconds": 0.000235,
+          "requests": 0,
+          "logical_bytes": 0
+        }
+      }
+    }
+  ],
+  "summary": {
+    "0": {
+      "baseline": {
+        "mean_seconds": 0.29291897912480636,
+        "median_seconds": 0.2928293749864679,
+        "min_seconds": 0.2856793750252109,
+        "max_seconds": 0.3005436660023406
+      },
+      "candidate": {
+        "mean_seconds": 0.21840444262124947,
+        "median_seconds": 0.21878845800529234,
+        "min_seconds": 0.20997774999705143,
+        "max_seconds": 0.223175999999512
+      }
+    },
+    "1": {
+      "baseline": {
+        "mean_seconds": 0.2907435884953884,
+        "median_seconds": 0.29082804200879764,
+        "min_seconds": 0.2830324999813456,
+        "max_seconds": 0.297797332983464
+      },
+      "candidate": {
+        "mean_seconds": 0.21962982287732302,
+        "median_seconds": 0.2191640829987591,
+        "min_seconds": 0.21590070801903494,
+        "max_seconds": 0.22492833298747428
+      }
+    }
+  },
+  "guards": [
+    {
+      "variant": "baseline",
+      "guard": "bounded_envelope_suppression",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "wrong_generation",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "wrong_role_identity",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "cross_origin_expected_page",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "canonical_expected_bytes_mismatch",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "corrupt_receipt_payload_hash",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "corrupt_receipt_envelope_hash",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "corrupt_receipt_content_hash",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "noncanonical_envelope",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "corrupt_newer_current_projection",
+      "passed": true
+    },
+    {
+      "variant": "baseline",
+      "guard": "corrupt_newer_envelope_receipt",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "bounded_envelope_suppression",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "wrong_generation",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "wrong_role_identity",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "cross_origin_expected_page",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "canonical_expected_bytes_mismatch",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "corrupt_receipt_payload_hash",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "corrupt_receipt_envelope_hash",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "corrupt_receipt_content_hash",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "noncanonical_envelope",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "corrupt_newer_current_projection",
+      "passed": true
+    },
+    {
+      "variant": "candidate",
+      "guard": "corrupt_newer_envelope_receipt",
+      "passed": true
+    }
+  ],
+  "request_timeout_seconds": 4,
+  "formats": "text in both arms",
+  "connections": "fresh in both arms",
+  "indexed_latest": true
+}

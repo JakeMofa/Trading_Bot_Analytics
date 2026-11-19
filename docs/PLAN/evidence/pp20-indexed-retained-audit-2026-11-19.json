@@ -1,0 +1,166 @@
+{
+  "status": "HOLD",
+  "reason": "archive_limit",
+  "source_sha": "b7b4c9f1eae351c0dde1eafbd27f64571be5aa5a",
+  "image_id": "sha256:711fcb3f0267cd8214dafbe2c183b6569a3cec1ccb40cb79f15a8af3bb5366ea",
+  "controller_sha256": "1e10e1064d37a1629098d90793d3ad7719d127368881b8305f49ce8c1a4907c5",
+  "profile": "isolated_pp20_image_failed_cd_apps_fenced",
+  "cd_gates_passed": false,
+  "first_page_rows": 500,
+  "first_page_succeeded": true,
+  "first_page_seconds": 2.729234,
+  "outer_elapsed_seconds": 244.46,
+  "original_trial_satisfied": false,
+  "retirement_authorized": false,
+  "first_page_latest_receipts_seconds": 0.133765,
+  "phase_accounting": {
+    "diagnostics_unavailable": false,
+    "elapsed_seconds": 239.607621,
+    "exhausted_limit": null,
+    "failed_phase": "history_checkout",
+    "logical_bytes": 53777944,
+    "nested_phase_totals_overlap": true,
+    "phases": {
+      "history_checkout": {
+        "calls": 64,
+        "logical_bytes": 0,
+        "max_seconds": 0.31695,
+        "requests": 0,
+        "seconds": 0.717618
+      },
+      "history_connect": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 0.316479,
+        "requests": 0,
+        "seconds": 0.617769
+      },
+      "history_exact_revisions": {
+        "calls": 62,
+        "logical_bytes": 0,
+        "max_seconds": 2.757722,
+        "requests": 0,
+        "seconds": 71.051815
+      },
+      "history_identity_checkpoint": {
+        "calls": 62,
+        "logical_bytes": 0,
+        "max_seconds": 0.392821,
+        "requests": 0,
+        "seconds": 12.379639
+      },
+      "history_latest_receipts": {
+        "calls": 62,
+        "logical_bytes": 0,
+        "max_seconds": 0.133765,
+        "requests": 0,
+        "seconds": 3.437949
+      },
+      "history_newer_revisions": {
+        "calls": 62,
+        "logical_bytes": 0,
+        "max_seconds": 0.197758,
+        "requests": 0,
+        "seconds": 6.252335
+      },
+      "history_projections": {
+        "calls": 62,
+        "logical_bytes": 0,
+        "max_seconds": 0.392676,
+        "requests": 0,
+        "seconds": 9.169264
+      },
+      "history_release": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 5.3e-05,
+        "requests": 0,
+        "seconds": 0.001456
+      },
+      "history_transaction": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 3.835938,
+        "requests": 0,
+        "seconds": 116.151599
+      },
+      "inventory": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 15.789055,
+        "requests": 0,
+        "seconds": 15.789055
+      },
+      "local_finish": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.000555,
+        "requests": 0,
+        "seconds": 0.000555
+      },
+      "local_open": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.098854,
+        "requests": 0,
+        "seconds": 0.098854
+      },
+      "raw_auth_token": {
+        "calls": 57,
+        "logical_bytes": 0,
+        "max_seconds": 0.80019,
+        "requests": 1,
+        "seconds": 0.800687
+      },
+      "raw_local_compare": {
+        "calls": 57,
+        "logical_bytes": 0,
+        "max_seconds": 0.696166,
+        "requests": 0,
+        "seconds": 16.050349
+      },
+      "raw_read_decode": {
+        "calls": 57,
+        "logical_bytes": 3623081,
+        "max_seconds": 2.157903,
+        "requests": 58,
+        "seconds": 28.143739
+      },
+      "structured_compare": {
+        "calls": 62,
+        "logical_bytes": 0,
+        "max_seconds": 0.797994,
+        "requests": 0,
+        "seconds": 11.398559
+      },
+      "structured_local_page": {
+        "calls": 63,
+        "logical_bytes": 0,
+        "max_seconds": 0.807024,
+        "requests": 0,
+        "seconds": 17.441148
+      },
+      "structured_readback": {
+        "calls": 63,
+        "logical_bytes": 50154863,
+        "max_seconds": 4.434848,
+        "requests": 63,
+        "seconds": 149.945141
+      }
+    },
+    "remaining_seconds": 0.392458,
+    "requests": 122,
+    "sqlstate": null
+  },
+  "limits": {
+    "seconds": 240,
+    "per_page_seconds": 4,
+    "requests": 192,
+    "logical_bytes": 134217728
+  },
+  "completed": {
+    "structured_pages": 62,
+    "structured_pages_required": 63,
+    "raw_objects": 57
+  }
+}

@@ -145,7 +145,8 @@ class ConfigTests(unittest.TestCase):
             live['services'][name]['environment'].update(
                 TRADEBOT_DATA_MODE='pp_live',TRADEBOT_ORIGIN_ID='pp-live-pp')
         live['services']['lifecycle']['environment'].update(
-            TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets')
+            TRADEBOT_PP_LIVE_LIFECYCLE='true', TRADEBOT_PP_WINDOW_POLICY='two-official-markets',
+            TRADEBOT_GENERATED_LOCAL_STORAGE='false')
         live['services']['operator']['environment'].update(
             TRADEBOT_PP_LIVE_CONTROL='true',TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
         live['services']['operator']['secrets'].append({'source':'app_dsn','target':'app_dsn'})
@@ -154,6 +155,7 @@ class ConfigTests(unittest.TestCase):
             lambda row:row['services']['lifecycle']['environment'].update(TRADEBOT_QUALIFIED_GENERATION_BYTES='1'),
             lambda row:row['services']['api']['environment'].update(ENABLE_OPENAI_ANALYST='true'),
             lambda row:row['services']['lifecycle']['environment'].update(ENABLE_LOCAL_RETENTION='true'),
+            lambda row:row['services']['lifecycle']['environment'].update(TRADEBOT_GENERATED_LOCAL_STORAGE='true'),
             lambda row:row['services']['operator']['secrets'].pop(),
             lambda row:row['services']['api']['environment'].update(TRADEBOT_ORIGIN_ID='generated-pp'),
             lambda row:row['services']['operator']['ports'][0].update(host_ip='0.0.0.0'),
@@ -378,6 +380,38 @@ class ActionTests(unittest.TestCase):
                 self.actions.migrate(self.context,self.budget)
         self.assertFalse(self.actions.migrated)
 
+    def test_generated_storage_inventory_uses_reader_before_and_after_upgrade(self):
+        for installed in (False,True):
+            with self.subTest(installed=installed):
+                def application(_,query):
+                    self.assertNotIn('generated_outbox_storage',query)
+                    self.assertTrue(query.startswith('SELECT to_regclass('))
+                    return 'f'
+                def reader(_,query):
+                    self.assertIn('archive.generated_outbox_storage',query)
+                    if query.startswith('SELECT to_regclass('):return 't' if installed else 'f'
+                    self.assertIn("encode(sha256(envelope),'hex')",query)
+                    self.assertIn('stored_at',query)
+                    self.assertIn('GROUP BY page',query)
+                    return json.dumps({'count':2,'digest':'a'*64})
+                with patch.object(self.actions,'_sql',side_effect=application), \
+                     patch.object(self.actions,'_reader_sql',side_effect=reader) as read:
+                    inventory=self.actions._inventory(self.budget)
+                self.assertEqual(inventory['archive.generated_outbox_storage'],
+                                 {'count':2,'digest':'a'*64} if installed else None)
+                self.assertEqual(read.call_count,2 if installed else 1)
+
+    def test_generated_storage_inventory_authenticates_reader_read_only(self):
+        self.actions.pg_id=CID
+        self.budget.responses=[b't\n']
+        self.assertEqual(self.actions._reader_sql(self.budget,'SELECT true'),'t')
+        args,kwargs=self.budget.calls[0]
+        self.assertEqual(args[:4],['docker','exec','-i',CID])
+        self.assertIn('cat /run/secrets/reader',args[-1])
+        self.assertIn('-U tradebot_reader',args[-1])
+        self.assertEqual(kwargs['input'],b"BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; SELECT true; COMMIT;")
+        self.assertEqual(kwargs['timeout'],20)
+
     def test_outbox_inventory_checks_12779_rows_across_two_origins_after_oneoff(self):
         calls=[]
         def sql(_,query):
@@ -391,7 +425,8 @@ class ActionTests(unittest.TestCase):
             if "WHERE origin_id='pp-live-pp'" in query:
                 return json.dumps({'count':5268,'pending':5268,'digest':'b'*64})
             raise AssertionError('unexpected inventory query')
-        with patch.object(self.actions,'_sql',side_effect=sql):
+        with patch.object(self.actions,'_sql',side_effect=sql), \
+             patch.object(self.actions,'_reader_sql',side_effect=sql):
             original=self.actions._inventory(self.budget)
             self.actions.before_migration=original
             self.actions.fence_started=True
@@ -473,11 +508,18 @@ class ActionTests(unittest.TestCase):
             with self.assertRaisesRegex(c.DeploymentHold,'migration_recovery_evidence_changed'):
                 self.actions.recover(replace(self.context,failed_stage='migrate',migration_started=True),self.budget)
 
+    def test_start_holds_before_services_without_verified_generated_headroom(self):
+        self.actions.migrated=True
+        self.budget.responses=[b'{"retirement":"off","archive":"held_no_qualified_transport"}']
+        with self.assertRaisesRegex(c.DeploymentHold,'generated_durable_headroom_not_proven'):
+            self.actions.start(self.context,self.budget)
+        self.assertFalse(any('--force-recreate' in args for args,_ in self.budget.calls))
+
     def test_start_requires_migration_and_never_starts_postgres(self):
         with self.assertRaisesRegex(c.DeploymentHold,'explicit_migration_required'):
             self.actions.start(self.context,self.budget)
         self.actions.migrated=True
-        self.budget.responses=[b'{"retirement":"off","archive":"held_no_qualified_transport"}',b'']
+        self.budget.responses=[json.dumps({'retirement':'off','archive':'held_no_qualified_transport','generated_storage':{'scope':'durable_generated_local_storage','headroom':128,'pending':9872,'raw_retirement_authorized':False,'cloud_receipts':False}}).encode(),b'']
         self.actions.start(self.context,self.budget)
         commands=[args for args,_ in self.budget.calls]
         self.assertIn('--bootstrap',commands[0])
@@ -687,7 +729,7 @@ class ActionTests(unittest.TestCase):
 
     def test_smoke_proves_api_only_restart_freshness_and_ack_anchor(self):
         self.actions.migrated=True;self.actions.pg_id=CID
-        acceptance={'status':'pass','scope':'generated_local_api','origin_id':'generated-pp','collector_enabled':False,
+        acceptance={'status':'pass','scope':'generated_local_api','generated_headroom_verified':True,'origin_id':'generated-pp','collector_enabled':False,
                     'sse_connections':2,'acknowledged_events':21,'api_max_seconds':.01,
                     **dict.fromkeys(('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit','dashboard_contract','bounded_chart','prediction_history'),True)}
         anchor={'fresh':True,'market_identity':True,'collector_disabled':True,'schema_verified':True,
@@ -709,7 +751,7 @@ class ActionTests(unittest.TestCase):
 
     def test_smoke_reseeds_only_expired_generated_market_and_keeps_old_anchor(self):
         self.actions.migrated=True;self.actions.pg_id=CID
-        acceptance={'status':'pass','scope':'generated_local_api','origin_id':'generated-pp','collector_enabled':False,
+        acceptance={'status':'pass','scope':'generated_local_api','generated_headroom_verified':True,'origin_id':'generated-pp','collector_enabled':False,
                     'sse_connections':2,'acknowledged_events':21,'api_max_seconds':.01,
                     **dict.fromkeys(('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
                                       'dashboard_contract','bounded_chart','prediction_history'),True)}
@@ -733,7 +775,7 @@ class ActionTests(unittest.TestCase):
 
     def test_smoke_unknown_probe_failure_is_not_reseeded(self):
         self.actions.migrated=True
-        acceptance={'status':'pass','scope':'generated_local_api','origin_id':'generated-pp','collector_enabled':False,
+        acceptance={'status':'pass','scope':'generated_local_api','generated_headroom_verified':True,'origin_id':'generated-pp','collector_enabled':False,
                     'sse_connections':2,'acknowledged_events':21,'api_max_seconds':.01,
                     **dict.fromkeys(('conflict_detected','exact_decimal_roundtrip','api_ram_after_commit',
                                       'dashboard_contract','bounded_chart','prediction_history'),True)}

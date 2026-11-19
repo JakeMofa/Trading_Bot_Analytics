@@ -43,6 +43,8 @@ def validate_raw_archive_profile(base: dict, live: dict, probe: dict, source, im
     for name in (*CLOUD_FILES, 'probe_local_dsn'):
         expected['secrets'][name] = deepcopy(probe['secrets'][name])
     service = deepcopy(base['services']['lifecycle'])
+    # Generated-only local storage is absent (default OFF) in cloud probes.
+    service['environment'].pop('TRADEBOT_GENERATED_LOCAL_STORAGE',None)
     service['command'] = ['python', '-m', 'postgres.pp_raw_archive_probe']
     service['user'] = '0:0'
     service['restart'] = 'no'

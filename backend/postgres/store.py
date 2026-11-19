@@ -84,6 +84,14 @@ class Store:
         if count+reserve > maximum:
             raise StorageHold('pending outbox bound reached; preserve local evidence until verified sync')
 
+    def require_generated_headroom(self):
+        """Reject a generated acceptance before seeding when its reserve cannot fit."""
+        if self.settings.data_mode!='generated':
+            raise StorageHold('generated acceptance headroom is unavailable in other modes')
+        from .generated_storage import HEADROOM
+        with self.connection() as db:
+            self._admit(db,HEADROOM)
+
     def _locked_writer(self, db):
         # Lock the pointer before looking up its generation. A joined SELECT can
         # start on the old generation snapshot, wait for a concurrent switch,
@@ -381,18 +389,30 @@ class Store:
         now = timestamp(now or utcnow())
         price,_ = self.inputs(market_id,now)
         with self.connection(True) as db:
-            feature = db.execute('''SELECT * FROM core.feature_snapshots WHERE origin_id=%s AND market_id=%s AND as_of<=%s
-                ORDER BY as_of DESC,snapshot_id DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
-            prediction = db.execute('''SELECT * FROM core.predictions WHERE origin_id=%s AND market_id=%s AND as_of<=%s
-                ORDER BY as_of DESC,prediction_id DESC LIMIT 1''',(self.origin,market_id,now)).fetchone()
+            # One statement snapshot binds the saved forecast to exactly the
+            # selected feature, even if a calculation commits during hydration.
+            # LEFT JOIN preserves a newer feature with no forecast; never borrow
+            # an older forecast. Keep native numeric columns for exact decoding.
+            pair = db.execute('''SELECT f.snapshot_id AS feature_snapshot_id,
+                f.as_of AS feature_as_of,f.values_json,f.quality_json,p.*
+                FROM (SELECT * FROM core.feature_snapshots
+                    WHERE origin_id=%s AND market_id=%s AND as_of<=%s
+                    ORDER BY as_of DESC,snapshot_id DESC LIMIT 1) f
+                LEFT JOIN LATERAL (SELECT * FROM core.predictions
+                    WHERE origin_id=f.origin_id AND snapshot_id=f.snapshot_id
+                    ORDER BY prediction_id DESC LIMIT 1) p ON true''',
+                (self.origin,market_id,now)).fetchone()
             quote = db.execute('''SELECT * FROM raw.events WHERE origin_id=%s AND market_id=%s AND source='polymarket_us'
                 AND kind='quote' AND available_at<=%s AND received_at<=%s ORDER BY received_at DESC,event_id DESC LIMIT 1''',
                 (self.origin,market_id,now,now)).fetchone()
-        feature = json_value({'snapshot_id':feature['snapshot_id'],'market_id':market_id,'as_of':feature['as_of'],
-                              'values':feature['values_json'],'quality':feature['quality_json']}) if feature else None
+        feature = json_value({'snapshot_id':pair['feature_snapshot_id'],'market_id':market_id,'as_of':pair['feature_as_of'],
+                              'values':pair['values_json'],'quality':pair['quality_json']}) if pair else None
         quote = json_value({**quote['payload']['data'],'market_id':market_id,'source_time':quote['source_time'],
                             'received_at':quote['received_at'],'provenance':quote['payload'].get('provenance',{})}) if quote else None
-        prediction = json_value(prediction) if prediction else None
+        prediction = None
+        if pair and pair['prediction_id'] is not None:
+            prediction = json_value({key:value for key,value in pair.items()
+                                     if key not in ('feature_snapshot_id','feature_as_of','values_json','quality_json')})
         return price,quote,feature,prediction
 
     def predictions(self, limit=100):

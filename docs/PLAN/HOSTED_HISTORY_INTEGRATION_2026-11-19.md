@@ -4,7 +4,8 @@ Reviewed November 19, 2026. Decision: keep current hot RAM/local PostgreSQL and
 private `history_v2`/authenticated raw Storage. Prototype only an explicit bounded
 structured cold read over known immutable revisions. Do not add a Data API
 surface, deploy RPC, create replication slots, change permissions, activate a
-paid feature or promote this candidate during the pp17 freeze.
+paid feature or promote a runtime during the pp17 freeze. Source-only merge was subsequently
+unlocked by the release owner for PRs 157–160; installed runtime stays pinned.
 
 ## Evidence and actual application gap
 
@@ -153,4 +154,27 @@ or pooler connections; use modern client TLS rather than weaken checks.
 No CLI upgrade/migration/install was used. November 4 CLI v3 changes and the
 September Pipelines rename are relevant to future tooling, not executed here.
 All research is read-only. This branch is separate from pp17 release evidence
-and must remain unmerged during that freeze.
+and does not unlock runtime, cloud or deployment changes.
+
+## CPU and memory clarification
+
+The captured 2% value is CPU utilization from the last-day overview; the
+last-hour database report separately showed 2.21%. Low CPU is not a fault or
+proof the memory warning is false. The memory commitment chart tracks Linux
+allocation promises against the commit limit, including pages not yet backed
+by RAM. It differs from the captured 395.83 MB memory-usage chart value; the
+1.19 GB Severe commitment warning is not evidence that 1.19 GB is resident.
+Review the same time window's commitment/limit trend, available RAM, sustained
+swap, OOM/restart logs and connection/query concurrency before attributing a
+sync issue or changing compute. [Report metric definitions](https://supabase.com/docs/guides/observability/reports)
+
+Official docs recommend paid-organization Nano → Micro at the same compute
+price when convenient; the dashboard showed that offer. A resize incurs
+downtime, usually under two minutes but potentially longer. A planned upgrade
+can address capacity risk after the trial, while connection/request latency
+remains a separate measurement. No upgrade was performed or authorized here.
+[Compute upgrades](https://supabase.com/docs/guides/platform/compute-and-disk)
+
+Compute billing follows running hours rather than CPU activity, and spend cap
+does not cover compute hours. The two displayed $0.01344/hour offers do not mean
+a paused workload costs nothing. [Compute billing](https://supabase.com/docs/guides/platform/manage-your-usage/compute)

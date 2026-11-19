@@ -7,7 +7,7 @@ on:
         description: Enter or leave the OFF live profile, or control one bounded session
         required: true
         type: choice
-        options: [enter, leave, on, off]
+        options: ['enter', 'leave', 'on', 'off']
       source_branch:
         description: Exact source branch for enter; leave uses prior deployment proof
         required: false

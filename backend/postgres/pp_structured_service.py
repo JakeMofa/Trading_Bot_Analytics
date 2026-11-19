@@ -11,6 +11,7 @@ from .history_v2_transport import HistoryV2PostgresTransport
 from .lifecycle import LifecycleRepository
 from .migrate import validate_schema
 from .pp_history_connection import PPHistoryConnectionFactory
+from .pp_history_session import ReusablePPHistoryConnectionFactory, session_reuse_requested
 from .pp_structured_drain import DrainLimits, drain_bounded
 from .pp_structured_probe import LOCAL_DSN, MAX_PENDING, ORIGIN, check_environment, private_dsn, retain_revisions
 
@@ -53,8 +54,11 @@ def main():
     def emit(event):
         print(json.dumps(event, sort_keys=True), flush=True)
 
+    remote = None
+    reuse = False
     try:
         check_environment(os.environ, recurring=True)
+        reuse = session_reuse_requested(os.environ)
         dsn = private_dsn(LOCAL_DSN)
 
         def local():
@@ -66,7 +70,8 @@ def main():
             validate_schema(conn, 'preprod')
         repo = LifecycleRepository(local, environment='preprod', pending_outbox_limit=MAX_PENDING)
         capture = retain_revisions(os.environ)
-        remote = PPHistoryConnectionFactory()
+        remote = (ReusablePPHistoryConnectionFactory() if reuse
+                  else PPHistoryConnectionFactory())
 
         def transport(generation, *, timeout_seconds):
             return HistoryV2PostgresTransport(remote, origin_id=ORIGIN,
@@ -82,6 +87,9 @@ def main():
     except Exception:
         emit(dict(status='hold', reason='structured_startup_failed'))
         return 1
+    finally:
+        if reuse and remote is not None:
+            remote.close()
 
 
 if __name__ == '__main__':

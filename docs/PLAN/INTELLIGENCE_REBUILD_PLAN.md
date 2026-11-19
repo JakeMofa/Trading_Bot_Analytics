@@ -1,3 +1,17 @@
+## November 19 UTC — hosted candidate reconciled with PP18 source
+
+The cold-history candidate was reviewed against preprod `7338c057`, preserving
+both the hosted research and Coinbase timing evidence. Default API construction
+registers no structured-history route; the optional reader remains unconfigured.
+No workflow, cloud setting, deployment or pinned PP18 runtime changed.
+
+The reconciled backend passed **372 tests, 46 explicit skips**. A fresh disposable
+local PostgreSQL 17 fixture passed **75 combined cold-reader/shared history
+transport tests, three unrelated fixture skips**, including exact envelope
+readback and receipt metadata bounds; its owned server was stopped. These local
+checks do not qualify hosted credentials, live activation or sustained headroom.
+Exact source CI remains a separate merge gate.
+
 ## November 19 UTC — cold-history edge-case review and bounded dispatch
 
 After reconciling preprod `74a850b` (including the separate rollover fix), the
@@ -81,6 +95,25 @@ performs no cloud writes or live control actions. No merge/deploy is implied.
 [17-capability matrix](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md) ·
 [Browser coverage](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md) ·
 [Timestamped evidence](evidence/hosted-supabase-investigation-2026-11-19.json)
+
+## November 19 UTC — offline Coinbase delay diagnosis and timing candidate
+
+The07:10:14pp.17 sample had40.960s source→application-dequeue delay and only0.671s
+receipt→API delay. Event IDs advanced during the incident;515rawprices drained
+across40.498receipt-seconds but15.529source-seconds. Serial sink backpressure is
+supported as an inference, not a proven attribution to local DB vs upstream/TCP.
+A reconnect or packet loss is not established by the later trade-ID jump.
+
+A separate defaultOFF `TRADEBOT_PP_COINBASE_TIMING=true` candidate adds bounded
+parser-ingress/dequeue/actual-worker-save timing and fixed reconnect diagnostics.
+It preserves every received raw tick, original timestamps, durable ordering and
+existing reconnect limits. Seven focused tests plus344backendrun/40explicit skips
+passed; actual loopback fragmentation/heartbeat/slow-save coverage passed.
+No release, live connection or market endpoint changed. Exact source Linux CI and
+any future enabled-run evidence remain separate requirements.
+
+[Diagnosis, official references and measurement contract](PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md)
+and [captured offline evidence](evidence/pp17-coinbase-lag-0710-offline-2026-11-19.json).
 
 ## November 19 UTC — genuine new pp.17 immutable capture verified
 

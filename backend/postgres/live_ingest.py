@@ -6,6 +6,7 @@ has no process entry point and cannot enable collection by itself.
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections import deque
 from datetime import datetime, timezone
 import time
@@ -114,7 +115,16 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     await _step('polymarket_market_write', asyncio.to_thread(store.ingest, market))
     if stop.is_set():
         return None
-    quote = await _step('polymarket_bbo', fetch(client, market))
+    try:
+        quote = await _step('polymarket_bbo', fetch(client, market))
+    except LiveDiagnostic as error:
+        if error.code != 'polymarket_bbo.http_404':
+            raise
+        logging.getLogger(__name__).warning('pp_quote_unavailable reason=matching_routes_not_found')
+        return None
+    if quote is None:
+        logging.getLogger(__name__).warning('pp_quote_unavailable reason=matching_book_empty')
+        return None
     if stop.is_set():
         return None
     if quote.get('market_id') != market['market_id']:

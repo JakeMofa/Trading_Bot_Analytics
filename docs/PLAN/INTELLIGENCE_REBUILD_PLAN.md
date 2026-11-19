@@ -3784,3 +3784,25 @@ remain open. Preserve the original expired trial verdict and the generated
 records until their disposition is tested.
 [CD run](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44510969827)
 and [sanitized measurements](evidence/pp20-index-and-smoke-2026-11-19.json).
+
+### PP20 indexed retained archive replay
+
+The exact PP20 candidate image ran in an isolated read-only container while the
+failed deployment's application services were stopped and the collector was OFF.
+The candidate remained fenced from normal operation. The installed Supabase
+index passed its definition and validity checks before the replay.
+
+- The first 500-record read completed in **2.729 seconds**. The same page took
+  **4.712 seconds** on PP19. Latest-receipt selection fell from **2.051 seconds**
+  to **0.134 seconds**.
+- All **57 raw objects** matched the retained partition and **62 of 63** structured
+  pages completed. The final checkout held with **0.392 seconds** remaining in
+  the 240-second operation, at **122 requests** and **53,777,944 logical bytes**.
+  The whole replay held. The original seal deadline stayed expired and local
+  retirement remained unauthorized.
+- Exact revision reads accounted for **71.052 seconds** across the completed
+  pages. Measure receipt and revision transfer and canonical validation separately
+  before selecting a further optimization. Keep the per-page and whole-operation
+  limits.
+
+[Sanitized replay evidence](evidence/pp20-indexed-retained-audit-2026-11-19.json)

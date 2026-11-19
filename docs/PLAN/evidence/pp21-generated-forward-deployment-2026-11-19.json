@@ -1,0 +1,362 @@
+{
+  "scope": "pp21_generated_forward_bootstrap_and_normal_cd",
+  "environment": "preprod",
+  "instance": "tradebot-preprod-01",
+  "release": {
+    "format": "tradebot-source-release-v1",
+    "version": "v0.2.0-pp.21",
+    "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+    "artifact_sha256": "3afcd69a39991791db224b7858b1003ac0d3671659f55446716669ee65c3eebd",
+    "source_ci_run_id": 44560442424,
+    "publication_run_id": 44561555039,
+    "repository": "JakeMofa/Trading_Bot_Analytics",
+    "requirements_sha256": "0947c042743d11ac113cb13e67c36b43e30d5f7462d750d2d7d680ea66dbc95b",
+    "package_kind": "source-bundle-not-runtime",
+    "state": "CANDIDATE",
+    "deployed": false,
+    "acceptance_validated": false,
+    "database_changes_applied": false,
+    "database_rollback_supported": false,
+    "roadmap": "https://github.com/JakeMofa/Trading_Bot_Analytics/blob/main/docs/PLAN/INTELLIGENCE_REBUILD_PLAN.md",
+    "controls_sha": "3162d7ef75f290a7fc9e0f425ae8e02bf81d2672",
+    "source_branch": "preprod",
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:997227c31b8d43d7aa900e61274a6818528b179f9d7400d8eb470907a0f349a5"
+  },
+  "source_ci": {
+    "run_id": 44560442424,
+    "result": "PASS_GENERATED_POSTGRES_INTEGRATION",
+    "elapsed_seconds": 259.064,
+    "controller": {
+      "actual_pp_host_binding": "UNQUALIFIED",
+      "api_restart_persisted_acknowledgement": true,
+      "controller_bundle_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+      "one_use_replay_rejected": true,
+      "qualification_scope": "generated_ci_host_identity_substituted",
+      "recovery": {
+        "database_preserved": true,
+        "database_restored": false,
+        "new_acknowledgements_preserved": true,
+        "strategy": "stop_candidate_keep_database"
+      },
+      "result": {
+        "acceptance_scope": "generated_only",
+        "artifact_sha256": "3afcd69a39991791db224b7858b1003ac0d3671659f55446716669ee65c3eebd",
+        "checks": {
+          "api": "PASS",
+          "collector_ownership": "PASS",
+          "data_correctness": "PASS",
+          "disabled_flags": "PASS",
+          "freshness": "PASS",
+          "market_identity": "PASS",
+          "migration": "PASS",
+          "operator_control": "PASS",
+          "recovery": "PASS",
+          "schema": "PASS",
+          "sse": "PASS"
+        },
+        "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+        "environment": "preprod",
+        "gate": "PASS",
+        "instance": "tradebot-preprod-01",
+        "live_collector_enabled": false,
+        "paid_ai_enabled": false,
+        "production_data_mounted": false,
+        "retention_enabled": false,
+        "runtime_image_id": "sha256:29e9e9ed45e0dca5a624406286e0758667e9db12cde67b578c1985f1a6269385",
+        "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97"
+      }
+    }
+  },
+  "preprod_ci_runs": [
+    44561420990,
+    44561327799
+  ],
+  "controller_install": {
+    "authority_created": false,
+    "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+    "database_changed": false,
+    "gate": "CONTROLLER_INSTALLED_NOT_AUTHORIZED",
+    "previous_sha256": "1e10e1064d37a1629098d90793d3ad7719d127368881b8305f49ce8c1a4907c5",
+    "source_sha": "0219819cdd49ee34199566443e7a391dff8bb078"
+  },
+  "controller_identity": {
+    "run_id": 44557716430,
+    "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+    "database_changed": false,
+    "gate": "IDENTITY_PASS",
+    "instance": "tradebot-preprod-01"
+  },
+  "forward_preflight": {
+    "database_changed": false,
+    "gate": "PP20_FORWARD_PREFLIGHT_PASS",
+    "preservation": {
+      "all_outcomes": {
+        "count": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "archive.generations": {
+        "count": 2,
+        "digest": "79aa4a1777a380df51ec63d2db7ec70b8492275a2f1441c4efb0377ecd2a395c"
+      },
+      "core.candles": {
+        "count": 133,
+        "digest": "11e2516e9d53655b34ffd8f1570d7b62d3c7a223a2ed00635909a993546af2fd"
+      },
+      "core.current_prices": {
+        "count": 1,
+        "digest": "a1f2780ef08593a4bfb5c1be61fd33abd2c3cd356990b891e82dc18daf473a6d"
+      },
+      "core.feature_snapshots": {
+        "count": 775,
+        "digest": "08a853b038399a23bc6d9c134fc86b076eeff7ab136892c63c7b712b29e7ad95"
+      },
+      "core.markets": {
+        "count": 10,
+        "digest": "256c0993cfa8b8b7acbf1687fdec403a09f7d2a4bb3a2b5c1659349196022f3a"
+      },
+      "core.outcomes": {
+        "count": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "core.predictions": {
+        "count": 775,
+        "digest": "728be934cedb4129d4eb98d7fac987e2404c72454667a170c8524e1f980aed45"
+      },
+      "core.protected_evidence": {
+        "count": 1550,
+        "digest": "3eeeeb29a337e40ea1212480eb93eb20923a5a70146ac66b33c95beee119913f"
+      },
+      "core.snapshot_evidence": {
+        "count": 1550,
+        "digest": "60240d8e4a97b8787748063ba3f978d48353c4d266d6c1996cbd8e017c1eec42"
+      },
+      "generated_generations": {
+        "count": 2,
+        "digest": "666291a8f9447c97cd0f2872f34caae780820279f4e12a854823309f3a7cc614"
+      },
+      "ops.outbox": {
+        "count": 42133,
+        "digest": "f34c7e66a3bb6c20abbb8776f2734940a622f8490a698da00a556f84168158e6"
+      },
+      "ops.writer_state": {
+        "count": 1,
+        "digest": "be5c9fa72a2ac95423834fc3f6be94ecd6a69ed49bc7b8629f9b28ceb8ab4dd0"
+      },
+      "original_generated_outbox": {
+        "count": 10000,
+        "digest": "8224e824f4d95d4121909aba5fdc6b3a0f32a98c188b755aae9177f06618a170"
+      },
+      "original_raw": {
+        "count": 38510,
+        "digest": "e4d01b90f98bd7f7f2bd59e64136c70e5d3de3cfd93fed68fd3f1e63ec50a945"
+      }
+    },
+    "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+    "through_id": 52239
+  },
+  "forward_authorization": {
+    "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+    "operation": "pp20-fenced-forward-bootstrap",
+    "one_use": true,
+    "consumed": true
+  },
+  "operator_forward_bootstrap": {
+    "acceptance_scope": "operator_forward_bootstrap_only",
+    "artifact_sha256": "3afcd69a39991791db224b7858b1003ac0d3671659f55446716669ee65c3eebd",
+    "cd_acceptance": false,
+    "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+    "database_restored": false,
+    "gate": "PP20_FORWARD_BOOTSTRAP_PASS",
+    "image_id": "sha256:04e7fdcbbd0266ce8ffda9f3f493c2323fb92f2305feeacd243e93a01773c290",
+    "live_and_raw_and_outcomes_preserved": true,
+    "live_collector_enabled": false,
+    "original_generated_source_preserved": true,
+    "retirement_authorized": false,
+    "smoke": {
+      "acceptance_scope": "generated_only",
+      "checks": {
+        "api": "PASS",
+        "collector_ownership": "PASS",
+        "data_correctness": "PASS",
+        "disabled_flags": "PASS",
+        "freshness": "PASS",
+        "market_identity": "PASS",
+        "migration": "PASS",
+        "operator_control": "PASS",
+        "recovery": "PASS",
+        "schema": "PASS",
+        "sse": "PASS"
+      },
+      "live_collector_enabled": false,
+      "paid_ai_enabled": false,
+      "production_data_mounted": false,
+      "retention_enabled": false
+    },
+    "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97"
+  },
+  "normal_cd": {
+    "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+    "branch": "preprod",
+    "source_ci_run_id": 44560442424,
+    "source_ci_attempt": 1,
+    "environment": "preprod",
+    "gate": "PASS",
+    "scope": "exact-source runtime deployment and acceptance",
+    "live_collector_enabled": false,
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "instance": "tradebot-preprod-01",
+    "production_data_mounted": false,
+    "runtime_image_id": "sha256:880c013e6fd1936be6bfdf2fbd101f1b021357c45a1c454b42c6da7df7831040",
+    "acceptance_scope": "generated_only",
+    "paid_ai_enabled": false,
+    "retention_enabled": false,
+    "artifact_sha256": "3afcd69a39991791db224b7858b1003ac0d3671659f55446716669ee65c3eebd",
+    "policy_sha256": "0dd3b7176a8bfc9796abe4759a66b0f9ab83efc18f9993546a4f22de18eb2db9",
+    "release_version": "v0.2.0-pp.21",
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:997227c31b8d43d7aa900e61274a6818528b179f9d7400d8eb470907a0f349a5",
+    "controls_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97",
+    "run_id": 44562705669,
+    "run_attempt": 1,
+    "completed_at_utc": "2026-11-19T16:10:30.542466+00:00"
+  },
+  "post_cd_preservation": {
+    "controller_sha256": "9a7b10324bb9376193a7a5263efd9bd5e40818682f0e2cb77ba84d4373d9081a",
+    "cutoff_basis": "forward authorization issuance before generated services started",
+    "database": {
+      "ack_without_exact_stored": 0,
+      "live_a": 28411,
+      "live_b": 9784,
+      "outbox": [
+        {
+          "origin_id": "generated-pp",
+          "pending": 6834,
+          "total": 10416
+        },
+        {
+          "origin_id": "pp-live-pp",
+          "pending": 0,
+          "total": 42133
+        }
+      ],
+      "outcomes": 0,
+      "stored": 3582,
+      "stored_bytes": 9729232,
+      "versions": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "writers": [
+        {
+          "collector_enabled": false,
+          "collector_session_id": null,
+          "generation_id": "2ba8b503-f94a-4fbb-bfe5-04569de18435",
+          "origin_id": "generated-pp"
+        },
+        {
+          "collector_enabled": false,
+          "collector_session_id": null,
+          "generation_id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+          "origin_id": "pp-live-pp"
+        }
+      ]
+    },
+    "database_changed": false,
+    "gate": "PP21_POST_CD_PRESERVATION_PASS",
+    "image_id": "sha256:880c013e6fd1936be6bfdf2fbd101f1b021357c45a1c454b42c6da7df7831040",
+    "original_raw_cutoff": "2026-11-19 16:04:54.314543+00:00",
+    "preservation": {
+      "all_outcomes": {
+        "count": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "archive.generations": {
+        "count": 2,
+        "digest": "79aa4a1777a380df51ec63d2db7ec70b8492275a2f1441c4efb0377ecd2a395c"
+      },
+      "core.candles": {
+        "count": 133,
+        "digest": "11e2516e9d53655b34ffd8f1570d7b62d3c7a223a2ed00635909a993546af2fd"
+      },
+      "core.current_prices": {
+        "count": 1,
+        "digest": "a1f2780ef08593a4bfb5c1be61fd33abd2c3cd356990b891e82dc18daf473a6d"
+      },
+      "core.feature_snapshots": {
+        "count": 775,
+        "digest": "08a853b038399a23bc6d9c134fc86b076eeff7ab136892c63c7b712b29e7ad95"
+      },
+      "core.markets": {
+        "count": 10,
+        "digest": "256c0993cfa8b8b7acbf1687fdec403a09f7d2a4bb3a2b5c1659349196022f3a"
+      },
+      "core.outcomes": {
+        "count": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "core.predictions": {
+        "count": 775,
+        "digest": "728be934cedb4129d4eb98d7fac987e2404c72454667a170c8524e1f980aed45"
+      },
+      "core.protected_evidence": {
+        "count": 1550,
+        "digest": "3eeeeb29a337e40ea1212480eb93eb20923a5a70146ac66b33c95beee119913f"
+      },
+      "core.snapshot_evidence": {
+        "count": 1550,
+        "digest": "60240d8e4a97b8787748063ba3f978d48353c4d266d6c1996cbd8e017c1eec42"
+      },
+      "generated_generations": {
+        "count": 2,
+        "digest": "666291a8f9447c97cd0f2872f34caae780820279f4e12a854823309f3a7cc614"
+      },
+      "ops.outbox": {
+        "count": 42133,
+        "digest": "f34c7e66a3bb6c20abbb8776f2734940a622f8490a698da00a556f84168158e6"
+      },
+      "ops.writer_state": {
+        "count": 1,
+        "digest": "be5c9fa72a2ac95423834fc3f6be94ecd6a69ed49bc7b8629f9b28ceb8ab4dd0"
+      },
+      "original_generated_outbox": {
+        "count": 10000,
+        "digest": "8224e824f4d95d4121909aba5fdc6b3a0f32a98c188b755aae9177f06618a170"
+      },
+      "original_raw": {
+        "count": 38510,
+        "digest": "e4d01b90f98bd7f7f2bd59e64136c70e5d3de3cfd93fed68fd3f1e63ec50a945"
+      }
+    },
+    "source_sha": "c1da8d688dd8e9b860c473c965feb9099435ef97"
+  },
+  "history_reader_binding": {
+    "scope": "pp_raw_get_only",
+    "eligible": true,
+    "image": "sha256:880c013e6fd1936be6bfdf2fbd101f1b021357c45a1c454b42c6da7df7831040",
+    "source": "c1da8d688dd8e9b860c473c965feb9099435ef97"
+  },
+  "live_collection_performed": false,
+  "cloud_or_index_mutation_performed": false,
+  "raw_retirement_performed": false,
+  "production_changed": false,
+  "original_expired_trial_satisfied": false,
+  "real_outcomes_present": 0,
+  "limitations": [
+    "Generated acceptance only; no new real collector session or 30-minute observation performed.",
+    "No cloud capacity, browser session, ensemble/news/evaluation acceptance, or original expired A retirement qualification is inferred.",
+    "Migration4 is a forward compatibility boundary; preserve database and all genuine ACKs; older images lacking4 are incompatible."
+  ]
+}

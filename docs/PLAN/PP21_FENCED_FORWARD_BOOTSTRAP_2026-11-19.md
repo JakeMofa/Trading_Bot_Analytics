@@ -1,7 +1,8 @@
 # PP21 fenced forward bootstrap
 
-Status: operator source candidate. No migration4 or application restart on PP yet.
-The code-only controller replacement and dedicated identity check below are complete.
+Status: completed on PP at exact release source `c1da8d688dd8e9b860c473c965feb9099435ef97`.
+Migration4, the finite operator bootstrap and separate normal generated CD passed.
+Collectors remain OFF; no new live trial or retirement is qualified.
 
 ## Observed PP20 state
 
@@ -113,3 +114,55 @@ review/merge exact source, exact CI, release publication, operator preflight,
 explicit one-use forward execution, normal CD and separately bounded live work.
 
 [Sanitized precondition evidence](evidence/pp21-forward-precondition-2026-11-19.json).
+
+## Completed host execution and independent preservation
+
+The reviewed procedure from PR181 merged as `c1da8d6`. Exact source CI
+[44560442424](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44560442424)
+passed the actual isolated Linux controller in 259.064s, including API/SSE, schema,
+restart ACK persistence, consumed authority rejection and forward-preserving
+failure recovery. Exact CI Preprod 44561420990 passed. Source guard/fault controls
+and authenticated native reader SQL coverage remain distinct from actual host
+execution; the following receipts establish that host execution separately.
+
+Publication
+[44561555039](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44561555039)
+created `v0.2.0-pp.21`, artifact
+`3afcd69a39991791db224b7858b1003ac0d3671659f55446716669ee65c3eebd` and
+OCI digest `997227c31b8d43d7aa900e61274a6818528b179f9d7400d8eb470907a0f349a5`.
+The actual host preflight passed with database_changed=false and all old profile,
+ledger, exact 10,000 pending and retained A/B guards. A separate operation-scoped
+root permit was consumed. The operator applied only migration4, performed genuine
+generated storage/readback/ACK/headroom, started healthy generated services and
+passed full smoke. Its receipt correctly has cd_acceptance=false.
+
+Separate normal CD
+[44562705669](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44562705669)
+then passed every required runtime check. The final image is
+`sha256:880c013e6fd1936be6bfdf2fbd101f1b021357c45a1c454b42c6da7df7831040`.
+The earlier operator image `sha256:04e7fdcb…` is not the final deployed image.
+Both bind the same exact source/archive; the normal CD candidate is the sole
+new completed deployment used for later transitions.
+
+An independent authenticated reader check after normal CD reproduced all initial
+preservation fingerprints: all 38,510 original raw rows, all 10,000 original
+generated outbox bodies (only genuine ACK timestamps excluded), all 42,133 live
+outbox rows including ACK metadata, and all live core, A/B and writer records.
+Live A retained 28,411 raw rows and B 9,784. No outcome rows existed; the empty
+outcome set stayed unchanged. The independent original-raw cutoff was the
+forward authorization issuance, safely before generated services started; it
+reproduced the original count and digest exactly.
+
+At that snapshot generated total was 10,416, pending 6,834, headroom 3,166, and
+3,582 committed envelopes occupied 9,729,232 logical bytes. A single read-only SQL
+snapshot found zero generated ACKs lacking a matching source-equivalent stored
+envelope and valid byte hash. Both collectors were OFF with NULL sessions.
+The existing local history-reader eligibility was rebound to the final source
+and image; its credentials, grants and policy proof stayed unchanged. No cloud
+query/index/schema mutation, raw drop, production action or database restore
+was performed.
+
+This completes generated PP recovery/deployment. A new live session, 30-minute
+collector observation and any retained-A query-plan/performance work remain
+separate. Original expired A retirement/trial authority remains denied.
+[Sanitized exact receipts and fingerprints](evidence/pp21-generated-forward-deployment-2026-11-19.json).

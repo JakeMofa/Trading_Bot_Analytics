@@ -6,6 +6,8 @@ from types import SimpleNamespace
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import httpx
+from postgres.live_ingest import polymarket_cycle
 from postgres.live_supervisor import CollectorHold, run_bounded
 from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
 
@@ -29,6 +31,55 @@ class Store:
 
 
 class SupervisorTests(unittest.IsolatedAsyncioTestCase):
+    async def test_rollover_waits_for_book_while_coinbase_continues(self):
+        store = Store()
+        stop = asyncio.Event()
+        saved, requests = [], []
+        observed_empty = asyncio.Event()
+        coinbase_during_gap = asyncio.Event()
+        market = {'market_id': 'new', 'kind': 'market', 'payload': {'slug': 'new'}}
+        store.ingest = saved.append
+        async def discover(_client, _now):
+            return market
+        def reply(request):
+            requests.append(request.url.path)
+            if len(requests) <= 2:
+                return httpx.Response(404)
+            data = {'marketSlug': 'new', 'state': 'MARKET_STATE_OPEN'}
+            if len(requests) == 4:
+                raise httpx.ReadTimeout('private raw response', request=request)
+            if len(requests) == 5:
+                return httpx.Response(429)
+            if len(requests) == 6:
+                return httpx.Response(503)
+            if len(requests) == 7:
+                raise httpx.ConnectError('private transport details', request=request)
+            if len(requests) > 7:
+                data['bestAsk'] = {'value': '0.5300'}
+            return httpx.Response(200, json={'marketData': data})
+        async def cycle(s, client, st, **kw):
+            result = await polymarket_cycle(s, client, st, discover=discover, **kw)
+            if result is None:
+                observed_empty.set()
+            else:
+                self.assertTrue(coinbase_during_gap.is_set())
+                st.set()
+        async def cb(s, st):
+            await observed_empty.wait()
+            await asyncio.to_thread(s.ingest, {'kind': 'price', 'source': 'coinbase'})
+            coinbase_during_gap.set()
+            await st.wait()
+        async def candle(*_a, **_kw):
+            await stop.wait()
+        async with httpx.AsyncClient(transport=httpx.MockTransport(reply)) as client:
+            await run_bounded(store, client, stop, owner_check=lambda: True,
+                              disable_collector=store.disable, max_seconds=12,
+                              market_interval=1, market=cycle, coinbase=cb, candles=candle)
+        self.assertEqual([e['kind'] for e in saved], ['market', 'price'] + ['market'] * 6 + ['quote'])
+        self.assertEqual(saved[-1]['market_id'], 'new')
+        self.assertEqual(saved[-1]['payload']['best_ask'], '0.5300')
+        self.assertEqual(store.stops, 1)
+
     async def test_fence_failure_opens_no_source(self):
         store = Store()
         async def source(*_args, **_kwargs):

@@ -6,6 +6,7 @@ has no process entry point and cannot enable collection by itself.
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections import deque
 from datetime import datetime, timezone
 import time
@@ -21,6 +22,14 @@ COINBASE_RECONNECT_MAX_TOTAL = 12
 COINBASE_RETRYABLE = frozenset({
     'coinbase_stream.ws_closed_ok', 'coinbase_stream.ws_closed_error',
     'coinbase_stream.timeout', 'coinbase_stream.transport',
+})
+
+
+# Only a failed quote GET can be retried by the regular discovery cycle.
+# Storage, ownership, authentication and decoded data errors stay fatal.
+POLYMARKET_QUOTE_UNAVAILABLE = frozenset({
+    'polymarket_bbo.http_404', 'polymarket_bbo.http_429', 'polymarket_bbo.http_5xx',
+    'polymarket_bbo.timeout', 'polymarket_bbo.transport',
 })
 
 
@@ -114,7 +123,16 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     await _step('polymarket_market_write', asyncio.to_thread(store.ingest, market))
     if stop.is_set():
         return None
-    quote = await _step('polymarket_bbo', fetch(client, market))
+    try:
+        quote = await _step('polymarket_bbo', fetch(client, market))
+    except LiveDiagnostic as error:
+        if error.code not in POLYMARKET_QUOTE_UNAVAILABLE:
+            raise
+        logging.getLogger(__name__).warning('pp_quote_unavailable reason=%s', error.code)
+        return None
+    if quote is None:
+        logging.getLogger(__name__).warning('pp_quote_unavailable reason=matching_book_empty')
+        return None
     if stop.is_set():
         return None
     if quote.get('market_id') != market['market_id']:

@@ -1,0 +1,142 @@
+{
+  "api_sampling_errors": 0,
+  "cd": 44474562747,
+  "dashboard_sse_check_errors": 0,
+  "first_collector_off_after_on": "2026-11-19T07:15:34.882055Z",
+  "first_observed_live_at": "2026-11-19T07:06:09.346309+00:00",
+  "generation_snapshots": 20,
+  "history_after": null,
+  "history_before": {
+    "hashes": [
+      "ca70917b9aae8657618e4b32e6663146096d587b9e8c68aaeb0f4ffffc2445be",
+      "e8ae357131b71111688e2784c5431e5ecd0ba34502628ae23187e6467c30414c",
+      "dcfa88cc30dae6194a1aa0b9d71482692dea9d135a5e4f14eb6db9256819a161"
+    ],
+    "latency_ms": 140.9,
+    "row_count": 3,
+    "sha256": "f0a2925992112bda49f32fc4d484b6f97c0a11998549826494bebb087672d864",
+    "tier": "local_postgres"
+  },
+  "last_durable_state": {
+    "generations": [
+      {
+        "acknowledged": 11989,
+        "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+        "hold_reason": null,
+        "pending": 0,
+        "raw_events": 11041,
+        "relation_bytes": 20611072,
+        "retired_at": null,
+        "seal_count": null,
+        "seal_hash": null,
+        "sealed_at": null,
+        "slot": "A",
+        "state": "collecting",
+        "verified_at": null,
+        "verified_compressed_bytes": "0",
+        "verified_manifests": 0
+      }
+    ],
+    "writer": {
+      "at_utc": "2026-11-19 07:15:53.979180+00:00",
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "db": "tradebot_pp",
+      "db_bytes": 92616371,
+      "generation_id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "session": false,
+      "wal_bytes": "286201100",
+      "wal_stats_since": "2026-11-13 00:57:11.724511+00:00"
+    }
+  },
+  "last_sample": "2026-11-19T07:15:29.876355+00:00",
+  "live_api_sample_count": 113,
+  "maximum_contract_ms": {
+    "chart_latency_ms": 425.362,
+    "dashboard_latency_ms": 216.051,
+    "history_latency_ms": 241.385,
+    "sse_latency_ms": 150.725
+  },
+  "maximum_sampled": {
+    "coinbase_age_seconds": 44.133,
+    "feature_age_seconds": 5.614,
+    "health_latency_ms": 393.723,
+    "polymarket_age_seconds": null,
+    "state_latency_ms": 191.13
+  },
+  "on": 44476959330,
+  "operator_stop_cause": "polymarket_bbo.invalid_or_unavailable",
+  "prior_waveform_dispatch_422": "1ce3219 corrected enum, no session started from rejected call",
+  "publication": 44474431105,
+  "raw_received_during_stale_interval": [
+    {
+      "first_receipt": "2026-11-19 07:09:34.017559+00:00",
+      "first_source": "2026-11-19T07:09:17.513666Z",
+      "kind": "price",
+      "last_receipt": "2026-11-19 07:10:14.515699+00:00",
+      "last_source": "2026-11-19T07:09:33.042728Z",
+      "max_receipt_availability": "0.000000",
+      "n": 515,
+      "source": "coinbase"
+    },
+    {
+      "first_receipt": "2026-11-19 07:09:37.393317+00:00",
+      "first_source": "2026-11-19T07:09:10.753571557Z",
+      "kind": "quote",
+      "last_receipt": "2026-11-19 07:10:11.277318+00:00",
+      "last_source": "2026-11-19T07:10:10.708386666Z",
+      "max_receipt_availability": "0.000000",
+      "n": 6,
+      "source": "polymarket_us"
+    },
+    {
+      "first_receipt": "2026-11-19 07:09:43.183926+00:00",
+      "first_source": "2026-11-19T07:00:04Z",
+      "kind": "market",
+      "last_receipt": "2026-11-19 07:09:43.183926+00:00",
+      "last_source": "2026-11-19T07:00:04Z",
+      "max_receipt_availability": "0.000000",
+      "n": 1,
+      "source": "polymarket_us"
+    }
+  ],
+  "ready_off": 44474879676,
+  "rejected_body_retained": false,
+  "release": "v0.2.0-pp.17",
+  "resource_peak": {
+    "max_database_bytes": 91961011,
+    "wal_bytes_written_since_observation": 73233031
+  },
+  "retirement": null,
+  "source_ci": 44473926950,
+  "source_market_boundaries": [
+    {
+      "at": "2026-11-19T07:06:14.349188+00:00",
+      "end": "2026-11-19T07:15:00Z",
+      "market": "2681322"
+    }
+  ],
+  "source_sha": "1c753c6ba731d92115c2fb2d81d236e0675eb409",
+  "states": {
+    "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6": {
+      "acknowledged": 11843,
+      "compressed_bytes": "0",
+      "first_seen": "2026-11-19 07:05:43.593530+00:00",
+      "last_seen": "2026-11-19 07:15:15.624889+00:00",
+      "manifests": 0,
+      "max_raw_rows": 10934,
+      "max_relation_bytes": 20414464,
+      "pending": 39,
+      "raw": 10934,
+      "retired": null,
+      "seal": null,
+      "seal_count": null,
+      "slot": "A",
+      "transitions": {
+        "collecting": "2026-11-19 07:05:43.593530+00:00"
+      },
+      "verified": null
+    }
+  },
+  "structured_pending_highwater": 68
+}

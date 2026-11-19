@@ -8,6 +8,7 @@ from websockets.exceptions import (ConnectionClosed, ConnectionClosedOK,
                                    InvalidHandshake, InvalidStatus,
                                    WebSocketException)
 
+from .live_contract import QuoteContractError
 from .store import StorageHold
 
 
@@ -20,7 +21,8 @@ OPERATIONS = frozenset({
 CATEGORIES = frozenset({
     'timeout', 'transport', 'http_404', 'http_429', 'http_4xx', 'http_5xx',
     'http_unexpected',
-    'invalid_or_unavailable', 'identity_mismatch', 'write_rejected', 'unexpected', 'ended',
+    'invalid_or_unavailable', 'identity_mismatch', 'invalid_quote', 'invalid_source_time',
+    'response_limit', 'invalid_json', 'write_rejected', 'unexpected', 'ended',
     'lease_lost', 'deadline_reached', 'durable_off_unproven',
     'ws_closed_ok', 'ws_closed_error', 'ws_handshake_invalid', 'ws_protocol',
 })
@@ -65,7 +67,7 @@ class SourceTransportFailure(ValueError):
 
 def diagnose(operation: str, error: Exception) -> LiveDiagnostic:
     """Classify types and fixed fields only; never copy exception text."""
-    if isinstance(error, (SourceHTTPFailure, SourceTransportFailure)):
+    if isinstance(error, (SourceHTTPFailure, SourceTransportFailure, QuoteContractError)):
         category = error.category
     elif isinstance(error, InvalidStatus):
         category = _http_category(error.response.status_code)

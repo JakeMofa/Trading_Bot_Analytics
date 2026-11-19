@@ -2,6 +2,8 @@
 
 ## Current PP checkpoint — November 18, 2026
 
+The dedicated PP deployment identity verified installed controller `5b7c457296e4` from source `c9ec5e9d7a` through the pinned host route. This qualifies the controller identity used for the next PP release. Release installation, live B collection, sealed-A cloud readback and retirement have separate evidence. [PP controller identity run 44433405035](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44433405035)
+
 ### Sealed PP retirement decision
 
 After the exact A → B switch, start with the UUID of sealed A. The read-only diagnostic

@@ -163,6 +163,43 @@ Keep environment-specific prediction IDs, calculation results and local capture
 IDs independently addressable. This checkpoint adds no canonical-event schema
 or cross-origin deduplication to the archive writer.
 
+### PP retirement readback of prices that advance in B
+
+The PP diagnostic compares every requested sealed structured envelope against
+its original local record and receipt. In the same PostgreSQL read-only
+repeatable-read transaction it checks the generation checkpoint, locates the
+highest outbox ID per affected entity across this origin, verifies any newer
+revision and its own generation checkpoint, and compares the current projection
+to that authenticated revision. Missing immutable payloads, ambiguous IDs,
+changed projections, deadline expiry and insufficient read budget preserve A.
+The collector can continue writing B during the read. The generated PostgreSQL
+17 regression fetched A's historical price after B advanced the projected
+price and rejected both a corrupted projection and a missing newer envelope.
+
+The PP operator confirmed at 02:19:42 UTC on November 19 that the cloud
+revision payload table was absent. Runtime capture, migration and exact
+receipt-bound backfill have separate qualification. The last measured A had
+4,845 raw rows and a peak of 804 rows in a UTC minute. The recurring archive
+worker handles up to 500 rows per object with 128 manifests. The final proof
+currently has 24 requests, 16 MiB and 20 seconds for all raw and structured
+reads combined. A two-market run at that peak would put about 28,965 rows in
+A, requiring at least 58 raw reads alone. A 30-minute deadline and the ability
+to retire a live A remain unqualified. The diagnostic grants no deletion
+authority. The hosted privileged-mutation boundary still requires a decision.
+
+Use the same exact-target PP diagnostic with `--inventory-only` to compute a
+local preflight without contacting either cloud transport. It reports manifest
+bytes, per-object limits, exact local outbox pages when feasible, minimum
+request/envelope bytes and the conditional allowance for newer B revisions.
+An impossible minimum returns HOLD before any request. Both the inventory and
+actual readback share the existing time budget. No estimate certifies latency,
+wire-protocol overhead or remote immutability. The November 19 actual A
+inventory reported 4,845 raw rows packed into ten objects (620,549 compressed
+bytes) and 5,268 structured records. That is at least 21 read calls at 500
+records per page plus the initial PP machine authentication (22 budgeted calls). The forthcoming A seal may have different coverage. The
+native CI case uses those row counts with generated values, exercises 10 B
+commits during fresh A raw reads and keeps the local A relation.
+
 ### Exact sealed PP readback and local retirement
 
 The one-shot source command `python -m postgres.pp_retirement_verify --sealed UUID

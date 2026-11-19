@@ -690,6 +690,64 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(history.read_generation(sealed)['provenance']['tier'],'authenticated_archive')
         self.assertEqual(self.repository.switch_if_due(self.origin,RotationPolicy(1))['slot'],'A')
 
+    def test_pp_inventory_before_io_and_larger_sealed_generation_while_b_writes(self):
+        from postgres.pp_retirement_verify import Target, verify
+
+        sealed = self.first['generation_id']
+        sample = self.insert(1)
+        raw_count, structured_count = 4845, 5268
+        columns = list(sample)
+        select = ["'fixture-' || n::text" if name == 'event_id' else 's.' + name for name in columns]
+        with self.app_factory() as db:
+            db.execute(f"""INSERT INTO raw.events({','.join(columns)})
+                SELECT {','.join(select)} FROM raw.events s, generate_series(2,%s) n
+                WHERE s.generation_id=%s AND s.event_id='event-0001'""", (raw_count, sealed))
+            db.execute("""INSERT INTO ops.outbox
+                (origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at)
+                SELECT %s,%s,'fixture',n::text,repeat('1',64),jsonb_build_object('n',n),now()
+                FROM generate_series(1,%s) n""", (self.origin, sealed, structured_count))
+        collecting = self.rotate()['generation_id']
+        # Prepare already-acknowledged structured history using the generated
+        # immutable transport. The measured verification remains a fresh read.
+        limits = ArchiveLimits()
+        worker = ArchiveWorker(self.repository, self.transport, limits)
+        with self.factory() as db:
+            after = 0
+            while rows := self.repository._pending(db, sealed, limits.max_rows, after_id=after):
+                self.transport.put_structured(worker.structured_records(rows), timeout_seconds=4)
+                after = rows[-1]['id']
+            db.execute('UPDATE ops.outbox SET acknowledged_at=now() WHERE generation_id=%s', (sealed,))
+        for _ in range(12):
+            if worker.archive_cycle(sealed)['status'] == 'archived':
+                break
+        target = Target(sealed, collecting, self.repository.generation(sealed)['seal_hash'], raw_count)
+        self.transport.origin_id, self.transport.generation_id = self.origin, sealed
+        baseline = len(self.transport.calls)
+        held = verify(self.repository, self.transport, target, origin=self.origin,
+                      limits=replace(limits, max_requests=20))
+        self.assertEqual((held['status'], held['inventory']['requests_minimum']), ('HOLD', 21))
+        self.assertEqual(len(self.transport.calls), baseline)
+        estimate = verify(self.repository, None, target, origin=self.origin, inventory_only=True)
+        self.assertEqual(len(self.transport.calls), baseline)
+        costs = estimate['inventory']
+        self.assertEqual((costs['raw_objects'], costs['structured_pages_examined']), (10, 11))
+        from postgres.pp_retirement_verify import inventory
+        with CycleBudget(limits) as budget, self.repository.retirement(sealed) as (db, _, manifests):
+            cold = inventory(db, sealed, manifests, budget, fresh_machine_session=True)
+        self.assertEqual((cold['auth_calls_reserved'], cold['requests_minimum']), (1, 22))
+        self.assertEqual(costs['structured_rows'], structured_count)
+        self.assertTrue(costs['structured_inventory_complete'])
+        first_read = self.transport.read_authenticated
+        def read_while_collecting(*args, **kwargs):
+            self.insert(10_000 + len(self.transport.calls))
+            return first_read(*args, **kwargs)
+        self.transport.read_authenticated = read_while_collecting
+        proof = verify(self.repository, self.transport, target, origin=self.origin)
+        self.assertEqual((proof['requests'], proof['bytes']), (21, costs['bytes_minimum']))
+        self.assertEqual(proof['opposite_slot_new_rows'], 10)
+        self.assertFalse(proof['retirement_authorized'])
+        self.assert_partition_present(self.first)
+
     def test_a_b_a_reuse_new_generation_ids_and_history_after_real_drop(self):
         original = [self.insert(index) for index in range(7)]
         switched = self.rotate()

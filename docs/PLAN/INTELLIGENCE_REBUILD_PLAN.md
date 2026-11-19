@@ -1,3 +1,51 @@
+## November 19 UTC — Supabase dashboard audit, observation only
+
+Completed a read-only page-by-page dashboard inspection covering database schema,
+functions/triggers/types/extensions/indexes/publications/policies/migrations,
+storage and signing metadata, Auth settings, services, metrics/logs and integrations.
+[Sanitized coverage, baselines and limitations](evidence/supabase-dashboard-audit-2026-11-19.json)
+records which pages actually loaded; it contains no keys, DSNs or user identities.
+No project configuration, data, credentials, deployment or paid feature changed.
+
+**Decision:** retain local RAM/indexed PostgreSQL hot reads and explicit background
+Supabase history/raw retrieval. The last-day overview showed CPU 2%, disk 21%,
+IO balance 99%, peak 8/60 connections; recent raw HTTP examples took 893–972 ms while
+legacy public SQL means rounded to 0–1 ms. These are different windows/workloads,
+not a PP throughput benchmark, but reinforce measuring connection setup,
+round trips and exact receipt/object verification before adding services.
+Current connection reuse evidence below remains the actual bounded PP comparison.
+
+**Followups remain OPEN, with no changes during the pp17 freeze:**
+
+- Review Data API automatic new-table exposure (ON) and the single exposed
+  function; current tables 0/22 exposed and history_v2 explicitly unexposed.
+  Preserve RLS, scoped roles and exact reader permissions.
+- Compatibility-review database SSL enforcement (OFF) and network access
+  (all IPs). Auth signup is ON, email confirmation ON, anonymous signin OFF;
+  Captcha and leaked-password checks OFF. Review machine-token renewal and
+  security hardening independently, without breaking the qualified worker.
+- Investigate 1.19 GB memory commitment flagged Severe versus 395.83 MB usage on
+  Nano. The UI offers Micro/1 GB as a same-price Free Upgrade; this is a capacity
+  option requiring review, not proof of a network-speed fix or permission to
+  resize. No replicas or additional compute services are justified yet.
+- Verify raw-object recovery separately: seven daily physical DB backups are
+  visible, but Supabase explicitly excludes Storage objects. A database restore
+  is not a raw archive recovery proof.
+- Classify error/warning rates against deliberate permission tests. Record PP
+  phase latency, rows/bytes/page, request count, reconnects/retries and exact
+  receipt/hash correctness for any optimization. Keep deadlines/retirement gates.
+
+Cron/Queues/Webhooks are not installed; Edge Functions and publication tables
+are empty. New Compute is inaccessible private alpha; Analytics/Vectors show
+empty private-alpha screens. Log drain cards display Additional $60. None was
+activated. Database IOPS/throughput/connection/disk panels failed to load;
+Data API last-hour metrics had no data. Catalog searches for dbt/stack/event
+returned no results, which is a UI coverage limit, not a universal capability
+claim. Full Auth subpages, restore/PITR and secret material are outside this audit.
+This docs-only milestone does not close PP qualification or authorize promotion;
+The release owner subsequently unlocked source-only merges for PRs 157–160;
+runtime/controller/cloud mutation restrictions remain in force.
+
 ## November 19 UTC — default-OFF PP history session reuse candidate
 
 A separate source candidate recognizes only explicit

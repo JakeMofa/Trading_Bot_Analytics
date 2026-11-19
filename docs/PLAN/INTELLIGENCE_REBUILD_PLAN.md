@@ -111,7 +111,10 @@ fit the 4 MiB decoded budget. Measure compressed sizes and throughput during
 the PP run. Root operator commands `sealed-archive-start/status/stop` use a
 distinct ownership record, exact image, private Storage credentials and the
 staged lifecycle DSN. The archive container mounts no history login. Deploy and
-mode transitions require both workers stopped. Stop waits for the owned
+mode transitions require both workers stopped. The recurring raw and structured workers
+use independent origin locks, so slow Storage readback leaves the structured
+worker free to ACK. The diagnostic that can perform both operations takes
+both locks. Stop waits for the owned
 container to exit and preserves its fence if cleanup cannot be confirmed.
 
 For larger generations, resume from the last verified manifest using the
@@ -127,6 +130,16 @@ The prepared live host profile marker stays in ready_off even while an
 operator lease runs. Prove B's actual continued collection with advancing
 persisted event IDs during A verification. Keep retirement at its separate
 authorization gate.
+
+PP collection ON currently has a hard 1,800-second lease. The release can
+exercise A → B within that interval using the qualified size trigger. Both
+the application and the SQL retirement function restrict partition removal
+to generated qualification data. Successful real archive readback keeps A
+local. If B reaches its next switch while A occupies the other slot, collection
+stops. Continuous live reuse requires separate reviewed PP retirement covering
+committed structured history, raw replay, protected references, reader drainage,
+remote mutation authority and recovery, plus a durable collector ownership
+policy for sessions beyond 30 minutes.
 
 ## Current PP release checkpoint — November 18, 2026 CST
 

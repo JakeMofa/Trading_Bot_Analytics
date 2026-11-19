@@ -43,6 +43,14 @@ SELECT json_build_object(
       ORDER BY g.created_at),'[]'::json)
     FROM archive.generations g WHERE g.origin_id='pp-live-pp'
       AND g.state<>'retired'),
+  'relations',(SELECT jsonb_object_agg(nspname,totals) FROM (
+    SELECT n.nspname, jsonb_build_object('heap',sum(pg_relation_size(c.oid)),
+        'indexes',sum(pg_indexes_size(c.oid)),'total',sum(pg_total_relation_size(c.oid))) totals
+      FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname IN ('raw','core','archive','ops') AND c.relkind='r'
+      GROUP BY n.nspname) sizes),
+  'wal_written_since_stats_reset',(SELECT wal_bytes FROM pg_stat_wal),
+  'wal_stats_reset',(SELECT stats_reset FROM pg_stat_wal),
   'database_bytes',pg_database_size(current_database()),
   'temporary_bytes',(SELECT temp_bytes FROM pg_stat_database
      WHERE datname=current_database()));

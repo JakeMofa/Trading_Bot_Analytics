@@ -346,6 +346,38 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertFalse(state['stored_enabled'])
         self.assertIsNone(state['collector_lease_expires_at'])
 
+    def test_isolated_capacity_option_enforces_exact_scope_and_stops_at_sample(self):
+        from contextlib import nullcontext
+        from unittest.mock import patch
+        from postgres.lifecycle import PP_CAPACITY_TRIAL_STOP_BYTES, PP_WINDOW_ALLOCATION_STOP_BYTES
+        self.assertEqual(PP_WINDOW_ALLOCATION_STOP_BYTES, 32 * 1024**2)
+        self.assertEqual(PP_CAPACITY_TRIAL_STOP_BYTES, 96 * 1024**2)
+        with self.factory() as connection, connection.transaction(force_rollback=True):
+            repo = LifecycleRepository(lambda: nullcontext(connection))
+            with self.assertRaises(LifecycleHold):
+                repo.switch_if_due(self.origin, require_live_lease=True,
+                                   market_pair_trial=True, capacity_trial_96mib=True)
+            origin = 'pp-live-pp'
+            self.assertIsNone(connection.execute('SELECT 1 FROM ops.writer_state WHERE origin_id=%s',
+                                                 (origin,)).fetchone(), 'expected empty generated test origin')
+            generation = repo.bootstrap(origin)
+            repo.enable_collector(origin,session_id=str(uuid.uuid4()),
+                                  expected_generation_id=generation['generation_id'],max_seconds=4560)
+            def check():
+                return repo.switch_if_due(origin, require_live_lease=True, market_pair_trial=True,
+                                          capacity_trial_96mib=True)
+            # Scale the byte thresholds to the real generated relation, without
+            # allocating a 96 MiB fixture or changing the role/lease requirements.
+            self.assertEqual(check()['status'], 'collecting')
+            with patch('postgres.lifecycle.PP_WINDOW_ALLOCATION_STOP_BYTES', 1):
+                self.assertEqual(check()['status'], 'collecting')
+            size = check()['allocated_bytes']
+            with patch('postgres.lifecycle.PP_CAPACITY_TRIAL_STOP_BYTES', size):
+                held = check()
+            self.assertEqual(held['allocation_stop_bytes'], size)
+            self.assertFalse(repo.collector_state(origin)['stored_enabled'])
+            self.assertEqual(repo.generation(generation['generation_id'])['state'], 'collecting')
+
     def test_market_pair_excludes_initial_partial_interval_and_times_b_from_switch(self):
         origin = 'pp-live-' + uuid.uuid4().hex
         repo = self.repository

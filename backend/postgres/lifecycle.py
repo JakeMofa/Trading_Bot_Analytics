@@ -41,6 +41,7 @@ class _DeadlineConnection:
 
 
 PP_WINDOW_ALLOCATION_STOP_BYTES = 32 * 1024**2
+PP_CAPACITY_TRIAL_STOP_BYTES = 96 * 1024**2
 
 
 @dataclass(frozen=True)
@@ -292,7 +293,7 @@ class LifecycleRepository:
             ORDER BY m.start_epoch,m.market_id LIMIT 3""",
             (start,origin,now,generation)).fetchall()
 
-    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False, market_pair_trial=False) -> dict:
+    def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *, require_live_lease=False, market_pair_trial=False, capacity_trial_96mib=False) -> dict:
         now = now or utcnow()
         with self.transaction() as connection:
             writer = connection.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
@@ -302,6 +303,8 @@ class LifecycleRepository:
             if market_pair_trial and (not require_live_lease or self.environment!='preprod'
                                       or not origin_id.startswith('pp-live-')):
                 raise LifecycleHold('invalid PP market-window qualification')
+            if capacity_trial_96mib and (not market_pair_trial or origin_id != 'pp-live-pp'):
+                raise LifecycleHold('invalid PP capacity qualification')
             if require_live_lease:
                 # The writer row is locked. Use database time so ready/OFF,
                 # expired or stopped sessions cannot seal A during deployment.
@@ -330,14 +333,16 @@ class LifecycleRepository:
                                             ('raw.' + current['partition_name'],)).fetchone()['size']
             if allocation is None:
                 raise LifecycleHold('collecting partition missing')
-            if market_pair_trial and allocation >= PP_WINDOW_ALLOCATION_STOP_BYTES:
+            allocation_stop = PP_CAPACITY_TRIAL_STOP_BYTES if capacity_trial_96mib else PP_WINDOW_ALLOCATION_STOP_BYTES
+            if market_pair_trial and allocation >= allocation_stop:
                 connection.execute("""UPDATE archive.generations SET hold_reason='pp_window_relation_limit'
                                    WHERE generation_id=%s""", (current['generation_id'],))
                 connection.execute("""UPDATE ops.writer_state SET collector_enabled=false,
                     collector_session_id=NULL,collector_lease_expires_at=NULL,epoch=epoch+1,
                     updated_at=%s WHERE origin_id=%s""", (now, origin_id))
                 return {'status':'held','reason':'pp_window_relation_limit','collector_enabled':False,
-                        'generation_id':current['generation_id'],'allocated_bytes':allocation}
+                        'generation_id':current['generation_id'],'allocated_bytes':allocation,
+                        'allocation_stop_bytes':allocation_stop}
             if market_pair_trial and current['slot']=='B':
                 # Report elapsed B observation using the actual switch time.
                 # Normal operator OFF / lease expiry owns orderly shutdown.

@@ -110,6 +110,45 @@ the full-window estimate still exceeds the guard, review a measured qualificatio
 budget before a live attempt. This candidate applies no larger cap.
 [Measured PP diagnostic](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md).
 
+### PP window capacity option awaiting a separate scope decision
+
+At 00:56:57 UTC on November 19, a pinned read-only PP sample found the
+collector OFF, A at 4,845 rows and 9,109,504 bytes, database 60,430,003
+bytes, 56,779,476,992 filesystem bytes free, and 1,192,636,416 bytes of
+available RAM. Allocated WAL was 33,554,432 bytes. WAL written was
+170,415,907 bytes since November 13 at 00:57:11 UTC (whole cluster).
+Core relations occupied 14,114,816 bytes including 3,620,864 of indexes;
+ops 27,787,264 including 6,569,984 of indexes; raw 9,437,184 including
+2,547,712 of indexes; archive 155,648 including 114,688 of indexes.
+These are current sizes. Matched live-period samples with the same WAL
+stats reset are required for WAL write rate and per-schema/index growth.
+
+An offline estimate uses the November 17 live interval (282 seconds, 3,456
+new rows, 6,397,952 additional raw relation bytes and 15,859,712 additional
+database bytes). Allow 2,730 seconds of A growth including startup alignment
+and the switch poll and 1,860 seconds of B including sampling. The projection
+is **71,047,125 bytes for A** and **42,199,258 additional bytes for B**.
+Database growth over 4,560 seconds projects to 256,454,918 bytes. The
+projected A has 38,303 rows and needs at least 77 of the allowed 128 manifests
+at 500 rows per chunk. The actual decoded-byte bound can require more.
+A faster feed, large payloads, long readers, transient WAL retention, temp
+files, cumulative outbox and upload stalls must be measured during the run.
+
+The unselected fixed PP capacity option is **96 MiB per active relation**.
+It leaves 29,616,171 bytes above the projected A and fails the doubled-rate
+scenario. It has no effect on the default 32 MiB overlay. Selecting it requires
+a reviewed change binding the exact Compose and host profile to
+`two-official-markets-96mib`, the PP database/origin and one bounded session
+under the existing lease. Do not reuse a previous permit. Capture host and
+database measurements before ON, during collection, at the actual switch
+and after OFF. Interrupt on capacity or memory pressure, feed degradation,
+archive integrity failure or lost observation. Leave local retirement OFF.
+For recovery, explicitly turn collection OFF, prove durable OFF, leave the
+qualification profile and restore the reviewed 32 MiB binding. Preserve A, B
+and committed rows. If an active slot already exceeds 32 MiB, keep intake
+OFF pending reconciliation. The only generated size test uses scaled relation
+thresholds; no 96 MiB performance or capacity acceptance is claimed.
+
 ### PP execution sequence
 
 **Resume at step 1.** Receipt batching in PR #130 passed Linux CI at
@@ -127,7 +166,7 @@ and [PR CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44425
 | 1. Verify one real page | Review #130, release its exact tested successor on PP with matching controller and profile, and keep the collector OFF. Select 25 pending PP identities. Record connect, write, fresh readback and local ACK timings. Pass when those exact 25 cloud receipts, final values, generation checkpoint and local ACKs agree within the existing budgets. | Reconcile committed receipts against local ACKs first. For another timeout, capture sanitized phase, statement category, elapsed time and query count. Group independent projection reads or pipeline independent writes if network waits dominate. Inspect the specific query plan or lock wait if server time dominates. Reproduce the failed phase before another cloud attempt. |
 | 2. Prove recurring sync | Run the existing bounded drain under a supervised PP lifecycle worker. Each cycle reads back committed history before marking local rows synced. Give sealed generations priority. Drain the recorded backlog, verify restart and safe retries with backoff, and measure full-cycle ACK rate, oldest pending age and outage headroom. Require measured spare throughput over observed arrivals and a shrinking backlog during catch-up. | Keep pending rows durable. Investigate the measured slow phase and repeat that test. A single successful page establishes correctness only. |
 | 3. Qualify the release inventory | In parallel with step 2, fix the deployment inventory that counts synced rows toward its 10,000-row limit. Test with more than 10,000 lifetime rows, including protected and pending records. Prove release and recovery still detect missing or changed evidence. For continuous operation, qualify bounded storage for synced evidence, including exact recovery and reference checks. | Preserve original rows until their replacement evidence passes. Before starting a long trial, verify that its projected growth leaves the deployment and recovery paths usable. |
-| 4. Exercise the real A/B flow | Prepare the sealed-generation archive route and exercise corruption, outage and reader-hold cases on generated data first. Then run PP for 30–45 minutes across a real 15-minute market boundary. Use a qualified PP size trigger for A → B. While B acknowledges live writes, upload sealed A's raw objects to private Storage, download them with the runtime identity, and match checksum, count and identities to the manifest. Record B's writes during verification, dashboard generation, query latency, zero two-second API timeouts, sub-second save/heartbeat delays and feature/input ages within 30 s. Report each observed switch. | On an archive error retain A and record B's remaining runway. On a feed or rollover error retain the evidence and report the affected interval. Finish the trial with PP collection durably OFF. |
+| 4. Exercise the real A/B flow | Prepare the sealed-generation archive route and exercise corruption, outage and reader-hold cases on generated data first. After a capacity decision, observe two full consecutive official 15-minute intervals in A, switch to B, and observe B for 30 minutes from the actual switch. Allow startup alignment within the exact bounded lease. While B acknowledges live writes, upload sealed A's raw objects to private Storage, download them with the runtime identity, and match checksum, count and identities to the manifest. Record B's writes during verification, dashboard generation, query latency, zero two-second API timeouts, sub-second save/heartbeat delays and feature/input ages within 30 s. Report each observed switch. | On an archive error retain A and record B's remaining runway. On a feed or rollover error retain the evidence and report the affected interval. Finish the trial with PP collection durably OFF. |
 | 5. Qualify retirement | After verified archive coverage, prove protected references, archived history/replay, reader drainage and protection against archive mutation through removal. At the separate retirement gate, retire the eligible PP partition and verify safe slot reuse and actual disk/WAL usage. | Keep the partition. Production cutover, first production archive verification and retirement enablement retain their separate Phase 1.75 gates. |
 
 PostgreSQL applies the timeout to the whole transaction. Psycopg can send

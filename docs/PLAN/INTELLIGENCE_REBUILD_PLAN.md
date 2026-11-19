@@ -101,6 +101,20 @@ establish live PP or production dashboard parity.
   remain separate. No extra PP data copy or service activation is required by
   this roadmap entry.
 
+## November 19 UTC — canonical exact-read byte reuse source candidate
+
+A narrow source candidate reuses the exact expected serialization and canonical/
+receipt-validated original envelopes for the existing full byte comparison and
+size charge. It preserves the original receipt, origin, checkpoint, newer
+revision, current projection, read-only and deadline checks. Matched generated
+PG17 proof with text results/fresh connections/indexed latest measured full
+500-row reads at 292.919→218.404 ms (G=0) and 290.744→219.630 ms (G=1), with 32
+successful full reads and 22 matched corruption/scope guards. This is source
+qualification only; no PP/prod host, deployment, cloud or runtime change.
+Native timing does not establish PP's needed full-audit reserve. Exact-source CI,
+matched PP first-page comparison and actual full-audit margin remain unqualified.
+[Decision, reproducible harness and evidence](PP_READBACK_CANONICAL_BYTE_REUSE_2026-11-19.md)
+
 ## PP19 retained A audit, November 19 UTC
 
 PP19 `5efc4bb` passed [exact source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44502994609)

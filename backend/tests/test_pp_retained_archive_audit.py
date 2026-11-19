@@ -28,3 +28,14 @@ class RetainedAuditTests(unittest.TestCase):
         AuditTarget(**base).validate()
         for changed in ({'raw_objects':129},{'structured_rows':0},{'structured_pages':True}):
             with self.assertRaises(LifecycleHold): AuditTarget(**{**base,**changed}).validate()
+
+    def test_historical_off_scope_requires_exact_same_writer_and_seal(self):
+        generation = str(uuid.uuid4())
+        arguments = dict(sealed=generation, collecting=generation, seal_hash='a'*64,
+            count=9784, structured_rows=10971, raw_objects=20, structured_pages=22,
+            historical_off=True, original_deadline_utc='2026-11-19T21:00:00+00:00')
+        AuditTarget(**arguments).validate()
+        for change in ({'collecting': str(uuid.uuid4())}, {'historical_off': False},
+                       {'count': False}, {'seal_hash': 'unbound'}):
+            with self.subTest(change=change), self.assertRaises((ValueError, LifecycleHold)):
+                AuditTarget(**(arguments | change)).validate()

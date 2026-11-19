@@ -1,0 +1,125 @@
+{
+  "scope": "read-only hosted Supabase research; no credentials, cloud writes or release operations",
+  "base_ref": "origin/preprod",
+  "base_sha": "1c753c6ba731d92115c2fb2d81d236e0675eb409",
+  "project": "TokenBot",
+  "region": "us-west-2",
+  "snapshot": {
+    "observed_at_utc": "2026-11-19T06:52:08.387056+00:00",
+    "database_bytes": 108377779,
+    "history_tables_rls_enabled": 12,
+    "history_tables_forced_rls": 0,
+    "replication_slots": 0,
+    "structured_receipts": {
+      "pp-live-pp": 5268
+    },
+    "structured_revision_payloads": {
+      "pp-live-pp": 400
+    },
+    "counts_are_point_in_time": true,
+    "catalog_estimates_not_exact_counts": true
+  },
+  "access_snapshot": {
+    "observed_at_utc": "2026-11-19T06:52:35.236131+00:00",
+    "tradebot_roles": [
+      {
+        "role": "tradebot_pp_history",
+        "superuser": false,
+        "bypassrls": false,
+        "login": true
+      }
+    ],
+    "dedicated_structured_reader_observed": false,
+    "receipt_and_revision_privileges": [
+      "INSERT",
+      "SELECT"
+    ],
+    "receipt_and_revision_policies": "SELECT/INSERT restricted to pp-live-pp",
+    "private_buckets": [
+      "market-raw",
+      "knowledge",
+      "backups"
+    ],
+    "raw_bucket_catalog_objects": 980,
+    "raw_bucket_catalog_metadata_bytes": 339576344,
+    "raw_object_bytes_downloaded_or_verified_by_this_research": false
+  },
+  "prototype": {
+    "original_worktree": "/Users/jake/.codex/worktrees/supabase-audit-docs/Trading_bot_Analytics",
+    "original_uncommitted": true,
+    "source_sha256": "62eb8f4797e4a17a1e94d8c27ecc89b3ea04cb8e91fdaf4e808aed330485c814",
+    "tests_sha256": "1be4999bf6e099bae5ca3656aa89049aa4c63296baab1e251350cd7654585372",
+    "independent_test_command": "python3 -m unittest discover -s backend/tests -p 'test_cold_structured_history.py' -v",
+    "tests_run": 6,
+    "tests_passed": 6,
+    "network_used_in_tests": false
+  },
+  "pr_status_at_review": {
+    "155": "merged",
+    "157": "open draft",
+    "159": "open draft default-off source candidate"
+  },
+  "measurement_sources": {
+    "receipt_metadata_pp": {
+      "pr": 155,
+      "cold_mean_ms": "632.35",
+      "reuse_including_first_setup_mean_ms": "378.34",
+      "warm_mean_ms": "288.20",
+      "pairs": 4,
+      "rows_per_read": 50,
+      "canonical_bytes_per_read": 18000,
+      "scope": "receipt metadata only; not full sync"
+    },
+    "reuse_generated_full_path": {
+      "pr": 159,
+      "cold_seconds": "5.447",
+      "reuse_seconds": "4.837",
+      "cold_acks_per_second": "18.36",
+      "reuse_acks_per_second": "20.67",
+      "records_each_arm": 100,
+      "scope": "modeled SQL/setup waits on generated PostgreSQL17; not live throughput"
+    }
+  },
+  "documentation_discrepancy": {
+    "mcp_search_docs": "older FAQ: private alpha and BigQuery only",
+    "current_official_web_faq": "Updated Nov16: public alpha; BigQuery, ClickHouse, DuckLake, Snowflake; organization access varies",
+    "url": "https://supabase.com/docs/guides/database/replication/pipelines-faq",
+    "decision": "use current official web availability statement, verify project entitlement before any future rollout"
+  },
+  "limits": [
+    "No production VM inspection or production qualification",
+    "Concurrent release work can change counts after snapshots",
+    "Admin SQL inventory is not runtime identity permission proof",
+    "Storage catalog size is metadata, not checksum/restore proof",
+    "Original prototype and unrelated checkout edits left intact"
+  ],
+  "candidate_validation": {
+    "affected_tests_run": 65,
+    "passed": 51,
+    "explicit_existing_fixture_skips": 14,
+    "new_or_imported_cold_tests": 23,
+    "generated_cold_tests": 19,
+    "native_pg17_cold_tests": 4,
+    "native_fixture": "disposable local cluster, stopped after tests",
+    "runtime_enabled": false,
+    "cloud_grants_applied": false,
+    "tested_scope": "read-only adapter, trusted query registry, optional API hook; not hosted release qualification",
+    "parent_independent_rerun": {
+      "tests_run": 23,
+      "passed": 19,
+      "native_skips_fixture_already_stopped": 4
+    },
+    "parent_independent_affected_rerun": {
+      "tests_run": 65,
+      "passed": 47,
+      "explicit_fixture_skips": 18,
+      "native_fixture_already_stopped": true
+    }
+  },
+  "browser_review": {
+    "page_contexts": 39,
+    "completed_at_utc": "2026-11-19T07:02:15Z",
+    "evidence": "supabase-browser-capabilities-2026-11-19.json",
+    "all_nested_tabs_or_all_docs_read": false
+  }
+}

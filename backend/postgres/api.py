@@ -35,10 +35,17 @@ async def event_stream(state, disconnected=None, interval=0.25):
         await asyncio.sleep(interval)
 
 
-def create_app(settings=None, store=None, state=None, *, history=None, refresh=True):
+def create_app(settings=None, store=None, state=None, *, history=None,
+               structured_history=None, refresh=True):
     settings = settings or Settings.from_env()
     store = store or Store(settings)
     state = state or LiveState(settings)
+    if structured_history is not None:
+        from .cold_structured_queries import RegisteredStructuredHistory
+        if (not isinstance(structured_history, RegisteredStructuredHistory)
+                or settings.environment != 'preprod' or settings.data_mode != 'pp_live'
+                or settings.origin_id != structured_history.origin_id):
+            raise ValueError('structured history API requires trusted PP query registry')
     if history is None:
         from .runtime_history import configured_history
         history = configured_history(settings, store, os.environ)
@@ -144,6 +151,24 @@ def create_app(settings=None, store=None, state=None, *, history=None, refresh=T
         except Exception:
             raise HTTPException(503,'Local prediction history unavailable') from None
         return {'items':items,'limit':limit,'tier':'local','origin_id':settings.origin_id}
+
+    # No environment variable, public manifest, writer credential or default
+    # source enables this route. A reviewed server composition must inject it.
+    if structured_history is not None:
+        @app.get('/history/structured/{query_id}')
+        async def structured(query_id: str, after_id: int | None=Query(default=None,ge=1),
+                             scope_sha256: str | None=Query(default=None,min_length=64,max_length=64)):
+            from .archive_codec import ArchiveError
+            try:
+                return await asyncio.to_thread(structured_history.read_query,
+                                                query_id, after_id=after_id, scope_sha256=scope_sha256)
+            except ArchiveError as error:
+                code = error.code
+                status = 404 if code == 'cold_history_unknown_query' else (
+                    429 if code == 'cold_history_busy' else 503)
+                raise HTTPException(status, {'status':'failed','code':code}) from None
+            except Exception:
+                raise HTTPException(503, {'status':'failed','code':'cold_history_unavailable'}) from None
 
     @app.get('/history/coinbase-chart')
     async def chart():

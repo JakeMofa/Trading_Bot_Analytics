@@ -1,0 +1,269 @@
+{
+  "observed_date_utc": "2026-11-19",
+  "completed_at_utc": "2026-11-19T07:02:15Z",
+  "project": "TokenBot",
+  "project_ref": "xttdqeimdujweijxcuro",
+  "method": "Read-only Chrome dashboard traversal with cua_repl; visible AX/DOM only. No settings, credentials, policies, data, deployment, subscriptions or paid feature activations changed.",
+  "coverage": [
+    {
+      "area": "Database schema visualizer",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/schemas",
+      "status": "navigation_only",
+      "observation": "Schema selector and diagram controls viewed; full diagram was not audited."
+    },
+    {
+      "area": "Public tables",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/tables",
+      "status": "viewed",
+      "observation": "10 legacy public tables; all displayed Realtime Disabled. Counts are estimates."
+    },
+    {
+      "area": "Private history tables",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/tables?schema=history_v2",
+      "status": "viewed",
+      "observation": "12 private history tables; UI estimates 5268 receipts and 5000 revision payloads at observation. Concurrent backfill and estimates preclude completion claim."
+    },
+    {
+      "area": "Database functions",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/functions",
+      "status": "viewed",
+      "observation": "Public catalog lists rls_auto_enable with Definer security. Function body and effective EXECUTE grants were not audited here."
+    },
+    {
+      "area": "Database policies",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/policies",
+      "status": "viewed",
+      "observation": "Public tables display Disable RLS controls, indicating RLS enabled. No public policy rows displayed."
+    },
+    {
+      "area": "Database extensions",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/extensions",
+      "status": "viewed",
+      "observation": "Enabled: plpgsql, pg_stat_statements, pgcrypto, uuid-ossp. Displayed disabled: vector, wrappers, pg_cron, pgmq, pg_net, postgres_fdw, dblink, pg_graphql, pg_partman, index_advisor, pgaudit. Catalog not treated as feature activation."
+    },
+    {
+      "area": "Database pipelines",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/pipelines",
+      "status": "viewed",
+      "observation": "Zero configured pipelines; enabled Add pipeline control; source Primary Database West US Oregon us-west-2; external analytics destination wording. Creation dialog not opened."
+    },
+    {
+      "area": "Public indexes",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/indexes",
+      "status": "viewed",
+      "observation": "Public primary/unique and market/time/model indexes listed. No EXPLAIN or private-history index qualification performed."
+    },
+    {
+      "area": "Publications",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/publications",
+      "status": "viewed",
+      "observation": "supabase_realtime publication lists zero tables. INSERT/UPDATE/DELETE/TRUNCATE publication switches enabled; no subscription started."
+    },
+    {
+      "area": "Scheduled backups",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/backups/scheduled",
+      "status": "viewed",
+      "observation": "Physical backups dated November 12 through 18 visible. UI states Storage bytes excluded; no restore initiated."
+    },
+    {
+      "area": "Database settings",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/settings",
+      "status": "viewed",
+      "observation": "Nano default pool size 15 per user+database; max clients 200; SSL enforcement off, all IPs allowed, connection/disconnection logging off. No changes."
+    },
+    {
+      "area": "Data triggers",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/triggers/data",
+      "status": "viewed",
+      "observation": "Public schema first-trigger empty state. Private history triggers not inspected."
+    },
+    {
+      "area": "Event triggers",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/database/triggers/event",
+      "status": "viewed",
+      "observation": "Default owner-filtered view lists ensure_rls -> rls_auto_enable for table creation DDL. Other owners not audited."
+    },
+    {
+      "area": "Storage files",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/files",
+      "status": "viewed",
+      "observation": "market-raw, knowledge, backups buckets; displayed size default 50 MB, any MIME. No object contents opened."
+    },
+    {
+      "area": "Storage policies",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/files/policies",
+      "status": "viewed",
+      "observation": "market-raw shows authenticated SELECT readback and INSERT upload policies. Other storage.objects policies include history-reader exact GET/SELECT and deny INSERT/UPDATE/DELETE. Names and commands observed; predicates/effectiveness not independently proved by this UI pass."
+    },
+    {
+      "area": "Storage analytics",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/analytics",
+      "status": "viewed",
+      "observation": "Private-alpha warning and empty create-bucket state. Not installed or activated."
+    },
+    {
+      "area": "Storage vectors",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/vectors",
+      "status": "viewed",
+      "observation": "Private-alpha warning and empty create-bucket state. Separate from disabled pgvector database extension."
+    },
+    {
+      "area": "Storage S3",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/storage/s3",
+      "status": "viewed",
+      "observation": "S3 protocol enabled; direct Storage endpoint and us-west-2 visible. Access-key area showed create control; no credential generated or revealed."
+    },
+    {
+      "area": "Edge Functions",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/functions",
+      "status": "viewed",
+      "observation": "First-deployment empty state; no deployed functions. Database access, Storage upload, WebSocket and other templates available. Secrets page not opened."
+    },
+    {
+      "area": "Hosted Compute product",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/compute",
+      "status": "inaccessible",
+      "observation": "Private alpha; project does not have access; waitlist link. Distinct from existing Nano Postgres compute."
+    },
+    {
+      "area": "Realtime inspector",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/realtime/inspector",
+      "status": "viewed",
+      "observation": "Join-channel/start-listening controls and setup guidance. No channel joined; no realtime traffic generated."
+    },
+    {
+      "area": "Integration catalog",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations",
+      "status": "viewed",
+      "observation": "Two installed integrations: Data API and Vault. Cron, Queues, Webhooks, GraphiQL and numerous Wrappers catalog entries visible."
+    },
+    {
+      "area": "Data API overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/data_api/overview",
+      "status": "viewed",
+      "observation": "Installed REST interface to database/read-replica/load-balancer resources."
+    },
+    {
+      "area": "Data API settings",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/data_api/settings",
+      "status": "viewed",
+      "observation": "2/3 schemas, 0/22 tables, 1/3 functions exposed; automatic new-table exposure on; 1000 row cap; public/extensions extra search path. Schema dropdown lists history_v2, public, graphql_public. Selection checks not inferred from focus-only AX state."
+    },
+    {
+      "area": "Vault overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/vault/overview",
+      "status": "viewed",
+      "observation": "Installed beta Postgres module. Secrets were not opened."
+    },
+    {
+      "area": "Cron overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/cron/overview",
+      "status": "viewed",
+      "observation": "Install integration control; SQL scheduling via pg_cron; extension not enabled."
+    },
+    {
+      "area": "Queues overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/queues/overview",
+      "status": "viewed",
+      "observation": "Install integration control; requires pgmq, durable PostgreSQL message queue; extension not enabled."
+    },
+    {
+      "area": "Webhooks overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/webhooks/overview",
+      "status": "viewed",
+      "observation": "Install integration control; pg_net required; committed insert/update/delete events can trigger HTTP or Edge Function calls."
+    },
+    {
+      "area": "S3 Wrapper overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/integrations/s3_wrapper/overview",
+      "status": "viewed",
+      "observation": "Read-only CSV/JSON Lines/Parquet SQL access, S3-compatible providers and Vault integration. Embedded UI says GetObject plus ListBucket; compressed Parquet fully loaded into memory. This embedded permission text conflicts with current official docs; no universal ListBucket requirement inferred."
+    },
+    {
+      "area": "Auth users navigation",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/users",
+      "status": "navigation_only",
+      "observation": "Only navigation and loading shell observed; no individual account inspected or copied."
+    },
+    {
+      "area": "Auth providers",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/providers",
+      "status": "viewed",
+      "observation": "Email enabled; all other listed providers disabled; signup and email confirmation on; anonymous/manual linking off; no custom providers."
+    },
+    {
+      "area": "Auth sessions",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/auth/sessions",
+      "status": "viewed",
+      "observation": "Access token 3600 seconds; refresh replay detection on, 10 second reuse; single-session enforcement off; session/inactivity timeboxes zero."
+    },
+    {
+      "area": "Project general settings",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/general",
+      "status": "viewed",
+      "observation": "Project Region us-west-2; lifecycle/upgrade/custom-domain controls inspected without action."
+    },
+    {
+      "area": "Project infrastructure",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/infrastructure",
+      "status": "viewed",
+      "observation": "Nano selected, 0.5 GB advertised RAM; Micro offered as Free Upgrade with 1 GB and same displayed hourly price. No read replicas. Loaded overview 126 MB database, 128 MB WAL, 168 MB system, 0.41/2 GB disk. No sizing change."
+    },
+    {
+      "area": "Log drains",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/settings/log-drains",
+      "status": "viewed",
+      "observation": "No configured drain visible; destination cards display Additional $60. No destination selected."
+    },
+    {
+      "area": "Observability Data API",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/postgrest",
+      "status": "viewed",
+      "observation": "Initial existing last-hour page displays no data and refresh-delay notice; no zero-traffic inference."
+    },
+    {
+      "area": "Observability overview",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability",
+      "status": "viewed",
+      "observation": "24h aggregate: CPU 2%, memory 56%, disk 21%, IO balance 99%, peak connections 8/60; error/warning ratios include possible negative tests and audit traffic."
+    },
+    {
+      "area": "Observability database",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/database",
+      "status": "viewed",
+      "observation": "Last60m loaded memory usage396.45MB, commitment1.19GB severe, CPU1.62%. Network, disk IOPS/throughput/usage and DB/pooler connection panels unable to load."
+    },
+    {
+      "area": "Observability Storage",
+      "url": "https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/observability/storage",
+      "status": "viewed",
+      "observation": "Last60m loaded27requests,210.22ms response speed,0.00098MB ingress. Aggregate includes browser reads and probe traffic; not PP payload throughput or p95."
+    }
+  ],
+  "not_audited": [
+    "Every nested table/function/index definition and policy predicate",
+    "Database enumerated types, Roles detail, Migrations",
+    "Auth individual users, emails, OAuth apps/server, passkeys, hooks, audit/performance subpages, MFA/rate-limit/protection details",
+    "Vault/Edge/Compute secrets and API/JWT credential pages",
+    "Storage object content, URL signing key detail and mutations",
+    "Realtime policies/settings and channel subscription",
+    "Every third-party wrapper configuration/detail",
+    "Pipeline creation, plan eligibility handshake, destinations, subscriptions or slot creation",
+    "Every observability service, metric export, unified raw logs and actual recovery/restore"
+  ],
+  "documentation_discrepancies": [
+    {
+      "area": "S3 Wrapper permissions",
+      "dashboard_embedded_text": "GetObject + ListBucket",
+      "parent_current_docs_review": "GetObject + GetObjectAttributes and version variants; listing not universally required",
+      "decision": "No drop-in JWT reader compatibility established; do not broaden access or generate RLS-bypassing keys."
+    }
+  ],
+  "limitations": [
+    "Dashboard PRODUCTION label names the hosted main branch; it does not identify source records as production or authorize PP credentials for production.",
+    "Table row counts are estimates and source data may change during this read-only inspection.",
+    "UI policy names and commands do not prove predicates, role membership or effective authorization.",
+    "Different metric windows, cache warmth, tests and audit traffic prevent direct capacity comparisons.",
+    "Read-only browser behavior is not a privileged-mutation freeze."
+  ]
+}

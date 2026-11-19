@@ -1,3 +1,43 @@
+## November 19 UTC — hosted Supabase integration investigation and local candidate
+
+Parallel research combines PR #157's dashboard audit, PR #155's actual PP
+receipt-read measurements, PR #159's default-off generated reuse qualification,
+current hosted read-only SQL and official product documentation. The existing
+uncommitted cold-history prototype was found and its six offline tests rerun
+successfully; its original worktree remains intact. Reuse this design for the
+structured-history application gap rather than start another archive engine.
+
+At 06:52:08 UTC exact read-only SQL counted 5,268 PP receipts and 400 immutable
+revision payloads; concurrent release-owned backfill can change these counts.
+All twelve private history tables had RLS, with zero replication slots. No
+separate structured-reader SQL role was observed. At 06:52:35 UTC raw catalog
+metadata counted 980 objects/339,576,344 bytes, not verified object contents.
+These snapshots establish neither complete backfill nor production qualification.
+
+Current official Pipelines FAQ (updated November 16) lists public-alpha
+BigQuery/ClickHouse/DuckLake/Snowflake, superseding the older private-alpha,
+BigQuery-only result returned by documentation search and repeated in the prior
+prototype research. Project entitlement still needs independent verification.
+Managed analytics does not replace the existing receipt-bound archive contract.
+
+Decision: keep live RAM/local PostgreSQL on each VM, private background structured
+history and authenticated raw Storage. Build one default-off bounded structured
+cold-reader candidate with a separately scoped SELECT-only identity, trusted
+manifest selection and explicit coverage. The local candidate ran 65 affected tests: 51 passed and 14 existing
+full-application/history fixture skips, including four native PostgreSQL17
+cold-reader tests. Its optional API hook accepts server-registered queries,
+requires scope-bound continuation and limits concurrent reads. The route is
+absent by default; no runtime profile injects it. Hosted grants, deployment, real payload comparison,
+production support and raw disaster-recovery proof remain OPEN. The release chat
+continues to own collection, backfill, deployment and retirement; this milestone
+performs no cloud writes or live control actions. No merge/deploy is implied.
+
+[Candidate and validation](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md) ·
+[Measured investigation](HOSTED_SUPABASE_INVESTIGATION_2026-11-19.md) ·
+[17-capability matrix](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md) ·
+[Browser coverage](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md) ·
+[Timestamped evidence](evidence/hosted-supabase-investigation-2026-11-19.json)
+
 ## November 19 UTC — PP controller bound for revision capture and sealed-window verification
 
 Combined source `3adbc3a` passed exact CI 44472117753. The old PP session closed with collection OFF. An installation check and dedicated deployment identity confirmed the installed controller SHA-256 `a72679fde847b69ab7e84671e34b3bdc0464791d3ddf16502adc37a12511f7fe`. The PP deployment profile now references that proof. The combined application release, repair of 5,268 historical structured envelopes, live switch and verified retirement remain distinct qualification steps. [Controller identity evidence](evidence/pp-controller-identity-2026-11-19-a72679fd.json)

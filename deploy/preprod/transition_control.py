@@ -349,21 +349,21 @@ def session(command, controller_path):
     actions._runtime(context, budget, live=True, **cycle)
     actions._host_operator(live=True)
     actions._live_filesystem(context, budget)
-    _consume(ON_AUTHORITY, {k: active[k] for k in ('environment', 'instance', 'source_sha',
-        'artifact_sha256', 'controller_sha256', 'image_id')} |
-        {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds} | cycle)
     token_path = RUNTIME_SECRETS / 'operator_token'
     info = token_path.lstat()
     require(stat.S_ISREG(info.st_mode) and info.st_uid == 10001 and stat.S_IMODE(info.st_mode) == 0o400,
             'unsafe_operator_token')
     token = token_path.read_text().strip()
     require(HEX64.fullmatch(token) is not None, 'unsafe_operator_token')
+    if cycle:
+        state = _operator(token, '/collector/status')
+        require(state.get('generation_id') == cycle['initial_a']
+                and state.get('collector_enabled') is False,
+                'pp_cycle_initial_generation_not_ready')
+    _consume(ON_AUTHORITY, {k: active[k] for k in ('environment', 'instance', 'source_sha',
+        'artifact_sha256', 'controller_sha256', 'image_id')} |
+        {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds} | cycle)
     try:
-        if cycle:
-            state = _operator(token, '/collector/status')
-            require(state.get('generation_id') == cycle['initial_a']
-                    and state.get('collector_enabled') is False,
-                    'pp_cycle_initial_generation_not_ready')
         accepted = _operator(token, '/collector/on', seconds=seconds)
         require(accepted.get('accepted') is True and accepted.get('origin_id') == 'pp-live-pp',
                 'collector_on_not_accepted')

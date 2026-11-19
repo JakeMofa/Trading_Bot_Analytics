@@ -175,6 +175,33 @@ class SourceClientTests(unittest.IsolatedAsyncioTestCase):
                     await anext(source)
                 await source.aclose()
 
+    async def test_real_depth_shape_preserves_best_prices_time_and_raw_payload(self):
+        event = {'market_id': 'one', 'payload': {'slug': 'example'}}
+        market_data = {'marketSlug': 'example', 'state': 'MARKET_STATE_OPEN',
+                       'bids': [{'px': {'value': '0.4600'}}, {'px': {'value': '0.4700'}}],
+                       'offers': [{'px': {'value': '0.5100'}}, {'px': {'value': '0.4800'}}],
+                       'transactTime': '2026-11-19T07:18:09.966255984Z'}
+        def reply(request):
+            return (httpx.Response(404) if request.url.path.endswith('/bbo') else
+                    httpx.Response(200, json={'marketData': market_data}))
+        async with httpx.AsyncClient(transport=httpx.MockTransport(reply)) as client:
+            result = await fetch_polymarket_bbo(client, event)
+            self.assertEqual(result['payload']['best_bid'], '0.4700')
+            self.assertEqual(result['payload']['best_ask'], '0.4800')
+            self.assertEqual(result['source_time'], market_data['transactTime'])
+            self.assertEqual(result['provenance']['source_time_role'], 'order_book_transaction_time')
+            self.assertEqual(json.loads(result['raw_payload']), {'marketData': market_data})
+            market_data['bids'] = []
+            market_data['offers'] = []
+            self.assertIsNone(await fetch_polymarket_bbo(client, event))
+            market_data['bids'] = [{'px': {'value': '1.51'}}]
+            with self.assertRaisesRegex(ValueError, 'unit interval'):
+                await fetch_polymarket_bbo(client, event)
+            market_data['bids'] = []
+            market_data['transactTime'] = 'not-a-timestamp'
+            with self.assertRaisesRegex(ValueError, 'timestamp'):
+                await fetch_polymarket_bbo(client, event)
+
     async def test_bbo_404_fallback_and_wrong_market_hold(self):
         event = {'market_id': 'one', 'payload': {'slug': 'btc-up-down-one'}}
         calls = []

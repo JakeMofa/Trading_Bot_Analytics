@@ -182,6 +182,15 @@ finally:
 if result is None or not result['passed']:raise SystemExit(1)
 ```
 
+## Current preprod integration
+
+Preprod `74a850b` subsequently added the separately owned live-rollover fix and
+its evidence. The candidate merged that source while preserving both roadmap
+entries. Full pinned backend after this integration: **365 run, 319 passed, 46
+explicit fixture/platform skips**, zero failures/errors (18.764s). The five
+qualified cold-component file hashes are unchanged from the native and Linux
+qualification above. This is source reconciliation, not a deployed release.
+
 ## Initial validation before resource-bound follow-up
 
 An isolated `/tmp` virtual environment installed the repository's pinned

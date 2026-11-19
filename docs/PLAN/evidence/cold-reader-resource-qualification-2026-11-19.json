@@ -53,5 +53,14 @@
       "PostgreSQL PP foundation",
       "PostgreSQL migrations and application lifecycle"
     ]
+  },
+  "preprod_integration": {
+    "base_sha": "74a850bc90f5cad40e7d342bd580f151bfe65e3f",
+    "full_backend_run": 365,
+    "passed": 319,
+    "skipped": 46,
+    "failures": 0,
+    "errors": 0,
+    "cold_component_hashes_unchanged": true
   }
 }

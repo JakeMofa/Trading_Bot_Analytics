@@ -109,8 +109,10 @@ It adds a SELECT-only source, reviewed server query registry and optional FastAP
 composition hook. The route is absent by default. It rejects the writer role,
 effective table/column write grants and altered continuation scope; local live
 endpoints remain independent. No deployed profile or cloud privilege changed.
-The final full backend suite ran 362 tests: 316 passed, with 46 explicit
-platform/fixture skips. Separate native PostgreSQL17 qualification ran 75 tests:
+After reconciling current preprod, the full backend suite ran 365 tests:
+319 passed, with 46 explicit platform/fixture skips. The earlier resource
+qualification ran 362 tests with 316 passes and 46 skips; cold-component hashes
+remain unchanged. Separate native PostgreSQL17 qualification ran 75 tests:
 72 passed, three unrelated app-fixture skips, including six cold-source and 13
 generic history/import/reuse tests. [Exact-source Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44480584156)
 passed at 5a44c7f. The SQL read uses separate 256KiB envelope and 256KiB receipt-text

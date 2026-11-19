@@ -1,6 +1,7 @@
 """Disposable isolated PostgreSQL proof; never connects to Supabase."""
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from pathlib import Path
 import os
 import math
@@ -27,6 +28,42 @@ def envelope(outbox_id, table, payload, generation_id):
             'generation_id': generation_id, 'entity_type': table,
             'entity_id': encoded([payload[key] for key in TABLE_KEYS[table]]).decode(),
             'content_hash': payload['content_hash'], 'payload': payload}
+
+
+class DelayedConnection:
+    """Generated 100ms round trips; pipelined commands share one wait."""
+    def __init__(self, inner):
+        self.inner, self.queries, self.roundtrips, self.depth = inner, 0, 0, 0
+
+    def __enter__(self):
+        self.inner.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        return self.inner.__exit__(*args)
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+    def wait(self):
+        self.roundtrips += 1
+        time.sleep(0.1)
+
+    def execute(self, *args, **kwargs):
+        self.queries += 1
+        if not self.depth:
+            self.wait()
+        return self.inner.execute(*args, **kwargs)
+
+    @contextmanager
+    def pipeline(self):
+        self.depth += 1
+        try:
+            with self.inner.pipeline() as pipeline:
+                yield pipeline
+                self.wait()
+        finally:
+            self.depth -= 1
 
 
 @unittest.skipUnless(DSN, 'isolated generated history_v2 DSN not supplied')
@@ -514,28 +551,9 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
             records, max_bytes=4 * 1024 * 1024, timeout_seconds=5), records)
 
     def test_25_row_remote_roundtrip_budget_preserves_fk_and_exact_readback(self):
-        """Generated 34 ms/query latency models a remote pooler, not live proof."""
+        """Generated 100ms round trips model a remote pooler, not live proof."""
         import psycopg
         from psycopg.rows import dict_row
-
-        class DelayedConnection:
-            def __init__(self, inner):
-                self.inner, self.queries = inner, 0
-
-            def __enter__(self):
-                self.inner.__enter__()
-                return self
-
-            def __exit__(self, *args):
-                return self.inner.__exit__(*args)
-
-            def __getattr__(self, name):
-                return getattr(self.inner, name)
-
-            def execute(self, *args, **kwargs):
-                self.queries += 1
-                time.sleep(0.034)
-                return self.inner.execute(*args, **kwargs)
 
         origin, generation = self.origin, str(uuid.uuid4())
         plain = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
@@ -581,8 +599,10 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
         read_elapsed = time.monotonic() - started
         self.assertEqual(len(used), 2)
         print(f'generated_history_v2_roundtrips put_queries={used[0].queries} '
-              f'put_seconds={put_elapsed:.3f} read_queries={used[1].queries} '
-              f'read_seconds={read_elapsed:.3f}', flush=True)
+              f'put_roundtrips={used[0].roundtrips} put_seconds={put_elapsed:.3f} read_queries={used[1].queries} '
+              f'read_roundtrips={used[1].roundtrips} read_seconds={read_elapsed:.3f}', flush=True)
+        self.assertLessEqual(used[0].roundtrips, 16)
+        self.assertLessEqual(used[1].roundtrips, 8)
         self.assertLessEqual(used[0].queries, 90)
         self.assertLessEqual(used[1].queries, 35)
         self.assertLess(put_elapsed, 4)
@@ -595,6 +615,73 @@ class HistoryV2TransportPostgresTests(unittest.TestCase):
                 'history_v2.markets WHERE origin_id=%s AND market_id=%s',
                 (origin, 'market-25')).fetchone()['value']
         self.assertEqual((receipt_count, target), (25, '100.0000'))
+
+    def test_real_page_shape_at_100ms_with_exact_revision_retention(self):
+        import psycopg
+        from psycopg.rows import dict_row
+        origin, generation = self.origin, str(uuid.uuid4())
+        plain = lambda: psycopg.connect(DSN, row_factory=dict_row, connect_timeout=5,
+                                        options='-c timezone=UTC')
+        with plain() as db:
+            identity = db.execute('SELECT current_database() AS database, current_user AS role').fetchone()
+        used = []
+        def factory(*, timeout_seconds):
+            time.sleep(0.2)  # generated connection/TLS overhead inside the 4s request
+            connection = DelayedConnection(plain())
+            used.append(connection)
+            return connection
+        transport = HistoryV2PostgresTransport(factory, origin_id=origin,
+            generation_id=generation, expected_database=identity['database'],
+            expected_role=identity['role'], retain_revisions=True)
+        start = datetime(2026, 11, 18, tzinfo=timezone.utc)
+        end = start + timedelta(minutes=15)
+        records = []
+        for index in range(12):
+            moment = start + timedelta(seconds=index)
+            candle = dict(origin_id=origin, source='coinbase', symbol='BTC-USD',
+                granularity=60, time=int(start.timestamp()) + index * 60,
+                low='99.0000', high='101.0000', open='100.0000', close='100.1000',
+                volume='1.00000000', first_seen=moment.isoformat(),
+                payload={'generated':True, 'padding':'c' * 500}, content_hash=f'{index+1:064x}')
+            price = dict(origin_id=origin, source='coinbase', symbol='BTC-USD',
+                event_id=f'trade-{index}', generation_id=generation,
+                source_time=moment.isoformat(), source_epoch=str(int(moment.timestamp())),
+                received_at=moment.isoformat(), available_at=moment.isoformat(),
+                price=f'100.{index:04d}', size='1E-8',
+                payload={'generated':True, 'padding':'p' * 700}, content_hash=f'{index+100:064x}')
+            records.extend([envelope(len(records)+1,'core.candles',candle,generation),
+                            envelope(len(records)+2,'core.current_prices',price,generation)])
+        market = dict(origin_id=origin, market_id='page-market', source='polymarket-us',
+            slug='page-market', duration=900, start_time=start.isoformat(), end_time=end.isoformat(),
+            start_epoch=str(int(start.timestamp())), end_epoch=str(int(end.timestamp())),
+            target='100.0000', final=None, result=None, status='open', index_symbol='BTC-USD',
+            rules=None, first_seen=start.isoformat(), last_seen=start.isoformat(),
+            payload={'generated':True, 'padding':'m' * 2000}, content_hash='f' * 64)
+        records.append(envelope(25,'core.markets',market,generation))
+        started = time.monotonic()
+        transport.put_structured(records,timeout_seconds=4)
+        elapsed = time.monotonic()-started
+        started_read = time.monotonic()
+        self.assertEqual(transport.read_structured_authenticated(
+            records,max_bytes=4*1024**2,timeout_seconds=4),records)
+        read_elapsed = time.monotonic()-started_read
+        self.assertLess(read_elapsed,4)
+        self.assertEqual(transport.read_revisions(list(range(1,26)),
+            max_bytes=4*1024**2,timeout_seconds=4),records)
+        self.assertLess(elapsed,4)
+        self.assertLessEqual(used[0].roundtrips,16)
+        print(f'generated_actual_shape_25 put_seconds={elapsed:.3f} '
+              f'put_roundtrips={used[0].roundtrips} read_seconds={read_elapsed:.3f} '
+              f'read_roundtrips={used[1].roundtrips} remote_rows_per_second={25/(elapsed+read_elapsed):.2f} '
+              f'last_stage=authenticated_readback retained_envelopes=25 local_ack=unmeasured',flush=True)
+        # Replay is idempotent despite twelve revisions sharing one price key.
+        transport.put_structured(records,timeout_seconds=4)
+        with plain() as db:
+            row=db.execute('SELECT price::text AS price FROM history_v2.current_prices '
+                'WHERE origin_id=%s',(origin,)).fetchone()
+            count=db.execute('SELECT count(*) AS n FROM history_v2.structured_receipts '
+                'WHERE origin_id=%s AND generation_id=%s',(origin,generation)).fetchone()['n']
+        self.assertEqual((row['price'],count),('100.0011',25))
 
     def test_receipt_batch_failure_rolls_back_projection_and_checkpoint(self):
         import psycopg

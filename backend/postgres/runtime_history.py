@@ -3,6 +3,8 @@ import threading
 import uuid
 
 from .archive_codec import ArchiveLimits
+from .cloud_origin_binding import cloud_binding
+from .cloud_runtime_profile import cloud_files,storage_paths
 from .archive_transport import ScopedArchiveTransport
 from .history import ArchiveHistory, HistoryError
 from .lifecycle import LifecycleRepository, LifecycleHold
@@ -81,14 +83,14 @@ def configured_history(settings, store, environ):
     if flag == 'false':
         return None
     if (flag != 'true' or settings.environment != 'preprod' or
-            settings.data_mode != 'pp_live' or settings.origin_id != 'pp-live-pp'):
+            settings.data_mode != 'pp_live'):
         raise ValueError('archive history requires exact PP live identity')
+    cloud_binding(settings.origin_id)
+    files=cloud_files(settings.origin_id,reader=True)
     from .supabase_storage import SupabaseStorageTransport
 
     def raw():
-        return SupabaseStorageTransport.from_machine_files(
-            '/run/secrets/history_reader_api_key', '/run/secrets/history_reader_email',
-            '/run/secrets/history_reader_password', '/run/secrets/history_reader_uid', reader=True)
+        return SupabaseStorageTransport.from_machine_files(*storage_paths(files), reader=True,origin_id=settings.origin_id)
 
     repository = ReadRepository(lambda: store.connection(readonly=True), origin_id=settings.origin_id)
     return RuntimeHistory(repository, raw, origin_id=settings.origin_id)

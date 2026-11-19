@@ -1,0 +1,47 @@
+{
+  "scope": "isolated generated PostgreSQL17 full structured path, no PP/cloud action",
+  "rows_per_arm": 100,
+  "page_rows": 50,
+  "pages_per_arm": 2,
+  "sql_wait_seconds": 0.1,
+  "connection_setup_seconds": 0.2,
+  "stages": [
+    "local_outbox_selection",
+    "transactional_projection_receipt_envelope_commit",
+    "independent_authenticated_readback_transaction",
+    "local_ack",
+    "exact_envelope_and_checkpoint_comparison"
+  ],
+  "results": [
+    {
+      "reuse": false,
+      "acknowledged": 100,
+      "seconds": 5.446855249989312,
+      "rows_per_second": 18.359217458586993,
+      "physical_connections": 4,
+      "distinct_committed_transactions": 4,
+      "envelopes": 100
+    },
+    {
+      "reuse": true,
+      "acknowledged": 100,
+      "seconds": 4.836843375000171,
+      "rows_per_second": 20.67464092735822,
+      "physical_connections": 1,
+      "distinct_committed_transactions": 4,
+      "envelopes": 100
+    }
+  ],
+  "fault_proofs": [
+    "failure_before_commit_rolls_back_and_discards_without_ACK",
+    "lost_response_after_durable_commit_discards_without_ACK",
+    "wrong_database_role_holds_and_discards_without_ACK",
+    "reconnect_exact_receipt_replay_commits_once_then_fresh_readback_before_ACK"
+  ],
+  "limitations": [
+    "generated latency model, not real full-sync PP timing",
+    "generated source identities are independent per arm",
+    "no concurrent collector or sustained capacity claim"
+  ],
+  "default_enabled": false
+}

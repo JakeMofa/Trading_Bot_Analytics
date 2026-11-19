@@ -22,7 +22,98 @@ The committed helper remains offline and the deployed observer/runtime are
 unchanged. Generated fixture tests cover stale/prior-market forecasts, honest
 abstain, missing evidence and exact decimal preservation. Real combined-trial
 acceptance remains OPEN until run evidence is processed; preserve the pp17
-release freeze, no promotion or merge by this candidate.
+runtime release freeze. The release owner unlocked source-only merges for
+PRs 157–160; this candidate does not promote or alter the installed runtime.
+
+## November 19 UTC — Supabase dashboard audit, observation only
+
+Completed a read-only page-by-page dashboard inspection covering database schema,
+functions/triggers/types/extensions/indexes/publications/policies/migrations,
+storage and signing metadata, Auth settings, services, metrics/logs and integrations.
+[Sanitized coverage, baselines and limitations](evidence/supabase-dashboard-audit-2026-11-19.json)
+records which pages actually loaded; it contains no keys, DSNs or user identities.
+No project configuration, data, credentials, deployment or paid feature changed.
+
+**Decision:** retain local RAM/indexed PostgreSQL hot reads and explicit background
+Supabase history/raw retrieval. The last-day overview showed CPU 2%, disk 21%,
+IO balance 99%, peak 8/60 connections; recent raw HTTP examples took 893–972 ms while
+legacy public SQL means rounded to 0–1 ms. These are different windows/workloads,
+not a PP throughput benchmark, but reinforce measuring connection setup,
+round trips and exact receipt/object verification before adding services.
+Current connection reuse evidence below remains the actual bounded PP comparison.
+
+**Followups remain OPEN, with no changes during the pp17 freeze:**
+
+- Review Data API automatic new-table exposure (ON) and the single exposed
+  function; current tables 0/22 exposed and history_v2 explicitly unexposed.
+  Preserve RLS, scoped roles and exact reader permissions.
+- Compatibility-review database SSL enforcement (OFF) and network access
+  (all IPs). Auth signup is ON, email confirmation ON, anonymous signin OFF;
+  Captcha and leaked-password checks OFF. Review machine-token renewal and
+  security hardening independently, without breaking the qualified worker.
+- Investigate 1.19 GB memory commitment flagged Severe versus 395.83 MB usage on
+  Nano. The UI offers Micro/1 GB as a same-price Free Upgrade; this is a capacity
+  option requiring review, not proof of a network-speed fix or permission to
+  resize. No replicas or additional compute services are justified yet.
+- Verify raw-object recovery separately: seven daily physical DB backups are
+  visible, but Supabase explicitly excludes Storage objects. A database restore
+  is not a raw archive recovery proof.
+- Classify error/warning rates against deliberate permission tests. Record PP
+  phase latency, rows/bytes/page, request count, reconnects/retries and exact
+  receipt/hash correctness for any optimization. Keep deadlines/retirement gates.
+
+Cron/Queues/Webhooks are not installed; Edge Functions and publication tables
+are empty. New Compute is inaccessible private alpha; Analytics/Vectors show
+empty private-alpha screens. Log drain cards display Additional $60. None was
+activated. Database IOPS/throughput/connection/disk panels failed to load;
+Data API last-hour metrics had no data. Catalog searches for dbt/stack/event
+returned no results, which is a UI coverage limit, not a universal capability
+claim. Full Auth subpages, restore/PITR and secret material are outside this audit.
+This docs-only milestone does not close PP qualification or authorize promotion;
+The release owner subsequently unlocked source-only merges for PRs 157–160;
+runtime/controller/cloud mutation restrictions remain in force.
+
+## November 19 UTC — default-OFF PP history session reuse candidate
+
+A separate source candidate recognizes only explicit
+`TRADEBOT_PP_REUSE_HISTORY_SESSION=true` for the restricted recurring PP worker.
+No Compose profile, controller, release flag or deployed pp.17 transport changes.
+The absent flag preserves the current fresh-connection path; malformed flags HOLD.
+The opt-in owns one physical session, admits no simultaneous checkout or waiting
+queue, revalidates private DSN/TLS/role bindings on every borrow, and leaves all
+transport identity checks and four-second request caps intact. Each import and
+fresh readback uses a distinct committed transaction. No old transaction or
+snapshot survives checkout. Errors, unfinished transactions and deadline expiry
+discard the session without ACK/retry; ordinary receipt reconciliation remains
+responsible for ambiguous commit recovery. Valid password rotation reconnects;
+unsafe bindings HOLD. Idle30s/lifetime300s eligibility bounds require
+reconnection on the next checkout; shutdown closes the single retained session. No new dependency or cloud privilege is added.
+
+Generated PostgreSQL17 full-path comparison includes local selection, projection/
+receipt/envelope commit, separate authenticated readback, localACK and exact
+100-envelope/checkpoint comparison for each arm (two50-row pages). At100ms per
+observable SQL wait and200ms connection setup, cold took5.447s (18.36ACK/s,
+four physical sessions) and reuse4.837s (20.67ACK/s, one session). Both completed
+four distinct committed transactions and100 exact ACKs/envelopes. Fault injection
+proves precommit rollback, lost commit response, wrong-role rejection, discard/
+reconnect and idempotent receipt recovery without premature ACK or duplicate
+checkpoint counting. Ten session unit tests and the existing binding/service
+checks and all13 native history/transport tests passed; full local pinned backend
+331 run/40 explicit platform/environment skips passed. Exact Linux CI and any future PP activation/full-path measurement
+remain required. This is separate from the actual PP receipt-read comparison;
+its40.17% read-only improvement is not a measured full-sync improvement.
+
+[Generated full-path evidence](evidence/pp-session-reuse-full-path-generated-2026-11-19.json).
+No host action, PP/cloud write or preprod merge was performed by this candidate;
+initial pp.17 evidence and retained-A backfill continue on the default path.
+
+## November 19 UTC — PP controller bound for revision capture and sealed-window verification
+
+Combined source `3adbc3a` passed exact CI 44472117753. The old PP session closed with collection OFF. An installation check and dedicated deployment identity confirmed the installed controller SHA-256 `a72679fde847b69ab7e84671e34b3bdc0464791d3ddf16502adc37a12511f7fe`. The PP deployment profile now references that proof. The combined application release, repair of 5,268 historical structured envelopes, live switch and verified retirement remain distinct qualification steps. [Controller identity evidence](evidence/pp-controller-identity-2026-11-19-a72679fd.json)
+
+## November 19 UTC — PP archive reader qualified with real private Storage
+
+The dedicated history reader used the pp.16 image and four scoped credential files, then authenticated and verified a 64,139-byte PP object against its SHA-256. The private bucket hid an existing foreign-origin key and returned an empty listing. It rejected upload and replacement. A move and a batch delete left the 74-byte synthetic witness at its original key with its original checksum and version. The writer and reader have separate identities. PP retained the witness and its earlier benchmark objects. The operator installed the four reader credentials and root-owned proof before binding the reader to a release. Application retrieval following actual PP partition retirement remains a separate gate. [HTTP and catalog evidence](evidence/pp-storage-reader-qualification-2026-11-19.json)
 
 ## November 19 UTC — actual PP connection reuse comparison, read path only
 

@@ -1,0 +1,73 @@
+{
+  "at": "2026-11-19T06:21:09Z",
+  "scope": "dedicated_pp_storage_reader",
+  "release": "v0.2.0-pp.16",
+  "image": "sha256:81c6d2bb89e2c5eb4b18ede1bd2c254ab1ae6cee29d1632d504d31ea47b4d5ba",
+  "implementation_sha": "051fb5cd566e8253adf352d7c970b21e0d903419",
+  "exact_push_ci": 44471078850,
+  "exact_pr_ci": 44471085399,
+  "prior_generated_smoke_failure": 44468734820,
+  "project": "xttdqeimdujweijxcuro",
+  "bucket": "market-raw",
+  "origin": "pp-live-pp",
+  "reader_uid": "1dbb8cde-99cc-4f4e-8e03-9342b31f9789",
+  "reader_policies_applied": 5,
+  "reader_credential_files_staged": 4,
+  "probe": {
+    "authenticated_get": "pass",
+    "sha256": "8978bcee6228ebd5cc794ea92e98abd37a3b9ec4a6a449ef806d0ce351b45bb2",
+    "verified_bytes": 64139,
+    "checks": {
+      "wrong_origin": {
+        "status": 400,
+        "code": "nosuchkey",
+        "inner_status": "404"
+      },
+      "list": {
+        "status": 200,
+        "code": "",
+        "inner_status": ""
+      },
+      "upload": {
+        "status": 400,
+        "code": "accessdenied",
+        "inner_status": "403"
+      },
+      "replace": {
+        "status": 400,
+        "code": "accessdenied",
+        "inner_status": "403"
+      },
+      "move": {
+        "status": 400,
+        "code": "nosuchkey",
+        "inner_status": "404"
+      },
+      "delete": {
+        "status": 200,
+        "code": "",
+        "inner_status": ""
+      }
+    },
+    "sentinel_unchanged": true
+  },
+  "test_sentinel": {
+    "fixture_key": "raw-v1/6157f7800b12255ab48111b5c6258a444712a38baca54d3b0929ede8994b2ae8/0a4d42f0-3654-4dde-87c2-6d4c58b2a022/1f7dd468c8c1d74e1ef5a6ef6d7199bb2825b4e542e7d2fab8d042dc60075fc6.jsonl.gz",
+    "bytes": 74,
+    "write": "create-only",
+    "verified": true
+  },
+  "test_sentinel_final_catalog_count": 1,
+  "test_sentinel_version_clock_unchanged": true,
+  "list_result_count": 0,
+  "delete_result_count": 0,
+  "api_reader_active": false,
+  "retirement_enabled": false,
+  "proof_sha256": "7a9524348a09af074c7d16b2d6caf58afa078b3e776f8eaae9a224a09d9e3a7a",
+  "historical_pp_outbox_500_row_pages": {
+    "data_rows": 5268,
+    "pages": 11,
+    "canonical_bytes": 8309661,
+    "largest_page_bytes": 842854
+  }
+}

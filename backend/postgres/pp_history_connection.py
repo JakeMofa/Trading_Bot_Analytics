@@ -76,7 +76,7 @@ class PPHistoryConnectionFactory:
         if self.dsn_file == self.ca_file:
             raise ArchiveIntegrityError('private PP history files must differ')
 
-    def __call__(self, *, timeout_seconds: float):
+    def _validated_dsn(self, timeout_seconds: float):
         if (isinstance(timeout_seconds, bool) or
                 not isinstance(timeout_seconds, (int, float)) or
                 not math.isfinite(timeout_seconds) or
@@ -113,6 +113,14 @@ class PPHistoryConnectionFactory:
         except Exception:
             raise ArchiveIntegrityError('private PP history DSN invalid') from None
 
+        return secret, deadline
+
+    def __call__(self, *, timeout_seconds: float):
+        secret, deadline = self._validated_dsn(timeout_seconds)
+        return self._open(secret, deadline)
+
+    @staticmethod
+    def _open(secret, deadline):
         remaining = deadline - time.monotonic()
         if remaining < 2:
             raise ArchiveLimit('private PP history connect budget exhausted')

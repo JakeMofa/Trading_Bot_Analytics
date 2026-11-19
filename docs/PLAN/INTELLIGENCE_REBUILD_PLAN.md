@@ -1,3 +1,30 @@
+## November 19 UTC — actual PP connection reuse comparison, read path only
+
+A bounded PP-only test used the restricted history identity to read the same50
+already acknowledged A receipts (IDs7314–7363) in four alternating cold/reused
+pairs. It ran on pp.16 source8b31c36, while collection and recurring workers
+were OFF. Every operation used a separate read-only transaction with the existing
+four-second cap, identity checks, and prepared statements disabled in both arms.
+Each result matched all50 local receipt hashes and exactly18,000 canonical
+metadata bytes, SHA256 `8603b9c455a7b89460b6eb2c2bebf80f99ea3f711396ca0812fe0088e9dd7b28`.
+
+Cold requests averaged632.35ms:324.41ms connection setup and306.58ms transaction/
+receipt readback. Reused requests averaged378.34ms including their first physical
+connection setup, a40.17% elapsed reduction. The three already-warm reused reads
+averaged288.20ms, a54.42% reduction against the cold mean. The read transaction
+itself averaged287.07ms when warm; connection reuse removed setup rather than
+eliminating receipt verification. Five physical connections served eight separate
+transactions. Interface RX/TX counters include TLS/authentication/protocol traffic,
+not merely the18,000-byte canonical result.
+
+This is a small actual remote **receipt-metadata read** comparison, not full
+sync/import throughput, envelope-payload recovery, localACK capacity, or concurrent
+collector performance. No cloud table, outbox, ACK, checkpoint, raw generation,
+released transport or policy changed. The owned oneoff and staged local credential
+were removed and the controller lock released before the release owner's window.
+Complete exact source/byte identities, timings, metadata and scope are preserved in
+[evidence](evidence/pp-read-connection-comparison-2026-11-19.json).
+
 ## November 19 UTC — archived-history reader access inventory
 
 Live read-only inspection found **zero** Supabase Auth users tagged as the PP archived-history reader, **zero** matching reader Storage policies, and **one** distinct archive writer. On deployed pp.16 the four reader credential files, root proof and release authority marker were absent. The running API had zero reader mounts and no archive writer credential. The collector remained OFF. Fresh generated PostgreSQL 17 tests proved the reviewed policy restricts reads to the PP origin and denies list/insert/update/delete even with a deliberately permissive secondary policy. Actual reader HTTP permission and post-retirement application history remain unqualified.

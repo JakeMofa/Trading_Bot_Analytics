@@ -2,6 +2,27 @@
 
 ## Current PP checkpoint — November 18, 2026
 
+### Sealed PP retirement decision
+
+After the exact A → B switch, start with the UUID of sealed A. The read-only diagnostic
+`python -m postgres.pp_retirement_report <sealed-generation-uuid>` runs inside the
+deployed PP lifecycle container using its existing lifecycle DSN. It binds A's stored
+authenticated readback receipts to its SHA-256 catalog and checks raw row count, pending
+structured history, protected outbox references, current reader leases and two separate
+committed B samples. A query timeout, incomplete coverage or missing evidence reports HOLD.
+An unchanged B count in the two-second sample means advancement was unobserved in that
+sample. This command makes no cloud calls and grants no retirement authorization.
+
+**Decision for live PP:** retain sealed A through this checkpoint. Before an explicit
+one-generation retirement can be authorized, demonstrate fresh authenticated verification
+of all exact raw objects and protected structured receipts, reconstruction through the
+history API, an enforceable cloud mutation fence through local removal, and exclusive
+reader drainage. Bind removal to the exact generation, manifest digest and collector's
+other active slot in a single crash-safe transaction. Recheck mutable state inside it;
+on lost proof or a failed check keep A. Qualify interrupted execution and post-removal
+archived-history access on isolated data. The live implementation still enforces
+generated-only retirement. Release/deployment of the diagnostic alone never changes it.
+
 `preprod` source `2e38ecdf693fed194960fc8fd67286854decb221`
 passed exact CI 44422595480 and was published as `v0.2.0-pp.12` in
 run 44423143306. Manual PP CD

@@ -95,11 +95,13 @@ establish live PP or production dashboard parity.
   [Local retention query study](PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)
   Keep the 50-row sync write configuration
   until separate 75-row throughput and exact acknowledgement evidence.
-- The audit timing report and independent raw restore tooling are in draft
-  [#179](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/179). Generated
-  restore passed. An actual independent copy/restore and Grafana integration
-  remain separate. No extra PP data copy or service activation is required by
-  this roadmap entry.
+- The audit timing report and independent raw restore tooling in
+  [#179](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/179) are qualified
+  on generated data. The reader-export-to-offline-restore path covered 57
+  objects / 28,411 rows with the primary path unavailable, and rejected a missing
+  restored object. A separately controlled live backup destination, an actual
+  independent PP copy/restore and Grafana integration remain separate. No extra
+  PP data copy or service activation is required by this roadmap entry.
 
 ## November 19 UTC — canonical exact-read byte reuse source candidate
 

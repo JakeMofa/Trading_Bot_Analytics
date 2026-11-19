@@ -8,6 +8,17 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **PP raw archive restore and readback evidence — tools qualified on generated data.**
+  A disposable PostgreSQL 17 reader exported the complete generated catalog.
+  The offline verifier recovered **57 objects and 28,411 generated rows** from a
+  separate staged copy with the primary path unavailable, then rejected a
+  missing final object. The audit timing CLI distinguishes verified progress
+  from attempts and preserves the actual PP20 hold at 239.608 seconds after
+  57 raw objects and 62 of 63 structured pages. The exact first page passed in
+  2.729 seconds. An actual independent PP backup destination and restore, a
+  complete retained-A readback, and any local retirement remain open with the
+  release owner. [Drill and commands](PLAN/PP_RAW_RECOVERY_DRILL_2026-11-19.md)
+
 - [ ] **PP A/B retirement and deterministic dashboard history.** The
   [five-step master plan](PLAN/INTELLIGENCE_REBUILD_PLAN.md) now binds the actual
   legacy FastAPI and SQLite contracts, PP release recovery, both rotations, and

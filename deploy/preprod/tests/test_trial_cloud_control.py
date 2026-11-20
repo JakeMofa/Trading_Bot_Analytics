@@ -16,6 +16,7 @@ import unittest
 import uuid
 from unittest.mock import MagicMock,patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from compose_render import render_config
 from controller import DeploymentHold
 import trial_cloud_control as c
 import trial_cloud_profile as p
@@ -82,7 +83,7 @@ class ProfileTests(unittest.TestCase):
             if profile:command+=['--profile',profile]
             command+=['--project-directory',str(folder)]
             for name in files:command+=['-f',str(folder/name)]
-            return json.loads(subprocess.run([*command,'config','--format','json'],env=env,capture_output=True,text=True,check=True,timeout=10).stdout)
+            return render_config([*command,'config','--format','json'], env=env, timeout=10)
         basefiles=['compose.yaml','runtime.compose.yaml'];livefiles=[*basefiles,'runtime.live.compose.yaml','runtime.live-cycle.compose.yaml','runtime.live-trial.compose.yaml']
         base=render(basefiles)
         for reader in (False,True):
@@ -104,12 +105,16 @@ class DispatchOrderTests(unittest.TestCase):
         def operator(_token,path,**kwargs):
             calls.append(path)
             return statuses.pop(0) if path=='/collector/status' else dict(accepted=True,origin_id=a.TRIAL_ORIGIN)
+        def token_metadata(path):
+            if path==gate.RUNTIME_SECRETS/'operator_token':
+                return SimpleNamespace(st_mode=stat.S_IFREG|0o400,st_uid=10001)
+            raise FileNotFoundError
         with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active), \
              patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate',return_value=context), \
              patch.object(gate,'_image_binding'),patch.object(gate,'_owned_runtime'), \
              patch.object(gate,'_consume',side_effect=lambda *_:calls.append('consume')) as consume, \
              patch.object(gate,'_operator',side_effect=operator),patch.object(c,'require_ready',side_effect=lambda *_:calls.append('ready')), \
-             patch.object(Path,'lstat',return_value=SimpleNamespace(st_mode=stat.S_IFREG|0o400,st_uid=10001)), \
+             patch.object(Path,'lstat',new=token_metadata), \
              patch.object(Path,'read_text',return_value='a'*64):
             result=gate.session('session-v1 on 6600 '+ANCHOR+' '+a.TRIAL_ORIGIN,Path('/trusted/controller'))
         self.assertEqual(result['origin_id'],a.TRIAL_ORIGIN)

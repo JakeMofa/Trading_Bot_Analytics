@@ -1,3 +1,38 @@
+## November 20 UTC — failed A recovered; fresh Polymarket-priority trial preparing
+
+The previous live trial remains **FAIL before A → B**. Its retained initial A
+has now been sealed with collection OFF, archived and independently verified:
+**18,930 raw records in 38 objects, 20,362 structured records, zero pending**.
+Independent readback used 81 requests / 35,230,341 bytes within the 240-second
+budget. Source and older metadata fingerprints were preserved. **No partition
+was deleted.** Production's previous setting and the temporary fwupd pause were
+restored. Archive worker stopped after verification.
+
+PR #193 merged as `6a09ed4`: transient Coinbase transport failures now reconnect
+within the finite lease instead of exhausting a lifetime retry cap and ending
+Polymarket collection. The concurrent regression proves Polymarket writes and
+rotation continue while Coinbase retries; stale-reference forecasts abstain.
+This is tested code, not a completed live rotation result.
+
+The fresh trial03 candidate retains failed trial02 intact, requires its exact
+verified archive and independent audit, and uses separate origin/credentials.
+Local qualification: **580 backend tests (66 platform skips), 265 controls
+(14 platform skips), 11 CI-control tests passed**. Exact successor Linux CI,
+controller/release qualification and live A → B → fresh A remain pending.
+A host leave attempt returned `entrypoint_precondition_failed`; read-only
+inspection shows state `leaving`, collector OFF and 1,042,944,000 available
+memory bytes. Recovery cause is being checked; do not repeat admission or
+install a successor controller over unresolved old-profile state.
+
+Next: recover the old profile, qualify/deploy the successor, then run two full
+30-minute windows. Each sealed partition needs independent authenticated
+readback before deletion while its successor keeps collecting. Both retirements,
+archived history and dashboard freshness still require live evidence.
+Phase 1.75/I7 remain OPEN.
+
+[Failed-A archive evidence](evidence/pp23-failed-a-archive-2026-11-20.json).
+[Fresh trial scope](PP_THIRD_TRIAL_SCOPE_2026-11-20.md).
+
 ## November 19 CST — PP23 live attempt stopped before first rotation
 
 **FAIL, not a completed A/B trial.** Deployed `f964c93` started the exact trial02

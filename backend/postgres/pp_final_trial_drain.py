@@ -15,14 +15,22 @@ import uuid
 from .archive_codec import ArchiveLimits, CycleBudget
 from .lifecycle import LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import OFF_FLAGS
-from .rehearsal_profile import NEXT_TRIAL_ORIGIN as ORIGIN, canonical_anchor, cycle_anchor
+from .rehearsal_profile import NEXT_TRIAL_ORIGIN as ORIGIN, THIRD_TRIAL_ORIGIN, canonical_anchor, cycle_anchor
 from .pp_trial_prepare import CONSUMER as PREPARE_CONSUMER
 from .pp_structured_probe import LOCAL_DSN, private_dsn
 
 CONSUMER = 'trial:final-a-maintenance-seal-v1'
-MAX_OUTBOX_ROWS = 10_000
+MAINTENANCE_ORIGINS=frozenset({ORIGIN,THIRD_TRIAL_ORIGIN})
+MAX_OUTBOX_ROWS = 10_000  # Original02 total; pending queue capacity is unchanged.
+THIRD_MAX_ACKNOWLEDGED_ROWS = 64_000  # Existing bounded maintenance inventory only.
 MAX_RAW_ROWS = 128 * 500  # Existing sealed archive catalog, without enlargement.
 LIMITS = ArchiveLimits(max_seconds=20)
+
+
+def acknowledged_row_limit(origin_id):
+    if origin_id not in MAINTENANCE_ORIGINS:
+        raise LifecycleHold('exact final trial maintenance origin required')
+    return THIRD_MAX_ACKNOWLEDGED_ROWS if origin_id==THIRD_TRIAL_ORIGIN else MAX_OUTBOX_ROWS
 
 
 @dataclass(frozen=True)
@@ -36,12 +44,12 @@ class SealTarget:
     operation: str
     source: str
 
-    def validate(self):
+    def validate(self, *, origin_id=ORIGIN):
         canonical_anchor(self.initial_a)
         if (any(not isinstance(value, str) or str(uuid.UUID(value)) != value
                 for value in (self.generation, self.operation))
                 or self.generation == self.initial_a
-                or type(self.outbox_count) is not int or not 1 <= self.outbox_count <= MAX_OUTBOX_ROWS
+                or type(self.outbox_count) is not int or not 1 <= self.outbox_count <= acknowledged_row_limit(origin_id)
                 or type(self.writer_epoch) is not int or self.writer_epoch < 0
                 or type(self.raw_count) is not int or not 1 <= self.raw_count <= MAX_RAW_ROWS
                 or not isinstance(self.trial_source,str) or not re.fullmatch('[0-9a-f]{40}',self.trial_source)
@@ -50,11 +58,11 @@ class SealTarget:
 
 
 
-def completed_chain(db, target):
+def completed_chain(db, target, *, origin_id=ORIGIN):
     """Read preserved provenance under existing privileges; never read permit secrets."""
     from datetime import datetime, timedelta
     rows=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
-                    'ORDER BY created_at,generation_id LIMIT 4',(ORIGIN,)).fetchall()
+                    'ORDER BY created_at,generation_id LIMIT 4',(origin_id,)).fetchall()
     if (len(rows)!=3 or [row['slot'] for row in rows]!=['A','B','A']
             or rows[0]['generation_id']!=target.initial_a or rows[2]['generation_id']!=target.generation
             or len({row['generation_id'] for row in rows})!=3):
@@ -62,7 +70,7 @@ def completed_chain(db, target):
     checkpoints={}
     for consumer in (PREPARE_CONSUMER,'rehearsal:two-leg-session'):
         saved=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
-                         'AND generation_id=%s AND consumer=%s',(ORIGIN,target.initial_a,consumer)).fetchone()
+                         'AND generation_id=%s AND consumer=%s',(origin_id,target.initial_a,consumer)).fetchone()
         checkpoints[consumer]=saved['cursor'] if saved else {}
     prepared=checkpoints[PREPARE_CONSUMER];admitted=checkpoints['rehearsal:two-leg-session']
     try:
@@ -79,7 +87,7 @@ def completed_chain(db, target):
     for previous,successor in zip(rows,rows[1:]):
         checkpoint=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
             "AND generation_id=%s AND consumer='retirement:pp-fresh-readback'",
-            (ORIGIN,previous['generation_id'])).fetchone()
+            (origin_id,previous['generation_id'])).fetchone()
         proof=checkpoint['cursor'] if checkpoint else {}
         if (previous['state']!='retired' or previous['retired_at'] is None
                 or previous['sealed_at'] is None or previous['verified_at'] is None
@@ -102,7 +110,7 @@ def completed_chain(db, target):
             raise LifecycleHold('retired predecessor partition must be absent')
     return rows
 
-def seal_final_a(repository, target: SealTarget, *, execute=False):
+def seal_final_a(repository, target: SealTarget, *, execute=False, origin_id=ORIGIN):
     """Seal the exact stopped terminal fresh trial A, preserving its writer pointer and all evidence.
 
     Locking the writer drains previously admitted Store writes. The same global
@@ -110,11 +118,11 @@ def seal_final_a(repository, target: SealTarget, *, execute=False):
     remains on a sealed generation, so normal activation/ingestion cannot resume.
     A retry only acknowledges this identical completed operation; it never reseals.
     """
-    target.validate()
-    if execute is not True or repository.environment != 'preprod':
+    target.validate(origin_id=origin_id)
+    if execute is not True or repository.environment != 'preprod' or origin_id not in MAINTENANCE_ORIGINS:
         raise LifecycleHold('explicit PP final trial seal execution required')
-    with CycleBudget(LIMITS), repository.raw_archive_lock(ORIGIN), \
-            repository.structured_sync_lock(ORIGIN), repository.transaction() as db:
+    with CycleBudget(LIMITS), repository.raw_archive_lock(origin_id), \
+            repository.structured_sync_lock(origin_id), repository.transaction() as db:
         valid = db.execute("""SELECT current_database()='tradebot_pp'
             AND session_user='tradebot_lifecycle' AND count(*)=1
             AND bool_and(singleton AND environment='preprod' AND database_name='tradebot_pp'
@@ -123,7 +131,7 @@ def seal_final_a(repository, target: SealTarget, *, execute=False):
             raise LifecycleHold('exact PP database and lifecycle identity required')
         db.execute("SELECT pg_advisory_xact_lock(hashtextextended('tradebot-pp-live-collector',0))")
         writer = db.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
-                            (ORIGIN,)).fetchone()
+                            (origin_id,)).fetchone()
         if (not writer or writer['generation_id'] != target.generation or writer['collector_enabled']
                 or writer['collector_session_id'] is not None
                 or writer['collector_lease_expires_at'] is not None):
@@ -134,19 +142,19 @@ def seal_final_a(repository, target: SealTarget, *, execute=False):
                or row['collector_lease_expires_at'] is not None for row in writers):
             raise LifecycleHold('final trial sealing requires all PP collectors durably OFF')
         generation = db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
-                                'AND generation_id=%s FOR UPDATE', (ORIGIN,target.generation)).fetchone()
+                                'AND generation_id=%s FOR UPDATE', (origin_id,target.generation)).fetchone()
         if not generation or generation['slot'] != 'A':
             raise LifecycleHold('exact terminal fresh trial A required')
-        completed_chain(db,target)
+        completed_chain(db,target,origin_id=origin_id)
         outbox = db.execute('SELECT count(*) AS n, count(*) FILTER (WHERE acknowledged_at IS NULL) AS pending '
                             'FROM (SELECT acknowledged_at FROM ops.outbox WHERE origin_id=%s '
                             'AND generation_id=%s LIMIT %s) bounded',
-                            (ORIGIN,target.generation,MAX_OUTBOX_ROWS+1)).fetchone()
+                            (origin_id,target.generation,acknowledged_row_limit(origin_id)+1)).fetchone()
         if outbox['n'] != target.outbox_count or outbox['pending'] != 0:
             raise LifecycleHold('exact final trial outbox must be fully acknowledged')
         count = db.execute('SELECT count(*) AS n FROM (SELECT 1 FROM raw.events WHERE origin_id=%s '
                            'AND generation_id=%s LIMIT %s) bounded',
-                           (ORIGIN,target.generation,MAX_RAW_ROWS+1)).fetchone()['n']
+                           (origin_id,target.generation,MAX_RAW_ROWS+1)).fetchone()['n']
         if count != target.raw_count:
             raise LifecycleHold('reviewed final trial raw count changed')
         # Check the actual physical child and exact partition bound before seal.
@@ -160,8 +168,8 @@ def seal_final_a(repository, target: SealTarget, *, execute=False):
             raise LifecycleHold('exact final trial raw partition unavailable')
         previous = db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
                               'AND generation_id=%s AND consumer=%s',
-                              (ORIGIN,target.generation,CONSUMER)).fetchone()
-        identity = dict(origin_id=ORIGIN,initial_a=target.initial_a,
+                              (origin_id,target.generation,CONSUMER)).fetchone()
+        identity = dict(origin_id=origin_id,initial_a=target.initial_a,
                         operation=target.operation,source=target.source,trial_source=target.trial_source,
                         previous_writer_epoch=target.writer_epoch,raw_count=target.raw_count,
                         outbox_count=target.outbox_count,policy=CONSUMER,two_leg_retirement_chain_verified=True,retirement_authorized=False,
@@ -187,9 +195,9 @@ def seal_final_a(repository, target: SealTarget, *, execute=False):
             raise LifecycleHold('final trial generation start is invalid')
         db.execute("UPDATE archive.generations SET state='sealed',sealed_at=%s,seal_count=%s "
                    'WHERE origin_id=%s AND generation_id=%s',
-                   (sealed_at,target.raw_count,ORIGIN,target.generation))
+                   (sealed_at,target.raw_count,origin_id,target.generation))
         db.execute('UPDATE ops.writer_state SET epoch=epoch+1,updated_at=%s WHERE origin_id=%s',
-                   (sealed_at,ORIGIN))
+                   (sealed_at,origin_id))
         receipt = dict(identity,sealed_at=sealed_at.isoformat(),
                        txid=db.execute('SELECT txid_current() AS txid').fetchone()['txid'])
         repository._checkpoint(db,generation,CONSUMER,receipt)
@@ -197,42 +205,44 @@ def seal_final_a(repository, target: SealTarget, *, execute=False):
 
 
 
-def audit_final_a(factory, transport, target: SealTarget, *, seal_hash, raw_objects, structured_pages):
+def audit_final_a(factory, transport, target: SealTarget, *, seal_hash, raw_objects, structured_pages, origin_id=ORIGIN):
     """Bounded independent read-only verification; no successor or trial authority.
 
     The caller supplies separately staged trial reader transports, never writer
     credentials. No seal window, retirement checkpoint or ticket is created.
     """
     from .archive_codec import ArchiveIntegrityError
-    from .cloud_origin_binding import NEXT_TRIAL_READER as TRIAL_READER
+    from .cloud_origin_binding import cloud_binding
+    if origin_id not in MAINTENANCE_ORIGINS:raise LifecycleHold('exact final trial audit origin required')
+    TRIAL_READER=cloud_binding(origin_id).reader_role
     from .lifecycle import ArchiveWorker
     from .pp_retained_archive_audit import local_snapshot, remote_preflight
     from .pp_retirement_report import bound_catalog
     from .pp_retirement_verify import RetirementTransport, TwoMarketReadbackLimits, inventory
-    target.validate()
+    target.validate(origin_id=origin_id)
     if (not isinstance(transport,RetirementTransport) or not isinstance(seal_hash,str) or not re.fullmatch('[0-9a-f]{64}',seal_hash)
             or any(type(n) is not int or n < 1 for n in (raw_objects,structured_pages))
             or raw_objects > 128 or raw_objects+structured_pages+1 > 192
-            or transport.origin_id != ORIGIN or transport.generation_id != target.generation
+            or transport.origin_id != origin_id or transport.generation_id != target.generation
             or transport.structured.expected_role != TRIAL_READER
-            or transport.structured.origin_id != ORIGIN
+            or transport.structured.origin_id != origin_id
             or transport.structured.generation_id != target.generation
             or getattr(transport.raw,'_reader',False) is not True
-            or getattr(getattr(transport.raw,'_origin_binding',None),'origin_id',None) != ORIGIN):
+            or getattr(getattr(transport.raw,'_origin_binding',None),'origin_id',None) != origin_id):
         raise LifecycleHold('exact independent final trial reader scope required')
     limits=TwoMarketReadbackLimits()
     with CycleBudget(limits) as budget, local_snapshot(factory,budget) as db:
         generation=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s AND generation_id=%s',
-                              (ORIGIN,target.generation)).fetchone()
+                              (origin_id,target.generation)).fetchone()
         checkpoint=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
                               'AND generation_id=%s AND consumer=%s',
-                              (ORIGIN,target.generation,CONSUMER)).fetchone()
+                              (origin_id,target.generation,CONSUMER)).fetchone()
         receipt=checkpoint['cursor'] if checkpoint else {}
-        expected=dict(origin_id=ORIGIN,initial_a=target.initial_a,operation=target.operation,source=target.source,trial_source=target.trial_source,
+        expected=dict(origin_id=origin_id,initial_a=target.initial_a,operation=target.operation,source=target.source,trial_source=target.trial_source,
             previous_writer_epoch=target.writer_epoch,raw_count=target.raw_count,outbox_count=target.outbox_count,
             policy=CONSUMER,two_leg_retirement_chain_verified=True,retirement_authorized=False,original_trial_satisfied=False)
-        writer=db.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s',(ORIGIN,)).fetchone()
-        completed_chain(db,target)
+        writer=db.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s',(origin_id,)).fetchone()
+        completed_chain(db,target,origin_id=origin_id)
         if (not generation or generation['state']!='verified' or generation['slot']!='A'
                 or generation['seal_count']!=target.raw_count or generation['seal_hash']!=seal_hash
                 or any(receipt.get(k)!=v for k,v in expected.items())
@@ -242,10 +252,10 @@ def audit_final_a(factory, transport, target: SealTarget, *, seal_hash, raw_obje
                 or writer['collector_session_id'] is not None or writer['collector_lease_expires_at'] is not None):
             raise LifecycleHold('reviewed final trial maintenance seal changed')
         if db.execute('SELECT 1 FROM ops.outbox WHERE origin_id=%s AND acknowledged_at IS NULL LIMIT 1',
-                      (ORIGIN,)).fetchone():
+                      (origin_id,)).fetchone():
             raise LifecycleHold('final trial structured evidence not fully acknowledged')
         actual=db.execute('SELECT count(*) AS n FROM raw.events WHERE origin_id=%s AND generation_id=%s',
-                          (ORIGIN,target.generation)).fetchone()['n']
+                          (origin_id,target.generation)).fetchone()['n']
         if actual!=target.raw_count:
             raise LifecycleHold('reviewed final trial raw count changed')
         manifests=LifecycleRepository._manifests(db,target.generation)
@@ -263,13 +273,14 @@ def audit_final_a(factory, transport, target: SealTarget, *, seal_hash, raw_obje
         if readback['structured_count']!=target.outbox_count:
             raise ArchiveIntegrityError('final trial structured readback count changed')
         budget.check()
-    return dict(status='final_trial_archive_audit_verified',origin_id=ORIGIN,generation_id=target.generation,
+    return dict(status='final_trial_archive_audit_verified',origin_id=origin_id,generation_id=target.generation,
                 evidence_scope='read_only_final_trial_maintenance_audit',retirement_authorized=False,
                 original_trial_satisfied=False,local_role='tradebot_reader',structured_role=TRIAL_READER,
                 operation_deadline_met=True,inventory=estimate,**readback)
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--origin',choices=sorted(MAINTENANCE_ORIGINS),default=ORIGIN)
     parser.add_argument('--execute', action='store_true')
     parser.add_argument('--generation', required=True)
     parser.add_argument('--initial-a', required=True)
@@ -282,11 +293,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         target = SealTarget(args.generation,args.initial_a,args.writer_epoch,args.raw_count,args.outbox_count,args.trial_source,args.operation,args.source)
-        target.validate()
+        target.validate(origin_id=args.origin)
         if (not args.execute or os.getenv('TRADEBOT_PP_FINAL_TRIAL_DRAIN') != 'true'
                 or os.getenv('TRADEBOT_ENVIRONMENT') != 'preprod'
                 or os.getenv('TRADEBOT_DATA_MODE') != 'pp_live'
-                or os.getenv('TRADEBOT_ORIGIN_ID') != ORIGIN
+                or os.getenv('TRADEBOT_ORIGIN_ID') != args.origin
                 or cycle_anchor(os.environ) != target.initial_a
                 or os.getenv('TRADEBOT_DATABASE_DSN_FILE') != str(LOCAL_DSN)
                 or os.getenv('TRADEBOT_DATABASE_DSN')
@@ -302,7 +313,7 @@ def main(argv=None):
             if db.execute('SELECT session_user AS login').fetchone()['login'] != 'tradebot_lifecycle':
                 raise LifecycleHold('final trial sealing requires lifecycle login')
             validate_schema(db,'preprod')
-        result=seal_final_a(LifecycleRepository(factory),target,execute=True)
+        result=seal_final_a(LifecycleRepository(factory),target,execute=True,origin_id=args.origin)
         print(json.dumps(result,sort_keys=True))
         return 0
     except Exception as error:

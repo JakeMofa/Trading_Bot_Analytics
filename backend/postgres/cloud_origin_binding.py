@@ -9,7 +9,10 @@ TRIAL_READER = 'tradebot_pp_trial_20261119_01_reader'
 NEXT_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-02'
 NEXT_TRIAL_WRITER = 'tradebot_pp_trial_20261119_02_writer'
 NEXT_TRIAL_READER = 'tradebot_pp_trial_20261119_02_reader'
-TRIAL_ORIGINS = frozenset({TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN})
+THIRD_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-03'
+THIRD_TRIAL_WRITER = 'tradebot_pp_trial_20261119_03_writer'
+THIRD_TRIAL_READER = 'tradebot_pp_trial_20261119_03_reader'
+TRIAL_ORIGINS = frozenset({TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN})
 
 
 @dataclass(frozen=True)
@@ -34,4 +37,6 @@ def cloud_binding(origin_id):
         return CloudBinding(origin_id, TRIAL_WRITER, TRIAL_READER)
     if origin_id == NEXT_TRIAL_ORIGIN:
         return CloudBinding(origin_id, NEXT_TRIAL_WRITER, NEXT_TRIAL_READER)
+    if origin_id == THIRD_TRIAL_ORIGIN:
+        return CloudBinding(origin_id, THIRD_TRIAL_WRITER, THIRD_TRIAL_READER)
     raise ValueError('unreviewed exact PP cloud origin')

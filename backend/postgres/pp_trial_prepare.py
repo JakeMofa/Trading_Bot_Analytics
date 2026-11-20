@@ -11,9 +11,10 @@ import uuid
 
 from .archive_codec import ArchiveLimits, CycleBudget
 from .lifecycle import LifecycleHold, LifecycleRepository
-from .rehearsal_profile import TRIAL_ORIGIN, TRIAL_ORIGINS, canonical_anchor, cycle_anchor
+from .rehearsal_profile import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, TRIAL_ORIGINS, canonical_anchor, cycle_anchor
 
 CONSUMER='trial:initial-a-prepare-v1'
+RETAINED_SECOND_INITIAL_A='41c82044-0fb8-4900-bea0-7c43ba079ff0'
 
 
 def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN):
@@ -38,6 +39,32 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
             raise LifecycleHold('all PP collectors must be durably OFF before trial preparation')
         if db.execute('SELECT 1 FROM ops.writer_state WHERE collector_enabled LIMIT 1').fetchone():
             raise LifecycleHold('all database collector flags must be OFF')
+        if origin_id==THIRD_TRIAL_ORIGIN:
+            # New03 follows only the exact archived failed02 initial A. Keep
+            # its partition, pointer, seal and old authority entirely unchanged.
+            prior=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
+                'ORDER BY created_at,generation_id LIMIT 2 FOR SHARE',(NEXT_TRIAL_ORIGIN,)).fetchall()
+            old_writer=next((row for row in writers if row['origin_id']==NEXT_TRIAL_ORIGIN),None)
+            if (len(prior)!=1 or prior[0]['generation_id']!=RETAINED_SECOND_INITIAL_A
+                    or prior[0]['state']!='verified' or prior[0]['hold_reason'] is not None
+                    or old_writer is None or old_writer['generation_id']!=RETAINED_SECOND_INITIAL_A):
+                raise LifecycleHold('exact retained second trial archive required before third admission')
+            catalog=db.execute('SELECT count(*) AS objects, sum(row_count) AS rows, '
+                'bool_and(verified_at IS NOT NULL) AS verified FROM archive.manifests '
+                'WHERE origin_id=%s AND generation_id=%s',
+                (NEXT_TRIAL_ORIGIN,RETAINED_SECOND_INITIAL_A)).fetchone()
+            attached=db.execute("SELECT EXISTS(SELECT 1 FROM pg_inherits i "
+                "JOIN pg_class c ON c.oid=i.inhrelid JOIN pg_namespace n ON n.oid=c.relnamespace "
+                "WHERE i.inhparent='raw.events'::regclass AND n.nspname='raw' AND c.relname=%s "
+                "AND pg_get_expr(c.relpartbound,c.oid)=format('FOR VALUES IN (%%L)',%s::text)) AS valid",
+                (prior[0]['partition_name'],RETAINED_SECOND_INITIAL_A)).fetchone()['valid']
+            if attached is not True:
+                raise LifecycleHold('retained second trial partition attachment changed')
+            if (not catalog['objects'] or catalog['verified'] is not True
+                    or catalog['rows']!=prior[0]['seal_count']
+                    or db.execute('SELECT 1 FROM ops.outbox WHERE origin_id=%s '
+                        'AND acknowledged_at IS NULL LIMIT 1',(NEXT_TRIAL_ORIGIN,)).fetchone()):
+                raise LifecycleHold('retained second trial archive or acknowledgements incomplete')
         existing=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
                             'ORDER BY created_at,generation_id LIMIT 2 FOR UPDATE',(origin_id,)).fetchall()
         writer=next((row for row in writers if row['origin_id']==origin_id),None)

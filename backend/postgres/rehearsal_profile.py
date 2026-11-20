@@ -1,7 +1,7 @@
 """Explicit, finite PP two-leg rehearsal scope. No activation or lease renewal."""
 import uuid
 from datetime import datetime, timezone
-from .cloud_origin_binding import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, TRIAL_ORIGINS
+from .cloud_origin_binding import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, TRIAL_ORIGINS
 
 NORMAL_LEASE_CAP_SECONDS = 4560
 # Admission is within the final minute before the first quarter. B may wait

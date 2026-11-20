@@ -268,6 +268,14 @@ def retirement_history_factory(environ):
     return factory_type(files['TRADEBOT_PP_HISTORY_DSN_FILE'],files['TRADEBOT_PP_HISTORY_CA_FILE'],origin_id=origin,reader=True)
 
 
+def retirement_indexed_latest(environ, origin):
+    """Opt in only for the bounded PP trial verifier."""
+    value = environ.get('TRADEBOT_PP_RETIREMENT_INDEXED_LATEST_RECEIPTS', 'false')
+    if value not in ('true', 'false') or (value == 'true' and origin not in TRIAL_ORIGINS):
+        raise LifecycleHold('exact PP trial retirement index opt-in required')
+    return value == 'true'
+
+
 def sanitize_phase_accounting(value):
     """Public numeric diagnostics only; arbitrary exception attributes stay private."""
     if not isinstance(value,dict):return None
@@ -338,6 +346,7 @@ def main():
         if args.origin is not None and args.origin != origin:
             raise LifecycleHold('CLI origin does not match reviewed environment')
         reader=origin in TRIAL_ORIGINS
+        indexed_latest = retirement_indexed_latest(os.environ, origin)
         require_trial_files(os.environ,origin,reader=reader,structured=True,storage=True)
         files=cloud_files(origin,reader=reader)
         check_environment(os.environ,origin_id=origin,files=files)
@@ -381,7 +390,8 @@ def main():
         history_factory = retirement_history_factory(os.environ)
         raw=SupabaseStorageTransport.from_machine_files(*storage_paths(files),reader=reader,origin_id=origin)
         structured=HistoryV2PostgresTransport(history_factory,origin_id=origin,
-            generation_id=target.sealed,expected_database='postgres',expected_role=cloud_binding(origin).role(reader=reader))
+            generation_id=target.sealed,expected_database='postgres',expected_role=cloud_binding(origin).role(reader=reader),
+            indexed_latest=indexed_latest)
         scoped=RetirementTransport(raw,structured,origin_id=origin,generation_id=target.sealed)
         result = verify(LifecycleRepository(factory),scoped,target,permit=permit,limits=limits,origin=origin)
         result=public_retirement_result(result,retirement_requested=args.retire_with_pp_permit)

@@ -1,3 +1,29 @@
+## November 20, 2026 — PP26 A read-only timeout reproduced and indexed readback passed
+
+The retained A audit used reader-only credentials, with both PP partitions
+attached and every collector off. The original rank lookup and fresh connection
+per page passed all 50 raw comparisons, then failed on the first structured page.
+The client recorded `history_projections` and the hosted PostgreSQL log reported
+`25P04` (transaction timeout) at 20:54:16.213 UTC. The latest-receipt rank lookup
+had consumed 2.435 seconds on that page. This establishes the diagnostic
+failure, independently of the missing details from the original live attempt.
+
+Changing only the receipt lookup to the existing checked index passed all
+50 objects and 26,480 structured records across 53 pages. Total measured work
+was 212.801 seconds, the slowest structured page was 3.264 seconds and the
+slowest indexed latest-receipt lookup was 0.129 seconds. The 240-second operation
+and four-second page limits stayed in force. Local wait samples reported no
+lock wait during either run. The read-only audit does not exercise concurrent
+opposite-slot writes, permit issuance or partition removal.
+
+The live verifier candidate exposes an explicit PP trial-only indexed lookup
+flag. This uses the existing checked index and exact receipt comparisons.
+A fresh live rehearsal must preserve trial03 and qualify its own independently
+scoped writer, reader, release and retirement authority. Production and both
+retained trial03 partitions were untouched by these audits.
+
+[Sanitized timing and query-wait evidence](PLAN/evidence/pp26-retained-a-diagnostic-2026-11-20.json).
+
 ## November 20, 2026 — PP26 B archived during recovery; live retirement still open
 
 With PP's collector durably off, the exact Linux CI-passed B recovery helper

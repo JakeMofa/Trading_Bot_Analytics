@@ -38,3 +38,14 @@ class RetirementFailureDiagnostics(unittest.TestCase):
   self.assertEqual((result['stage'],result['reason']),('pp_retirement_verify','inventory_exceeds_limits'));self.assertFalse(result['retirement_authorized'])
   late=dict(status='retired_pp_after_operation_deadline',retirement_authorized=True,operation_deadline_met=False)
   self.assertIs(verify.public_retirement_result(late,retirement_requested=True),late)
+
+ def test_indexed_retirement_lookup_is_exact_trial_only(self):
+  from postgres.cloud_origin_binding import THIRD_TRIAL_ORIGIN
+  from postgres.lifecycle import LifecycleHold
+  flag='TRADEBOT_PP_RETIREMENT_INDEXED_LATEST_RECEIPTS'
+  self.assertFalse(verify.retirement_indexed_latest({},THIRD_TRIAL_ORIGIN))
+  self.assertTrue(verify.retirement_indexed_latest({flag:'true'},THIRD_TRIAL_ORIGIN))
+  with self.assertRaises(LifecycleHold):
+   verify.retirement_indexed_latest({flag:'true'},verify.ORIGIN)
+  with self.assertRaises(LifecycleHold):
+   verify.retirement_indexed_latest({flag:'TRUE'},THIRD_TRIAL_ORIGIN)

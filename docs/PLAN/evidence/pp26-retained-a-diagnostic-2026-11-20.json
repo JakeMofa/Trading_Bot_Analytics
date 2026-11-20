@@ -1,0 +1,753 @@
+{
+  "baseline": {
+    "code": {
+      "pp_retained_archive_audit": "987b8e2e49592f292c3abd1399f062c01b700e2a39de038f93dd4d4ced769d86",
+      "pp_retirement_verify": "d2c07e30c29c13c2502c16610e89d80d25514502d05c738c72253b86c433d5c5"
+    },
+    "events": [
+      {
+        "at": "2026-11-20T20:53:21.818654+00:00",
+        "rows": [
+          {
+            "query_age_ms": 222,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:29.985626+00:00",
+        "rows": [
+          {
+            "query_age_ms": 70,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:38.214435+00:00",
+        "rows": [
+          {
+            "query_age_ms": 425,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:46.340689+00:00",
+        "rows": [
+          {
+            "query_age_ms": 476,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:54.491239+00:00",
+        "rows": [
+          {
+            "query_age_ms": 3,
+            "state": "active",
+            "wait": "DataFileRead",
+            "wait_type": "IO"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:54:02.728113+00:00",
+        "rows": [
+          {
+            "query_age_ms": 541,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:54:10.917175+00:00",
+        "rows": [
+          {
+            "query_age_ms": 28,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "evidence_scope": "read_only_retained_archive_audit",
+        "original_trial_satisfied": false,
+        "partition_outcome": "readback_only",
+        "phase_accounting": {
+          "diagnostics_unavailable": false,
+          "elapsed_seconds": 58.300975,
+          "exhausted_limit": null,
+          "failed_phase": "history_projections",
+          "logical_bytes": 4101899,
+          "nested_phase_totals_overlap": true,
+          "phases": {
+            "history_checkout": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 2e-06,
+              "requests": 0,
+              "seconds": 3e-06
+            },
+            "history_connect": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 0.337235,
+              "requests": 0,
+              "seconds": 0.635255
+            },
+            "history_exact_revisions": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.922533,
+              "requests": 0,
+              "seconds": 0.922533
+            },
+            "history_identity_checkpoint": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.21575,
+              "requests": 0,
+              "seconds": 0.21575
+            },
+            "history_latest_receipts": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 2.435211,
+              "requests": 0,
+              "seconds": 2.435211
+            },
+            "history_newer_revisions": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.10499,
+              "requests": 0,
+              "seconds": 0.10499
+            },
+            "history_projections": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.154116,
+              "requests": 0,
+              "seconds": 0.154116
+            },
+            "history_release": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 0.00021,
+              "requests": 0,
+              "seconds": 0.000216
+            },
+            "history_transaction": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 3.881667,
+              "requests": 0,
+              "seconds": 4.220143
+            },
+            "inventory": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 13.88893,
+              "requests": 0,
+              "seconds": 13.88893
+            },
+            "local_finish": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.000722,
+              "requests": 0,
+              "seconds": 0.000722
+            },
+            "local_open": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.09916,
+              "requests": 0,
+              "seconds": 0.09916
+            },
+            "raw_auth_token": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.713338,
+              "requests": 1,
+              "seconds": 0.713795
+            },
+            "raw_local_compare": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.607724,
+              "requests": 0,
+              "seconds": 13.961694
+            },
+            "raw_read_decode": {
+              "calls": 50,
+              "logical_bytes": 3300164,
+              "max_seconds": 1.509127,
+              "requests": 51,
+              "seconds": 24.63121
+            },
+            "structured_local_page": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.32773,
+              "requests": 0,
+              "seconds": 0.32773
+            },
+            "structured_readback": {
+              "calls": 1,
+              "logical_bytes": 801735,
+              "max_seconds": 4.684658,
+              "requests": 1,
+              "seconds": 4.684658
+            }
+          },
+          "remaining_seconds": 181.699112,
+          "requests": 53,
+          "sqlstate": null
+        },
+        "reason": "archive_unavailable",
+        "retirement_authorized": false,
+        "stage": "pp_retirement_verify",
+        "status": "HOLD"
+      }
+    ],
+    "exit_code": 1,
+    "finished_at": "2026-11-20T20:54:16.816188+00:00",
+    "generation": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "mode": "original_session_and_rank",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "runtime_source": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "indexed": {
+    "code": {
+      "pp_retained_archive_audit": "987b8e2e49592f292c3abd1399f062c01b700e2a39de038f93dd4d4ced769d86",
+      "pp_retirement_verify": "d2c07e30c29c13c2502c16610e89d80d25514502d05c738c72253b86c433d5c5"
+    },
+    "events": [
+      {
+        "at": "2026-11-20T20:55:07.487119+00:00",
+        "rows": [
+          {
+            "query_age_ms": 139,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:15.659203+00:00",
+        "rows": [
+          {
+            "query_age_ms": 219,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:23.847782+00:00",
+        "rows": [
+          {
+            "query_age_ms": 98,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:32.147068+00:00",
+        "rows": [
+          {
+            "query_age_ms": 403,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:40.440074+00:00",
+        "rows": [
+          {
+            "query_age_ms": 303,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:48.585267+00:00",
+        "rows": [
+          {
+            "query_age_ms": 622,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:56.771593+00:00",
+        "rows": [
+          {
+            "query_age_ms": 105,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:04.963293+00:00",
+        "rows": [
+          {
+            "query_age_ms": 3180,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:13.103724+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1753,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:21.271633+00:00",
+        "rows": [
+          {
+            "query_age_ms": 638,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:29.432493+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2700,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:37.565255+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1513,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:45.709421+00:00",
+        "rows": [
+          {
+            "query_age_ms": 875,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:53.855913+00:00",
+        "rows": [
+          {
+            "query_age_ms": 222,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:02.330433+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2781,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:10.465793+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1119,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:18.684898+00:00",
+        "rows": [
+          {
+            "query_age_ms": 753,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:26.830312+00:00",
+        "rows": [
+          {
+            "query_age_ms": 690,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:34.979367+00:00",
+        "rows": [
+          {
+            "query_age_ms": 149,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:43.206103+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2260,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:51.338066+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1377,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:59.485285+00:00",
+        "rows": [
+          {
+            "query_age_ms": 741,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:07.632470+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1797,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:15.797432+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1050,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:23.961621+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2906,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:32.106402+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1763,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "bytes": 45934243,
+        "evidence_scope": "read_only_retained_archive_audit",
+        "historical_off": false,
+        "inventory": {
+          "auth_calls_reserved": 1,
+          "byte_limit": 134217728,
+          "bytes_minimum": 45856597,
+          "bytes_upper_bound": 225598276,
+          "deadline_seconds": 240.0,
+          "fit": "conditional_on_newer_revision_bytes",
+          "raw_bytes": 3300164,
+          "raw_objects": 50,
+          "request_limit": 192,
+          "requests_minimum": 104,
+          "structured_bytes_examined": 42556433,
+          "structured_inventory_complete": true,
+          "structured_pages_examined": 53,
+          "structured_rows": 26480
+        },
+        "last_structured_id": 108869,
+        "latest_receipt_lookup": "indexed_tie_safe_lateral",
+        "local_role": "tradebot_reader",
+        "manifest_digest": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "objects_read": 50,
+        "operation_deadline_met": true,
+        "opposite": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "origin_id": "pp-live-pp-trial-20261119-03",
+        "original_seal_deadline_utc": "2026-11-20T18:45:07.207508+00:00",
+        "original_seal_expired_at_audit_start": true,
+        "original_trial_satisfied": false,
+        "phase_accounting": {
+          "diagnostics_unavailable": false,
+          "elapsed_seconds": 212.80087,
+          "exhausted_limit": null,
+          "failed_phase": null,
+          "logical_bytes": 45934243,
+          "nested_phase_totals_overlap": true,
+          "phases": {
+            "history_checkout": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 2e-06,
+              "requests": 0,
+              "seconds": 7.1e-05
+            },
+            "history_connect": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 0.401162,
+              "requests": 0,
+              "seconds": 17.389709
+            },
+            "history_exact_revisions": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 1.401889,
+              "requests": 0,
+              "seconds": 48.013406
+            },
+            "history_identity_checkpoint": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.232483,
+              "requests": 0,
+              "seconds": 11.0526
+            },
+            "history_latest_receipts": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.129424,
+              "requests": 0,
+              "seconds": 3.090355
+            },
+            "history_newer_revisions": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.204061,
+              "requests": 0,
+              "seconds": 5.77297
+            },
+            "history_projections": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.622227,
+              "requests": 0,
+              "seconds": 7.84562
+            },
+            "history_release": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 0.000821,
+              "requests": 0,
+              "seconds": 0.014525
+            },
+            "history_transaction": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 2.109892,
+              "requests": 0,
+              "seconds": 81.694003
+            },
+            "inventory": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 14.77299,
+              "requests": 0,
+              "seconds": 14.77299
+            },
+            "local_finish": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.000465,
+              "requests": 0,
+              "seconds": 0.000465
+            },
+            "local_open": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.108603,
+              "requests": 0,
+              "seconds": 0.108603
+            },
+            "raw_auth_token": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.520224,
+              "requests": 1,
+              "seconds": 0.520675
+            },
+            "raw_local_compare": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.630889,
+              "requests": 0,
+              "seconds": 13.425472
+            },
+            "raw_read_decode": {
+              "calls": 50,
+              "logical_bytes": 3300164,
+              "max_seconds": 0.964296,
+              "requests": 51,
+              "seconds": 22.780961
+            },
+            "structured_compare": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.539932,
+              "requests": 0,
+              "seconds": 11.86222
+            },
+            "structured_local_page": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 0.717559,
+              "requests": 0,
+              "seconds": 17.222587
+            },
+            "structured_readback": {
+              "calls": 53,
+              "logical_bytes": 42634079,
+              "max_seconds": 3.264128,
+              "requests": 53,
+              "seconds": 131.720408
+            }
+          },
+          "remaining_seconds": 27.199212,
+          "requests": 105,
+          "sqlstate": null
+        },
+        "raw_count": 24649,
+        "requests": 105,
+        "retirement_authorized": false,
+        "sealed": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "status": "retained_archive_audit_verified",
+        "structured_count": 26480,
+        "structured_role": "tradebot_pp_trial_20261119_03_reader",
+        "structured_transactions": "repeatable_read_read_only"
+      }
+    ],
+    "exit_code": 0,
+    "finished_at": "2026-11-20T20:58:39.709147+00:00",
+    "generation": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "mode": "fresh_session_and_index",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "runtime_source": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "live_retirement_requalified": false,
+  "supabase_baseline": {
+    "at_utc": "2026-11-20T20:54:16.213+00:00",
+    "reported_condition": "transaction_timeout",
+    "sqlstate": "25P04",
+    "storage_distinct_successful_gets": 50
+  }
+}

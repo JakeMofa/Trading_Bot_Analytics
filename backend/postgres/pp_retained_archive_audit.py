@@ -124,8 +124,10 @@ def remote_preflight(structured,budget):
 
 
 @accounted
-def audit(factory,transport,target, *, origin=ORIGIN):
+def audit(factory,transport,target, *, origin=None):
     target.validate()
+    if origin is None:
+        origin = ORIGIN
     if (origin not in (ORIGIN, STOPPED_TRIAL) or transport.origin_id != origin
             or transport.generation_id != target.sealed
             or (origin == STOPPED_TRIAL and (target.historical_off

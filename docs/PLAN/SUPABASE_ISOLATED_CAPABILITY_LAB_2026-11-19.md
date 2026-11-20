@@ -274,9 +274,22 @@ before persisting anything. On a Unix socket without concurrent load:
 The live stale tick was already about 41.1 seconds old when dequeued. Host
 measurements must locate the delay before assigning it to checkout or DB
 work. Capture source-to-parser, parser-to-dequeue, worker queue, checkout
-and committed save time with the bounded diagnostics. A reuse change would
-still need tests for rollover races, lease expiry, rollback, connection
-failure, and thread ownership. No runtime or PP settings changed.
+and committed save time with the bounded diagnostics. Compare the current
+fresh connection path with one dedicated serial writer whose thread opens,
+uses and closes its own restricted connection. The current `asyncio.to_thread`
+calls can use different threads. Benchmark one transaction per event before
+considering multiple events per transaction.
+
+| Next fixture case | Required observation |
+| --- | --- |
+| Constrained serial owner and backlog | Assert one thread owns its connection, no idle transaction persists, the handoff is bounded, and multiple callers cannot share the connection. Compare throughput, queue age, checkout and commit p95 at identical input cadence including a burst. |
+| Commit, rollback and duplicate | Confirm raw event, projection, dedup and outbox changes appear together. A rolled-back write yields no ACK. A replay of the same event remains idempotent and retains the original hash, while a conflicting identity holds. |
+| Generation switch and stop | Verify one event per committed generation across a real switch with unchanged writer-lock order. Reject a write after durable OFF or lease expiry, including lease expiry between admission and the final check. Verify no pending writes cross an acknowledged stop. |
+| Broken connection or ambiguous commit | Discard the session and revalidate environment and role on replacement. Reconcile the same immutable event via existing dedup before any ACK after lost commit response. Fail closed for invalid identity or storage errors. |
+| Backpressure attribution | Separate source-to-parser age from time queued to dequeue and time spent in the local writer. Retain unknown when frame pairing is lost. Include matching dashboard freshness/abstention and another source's continuity during transient reconnects. |
+
+No runtime or PP settings changed. The probe source and its rerun output
+are preserved as local research artifacts for the release owner.
 
 ## Product scope and decisions
 

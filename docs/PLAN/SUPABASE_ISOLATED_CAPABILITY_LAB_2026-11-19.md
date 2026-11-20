@@ -195,6 +195,37 @@ matches the tested backend, deployment, and Supabase trees. This check ran
 without a PP connection or hosted writes. Live release acceptance remains
 separate. [Release PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/192)
 
+## PP23 first live observation
+
+The release owner verified PP23 ON around 01:14:05 UTC on November 20,
+for origin `pp-live-pp-trial-20261119-02` and initial A
+`41c82044-0fb8-4900-bea0-7c43ba079ff0`. The earlier archived PP22 A
+was preserved under the separate origin.
+
+One approved 29.5-second observer window matched 27 exact tick IDs and
+prices in initial A. Local Realtime added 70.557 ms median and 114.536 ms
+p95 after the observer received the VM SSE tick. The range was
+15.703–118.033 ms. The primary stream reported Coinbase stale during part of
+the sample while the collector and storage remained available. This timing
+excludes upstream delay, browser rendering and hosted Realtime.
+
+A separate 59.945-second operator sample measured 13.863 incoming versus
+13.779 acknowledged structured rows per second. Pending changed from 28 to
+33 and oldest pending age fell from 1.966 to 1.755 seconds. No holds or
+retries occurred. Nonempty pages measured 15.002 rows per service second,
+excluding handoff; no full 50-row page was seen. The window shows sync close
+to intake but leaves a sustained wall-clock rate over 14 rows/sec unproven.
+
+The original 500-row read was skipped in this window because the existing
+wrapper expected the old deployment and ran four sweeps. An offline
+single-read payload was prepared. It still needs a reviewed passive host
+launcher, a fresh quiet-window decision, and existing scoped credentials.
+
+A separate browser agent verified the hosted Realtime service was already
+enabled on TokenBot main, with zero tables in its Postgres Changes
+publication and no separate preview branch visible. No setting was changed.
+[PP23 deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44648041989)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

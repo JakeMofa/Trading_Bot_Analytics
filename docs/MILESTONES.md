@@ -10,9 +10,11 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run
   passed 49 tests, zero skips, covering worker readiness, restricted-role
-  rotations, old A preservation, and dashboard gap behavior. PP live ACK
-  throughput, Realtime mirror timing in each generation, and the 500-row
-  structured read under live load remain open.
+  rotations, old A preservation, and dashboard gap behavior. PP23 initial
+  A measured 13.779 ACK/sec versus 13.863 incoming in a one-minute window.
+  Its local Realtime mirror matched 27 ticks and added 70.557 ms median
+  and 114.536 ms p95 after SSE receipt. Sustained wall-clock ACK above 14,
+  B/fresh-A timing, and the 500-row live read remain open.
   [Independent release checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [x] **PP22 stopped-backlog full-cycle qualification.** Exact-CI

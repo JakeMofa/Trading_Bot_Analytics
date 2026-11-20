@@ -1,5 +1,12 @@
 ## November 20, 2026 — PP26 A→B/archive passed; retirement failed, recovery in progress
 
+The recovery candidate adds a B-only seal operation pinned to the failed
+trial, observed counts and durable OFF state. Seven focused PostgreSQL
+tests passed locally, including a generated fixture at the observed raw
+and structured row counts. The candidate also preserves the verifier's
+failure stage and timing on future attempts. This does not reconstruct
+the original failure. Linux CI and the PP B archive remain pending.
+
 A switched to B at **18:15:07.207508 UTC**, with the original collector session
 still running. A covered both complete official markets and sealed **24,649 raw
 records**. All **50 raw archive objects** verified by **18:17:00.381174 UTC**

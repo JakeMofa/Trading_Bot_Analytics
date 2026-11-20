@@ -419,6 +419,34 @@ and duplicate behavior, and scoped Edge, GraphQL, webhook and vector paths.
 These isolated tests used saved receipt metadata. Hosted Realtime latency,
 Pipelines delivery and Analytics Bucket performance remain unmeasured.
 
+## PP26 live A → B outcome
+
+One session collected through the actual A → B switch at 18:15:07.207508
+UTC. A ran for 30 minutes 58 seconds and covered official markets
+`2730625` and `2730561`. A verified 24,649 raw records across 50 hosted
+objects at 18:17:00.381174 UTC while B continued accepting new records.
+The controller reported 26,480 structured acknowledgements for A.
+Historical raw-quote retrieval and deterministic prediction replay passed
+while A was attached. Final retirement exited nonzero after roughly 249
+seconds. The launcher lost the native verifier reason, leaving the exact
+failed phase unproven. No local partition was deleted.
+
+Explicit OFF was observed at 18:31:15 UTC. B had collected for about 16
+minutes with 12,301 raw records and 13,210 structured acknowledgements.
+The writer session and lease cleared, both partitions stayed attached, and
+the pending queue drained. B did not finish its official market pair and
+fresh A did not start. The old PP21 and PP23 archives were outside this
+retirement attempt.
+
+The passive observer recorded zero API errors across 371 A and 194 B
+samples. A/B p95 was 130.067/129.046 ms for state, 170.469/268.408 ms for
+five-record prediction history and 87.513/96.415 ms for the first SSE frame.
+The observer saw 276/140 distinct fresh Polymarket quote receipts, 98/54
+while Coinbase was stale. Mean structured acknowledgement rates were
+14.295/13.692 rows per second. Some rolling intervals were below 14, while
+sampled queues peaked at 75/45 and drained to zero. These counts use the
+existing read-only API and database observer outputs.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

@@ -28,9 +28,9 @@ REQUIRED_CHECKS = {'api', 'sse', 'schema', 'migration', 'data_correctness',
                    'collector_ownership', 'disabled_flags', 'recovery',
                    'freshness', 'market_identity'}
 PREPROD_REQUIRED_CHECKS = REQUIRED_CHECKS | {'operator_control'}
-PP_INSTALLED_CONTROLLER = '65de566259ee20a85755a9d211303b9ed43e1af3196863bc08a31abe16c40e3b'
-PP_IDENTITY_COMMIT = '9e28f4c1de006a77e68862f778a8376b6fdd1d8a'
-PP_IDENTITY_RUN = 44644708069
+PP_INSTALLED_CONTROLLER = 'ec2e8baf73e3691e6327ace3d47dd4f219730b75d2a1103aa35ad3444d7bbd5a'
+PP_IDENTITY_COMMIT = '66178cf09dbc25c6689a612fe3463383b26ffa24'
+PP_IDENTITY_RUN = 44662010928
 CONTROLLER_REASONS = frozenset({
     'entrypoint_precondition_failed', 'generated_runtime_check_failed',
     'generated_api_readiness_timeout', 'generated_operator_readiness_timeout',

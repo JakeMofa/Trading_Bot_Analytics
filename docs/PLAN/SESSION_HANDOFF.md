@@ -1,3 +1,11 @@
+## Profile CI correction — November 20 UTC
+
+PR195 initial source9171919 failed the deployment-control gate because the
+profile was updated but `environment_pipeline.py` retained the prior exact
+controller/identity pins. These pins now match the actual installed ec2e8baf
+controller and identity44662010928 at66178cf. All56 local CI-control tests pass;
+successor exact CI remains required. No application deployment occurred.
+
 ## November 20 UTC — fresh trial code and controller qualified
 
 PR #194 merged as `66178cf`. Exact source `413aac3` passed push CI

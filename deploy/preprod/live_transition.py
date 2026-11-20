@@ -10,7 +10,7 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment, live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS, RETAINED_TRIAL_OVERLAYS
+from linux_actions import wait_generated_host_routes, LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment, live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS, RETAINED_TRIAL_OVERLAYS
 from live_profile import validate_live_profile
 
 
@@ -106,33 +106,7 @@ class LiveTransition:
             self.actions._runtime(self.context,self.budget)
         except DeploymentHold:
             raise DeploymentHold('generated_runtime_check_failed') from None
-        # Compose health does not prove that both host loopback routes have
-        # finished binding after recreation. Only connection unavailability is
-        # transient; a reachable endpoint reporting wrong state must stop.
-        deadline=time.monotonic()+self.budget.timeout(10)
-        last_unavailable='generated_api_readiness_timeout'
-        while True:
-            if min(deadline-time.monotonic(),self.budget.timeout()) < 2:
-                raise DeploymentHold(last_unavailable)
-            try:
-                self.actions._host_api()
-            except DeploymentHold as error:
-                reason=str(error)
-                if reason!='host_api_loopback_unavailable':
-                    raise DeploymentHold('generated_api_state_check_failed') from None
-                last_unavailable='generated_api_readiness_timeout'
-                time.sleep(.2)
-                continue
-            if min(deadline-time.monotonic(),self.budget.timeout()) < 2:
-                raise DeploymentHold('generated_operator_readiness_timeout')
-            try:
-                self.actions._host_operator()
-                return
-            except DeploymentHold as error:
-                if str(error)!='host_operator_loopback_unavailable':
-                    raise DeploymentHold('generated_operator_state_check_failed') from None
-                last_unavailable='generated_operator_readiness_timeout'
-                time.sleep(.2)
+        wait_generated_host_routes(self.actions,self.budget)
 
     def enter(self):
         """Expose an OFF live operator and matching API/workers; never call ON."""

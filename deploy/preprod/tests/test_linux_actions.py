@@ -74,6 +74,7 @@ def inspected(service='api',running=True,live=False):
 
 class RecordingBudget:
     def __init__(self):self.calls=[];self.responses=[]
+    def timeout(self,maximum=None):return 600 if maximum is None else min(600,maximum)
     def run(self,args,**kwargs):
         self.calls.append((args,kwargs))
         result=self.responses.pop(0) if self.responses else b''
@@ -791,5 +792,98 @@ class ActionTests(unittest.TestCase):
                 self.actions.smoke(self.context,self.budget)
         self.assertEqual(sum('postgres.acceptance' in args for args in calls),1)
 
+
+
+class HostReadinessTests(unittest.TestCase):
+    """Exercise actual host HTTP/auth checks with an offline startup listener."""
+    class Response:
+        def __init__(self,raw):self.raw=raw
+        def __enter__(self):return self
+        def __exit__(self,*_):return False
+        def read(self,_limit):return self.raw
+
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name);(self.root/'operator_token').write_text('offline-token')
+        self.actions=a.LinuxActions();self.clock=[0.0];self.paths=[];self.operator_attempts=0
+        self.api=dict(environment='preprod',data_mode='generated',origin_id='generated-pp',collector=dict(enabled=False))
+        self.operator=dict(environment='preprod',origin_id='pp-live-pp',collector_enabled=False,
+                           initialized=False,process_running=None,live_fence_qualified=False)
+
+    def opener(self,*,unavailable=0,operator_payload=None):
+        owner=self
+        class Opener:
+            def open(self,target,timeout):
+                path=target if isinstance(target,str) else target.full_url
+                owner.paths.append(path)
+                if ':8000/' in path:return owner.Response(json.dumps(owner.api).encode())
+                if isinstance(target,str) and path.endswith('/collector/status'):
+                    owner.operator_attempts+=1
+                    if owner.operator_attempts<=unavailable:
+                        from urllib.error import URLError
+                        raise URLError(ConnectionRefusedError(111,'offline refused'))
+                    raise HTTPError(path,401,'unauthorized',{},None)
+                if path.endswith('/collector/on'):raise HTTPError(path,404,'absent',{},None)
+                return owner.Response(operator_payload if operator_payload is not None else json.dumps(owner.operator).encode())
+        return Opener()
+
+    def wait(self,opener,budget=None):
+        budget=budget or c.Budget(60,clock=lambda:self.clock[0])
+        with patch.object(a,'RUNTIME_SECRETS',self.root), \
+             patch.object(a.urllib.request,'build_opener',return_value=opener), \
+             patch.object(a.time,'monotonic',side_effect=lambda:self.clock[0]), \
+             patch.object(a.time,'sleep',side_effect=lambda seconds:self.clock.__setitem__(0,self.clock[0]+seconds)) as sleep:
+            a.wait_generated_host_routes(self.actions,budget)
+            return sleep
+
+    def test_delayed_operator_binding_retries_real_auth_and_route_checks(self):
+        sleep=self.wait(self.opener(unavailable=2))
+        self.assertEqual(self.operator_attempts,3)
+        self.assertEqual(sleep.call_count,2)
+        self.assertAlmostEqual(self.clock[0],.4)
+        self.assertEqual(self.paths[-1],'http://127.0.0.1:8001/collector/on')
+        self.assertTrue(all(path.startswith('http://127.0.0.1:') for path in self.paths))
+
+    def test_reachable_wrong_state_and_malformed_json_are_fatal_without_retry(self):
+        for payload in (b'{not-json',b'[]',json.dumps({**self.operator,'collector_enabled':True}).encode()):
+            with self.subTest(payload=payload):
+                self.clock[0]=0;self.operator_attempts=0
+                with self.assertRaisesRegex(c.DeploymentHold,'generated_operator_state_check_failed'):
+                    self.wait(self.opener(operator_payload=payload))
+                self.assertEqual(self.operator_attempts,1);self.assertEqual(self.clock[0],0)
+
+    def test_missing_token_is_fatal_without_connection_retry(self):
+        (self.root/'operator_token').unlink()
+        with self.assertRaisesRegex(c.DeploymentHold,'generated_operator_state_check_failed'):
+            self.wait(self.opener())
+        self.assertEqual(self.operator_attempts,1);self.assertEqual(self.clock[0],0)
+
+    def test_persistent_startup_failure_respects_ten_second_and_remaining_budget(self):
+        with self.assertRaisesRegex(c.DeploymentHold,'generated_operator_readiness_timeout'):
+            self.wait(self.opener(unavailable=1000))
+        self.assertLessEqual(self.clock[0],10)
+        self.assertGreater(self.operator_attempts,1)
+        self.clock[0]=0;self.paths=[]
+        with self.assertRaisesRegex(c.DeploymentHold,'generated_api_readiness_timeout'):
+            self.wait(self.opener(),c.Budget(1.5,clock=lambda:self.clock[0]))
+        self.assertEqual(self.paths,[]);self.assertEqual(self.clock[0],0)
+
+    def test_only_connection_errors_are_retryable(self):
+        from urllib.error import URLError
+        for error in (ConnectionRefusedError(),TimeoutError(),URLError(ConnectionResetError())):
+            self.assertTrue(a._startup_connection_error(error))
+        for error in (FileNotFoundError(),ValueError(),URLError('unclassified'),HTTPError('http://127.0.0.1',503,'unavailable',{},None)):
+            self.assertFalse(a._startup_connection_error(error))
+
+    def test_smoke_reuses_bounded_poll_before_acceptance(self):
+        self.actions.migrated=True
+        with patch.object(self.actions,'_oneoff',return_value=b'{"environment":"preprod","operation":"check","result":1}'), \
+             patch.object(self.actions,'_runtime'), \
+             patch.object(a,'wait_generated_host_routes',side_effect=c.DeploymentHold('generated_operator_readiness_timeout')) as readiness, \
+             patch.object(self.actions,'_compose') as acceptance:
+            with self.assertRaisesRegex(c.DeploymentHold,'generated_operator_readiness_timeout'):
+                self.actions.smoke(None,RecordingBudget())
+        readiness.assert_called_once();acceptance.assert_not_called()
+        self.assertEqual(self.actions.smoke_phase,'host_routes_readiness')
 
 if __name__=='__main__':unittest.main()

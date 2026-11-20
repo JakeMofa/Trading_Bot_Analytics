@@ -1,0 +1,123 @@
+{
+  "scope": "pp24_failed_generated_deployment",
+  "release_source": "d5615a3b0dc06df7af75c405272738b7866b49b4",
+  "run": 44664385511,
+  "result": {
+    "environment": "preprod",
+    "gate": "BLOCKED",
+    "scope": "deploy",
+    "reason": "deployment controller failed; no automatic retry",
+    "controller": {
+      "gate": "BLOCKED",
+      "reason": "host_operator_loopback_unavailable",
+      "stage": "smoke",
+      "recovery": "stop_candidate_keep_database"
+    }
+  },
+  "host_state": {
+    "containers": [
+      {
+        "name": "/tradebot-pp-foundation-postgres-1",
+        "image": "sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+        "running": true,
+        "exit_code": 0,
+        "oom": false,
+        "started_at": "2026-11-13T02:31:23.330743337Z",
+        "finished_at": "0001-01-01T00:00:00Z",
+        "health": "healthy",
+        "health_exit_codes": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "name": "/tradebot-pp-foundation-api-1",
+        "image": "sha256:cdb2a935628ab1b5953ed13a14a5531b2b55526f116070bc89792ec5944f5808",
+        "running": false,
+        "exit_code": 0,
+        "oom": false,
+        "started_at": "2026-11-20T02:59:01.021216241Z",
+        "finished_at": "2026-11-20T02:59:11.62076166Z",
+        "health": "unhealthy",
+        "health_exit_codes": [
+          0
+        ]
+      },
+      {
+        "name": "/tradebot-pp-foundation-calculation-1",
+        "image": "sha256:cdb2a935628ab1b5953ed13a14a5531b2b55526f116070bc89792ec5944f5808",
+        "running": false,
+        "exit_code": 137,
+        "oom": false,
+        "started_at": "2026-11-20T02:59:01.312853022Z",
+        "finished_at": "2026-11-20T02:59:31.165360797Z",
+        "health": null,
+        "health_exit_codes": []
+      },
+      {
+        "name": "/tradebot-pp-foundation-lifecycle-1",
+        "image": "sha256:cdb2a935628ab1b5953ed13a14a5531b2b55526f116070bc89792ec5944f5808",
+        "running": false,
+        "exit_code": 0,
+        "oom": false,
+        "started_at": "2026-11-20T02:59:01.941336528Z",
+        "finished_at": "2026-11-20T02:59:11.480354836Z",
+        "health": null,
+        "health_exit_codes": []
+      },
+      {
+        "name": "/tradebot-pp-foundation-operator-1",
+        "image": "sha256:cdb2a935628ab1b5953ed13a14a5531b2b55526f116070bc89792ec5944f5808",
+        "running": false,
+        "exit_code": 0,
+        "oom": false,
+        "started_at": "2026-11-20T02:59:00.745904521Z",
+        "finished_at": "2026-11-20T02:59:11.977616599Z",
+        "health": null,
+        "health_exit_codes": []
+      }
+    ],
+    "operator_log_markers": [
+      {
+        "timestamp": "2026-11-20T02:59:10.865965151Z",
+        "marker": "Started server process"
+      },
+      {
+        "timestamp": "2026-11-20T02:59:10.867590824Z",
+        "marker": "Application startup complete"
+      },
+      {
+        "timestamp": "2026-11-20T02:59:10.867598197Z",
+        "marker": "Uvicorn running"
+      },
+      {
+        "timestamp": "2026-11-20T02:59:11.168722718Z",
+        "marker": "Shutting down"
+      },
+      {
+        "timestamp": "2026-11-20T02:59:11.271539286Z",
+        "marker": "Application shutdown complete"
+      }
+    ]
+  },
+  "api_request_timing": [
+    {
+      "timestamp": "2026-11-20T02:59:07.377600388Z",
+      "path": "/health",
+      "http_200": true
+    },
+    {
+      "timestamp": "2026-11-20T02:59:10.541938755Z",
+      "path": "/state/current",
+      "http_200": true
+    }
+  ],
+  "operator_http_requests": {
+    "http_requests": []
+  },
+  "live_collector_started": false,
+  "production_changed": false
+}

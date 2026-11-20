@@ -8,6 +8,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] PP24 smoke held on operator startup; database preserved, collector neverON. Bounded readiness and transient Coinbase candle isolation fixes locally tested; exact CI/deployment/live proof pending. [Evidence](PLAN/evidence/pp24-operator-readiness-failure-2026-11-20.json).
+
 - [x] PR194 exact CI and dedicated new-controller identity44662010928 PASS; old PP profile restored, no DB restart/cache purge/guard change. Fresh live acceptance still OPEN.
 
 - [x] Failed PP23 A archived and independently verified with collection OFF: 18,930 raw / 20,362 structured; all retained locally. [Evidence](PLAN/evidence/pp23-failed-a-archive-2026-11-20.json).

@@ -9,6 +9,7 @@ never restores a volume. Actual Linux execution is a separate qualification gate
 """
 from __future__ import annotations
 
+import errno
 import hashlib
 import json
 import os
@@ -18,6 +19,7 @@ import shutil
 import stat
 from dataclasses import replace
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
@@ -303,6 +305,47 @@ def history_reader_enabled(context):
             and uid==proof['reader_uid'] and uid!=Path('/etc/tradebot/cloud/supabase_auth_uid').read_text().strip(),
             'history_reader_identity_mismatch')
     return True
+
+
+def _startup_connection_error(error):
+    """Only loopback connection startup failures permit readiness retries."""
+    if isinstance(error,urllib.error.HTTPError):
+        return False
+    if isinstance(error,urllib.error.URLError):
+        error=error.reason
+    return (isinstance(error,(ConnectionError,TimeoutError))
+            or isinstance(error,OSError) and error.errno in
+               {errno.ECONNREFUSED,errno.ECONNRESET,errno.ECONNABORTED,errno.ETIMEDOUT,errno.EPIPE})
+
+
+def wait_generated_host_routes(actions,budget):
+    # Compose health does not prove that both host loopback routes have
+    # finished binding after recreation. Only connection unavailability is
+    # transient; a reachable endpoint reporting wrong state must stop.
+    deadline=time.monotonic()+budget.timeout(10)
+    last_unavailable='generated_api_readiness_timeout'
+    while True:
+        if min(deadline-time.monotonic(),budget.timeout()) < 2:
+            raise DeploymentHold(last_unavailable)
+        try:
+            actions._host_api()
+        except DeploymentHold as error:
+            reason=str(error)
+            if reason!='host_api_loopback_unavailable':
+                raise DeploymentHold('generated_api_state_check_failed') from None
+            last_unavailable='generated_api_readiness_timeout'
+            time.sleep(.2)
+            continue
+        if min(deadline-time.monotonic(),budget.timeout()) < 2:
+            raise DeploymentHold('generated_operator_readiness_timeout')
+        try:
+            actions._host_operator()
+            return
+        except DeploymentHold as error:
+            if str(error)!='host_operator_loopback_unavailable':
+                raise DeploymentHold('generated_operator_state_check_failed') from None
+            last_unavailable='generated_operator_readiness_timeout'
+            time.sleep(.2)
 
 
 class LinuxActions:
@@ -779,11 +822,13 @@ class LinuxActions:
                 raw=response.read(65537)
             require(len(raw)<=65536,'host_api_response_too_large')
             state=json.loads(raw)
+            require(isinstance(state,dict),'host_api_invalid_response')
             require(state.get('environment')=='preprod' and state.get('data_mode')==('pp_live' if live else 'generated')
                     and state.get('origin_id')==(live_origin(trial_origin) if live else 'generated-pp')
                     and state.get('collector',{}).get('enabled') is False,'host_api_wrong_state')
         except (OSError,ValueError,KeyError) as error:
-            raise DeploymentHold('host_api_loopback_unavailable') from None
+            reason='host_api_loopback_unavailable' if _startup_connection_error(error) else 'host_api_invalid_response'
+            raise DeploymentHold(reason) from None
 
     @staticmethod
     def _host_operator(*,live=False,trial_origin=None):
@@ -797,12 +842,17 @@ class LinuxActions:
                 raise DeploymentHold('operator_without_auth_accepted')
             except HTTPError as error:
                 require(error.code==401,'operator_unauthorized_response_mismatch')
-            token=(RUNTIME_SECRETS/'operator_token').read_text().strip()
+            try:
+                token=(RUNTIME_SECRETS/'operator_token').read_text().strip()
+            except OSError:
+                raise DeploymentHold('operator_token_unavailable') from None
+            require(bool(token),'operator_token_unavailable')
             request=urllib.request.Request(endpoint,headers={'Authorization':'Bearer '+token})
             with opener.open(request,timeout=2) as response:
                 raw=response.read(8193)
             require(len(raw)<=8192,'operator_response_too_large')
             state=json.loads(raw)
+            require(isinstance(state,dict),'host_operator_invalid_response')
             require(state.get('environment')=='preprod' and state.get('origin_id')==live_origin(trial_origin)
                     and state.get('collector_enabled') is False and isinstance(state.get('initialized'),bool)
                     and state.get('process_running') is (False if live else None)
@@ -815,8 +865,9 @@ class LinuxActions:
                 raise DeploymentHold('operator_on_get_unexpectedly_accepted')
             except HTTPError as error:
                 require(error.code==(405 if live else 404),'operator_on_route_mismatch')
-        except (OSError,ValueError,KeyError):
-            raise DeploymentHold('host_operator_loopback_unavailable') from None
+        except (OSError,ValueError,KeyError) as error:
+            reason='host_operator_loopback_unavailable' if _startup_connection_error(error) else 'host_operator_invalid_response'
+            raise DeploymentHold(reason) from None
 
     def _probe(self,context,budget,expected=None):
         return self._json(self._compose(context,budget,['exec','-T','api','python','-c',PROBE],input=json.dumps(expected or {}).encode(),timeout=20))
@@ -830,10 +881,8 @@ class LinuxActions:
                 and schema['result']>0,'schema_check_not_proven')
         self.smoke_phase='runtime_precheck'
         self._runtime(context,budget)
-        self.smoke_phase='host_api_precheck'
-        self._host_api()
-        self.smoke_phase='host_operator_precheck'
-        self._host_operator()
+        self.smoke_phase='host_routes_readiness'
+        wait_generated_host_routes(self,budget)
         def accept_generated():
             self.smoke_phase='generated_acceptance'
             accepted=self._json(self._compose(context,budget,['exec','-T','api','python','-m','postgres.acceptance','--base-url','http://api:8000'],timeout=45))

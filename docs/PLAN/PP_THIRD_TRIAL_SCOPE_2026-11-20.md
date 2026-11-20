@@ -121,3 +121,13 @@ The separate scratch operational terminal launcher preserves an explicit
 `sys.path.insert(0,'/app/backend')` before imports because its container invokes
 Python with `-I`. Offline isolated-Python positive/negative import tests and local
 create-only target preparation cover that launcher; no remote execution is claimed.
+
+## Exact CI fixture correction
+
+Push CI 44660590124 failed one of 192 native application tests: the new
+retirement fixture assumed a self-hosted PostgreSQL binary directory even in
+CI's externally supplied generated database mode. The retirement assertion
+never ran in that case. The fix preserves CI PATH for external DSNs and only
+adds the private binary directory for the self-hosted fixture. Eight focused
+native tests pass locally with the project test environment; exact successor
+Linux qualification is required. The failed run remains recorded.

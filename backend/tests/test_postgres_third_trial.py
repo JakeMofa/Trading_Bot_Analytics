@@ -108,7 +108,11 @@ class ThirdTrialNative(unittest.TestCase):
         from test_postgres_lifecycle_integration import PostgreSQLLifecycleIntegration
         self.archive_second();before=self.prior_snapshot()
         env=dict(TRADEBOT_TEST_LIFECYCLE_DSN=self.lifecycle_dsn,TRADEBOT_TEST_APP_DSN=self.app_dsn,
-            TRADEBOT_TEST_MIGRATOR_DSN=self.migrator_dsn,TRADEBOT_DATA_MODE='generated',TRADEBOT_ORIGIN_ID='generated-pp',PATH=str(self.bin)+os.pathsep+os.environ['PATH'])
+            TRADEBOT_TEST_MIGRATOR_DSN=self.migrator_dsn,TRADEBOT_DATA_MODE='generated',TRADEBOT_ORIGIN_ID='generated-pp')
+        # External CI owns PostgreSQL and already puts psql on PATH; only the
+        # self-hosted fixture creates a private binary directory.
+        if not self.external:
+            env['PATH']=str(self.bin)+os.pathsep+os.environ['PATH']
         case=PostgreSQLLifecycleIntegration('test_exact_trial_origin_uses_two_market_permits_without_legacy_origin_aliasing')
         with patch.dict(os.environ,env):
             try:case.setUp();case._exercise_exact_pp_permits(THIRD_TRIAL_ORIGIN)

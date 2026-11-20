@@ -183,6 +183,18 @@ remain separate. The release owner will archive and audit the stopped A
 before another live start. A remains attached.
 [Hosted query diagnosis in d9ab8d4](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/d9ab8d4/docs/PLAN/evidence/pp22-sync-query-diagnosis-2026-11-19.json)
 
+## Independent PP23 release checks
+
+A disposable checkout of PR #192 head `ecba5f4` ran 49 focused tests with
+zero skips in 12.440 seconds. Coverage included the actual worker readiness
+output accepted by the controller, native generated PostgreSQL rotations
+and preservation of the earlier archived A, final-A sealing and audit,
+scoped cloud policies, revision query guards, and HTTP/SSE and browser
+reference-price behavior during market discovery. The merge `f964c93`
+matches the tested backend, deployment, and Supabase trees. This check ran
+without a PP connection or hosted writes. Live release acceptance remains
+separate. [Release PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/192)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

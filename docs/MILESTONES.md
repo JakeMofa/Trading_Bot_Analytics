@@ -8,6 +8,13 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run
+  passed 49 tests, zero skips, covering worker readiness, restricted-role
+  rotations, old A preservation, and dashboard gap behavior. PP live ACK
+  throughput, Realtime mirror timing in each generation, and the 500-row
+  structured read under live load remain open.
+  [Independent release checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
+
 - [x] **PP22 stopped-backlog full-cycle qualification.** Exact-CI
   `a9e51dd` wrote, freshly verified and locally acknowledged all 4,888
   pending records in 126.359 seconds, 38.68 rows/sec with zero pending.

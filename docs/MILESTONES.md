@@ -1,3 +1,26 @@
+## November 20, 2026, 4:04 a.m. CST — PP25 deployed; live entry recovery pending
+
+PRs #196/#197 merged into `preprod`; source `2ea5b03` passed exact merge
+CI44667808289. Publication44668599488 and CD44668724097 passed for
+`v0.2.0-pp.25`. Actual image is `sha256:5ac2350c2cf6a25b76ae308c593088d02696c870698dee3b9ae79e91d513ceec`.
+API/SSE/operator/schema/migration/generated-data checks passed. This is
+**generated-only deployment acceptance**, not live rotation acceptance.
+
+Fresh trial03 proofs bound initial A `15a239c9-2f9b-4bdc-bd89-7cd1e2812f45`,
+but ENTER failed before ON. Its authority was consumed and the transition
+journal is `recovery_unproven`. A subsequent read-only check reproduced
+`insufficient_host_headroom`; the original generic receipt does not establish
+its exact initial failing stage. No live observer or production fence started.
+
+After a session time gap, fresh memory inventory at10:03:42UTC showed
+1,098,579,968 bytes available against the unchanged1,073,741,824-byte guard.
+Idle fwupd used about38–43MiB. A bounded temporary pause/recovery is under
+review, not yet applied. No cache purge, guard increase or database recreation.
+Do not reuse expired authority or stale measurements. A→B→freshA with concurrent
+verified retirement and dashboard history remains unproven; Phase1.75/I7 OPEN.
+
+[Exact deployment and hold evidence](PLAN/evidence/pp25-deployment-entry-hold-2026-11-20.json).
+
 ## November 19, 2026, evening CST — PP25 controller identity qualified
 
 Controller `16f7e3ec…` was installed from exact-CI-qualified `bd842fc` without

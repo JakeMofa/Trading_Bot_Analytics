@@ -1,3 +1,33 @@
+## November 20, 2026 — cache audit and release reconciliation
+
+PR #198 merged into `preprod` as `4a2112c`. Its source and PR CI passed;
+the subsequent merge CI `44744191572` failed four Docker Compose configuration
+renderings at their existing 5/10-second deadlines. No production or PP release
+is qualified by that failed run. Diagnosis is in progress; do not rerun blindly
+or weaken application latency gates.
+
+The cache audit found 52.38 GiB free disk and approximately 1.23 MB of reclaimable
+build cache. No cache purge or database deletion was performed. The relevant
+entry failure was the available-memory prerequisite while applications were
+still running, addressed by #198's reviewed quiesce-before-headroom sequencing.
+A fresh read-only reconciliation confirms PP25 source `2ea5b03`, controller
+`16f7e3ec`, generated-restored state, and healthy PostgreSQL/API with the four
+application services running. Trial03 collection has not been started.
+
+PP26 preparation additionally found a crash window after replacing both cloud
+release bindings but before recording completion. The implemented pending-update guard blocks ENTER/ON until the binding
+transaction completes while preserving OFF, recovery and read-only proof checks. The offline rebinder keeps both original proofs unchanged,
+checks all writers/sessions/leases are off and all trial03 records are absent,
+and retains exact predecessor bindings. No rebinding or PP26 installation has
+occurred. The test-only Compose renderer now terminates its entire owned process
+group on timeout and reports sanitized version/timing diagnostics; the original
+5/10-second limits remain unchanged, with no automatic retry. The specific
+GitHub runner hang remains unexplained. Next: exact successor CI, then PP26.
+Local qualification: 294 deployment-control tests ran successfully (14 platform
+skips), 56 CI-control tests passed, and 44 offline operations tests passed,
+including crash-after-both-replacements against the actual admission guard.
+The live A → B → fresh A archive/retirement acceptance remains unproven.
+
 ## November 20, 2026 — PP25 recovered; permanent transition sequencing fix
 
 PP25 generated deployment passed. Two live-ready entry attempts held before

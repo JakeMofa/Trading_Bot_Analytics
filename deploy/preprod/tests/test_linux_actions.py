@@ -13,6 +13,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from compose_render import render_config
 import controller as c
 import linux_actions as a
 import live_profile as live_policy
@@ -125,8 +126,7 @@ class ConfigTests(unittest.TestCase):
             for overlay in overlays:
                 command.extend(('-f',str(source/'deploy/preprod'/overlay)))
             command.extend(('config','--format','json'))
-            return json.loads(subprocess.run(command,check=True,capture_output=True,
-                                             text=True,timeout=10,env=env).stdout)
+            return render_config(command, env=env, timeout=10)
         live_policy.validate_live_profile(rendered(),rendered('runtime.live.compose.yaml'),
                                           source,IMAGE)
         cfg = rendered('runtime.live.compose.yaml','runtime.history-reader.compose.yaml')

@@ -43,6 +43,7 @@ runpy.run_path(bundle,run_name='__main__')
             builder.build(bundle)
             for cause,want in [('pp_filesystem_device_mismatch','pp_filesystem_device_mismatch'),
                                ('pp_filesystem_reserve','pp_filesystem_reserve'),
+                               ('trial_authority_rebind_pending','trial_authority_rebind_pending'),
                                ('arbitrary_database_details','entrypoint_precondition_failed')]:
                 with self.subTest(cause=cause):
                     result=subprocess.run([sys.executable,'-IS','-c',harness,str(bundle),cause],

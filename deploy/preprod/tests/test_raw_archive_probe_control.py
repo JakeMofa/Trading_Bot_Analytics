@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from compose_render import render_config
 from controller import DeploymentHold
 import raw_archive_probe_control as control
 from raw_archive_probe_profile import validate_raw_archive_profile, validate_recurring_profile
@@ -33,7 +34,7 @@ def rendered(*overlays, profile="raw_archive_probe"):
         command.extend(('-f', str(FOLDER / name)))
     command.extend(('--profile', 'migration', '--profile', profile,
                     'config', '--format', 'json'))
-    return json.loads(subprocess.check_output(command, env=env, timeout=5))
+    return render_config(command, env=env, timeout=5)
 
 
 class ProfileTests(unittest.TestCase):

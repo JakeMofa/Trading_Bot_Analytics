@@ -27,8 +27,24 @@ ROOT = Path('/var/lib/tradebot-pp/deployments')
 ACTIVE = ROOT / 'active-live-transition.json'
 ENTER_AUTHORITY = Path('/run/tradebot-pp-deploy/live-enter.json')
 ON_AUTHORITY = Path('/run/tradebot-pp-deploy/live-on.json')
+TRIAL_AUTHORITY_REBIND_PENDING = RUNTIME_SECRETS / 'pp26-rebind-pending.json'
 HEX64 = re.compile(r'[0-9a-f]{64}')
 IMAGE = re.compile(r'sha256:[0-9a-f]{64}')
+
+
+def require_no_trial_authority_rebind():
+    """Admission only: incomplete authority changes never permit ENTER or ON.
+
+    Inspect metadata without following symlinks or parsing a potentially partial
+    marker. OFF, LEAVE and read-only proof validation remain available.
+    """
+    try:
+        TRIAL_AUTHORITY_REBIND_PENDING.lstat()
+    except FileNotFoundError:
+        return
+    except OSError:
+        raise DeploymentHold('trial_authority_rebind_pending') from None
+    raise DeploymentHold('trial_authority_rebind_pending')
 
 
 def _utc(value):
@@ -234,6 +250,8 @@ def transition(request, controller_path):
     from live_transition import LiveTransition
     HostBinding.from_marker().validate()
     request.validate()
+    if request.operation=='enter':
+        require_no_trial_authority_rebind()
     raw, _ = _secure_file(controller_path, private=False)
     require(hashlib.sha256(raw).hexdigest() == request.controller_sha256, 'controller_digest_mismatch')
     budget = Budget(600 if request.operation == 'enter' else 180)
@@ -345,6 +363,8 @@ def session(command, controller_path):
     parts = command.split(' ')
     require(parts[:2] == ['session-v1', 'on'] and len(parts) in (3, 4, 5)
             or parts == ['session-v1', 'off'], 'invalid_session_command')
+    if parts[1]=='on':
+        require_no_trial_authority_rebind()
     active = _read_active()
     cycle = _cycle_args(active)
     if parts[1] == 'on':

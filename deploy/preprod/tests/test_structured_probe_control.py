@@ -12,6 +12,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from compose_render import render_config
 from controller import DeploymentHold
 import structured_probe_control as control
 from structured_probe_profile import validate_probe_profile
@@ -32,7 +33,7 @@ def rendered(*overlays):
         command.extend(('-f', str(FOLDER / file)))
     command.extend(('--profile', 'migration', '--profile', 'structured_probe',
                     'config', '--format', 'json'))
-    return json.loads(subprocess.check_output(command, env=env, timeout=5))
+    return render_config(command, env=env, timeout=5)
 
 
 class ProfileTests(unittest.TestCase):

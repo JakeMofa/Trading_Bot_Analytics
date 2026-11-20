@@ -1,0 +1,23 @@
+{
+  "status": "PASS",
+  "scope": "old_pp23_application_only_profile_recovery",
+  "source_sha": "f964c93fdf67221837f20eb3e20faddb64ad4ab2",
+  "controller_sha256": "65de566259ee20a85755a9d211303b9ed43e1af3196863bc08a31abe16c40e3b",
+  "wrapper_sha256": "b43c2cb638518d4b05f308b18a1cc7a1e903d4a3f55d8bb2536e21b9d6184a46",
+  "result": {
+    "collector_enabled": false,
+    "gate": "PP_GENERATED_RESTORED",
+    "origin_id": "generated-pp",
+    "stage": "installed_transition.leave",
+    "status": "PASS"
+  },
+  "postgres_recreated": false,
+  "cache_deleted": false,
+  "memory_guard_changed": false,
+  "services_restored": [
+    "api",
+    "calculation",
+    "lifecycle",
+    "operator"
+  ]
+}

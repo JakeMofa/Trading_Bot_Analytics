@@ -309,7 +309,11 @@ limit while Polymarket market and quote writes persisted on both sides of a
 size-triggered fixture A → B switch. The current estimate abstained with
 `reference_price_not_fresh`. Explicit stop and a fatal injected storage
 rejection both committed durable OFF. Real feed availability and the
-two-official-market live schedule were outside this fixture.
+two-official-market live schedule were outside this fixture. The portable
+regression was handed to the release owner as a test-only patch. It passed
+both generated checks with native PostgreSQL and again through the isolated
+restricted-DSN harness on `64b213c`. The continuity test reproduced the old
+`coinbase_stream.ws_closed_error` behavior on deployed `f964c93`.
 
 A separate exact deployed-source fixture used one restricted PostgreSQL
 connection opened, used and closed by a dedicated writer thread. Independent

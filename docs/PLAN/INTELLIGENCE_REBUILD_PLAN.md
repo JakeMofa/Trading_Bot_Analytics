@@ -1,3 +1,23 @@
+## November 20 UTC — PP23 deployed; fresh trial OFF readiness passed
+
+PR #192 source `f964c93` passed exact merge CI 44647163600, publication
+44647852318 and CD 44648041989. All generated deployment checks, including
+recovery, passed. Exact trial02 initial A `41c82044-0fb8-4900-bea0-7c43ba079ff0`
+reached `PP_LIVE_READY_OFF`; both source-bound cloud workers started with
+collection OFF. This snapshot contains no ON receipt or live acceptance PASS.
+
+Instrumented entry exposed the unchanged 1 GiB guard: 1,071,587,328 available
+bytes versus 1,073,741,824 required. A reviewed, reversible idle `fwupd` pause
+provided headroom without changing the guard. Its 120-minute automatic restore
+is armed; explicit restoration and observed restoration completion remain pending.
+Production's API collector is temporarily OFF/process-fenced, with no production
+database change; restore its prior configuration after PP final drain/readback.
+The authorized two-leg observation, concurrent archive/deletion proof and final
+cleanup remain open. Phase 1.75/I7 remain OPEN.
+
+[Deployment, holds and maintenance](PP23_DEPLOYMENT_READY_OFF_2026-11-20.md) ·
+[Sanitized evidence](evidence/pp23-deployment-readiness-2026-11-20.json).
+
 ## PP23 terminal drain qualification
 
 The default-off `pp_final_trial_drain` helper seals only the final stopped A

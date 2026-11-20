@@ -491,6 +491,38 @@ OFF, and no fresh A. The original final retirement error remains unidentified.
 [Exact recovery CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44797052857)
 · [Release recovery evidence](https://github.com/JakeMofa/Trading_Bot_Analytics/commit/1b1098b)
 
+### Retained PP26 A read-only verifier on November 20
+
+Both A and B remained attached with collection OFF. The diagnostic used
+the exact A workload and separate reader roles in read-only transactions.
+Its 240-second scope preserved the archived data and omitted the active
+successor, permit, and retirement checks reserved for a live rehearsal.
+
+| Mode | Outcome | Structured latest receipts | Structured readback |
+| --- | --- | --- | --- |
+| Original rank query, fresh connections | HOLD after 58.301 s | 2.435 s on first page | First page stopped during projections at 4.685 s elapsed |
+| Existing indexed lookup, fresh connections | Verified in 212.801 s, 27.199 s remaining | 3.090 s across 53 pages, 0.129 s max | 53 pages in 131.720 s, 3.264 s max |
+
+The original run completed all 50 raw comparisons. Its structured
+transaction spent 0.923 seconds on exact revisions and 2.435 seconds on
+latest receipts before Supabase PostgreSQL terminated it during projection
+verification. The read-only logs window from 20:53:12 to 20:54:17 UTC
+showed all 50 exact Storage GETs returned HTTP 200. At 20:54:16.213 UTC
+PostgreSQL recorded a trial03 reader FATAL with SQLSTATE `25P04`
+(`transaction_timeout`). This establishes the read-only failure. The
+specific phase of the original live retirement failure is still unknown.
+[PostgreSQL error codes](https://www.postgresql.org/docs/current/errcodes-appendix.html)
+
+With the existing index and fresh connections, all 24,649 raw rows in 50
+objects and all 26,480 structured rows in 53 pages passed. The verifier
+charged 105 requests and 45,934,243 logical bytes. Structured readback was
+the largest phase at 131.720 seconds, including 48.013 seconds across
+exact-revision lookup and 17.390 seconds across 54 connection opens and
+the separately counted preflight. The phase totals overlap. Hosted logs
+from 20:54:57.754354 to 20:58:39.709147 UTC showed 50/50 distinct Storage
+GETs succeeded and zero timeouts among 201 exact-reader pooler records.
+No connection-reuse benefit is included in this pass.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

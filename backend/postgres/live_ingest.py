@@ -12,14 +12,15 @@ from datetime import datetime, timezone
 import time
 
 from .coinbase_timing import ACTIVE_TIMING, configured_timing
+from .contract import source_timestamp
 from .live_sources import (coinbase_once, discover_polymarket_15m,
                            fetch_coinbase_closed_candles, fetch_polymarket_bbo)
 from .live_diagnostics import LiveDiagnostic, diagnose
 
 
-COINBASE_RECONNECT_DELAYS = (1, 2, 4)
+COINBASE_RECONNECT_DELAYS = (1, 2, 4, 8, 16, 30)
+COINBASE_RECONNECT_MAX_STARTS = 3
 COINBASE_RECONNECT_WINDOW_SECONDS = 60
-COINBASE_RECONNECT_MAX_TOTAL = 12
 COINBASE_RETRYABLE = frozenset({
     'coinbase_stream.ws_closed_ok', 'coinbase_stream.ws_closed_error',
     'coinbase_stream.timeout', 'coinbase_stream.transport',
@@ -62,8 +63,9 @@ def _live_store(store):
 
 
 async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
-                           pause=_pause_or_stop, clock=time.monotonic, timing=None):
-    """Persist serially; retry only bounded transient source disconnects.
+                           pause=_pause_or_stop, clock=time.monotonic, timing=None,
+                           wall_clock=lambda: datetime.now(timezone.utc)):
+    """Persist serially; rate-limit transient source reconnects within the lease.
 
     A new subscription may replay a source event. Store's durable identity and
     content-hash check handles that replay; this loop never synthesizes ticks.
@@ -73,7 +75,7 @@ async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
     token = ACTIVE_TIMING.set(timing)
     try:
         return await _coinbase_session(store, stop, source=source, pause=pause,
-                                       clock=clock, timing=timing)
+                                       clock=clock, timing=timing, wall_clock=wall_clock)
     finally:
         try:
             if timing is not None:
@@ -82,16 +84,33 @@ async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
             ACTIVE_TIMING.reset(token)
 
 
-async def _coinbase_session(store, stop, *, source, pause, clock, timing):
-    failures = deque()
+def _fresh_progress(event, acknowledgement, wall_clock, previous_epoch):
+    # Only a newly durable, genuinely current source event resets backoff.
+    # Replays, stale backlog and future timestamps never manufacture recovery.
+    if not isinstance(acknowledgement, dict) or acknowledgement.get('duplicate') is not False:
+        return None
+    try:
+        epoch = source_timestamp(event['source_time'])[1]
+        age = source_timestamp(wall_clock().isoformat())[1] - epoch
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return None
+    if 0 <= age <= 30 and (previous_epoch is None or epoch > previous_epoch):
+        return epoch
+    return None
+
+
+async def _coinbase_session(store, stop, *, source, pause, clock, timing, wall_clock):
+    reconnect_starts = deque()
     reconnects = 0
+    failures_without_fresh_progress = 0
+    previous_progress_epoch = None
     while not stop.is_set():
         try:
             async for event in source(stop):
                 if stop.is_set():
                     break
                 if timing is None:
-                    await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
+                    acknowledgement = await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
                 else:
                     submitted = timing.clock()
                     worker = {}
@@ -105,29 +124,49 @@ async def _coinbase_session(store, stop, *, source, pause, clock, timing):
                             worker['completed'] = timing.clock()
                             worker['completed_at'] = timing.wall().isoformat()
                     try:
-                        await _step('coinbase_write', asyncio.to_thread(persist))
+                        acknowledgement = await _step('coinbase_write', asyncio.to_thread(persist))
                         outcome = 'returned'
                     finally:
                         if worker.get('completed') is None:
                             outcome = 'inflight_at_cancel'
                         timing.saved(submitted=submitted, worker=worker, outcome=outcome)
+                progress = _fresh_progress(event, acknowledgement, wall_clock, previous_progress_epoch)
+                if progress is not None:
+                    previous_progress_epoch = progress
+                    failures_without_fresh_progress = 0
             return
         except Exception as error:
             diagnostic = error if isinstance(error, LiveDiagnostic) else diagnose('coinbase_stream', error)
             if diagnostic.code not in COINBASE_RETRYABLE or stop.is_set():
                 raise diagnostic from None
-            now = clock()
-            while failures and now - failures[0] >= COINBASE_RECONNECT_WINDOW_SECONDS:
-                failures.popleft()
-            if (len(failures) >= len(COINBASE_RECONNECT_DELAYS)
-                    or reconnects >= COINBASE_RECONNECT_MAX_TOTAL):
-                raise diagnostic from None
-            delay = COINBASE_RECONNECT_DELAYS[len(failures)]
-            failures.append(now)
+            delay = COINBASE_RECONNECT_DELAYS[min(failures_without_fresh_progress,
+                                                  len(COINBASE_RECONNECT_DELAYS)-1)]
+            failures_without_fresh_progress += 1
+            waited = 0
+            while not stop.is_set():
+                now = clock()
+                while reconnect_starts and now - reconnect_starts[0] >= COINBASE_RECONNECT_WINDOW_SECONDS:
+                    reconnect_starts.popleft()
+                rate_wait = (max(0, reconnect_starts[0] + COINBASE_RECONNECT_WINDOW_SECONDS - now)
+                             if len(reconnect_starts) >= COINBASE_RECONNECT_MAX_STARTS else 0)
+                wait = max(delay - waited, rate_wait)
+                if wait <= 0:
+                    break
+                if rate_wait > 0 and timing is not None:
+                    timing.cooldown(diagnostic.code, reconnects + 1, wait)
+                before = clock()
+                await pause(stop, wait)
+                waited += max(0, clock() - before)
+            if stop.is_set():
+                return
+            # Count actual reconnect starts, not failure timestamps or a
+            # cancelled pause. The supervisor's finite deadline and database
+            # lease continue to bound this same session; no ON is issued here.
+            reconnect_starts.append(clock())
             reconnects += 1
             if timing is not None:
-                timing.reconnect(diagnostic.code, reconnects, delay)
-            await pause(stop, delay)
+                timing.reconnect(diagnostic.code, reconnects, waited)
+
 
 
 async def coinbase_candle_cycle(store, client, stop: asyncio.Event, *, now=None,

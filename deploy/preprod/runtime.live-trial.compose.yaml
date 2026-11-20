@@ -12,3 +12,4 @@ services:
   operator:
     environment:
       TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-02
+      TRADEBOT_PP_COINBASE_TIMING: 'true'

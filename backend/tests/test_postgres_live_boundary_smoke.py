@@ -72,10 +72,15 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
             opens.append(url)
             return Socket()
 
+        instant=[0.0]
+        async def pause(_stop,delay):
+            instant[0]+=delay
+            await asyncio.sleep(0.001)
+
         async def coinbase(_store, stop):
             await coinbase_session(store, stop, source=lambda source_stop:
                 coinbase_once(source_stop, connector=connector),
-                pause=lambda _stop, _delay: asyncio.sleep(0))
+                pause=pause,clock=lambda:instant[0])
 
         async def idle(*_args, **_kwargs):
             await asyncio.Event().wait()
@@ -86,7 +91,7 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
                                      coinbase=coinbase, market=idle, candles=idle)
 
         session = OperatorSession(run, store.disable)
-        await session.start(max_seconds=2)
+        await session.start(max_seconds=1)
         await asyncio.wait_for(session._task, 2)
         return session, store, opens
 
@@ -111,17 +116,19 @@ class BoundarySmoke(unittest.IsolatedAsyncioTestCase):
         for failure, code in failures:
             with self.subTest(code=code):
                 session, store, opens = await self.run_socket_failure(failure)
-                self.assertEqual(session.state()['failure_code'], code)
+                retryable=code in {'coinbase_stream.ws_closed_ok','coinbase_stream.ws_closed_error','coinbase_stream.transport'}
+                expected='session.deadline_reached' if retryable else code
+                self.assertEqual(session.state()['failure_code'], expected)
                 self.assertFalse(store.enabled)
                 self.assertGreaterEqual(store.off_calls, 2)
-                self.assertEqual(len(opens), 4 if code in {
-                    'coinbase_stream.ws_closed_ok', 'coinbase_stream.ws_closed_error',
-                    'coinbase_stream.transport',
-                } else 1)
+                if retryable:self.assertGreater(len(opens),4)
+                else:self.assertEqual(len(opens),1)
                 self.assertEqual(store.events, [])
                 self.assertNotIn('secret', str(session.state()))
                 await session.stop()
-                self.assertEqual(session.state()['failure_code'], code)
+                retryable=code in {'coinbase_stream.ws_closed_ok','coinbase_stream.ws_closed_error','coinbase_stream.transport'}
+                expected='session.deadline_reached' if retryable else code
+                self.assertEqual(session.state()['failure_code'], expected)
 
     async def run_session(self, *, second_failure=None, discovery_failure=None,
                           missing_once=False):

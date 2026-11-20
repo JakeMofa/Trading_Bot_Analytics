@@ -25,6 +25,7 @@ A new qualified attempt must still prove both retirements and historical reads.
 Phase 1.75/I7 remain OPEN.
 
 [Sanitized run and recovery evidence](evidence/pp23-live-stop-2026-11-20.json).
+[Reconnect and failed-A recovery candidate](PP23_RECONNECT_AND_FAILED_A_RECOVERY_2026-11-20.md).
 
 ## November 20 UTC — PP23 deployed; fresh trial OFF readiness passed
 

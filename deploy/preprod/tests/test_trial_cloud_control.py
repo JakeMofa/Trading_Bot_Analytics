@@ -41,6 +41,21 @@ def child_config(base,live,archive):
     return cfg
 
 class ProfileTests(unittest.TestCase):
+    def test_measured_modes_are_exact_structured_trial_child_only(self):
+        base=configuration(Path('/reviewed/source'));live=live_config(base)
+        flags=('TRADEBOT_PP_SYNC_BARRIERS','TRADEBOT_PP_REUSE_HISTORY_SESSION')
+        for service in (*base['services'].values(),*live['services'].values(),p.child_service(base,ANCHOR,archive=True)):
+            for flag in flags:self.assertNotIn(flag,service['environment'])
+        actual=child_config(base,live,False)
+        for flag in flags:
+            self.assertEqual(actual['services']['structured_probe']['environment'][flag],'true')
+            for replacement in (None,'false'):
+                bad=deepcopy(actual);env=bad['services']['structured_probe']['environment']
+                if replacement is None:del env[flag]
+                else:env[flag]=replacement
+                with self.subTest(flag=flag,replacement=replacement),self.assertRaises(DeploymentHold):
+                    p.validate_profile(base,live,bad,Path('/reviewed/source'),IMAGE,ANCHOR)
+
     def test_exact_profiles_exclude_opposite_and_legacy_credentials(self):
         base=configuration(Path('/reviewed/source'));live=live_config(base)
         for archive in (False,True):
@@ -126,12 +141,12 @@ class WriterProofTests(unittest.TestCase):
             root=Path(folder);root.chmod(0o700)
             sql={key:str(root/key) for key in p.WRITER_SQL};auth={key:str(root/key) for key in p.WRITER_AUTH}
             writer,reader=str(uuid.uuid4()),str(uuid.uuid4())
-            for name in (*sql,*auth,'supabase_auth_uid','trial_history_reader_uid'):
+            for name in (*sql,*auth,'supabase_auth_uid','trial_20261119_02_history_reader_uid'):
                 path=root/name;path.write_text('fixture')
-                path.chmod(0o644 if name=='pp_history_ca' else 0o400 if name=='trial_history_reader_uid' else 0o600)
+                path.chmod(0o644 if name=='pp_history_ca' else 0o400 if name=='trial_20261119_02_history_reader_uid' else 0o600)
             (root/'pp_history_ca').write_text('-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----')
             (root/'trial_archive_uid').write_text(writer);(root/'supabase_auth_uid').write_text(str(uuid.uuid4()))
-            (root/'trial_history_reader_uid').chmod(0o600);(root/'trial_history_reader_uid').write_text(reader);(root/'trial_history_reader_uid').chmod(0o400)
+            (root/'trial_20261119_02_history_reader_uid').chmod(0o600);(root/'trial_20261119_02_history_reader_uid').write_text(reader);(root/'trial_20261119_02_history_reader_uid').chmod(0o400)
             proof=dict(version=1,origin_id=a.TRIAL_ORIGIN,sql_writer_role=c.WRITER_ROLE,sql_reader_role=c.READER_ROLE,
                        archive_writer_uid=writer,archive_reader_uid=reader,**dict.fromkeys(c.VERDICTS,'pass'))
             ctx=SimpleNamespace(request=SimpleNamespace(source_sha=SOURCE),image=IMAGE)
@@ -143,9 +158,9 @@ class WriterProofTests(unittest.TestCase):
                     path.chmod(0o600) if path.exists() else None;path.write_bytes(value);path.chmod(0o400)
             original=Path.lstat
             def ownership(path,*args,**kwargs):
-                value=list(original(path,*args,**kwargs));value[4]=10001 if path.name=='trial_history_reader_uid' else 0
+                value=list(original(path,*args,**kwargs));value[4]=10001 if path.name=='trial_20261119_02_history_reader_uid' else 0
                 return os.stat_result(value)
-            with patch.object(c,'AUTHORITY',authority),patch.object(c,'PROOF',evidence),patch.object(c,'RUNTIME_SECRETS',root),patch.object(c,'CLOUD_DIR',root), \
+            with patch.object(c,'AUTHORITY',authority),patch.object(c,'PROOF',evidence),patch.object(c,'RUNTIME_SECRETS',root),patch('trial_history_reader.RUNTIME_SECRETS',root),patch.object(c,'CLOUD_DIR',root), \
                  patch.object(c,'WRITER_SQL',sql),patch.object(c,'WRITER_AUTH',auth),patch.object(Path,'lstat',ownership), \
                  patch.object(c,'_secure_file',side_effect=lambda path:(path.read_bytes(),None)), \
                  patch('structured_probe_control.CA_SHA256',hashlib.sha256(b'fixture').hexdigest()),patch.object(c.ssl,'PEM_cert_to_DER_cert',return_value=b'fixture'):
@@ -180,6 +195,15 @@ class WorkerTests(unittest.TestCase):
                 bad=deepcopy(row);mutate(bad)
                 with patch('structured_probe_control._sync_container',return_value=bad),self.assertRaises(DeploymentHold):
                     c._inspect_worker(self.owner,MagicMock(),self.base,archive=archive)
+    def test_actual_structured_worker_requires_both_measured_modes(self):
+        for flag in ('TRADEBOT_PP_SYNC_BARRIERS','TRADEBOT_PP_REUSE_HISTORY_SESSION'):
+            for replacement in (None,'false'):
+                bad=self.row();env=bad['Config']['Env']
+                env.remove(flag+'=true')
+                if replacement is not None:env.append(flag+'='+replacement)
+                with self.subTest(flag=flag,replacement=replacement), \
+                     patch('structured_probe_control._sync_container',return_value=bad),self.assertRaises(DeploymentHold):
+                    c._inspect_worker(self.owner,MagicMock(),self.base)
     def test_readiness_requires_both_owned_bound_workers_and_reader_proof(self):
         ctx=SimpleNamespace(request=SimpleNamespace(source_sha=SOURCE),image=IMAGE)
         with patch.object(c,'writer_proof',return_value='b'*64),patch.object(c,'_reader',return_value=True), \

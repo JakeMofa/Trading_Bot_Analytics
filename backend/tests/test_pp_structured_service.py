@@ -50,7 +50,75 @@ class StructuredServiceTests(unittest.TestCase):
                 self.assertEqual(service.main(), 0)
                 transport.assert_called_once_with(remote.return_value, origin_id='pp-live-pp',
                     generation_id='generation', expected_database='postgres',
-                    expected_role='tradebot_pp_history', retain_revisions=enabled == 'true')
+                    expected_role='tradebot_pp_history', retain_revisions=enabled == 'true',
+                    sync_barriers=False)
+
+    def test_sync_selection_is_strict_default_off_and_trial_revision_only(self):
+        for env in ({}, {'TRADEBOT_PP_SYNC_BARRIERS':'false'}):
+            self.assertFalse(service.synchronized_batches_requested(env, origin='pp-live-pp', retain_revisions=False))
+        self.assertTrue(service.synchronized_batches_requested({'TRADEBOT_PP_SYNC_BARRIERS':'true'},
+            origin=service.TRIAL_ORIGIN, retain_revisions=True))
+        for value, origin, capture in [('True',service.TRIAL_ORIGIN,True), ('1',service.TRIAL_ORIGIN,True),
+                ('yes',service.TRIAL_ORIGIN,True), ('true','pp-live-pp',True), ('true',service.TRIAL_ORIGIN,False)]:
+            with self.subTest(value=value,origin=origin,capture=capture), self.assertRaises(ArchiveIntegrityError):
+                service.synchronized_batches_requested({'TRADEBOT_PP_SYNC_BARRIERS':value},
+                    origin=origin, retain_revisions=capture)
+
+    def test_second_exact_trial_uses_same_measured_sync_contract(self):
+        from postgres.cloud_origin_binding import NEXT_TRIAL_ORIGIN
+        self.assertTrue(service.synchronized_batches_requested({'TRADEBOT_PP_SYNC_BARRIERS':'true'},
+            origin=NEXT_TRIAL_ORIGIN, retain_revisions=True))
+        for origin in ('pp-live-pp-trial-20261119-03','pp-live-pp-trial-anything'):
+            with self.subTest(origin=origin),self.assertRaises(ArchiveIntegrityError):
+                service.synchronized_batches_requested({'TRADEBOT_PP_SYNC_BARRIERS':'true'},
+                    origin=origin, retain_revisions=True)
+
+    def test_sync_misuse_holds_before_secret_or_connection_access(self):
+        for value, origin, capture in [('True',service.TRIAL_ORIGIN,'true'),
+                ('true','pp-live-pp','true'), ('true',service.TRIAL_ORIGIN,'false')]:
+            with (self.subTest(value=value,origin=origin,capture=capture),
+                  patch.dict(service.os.environ, {'TRADEBOT_PP_SYNC_BARRIERS':value,
+                      'TRADEBOT_PP_RETAIN_REVISIONS':capture},clear=True),
+                  patch.object(service.signal,'signal'),
+                  patch.object(service,'selected_cloud_origin',return_value=origin),
+                  patch.object(service,'check_environment'), patch.object(service,'require_trial_files'),
+                  patch.object(service,'private_dsn') as secret, patch.object(service,'connect') as connect,
+                  patch.object(service,'PPHistoryConnectionFactory') as cold,
+                  patch.object(service,'ReusablePPHistoryConnectionFactory') as reused):
+                self.assertEqual(service.main(),1)
+                secret.assert_not_called();connect.assert_not_called()
+                cold.assert_not_called();reused.assert_not_called()
+
+    def test_trial_recurring_binds_measured_modes_and_reports_readiness(self):
+        env=dict(TRADEBOT_ENVIRONMENT='preprod',TRADEBOT_DATA_MODE='pp_live',
+            TRADEBOT_ORIGIN_ID=service.TRIAL_ORIGIN,TRADEBOT_PP_WINDOW_POLICY='two-official-markets-cycle',
+            TRADEBOT_PP_CYCLE_INITIAL_A='94107d29-626f-480a-b61a-ce6a10f44301',
+            TRADEBOT_DATABASE_DSN_FILE='/run/secrets/lifecycle_dsn',TRADEBOT_PP_STRUCTURED_RECURRING='true',
+            TRADEBOT_PP_RETAIN_REVISIONS='true',TRADEBOT_PP_SYNC_BARRIERS='true',
+            TRADEBOT_PP_REUSE_HISTORY_SESSION='true',
+            TRADEBOT_PP_HISTORY_DSN_FILE='/run/secrets/pp_trial_history_writer_dsn',
+            TRADEBOT_PP_HISTORY_CA_FILE='/run/secrets/pp_history_ca')
+        with (patch.dict(service.os.environ,env,clear=True), patch.object(service.signal,'signal'),
+              patch.object(service,'private_dsn'), patch.object(service,'connect') as connection,
+              patch.object(service,'validate_schema'), patch.object(service,'LifecycleRepository'),
+              patch.object(service,'PPHistoryConnectionFactory') as cold,
+              patch.object(service,'ReusablePPHistoryConnectionFactory') as reused,
+              patch.object(service,'HistoryV2PostgresTransport') as transport,
+              patch.object(service,'drain_bounded') as drain, patch.object(service,'supervise') as supervisor,
+              patch('builtins.print') as output):
+            connection.return_value.__enter__.return_value.execute.return_value.fetchone.return_value={'login':'tradebot_lifecycle'}
+            drain.side_effect=lambda repo,factory,**kw:factory('generation',timeout_seconds=20)
+            supervisor.side_effect=lambda page,*_: (page(),0)[1]
+            self.assertEqual(service.main(),0)
+            cold.assert_not_called()
+            reused.assert_called_once_with(env['TRADEBOT_PP_HISTORY_DSN_FILE'],env['TRADEBOT_PP_HISTORY_CA_FILE'],origin_id=service.TRIAL_ORIGIN)
+            transport.assert_called_once_with(reused.return_value,origin_id=service.TRIAL_ORIGIN,
+                generation_id='generation',expected_database='postgres',expected_role=service.cloud_binding(service.TRIAL_ORIGIN).writer_role,
+                retain_revisions=True,sync_barriers=True)
+            reused.return_value.close.assert_called_once_with()
+            import json
+            self.assertEqual(json.loads(output.call_args.args[0]),
+                dict(status='structured_worker_ready',sync_barriers=True,session_reuse=True))
 
     def test_recurring_must_be_explicit_and_exclusive(self):
         env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',

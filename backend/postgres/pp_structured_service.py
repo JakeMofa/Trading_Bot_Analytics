@@ -5,7 +5,7 @@ import signal
 import threading
 import time
 
-from .cloud_origin_binding import cloud_binding
+from .cloud_origin_binding import TRIAL_ORIGIN, TRIAL_ORIGINS, cloud_binding
 from .cloud_runtime_profile import selected_cloud_origin,cloud_files,require_trial_files
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable
 from .connection import connect
@@ -20,6 +20,14 @@ from .pp_structured_probe import LOCAL_DSN, MAX_PENDING, ORIGIN, check_environme
 
 # Recurring-only page. The operator one-shot retains its independent 25-row cap.
 RECURRING_LIMITS = DrainLimits(max_cycles=1, max_cycle_rows=50)
+
+
+def synchronized_batches_requested(environ, *, origin, retain_revisions):
+    value = environ.get('TRADEBOT_PP_SYNC_BARRIERS', 'false')
+    if (value not in ('true', 'false') or
+            value == 'true' and (origin not in TRIAL_ORIGINS or not retain_revisions)):
+        raise ArchiveIntegrityError('exact trial revision-retaining synchronization opt-in required')
+    return value == 'true'
 
 
 def failure_context(error):
@@ -80,6 +88,9 @@ def main():
         require_trial_files(os.environ,origin,structured=True)
         files=cloud_files(origin)
         reuse = session_reuse_requested(os.environ)
+        capture = retain_revisions(os.environ)
+        synchronized = synchronized_batches_requested(os.environ, origin=origin,
+                                                      retain_revisions=capture)
         dsn = private_dsn(LOCAL_DSN)
 
         def local():
@@ -90,7 +101,6 @@ def main():
                 raise ValueError('wrong PP lifecycle role')
             validate_schema(conn, 'preprod')
         repo = LifecycleRepository(local, environment='preprod', pending_outbox_limit=MAX_PENDING)
-        capture = retain_revisions(os.environ)
         factory_type=ReusablePPHistoryConnectionFactory if reuse else PPHistoryConnectionFactory
         if origin==ORIGIN:
             remote=factory_type()
@@ -100,13 +110,15 @@ def main():
         def transport(generation, *, timeout_seconds):
             return HistoryV2PostgresTransport(remote, origin_id=origin,
                 generation_id=generation, expected_database='postgres',
-                expected_role=cloud_binding(origin).writer_role, retain_revisions=capture)
+                expected_role=cloud_binding(origin).writer_role, retain_revisions=capture,
+                sync_barriers=synchronized)
 
         def page():
             return drain_bounded(repo, transport, execute=True,
                                  limits=RECURRING_LIMITS,origin_id=origin)
 
-        emit(dict(status='structured_worker_ready'))
+        emit(dict(status='structured_worker_ready', sync_barriers=synchronized,
+                  session_reuse=reuse))
         return supervise(page, stop, emit)
     except Exception:
         emit(dict(status='hold', reason='structured_startup_failed'))

@@ -16,12 +16,19 @@ import uuid
 
 from controller import require
 
-TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
-TRIAL_SQL_READER='tradebot_pp_trial_20261119_01_reader'
+TRIAL_ORIGIN='pp-live-pp-trial-20261119-02'
+TRIAL_SQL_READER='tradebot_pp_trial_20261119_02_reader'
 RUNTIME_SECRETS=Path('/etc/tradebot/pp-runtime')
 TRIAL_HISTORY_READER_FILES=tuple('trial_history_reader_'+field for field in ('api_key','email','password','uid'))
 TRIAL_HISTORY_READER_OVERLAY='runtime.trial-history-reader.compose.yaml'
-HOSTED_DENIED=['old_origin','list','upload','sign','public']
+AUTHORITY_FILENAME='trial_20261119_02_history_reader_authority.json'
+PROOF_FILENAME='trial_20261119_02_history_reader_proof.json'
+
+
+def trial_history_reader_source(name):
+    require(name in TRIAL_HISTORY_READER_FILES,'unreviewed_trial_history_reader_file')
+    return RUNTIME_SECRETS/('trial_20261119_02_history_reader_'+name.removeprefix('trial_history_reader_'))
+HOSTED_DENIED=['old_origin','retained_trial_origin','list','upload','sign','public']
 POLICY_FIXTURE_DENIED=['production_origin','replace','move','delete']
 SCOPE='pp_trial_raw_get_only_v1'
 HEX=re.compile(r'[0-9a-f]{64}\Z')
@@ -107,18 +114,18 @@ def validate_trial_reader_attestation(context,authority,evidence,*,initial_a=Non
 
 
 def trial_history_reader_enabled(context,initial_a=None):
-    marker=RUNTIME_SECRETS/'trial_history_reader_authority.json'
+    marker=RUNTIME_SECRETS/AUTHORITY_FILENAME
     try: marker.lstat()
     except FileNotFoundError: return False
     except OSError: require(False,'unsafe_trial_history_reader_authority')
     try:
         authority=_json(_read_owned(marker,0,4096))
-        raw=_read_owned(RUNTIME_SECRETS/'trial_history_reader_proof.json',0,8192)
+        raw=_read_owned(RUNTIME_SECRETS/PROOF_FILENAME,0,8192)
         require(isinstance(authority,dict) and hashlib.sha256(raw).hexdigest()==authority.get('policy_proof_sha256'),
                 'trial_history_reader_proof_changed')
         validate_trial_reader_attestation(context,authority,_json(raw),initial_a=initial_a)
-        for name in TRIAL_HISTORY_READER_FILES: _metadata(RUNTIME_SECRETS/name,10001,4096)
-        uid=_read_owned(RUNTIME_SECRETS/'trial_history_reader_uid',10001,4096).decode('ascii').strip()
+        for name in TRIAL_HISTORY_READER_FILES: _metadata(trial_history_reader_source(name),10001,4096)
+        uid=_read_owned(trial_history_reader_source('trial_history_reader_uid'),10001,4096).decode('ascii').strip()
         require(uid==authority['reader_uid'],'trial_history_reader_identity_mismatch')
         return True
     except (OSError,ValueError,TypeError,KeyError,UnicodeError):

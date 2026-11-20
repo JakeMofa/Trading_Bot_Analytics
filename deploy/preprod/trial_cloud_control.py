@@ -12,12 +12,12 @@ from linux_actions import LinuxActions,PROJECT,RUNTIME_SECRETS,TRIAL_ORIGIN,cycl
 from trial_cloud_profile import WRITER_SQL,WRITER_AUTH,overlay,service_name,profile_name,validate_profile
 
 CLOUD_DIR=Path('/etc/tradebot/cloud')
-AUTHORITY=RUNTIME_SECRETS/'trial_writer_authority.json'
-PROOF=RUNTIME_SECRETS/'trial_writer_proof.json'
-WRITER_ROLE='tradebot_pp_trial_20261119_01_writer'
-READER_ROLE='tradebot_pp_trial_20261119_01_reader'
+AUTHORITY=RUNTIME_SECRETS/'trial_20261119_02_writer_authority.json'
+PROOF=RUNTIME_SECRETS/'trial_20261119_02_writer_proof.json'
+WRITER_ROLE='tradebot_pp_trial_20261119_02_writer'
+READER_ROLE='tradebot_pp_trial_20261119_02_reader'
 VERDICTS=('sql_writer_insert','sql_reader_select','sql_wrong_origin_denied','sql_reader_mutation_denied',
-          'storage_upload_readback','storage_wrong_origin_denied','storage_reader_get','storage_reader_create_denied')
+          'storage_upload_readback','storage_wrong_origin_denied','storage_reader_get','storage_reader_create_denied','sql_retained_trial_denied','storage_retained_trial_denied')
 
 
 def _metadata(path,*,uid,mode,limit):
@@ -57,7 +57,8 @@ def writer_proof(context,initial_a):
             and hashlib.sha256(ssl.PEM_cert_to_DER_cert(pem)).hexdigest()==CA_SHA256,'wrong_pp_cloud_ca')
     require(Path(WRITER_AUTH['trial_archive_uid']).read_text().strip()==proof['archive_writer_uid'],
             'trial_archive_writer_identity_mismatch')
-    reader=RUNTIME_SECRETS/'trial_history_reader_uid'
+    from trial_history_reader import trial_history_reader_source
+    reader=trial_history_reader_source('trial_history_reader_uid')
     _metadata(reader,uid=10001,mode=0o400,limit=64)
     require(reader.read_text().strip()==proof['archive_reader_uid'],'trial_archive_reader_identity_mismatch')
     legacy=CLOUD_DIR/'supabase_auth_uid'

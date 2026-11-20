@@ -1,12 +1,12 @@
 """Exact cloud runtime credential targets; no inline secrets or path overrides."""
-from .cloud_origin_binding import cloud_binding,LEGACY_ORIGIN,TRIAL_ORIGIN
+from .cloud_origin_binding import cloud_binding,LEGACY_ORIGIN,TRIAL_ORIGINS
 from .rehearsal_profile import cycle_anchor
 
 
 def selected_cloud_origin(environ):
     origin=environ.get('TRADEBOT_ORIGIN_ID',LEGACY_ORIGIN)
     cloud_binding(origin)
-    if origin==TRIAL_ORIGIN:
+    if origin in TRIAL_ORIGINS:
         cycle_anchor(environ)
     return origin
 
@@ -37,7 +37,7 @@ def cloud_files(origin,*,reader=False):
 
 def require_trial_files(environ,origin,*,reader=False,structured=False,storage=False):
     """Legacy checks stay at their existing call sites. Trial paths are exact."""
-    if origin!=TRIAL_ORIGIN: return
+    if origin not in TRIAL_ORIGINS: return
     files=cloud_files(origin,reader=reader)
     keys=[]
     if structured: keys+=['TRADEBOT_PP_HISTORY_DSN_FILE','TRADEBOT_PP_HISTORY_CA_FILE']

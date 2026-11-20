@@ -21,7 +21,7 @@ from .history_v2_envelope import (CLOUD_COLUMNS, IMPORT_ORDER, MUTABLE_PROJECTIO
                                   TABLE_KEYS, cloud_row, cloud_row_matches,
                                   projection_order, validate_outbox_stream)
 
-from .cloud_origin_binding import cloud_binding, TRIAL_ORIGIN
+from .cloud_origin_binding import cloud_binding, TRIAL_ORIGINS
 
 PP_STRUCTURED_ORIGIN = 'pp-live-pp'
 
@@ -33,9 +33,9 @@ class HistoryV2PostgresTransport:
                  generation_id: str, expected_database: str,
                  expected_role: str, retain_revisions: bool = False,
                  indexed_latest: bool = False, sync_barriers: bool = False):
-        binding = cloud_binding(origin_id) if origin_id == TRIAL_ORIGIN else None
-        if (not callable(connection_factory) or origin_id not in (PP_STRUCTURED_ORIGIN, TRIAL_ORIGIN) or
-                (origin_id == TRIAL_ORIGIN and (expected_database != 'postgres' or
+        binding = cloud_binding(origin_id) if origin_id in TRIAL_ORIGINS else None
+        if (not callable(connection_factory) or origin_id not in (PP_STRUCTURED_ORIGIN, *TRIAL_ORIGINS) or
+                (origin_id in TRIAL_ORIGINS and (expected_database != 'postgres' or
                  expected_role not in (binding.writer_role, binding.reader_role))) or
                 not generation_id or
                 not expected_database or not expected_role):
@@ -44,10 +44,10 @@ class HistoryV2PostgresTransport:
             raise ValueError('boolean revision-retention selection required')
         if type(indexed_latest) is not bool:
             raise ArchiveIntegrityError('boolean PP latest receipt opt-in required')
-        if type(sync_barriers) is not bool or (sync_barriers and origin_id != TRIAL_ORIGIN):
+        if type(sync_barriers) is not bool or (sync_barriers and origin_id not in TRIAL_ORIGINS):
             raise ArchiveIntegrityError('synchronized batches require exact trial opt-in')
         self.sync_barriers=sync_barriers
-        self._read_only = origin_id == TRIAL_ORIGIN and expected_role == binding.reader_role
+        self._read_only = origin_id in TRIAL_ORIGINS and expected_role == binding.reader_role
         self.indexed_latest = indexed_latest
         self.retain_revisions = retain_revisions
         self.connection_factory = connection_factory

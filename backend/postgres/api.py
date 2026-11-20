@@ -71,6 +71,12 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                     state.publish(market['id'],*data)
                 except Exception:
                     state.storage_status('unavailable')
+            else:
+                try:
+                    price = await asyncio.to_thread(store.current_price)
+                    state.publish_price(price)
+                except Exception:
+                    state.storage_status('unavailable')
             await asyncio.sleep(.5)
 
     async def monitor_collector():

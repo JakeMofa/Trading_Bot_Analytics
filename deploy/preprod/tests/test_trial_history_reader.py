@@ -61,22 +61,30 @@ class TrialHistoryReaderTests(unittest.TestCase):
     def test_missing_marker_is_only_off_case_and_no_secret_reads_occur(self):
         with tempfile.TemporaryDirectory() as folder,patch.object(reader,'RUNTIME_SECRETS',Path(folder)),patch.object(reader,'_read_owned') as read:
             self.assertFalse(reader.trial_history_reader_enabled(CONTEXT,A));read.assert_not_called()
-            (Path(folder)/'trial_history_reader_authority.json').write_text('invalid')
+            (Path(folder)/reader.AUTHORITY_FILENAME).write_text('invalid')
             read.side_effect=ValueError('fixture invalid')
             with self.assertRaises(DeploymentHold):reader.trial_history_reader_enabled(CONTEXT,A)
+
+    def test_first_trial_proof_files_are_preserved_and_cannot_enable_second_trial(self):
+        with tempfile.TemporaryDirectory() as folder,patch.object(reader,'RUNTIME_SECRETS',Path(folder)),patch.object(reader,'_read_owned') as read:
+            old=Path(folder)/'trial_history_reader_authority.json';old.write_text('retained-first-trial')
+            self.assertFalse(reader.trial_history_reader_enabled(CONTEXT,A));read.assert_not_called()
+            self.assertEqual(old.read_text(),'retained-first-trial')
+        authority,evidence,_=fixture();authority['origin_id']='pp-live-pp-trial-20261119-01'
+        with self.assertRaises(DeploymentHold):reader.validate_trial_reader_attestation(CONTEXT,authority,evidence,initial_a=A)
 
     def test_enabled_reader_reads_only_proof_marker_and_uid_not_password_or_key(self):
         authority,evidence,raw=fixture()
         with tempfile.TemporaryDirectory() as folder:
-            root=Path(folder);(root/'trial_history_reader_authority.json').write_text('present')
-            values={'trial_history_reader_authority.json':json.dumps(authority).encode(),
-                    'trial_history_reader_proof.json':raw,'trial_history_reader_uid':R.encode()}
+            root=Path(folder);(root/reader.AUTHORITY_FILENAME).write_text('present')
+            values={reader.AUTHORITY_FILENAME:json.dumps(authority).encode(),
+                    reader.PROOF_FILENAME:raw,reader.trial_history_reader_source('trial_history_reader_uid').name:R.encode()}
             with patch.object(reader,'RUNTIME_SECRETS',root),patch.object(reader,'_metadata') as metadata,\
                  patch.object(reader,'_read_owned',side_effect=lambda path,*_:values[path.name]) as read:
                 self.assertTrue(reader.trial_history_reader_enabled(CONTEXT,A))
                 self.assertEqual([call.args[0].name for call in read.call_args_list],list(values))
-                self.assertEqual([call.args[0].name for call in metadata.call_args_list],list(reader.TRIAL_HISTORY_READER_FILES))
-                values['trial_history_reader_proof.json']=raw+b' '
+                self.assertEqual([call.args[0].name for call in metadata.call_args_list],[reader.trial_history_reader_source(name).name for name in reader.TRIAL_HISTORY_READER_FILES])
+                values[reader.PROOF_FILENAME]=raw+b' '
                 with self.assertRaises(DeploymentHold): reader.trial_history_reader_enabled(CONTEXT,A)
 
     def test_private_file_helper_rejects_mode_owner_links_and_symlinks(self):
@@ -97,7 +105,7 @@ class TrialHistoryReaderTests(unittest.TestCase):
         mounts=re.findall(r'^      - ([a-z_]+)$',source,re.M)
         self.assertEqual(mounts,list(reader.TRIAL_HISTORY_READER_FILES))
         for name in reader.TRIAL_HISTORY_READER_FILES:
-            self.assertIn(name+': {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/'+name+'"}',source)
+            self.assertIn(name+': {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/'+reader.trial_history_reader_source(name).name+'"}',source)
         self.assertIn('TRADEBOT_ORIGIN_ID: '+reader.TRIAL_ORIGIN,source)
         self.assertIn("TRADEBOT_PP_ARCHIVE_HISTORY: 'true'",source)
         self.assertNotIn('writer_dsn',source);self.assertNotIn('lifecycle_dsn',source)

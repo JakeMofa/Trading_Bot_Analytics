@@ -47,11 +47,11 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
             expected['secrets'][name] = {'name': expected['name']+'_'+name, 'file':str(RUNTIME_SECRETS/name)}
             api['secrets'].append({'source':name, 'target':('/run/secrets/' if target.startswith('/') else '')+name})
     if trial_reader:
-        from trial_history_reader import TRIAL_HISTORY_READER_FILES
+        from trial_history_reader import TRIAL_HISTORY_READER_FILES,trial_history_reader_source
         api=expected['services']['api']
         api['environment']['TRADEBOT_PP_ARCHIVE_HISTORY']='true'
         for name in TRIAL_HISTORY_READER_FILES:
-            expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(RUNTIME_SECRETS/name)}
+            expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(trial_history_reader_source(name))}
             api['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
     require(live == expected, 'unreviewed_pp_live_profile_difference')
     return live

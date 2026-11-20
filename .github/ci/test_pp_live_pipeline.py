@@ -50,7 +50,7 @@ class PPLivePipelineTests(unittest.TestCase):
     def test_exact_trial_on_and_permit_free_off_result(self):
         class API:
             def read(self,_path):return {'object':{'sha':'a'*40}}
-        anchor='b98ac4e9-b073-4df7-bc5b-90fa51c4f039';trial='pp-live-pp-trial-20261119-01'
+        anchor='b98ac4e9-b073-4df7-bc5b-90fa51c4f039';trial='pp-live-pp-trial-20261119-02'
         env=dict(PP_LIVE_OPERATION='on',GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REF_NAME='preprod',
             GITHUB_SHA='a'*40,GITHUB_REPOSITORY=module.pipeline.REPO,PP_LIVE_SECONDS='6600',
             PP_CYCLE_INITIAL_A=anchor,PP_TRIAL_ORIGIN=trial)

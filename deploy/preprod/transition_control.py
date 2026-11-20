@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 from controller import Budget, Context, DeploymentHold, HostBinding, Request, _secure_file, require
-from linux_actions import LinuxActions, RUNTIME_SECRETS, CYCLE_SESSION_MAX_SECONDS, cycle_environment, live_origin
+from linux_actions import LinuxActions, RUNTIME_SECRETS, CYCLE_SESSION_MAX_SECONDS, cycle_environment, live_origin, TRIAL_ORIGIN, RETAINED_TRIAL_ORIGIN
 
 ROOT = Path('/var/lib/tradebot-pp/deployments')
 ACTIVE = ROOT / 'active-live-transition.json'
@@ -95,6 +95,8 @@ class TransitionRequest:
         Request(self.source_sha, self.artifact_sha256, self.controller_sha256).validate()
         require(IMAGE.fullmatch(self.image_id) is not None, 'invalid_transition_image')
         require(self.initial_a is None or self.operation == 'enter', 'invalid_pp_cycle_transition')
+        if self.operation=='enter':
+            require(self.trial_origin!=RETAINED_TRIAL_ORIGIN,'retained_trial_is_read_only')
         cycle_environment(self.initial_a,self.trial_origin)
 
     def bindings(self):
@@ -317,6 +319,7 @@ def session(command, controller_path):
     active = _read_active()
     cycle = _cycle_args(active)
     if parts[1] == 'on':
+        require(active.get('trial_origin')!=RETAINED_TRIAL_ORIGIN,'retained_trial_is_read_only')
         initial_a = parts[3] if len(parts) >= 4 else None
         trial_origin = parts[4] if len(parts) == 5 else None
         require(trial_origin == active.get('trial_origin'),'pp_trial_session_binding_mismatch')

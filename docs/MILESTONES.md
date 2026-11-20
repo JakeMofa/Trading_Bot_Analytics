@@ -8,6 +8,14 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **PP23 fresh two-leg live qualification (authorized, not started).**
+  Prepare exact trial02 while retaining archived trial01, use measured revision
+  selection/session reuse/sync batching and independent Coinbase gap hydration.
+  Additive migration and restricted cloud identities preserve old data/roles.
+  Native tests cover both rotations and exact retirement; real live acceptance
+  still requires exact release CI, PP deployment, source-bound cloud proofs and
+  the observed A → B → fresh A run. See the opening master roadmap.
+
 - [x] **PP22 retained-data drain and archive before another live trial.**
   All 4,888 pending records freshly verified/ACKed in 126.359 s (38.683/s).
   Initial A sealed with collector OFF; 5,241 raw rows archived in 11 objects.

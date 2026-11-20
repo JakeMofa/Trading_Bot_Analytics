@@ -28,8 +28,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   transition and started the same-VM live trial. Polymarket quotes advanced
   during stale Coinbase intervals. A covered two markets and rotated to B;
   A verified in Supabase while B kept writing. Final retirement held and A
-  stayed attached. Explicit OFF ended B after about 16 minutes. Fresh A and
-  successful local retirement remain open.
+  stayed attached. Supabase gateway logs show all 50 raw object GETs
+  succeeded during final readback, with structured-reader pool activity up
+  to verifier exit. Explicit OFF ended B after about 16 minutes. Fresh A
+  and successful local retirement remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

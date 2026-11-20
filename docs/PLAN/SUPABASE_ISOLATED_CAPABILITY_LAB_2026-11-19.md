@@ -447,6 +447,36 @@ while Coinbase was stale. Mean structured acknowledgement rates were
 sampled queues peaked at 75/45 and drained to zero. These counts use the
 existing read-only API and database observer outputs.
 
+### Supabase logs for the failed retirement readback
+
+The read-only Logs Explorer window was November 20, 2026, 18:26:00–18:30:10
+UTC. The aggregates below used the exact new A generation or the exact
+trial03 reader role. No database query, Storage download, access change,
+record payload, object path, or credential was needed to collect them.
+
+- `edge_logs`, filtered by the new A generation in `request.path` and
+  grouped by request method and response status, showed 50 GETs for 50
+  distinct paths. All were HTTP 200, from 18:26:29.910 to 18:27:19.290 UTC.
+  Gateway `response.origin_time` median/p95 was 327/502 ms. The underlying
+  `storage_logs` stream contained 36 matching events and all were HTTP 200.
+- `supavisor_logs`, filtered on the exact trial03 reader in its `user`
+  attribute, contained 162 events from 18:27:21.402769 to 18:30:07.758111
+  UTC. A text-category aggregation found 68 disconnect-like and 94 other
+  entries, with zero timeout/error matches. Events can repeat across pool
+  components and cannot establish the number of connections or completed SQL pages.
+- `postgres_logs` contained two `LOG` entries with SQLSTATE `00000` in
+  the window and no attributable per-query durations. The child exited
+  nonzero at about 18:30:09 UTC. The final raw GET response preceded the
+  exit by about 170 seconds. Gateway success establishes object delivery
+  from Supabase. Client decode, exact local comparison, structured page
+  completion, and the verifier's failed phase are still unproven.
+
+PP26's retirement wrapper left `TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION`
+at its default `false`. The recurring structured-sync worker's reuse flag
+controls a separate path. The reader activity supports investigating the
+structured and connection phases using the new diagnostics before trying
+any retirement change.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

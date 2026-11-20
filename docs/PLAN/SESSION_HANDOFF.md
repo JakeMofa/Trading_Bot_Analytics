@@ -1,3 +1,31 @@
+## Profile CI correction — November 20 UTC
+
+PR195 initial source9171919 failed the deployment-control gate because the
+profile was updated but `environment_pipeline.py` retained the prior exact
+controller/identity pins. These pins now match the actual installed ec2e8baf
+controller and identity44662010928 at66178cf. All56 local CI-control tests pass;
+successor exact CI remains required. No application deployment occurred.
+
+## November 20 UTC — fresh trial code and controller qualified
+
+PR #194 merged as `66178cf`. Exact source `413aac3` passed push CI
+44661102402 and PR CI44661109552; the earlier external-fixture PATH failure is
+preserved, corrected and independently reproduced/passed in external DSN mode.
+The old PP23 profile was restored with collection OFF by stopping only four
+application services before the original leave checks. PostgreSQL was untouched;
+no cache purge or memory-guard change. The current headroom hold was process
+memory, not disk capacity (about56GB free).
+
+The successor controller `ec2e8baf…` is installed from qualified `413aac3` and
+passed dedicated deployment-identity run44662010928. This profile binds that
+observed result; it is not application deployment or collector ON. Fresh trial03
+cloud enrollment and its allow/deny/readback qualification are in progress.
+Both30-minute live rotations, concurrent archive/deletion and dashboard/history
+acceptance remain OPEN. Production remains unchanged by this release.
+
+[Identity evidence](evidence/pp-controller-identity-2026-11-20-ec2e8baf.json).
+[Old profile recovery](evidence/pp23-profile-recovery-2026-11-20.json).
+
 ## November 20 UTC — failed A recovered; fresh Polymarket-priority trial preparing
 
 The previous live trial remains **FAIL before A → B**. Its retained initial A

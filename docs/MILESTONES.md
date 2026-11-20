@@ -8,6 +8,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] PR194 exact CI and dedicated new-controller identity44662010928 PASS; old PP profile restored, no DB restart/cache purge/guard change. Fresh live acceptance still OPEN.
+
 - [x] Failed PP23 A archived and independently verified with collection OFF: 18,930 raw / 20,362 structured; all retained locally. [Evidence](PLAN/evidence/pp23-failed-a-archive-2026-11-20.json).
 - [ ] Fresh Polymarket-priority trial03: reconnect regression passed, new scope locally tested; exact Linux CI, old-profile recovery, deployment and both live retirements remain open.
 

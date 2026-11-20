@@ -9,6 +9,9 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 ## Progress
 
 - [ ] **PP23 fresh two-leg live qualification (authorized, not started).**
+  Controller `65de5662` installed and identity run 44644708069 PASS. New 02 cloud
+  create/readback/denial checks passed; old data and policies preserved.
+  PP23 release still pending; collection OFF.
   Prepare exact trial02 while retaining archived trial01, use measured revision
   selection/session reuse/sync batching and independent Coinbase gap hydration.
   Additive migration and restricted cloud identities preserve old data/roles.

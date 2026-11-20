@@ -1,0 +1,44 @@
+{
+  "scope": "PP23 preparation only; no live acceptance",
+  "source_sha": "59c59937d651fa018786323b07b2fb67cdf4325c",
+  "exact_source_ci": 44643071297,
+  "combined_source_sha": "1f5f15e2398677536695f1b3c5bd02c6fbace114",
+  "combined_push_ci": 44644055724,
+  "combined_pr_ci": 44644062715,
+  "controller_install": {
+    "authority_created": false,
+    "controller_sha256": "65de566259ee20a85755a9d211303b9ed43e1af3196863bc08a31abe16c40e3b",
+    "database_changed": false,
+    "gate": "CONTROLLER_INSTALLED_NOT_AUTHORIZED",
+    "previous_sha256": "963d83f7b41472986e489d4e224f88e4a61be82978f0d400ffc2a34e8b5e0fec",
+    "source_sha": "59c59937d651fa018786323b07b2fb67cdf4325c"
+  },
+  "old_trial_recovery": "PP_GENERATED_RESTORED; collector OFF; idle calculation/lifecycle restored",
+  "cloud_preservation": {
+    "scope": "preservation_excluding_exact02",
+    "project": "xttdqeimdujweijxcuro",
+    "grant_hash": "abaa7dac7bb46d64ac97ce56afc5e99d",
+    "roles_hash": "70f6fa45a2bcd6105bc2ca72d433d1ce",
+    "retained_counts": {
+      "pp-live-pp": 42133,
+      "pp-live-pp-trial-20261119-01": 5652
+    },
+    "roles_preserved": true,
+    "grants_preserved": true,
+    "history_policy_hash": "cbba0f8746c225dd483c802afc3649f4",
+    "storage_policy_hash": "dce06ad669d6058569b0cc6946a90b43c81accfb21c6ac1fafc4cff0421dec15",
+    "retained_revision_counts": {
+      "pp-live-pp": 42133,
+      "pp-live-pp-trial-20261119-01": 5652
+    },
+    "retained_counts_preserved": true,
+    "history_policies_preserved": true,
+    "storage_policies_preserved": true,
+    "retained_revisions_preserved": true
+  },
+  "cloud_proof": "New02 isolated synthetic Storage upload/independent readback and SQL write/readback passed; old01 and legacy preserved",
+  "credentials_staged": 10,
+  "production_changed": false,
+  "live_test_started": false,
+  "retirement_performed": false
+}

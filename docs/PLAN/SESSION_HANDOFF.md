@@ -1,3 +1,23 @@
+## November 19 — PP23 release preparation, live proof still pending
+
+Exact application source `59c5993` passed Linux CI 44643071297; combined
+source `1f5f15e` passed push CI 44644055724 and PR CI 44644062715.
+PR #191 had already merged the prior drain evidence; successor PR #192 carries
+the fresh trial changes. The old01 trial left cleanly after the unchanged
+1 GiB host-memory guard identified insufficient headroom. Only idle calculation
+and lifecycle containers were temporarily stopped; the normal leave restored
+all generated services. PostgreSQL and API stayed available, collector OFF.
+
+Installed controller `65de5662…` through the pinned code-only transfer.
+Independent02 cloud identities passed actual synthetic create/readback and
+cross-origin denial checks. Existing policy/role/grant hashes and legacy/01
+receipt/revision counts are unchanged. Ten new02 credentials were staged without
+replacing old paths. No new live collection or local retirement has occurred.
+The next gates are verified controller profile, exact release publication/CD,
+then the authorized two-leg live trial. Production is unchanged.
+
+[Preparation evidence](evidence/pp23-release-preparation-2026-11-19.json).
+
 # Resume here
 
 **November 19 UTC — retained PP22 drain/archive PASS.** Collector remains OFF;

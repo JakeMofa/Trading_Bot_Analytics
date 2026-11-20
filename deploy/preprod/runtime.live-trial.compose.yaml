@@ -2,13 +2,13 @@
 services:
   api:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-01
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-02
   calculation:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-01
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-02
   lifecycle:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-01
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-02
   operator:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-01
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-02

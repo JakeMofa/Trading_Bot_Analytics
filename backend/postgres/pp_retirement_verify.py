@@ -14,7 +14,7 @@ from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
 from .pp_structured_probe import LOCAL_DSN, private_dsn
-from .rehearsal_profile import TRIAL_ORIGIN
+from .rehearsal_profile import TRIAL_ORIGINS
 from .cloud_origin_binding import cloud_binding
 from .cloud_runtime_profile import selected_cloud_origin,cloud_files,storage_paths,require_trial_files
 
@@ -174,7 +174,7 @@ def inventory(connection, generation_id, manifests, budget, *, fresh_machine_ses
 def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIGIN, inventory_only=False, permit=None):
     target.validate()
     windowed = isinstance(limits, TwoMarketReadbackLimits)
-    scoped_live = origin == ORIGIN or (origin == TRIAL_ORIGIN and windowed)
+    scoped_live = origin == ORIGIN or (origin in TRIAL_ORIGINS and windowed)
     if (repository.environment != 'preprod' or
             (not inventory_only and (transport.origin_id != origin or transport.generation_id != target.sealed)) or
             (not scoped_live and not origin.startswith('generated-'))):
@@ -269,7 +269,7 @@ def retirement_history_factory(environ):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--origin',choices=(ORIGIN,TRIAL_ORIGIN),help='optional exact origin assertion; must match the reviewed environment')
+    parser.add_argument('--origin',choices=(ORIGIN,*sorted(TRIAL_ORIGINS)),help='optional exact origin assertion; must match the reviewed environment')
     parser.add_argument('--sealed',required=True)
     parser.add_argument('--collecting',required=True)
     parser.add_argument('--seal-hash',required=True)
@@ -288,7 +288,7 @@ def main():
         origin=selected_cloud_origin(os.environ)
         if args.origin is not None and args.origin != origin:
             raise LifecycleHold('CLI origin does not match reviewed environment')
-        reader=origin==TRIAL_ORIGIN
+        reader=origin in TRIAL_ORIGINS
         require_trial_files(os.environ,origin,reader=reader,structured=True,storage=True)
         files=cloud_files(origin,reader=reader)
         check_environment(os.environ,origin_id=origin,files=files)

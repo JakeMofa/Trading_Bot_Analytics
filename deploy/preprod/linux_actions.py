@@ -55,14 +55,15 @@ BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_EN
           'TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false',
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
 OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
-OUTBOX_ORIGINS=('generated-pp','pp-live-pp','pp-live-pp-trial-20261119-01')
+OUTBOX_ORIGINS=('generated-pp','pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02')
 CYCLE_SESSION_MAX_SECONDS=6600
 CYCLE_POLICY='two-official-markets-cycle'
-TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
+TRIAL_ORIGIN='pp-live-pp-trial-20261119-02'
+RETAINED_TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
 
 
 def live_origin(trial_origin=None):
-    require(trial_origin in (None,TRIAL_ORIGIN),'invalid_pp_trial_origin')
+    require(trial_origin in (None,RETAINED_TRIAL_ORIGIN,TRIAL_ORIGIN),'invalid_pp_trial_origin')
     return trial_origin or 'pp-live-pp'
 
 
@@ -535,7 +536,7 @@ class LinuxActions:
 
     def _approved_outbox_origins(self,budget):
         origins=self._json(self._sql(budget,"SELECT coalesce(json_agg(origin_id ORDER BY origin_id),'[]'::json) "
-            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 4) bounded"))
+            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 5) bounded"))
         require(isinstance(origins,list) and len(origins)<=len(OUTBOX_ORIGINS)
                 and all(type(origin) is str and origin in OUTBOX_ORIGINS for origin in origins)
                 and len(origins)==len(set(origins)),'unexpected_outbox_origin')
@@ -744,9 +745,13 @@ class LinuxActions:
             if trial_reader:
                 from trial_history_reader import TRIAL_HISTORY_READER_FILES
                 wanted.update(TRIAL_HISTORY_READER_FILES)
+            sources={name:RUNTIME_SECRETS/name for name in wanted}
+            if trial_reader:
+                from trial_history_reader import trial_history_reader_source
+                sources.update({name:trial_history_reader_source(name) for name in TRIAL_HISTORY_READER_FILES})
             secrets={item.get('Destination'):item for item in mounts if item.get('Destination','').startswith('/run/secrets/')}
             require(set(secrets)=={'/run/secrets/'+name for name in wanted}
-                    and all(secrets['/run/secrets/'+name].get('Source')==str(RUNTIME_SECRETS/name)
+                    and all(secrets['/run/secrets/'+name].get('Source')==str(sources[name])
                             and secrets['/run/secrets/'+name].get('RW') is False for name in wanted)
                     and all(item.get('Destination') in {'/tmp',*secrets} for item in mounts),
                     'runtime_unexpected_data_mount')

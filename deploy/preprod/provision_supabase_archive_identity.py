@@ -25,6 +25,8 @@ IDENTITIES = {
 }
 ORIGIN = "pp-live-pp"
 TRIAL_ORIGIN = "pp-live-pp-trial-20261119-01"
+SECOND_TRIAL_ORIGIN = "pp-live-pp-trial-20261119-02"
+SUPPORTED_ORIGINS = (ORIGIN, TRIAL_ORIGIN, SECOND_TRIAL_ORIGIN)
 
 
 class ProvisionError(RuntimeError):
@@ -138,7 +140,7 @@ def provision(*, project_ref, email, admin_key_file, output_dir, execute=False, 
         raise ProvisionError("wrong Supabase project")
     if purpose not in IDENTITIES:
         raise ProvisionError("unsupported PP Storage identity purpose")
-    if origin not in (ORIGIN, TRIAL_ORIGIN):
+    if origin not in SUPPORTED_ORIGINS:
         raise ProvisionError("unsupported exact PP Storage origin")
     role, prefix = IDENTITIES[purpose]
     email = _validate_email(email)
@@ -208,7 +210,7 @@ def main():
     parser.add_argument("--project-ref", required=True)
     parser.add_argument("--email", required=True)
     parser.add_argument("--purpose", choices=sorted(IDENTITIES), default="archive")
-    parser.add_argument("--origin", choices=(ORIGIN, TRIAL_ORIGIN), default=ORIGIN)
+    parser.add_argument("--origin", choices=SUPPORTED_ORIGINS, default=ORIGIN)
     parser.add_argument("--admin-key-file", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")

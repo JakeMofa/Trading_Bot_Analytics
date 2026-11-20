@@ -13,7 +13,7 @@ import time
 from .active_structured import ActiveStructuredWorker, SealedStructuredWorker, PP_STRUCTURED_ORIGIN
 from .archive_codec import ArchiveLimit, ArchiveLimits
 from .lifecycle import LifecycleHold
-from .cloud_origin_binding import TRIAL_ORIGIN
+from .cloud_origin_binding import TRIAL_ORIGINS
 
 
 @dataclass(frozen=True)
@@ -49,7 +49,7 @@ def drain_bounded(repository, transport_factory, *, execute=False,
     A failure propagates; callers must reconcile cloud receipts and local ACKs.
     """
     origin = PP_STRUCTURED_ORIGIN if origin_id is None else origin_id
-    if origin not in (PP_STRUCTURED_ORIGIN,TRIAL_ORIGIN):
+    if origin not in (PP_STRUCTURED_ORIGIN,*TRIAL_ORIGINS):
         raise LifecycleHold('exact reviewed PP structured drain origin required')
     if execute is not True:
         raise LifecycleHold('explicit PP structured drain execution required')

@@ -399,7 +399,7 @@ def recurring_control(operation, budget, *, archive=False):
         return {'status': 'running' if row and row['State']['Running'] else 'stopped',
                 'source_sha': owner['source_sha'], 'retirement': 'off'} | (
                     {key:owner[key] for key in ('origin_id','initial_a','writer_proof_sha256')}
-                    if owner.get('origin_id')=='pp-live-pp-trial-20261119-01' else {})
+                    if owner.get('origin_id') in ('pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02') else {})
     if row:
         env = LinuxActions._environment(owner['image'])
         if row['State']['Running']:

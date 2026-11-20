@@ -5,9 +5,9 @@ from linux_actions import PROJECT,TRIAL_ORIGIN,cycle_environment
 from live_profile import validate_live_profile
 from structured_probe_profile import LOCAL_STAGED,OFF
 
-WRITER_SQL={'pp_trial_history_writer_dsn':'/etc/tradebot/cloud/trial_20261119_01_history_writer_dsn',
+WRITER_SQL={'pp_trial_history_writer_dsn':'/etc/tradebot/cloud/trial_20261119_02_history_writer_dsn',
             'pp_history_ca':'/etc/tradebot/cloud/pp_history_ca'}
-WRITER_AUTH={f'trial_archive_{field}':f'/etc/tradebot/cloud/trial_20261119_01_archive_{field}'
+WRITER_AUTH={f'trial_archive_{field}':f'/etc/tradebot/cloud/trial_20261119_02_archive_{field}'
              for field in ('api_key','email','password','uid')}
 
 
@@ -32,6 +32,7 @@ def child_service(base,initial_a,*,archive=False):
             TRADEBOT_PP_STORAGE_AUTH_UID_FILE='/run/secrets/trial_archive_uid')
     else:
         service['environment'].update(TRADEBOT_PP_STRUCTURED_ONE_SHOT='false',TRADEBOT_PP_STRUCTURED_RECURRING='true',
+            TRADEBOT_PP_SYNC_BARRIERS='true',TRADEBOT_PP_REUSE_HISTORY_SESSION='true',
             TRADEBOT_PP_RETAIN_REVISIONS='true',TRADEBOT_PP_HISTORY_DSN_FILE='/run/secrets/pp_trial_history_writer_dsn',
             TRADEBOT_PP_HISTORY_CA_FILE='/run/secrets/pp_history_ca')
     service['secrets']=[{'source':'probe_local_dsn','target':'/run/secrets/lifecycle_dsn'},

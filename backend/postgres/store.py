@@ -296,6 +296,18 @@ class Store:
                           'available_at':row['available_at'],'price_usd':row['price'],'size_btc':row['size'],
                           'content_hash':row['content_hash'],'provenance':row['payload'].get('provenance',{})}) if row else None
 
+    def current_price(self, now=None):
+        """One indexed Coinbase reference read, independent of market discovery."""
+        from .contract import source_timestamp
+        now = timestamp(now or utcnow())
+        cutoff = source_timestamp(now.isoformat())[1]
+        with self.connection(True) as db:
+            row = db.execute('''SELECT * FROM core.current_prices
+              WHERE origin_id=%s AND source='coinbase' AND symbol='BTC-USD'
+              AND source_epoch<=%s AND received_at<=%s AND available_at<=%s''',
+              (self.origin,cutoff,now,now)).fetchone()
+        return self._price_view(row)
+
     def inputs(self, market_id, now=None):
         now = timestamp(now or utcnow())
         wanted = int(now.timestamp())//60*60-60

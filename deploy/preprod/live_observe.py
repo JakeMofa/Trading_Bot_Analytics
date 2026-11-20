@@ -15,8 +15,9 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 LEGACY_ORIGIN = 'pp-live-pp'
-TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
-ORIGINS = (LEGACY_ORIGIN, TRIAL_ORIGIN)
+TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-02'
+RETAINED_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
+ORIGINS = (LEGACY_ORIGIN, RETAINED_TRIAL_ORIGIN, TRIAL_ORIGIN)
 
 INTERVAL = 5
 CHECK_INTERVAL = 60
@@ -247,7 +248,7 @@ def evaluate(samples, checks, elapsed, *, origin=LEGACY_ORIGIN):
 def observe(api, seconds, *, origin=LEGACY_ORIGIN, clock=time.monotonic, sleeper=time.sleep):
     if origin not in ORIGINS:
         raise ValueError("exact PP origin required")
-    cap = 6600 if origin == TRIAL_ORIGIN else 4560
+    cap = 6600 if origin in (TRIAL_ORIGIN, RETAINED_TRIAL_ORIGIN) else 4560
     if not 1 <= seconds <= cap:
         raise ValueError("observation duration must fit one bounded session")
     start = clock()

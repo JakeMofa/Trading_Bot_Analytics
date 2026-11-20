@@ -84,7 +84,7 @@ def command_for(env, api, profile):
     anchor = env.get('PP_CYCLE_INITIAL_A', '')
     trial_origin=env.get('PP_TRIAL_ORIGIN','')
     if trial_origin:
-        require(trial_origin=='pp-live-pp-trial-20261119-01' and bool(anchor)
+        require(trial_origin=='pp-live-pp-trial-20261119-02' and bool(anchor)
                 and operation in ('enter','on'),'exact anchored PP trial origin required')
     if anchor:
         try:
@@ -152,7 +152,7 @@ def validated_result(operation, result, initial_a=None, trial_origin=None):
     expected = {'enter':'PP_LIVE_READY_OFF', 'leave':'PP_GENERATED_RESTORED',
                 'on':'PP_LIVE_ON', 'off':'PP_LIVE_OFF'}[operation]
     expected_origin='generated-pp' if operation=='leave' else (trial_origin or 'pp-live-pp')
-    valid_origin=(result.get('origin_id') in ('pp-live-pp','pp-live-pp-trial-20261119-01')
+    valid_origin=(result.get('origin_id') in ('pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02')
                   if operation=='off' else result.get('origin_id')==expected_origin)
     require(result.get('gate') == expected and valid_origin
             and result.get('collector_enabled') is (operation == 'on')

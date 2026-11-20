@@ -21,7 +21,7 @@ services:
       PYTHONPATH: /app/backend
       TRADEBOT_ENVIRONMENT: preprod
       TRADEBOT_DATA_MODE: pp_live
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-01
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-02
       TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
       TRADEBOT_COLLECTOR_ENABLED: 'false'
       TRADEBOT_CLOUD_ENABLED: 'false'
@@ -36,6 +36,8 @@ services:
       TRADEBOT_PP_WINDOW_POLICY: two-official-markets-cycle
       TRADEBOT_PP_CYCLE_INITIAL_A: ${TRADEBOT_PP_CYCLE_INITIAL_A:?trial anchor required}
       TRADEBOT_PP_RETAIN_REVISIONS: 'true'
+      TRADEBOT_PP_SYNC_BARRIERS: 'true'
+      TRADEBOT_PP_REUSE_HISTORY_SESSION: 'true'
     secrets:
       - {source: probe_local_dsn, target: /run/secrets/lifecycle_dsn}
       - pp_trial_history_writer_dsn
@@ -51,7 +53,7 @@ secrets:
   probe_local_dsn:
     file: /run/tradebot-pp-deploy/probe-local-dsn
   pp_trial_history_writer_dsn:
-    file: /etc/tradebot/cloud/trial_20261119_01_history_writer_dsn
+    file: /etc/tradebot/cloud/trial_20261119_02_history_writer_dsn
   pp_history_ca:
     file: /etc/tradebot/cloud/pp_history_ca
 networks:

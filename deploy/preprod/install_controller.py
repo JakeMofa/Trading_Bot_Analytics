@@ -14,7 +14,7 @@ import zipfile
 
 from controller import HostBinding,Request,require
 from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _cycle_args, _read_active
-from linux_actions import CYCLE_SESSION_MAX_SECONDS
+from linux_actions import CYCLE_SESSION_MAX_SECONDS, RETAINED_TRIAL_ORIGIN
 
 PROBE_AUTHORITY=Path('/run/tradebot-pp-deploy/structured-probe.json')
 RAW_ARCHIVE_AUTHORITY=Path('/run/tradebot-pp-deploy/raw-archive-probe.json')
@@ -169,6 +169,7 @@ def authorize_live_enter(source,artifact,controller,image,initial_a=None,trial_o
 def authorize_live_on(seconds):
     HostBinding.from_marker().validate()
     active=_read_active()
+    require(active.get('trial_origin')!=RETAINED_TRIAL_ORIGIN,'retained_trial_is_read_only')
     cycle=_cycle_args(active)
     if active.get('trial_origin'):
         from controller import Budget

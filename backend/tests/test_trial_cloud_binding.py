@@ -27,7 +27,11 @@ class TrialCloudBindingTests(unittest.TestCase):
         self.assertEqual(cloud_binding(LEGACY_ORIGIN).role(),'tradebot_pp_history')
         binding=cloud_binding(TRIAL_ORIGIN)
         self.assertEqual(binding.role(),TRIAL_WRITER); self.assertEqual(binding.role(reader=True),TRIAL_READER)
-        for value in ('production','generated-test',TRIAL_ORIGIN+'-other','pp-live-pp-trial-20261119-02'):
+        next_binding=cloud_binding('pp-live-pp-trial-20261119-02')
+        self.assertEqual(next_binding.role(),'tradebot_pp_trial_20261119_02_writer')
+        self.assertEqual(next_binding.role(reader=True),'tradebot_pp_trial_20261119_02_reader')
+        self.assertNotEqual(next_binding.raw_prefix,binding.raw_prefix)
+        for value in ('production','generated-test',TRIAL_ORIGIN+'-other','pp-live-pp-trial-20261119-03'):
             with self.assertRaises(ValueError): cloud_binding(value)
         with self.assertRaises(ValueError): binding.role(reader='true')
         self.assertEqual(PPHistoryConnectionFactory(origin_id=TRIAL_ORIGIN).expected_role,TRIAL_WRITER)

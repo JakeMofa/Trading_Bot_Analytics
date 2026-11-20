@@ -38,7 +38,7 @@ class TrialHostTests(unittest.TestCase):
         base='transition-v1 preprod tradebot-preprod-01 enter '+'a'*40+' '+'b'*64+' '+'c'*64+' sha256:'+'d'*64
         request=gate.TransitionRequest.parse(base+' '+A+' '+TRIAL)
         self.assertEqual(request.bindings()['trial_origin'],TRIAL)
-        for origin in ('pp-live-pp',TRIAL+'-other'):
+        for origin in ('pp-live-pp','pp-live-pp-trial-20261119-01',TRIAL+'-other'):
             with self.assertRaises(DeploymentHold):gate.TransitionRequest.parse(base+' '+A+' '+origin)
         active={'initial_a':A,'trial_origin':TRIAL}
         with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active),patch.object(gate,'_secure_file') as secret:
@@ -46,6 +46,25 @@ class TrialHostTests(unittest.TestCase):
                 with self.assertRaises(DeploymentHold):gate.session(command,Path('/trusted/controller'))
             secret.assert_not_called()
         self.assertEqual(gate._cycle_args(active),active)
+
+    def test_retained_first_trial_journal_remains_valid_for_off_but_never_new_enter(self):
+        retained='pp-live-pp-trial-20261119-01'
+        self.assertEqual(actions.live_origin(retained),retained)
+        owned=Actions();context=SimpleNamespace(source=Path('/reviewed/source'),image=IMAGE)
+        base=Budget(owned)
+        class RetainedBudget:
+            def timeout(self,*args):return base.timeout(*args)
+            def run(self,args,**kwargs):
+                raw=base.run(args,**kwargs)
+                return raw.replace(b'pp-live-pp',retained.encode()) if args[-1] in ('--stop-collector','--collector-status') else raw
+        transition=LiveTransition(owned,context,RetainedBudget(),initial_a=A,trial_origin=retained)
+        with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):transition.enter()
+        self.assertEqual(owned.calls,[])
+        with patch('live_transition.validate_live_profile'):
+            transition.leave()
+        commands=[c[1] for c in owned.calls if isinstance(c,tuple) and c[0]=='live']
+        self.assertTrue(any(any('runtime.retained-trial-01.compose.yaml' in value for value in command) for command in commands))
+        self.assertFalse(any('postgres.pp_trial_prepare' in command for command in commands))
 
     def test_trial_on_is_held_before_consuming_authority_until_cloud_readiness(self):
         digest=hashlib.sha256(b'controller').hexdigest()

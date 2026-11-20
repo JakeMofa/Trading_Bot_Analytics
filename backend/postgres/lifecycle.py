@@ -15,7 +15,7 @@ import uuid
 
 from . import pp_space
 from .rehearsal_profile import (canonical_anchor, lease_cap, require_cycle_alignment,
-                                CYCLE_ORIGINS, TRIAL_ORIGIN)
+                                CYCLE_ORIGINS, TRIAL_ORIGINS)
 from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
@@ -153,7 +153,7 @@ class LifecycleRepository:
             cap = lease_cap(rehearsal_anchor)
         except ValueError as error:
             raise LifecycleHold(str(error)) from None
-        if origin_id == TRIAL_ORIGIN and rehearsal_anchor is None:
+        if origin_id in TRIAL_ORIGINS and rehearsal_anchor is None:
             raise LifecycleHold('exact trial origin requires two-leg cycle admission')
         if rehearsal_anchor is not None and (origin_id not in CYCLE_ORIGINS or expected_generation_id != rehearsal_anchor
                                               or max_seconds != cap):

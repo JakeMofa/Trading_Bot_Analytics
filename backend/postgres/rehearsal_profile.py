@@ -1,6 +1,7 @@
 """Explicit, finite PP two-leg rehearsal scope. No activation or lease renewal."""
 import uuid
 from datetime import datetime, timezone
+from .cloud_origin_binding import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, TRIAL_ORIGINS
 
 NORMAL_LEASE_CAP_SECONDS = 4560
 # Admission is within the final minute before the first quarter. B may wait
@@ -9,8 +10,7 @@ NORMAL_LEASE_CAP_SECONDS = 4560
 CYCLE_LEASE_CAP_SECONDS = 60 + 3600 + 900 + 1800 + 240
 CYCLE_POLICY = 'two-official-markets-cycle'
 # One reviewed trial namespace in the SAME environment database, not a wildcard.
-TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
-CYCLE_ORIGINS = frozenset({'pp-live-pp', TRIAL_ORIGIN})
+CYCLE_ORIGINS = frozenset({'pp-live-pp', *TRIAL_ORIGINS})
 
 
 def canonical_anchor(value):
@@ -27,7 +27,7 @@ def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
     if policy != CYCLE_POLICY:
-        if environ.get('TRADEBOT_ORIGIN_ID') == TRIAL_ORIGIN:
+        if environ.get('TRADEBOT_ORIGIN_ID') in TRIAL_ORIGINS:
             raise ValueError('exact trial origin requires explicit two-leg cycle profile')
         if anchor is not None:
             raise ValueError('cycle identity requires explicit cycle profile')

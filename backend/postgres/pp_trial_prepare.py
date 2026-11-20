@@ -11,14 +11,14 @@ import uuid
 
 from .archive_codec import ArchiveLimits, CycleBudget
 from .lifecycle import LifecycleHold, LifecycleRepository
-from .rehearsal_profile import TRIAL_ORIGIN, canonical_anchor, cycle_anchor
+from .rehearsal_profile import TRIAL_ORIGIN, TRIAL_ORIGINS, canonical_anchor, cycle_anchor
 
 CONSUMER='trial:initial-a-prepare-v1'
 
 
-def prepare(repository, initial_a, source_sha, *, execute=False):
+def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN):
     canonical_anchor(initial_a)
-    if (execute is not True or repository.environment!='preprod'
+    if (execute is not True or repository.environment!='preprod' or origin_id not in TRIAL_ORIGINS
             or not isinstance(source_sha,str) or not re.fullmatch('[0-9a-f]{40}',source_sha)):
         raise LifecycleHold('explicit exact trial preparation scope required')
     with CycleBudget(ArchiveLimits(max_seconds=20)), repository.transaction() as db:
@@ -39,19 +39,19 @@ def prepare(repository, initial_a, source_sha, *, execute=False):
         if db.execute('SELECT 1 FROM ops.writer_state WHERE collector_enabled LIMIT 1').fetchone():
             raise LifecycleHold('all database collector flags must be OFF')
         existing=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
-                            'ORDER BY created_at,generation_id LIMIT 2 FOR UPDATE',(TRIAL_ORIGIN,)).fetchall()
-        writer=next((row for row in writers if row['origin_id']==TRIAL_ORIGIN),None)
+                            'ORDER BY created_at,generation_id LIMIT 2 FOR UPDATE',(origin_id,)).fetchall()
+        writer=next((row for row in writers if row['origin_id']==origin_id),None)
         expected=dict(initial_a=initial_a,source_sha=source_sha,policy=CONSUMER)
         if existing or writer:
             checkpoint=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
-                'AND generation_id=%s AND consumer=%s',(TRIAL_ORIGIN,initial_a,CONSUMER)).fetchone()
+                'AND generation_id=%s AND consumer=%s',(origin_id,initial_a,CONSUMER)).fetchone()
             if (len(existing)!=1 or writer is None or writer['generation_id']!=initial_a or writer['epoch']!=1
                     or existing[0]['generation_id']!=initial_a or existing[0]['state']!='collecting'
                     or existing[0]['slot']!='A' or existing[0]['hold_reason'] is not None
                     or checkpoint is None or checkpoint['cursor']!=expected):
                 raise LifecycleHold('trial already exists outside exact unused initial-A preparation')
-            if db.execute('SELECT 1 FROM raw.events WHERE origin_id=%s LIMIT 1',(TRIAL_ORIGIN,)).fetchone() or \
-                    db.execute('SELECT 1 FROM ops.outbox WHERE origin_id=%s LIMIT 1',(TRIAL_ORIGIN,)).fetchone():
+            if db.execute('SELECT 1 FROM raw.events WHERE origin_id=%s LIMIT 1',(origin_id,)).fetchone() or \
+                    db.execute('SELECT 1 FROM ops.outbox WHERE origin_id=%s LIMIT 1',(origin_id,)).fetchone():
                 raise LifecycleHold('prepared trial already contains evidence')
             if db.execute('SELECT to_regclass(%s) AS child',('raw.'+existing[0]['partition_name'],)).fetchone()['child'] is None:
                 raise LifecycleHold('prepared initial A partition missing')
@@ -60,13 +60,13 @@ def prepare(repository, initial_a, source_sha, *, execute=False):
             child='events_g_'+uuid.UUID(initial_a).hex
             db.execute("""INSERT INTO archive.generations
                 (origin_id,generation_id,slot,state,partition_name,created_at)
-                VALUES(%s,%s,'A','prepared',%s,%s)""",(TRIAL_ORIGIN,initial_a,child,now))
-            db.execute('SELECT archive.create_generation_partition(%s,%s)',(TRIAL_ORIGIN,initial_a))
+                VALUES(%s,%s,'A','prepared',%s,%s)""",(origin_id,initial_a,child,now))
+            db.execute('SELECT archive.create_generation_partition(%s,%s)',(origin_id,initial_a))
             db.execute("UPDATE archive.generations SET state='collecting',started_at=%s WHERE generation_id=%s",(now,initial_a))
             db.execute('INSERT INTO ops.writer_state(origin_id,generation_id,epoch,collector_enabled,updated_at) '
-                       'VALUES(%s,%s,1,false,%s)',(TRIAL_ORIGIN,initial_a,now))
-            repository._checkpoint(db,dict(origin_id=TRIAL_ORIGIN,generation_id=initial_a),CONSUMER,expected)
-    return dict(status='trial_ready_off',origin_id=TRIAL_ORIGIN,generation_id=initial_a,
+                       'VALUES(%s,%s,1,false,%s)',(origin_id,initial_a,now))
+            repository._checkpoint(db,dict(origin_id=origin_id,generation_id=initial_a),CONSUMER,expected)
+    return dict(status='trial_ready_off',origin_id=origin_id,generation_id=initial_a,
                 collector_enabled=False,source_sha=source_sha,retirement_authorized=False)
 
 
@@ -76,7 +76,7 @@ def main(argv=None):
     parser.add_argument('--source-sha',required=True)
     parser.add_argument('--execute',action='store_true')
     args=parser.parse_args(argv)
-    if (not args.execute or os.environ.get('TRADEBOT_ORIGIN_ID')!=TRIAL_ORIGIN or cycle_anchor(os.environ)!=args.initial_a
+    if (not args.execute or os.environ.get('TRADEBOT_ORIGIN_ID') not in TRIAL_ORIGINS or cycle_anchor(os.environ)!=args.initial_a
             or any(os.environ.get(flag,'false').lower() not in ('false','0','off') for flag in
                    ('TRADEBOT_COLLECTOR_ENABLED','TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED',
                     'ENABLE_OPENAI_ANALYST','ENABLE_SUPABASE_SYNC','ENABLE_LOCAL_RETENTION'))):
@@ -87,7 +87,7 @@ def main(argv=None):
     dsn=read_dsn(os.environ)
     factory=lambda:connect(dsn,environment='preprod')
     with factory() as db:validate_schema(db,'preprod')
-    print(json.dumps(prepare(LifecycleRepository(factory),args.initial_a,args.source_sha,execute=args.execute)),flush=True)
+    print(json.dumps(prepare(LifecycleRepository(factory),args.initial_a,args.source_sha,execute=args.execute,origin_id=os.environ['TRADEBOT_ORIGIN_ID'])),flush=True)
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

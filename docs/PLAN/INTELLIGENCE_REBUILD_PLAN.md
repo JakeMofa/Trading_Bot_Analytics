@@ -1,3 +1,34 @@
+## PP23 terminal drain qualification
+
+The default-off `pp_final_trial_drain` helper seals only the final stopped A
+of the exact trial 02, after both earlier generations have genuine, timely
+retirement evidence and their physical partitions are absent. It checks exact
+counts, acknowledged outbox, writer epoch and original admission. It creates
+no fourth generation and authorizes no deletion of final A. Five real PG17
+cases passed with owned and restricted-role harnesses, plus an independent
+five-test review. Existing CI discovers the new PostgreSQL test module.
+Final A remains retained after archival and independent readback.
+
+## November 19 — PP23 release preparation, live proof still pending
+
+Exact application source `59c5993` passed Linux CI 44643071297; combined
+source `1f5f15e` passed push CI 44644055724 and PR CI 44644062715.
+PR #191 had already merged the prior drain evidence; successor PR #192 carries
+the fresh trial changes. The old01 trial left cleanly after the unchanged
+1 GiB host-memory guard identified insufficient headroom. Only idle calculation
+and lifecycle containers were temporarily stopped; the normal leave restored
+all generated services. PostgreSQL and API stayed available, collector OFF.
+
+Installed controller `65de5662…` through the pinned code-only transfer.
+Independent02 cloud identities passed actual synthetic create/readback and
+cross-origin denial checks. Existing policy/role/grant hashes and legacy/01
+receipt/revision counts are unchanged. Ten new02 credentials were staged without
+replacing old paths. No new live collection or local retirement has occurred.
+The next gates are verified controller profile, exact release publication/CD,
+then the authorized two-leg live trial. Production is unchanged.
+
+[Preparation evidence](evidence/pp23-release-preparation-2026-11-19.json).
+
 ## November 19 — retained PP22 drain and archive PASS
 
 Completed before any new live rotation, with PP collection durably OFF.
@@ -24,6 +55,41 @@ its sealed data before another A → B → fresh A rehearsal. Production,
 retirement and paid AI settings are unchanged. Phase 1.75/I7 remain OPEN.
 
 [Sanitized full drain/archive/readback evidence](evidence/pp22-retained-drain-archive-2026-11-19.json).
+
+## Next authorized PP live rehearsal — fresh trial 02
+
+The user authorized deploying the fixes and continuing through A → B → fresh A,
+with each outgoing generation archived and removed within 30 minutes while the
+successor collects and the dashboard remains usable. The completed trial 01
+archive stays attached and unchanged; it is not reset into an empty trial.
+
+Parallel implementation prepares one explicit new origin,
+`pp-live-pp-trial-20261119-02`, with independent restricted SQL/Auth identities
+and source-bound host proofs. An additive local migration extends the same
+capture and retirement checks; unknown origins remain rejected. The release
+includes the measured revision-selection fix, trial-only connection reuse and
+synchronized batching, plus Coinbase price hydration during market-discovery
+gaps. Discovery gaps must remain truthful and cannot fabricate forecasts.
+
+Execution order: exact-source tests/CI → additive cloud isolation/readback proof
+→ reviewed controller and PP release → OFF admission and cloud-worker readiness
+→ temporary production collector fence → actual live observation. Each outgoing
+generation spans two official 15-minute markets. Record actual ON and switch
+receipts, intake/ACK/backlog, API/SSE and forecast ages, archive and retirement
+results, and post-retirement history. Final readback and exact deletion retain
+the existing bounded administrator-change freeze and reader/reference gates.
+After the test, durably stop PP and drain its last retained generation before
+restoring the previous production collector configuration. No production data
+migration, paid AI or trading is included. A failed run remains failed even if
+its data is subsequently archived successfully.
+
+The offline 38.683/s result is not a live-throughput claim. Runtime qualification
+must show collection continuing while archival catches up; save/heartbeat must
+stay below one second, API requests below two seconds and feature/input ages
+within 30 seconds when the required market inputs are available. Source outages
+and missing inputs remain explicit and are recorded separately from performance;
+truthful abstention does not by itself satisfy the freshness acceptance target.
+[Second-trial cloud scope](PP23_SECOND_TRIAL_CLOUD_SCOPE_2026-11-19.md).
 
 ## Active master plan — PP rotation, usable history, and archive performance
 

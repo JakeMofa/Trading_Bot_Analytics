@@ -30,8 +30,9 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   A verified in Supabase while B kept writing. Final retirement held and A
   stayed attached. Supabase gateway logs show all 50 raw object GETs
   succeeded during final readback, with structured-reader pool activity up
-  to verifier exit. Explicit OFF ended B after about 16 minutes. Fresh A
-  and successful local retirement remain open.
+  to verifier exit. Explicit OFF ended B after about 16 minutes. B was
+  sealed and archived with collection OFF, and both partitions remain
+  verified and attached. Fresh A and successful local retirement remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

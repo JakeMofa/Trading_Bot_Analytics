@@ -477,6 +477,20 @@ controls a separate path. The reader activity supports investigating the
 structured and connection phases using the new diagnostics before trying
 any retirement change.
 
+### B archive recovery with collection OFF
+
+The review reproduced a statement timeout in the original protected-
+evidence lookup using the trial's actual row counts. The successor used
+the existing outbox unique key and kept full typed payload equality. Its
+fixed-scope helper passed exact Linux CI, then sealed B at 19:00:04 UTC on
+November 20. The existing worker verified all 12,301 B raw records across
+25 Supabase Storage objects at 19:01:07 UTC, 63.36 seconds after the seal.
+All 13,210 structured records were acknowledged. The final snapshot
+confirmed A and B verified and attached, the collector and archive worker
+OFF, and no fresh A. The original final retirement error remains unidentified.
+[Exact recovery CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44797052857)
+· [Release recovery evidence](https://github.com/JakeMofa/Trading_Bot_Analytics/commit/1b1098b)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

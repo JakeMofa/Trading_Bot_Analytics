@@ -19,7 +19,11 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   inputs and retained durable OFF for fatal storage failures. PR #193 merged
   after required CI passed. The separate archive-only audit verified all
   stopped A data (38 raw objects / 18,930 rows and 20,362 structured rows);
-  A remained attached. Fresh admission and live validation remain open.
+  A remained attached. The PP24 deployment stopped at operator readiness
+  before collection. A separate native regression for PR #196 confirmed
+  Polymarket writes across a generated A → B switch during simultaneous
+  Coinbase WebSocket closures and a candle timeout. Fresh admission and
+  live validation remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

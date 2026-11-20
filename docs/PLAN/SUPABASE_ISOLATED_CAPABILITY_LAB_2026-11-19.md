@@ -348,6 +348,26 @@ The fresh trial still needs two complete 30-minute windows with committed
 Polymarket collection, scoped archive verification and both live switches.
 [Recovery PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/193)
 
+## PP24 operator startup and Coinbase candle isolation
+
+The first PP24 deployment stopped during smoke testing before live
+admission. The private API answered at 02:59:10.542 UTC and the operator
+finished starting 0.326 seconds later. The smoke check had a single operator
+attempt. Recovery stopped the candidate with PostgreSQL still healthy.
+The independently verified PP23 A remained attached.
+[PP24 deployment run](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44664385511)
+
+The readiness candidate passed 46 isolated action tests, including delayed
+operator binding and immediate rejection of reachable invalid state. Its
+candle handling passed six focused tests. An independent PostgreSQL 17
+fixture injected repeated Coinbase WebSocket closures plus a candle fetch
+timeout and checked real restricted Polymarket market and quote commits
+before and after a generated A → B switch. The previous release `d5615a3`
+stopped with `coinbase_candles.timeout`. Candidate `fc9413b` passed, with
+stale reference-price abstention and durable OFF verified. Live proof still
+requires observed quotes and actual switch times on the PP VM.
+[Readiness and candle PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/196)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

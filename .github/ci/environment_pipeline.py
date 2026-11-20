@@ -79,6 +79,7 @@ CONTROLLER_REASONS = frozenset({
     'deployment_oneoff_still_running', 'explicit_migration_required',
     'host_api_loopback_unavailable', 'host_api_response_too_large',
     'host_api_wrong_state', 'host_operator_loopback_unavailable',
+    'host_api_invalid_response', 'host_operator_invalid_response', 'operator_token_unavailable',
     'invalid_built_image_id', 'invalid_child_command', 'invalid_command',
     'invalid_container_identity', 'invalid_digest', 'invalid_memory_limit',
     'invalid_recovery_anchor', 'invalid_runtime_evidence', 'invalid_source_sha',

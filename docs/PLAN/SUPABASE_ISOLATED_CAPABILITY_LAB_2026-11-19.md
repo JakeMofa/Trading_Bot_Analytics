@@ -517,11 +517,20 @@ With the existing index and fresh connections, all 24,649 raw rows in 50
 objects and all 26,480 structured rows in 53 pages passed. The verifier
 charged 105 requests and 45,934,243 logical bytes. Structured readback was
 the largest phase at 131.720 seconds, including 48.013 seconds across
-exact-revision lookup and 17.390 seconds across 54 connection opens and
-the separately counted preflight. The phase totals overlap. Hosted logs
+exact-revision lookup and 17.390 seconds across 54 connection opens,
+including preflight. The phase totals overlap. Hosted logs
 from 20:54:57.754354 to 20:58:39.709147 UTC showed 50/50 distinct Storage
 GETs succeeded and zero timeouts among 201 exact-reader pooler records.
 No connection-reuse benefit is included in this pass.
+
+A separate index-plus-reuse comparison completed three structured pages
+and returned `archive_limit` on page four during `history_release` after
+63.876 seconds overall. One run does not establish that reuse caused the
+failure. The candidate continues to use fresh connections. A before/after
+comparison confirmed identical writer state, no active session or lease,
+both generations verified and attached, unchanged seal hashes and row
+counts, and zero pending acknowledgements. No deletion or new live run
+occurred. [Index-only release candidate](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/201)
 
 ## Product scope and decisions
 

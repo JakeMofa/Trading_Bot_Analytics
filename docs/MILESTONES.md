@@ -1,3 +1,36 @@
+## November 19, 2026, evening CST — PP25 controller identity qualified
+
+Controller `16f7e3ec…` was installed from exact-CI-qualified `bd842fc` without
+creating authority or changing PostgreSQL. Dedicated identity workflow
+44666918397 passed at `6f53f5d`; this profile binds its observed result.
+Trial03 host credentials were confirmed absent by a metadata-only check and
+then staged create-only (10 files), without starting collection or cloud writes.
+Existing trial03 Supabase qualification remains attributed to source `413aac3`;
+no roles or objects were recreated. PP25 application publication/deployment and
+live A → B → fresh A acceptance remain next. Production is unchanged.
+
+[Observed identity](PLAN/evidence/pp-controller-identity-2026-11-20-16f7e3ec.json).
+
+## November 19, 2026, evening CST — PP25 preparation and preserved recovery failure
+
+PR #196 merged into `preprod` as `6f53f5d`. Exact source `bd842fc` passed
+push CI44665494143 and PR CI44665501868. It qualifies bounded operator startup
+readiness and Coinbase candle transport degradation without converting missing
+reference data into fresh forecasts. Production is unchanged; no new live trial
+or retirement has occurred.
+
+A read-only cache audit found 52.38 GiB filesystem free and 1,189 MiB available
+RAM with the candidate stopped; only 1.229 MB build cache was reclaimable.
+Nothing was purged. The first exact-candidate availability restoration safely
+stopped again: failed-CD recovery had set restart policy `no`, while the runtime
+validator requires `unless-stopped`. The successor restores that policy only for
+the four recorded generated/OFF candidate IDs and fences/stops them on failure;
+13 offline fault tests and independent review passed. This restoration cannot
+turn the original failed CD into PASS. The corrected attempt restored generated/OFF
+API and operator availability with PostgreSQL unchanged.
+
+[Preserved restoration/cache evidence](PLAN/evidence/pp24-restoration-hold-2026-11-20.json).
+
 # BTC Intelligence: live plan and status
 
 Updated October 2, 2026. This is the short progress tracker. [STRATEGIC_PLAN.md](STRATEGIC_PLAN.md) holds the architecture and longer roadmap. [PLAN_CROSSWALK.md](PLAN_CROSSWALK.md) maps every phase of the original handoff to current implementation; the original documents remain unchanged.

@@ -1,0 +1,91 @@
+{
+  "scope": "PP generated availability restoration; no collection or deployment PASS",
+  "cache_inventory": {
+    "at_utc": "2026-11-20T03:10:13.144423+00:00",
+    "controller_sha256": "ec2e8baf73e3691e6327ace3d47dd4f219730b75d2a1103aa35ad3444d7bbd5a",
+    "disk_guard_bytes": 10737418240,
+    "docker": [
+      {
+        "Active": "2",
+        "Reclaimable": "13.62MB (1%)",
+        "Size": "813MB",
+        "TotalCount": "22",
+        "Type": "Images"
+      },
+      {
+        "Active": "1",
+        "Reclaimable": "49.15kB (63%)",
+        "Size": "77.82kB",
+        "TotalCount": "5",
+        "Type": "Containers"
+      },
+      {
+        "Active": "1",
+        "Reclaimable": "0B (0%)",
+        "Size": "537.3MB",
+        "TotalCount": "1",
+        "Type": "Local Volumes"
+      },
+      {
+        "Active": "0",
+        "Reclaimable": "1.229MB",
+        "Size": "275.6MB",
+        "TotalCount": "48",
+        "Type": "Build Cache"
+      }
+    ],
+    "memory_bytes": {
+      "Buffers": 37634048,
+      "Cached": 966152192,
+      "MemAvailable": 1247096832,
+      "MemTotal": 1998577664,
+      "SReclaimable": 174804992,
+      "Shmem": 148733952,
+      "SwapFree": 0,
+      "SwapTotal": 0
+    },
+    "memory_guard_bytes": 1073741824,
+    "mutations_performed": false,
+    "root_filesystem": {
+      "available_bytes": 56247283712,
+      "total_bytes": 61285326848
+    },
+    "status": "READ_ONLY_INVENTORY"
+  },
+  "attempt": "6f91c5df-9e1c-4c22-9a48-5b49b2925e61",
+  "result": [
+    {
+      "collector_enabled": false,
+      "deployment_pass": false,
+      "status": "CANDIDATE_RESTOPPED"
+    },
+    {
+      "deployment_pass": false,
+      "reason": "DeploymentHold",
+      "stage": "forward_restore",
+      "status": "HOLD"
+    }
+  ],
+  "cause": "Recovery intentionally sets RestartPolicy=no; initial restoration omitted returning it to the required unless-stopped policy. All four candidate containers were stopped again; PostgreSQL and all writer-OFF states verified by cleanup.",
+  "cache_removed": false,
+  "production_changed": false,
+  "corrected_attempt": "819b7c2e-0e76-4072-b29b-d2d596921039",
+  "corrected_wrapper_sha256": "47d51667e0bac59357417d82890ef2fdea6a1da6ec966ce4b09090af385e35ad",
+  "corrected_result": [
+    {
+      "deployment_pass": false,
+      "status": "RESTART_POLICY_RESTORE_BEGIN"
+    },
+    {
+      "deployment_pass": false,
+      "status": "RESTART_POLICY_RESTORE_CONFIRMED"
+    },
+    {
+      "collector_enabled": false,
+      "deployment_pass": false,
+      "postgres_recreated": false,
+      "status": "CANDIDATE_GENERATED_AVAILABILITY_RESTORED"
+    }
+  ],
+  "corrected_tests": 13
+}

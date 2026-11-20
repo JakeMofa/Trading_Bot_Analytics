@@ -16,8 +16,14 @@ and four-second page limits stayed in force. Local wait samples reported no
 lock wait during either run. The read-only audit does not exercise concurrent
 opposite-slot writes, permit issuance or partition removal.
 
-The live verifier candidate exposes an explicit PP trial-only indexed lookup
-flag. This uses the existing checked index and exact receipt comparisons.
+The indexed query with a reused connection failed on structured page four
+at 4.650 seconds. The longest exact-revision span reached 3.217 seconds and
+the final error surfaced at connection release. A single comparison does
+not isolate reuse as the cause. The selected live verifier candidate keeps
+fresh connections and exposes an explicit PP trial-only indexed lookup using
+the existing checked index and exact receipt comparisons. A fresh database
+snapshot confirmed both trial03 partitions remain attached and verified,
+with unchanged row counts and a durably stopped collector.
 A fresh live rehearsal must preserve trial03 and qualify its own independently
 scoped writer, reader, release and retirement authority. Production and both
 retained trial03 partitions were untouched by these audits.

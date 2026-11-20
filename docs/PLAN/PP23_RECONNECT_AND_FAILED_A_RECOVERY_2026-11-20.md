@@ -100,3 +100,15 @@ and resource caps are unchanged. Missing, skipped or empty phases fail. Timeout
 output is redacted before truncation and reports termination/reaping status.
 All seven recovery cases passed through the actual new child command in 12.96
 seconds. The revised control suite passed 263 tests with 14 platform skips.
+
+## Polymarket continuity during a Coinbase outage
+
+A portable, generated native-PostgreSQL regression now runs the actual supervisor
+and Coinbase retry loop concurrently with Polymarket normalization, discovery,
+quote persistence and an actual A-to-B fixture switch. Polymarket writes on both
+sides of the switch while Coinbase is in retry/cooldown. Stale Coinbase makes the
+actual LiveState forecast unavailable. Explicit stop and a fatal shared-storage
+write rejection still prove durable OFF. Both tests passed locally without skips
+(2.109 seconds), and independently with restricted DSNs. The continuity case
+fails on deployed `f964c93`, so it detects the original failure behavior.
+These are generated tests; live continuity and source freshness remain unproven.

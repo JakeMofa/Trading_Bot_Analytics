@@ -1,3 +1,15 @@
+## November 20, 2026 — PP26 controller identity verified
+
+PR #199 merged as `e16d7b8` after exact-source and PR Linux CI passed
+(`44778846799`, `44778892704`). The installed controller `895d252f…`
+passed dedicated identity workflow `44780241320`, with `database_changed=false`.
+This profile binds that observed installation; it does not start collection.
+PP remains on the PP25 generated application, with live collection OFF.
+Next: exact profile CI and merge, publish/deploy PP26, then rebind existing
+trial03 proofs and perform the authorized live rehearsal. No new cloud roles,
+credentials or trial data are created by this profile change. Production is
+unchanged. A → B → fresh A archive/retirement acceptance remains unproven.
+
 ## November 20, 2026 — cache audit and release reconciliation
 
 PR #198 merged into `preprod` as `4a2112c`. Its source and PR CI passed;

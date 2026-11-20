@@ -117,8 +117,10 @@ def main():
             return drain_bounded(repo, transport, execute=True,
                                  limits=RECURRING_LIMITS,origin_id=origin)
 
-        emit(dict(status='structured_worker_ready', sync_barriers=synchronized,
+        emit(dict(status='structured_worker_modes', sync_barriers=synchronized,
                   session_reuse=reuse))
+        # Both host controllers consume this exact historical one-field marker.
+        emit(dict(status='structured_worker_ready'))
         return supervise(page, stop, emit)
     except Exception:
         emit(dict(status='hold', reason='structured_startup_failed'))

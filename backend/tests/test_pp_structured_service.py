@@ -117,8 +117,36 @@ class StructuredServiceTests(unittest.TestCase):
                 retain_revisions=True,sync_barriers=True)
             reused.return_value.close.assert_called_once_with()
             import json
-            self.assertEqual(json.loads(output.call_args.args[0]),
-                dict(status='structured_worker_ready',sync_barriers=True,session_reuse=True))
+            self.assertEqual(json.loads(output.call_args_list[-2].args[0]),
+                dict(status='structured_worker_modes',sync_barriers=True,session_reuse=True))
+            self.assertEqual(json.loads(output.call_args.args[0]),dict(status='structured_worker_ready'))
+            # Feed actual producer output through both unchanged controller
+            # startup paths, rather than supplying an invented readiness line.
+            from contextlib import nullcontext
+            from types import SimpleNamespace
+            from unittest.mock import MagicMock
+            sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'deploy/preprod'))
+            import trial_cloud_control as trial
+            import structured_probe_control as legacy
+            raw=('\n'.join(call.args[0] for call in output.call_args_list)+'\n').encode()
+            ctx=SimpleNamespace(image='sha256:'+'b'*64,
+                request=SimpleNamespace(source_sha='a'*40,controller_sha256='c'*64))
+            actions=MagicMock();actions.attempt_id='d'*32
+            row=dict(Id='e'*64,State=dict(Running=True))
+            with (patch.object(legacy,'_require_stopped'),patch.object(legacy,'_write_sync_owner'),
+                  patch.object(legacy,'_stage_local_secret',return_value=nullcontext()),
+                  patch.object(trial,'preflight',return_value=(ctx,actions,'generation','c'*64,{})),
+                  patch.object(trial,'_compose'),patch.object(trial,'_inspect_worker',return_value=row),
+                  patch.object(trial.Budget,'run',return_value=raw),patch.object(trial.time,'sleep') as wait):
+                self.assertEqual(trial.start(Path('bundle'))['status'],'started')
+                wait.assert_not_called()
+            with (patch.object(legacy,'_require_stopped'),patch.object(legacy,'_write_sync_owner'),
+                  patch.object(legacy,'_stage_local_secret',return_value=nullcontext()),
+                  patch.object(legacy,'preflight',return_value=(ctx,actions,'c'*64)),
+                  patch.object(legacy,'_compose'),patch.object(legacy,'_sync_container',return_value=row),
+                  patch.object(legacy.Budget,'run',return_value=raw),patch('time.sleep') as wait):
+                self.assertEqual(legacy.recurring_start(Path('bundle'))['status'],'started')
+                wait.assert_not_called()
 
     def test_recurring_must_be_explicit_and_exclusive(self):
         env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',

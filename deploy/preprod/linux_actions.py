@@ -55,15 +55,18 @@ BASE_ENV={'PYTHONDONTWRITEBYTECODE':'1','PYTHONPATH':'/app/backend','TRADEBOT_EN
           'TRADEBOT_DATA_MODE':'generated','TRADEBOT_ORIGIN_ID':'generated-pp','TRADEBOT_COLLECTOR_ENABLED':'false',
           'ENABLE_OPENAI_ANALYST':'false','ENABLE_SUPABASE_SYNC':'false','ENABLE_LOCAL_RETENTION':'false'}
 OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
-OUTBOX_ORIGINS=('generated-pp','pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02')
+OUTBOX_ORIGINS=('generated-pp','pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03')
 CYCLE_SESSION_MAX_SECONDS=6600
 CYCLE_POLICY='two-official-markets-cycle'
-TRIAL_ORIGIN='pp-live-pp-trial-20261119-02'
+TRIAL_ORIGIN='pp-live-pp-trial-20261119-03'
 RETAINED_TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
+RETAINED_TRIAL_ORIGINS=frozenset({RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02'})
+RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compose.yaml',
+                         'pp-live-pp-trial-20261119-02':'runtime.retained-trial-02.compose.yaml'}
 
 
 def live_origin(trial_origin=None):
-    require(trial_origin in (None,RETAINED_TRIAL_ORIGIN,TRIAL_ORIGIN),'invalid_pp_trial_origin')
+    require(trial_origin in (None,TRIAL_ORIGIN,*RETAINED_TRIAL_ORIGINS),'invalid_pp_trial_origin')
     return trial_origin or 'pp-live-pp'
 
 

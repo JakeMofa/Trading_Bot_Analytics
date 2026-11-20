@@ -8,6 +8,9 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] Failed PP23 A archived and independently verified with collection OFF: 18,930 raw / 20,362 structured; all retained locally. [Evidence](PLAN/evidence/pp23-failed-a-archive-2026-11-20.json).
+- [ ] Fresh Polymarket-priority trial03: reconnect regression passed, new scope locally tested; exact Linux CI, old-profile recovery, deployment and both live retirements remain open.
+
 - [ ] **PP23 live continuity failed before first A seal.** Source `f964c93`;
   Coinbase WebSocket failure stopped collection at 7:38:52 p.m. CST November 19.
   A retains18,930raw /20,362structuredACK /zero pending; no raw archive or deletion.

@@ -10,7 +10,7 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment, live_origin, RETAINED_TRIAL_ORIGIN
+from linux_actions import LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment, live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS, RETAINED_TRIAL_OVERLAYS
 from live_profile import validate_live_profile
 
 
@@ -32,7 +32,7 @@ class LiveTransition:
             env.update(self.cycle)
             overlay.extend(['-f', str(self.folder/'runtime.live-cycle.compose.yaml')])
         if self.trial_origin:
-            overlay.extend(['-f',str(self.folder/('runtime.retained-trial-01.compose.yaml' if self.trial_origin==RETAINED_TRIAL_ORIGIN else 'runtime.live-trial.compose.yaml'))])
+            overlay.extend(['-f',str(self.folder/(RETAINED_TRIAL_OVERLAYS.get(self.trial_origin,'runtime.live-trial.compose.yaml')))])
         if self.trial_origin and include_reader:
             from trial_history_reader import trial_history_reader_enabled,TRIAL_HISTORY_READER_OVERLAY
             if trial_history_reader_enabled(self.context,self.initial_a):
@@ -136,7 +136,7 @@ class LiveTransition:
 
     def enter(self):
         """Expose an OFF live operator and matching API/workers; never call ON."""
-        require(self.trial_origin!=RETAINED_TRIAL_ORIGIN,'retained_trial_is_read_only')
+        require(self.trial_origin not in RETAINED_TRIAL_ORIGINS,'retained_trial_is_read_only')
         self.actions._host()
         self._profile()
         self.actions._postgres(self.context,self.budget)

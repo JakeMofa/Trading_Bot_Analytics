@@ -1,3 +1,14 @@
+## PP23 terminal drain qualification
+
+The default-off `pp_final_trial_drain` helper seals only the final stopped A
+of the exact trial 02, after both earlier generations have genuine, timely
+retirement evidence and their physical partitions are absent. It checks exact
+counts, acknowledged outbox, writer epoch and original admission. It creates
+no fourth generation and authorizes no deletion of final A. Five real PG17
+cases passed with owned and restricted-role harnesses, plus an independent
+five-test review. Existing CI discovers the new PostgreSQL test module.
+Final A remains retained after archival and independent readback.
+
 ## November 19 — PP23 release preparation, live proof still pending
 
 Exact application source `59c5993` passed Linux CI 44643071297; combined

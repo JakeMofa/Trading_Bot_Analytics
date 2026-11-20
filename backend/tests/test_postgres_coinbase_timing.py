@@ -57,6 +57,55 @@ class TimingTests(unittest.TestCase):
         timing.connection_attempt()
         self.assertFalse(timing.queue_metadata_lost)
 
+    def test_session_counters_survive_interval_flushes_and_reconnects(self):
+        sink=[]
+        timing=CoinbaseTiming(emit=sink.append)
+        timing.connection_attempt()
+        timing.reconnect('coinbase_stream.timeout',1,1)
+        timing.connection_attempt()
+        timing.flush('session_exit')
+        self.assertEqual(sink[0]['session_totals'],dict(connection_attempts=1,reconnects=1))
+        self.assertEqual(sink[1]['counts'],dict(connection_attempts=1))
+        self.assertEqual(sink[1]['session_totals'],dict(connection_attempts=2,reconnects=1))
+
+    def test_summary_volume_and_bytes_are_bounded_without_payload_or_long_metadata(self):
+        now=[0.0];sink=[]
+        timing=CoinbaseTiming(clock=lambda:now[0],emit=sink.append)
+        timing.connection_attempt()
+        for index in range(10000):
+            timing.read_started();timing.parser_ingress();timing.read_completed()
+            event=dict(event_id='exchange-trade-'+str(index),source_time='2026-11-19T07:10:00Z',
+                received_at='2026-11-19T07:10:00Z',price='secret-price',raw_payload='private-wire-body')
+            if index==0:event['source_time']='private-metadata'*10000
+            timing.parsed(event)
+            now[0]+=.01
+            timing.saved(submitted=now[0],worker=dict(started=now[0],completed=now[0]),outcome='returned')
+        timing.flush('session_exit')
+        self.assertLessEqual(len(sink),21)
+        self.assertEqual(sink[-1]['session_totals']['save_returned'],10000)
+        for value in sink:
+            raw=json.dumps(value,sort_keys=True,allow_nan=False).encode()
+            self.assertLessEqual(len(raw),4096)
+            for secret in (b'secret-price',b'private-wire-body',b'private-metadata'):
+                self.assertNotIn(secret,raw)
+
+    def test_oversized_diagnostic_summary_reports_omission_within_byte_limit(self):
+        sink=[];timing=CoinbaseTiming(emit=sink.append)
+        timing.flush('interval',dict(untrusted='private-body'*10000))
+        self.assertEqual(sink[0]['reason'],'bounded_summary_overflow')
+        self.assertTrue(sink[0]['sample_metadata_omitted'])
+        raw=json.dumps(sink[0],sort_keys=True).encode()
+        self.assertLessEqual(len(raw),4096)
+        self.assertNotIn(b'private-body',raw)
+
+    def test_rate_limit_branch_has_fixed_scope_and_lifetime_counter(self):
+        sink=[];timing=CoinbaseTiming(emit=sink.append)
+        timing.cooldown('coinbase_stream.ws_closed_error',4,54)
+        self.assertEqual(sink[-1]['reason'],'reconnect_cooldown')
+        self.assertEqual(sink[-1]['details'],dict(code='coinbase_stream.ws_closed_error',
+            attempt=4,delay_seconds=54,scope='rolling_rate_limit'))
+        self.assertEqual(sink[-1]['session_totals']['rate_limit_cooldowns'],1)
+
     def test_logging_failure_is_observational(self):
         def broken(_):
             raise OSError('private output details')
@@ -76,16 +125,34 @@ class LoopbackTests(unittest.IsolatedAsyncioTestCase):
         sink=[]
         timing=CoinbaseTiming(emit=sink.append)
         store=SimpleNamespace(settings=SimpleNamespace(environment='preprod',data_mode='pp_live',origin_id='pp-live-fixture'))
+        opens=[];instant=[0.0]
         async def source(_):
+            opens.append(instant[0])
+            if len(opens)==2:
+                stop.set()
+                return
             raise OSError('private provider data')
             yield
         async def pause(_,delay):
             self.assertEqual(delay,1)
-            stop.set()
-        await coinbase_session(store,stop,source=source,pause=pause,timing=timing)
+            instant[0]+=delay
+        await coinbase_session(store,stop,source=source,pause=pause,timing=timing,clock=lambda:instant[0])
+        self.assertEqual(opens,[0.0,1.0])
         reconnect=next(row for row in sink if row['reason']=='reconnect')
         self.assertEqual(reconnect['details'],dict(code='coinbase_stream.transport',attempt=1,delay_seconds=1))
         self.assertNotIn('private provider data',json.dumps(sink))
+
+    async def test_cancelled_backoff_never_counts_a_reconnect_start(self):
+        stop=asyncio.Event();sink=[]
+        timing=CoinbaseTiming(emit=sink.append)
+        store=SimpleNamespace(settings=SimpleNamespace(environment='preprod',data_mode='pp_live',origin_id='pp-live-fixture'))
+        async def source(_):
+            raise OSError('private provider data')
+            yield
+        async def pause(_,delay):stop.set()
+        await coinbase_session(store,stop,source=source,pause=pause,timing=timing)
+        self.assertFalse(any(row['reason']=='reconnect' for row in sink))
+        self.assertEqual(sink[-1]['session_totals'].get('reconnects',0),0)
 
     async def test_failed_write_has_timing_and_is_not_retried(self):
         stop=asyncio.Event()

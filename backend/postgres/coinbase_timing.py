@@ -42,6 +42,8 @@ def observed_connection(timing):
 class CoinbaseTiming:
     MAX_PENDING_MESSAGES = 256
     SUMMARY_SECONDS = 5
+    MAX_LOG_BYTES = 4096
+    MAX_TIMESTAMP_CHARS = 64
 
     def __init__(self, *, clock=time.monotonic,
                  wall=lambda: datetime.now(timezone.utc), emit=None):
@@ -51,11 +53,12 @@ class CoinbaseTiming:
         self.queue_metadata_lost = False
         self.last_read = self.last_event = self.max_save_sample = self.max_lag_sample = None
         self.window_start = clock()
-        self.counts, self.metrics = {}, {}
+        self.counts, self.metrics, self.total_counts = {}, {}, {}
         self.emit_failures = 0
 
     def _count(self, name):
         self.counts[name] = self.counts.get(name, 0) + 1
+        self.total_counts[name] = self.total_counts.get(name, 0) + 1
 
     def _metric(self, name, value):
         if value is None:
@@ -108,8 +111,16 @@ class CoinbaseTiming:
             return
         sample = dict(self.last_read or {})
         identifier = str(event.get('event_id', ''))
+        def timestamp(value):
+            if not isinstance(value, str) or len(value) > self.MAX_TIMESTAMP_CHARS:
+                return None
+            try:
+                source_timestamp(value)
+            except (ValueError, TypeError):
+                return None
+            return value
         sample.update(event_id=identifier if re.fullmatch(r'[A-Za-z0-9_.:-]{1,100}', identifier) else None,
-            source_time=event.get('source_time'), received_at=event.get('received_at'))
+            source_time=timestamp(event.get('source_time')), received_at=timestamp(event.get('received_at')))
         sample['source_to_dequeue_ms'] = self._age_ms(sample.get('recv_completed_at'), sample['source_time'])
         sample['source_to_parser_ms'] = self._age_ms(sample.get('parser_ingress_at'), sample['source_time'])
         self.last_event = sample
@@ -139,14 +150,25 @@ class CoinbaseTiming:
         self._count('reconnects')
         self.flush('reconnect', dict(code=code, attempt=attempt, delay_seconds=delay))
 
+    def cooldown(self, code, attempt, delay):
+        # Same allowlisted network diagnostic, with an explicit rate-limit branch.
+        self._count('rate_limit_cooldowns')
+        self.flush('reconnect_cooldown', dict(code=code, attempt=attempt,
+            delay_seconds=delay, scope='rolling_rate_limit'))
+
     def flush(self, reason, details=None):
         value = dict(type='coinbase_timing', reason=reason,
             at=self.wall().isoformat(), interval_seconds=self.clock()-self.window_start,
-            counts=self.counts, metrics={name:dict(n=stat['n'], mean=stat['sum']/stat['n'], max=stat['max'])
+            counts=dict(self.counts), session_totals=dict(self.total_counts), metrics={name:dict(n=stat['n'], mean=stat['sum']/stat['n'], max=stat['max'])
                 for name,stat in self.metrics.items()}, max_save_sample=self.max_save_sample, max_lag_sample=self.max_lag_sample,
             queue_metadata_lost=self.queue_metadata_lost, details=details,
             prior_emit_failures=self.emit_failures)
         try:
+            if len(json.dumps(value, sort_keys=True, allow_nan=False).encode()) > self.MAX_LOG_BYTES:
+                value.update(max_save_sample=None, max_lag_sample=None, sample_metadata_omitted=True)
+            if len(json.dumps(value, sort_keys=True, allow_nan=False).encode()) > self.MAX_LOG_BYTES:
+                value = dict(type='coinbase_timing', reason='bounded_summary_overflow',
+                             sample_metadata_omitted=True, prior_emit_failures=self.emit_failures)
             self.emit(value)
             self.emit_failures = 0
         except Exception:

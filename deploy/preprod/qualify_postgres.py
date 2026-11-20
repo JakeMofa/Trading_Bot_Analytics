@@ -16,6 +16,8 @@ import tarfile
 import time
 from unittest.mock import patch
 import uuid
+import unittest
+from collections import Counter
 import foundation as f
 
 REPO=Path(__file__).resolve().parents[2]
@@ -143,22 +145,79 @@ def isolate_controller_fixture(runtime_env,owned):
         raise RuntimeError('controller fixture is not fresh')
 
 
+FAILED_RECOVERY_MODULE='test_postgres_failed_trial_drain'
+APPLICATION_TEST_PHASES=(('application_lifecycle',180),('failed_trial_recovery',90))
+
+
+def partition_application_tests(suite):
+    """Partition one discovery without omitting or duplicating a test identity."""
+    def cases(node):
+        if isinstance(node,unittest.TestSuite):
+            for child in node:
+                yield from cases(child)
+        elif isinstance(node,unittest.TestCase):
+            yield node
+        else:
+            raise RuntimeError('unexpected application test node')
+    original=list(cases(suite))
+    def is_recovery(case):
+        return (type(case).__module__==FAILED_RECOVERY_MODULE or
+                case.id()=='unittest.loader._FailedTest.'+FAILED_RECOVERY_MODULE)
+    recovery=[case for case in original if is_recovery(case)]
+    application=[case for case in original if not is_recovery(case)]
+    if not original or not application or not recovery:
+        raise RuntimeError('both application and failed-trial recovery tests are required')
+    before=Counter(case.id() for case in original)
+    after=Counter(case.id() for case in application+recovery)
+    if before!=after or len(application)+len(recovery)!=len(original):
+        raise RuntimeError('application test partition lost or duplicated a test')
+    return {'application_lifecycle':unittest.TestSuite(application),
+            'failed_trial_recovery':unittest.TestSuite(recovery)}
+
+
+def application_test_code(phase):
+    if phase not in dict(APPLICATION_TEST_PHASES):
+        raise ValueError('unknown application test phase')
+    return ("import sys,unittest; sys.path.insert(0,"+repr(str(f.HERE))+"); "
+            "from qualify_postgres import partition_application_tests; "
+            "all_tests=unittest.defaultTestLoader.discover('backend/tests',pattern='test_postgres*.py'); "
+            "s=partition_application_tests(all_tests)["+repr(phase)+"]; "
+            "r=unittest.TextTestRunner(verbosity=2).run(s); "
+            "raise SystemExit(0 if r.wasSuccessful() and not r.skipped and r.testsRun else 1)")
+
+
+def emit_child_output(stdout,stderr):
+    output=(stdout or '')+'\n'+(stderr or '')
+    for secret in sorted(REDACTIONS,key=len,reverse=True):
+        output=output.replace(secret,'[REDACTED]')
+    output=re.sub(r'postgres(?:ql)?://[^\s\x22\x27]+','[REDACTED_DSN]',output)
+    # Redact before truncation, so a tail boundary cannot expose half a secret.
+    print(output[-50000:],file=sys.stderr)
+
+
 def command(args,env=None,timeout=120):
     remaining=min(timeout,DEADLINE-time.monotonic())
     if remaining<=0:raise RuntimeError('qualification deadline exceeded')
     process=subprocess.Popen(args,env=env,cwd=REPO,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,start_new_session=True)
+    started=time.monotonic()
     try:
         stdout,stderr=process.communicate(timeout=remaining)
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid,signal.SIGTERM)
-        try:process.communicate(timeout=5)
+        killed=False
+        try:os.killpg(process.pid,signal.SIGTERM)
+        except ProcessLookupError:pass
+        try:stdout,stderr=process.communicate(timeout=5)
         except subprocess.TimeoutExpired:
-            os.killpg(process.pid,signal.SIGKILL);process.communicate()
+            killed=True
+            try:os.killpg(process.pid,signal.SIGKILL)
+            except ProcessLookupError:pass
+            stdout,stderr=process.communicate()
+        emit_child_output(stdout,stderr)
+        print(json.dumps(dict(phase=PHASE,reason='child_deadline',budget_seconds=remaining,
+            elapsed_seconds=round(time.monotonic()-started,3),term_requested=True,
+            kill_requested=killed,reaped=process.returncode is not None),sort_keys=True),file=sys.stderr)
         raise RuntimeError('qualification child deadline; terminated and reaped') from None
-    output=stdout+'\n'+stderr
-    for secret in sorted(REDACTIONS,key=len,reverse=True):output=output.replace(secret,'[REDACTED]')
-    output=re.sub(r'postgres(?:ql)?://[^\s\x22\x27]+','[REDACTED_DSN]',output)
-    print(output[-50000:],file=sys.stderr)
+    emit_child_output(stdout,stderr)
     if process.returncode:raise RuntimeError('generated integration subprocess failed: '+str(process.returncode))
     return stdout
 
@@ -500,10 +559,16 @@ def main():
             env['TRADEBOT_TEST_DSN']=dsns['application']
             env['TRADEBOT_TEST_DSN_FILE']=env['TRADEBOT_TEST_APP_DSN_FILE']
             # A skipped DB case is not a passing qualification.
-            for phase,directory,pattern in [('schema','backend/tests/postgres','test*.py'),('application_lifecycle','backend/tests','test_postgres*.py')]:
+            PHASE='schema'
+            code=("import unittest; s=unittest.defaultTestLoader.discover('backend/tests/postgres',pattern='test*.py'); r=unittest.TextTestRunner(verbosity=2).run(s); raise SystemExit(0 if r.wasSuccessful() and not r.skipped and r.testsRun else 1)")
+            command([sys.executable,'-c',code],env,timeout=180)
+            # Preserve the original 180s application bound. Recovery's real
+            # 20,362-ACK qualification gets its own measured, finite 90s phase.
+            # Both subprocesses discover the same complete test set and prove
+            # the exact module partition; skipped/empty phases remain failures.
+            for phase,seconds in APPLICATION_TEST_PHASES:
                 PHASE=phase
-                code=("import unittest; s=unittest.defaultTestLoader.discover("+repr(directory)+",pattern="+repr(pattern)+"); r=unittest.TextTestRunner(verbosity=2).run(s); raise SystemExit(0 if r.wasSuccessful() and not r.skipped and r.testsRun else 1)")
-                command([sys.executable,'-c',code],env,timeout=180)
+                command([sys.executable,'-c',application_test_code(phase)],env,timeout=seconds)
             PHASE='generated_cloud_contract'
             cloud_contract=qualify_cloud_contract(CI_FOUNDATION_SECRETS)
             PHASE='generated_pp_history_role'

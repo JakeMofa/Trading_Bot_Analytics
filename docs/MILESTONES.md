@@ -8,16 +8,23 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
-- [ ] **PP23 fresh two-leg live qualification (authorized, not started).**
-  Controller `65de5662` installed and identity run 44644708069 PASS. New 02 cloud
-  create/readback/denial checks passed; old data and policies preserved.
-  PP23 release still pending; collection OFF.
-  Prepare exact trial02 while retaining archived trial01, use measured revision
-  selection/session reuse/sync batching and independent Coinbase gap hydration.
-  Additive migration and restricted cloud identities preserve old data/roles.
-  Native tests cover both rotations and exact retirement; real live acceptance
-  still requires exact release CI, PP deployment, source-bound cloud proofs and
-  the observed A → B → fresh A run. See the opening master roadmap.
+- [ ] **PP23 live continuity failed before first A seal.** Source `f964c93`;
+  Coinbase WebSocket failure stopped collection at 7:38:52 p.m. CST November 19.
+  A retains18,930raw /20,362structuredACK /zero pending; no raw archive or deletion.
+  Durable OFF and temporary service restoration confirmed. Reconnect cause/fix,
+  failed-initial-A archival and fresh full A→B→A proof remain open.
+  [Evidence](PLAN/evidence/pp23-live-stop-2026-11-20.json).
+
+- [ ] **PP23 fresh two-leg live qualification (deployed, OFF readiness passed).**
+  Source `f964c93`, merge CI 44647163600, publication 44647852318 and CD
+  44648041989 PASS. Exact trial02 reached `PP_LIVE_READY_OFF`; both cloud
+  workers started. Live ON, two-market A → B → fresh A and concurrent retirement
+  acceptance remain pending. The unchanged 1 GiB headroom guard held an earlier
+  instrumented entry; a reviewed idle `fwupd` pause has a 120-minute automatic
+  restore plus pending explicit cleanup. Production API collection is temporarily
+  OFF/process-fenced; its prior configuration restoration remains pending after
+  PP final drain/readback. No production database change.
+  [Readiness evidence](PLAN/PP23_DEPLOYMENT_READY_OFF_2026-11-20.md).
 
 - [x] **PP22 retained-data drain and archive before another live trial.**
   All 4,888 pending records freshly verified/ACKed in 126.359 s (38.683/s).

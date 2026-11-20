@@ -104,6 +104,8 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
         if service=='operator':
             env.update(TRADEBOT_PP_LIVE_CONTROL='true',
                        TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
+            if trial_origin==TRIAL_ORIGIN:
+                env['TRADEBOT_PP_COINBASE_TIMING']='true'
         if service in ('lifecycle','operator'):
             env.update(cycle_environment(initial_a,trial_origin))
     return env

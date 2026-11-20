@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS, cycle_environment, live_origin
+from linux_actions import validate_config, HISTORY_READER_FILES, RUNTIME_SECRETS, cycle_environment, live_origin, TRIAL_ORIGIN
 from controller import require
 
 
@@ -33,6 +33,8 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
                                    TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
     if trial_origin:
         operator['environment']['TRADEBOT_ORIGIN_ID']=origin
+        if trial_origin==TRIAL_ORIGIN:
+            operator['environment']['TRADEBOT_PP_COINBASE_TIMING']='true'
     for service in ('lifecycle', 'operator'):
         expected['services'][service]['environment'].update(cycle_environment(initial_a,trial_origin))
     target = operator['secrets'][0]['target']

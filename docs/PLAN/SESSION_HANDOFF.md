@@ -1,3 +1,52 @@
+## November 19 CST — PP23 live attempt stopped before first rotation
+
+**FAIL, not a completed A/B trial.** Deployed `f964c93` started the exact trial02
+collector at approximately 7:14 p.m. CST. The operator recorded
+`coinbase_stream.ws_closed_error` and durable OFF at **7:38:52 p.m. CST**
+(`2026-11-20T01:38:52.370522Z`), before the scheduled 7:45 first seal.
+Initial A remains attached and unsealed: **18,930 raw rows, 20,362 structured
+ACKs, zero pending**, zero raw manifests. No B, fresh A or deletion was observed.
+
+The 7:30 market boundary recovered without ending collection. Observed API/SSE
+and dashboard/history requests stayed below two seconds. Freshness failed:
+Coinbase exceeded 30 seconds in 90 ON samples, maximum 70.589 seconds. An
+87.596-second observer gap is preserved; it is not evidence of a collector stop.
+The code has rolling and lifetime reconnect limits, but the stop code does not
+identify which limit fired or distinguish upstream from local receive backlog.
+Do not label a raised reconnect limit a demonstrated freshness fix.
+
+PP durable OFF was independently confirmed, both cloud workers stopped, the
+production API's original storage-held collector setting restored, and the
+reviewed temporary fwupd pause restored without persistent enablement changes.
+All collected data remains local. The next work is tested reconnect diagnostics
+and resilient transport recovery, followed by a narrowly scoped OFF-only archive
+of this failed initial A; do not misuse the final-three-generation drain helper.
+A new qualified attempt must still prove both retirements and historical reads.
+Phase 1.75/I7 remain OPEN.
+
+[Sanitized run and recovery evidence](evidence/pp23-live-stop-2026-11-20.json).
+[Reconnect and failed-A recovery candidate](PP23_RECONNECT_AND_FAILED_A_RECOVERY_2026-11-20.md).
+
+## November 20 UTC — PP23 deployed; fresh trial OFF readiness passed
+
+PR #192 source `f964c93` passed exact merge CI 44647163600, publication
+44647852318 and CD 44648041989. All generated deployment checks, including
+recovery, passed. Exact trial02 initial A `41c82044-0fb8-4900-bea0-7c43ba079ff0`
+reached `PP_LIVE_READY_OFF`; both source-bound cloud workers started with
+collection OFF. This snapshot contains no ON receipt or live acceptance PASS.
+
+Instrumented entry exposed the unchanged 1 GiB guard: 1,071,587,328 available
+bytes versus 1,073,741,824 required. A reviewed, reversible idle `fwupd` pause
+provided headroom without changing the guard. Its 120-minute automatic restore
+is armed; explicit restoration and observed restoration completion remain pending.
+Production's API collector is temporarily OFF/process-fenced, with no production
+database change; restore its prior configuration after PP final drain/readback.
+The authorized two-leg observation, concurrent archive/deletion proof and final
+cleanup remain open. Phase 1.75/I7 remain OPEN.
+
+[Deployment, holds and maintenance](PP23_DEPLOYMENT_READY_OFF_2026-11-20.md) ·
+[Sanitized evidence](evidence/pp23-deployment-readiness-2026-11-20.json).
+
 ## November 19 — PP23 release preparation, live proof still pending
 
 Exact application source `59c5993` passed Linux CI 44643071297; combined

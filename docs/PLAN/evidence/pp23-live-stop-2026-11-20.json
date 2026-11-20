@@ -1,0 +1,166 @@
+{
+  "api_errors": 0,
+  "coinbase_stale_samples": 90,
+  "durable_off": {
+    "collector_enabled": false,
+    "gate": "PP_LIVE_OFF",
+    "origin_id": "pp-live-pp-trial-20261119-02"
+  },
+  "final_snapshot": {
+    "at_utc": "2026-11-20T01:38:55.464214+00:00",
+    "generations": [
+      {
+        "acknowledged": 20362,
+        "created_at": "2026-11-20T01:00:21.033208+00:00",
+        "generation_id": "41c82044-0fb8-4900-bea0-7c43ba079ff0",
+        "hold_reason": null,
+        "oldest_pending_at": null,
+        "pending": 0,
+        "raw_events": 18930,
+        "relation_bytes": 37527552,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": null,
+        "seal_hash": null,
+        "sealed_at": null,
+        "slot": "A",
+        "started_at": "2026-11-20T01:00:21.033208+00:00",
+        "state": "collecting",
+        "verified_at": null,
+        "verified_manifests": 0
+      }
+    ],
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 3,
+      "generation_id": "41c82044-0fb8-4900-bea0-7c43ba079ff0"
+    }
+  },
+  "fwupd_restoration": {
+    "gate": "FWUPD_RESTORED",
+    "persistent_enablement_changed": false
+  },
+  "limitations": [
+    "No A to B switch, sealed generation, raw archive or retirement in this trial.",
+    "Exact reconnect-budget branch and upstream versus receive backlog remain unproven.",
+    "Pending structured count zero does not prove raw archive completion.",
+    "Observer gap87.596s prevents uninterrupted sampling claim.",
+    "No full50row pages in60s sample; do not infer larger sustained capacity."
+  ],
+  "max_coinbase_age_while_on": 70.589,
+  "observation": {
+    "api_sampling_gaps": [
+      {
+        "next_at": "2026-11-20T01:15:52.911459+00:00",
+        "previous_at": "2026-11-20T01:14:25.315225+00:00",
+        "seconds": 87.596234
+      }
+    ],
+    "contract_samples": 24,
+    "first_off_observed": "2026-11-20T01:38:54.594980+00:00",
+    "first_on_observed": "2026-11-20T01:14:10.303148+00:00",
+    "market_transitions": [
+      {
+        "at": "2026-11-20T01:14:10.303148+00:00",
+        "coinbase_age_seconds": 0.534,
+        "coinbase_event_id": "exchange-trade-1138096599",
+        "feature_age_seconds": null,
+        "market_end": null,
+        "market_id": null
+      },
+      {
+        "at": "2026-11-20T01:14:15.307270+00:00",
+        "coinbase_age_seconds": 2.719,
+        "coinbase_event_id": "exchange-trade-1138096652",
+        "feature_age_seconds": null,
+        "market_end": "2026-11-20T01:15:00Z",
+        "market_id": "2706757"
+      },
+      {
+        "at": "2026-11-20T01:15:52.911459+00:00",
+        "coinbase_age_seconds": 41.408,
+        "coinbase_event_id": "exchange-trade-1138097940",
+        "feature_age_seconds": 0.806,
+        "market_end": "2026-11-20T01:30:00Z",
+        "market_id": "2706037"
+      },
+      {
+        "at": "2026-11-20T01:30:03.901371+00:00",
+        "coinbase_age_seconds": 23.036,
+        "coinbase_event_id": "exchange-trade-1138117929",
+        "feature_age_seconds": null,
+        "market_end": null,
+        "market_id": null
+      },
+      {
+        "at": "2026-11-20T01:30:18.912718+00:00",
+        "coinbase_age_seconds": 3.757,
+        "coinbase_event_id": "exchange-trade-1138118939",
+        "feature_age_seconds": 2.71,
+        "market_end": "2026-11-20T01:45:00Z",
+        "market_id": "2705749"
+      }
+    ],
+    "on_samples": 280
+  },
+  "operator_stop": {
+    "collector_enabled": false,
+    "environment": "preprod",
+    "epoch": 3,
+    "generation_id": "41c82044-0fb8-4900-bea0-7c43ba079ff0",
+    "initialized": true,
+    "lease_expired": false,
+    "lease_expires_at": null,
+    "live_fence_qualified": false,
+    "origin_id": "pp-live-pp-trial-20261119-02",
+    "process_running": false,
+    "session_failure_code": "coinbase_stream.ws_closed_error",
+    "updated_at": "2026-11-20T01:38:52.370522+00:00"
+  },
+  "origin_id": "pp-live-pp-trial-20261119-02",
+  "production_restoration": {
+    "collector": {
+      "enabled": true,
+      "error": null,
+      "running": false
+    },
+    "gate": "PROD_ORIGINAL_COLLECTOR_SETTING_RESTORED",
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+  },
+  "result": "FAIL_BEFORE_FIRST_ROTATION",
+  "source_sha": "f964c93fdf67221837f20eb3e20faddb64ad4ab2",
+  "sync_measurement": {
+    "acknowledged_rows_per_second": 13.77930481538826,
+    "capacity_scope": "Measured only nonempty pages; full-fifty capacity is null if no 50-row page was observed. Empty queue throughput does not establish service capacity.",
+    "configured_modes": {
+      "session_reuse": true,
+      "sync_barriers": true
+    },
+    "empty_pages_excluded": 0,
+    "full_fifty_row_pages": 0,
+    "full_fifty_rows_per_service_second": null,
+    "holds": 0,
+    "image_id": "sha256:ad7fdf0db440444556c39a2fad474a901cb925091c68a58e3f39f8a318486799",
+    "incoming_rows_per_second": 13.8627146508325,
+    "log_tail_limit": 512,
+    "log_window_complete": true,
+    "median_full_fifty_rows_per_service_second": null,
+    "nonempty_pages": 52,
+    "nonempty_rows_per_service_second": 15.001897939872539,
+    "observation_seconds": 59.944969,
+    "oldest_pending_age_seconds_end": 1.755285,
+    "oldest_pending_age_seconds_slope": -0.0035108367476176378,
+    "oldest_pending_age_seconds_start": 1.965742,
+    "origin_id": "pp-live-pp-trial-20261119-02",
+    "pending_end": 33,
+    "pending_rows_per_second": 0.08340983544423887,
+    "pending_start": 28,
+    "retries": 0,
+    "samples": 4,
+    "service_duration_scope": "Observed supervisor page_seconds includes page work; excludes between-page idle/sleep. No successful phase timings are emitted or inferred.",
+    "source_sha": "f964c93fdf67221837f20eb3e20faddb64ad4ab2",
+    "status": "observed_metrics"
+  }
+}

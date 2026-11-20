@@ -31,8 +31,8 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                       clock=lambda: datetime.now(timezone.utc), rehearsal_anchor=None):
     """Run three independent read-only feed tasks while ownership stays valid.
 
-    Source-only Coinbase transport retries are bounded in coinbase_session;
-    exhausted retries and all other failures abort the session. Retry does not
+    Source-only Coinbase transport retries are rate-limited in coinbase_session;
+    other failures abort, and this session deadline bounds all retries. Retry does not
     publish data, so source-age health still becomes stale. `stop` is only a
     process signal; the host controller must
     persist OFF in PostgreSQL before considering a stop complete.

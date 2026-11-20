@@ -34,6 +34,24 @@ class TrialHostTests(unittest.TestCase):
         with self.assertRaises(DeploymentHold):validate_live_profile(base,live,source,IMAGE,initial_a=A,trial_origin=TRIAL,reader=True)
         self.assertFalse(any('history' in secret['source'] for secret in live['services']['api']['secrets']))
 
+    def test_timing_is_exact_active_trial_operator_only_and_cannot_be_removed(self):
+        source=Path('/reviewed/source');base=configuration(source)
+        for origin in (None,actions.RETAINED_TRIAL_ORIGIN):
+            self.assertNotIn('TRADEBOT_PP_COINBASE_TIMING',actions.expected_environment('operator',live=True,
+                initial_a=A if origin else None,trial_origin=origin))
+        live=deepcopy(base)
+        for name in ('api','calculation','lifecycle','operator'):
+            live['services'][name]['environment']=actions.expected_environment(name,live=True,initial_a=A,trial_origin=TRIAL)
+            self.assertEqual(live['services'][name]['environment'].get('TRADEBOT_PP_COINBASE_TIMING'),
+                             'true' if name=='operator' else None)
+        live['services']['operator']['secrets'].append({'source':'app_dsn','target':'app_dsn'})
+        validate_live_profile(base,live,source,IMAGE,initial_a=A,trial_origin=TRIAL)
+        for service in ('api','operator'):
+            bad=deepcopy(live)
+            if service=='operator':del bad['services'][service]['environment']['TRADEBOT_PP_COINBASE_TIMING']
+            else:bad['services'][service]['environment']['TRADEBOT_PP_COINBASE_TIMING']='true'
+            with self.assertRaises(DeploymentHold):validate_live_profile(base,bad,source,IMAGE,initial_a=A,trial_origin=TRIAL)
+
     def test_command_and_active_binding_reject_wrong_or_missing_trial_origin(self):
         base='transition-v1 preprod tradebot-preprod-01 enter '+'a'*40+' '+'b'*64+' '+'c'*64+' sha256:'+'d'*64
         request=gate.TransitionRequest.parse(base+' '+A+' '+TRIAL)

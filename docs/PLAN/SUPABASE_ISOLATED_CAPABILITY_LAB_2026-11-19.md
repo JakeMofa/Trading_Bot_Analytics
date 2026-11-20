@@ -226,6 +226,29 @@ enabled on TokenBot main, with zero tables in its Postgres Changes
 publication and no separate preview branch visible. No setting was changed.
 [PP23 deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44648041989)
 
+## PP23 live stop and confirmed scope
+
+The initial A remained collecting across the first Polymarket natural
+rollover at 01:30 UTC. In the observer's market-missing samples, Coinbase event
+IDs advanced and backend freshness remained within its guard. Quote, feature,
+and forecast stayed absent until the new market appeared by 01:30:18.913.
+The stored samples do not contain numeric browser display values. A separate
+Coinbase freshness issue recurred after the boundary.
+
+Over 01:15:53.833–01:38:35.059 UTC, observed structured ACKs averaged
+13.6994/sec against 13.6877 incoming/sec. Pending fell from 30 to 14.
+The saved session status marked `coinbase_stream.ws_closed_error` and
+durable OFF at 01:38:52.371 UTC. The observer subsequently saw OFF at
+01:38:55.464. The lease had not expired. The exact reconnect budget
+branch and underlying WebSocket closure cause remain unresolved.
+
+Initial A remained attached and unsealed with 18,930 raw records, 20,362
+structured ACKs, zero pending, and no archive manifests at that snapshot.
+The trial never switched to B. B and fresh A therefore had no timing
+samples, and the scoped live 500-row comparison was not performed.
+The previously archived PP22 A was preserved.
+[Deployed retry behavior](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/f964c93/backend/postgres/live_ingest.py#L115)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

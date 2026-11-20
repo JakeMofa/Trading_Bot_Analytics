@@ -13,8 +13,11 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   rotations, old A preservation, and dashboard gap behavior. PP23 initial
   A measured 13.779 ACK/sec versus 13.863 incoming in a one-minute window.
   Its local Realtime mirror matched 27 ticks and added 70.557 ms median
-  and 114.536 ms p95 after SSE receipt. Sustained wall-clock ACK above 14,
-  B/fresh-A timing, and the 500-row live read remain open.
+  and 114.536 ms p95 after SSE receipt. Mapped live intake and ACK averaged
+  13.688 and 13.699 rows/sec respectively, with pending falling from 30
+  to 14. The Coinbase WebSocket closure ended the session before a switch.
+  New A remained attached, 18,930 raw, zero pending. Sustained wall-clock
+  ACK above 14, B/fresh-A timing, and the 500-row live read remain open.
   [Independent release checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [x] **PP22 stopped-backlog full-cycle qualification.** Exact-CI

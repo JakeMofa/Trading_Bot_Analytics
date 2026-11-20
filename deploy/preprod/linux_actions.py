@@ -483,12 +483,28 @@ class LinuxActions:
 
     @staticmethod
     def _host():
-        HostBinding.from_marker().validate()
-        release=dict(line.split('=',1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
-        require(release.get('ID','').strip('"')=='ubuntu' and release.get('VERSION_ID','').strip('"')=='24.04','unqualified_host_os')
+        # Ordinary deployment still requires every original host check.
+        LinuxActions._host_identity()
+        LinuxActions._host_headroom()
+
+    @staticmethod
+    def _host_headroom():
         memory=dict(line.split(':',1) for line in Path('/proc/meminfo').read_text().splitlines())
         require(shutil.disk_usage('/').free>=10*1024**3 and int(memory['MemAvailable'].split()[0])*1024>=1024**3,
                 'insufficient_host_headroom')
+
+    @staticmethod
+    def _transition_host():
+        # Quiescing owned applications needs identity and disk admission first;
+        # startup gets the unchanged full headroom check after they have stopped.
+        LinuxActions._host_identity()
+        require(shutil.disk_usage('/').free>=10*1024**3,'insufficient_host_headroom')
+
+    @staticmethod
+    def _host_identity():
+        HostBinding.from_marker().validate()
+        release=dict(line.split('=',1) for line in Path('/etc/os-release').read_text().splitlines() if '=' in line)
+        require(release.get('ID','').strip('"')=='ubuntu' and release.get('VERSION_ID','').strip('"')=='24.04','unqualified_host_os')
         for directory in (SECRETS,RUNTIME_SECRETS):
             info=directory.lstat()
             require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700,'unsafe_secret_directory')

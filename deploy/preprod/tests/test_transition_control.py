@@ -57,6 +57,7 @@ class TransitionGateTests(unittest.TestCase):
             def __init__(self, *_):
                 pass
             def enter(self):
+                self.mutation_started=True
                 raise DeploymentHold('simulated_partial_live_start')
             def leave(self):
                 recovery_calls.append('leave')
@@ -77,8 +78,8 @@ class TransitionGateTests(unittest.TestCase):
              patch.object(gate, '_read_active', side_effect=lambda:dict(active)), \
              patch.object(gate, 'ACTIVE', Path('/nonexistent-tradebot-transition-journal')), \
              patch('live_transition.LiveTransition', Transition):
-            with self.assertRaisesRegex(DeploymentHold, 'recovery_unproven'):
-                gate.transition(enter, Path('/trusted/controller.pyz'))
+            blocked=gate.transition(enter, Path('/trusted/controller.pyz'))
+            self.assertEqual(blocked['reason'],'pp_live_entry_recovery_unproven')
             self.assertEqual(active['state'], 'recovery_unproven')
             self.assertEqual(gate.transition(leave, Path('/trusted/controller.pyz'))['gate'],
                              'PP_GENERATED_RESTORED')

@@ -1,3 +1,30 @@
+## November 20, 2026 — PP26 deployed; existing trial03 proofs rebound
+
+PP26 `v0.2.0-pp.26` is deployed in PP: source `08ea1b9`, image
+`sha256:6044c859…`, generated-only CD `44783463740` **PASS**. Exact merge-source
+CI `44782153188` and publication `44783320663` passed. PRs #199 and #200 are
+merged. This supersedes the earlier pending-deployment/rebind notes below.
+
+The CI history remains explicit: profile source `579fea9` passed exact push
+`44780471640`; PR run `44780508098` attempt 1 failed a dashboard Node subprocess
+at its existing 10-second timeout. Its cause remains unproven. One failed-jobs-only
+rerun, attempt 2, passed; the original failure is preserved and no timeout was raised.
+
+The completed local authority rebind preserves trial03 origin
+`pp-live-pp-trial-20261119-03`, initial A `15a239c9-2f9b-4bdc-bd89-7cd1e2812f45`,
+and cloud qualification source `413aac3`. Both pure proof byte hashes are unchanged;
+the original PP25 bytes remain in the dated root backup. The authorities now bind
+the actual PP26 source/image and installed controller `895d252f…`. Rebinding
+creates no collector authority. Read-only cloud inventory still contains only the
+known synthetic fixture: one receipt, one revision payload and one 210-byte object;
+that catalog check did not repeat authenticated object readback.
+
+At this checkpoint, no collector ON or live-trial success is recorded. Next are
+actual LIVE_READY_OFF, a fresh production fence and finite ON authorization/admission,
+then two complete official 15-minute markets per leg. A → B → fresh A archive,
+both physical retirements, and independent before/after historical readback parity
+remain unproven. [Sanitized deployment/rebind evidence](evidence/pp26-deployment-rebind-2026-11-20.json).
+
 ## November 20, 2026 — PP26 controller identity verified
 
 PR #199 merged as `e16d7b8` after exact-source and PR Linux CI passed

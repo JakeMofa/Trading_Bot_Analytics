@@ -8,6 +8,14 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **PP23 Coinbase continuity.** Reproduced the session-wide reconnect
+  cap after successful fixture saves. A separate generated PostgreSQL
+  probe reduced local per-tick save median from 7.186 to 0.891 ms with a
+  dedicated reused connection and retained per-event transaction and OFF
+  checks. The live reconnect trigger branch and source/queue delay
+  attribution remain open.
+  [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
+
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run
   passed 49 tests, zero skips, covering worker readiness, restricted-role
   rotations, old A preservation, and dashboard gap behavior. PP23 initial

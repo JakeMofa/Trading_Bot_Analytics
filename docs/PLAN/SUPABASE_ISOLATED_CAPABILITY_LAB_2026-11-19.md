@@ -249,6 +249,35 @@ samples, and the scoped live 500-row comparison was not performed.
 The previously archived PP22 A was preserved.
 [Deployed retry behavior](https://github.com/JakeMofa/Trading_Bot_Analytics/blob/f964c93/backend/postgres/live_ingest.py#L115)
 
+## Independent Coinbase reconnect and local ingest checks
+
+The exact PP23 source passed 16 existing reconnect and supervisor tests. A
+generated replay saved a valid fixture tick before each of 13 WebSocket
+closures, spaced more than 60 seconds apart. The lifetime cap allowed 12
+reconnects and then raised `coinbase_stream.ws_closed_error` despite the
+successful intervening saves. The actual live stop identifies the same error
+class but does not identify which retry limit or underlying closure caused it.
+
+A separate native PostgreSQL 17.2 fixture exercised the real store and
+restricted app role for 400 generated ticks. Two 100-tick blocks per arm
+alternated new checked connections with one validated dedicated local
+connection. Each event kept its own transaction and its existing durable
+writer/lease checks. Independent SQL matched committed event identities and
+hashes, and an attempted write on a reused session after durable OFF failed
+before persisting anything. On a Unix socket without concurrent load:
+
+| Local save path | Median | p95 |
+| --- | ---: | ---: |
+| Fresh connection per event | 7.186 ms | 8.199 ms |
+| Dedicated reused connection | 0.891 ms | 1.396 ms |
+
+The live stale tick was already about 41.1 seconds old when dequeued. Host
+measurements must locate the delay before assigning it to checkout or DB
+work. Capture source-to-parser, parser-to-dequeue, worker queue, checkout
+and committed save time with the bounded diagnostics. A reuse change would
+still need tests for rollover races, lease expiry, rollback, connection
+failure, and thread ownership. No runtime or PP settings changed.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

@@ -1,3 +1,32 @@
+## November 20 UTC — PP24 deployment held; startup and candle fixes tested
+
+Exact merge source `d5615a3` passed CI44663447570 and publication44664123475
+(v0.2.0-pp.24). CD44664385511 failed at smoke with
+`host_operator_loopback_unavailable`; recovery stopped the candidate and
+preserved PostgreSQL. No live collector started. PostgreSQL remained healthy
+and was not recreated. The API returned /state/current at02:59:10.542UTC;
+operator startup completed at02:59:10.868UTC, then recovery stopped it. No
+operator HTTP requests were logged. This supports a startup-readiness race.
+
+Smoke previously checked operator loopback once, although Compose health only
+proved the API. The candidate reuses the existing bounded generated-host
+readiness poll for smoke and restore; only connection/timeout startup errors
+retry. Malformed/token/auth/state failures remain immediate holds.
+
+Legacy comparison also found candle-request failures could still terminate PP's
+whole supervisor. The candidate degrades only exact candle fetch timeout,
+transport,429 and5xx codes at the unchanged60–300-second cadence; Polymarket
+continues, with payload-free failure/recovery logs. Write/auth/schema and
+ownership failures remain fatal; missing reference data never becomes fresh.
+
+Local controls271 tests passed(14 platform skips); candle6, supervisor9 and
+Coinbase26 tests passed. Independent local review reran46 controller and6 candle
+tests successfully. Exact candidate CI/release and forward PP restoration remain
+next. Actual trial03 cloud allow/deny/readback and old-scope preservation passed;
+no new live trial or deletion occurred. Phase1.75/I7 remain OPEN.
+
+[Deployment failure evidence](evidence/pp24-operator-readiness-failure-2026-11-20.json).
+
 ## Profile CI correction — November 20 UTC
 
 PR195 initial source9171919 failed the deployment-control gate because the

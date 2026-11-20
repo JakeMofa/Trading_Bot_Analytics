@@ -7,6 +7,7 @@ start this coordinator without automatic restart, and durably disable it on exit
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from .rehearsal_profile import lease_cap, CYCLE_ORIGINS
 from datetime import datetime, timezone
@@ -31,8 +32,9 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                       clock=lambda: datetime.now(timezone.utc), rehearsal_anchor=None):
     """Run three independent read-only feed tasks while ownership stays valid.
 
-    Source-only Coinbase transport retries are rate-limited in coinbase_session;
-    other failures abort, and this session deadline bounds all retries. Retry does not
+    Source-only Coinbase stream retries are rate-limited in coinbase_session;
+    candle transport/429/5xx failures wait for the normal candle cadence. Other
+    failures abort, and this session deadline bounds all retries. Retry does not
     publish data, so source-age health still becomes stale. `stop` is only a
     process signal; the host controller must
     persist OFF in PostgreSQL before considering a stop complete.
@@ -68,8 +70,30 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             await _pause_or_stop(stop, market_interval)
 
     async def candle_loop():
+        unavailable_cycles = 0
         while not stop.is_set():
-            await candles(store, client, stop, now=clock())
+            try:
+                await candles(store, client, stop, now=clock())
+            except LiveDiagnostic as error:
+                # _step separates fetch from durable write: only these provider
+                # failures may degrade the optional reference feed. Never turn a
+                # write timeout, schema/auth error, or arbitrary exception into a
+                # retry. No row or freshness acknowledgement is synthesized.
+                if error.code not in {
+                    'coinbase_candles.timeout', 'coinbase_candles.transport',
+                    'coinbase_candles.http_429', 'coinbase_candles.http_5xx',
+                }:
+                    raise
+                unavailable_cycles += 1
+                logging.getLogger(__name__).warning(
+                    'pp_candles_unavailable reason=%s consecutive_cycles=%d',
+                    error.code, unavailable_cycles)
+            else:
+                if unavailable_cycles:
+                    logging.getLogger(__name__).warning(
+                        'pp_candles_cycle_recovered unavailable_cycles=%d',
+                        unavailable_cycles)
+                    unavailable_cycles = 0
             await _pause_or_stop(stop, candle_interval)
 
     tasks = []

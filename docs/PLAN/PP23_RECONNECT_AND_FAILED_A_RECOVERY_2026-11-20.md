@@ -84,3 +84,19 @@ resize or cache clearing occurred. Phase 1.75/I7 remain open.
   resolved it; the complete rerun above passed. No dependency-file change.
 
 Exact-source Linux CI and runtime maintenance execution remain pending.
+
+## Exact-source CI and harness follow-up
+
+Candidate `5fb9fa3` passed exact push CI 44656678313, including all 182 Linux
+application tests (160.301 seconds) and all seven restricted-role recovery cases.
+The separate PR run 44656728101 timed out in the old combined 180-second
+application phase; its partial output was lost, so no individual failing test
+or assertion can be identified. That failed run remains failed.
+
+The successor harness partitions the same discovered test identities: original
+application tests retain their 180-second budget; the full-volume failed-trial
+recovery suite gets a separate 90-second phase. The overall 600-second deadline
+and resource caps are unchanged. Missing, skipped or empty phases fail. Timeout
+output is redacted before truncation and reports termination/reaping status.
+All seven recovery cases passed through the actual new child command in 12.96
+seconds. The revised control suite passed 263 tests with 14 platform skips.

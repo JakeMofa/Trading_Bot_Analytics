@@ -368,6 +368,25 @@ stale reference-price abstention and durable OFF verified. Live proof still
 requires observed quotes and actual switch times on the PP VM.
 [Readiness and candle PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/196)
 
+## PP25 live-entry memory check
+
+PP25 passed deployment acceptance on the same VM. Two attempts to enter
+the live-ready profile held before any collector start. In a read-only
+reproduction, the host had 1,072,451,584 bytes of available memory against
+the required 1,073,741,824 bytes. The other entry prechecks passed. The
+original failures returned a generic reason, so the exact cause for each
+attempt remains unproven. The release chat recovered to generated mode with
+collection OFF and PostgreSQL preserved.
+[PP25 deployment run](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44668724097)
+
+PR #198 checks the existing headroom requirement after stopping the owned
+application containers and before startup. The independent 13-case suite
+passed, including read-only preflight failures issuing no application stop
+or recovery, and a partial stop attempt receiving one bounded recovery.
+These checks qualify the control flow. The live A → B → fresh A trial and
+the duration of Polymarket collection on each leg are still open.
+[Transition sequencing PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/198)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

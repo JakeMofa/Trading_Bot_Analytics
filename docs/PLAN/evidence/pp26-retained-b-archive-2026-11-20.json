@@ -1,0 +1,125 @@
+{
+  "archive_start": {
+    "collector_enabled": false,
+    "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "retirement": "off",
+    "status": "started"
+  },
+  "archive_stop": {
+    "status": "off"
+  },
+  "exact_ci": 44797052857,
+  "final": {
+    "admission": {
+      "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+      "lease_seconds": 6600,
+      "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+    },
+    "at_utc": "2026-11-20T19:01:20.7024+00:00",
+    "generations": [
+      {
+        "acknowledged": 26480,
+        "created_at": "2026-11-20T17:32:27.907706+00:00",
+        "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795197600",
+            "market_id": "2730625",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795196700"
+          },
+          {
+            "duration": 900,
+            "end_epoch": "1795198500",
+            "market_id": "2730561",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795197600"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 24649,
+        "relation_bytes": 48906240,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 24649,
+        "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "sealed_at": "2026-11-20T18:15:07.207508+00:00",
+        "slot": "A",
+        "started_at": "2026-11-20T17:32:27.907706+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T18:17:00.381174+00:00",
+        "verified_manifests": 50
+      },
+      {
+        "acknowledged": 13210,
+        "created_at": "2026-11-20T18:15:07.207508+00:00",
+        "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795200300",
+            "market_id": "2730737",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795199400"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 12301,
+        "relation_bytes": 24477696,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 12301,
+        "seal_hash": "b4d1ce1096234ae9f1d27b6baf0c866f6dde4d52ec4e9abdb5262df43c1ec2d9",
+        "sealed_at": "2026-11-20T19:00:04.00268+00:00",
+        "slot": "B",
+        "started_at": "2026-11-20T18:15:07.207508+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T19:01:07.36414+00:00",
+        "verified_manifests": 25
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 5,
+      "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e"
+    }
+  },
+  "original_live_retirement_passed": false,
+  "seal": {
+    "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+    "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "operation": "69557df2-73c2-41ad-89ba-2e69eb67ab99",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "original_admission_sha256": "867c22d2ab08f39e36b8e0e68491f4cef54bdf6d616688d4b243b18a50342b93",
+    "original_trial_satisfied": false,
+    "outbox_count": 13210,
+    "policy": "trial:failed-03-b-maintenance-seal-v1",
+    "previous_writer_epoch": 4,
+    "raw_count": 12301,
+    "retained_a_sha256": "4e4cd3a8412f4c827b68911317fdfd5f5d14230e6b8a8a1258a543665ab52a6a",
+    "retirement_authorized": false,
+    "sealed_at": "2026-11-20T19:00:04.002680+00:00",
+    "source": "51dab8fbc377b051314d49db2c517bcd5c3aee76",
+    "status": "sealed_for_failed03_b_archive",
+    "successor_created": false,
+    "trial_source": "08ea1b99299475da24b96f778ebf12bf76a64e25",
+    "txid": 137604
+  },
+  "source": "51dab8fbc377b051314d49db2c517bcd5c3aee76"
+}

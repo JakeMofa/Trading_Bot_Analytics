@@ -1,3 +1,23 @@
+## November 20, 2026 — PP26 B archived during recovery; live retirement still open
+
+With PP's collector durably off, the exact Linux CI-passed B recovery helper
+sealed B at **19:00:04 UTC**. All **12,301 raw records** verified in **25
+Supabase Storage objects** at **19:01:07 UTC**, 63.36 seconds after seal.
+All **13,210 structured records** remained acknowledged with zero pending.
+The archive worker was stopped and a fresh database check confirmed A and B
+both verified, still attached and never retired. The collector remained off,
+with no active session or lease. This was maintenance of the stopped trial,
+so the live B → fresh A handoff and retirement deadline remain unproven.
+
+The retirement command now preserves the failure phase, sanitized timings,
+budget use and SQLSTATE when present. The original failure remains unknown.
+For the next read-only verifier run, correlate phase evidence with PP
+PostgreSQL wait samples and Supabase query and connection metrics. Keep
+timing and wait data separate from row payloads or credentials.
+
+[Sanitized recovery evidence](PLAN/evidence/pp26-retained-b-archive-2026-11-20.json)
+and [exact Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44797052857).
+
 ## November 20, 2026 — PP26 A→B/archive passed; retirement failed, recovery in progress
 
 The recovery candidate adds a B-only seal operation pinned to the failed

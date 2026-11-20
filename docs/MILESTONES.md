@@ -8,6 +8,13 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [ ] **PP23 live continuity failed before first A seal.** Source `f964c93`;
+  Coinbase WebSocket failure stopped collection at 7:38:52 p.m. CST November 19.
+  A retains18,930raw /20,362structuredACK /zero pending; no raw archive or deletion.
+  Durable OFF and temporary service restoration confirmed. Reconnect cause/fix,
+  failed-initial-A archival and fresh full A→B→A proof remain open.
+  [Evidence](PLAN/evidence/pp23-live-stop-2026-11-20.json).
+
 - [ ] **PP23 fresh two-leg live qualification (deployed, OFF readiness passed).**
   Source `f964c93`, merge CI 44647163600, publication 44647852318 and CD
   44648041989 PASS. Exact trial02 reached `PP_LIVE_READY_OFF`; both cloud

@@ -1,3 +1,39 @@
+## November 20, 2026 — PP26 A→B/archive passed; retirement failed, recovery in progress
+
+A switched to B at **18:15:07.207508 UTC**, with the original collector session
+still running. A covered both complete official markets and sealed **24,649 raw
+records**. All **50 raw archive objects** verified by **18:17:00.381174 UTC**
+(113.174 seconds after seal); all **26,480 structured records** were acknowledged.
+Supported retained-A history and original-input deterministic replay passed.
+
+The first read-only inventory launcher failed at its 12-second supervisor; Docker
+exit 137 and an empty-output parsing bug were recorded. A reviewed, six-test
+correction aligned inventory supervision with the already-selected 240-second
+verifier budget, without changing final retirement limits. Inventory then passed
+in **19.882 seconds**, examining all 53 structured pages; this does not itself
+authorize retirement.
+
+The first announced final-verification window was **18:25:44–18:30:39 UTC**.
+The retirement attempt returned a native nonzero result after about 249 seconds;
+the wrapper discarded its detailed HOLD because the native response lacked the
+expected `stage` field. The exact failure reason/phase remains **unproven**.
+A fresh database check confirmed A remains verified, attached and not retired.
+**No DROP occurred. The window is consumed; no blind retry is authorized.**
+
+Root explicitly stopped PP after this failure. At **18:31:37 UTC** durable OFF
+was verified with NULL session and lease. B retained **12,301 raw records**, with
+**13,210 structured acknowledgements and zero pending**. Both recurring workers
+were stopped. Production's prior service setting was restored: same legacy
+revision, enabled but storage-guard-held collector. No production data changed.
+
+Next work is diagnostic preservation and a narrowly qualified failed-trial03 B
+sealing/archive path; the existing final-A helper cannot accept this failed chain.
+B raw is not yet archived. Both partitions remain local. No B→fresh A, retirement,
+or complete freshness PASS is claimed. Coinbase source-age excursions were kept
+separate from Polymarket continuity. Phase1.75/I7 remain open.
+
+[Sanitized outcome and recovery evidence](evidence/pp26-live-retirement-hold-2026-11-20.json).
+
 ## November 20, 2026 — PP26 live rehearsal admitted; rotation not yet proven
 
 Actual PP admission succeeded at **17:44:08.840017 UTC** on deployed `08ea1b9`.

@@ -1,3 +1,27 @@
+## November 20, 2026 — PP26 live rehearsal admitted; rotation not yet proven
+
+Actual PP admission succeeded at **17:44:08.840017 UTC** on deployed `08ea1b9`.
+Trial03 uses the same initial A `15a239c9-2f9b-4bdc-bd89-7cd1e2812f45` and
+session `142a0c69-147d-4b90-8483-ac6d9773e7f9`; its unchanged lease expires
+**19:34:08.840017 UTC**. Production is temporarily collector-fenced/read-only;
+restore its prior setting only after independently confirmed PP durable OFF.
+
+Polymarket crossed the 17:45 market boundary without stopping the session:
+discovery at +11.0 seconds, first official quote receipt at +22.252 seconds.
+The supported dashboard/history/chart/SSE checks advance. Coinbase source-age
+excursions exceeded 30 seconds while Polymarket continued; forecasts correctly
+abstained with `reference_price_not_fresh`. This is not a full freshness PASS.
+A separately coordinated 500-row local history query returned in 0.816 seconds.
+
+At this in-progress checkpoint A remains collecting, with no retirement yet.
+A's two full official markets are 17:45–18:00 and 18:00–18:15. B must likewise
+cover two full official markets: quarter alignment can make its elapsed duration
+longer than 30 minutes. Each retirement deadline remains actual seal +30 minutes.
+Root owns each announced final verification window, exact retirement, history
+parity, final OFF/drain and production-fence restoration. No cache purge is needed.
+
+[Sanitized admission/observation evidence](PLAN/evidence/pp26-live-admission-2026-11-20.json).
+
 ## November 20, 2026 — PP26 deployed; existing trial03 proofs rebound
 
 PP26 `v0.2.0-pp.26` is deployed in PP: source `08ea1b9`, image

@@ -302,6 +302,15 @@ This run validates candidate behavior independently. Exact release CI
 and live PP acceptance remain separate.
 [Recovery PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/193)
 
+A combined native fixture used the actual supervisor, retry, Polymarket
+normalization and store paths. With 16 generated Coinbase connection
+attempts and virtual backoff, it held the three-reconnect-starts-per-60s
+limit while Polymarket market and quote writes persisted on both sides of a
+size-triggered fixture A → B switch. The current estimate abstained with
+`reference_price_not_fresh`. Explicit stop and a fatal injected storage
+rejection both committed durable OFF. Real feed availability and the
+two-official-market live schedule were outside this fixture.
+
 A separate exact deployed-source fixture used one restricted PostgreSQL
 connection opened, used and closed by a dedicated writer thread. Independent
 SQL confirmed exact raw, dedup and outbox state after a successful event,

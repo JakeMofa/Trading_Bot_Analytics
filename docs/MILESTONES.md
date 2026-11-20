@@ -14,8 +14,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   dedicated reused connection. Separate native checks passed exact rollback,
   ambiguous-ACK replay, A → B routing, lease expiry, durable OFF and thread
   ownership. Recovery candidate `5fb9fa3` passed 49 isolated tests with zero
-  skips. Exact release CI, failed-A audit, fresh admission and live
-  reconnect/freshness validation remain open.
+  skips. The combined native fixture kept Polymarket writes advancing
+  across A → B during a simulated Coinbase outage, abstained on stale
+  inputs and retained durable OFF for fatal storage failures. Exact release
+  CI, failed-A audit, fresh admission and live validation remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

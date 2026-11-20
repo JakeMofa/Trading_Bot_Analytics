@@ -291,6 +291,36 @@ considering multiple events per transaction.
 No runtime or PP settings changed. The probe source and its rerun output
 are preserved as local research artifacts for the release owner.
 
+## Independent recovery candidate and connection safety tests
+
+The PP recovery candidate at PR #193 head `5fb9fa3` passed 49 focused
+tests with zero skips in a disposable checkout using native PostgreSQL
+where applicable. The run covered rate-limited reconnects, timing
+diagnostics, supervisor and fatal failure handling, a generated market
+boundary, the stopped-A archive-only path, and trial host controls.
+This run validates candidate behavior independently. Exact release CI
+and live PP acceptance remain separate.
+[Recovery PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/193)
+
+A separate exact deployed-source fixture used one restricted PostgreSQL
+connection opened, used and closed by a dedicated writer thread. Independent
+SQL confirmed exact raw, dedup and outbox state after a successful event,
+idempotent duplicate, and conflicting replay refusal. An injected exception
+before commit left no persisted evidence or ACK. An injected lost ACK after
+an actual commit recovered the original exact event on a new validated
+connection. A size-triggered generated A → B switch routed the next new
+event to B using the reused connection and kept the old duplicate in A.
+Lease expiry inside a write and durable OFF both rejected new writes.
+A different thread was refused. This controlled test did not implement
+reuse in the release or measure the PP network or provider.
+
+At this checkpoint PP is OFF. The failed PP23 A remains attached with 18,930
+raw rows and no pending structured records. It still needs exact-source
+archive-only sealing and independent readback before a fresh one-use trial
+is admitted. A retry on the same VM requires the qualified release, a fresh
+origin and permissions, a healthy memory/readiness check, and a new ON
+receipt. No new run or deletion occurred in this work.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

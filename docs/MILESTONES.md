@@ -24,8 +24,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   Polymarket writes across a generated A → B switch during simultaneous
   Coinbase WebSocket closures and a candle timeout. PP25 deployment passed.
   Live entry remained blocked near the existing 1 GiB memory floor and
-  recovered to generated mode with collection OFF. PR #198 adds tested
-  quiescent startup sequencing. Fresh admission and live validation remain open.
+  recovered to generated mode with collection OFF. PP26 deployed the corrected
+  transition and started the same-VM live trial. Live observations show
+  Polymarket quote receipt times advancing during stale Coinbase intervals.
+  Both full rolling-window switches and retirement verification remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

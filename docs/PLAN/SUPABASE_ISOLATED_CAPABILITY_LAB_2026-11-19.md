@@ -387,6 +387,38 @@ These checks qualify the control flow. The live A → B → fresh A trial and
 the duration of Polymarket collection on each leg are still open.
 [Transition sequencing PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/198)
 
+## PP26 live A and parallel isolated Supabase checks
+
+PP26 admitted collection at 17:44:08.840017 UTC on November 20. The PP21
+and PP23 retained archives were outside the current trial. The first full
+official 15-minute market had 180 API observations, 133 distinct quote
+receipt times and zero API errors. Its first observed quote was 22.252
+seconds after the market boundary. The second market's first observed quote
+was 10.292 seconds after the next boundary. The collector session stayed
+live. Polymarket receipts advanced while Coinbase was stale, and the release
+observer verified forecast abstention with `reference_price_not_fresh`.
+[PP26 deployment run](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44783463740)
+
+A single coordinated 4-second-budget GET returned 500 active-A raw
+records (768,232 bytes, exact origin and generation) in 0.816234 seconds,
+with `local_postgres` provenance. The hosted structured-history route had
+no deployed service binding. The earlier 2.163305-second hosted structured
+page used a different dataset and transport. Through 17:53:36 UTC, live
+API p95 was 127.516 ms for state and 101.980 ms for health. The first SSE
+frame p95 was 84.407 ms across ten checks. First-frame time does not measure
+individual quote delivery latency.
+
+In a disposable local stack, the app SSE path and Supabase Realtime
+delivered the same 60 saved PP26 Polymarket receipt metadata records with
+exact timestamp and market identity. Replay-start median/p95 was
+118.294/241.804 ms for SSE and 89.409/121.005 ms for Realtime. Realtime
+arrived later in 19 of 60 pairs. Cross-tenant isolation passed, and a scoped
+Data API RPC returned identical rows in 15 reads. A second fixture checked
+private Storage byte restoration and access control, Cron-to-Queue retry
+and duplicate behavior, and scoped Edge, GraphQL, webhook and vector paths.
+These isolated tests used saved receipt metadata. Hosted Realtime latency,
+Pipelines delivery and Analytics Bucket performance remain unmeasured.
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

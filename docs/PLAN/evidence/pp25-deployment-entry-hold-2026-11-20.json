@@ -1,0 +1,92 @@
+{
+  "scope": "PP25 generated deployment and subsequent live-profile entry hold",
+  "deployment": {
+    "source_sha": "2ea5b0335bee2bfaa494c76f7f38ab66053f49d5",
+    "branch": "preprod",
+    "source_ci_run_id": 44667808289,
+    "source_ci_attempt": 1,
+    "environment": "preprod",
+    "gate": "PASS",
+    "scope": "exact-source runtime deployment and acceptance",
+    "runtime_image_id": "sha256:5ac2350c2cf6a25b76ae308c593088d02696c870698dee3b9ae79e91d513ceec",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "production_data_mounted": false,
+    "live_collector_enabled": false,
+    "artifact_sha256": "fbeaa15452b45b37b25e668e041e850c538baa44ca6f59929bb0300ddad1795f",
+    "retention_enabled": false,
+    "instance": "tradebot-preprod-01",
+    "acceptance_scope": "generated_only",
+    "paid_ai_enabled": false,
+    "policy_sha256": "ad4838f23334f3a4f06726dcc52aeafb7e869792a698f8a0b079d181d17fcf9b",
+    "release_version": "v0.2.0-pp.25",
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:af6df07126d5008178a2658fbf126d5ee871f0d91ed3c8ba5f5052ae1763007b",
+    "controls_sha": "2ea5b0335bee2bfaa494c76f7f38ab66053f49d5",
+    "run_id": 44668724097,
+    "run_attempt": 1,
+    "completed_at_utc": "2026-11-20T03:37:10.081599+00:00"
+  },
+  "live_entry_diagnostic": {
+    "active": {
+      "artifact_sha256": "fbeaa15452b45b37b25e668e041e850c538baa44ca6f59929bb0300ddad1795f",
+      "controller_sha256": "16f7e3ec878a1cc7265864c445e823cf490c4a5c2d406dcef2e01646d2578519",
+      "image_id": "sha256:5ac2350c2cf6a25b76ae308c593088d02696c870698dee3b9ae79e91d513ceec",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "source_sha": "2ea5b0335bee2bfaa494c76f7f38ab66053f49d5",
+      "state": "recovery_unproven",
+      "trial_origin": "pp-live-pp-trial-20261119-03"
+    },
+    "active_archive_exists": false,
+    "active_archive_symlink": false,
+    "at_utc": "2026-11-20T03:42:08.709938+00:00",
+    "available_ram_bytes": 1079324672,
+    "checks": {
+      "candidate": {
+        "status": "PASS"
+      },
+      "host_guards": {
+        "reason": "insufficient_host_headroom",
+        "status": "HOLD"
+      },
+      "image_binding": {
+        "status": "PASS"
+      },
+      "owned_runtime": {
+        "status": "PASS"
+      },
+      "read_active": {
+        "status": "PASS"
+      },
+      "request_validate": {
+        "status": "PASS"
+      }
+    },
+    "enter_authority_exists": false,
+    "enter_authority_symlink": false,
+    "memory_guard_bytes": 1073741824,
+    "mutations_performed": false,
+    "status": "READ_ONLY_ENTER_DIAGNOSTIC"
+  },
+  "live_on_performed": false,
+  "observer_started": false,
+  "production_fence_installed": false,
+  "cache_purged": false,
+  "original_entry_error_attribution": "Original generic receipt did not retain initial failing stage. A later read-only check reproduced insufficient_host_headroom.",
+  "session_resumed_utc": "2026-11-20T10:03:54Z",
+  "fresh_memory_sample_utc": "2026-11-20T10:03:42.050748+00:00",
+  "fresh_available_ram_bytes": 1098579968,
+  "memory_guard_bytes": 1073741824,
+  "fwupd_pause_applied": false,
+  "phase_1_75": "OPEN"
+}

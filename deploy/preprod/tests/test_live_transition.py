@@ -16,13 +16,23 @@ class Actions:
     def __init__(self):
         self.calls=[]
         self.fail_live=False
+        self.running=True
     def _host(self):self.calls.append('host')
+    def _transition_host(self):self.calls.append('host_identity')
+    def _host_headroom(self):self.calls.append('headroom')
+    def _cleanup_oneoffs(self,*_):self.calls.append('cleanup_oneoffs')
+    def _reader_sql(self,*_):self.calls.append('writers_off');return '0'
+    def _ids(self,*_,**__):return ['api','calculation','lifecycle','operator']
+    def _inspect(self,_budget,ids):
+        return [dict(Image='sha256:'+'a'*64,State=dict(Running=self.running),Config=dict(Labels={'com.docker.compose.project':'tradebot-pp-foundation','com.docker.compose.service':s,'com.docker.compose.oneoff':'False'})) for s in ids]
     def _postgres(self,*_):self.calls.append('postgres')
     def _runtime(self,*_,live=False):self.calls.append('runtime_live' if live else 'runtime_generated')
     def _host_api(self,*,live=False):self.calls.append('api_live' if live else 'api_generated')
     def _host_operator(self,*,live=False):self.calls.append('operator_live' if live else 'operator_generated')
     def _compose(self,_context,_budget,args,**_):
         self.calls.append(('base',tuple(args)))
+        if args[0]=='stop':self.running=False
+        if args[0]=='up':self.running=True
         return b'{}' if args[0]=='config' else b''
     def _environment(self,_image):return {'PATH':'/usr/bin'}
     def _json(self,raw):return json.loads(raw)
@@ -72,11 +82,12 @@ class LiveTransitionTests(unittest.TestCase):
         self.assertLess(off,base_up)
         self.assertEqual(self.actions.calls[-1],'operator_generated')
 
-    def test_failed_live_start_recovers_generated_only_after_durable_off(self):
+    def test_failed_live_start_defers_recovery_to_outer_gate(self):
         self.actions.fail_live=True
-        with self.assertRaisesRegex(DeploymentHold,'transition_failed_recovered'):
+        with self.assertRaisesRegex(DeploymentHold,'simulated_live_start_failure'):
             self.transition.enter()
-        self.assertEqual(self.actions.calls[-1],'operator_generated')
+        self.assertFalse(any(isinstance(call,tuple) and call[0]=='base' and 'up' in call[1] for call in self.actions.calls))
+        self.assertEqual(self.transition.phase,'live_start')
 
     def test_unproven_off_blocks_generated_restore(self):
         budget=self.transition.budget

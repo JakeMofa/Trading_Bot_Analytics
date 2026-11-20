@@ -22,6 +22,8 @@ class LiveTransition:
         self.trial_origin=trial_origin
         self.origin=live_origin(trial_origin)
         self.cycle = cycle_environment(initial_a,trial_origin)
+        self.phase = 'preflight'
+        self.mutation_started = False
 
     def _compose_live(self, args, *, timeout=60, include_reader=True):
         image = self.context.image
@@ -97,58 +99,99 @@ class LiveTransition:
                     raise
                 time.sleep(.2)
 
-    def _restore_generated(self):
+    def _writers_off(self):
+        result=self.actions._reader_sql(self.budget,
+            "SET LOCAL statement_timeout='2s'; SELECT count(*) FROM ops.writer_state WHERE "
+            '(collector_enabled OR collector_session_id IS NOT NULL OR collector_lease_expires_at IS NOT NULL)')
+        require(result=='0','pp_live_durable_off_unproven')
+
+    def _quiesce(self):
+        from transition_control import _owned_runtime
+        self.phase='quiesce_ownership'
+        _owned_runtime(self.actions,self.context,self.budget)
+        ids=self.actions._ids(self.context,self.budget,SERVICES,all=True)
+        self.phase='quiesce'
+        # A failed/partial STOP is a mutation attempt and requires recovery.
+        self.mutation_started=True
         self.actions._compose(self.context,self.budget,
             ['stop','--timeout','20',*SERVICES],timeout=30)
+        # Prove daemon-side exit; a successful CLI alone is insufficient.
+        current=self.actions._ids(self.context,self.budget,SERVICES,all=True)
+        require(set(current)==set(ids),'quiesced_runtime_identity_changed')
+        rows=self.actions._inspect(self.budget,current) if current else []
+        require(all(not row['State'].get('Running') for row in rows),'owned_runtime_not_quiescent')
+
+    def _restore_generated(self):
+        self._quiesce()
+        self.phase='generated_headroom'
+        self.actions._host_headroom()
+        self.phase='generated_start'
         self.actions._compose(self.context,self.budget,
             ['up','-d','--no-deps','--force-recreate','--wait','--wait-timeout','40',*SERVICES],timeout=60)
+        self.phase='generated_runtime'
         try:
             self.actions._runtime(self.context,self.budget)
         except DeploymentHold:
             raise DeploymentHold('generated_runtime_check_failed') from None
+        self.phase='generated_routes'
         wait_generated_host_routes(self.actions,self.budget)
 
     def enter(self):
-        """Expose an OFF live operator and matching API/workers; never call ON."""
+        """Expose OFF services after quiescent headroom admission; never call ON."""
         require(self.trial_origin not in RETAINED_TRIAL_ORIGINS,'retained_trial_is_read_only')
-        self.actions._host()
+        self.phase='host_identity'
+        self.actions._transition_host()
+        self.phase='profile'
         self._profile()
+        self.phase='postgres'
         self.actions._postgres(self.context,self.budget)
+        self.phase='filesystem'
         self.actions._live_filesystem(self.context,self.budget)
+        self.phase='generated_preflight'
         self.actions._runtime(self.context,self.budget)
         self.actions._host_api()
         self.actions._host_operator()
-        changed=False
-        try:
-            changed=True
-            self.actions._compose(self.context,self.budget,
-                ['stop','--timeout','20',*SERVICES],timeout=30)
-            if self.trial_origin:
-                self._prepare_trial()
-            self._compose_live(['up','-d','--no-deps','--force-recreate','--wait',
-                '--wait-timeout','40',*SERVICES])
-            self._check_live_off()
-            return {'gate':'PP_LIVE_READY_OFF','origin_id':self.origin,
-                    'collector_enabled':False,'postgres_recreated':False,
-                    'cloud_enabled':False,'retirement_enabled':False} | (
-                        ({'initial_a': self.initial_a} | ({'trial_origin':self.trial_origin,'collector_on_qualified':False} if self.trial_origin else {})) if self.cycle else {})
-        except Exception:
-            if changed:
-                try:
-                    # If an operator task started during transition, OFF must
-                    # be established before returning to the generated profile.
-                    self._live_off()
-                    self._restore_generated()
-                except Exception:
-                    raise DeploymentHold('pp_live_transition_recovery_unproven') from None
-            raise DeploymentHold('pp_live_transition_failed_recovered') from None
+        self.phase='durable_off'
+        self._writers_off()
+        self._quiesce()
+        self.phase='live_headroom'
+        self.actions._host_headroom()
+        if self.trial_origin:
+            self.phase='prepare_trial'
+            self._prepare_trial()
+            self.phase='live_headroom'
+            self.actions._host_headroom()
+        self.phase='live_start'
+        self._compose_live(['up','-d','--no-deps','--force-recreate','--wait',
+            '--wait-timeout','40',*SERVICES])
+        self.phase='live_ready_off'
+        self._check_live_off()
+        return {'gate':'PP_LIVE_READY_OFF','origin_id':self.origin,
+                'collector_enabled':False,'postgres_recreated':False,
+                'cloud_enabled':False,'retirement_enabled':False} | (
+                    ({'initial_a': self.initial_a} | ({'trial_origin':self.trial_origin,'collector_on_qualified':False} if self.trial_origin else {})) if self.cycle else {})
 
     def leave(self):
-        """Turn durable writes OFF before returning all app services to generated."""
-        self.actions._host()
+        """Drain durable writes before quiescing; admit restored workload afterward."""
+        self.phase='host_identity'
+        self.actions._transition_host()
+        self.phase='profile'
         self._profile(include_reader=False)
+        self.phase='postgres'
         self.actions._postgres(self.context,self.budget)
+        # OFF is the bounded safety operation, never workload admission or ON.
+        # It retains its lifecycle writer-row lock and existing one-off limits.
+        from transition_control import _owned_runtime
+        # A timed-out prepare may leave only this Actions instance's registered
+        # one-off alive. Reap it under the fresh recovery budget before checking
+        # the four service containers; foreign one-offs remain a hard hold.
+        self.phase='cleanup_oneoffs'
+        self.actions._cleanup_oneoffs(self.context,self.budget)
+        self.phase='off_ownership'
+        _owned_runtime(self.actions,self.context,self.budget)
+        self.phase='durable_off'
         self._live_off()
+        self._writers_off()
         self._restore_generated()
         return {'gate':'PP_GENERATED_RESTORED','origin_id':'generated-pp',
                 'collector_enabled':False,'postgres_recreated':False,

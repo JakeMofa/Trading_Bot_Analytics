@@ -202,11 +202,32 @@ def _owned_runtime(actions, context, budget):
                 and row['Config']['Labels'].get('com.docker.compose.service') in SERVICES
                 and row['Config']['Labels'].get('com.docker.compose.oneoff', 'False') == 'False'
                 for row in rows), 'foreign_runtime_blocks_transition')
+        require(len(rows)<=len(SERVICES) and len({row['Config']['Labels']['com.docker.compose.service'] for row in rows})==len(rows),
+                'foreign_runtime_blocks_transition')
 
 
 def _same_active(active, request):
     require(all(active.get(k) == v for k, v in request.bindings().items() if k != 'operation'),
             'active_transition_binding_mismatch')
+
+
+# Fixed public diagnostics: never stringify arbitrary adapter/SQL exceptions.
+_TRANSITION_PHASES={'preflight','host_identity','profile','postgres','filesystem','generated_preflight',
+    'durable_off','quiesce_ownership','quiesce','live_headroom','prepare_trial','live_start','live_ready_off',
+    'cleanup_oneoffs','off_ownership','generated_headroom','generated_start','generated_runtime','generated_routes'}
+_TRANSITION_CODES={'insufficient_host_headroom','unqualified_host_os','unsafe_secret_directory',
+    'unprepared_foundation_secret','unprepared_runtime_secret','runtime_secret_binding_mismatch','unsafe_operator_token',
+    'pp_live_durable_off_unproven','foreign_runtime_blocks_transition','quiesced_runtime_identity_changed',
+    'owned_runtime_not_quiescent','pp_trial_preparation_unproven','generated_runtime_check_failed',
+    'generated_api_readiness_timeout','generated_operator_readiness_timeout','generated_api_state_check_failed',
+    'generated_operator_state_check_failed','deadline_exceeded','child_deadline_exceeded','child_failed',
+    'host_api_wrong_state','operator_not_default_off','runtime_image_or_process_mismatch','runtime_flag_mismatch',
+    'operator_connection_interrupted','deployment_oneoff_still_running','deployment_oneoff_not_removed',
+    'oneoff_ownership_mismatch','oneoff_restart_not_fenced','generated_restoration_unproven','live_ready_off_not_proven'}
+def _transition_failure(component,error):
+    phase=getattr(component,'phase','unknown')
+    code=str(error) if isinstance(error,DeploymentHold) and str(error) in _TRANSITION_CODES else 'transition_action_failed'
+    return {'phase':phase if phase in _TRANSITION_PHASES else 'unknown','reason':code}
 
 
 def transition(request, controller_path):
@@ -229,30 +250,38 @@ def transition(request, controller_path):
         nonce = _consume(ENTER_AUTHORITY, {**request.bindings(), 'scope': 'pp_live_ready_off'})
         active = {**request.bindings(), 'version': 1, 'nonce': nonce, 'state': 'entering'}
         _atomic_json(ACTIVE, active, new=True)
+        component=LiveTransition(actions,context,budget,**_cycle_args(active))
         try:
-            result = LiveTransition(actions, context, budget, **_cycle_args(active)).enter()
-            require(result.get('gate') == 'PP_LIVE_READY_OFF' and result.get('collector_enabled') is False,
+            result=component.enter()
+            require(result.get('gate')=='PP_LIVE_READY_OFF' and result.get('collector_enabled') is False,
                     'live_ready_off_not_proven')
-            _atomic_json(ACTIVE, {**active, 'state': 'ready_off'})
+            _atomic_json(ACTIVE,{**active,'state':'ready_off'})
             return result
-        except Exception:
-            # The component attempts restoration itself. A fresh recovery budget
-            # covers a work-budget expiry without reusing the consumed permit.
+        except Exception as error:
+            original=_transition_failure(component,error)
+            if not component.mutation_started:
+                # A failed read-only preflight grants no recovery mutation.
+                _atomic_json(ACTIVE,{**active,'state':'recovery_unproven',
+                                    'entry_failure':original,'recovery_attempted':False})
+                return {'gate':'BLOCKED','reason':'pp_live_entry_preflight_failed',
+                        'entry_failure':original,'recovery_attempted':False,'recovery':'not_performed'}
+            # Exactly one recovery attempt, with a fresh full budget even if
+            # entry exhausted its work budget. The component does not recover.
+            recovery=LiveTransition(actions,context,Budget(180),**_cycle_args(active))
             try:
-                recovered = LiveTransition(actions, context, Budget(180), **_cycle_args(active)).leave()
-                require(recovered.get('gate') == 'PP_GENERATED_RESTORED'
-                        and recovered.get('collector_enabled') is False,
-                        'generated_restoration_unproven')
-                _atomic_json(ACTIVE, {**active, 'state': 'generated_restored'})
-                raise DeploymentHold('pp_live_entry_failed_generated_restored') from None
-            except DeploymentHold as error:
-                if str(error) == 'pp_live_entry_failed_generated_restored':
-                    raise
-                _atomic_json(ACTIVE, {**active, 'state': 'recovery_unproven'})
-                raise DeploymentHold('pp_live_entry_recovery_unproven') from None
-            except Exception:
-                _atomic_json(ACTIVE, {**active, 'state': 'recovery_unproven'})
-                raise DeploymentHold('pp_live_entry_recovery_unproven') from None
+                recovered=recovery.leave()
+                require(recovered.get('gate')=='PP_GENERATED_RESTORED'
+                        and recovered.get('collector_enabled') is False,'generated_restoration_unproven')
+            except Exception as recovery_error:
+                failed=_transition_failure(recovery,recovery_error)
+                _atomic_json(ACTIVE,{**active,'state':'recovery_unproven',
+                                    'entry_failure':original,'recovery_attempted':True,'recovery_failure':failed})
+                return {'gate':'BLOCKED','reason':'pp_live_entry_recovery_unproven',
+                        'entry_failure':original,'recovery_attempted':True,'recovery_failure':failed,'recovery':'unproven'}
+            _atomic_json(ACTIVE,{**active,'state':'generated_restored','entry_failure':original,'recovery_attempted':True})
+            return {'gate':'BLOCKED','reason':'pp_live_entry_failed_generated_restored',
+                    'entry_failure':original,'recovery_attempted':True,'recovery':'generated_restored',
+                    'collector_enabled':False,'origin_id':'generated-pp'}
     active = _read_active()
     _same_active(active, request)
     if active['state'] == 'generated_restored':

@@ -1,0 +1,151 @@
+{
+  "scope": "PP25 current recovery and prospective permanent transition sequencing fix",
+  "second_readonly_diagnostic": {
+    "active": {
+      "artifact_sha256": "fbeaa15452b45b37b25e668e041e850c538baa44ca6f59929bb0300ddad1795f",
+      "controller_sha256": "16f7e3ec878a1cc7265864c445e823cf490c4a5c2d406dcef2e01646d2578519",
+      "image_id": "sha256:5ac2350c2cf6a25b76ae308c593088d02696c870698dee3b9ae79e91d513ceec",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "source_sha": "2ea5b0335bee2bfaa494c76f7f38ab66053f49d5",
+      "state": "recovery_unproven",
+      "trial_origin": "pp-live-pp-trial-20261119-03"
+    },
+    "active_consumed_receipt_exists": true,
+    "at_utc": "2026-11-20T11:08:07.737264+00:00",
+    "checks": {
+      "candidate": {
+        "memory_after": 1083432960,
+        "memory_before": 1083432960,
+        "seconds": 0.0018,
+        "status": "PASS"
+      },
+      "host": {
+        "error_type": "DeploymentHold",
+        "line": 52,
+        "memory_after": 1072451584,
+        "memory_before": 1072451584,
+        "reason": "insufficient_host_headroom",
+        "seconds": 0.0013,
+        "source": "controller.py",
+        "status": "HOLD"
+      },
+      "host_api_generated": {
+        "memory_after": 1074995200,
+        "memory_before": 1074999296,
+        "seconds": 0.0389,
+        "status": "PASS"
+      },
+      "host_operator_generated": {
+        "memory_after": 1074991104,
+        "memory_before": 1074995200,
+        "seconds": 0.0591,
+        "status": "PASS"
+      },
+      "image_binding": {
+        "memory_after": 1075191808,
+        "memory_before": 1083432960,
+        "seconds": 0.0663,
+        "status": "PASS"
+      },
+      "journal": {
+        "memory_after": 1083432960,
+        "memory_before": 1083432960,
+        "seconds": 0.0001,
+        "status": "PASS"
+      },
+      "live_filesystem": {
+        "memory_after": 1064169472,
+        "memory_before": 1059872768,
+        "seconds": 0.8988,
+        "status": "PASS"
+      },
+      "owned_runtime": {
+        "memory_after": 1072451584,
+        "memory_before": 1075191808,
+        "seconds": 0.1574,
+        "status": "PASS"
+      },
+      "postgres": {
+        "memory_after": 1059872768,
+        "memory_before": 1060630528,
+        "seconds": 0.4,
+        "status": "PASS"
+      },
+      "profile": {
+        "memory_after": 1060630528,
+        "memory_before": 1072451584,
+        "seconds": 0.3936,
+        "status": "PASS"
+      },
+      "request": {
+        "memory_after": 1083432960,
+        "memory_before": 1083432960,
+        "seconds": 0.0001,
+        "status": "PASS"
+      },
+      "runtime_generated": {
+        "memory_after": 1074999296,
+        "memory_before": 1064169472,
+        "seconds": 0.6012,
+        "status": "PASS"
+      }
+    },
+    "completed_at_utc": "2026-11-20T11:08:10.607398+00:00",
+    "enter_authority_exists": false,
+    "journal_archive_exists": false,
+    "mutations_performed": false,
+    "startup_markers": [
+      {
+        "at": "2026-11-20T10:25:15.562991936Z",
+        "marker": "Started server process",
+        "service": "operator"
+      },
+      {
+        "at": "2026-11-20T10:25:15.563946470Z",
+        "marker": "Application startup complete",
+        "service": "operator"
+      },
+      {
+        "at": "2026-11-20T10:25:15.563965922Z",
+        "marker": "Uvicorn running",
+        "service": "operator"
+      }
+    ],
+    "status": "READ_ONLY_ENTRY_PRECHECKS"
+  },
+  "fwupd_restore_attempts": [
+    {
+      "receipt": "fwupd-maintenance-restore-16151a64-031f-4208-8feb-daa7b6052de9-result.jsonl",
+      "result": {
+        "gate": "FWUPD_RESTORED",
+        "persistent_enablement_changed": false
+      }
+    },
+    {
+      "receipt": "fwupd-maintenance-restore-93a5614b-4cde-4b82-8075-ced76ee0c8dd-result.jsonl",
+      "result": {
+        "gate": "FWUPD_HOLD",
+        "reason": "restore_unproven"
+      }
+    }
+  ],
+  "quiescent_leave_wrapper_sha256": "3d9f4165dfeef413470342f8d8066397af7f5f1d6f350613f6df41bf85f93c7d",
+  "quiescent_leave_attempt": "7bf190cc-3bed-41d7-b5de-10c0e4b0e2d1",
+  "quiescent_leave_final": {
+    "collector_enabled": false,
+    "gate": "PP_GENERATED_RESTORED",
+    "origin_id": "generated-pp",
+    "stage": "installed_transition.leave",
+    "status": "PASS"
+  },
+  "collector_started": false,
+  "database_recreated": false,
+  "production_changed": false,
+  "live_trial_completed": false,
+  "validation": {
+    "deployment_controls": 284,
+    "deployment_platform_skips": 14,
+    "ci_controls": 56,
+    "exact_successor_ci": "pending"
+  }
+}

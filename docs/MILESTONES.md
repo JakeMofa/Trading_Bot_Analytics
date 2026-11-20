@@ -16,8 +16,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   ownership. Recovery candidate `5fb9fa3` passed 49 isolated tests with zero
   skips. The combined native fixture kept Polymarket writes advancing
   across A → B during a simulated Coinbase outage, abstained on stale
-  inputs and retained durable OFF for fatal storage failures. Exact release
-  CI, failed-A audit, fresh admission and live validation remain open.
+  inputs and retained durable OFF for fatal storage failures. PR #193 merged
+  after required CI passed. The separate archive-only audit verified all
+  stopped A data (38 raw objects / 18,930 rows and 20,362 structured rows);
+  A remained attached. Fresh admission and live validation remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

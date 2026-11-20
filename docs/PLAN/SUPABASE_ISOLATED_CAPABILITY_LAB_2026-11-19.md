@@ -334,6 +334,20 @@ is admitted. A retry on the same VM requires the qualified release, a fresh
 origin and permissions, a healthy memory/readiness check, and a new ON
 receipt. No new run or deletion occurred in this work.
 
+## Stopped PP23 A independent audit
+
+PR #193 exact head `62d54e2` passed the required push and PR checks and
+merged as `6a09ed4`. The release owner separately sealed the stopped PP23
+A with collection OFF. The independent reader authenticated and compared
+all 38 raw objects covering 18,930 records, and verified 20,362 structured
+records across 41 pages. The audit used 81 requests and 35,230,341 logical
+bytes within its bound. Before/after archive fingerprints, existing older
+data and writer records matched. The verified A remained locally attached,
+with no pending records or retirement. These are archive-only results.
+The fresh trial still needs two complete 30-minute windows with committed
+Polymarket collection, scoped archive verification and both live switches.
+[Recovery PR](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/193)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

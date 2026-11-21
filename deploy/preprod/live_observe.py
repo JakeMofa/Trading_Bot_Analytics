@@ -15,9 +15,9 @@ from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, ProxyHandler, Request, build_opener
 
 LEGACY_ORIGIN = 'pp-live-pp'
-TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-03'
+TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-04'
 RETAINED_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-01'
-RETAINED_TRIAL_ORIGINS = (RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02')
+RETAINED_TRIAL_ORIGINS = (RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03')
 ORIGINS = (LEGACY_ORIGIN, TRIAL_ORIGIN, *RETAINED_TRIAL_ORIGINS)
 
 INTERVAL = 5

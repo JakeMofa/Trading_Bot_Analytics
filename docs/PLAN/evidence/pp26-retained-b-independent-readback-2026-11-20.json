@@ -1,0 +1,528 @@
+{
+  "after": {
+    "admission": {
+      "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+      "lease_seconds": 6600,
+      "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+    },
+    "at_utc": "2026-11-21T04:41:39.858608+00:00",
+    "generations": [
+      {
+        "acknowledged": 26480,
+        "created_at": "2026-11-20T17:32:27.907706+00:00",
+        "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795197600",
+            "market_id": "2730625",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795196700"
+          },
+          {
+            "duration": 900,
+            "end_epoch": "1795198500",
+            "market_id": "2730561",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795197600"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 24649,
+        "relation_bytes": 48906240,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 24649,
+        "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "sealed_at": "2026-11-20T18:15:07.207508+00:00",
+        "slot": "A",
+        "started_at": "2026-11-20T17:32:27.907706+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T18:17:00.381174+00:00",
+        "verified_manifests": 50
+      },
+      {
+        "acknowledged": 13210,
+        "created_at": "2026-11-20T18:15:07.207508+00:00",
+        "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795200300",
+            "market_id": "2730737",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795199400"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 12301,
+        "relation_bytes": 24477696,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 12301,
+        "seal_hash": "b4d1ce1096234ae9f1d27b6baf0c866f6dde4d52ec4e9abdb5262df43c1ec2d9",
+        "sealed_at": "2026-11-20T19:00:04.00268+00:00",
+        "slot": "B",
+        "started_at": "2026-11-20T18:15:07.207508+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T19:01:07.36414+00:00",
+        "verified_manifests": 25
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 5,
+      "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e"
+    }
+  },
+  "audit": {
+    "code": {
+      "pp_retained_archive_audit": "10de3c39abf4c3f09ee5afe713f2dc82104048ca7315882c59eb08119216192b",
+      "pp_retirement_verify": "48ce8dd466ad29e548326768e3f4e4b798b186dc2725bf9e9546a1a481acea95"
+    },
+    "events": [
+      {
+        "at": "2026-11-21T04:38:22.622141+00:00",
+        "rows": [
+          {
+            "query_age_ms": 123,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:38:30.914839+00:00",
+        "rows": [
+          {
+            "query_age_ms": 210,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:38:39.164101+00:00",
+        "rows": [
+          {
+            "query_age_ms": 29,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:38:47.314627+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2521,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:38:55.462451+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2355,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:03.633743+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1594,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:11.808694+00:00",
+        "rows": [
+          {
+            "query_age_ms": 716,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:19.958065+00:00",
+        "rows": [
+          {
+            "query_age_ms": 565,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:28.159961+00:00",
+        "rows": [
+          {
+            "query_age_ms": 539,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:36.424309+00:00",
+        "rows": [
+          {
+            "query_age_ms": 529,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:44.563998+00:00",
+        "rows": [
+          {
+            "query_age_ms": 371,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-21T04:39:52.722725+00:00",
+        "rows": [
+          {
+            "query_age_ms": 325,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "bytes": 22894506,
+        "evidence_scope": "read_only_retained_archive_audit",
+        "historical_off": true,
+        "inventory": {
+          "auth_calls_reserved": 1,
+          "byte_limit": 134217728,
+          "bytes_minimum": 22859042,
+          "bytes_upper_bound": 114891063,
+          "deadline_seconds": 240.0,
+          "fit": "fits_request_and_envelope_byte_limits",
+          "raw_bytes": 1644855,
+          "raw_objects": 25,
+          "request_limit": 192,
+          "requests_minimum": 53,
+          "structured_bytes_examined": 21214187,
+          "structured_inventory_complete": true,
+          "structured_pages_examined": 27,
+          "structured_rows": 13210
+        },
+        "last_structured_id": 122097,
+        "latest_receipt_lookup": "indexed_tie_safe_lateral",
+        "local_role": "tradebot_reader",
+        "manifest_digest": "b4d1ce1096234ae9f1d27b6baf0c866f6dde4d52ec4e9abdb5262df43c1ec2d9",
+        "objects_read": 25,
+        "operation_deadline_met": true,
+        "opposite": null,
+        "origin_id": "pp-live-pp-trial-20261119-03",
+        "original_seal_deadline_utc": "2026-11-20T19:30:04.002680+00:00",
+        "original_seal_expired_at_audit_start": true,
+        "original_trial_satisfied": false,
+        "phase_accounting": {
+          "diagnostics_unavailable": false,
+          "elapsed_seconds": 97.899257,
+          "exhausted_limit": null,
+          "failed_phase": null,
+          "logical_bytes": 22894506,
+          "nested_phase_totals_overlap": true,
+          "phases": {
+            "history_checkout": {
+              "calls": 28,
+              "logical_bytes": 0,
+              "max_seconds": 4e-06,
+              "requests": 0,
+              "seconds": 4.7e-05
+            },
+            "history_connect": {
+              "calls": 28,
+              "logical_bytes": 0,
+              "max_seconds": 0.516157,
+              "requests": 0,
+              "seconds": 9.053906
+            },
+            "history_exact_revisions": {
+              "calls": 27,
+              "logical_bytes": 0,
+              "max_seconds": 0.955549,
+              "requests": 0,
+              "seconds": 23.543928
+            },
+            "history_identity_checkpoint": {
+              "calls": 27,
+              "logical_bytes": 0,
+              "max_seconds": 0.227874,
+              "requests": 0,
+              "seconds": 5.572713
+            },
+            "history_latest_receipts": {
+              "calls": 27,
+              "logical_bytes": 0,
+              "max_seconds": 0.09181,
+              "requests": 0,
+              "seconds": 1.541829
+            },
+            "history_newer_revisions": {
+              "calls": 27,
+              "logical_bytes": 0,
+              "max_seconds": 0.114094,
+              "requests": 0,
+              "seconds": 2.692837
+            },
+            "history_projections": {
+              "calls": 27,
+              "logical_bytes": 0,
+              "max_seconds": 0.217764,
+              "requests": 0,
+              "seconds": 3.771487
+            },
+            "history_release": {
+              "calls": 28,
+              "logical_bytes": 0,
+              "max_seconds": 0.000366,
+              "requests": 0,
+              "seconds": 0.007011
+            },
+            "history_transaction": {
+              "calls": 28,
+              "logical_bytes": 0,
+              "max_seconds": 1.680061,
+              "requests": 0,
+              "seconds": 40.371516
+            },
+            "inventory": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 6.905786,
+              "requests": 0,
+              "seconds": 6.905786
+            },
+            "local_finish": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.00071,
+              "requests": 0,
+              "seconds": 0.00071
+            },
+            "local_open": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.098858,
+              "requests": 0,
+              "seconds": 0.098858
+            },
+            "raw_auth_token": {
+              "calls": 25,
+              "logical_bytes": 0,
+              "max_seconds": 0.747057,
+              "requests": 1,
+              "seconds": 0.747285
+            },
+            "raw_local_compare": {
+              "calls": 25,
+              "logical_bytes": 0,
+              "max_seconds": 0.383466,
+              "requests": 0,
+              "seconds": 4.117
+            },
+            "raw_read_decode": {
+              "calls": 25,
+              "logical_bytes": 1644855,
+              "max_seconds": 1.247069,
+              "requests": 26,
+              "seconds": 10.7564
+            },
+            "structured_compare": {
+              "calls": 27,
+              "logical_bytes": 0,
+              "max_seconds": 0.558465,
+              "requests": 0,
+              "seconds": 4.887314
+            },
+            "structured_local_page": {
+              "calls": 28,
+              "logical_bytes": 0,
+              "max_seconds": 0.616933,
+              "requests": 0,
+              "seconds": 7.421285
+            },
+            "structured_readback": {
+              "calls": 27,
+              "logical_bytes": 21249651,
+              "max_seconds": 2.62686,
+              "requests": 27,
+              "seconds": 62.634977
+            }
+          },
+          "remaining_seconds": 142.100821,
+          "requests": 54,
+          "sqlstate": null
+        },
+        "raw_count": 12301,
+        "requests": 54,
+        "retirement_authorized": false,
+        "sealed": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "status": "retained_archive_audit_verified",
+        "structured_count": 13210,
+        "structured_role": "tradebot_pp_trial_20261119_03_reader",
+        "structured_transactions": "repeatable_read_read_only"
+      }
+    ],
+    "exit_code": 0,
+    "finished_at": "2026-11-21T04:39:57.434118+00:00",
+    "generation": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+    "mode": "fresh_session_and_index",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "runtime_source": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "before": {
+    "admission": {
+      "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+      "lease_seconds": 6600,
+      "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+    },
+    "at_utc": "2026-11-21T04:15:33.895038+00:00",
+    "generations": [
+      {
+        "acknowledged": 26480,
+        "created_at": "2026-11-20T17:32:27.907706+00:00",
+        "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795197600",
+            "market_id": "2730625",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795196700"
+          },
+          {
+            "duration": 900,
+            "end_epoch": "1795198500",
+            "market_id": "2730561",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795197600"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 24649,
+        "relation_bytes": 48906240,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 24649,
+        "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "sealed_at": "2026-11-20T18:15:07.207508+00:00",
+        "slot": "A",
+        "started_at": "2026-11-20T17:32:27.907706+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T18:17:00.381174+00:00",
+        "verified_manifests": 50
+      },
+      {
+        "acknowledged": 13210,
+        "created_at": "2026-11-20T18:15:07.207508+00:00",
+        "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795200300",
+            "market_id": "2730737",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795199400"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 12301,
+        "relation_bytes": 24477696,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 12301,
+        "seal_hash": "b4d1ce1096234ae9f1d27b6baf0c866f6dde4d52ec4e9abdb5262df43c1ec2d9",
+        "sealed_at": "2026-11-20T19:00:04.00268+00:00",
+        "slot": "B",
+        "started_at": "2026-11-20T18:15:07.207508+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T19:01:07.36414+00:00",
+        "verified_manifests": 25
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 5,
+      "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e"
+    }
+  },
+  "generated_restore_receipt": {
+    "cloud_enabled": false,
+    "collector_enabled": false,
+    "gate": "PP_GENERATED_RESTORED",
+    "postgres_recreated": false,
+    "retirement_enabled": false
+  },
+  "merge_ci": 44865255705,
+  "merged_source": "c278be70c4b58dae7dc205788b1990e96dc90fea"
+}

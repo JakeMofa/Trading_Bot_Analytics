@@ -73,6 +73,24 @@ class TrialHistoryReaderTests(unittest.TestCase):
         authority,evidence,_=fixture();authority['origin_id']='pp-live-pp-trial-20261119-01'
         with self.assertRaises(DeploymentHold):reader.validate_trial_reader_attestation(CONTEXT,authority,evidence,initial_a=A)
 
+    def test_fourth_reader_requires_fresh_files_and_retained_third_denial(self):
+        self.assertEqual(reader.TRIAL_ORIGIN,'pp-live-pp-trial-20261119-04')
+        self.assertEqual(reader.TRIAL_SQL_READER,'tradebot_pp_trial_20261119_04_reader')
+        self.assertIn('retained_trial_03_origin',reader.HOSTED_DENIED)
+        with tempfile.TemporaryDirectory() as folder,patch.object(reader,'RUNTIME_SECRETS',Path(folder)),patch.object(reader,'_read_owned') as read:
+            old=Path(folder)/'trial_20261119_03_history_reader_authority.json'
+            old.write_text('retained-third-trial')
+            self.assertFalse(reader.trial_history_reader_enabled(CONTEXT,A))
+            read.assert_not_called()
+            self.assertEqual(old.read_text(),'retained-third-trial')
+            self.assertEqual(reader.trial_history_reader_source('trial_history_reader_uid').name,
+                             'trial_20261119_04_history_reader_uid')
+        authority,evidence,_=fixture()
+        evidence['hosted_denied'].remove('retained_trial_03_origin')
+        authority['policy_proof_sha256']=hashlib.sha256(json.dumps(evidence,sort_keys=True).encode()).hexdigest()
+        with self.assertRaises(DeploymentHold):
+            reader.validate_trial_reader_attestation(CONTEXT,authority,evidence,initial_a=A)
+
     def test_enabled_reader_reads_only_proof_marker_and_uid_not_password_or_key(self):
         authority,evidence,raw=fixture()
         with tempfile.TemporaryDirectory() as folder:

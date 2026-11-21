@@ -146,12 +146,12 @@ class WriterProofTests(unittest.TestCase):
             root=Path(folder);root.chmod(0o700)
             sql={key:str(root/key) for key in p.WRITER_SQL};auth={key:str(root/key) for key in p.WRITER_AUTH}
             writer,reader=str(uuid.uuid4()),str(uuid.uuid4())
-            for name in (*sql,*auth,'supabase_auth_uid','trial_20261119_03_history_reader_uid'):
+            for name in (*sql,*auth,'supabase_auth_uid','trial_20261119_04_history_reader_uid'):
                 path=root/name;path.write_text('fixture')
-                path.chmod(0o644 if name=='pp_history_ca' else 0o400 if name=='trial_20261119_03_history_reader_uid' else 0o600)
+                path.chmod(0o644 if name=='pp_history_ca' else 0o400 if name=='trial_20261119_04_history_reader_uid' else 0o600)
             (root/'pp_history_ca').write_text('-----BEGIN CERTIFICATE-----\nfixture\n-----END CERTIFICATE-----')
             (root/'trial_archive_uid').write_text(writer);(root/'supabase_auth_uid').write_text(str(uuid.uuid4()))
-            (root/'trial_20261119_03_history_reader_uid').chmod(0o600);(root/'trial_20261119_03_history_reader_uid').write_text(reader);(root/'trial_20261119_03_history_reader_uid').chmod(0o400)
+            (root/'trial_20261119_04_history_reader_uid').chmod(0o600);(root/'trial_20261119_04_history_reader_uid').write_text(reader);(root/'trial_20261119_04_history_reader_uid').chmod(0o400)
             proof=dict(version=1,origin_id=a.TRIAL_ORIGIN,sql_writer_role=c.WRITER_ROLE,sql_reader_role=c.READER_ROLE,
                        archive_writer_uid=writer,archive_reader_uid=reader,**dict.fromkeys(c.VERDICTS,'pass'))
             ctx=SimpleNamespace(request=SimpleNamespace(source_sha=SOURCE),image=IMAGE)
@@ -163,7 +163,7 @@ class WriterProofTests(unittest.TestCase):
                     path.chmod(0o600) if path.exists() else None;path.write_bytes(value);path.chmod(0o400)
             original=Path.lstat
             def ownership(path,*args,**kwargs):
-                value=list(original(path,*args,**kwargs));value[4]=10001 if path.name=='trial_20261119_03_history_reader_uid' else 0
+                value=list(original(path,*args,**kwargs));value[4]=10001 if path.name=='trial_20261119_04_history_reader_uid' else 0
                 return os.stat_result(value)
             with patch.object(c,'AUTHORITY',authority),patch.object(c,'PROOF',evidence),patch.object(c,'RUNTIME_SECRETS',root),patch('trial_history_reader.RUNTIME_SECRETS',root),patch.object(c,'CLOUD_DIR',root), \
                  patch.object(c,'WRITER_SQL',sql),patch.object(c,'WRITER_AUTH',auth),patch.object(Path,'lstat',ownership), \
@@ -171,7 +171,8 @@ class WriterProofTests(unittest.TestCase):
                  patch('structured_probe_control.CA_SHA256',hashlib.sha256(b'fixture').hexdigest()),patch.object(c.ssl,'PEM_cert_to_DER_cert',return_value=b'fixture'):
                 save(proof);self.assertEqual(len(c.writer_proof(ctx,ANCHOR)),64)
                 for changed in ({'origin_id':'pp-live-pp'},{'sql_reader_role':c.WRITER_ROLE},{'storage_reader_create_denied':'unqualified'},
-                                {'archive_reader_uid':writer}):
+                                {'archive_reader_uid':writer},{'trial_03_independent_archive_verified':'not_run'},
+                                {'sql_trial_03_denied':'not_run'},{'storage_trial_03_denied':'not_run'}):
                     save(proof|changed)
                     with self.assertRaises(DeploymentHold):c.writer_proof(ctx,ANCHOR)
                 for changed in ({'source_sha':'b'*40},{'initial_a':str(uuid.uuid4())},{'image_id':'sha256:'+'b'*64}):

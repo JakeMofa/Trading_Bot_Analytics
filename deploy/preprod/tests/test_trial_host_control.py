@@ -36,7 +36,7 @@ class TrialHostTests(unittest.TestCase):
 
     def test_timing_is_exact_active_trial_operator_only_and_cannot_be_removed(self):
         source=Path('/reviewed/source');base=configuration(source)
-        for origin in (None,actions.RETAINED_TRIAL_ORIGIN):
+        for origin in (None,*actions.RETAINED_TRIAL_ORIGINS):
             self.assertNotIn('TRADEBOT_PP_COINBASE_TIMING',actions.expected_environment('operator',live=True,
                 initial_a=A if origin else None,trial_origin=origin))
         live=deepcopy(base)
@@ -56,7 +56,7 @@ class TrialHostTests(unittest.TestCase):
         base='transition-v1 preprod tradebot-preprod-01 enter '+'a'*40+' '+'b'*64+' '+'c'*64+' sha256:'+'d'*64
         request=gate.TransitionRequest.parse(base+' '+A+' '+TRIAL)
         self.assertEqual(request.bindings()['trial_origin'],TRIAL)
-        for origin in ('pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02',TRIAL+'-other'):
+        for origin in ('pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03',TRIAL+'-other'):
             with self.assertRaises(DeploymentHold):gate.TransitionRequest.parse(base+' '+A+' '+origin)
         active={'initial_a':A,'trial_origin':TRIAL}
         with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active),patch.object(gate,'_secure_file') as secret:
@@ -102,6 +102,42 @@ class TrialHostTests(unittest.TestCase):
         commands=[c[1] for c in owned.calls if isinstance(c,tuple) and c[0]=='live']
         self.assertTrue(any(any('runtime.retained-trial-02.compose.yaml' in value for value in command) for command in commands))
         self.assertFalse(any('postgres.pp_trial_prepare' in command for command in commands))
+
+    def test_retained_third_trial_journal_remains_valid_for_off_but_never_new_enter(self):
+        retained='pp-live-pp-trial-20261119-03'
+        self.assertEqual(actions.live_origin(retained),retained)
+        owned=Actions();context=SimpleNamespace(source=Path('/reviewed/source'),image=IMAGE)
+        base=Budget(owned)
+        class RetainedBudget:
+            def timeout(self,*args):return base.timeout(*args)
+            def run(self,args,**kwargs):
+                raw=base.run(args,**kwargs)
+                return raw.replace(b'pp-live-pp',retained.encode()) if args[-1] in ('--stop-collector','--collector-status') else raw
+        transition=LiveTransition(owned,context,RetainedBudget(),initial_a=A,trial_origin=retained)
+        with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):transition.enter()
+        self.assertEqual(owned.calls,[])
+        with patch('live_transition.validate_live_profile'):
+            transition.leave()
+        commands=[c[1] for c in owned.calls if isinstance(c,tuple) and c[0]=='live']
+        self.assertTrue(any(any('runtime.retained-trial-03.compose.yaml' in value for value in command) for command in commands))
+        self.assertFalse(any('postgres.pp_trial_prepare' in command for command in commands))
+
+    def test_retained_third_on_rejects_before_secrets_authority_or_network(self):
+        retained='pp-live-pp-trial-20261119-03'
+        with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value={
+                'state':'ready_off','initial_a':A,'trial_origin':retained}), \
+             patch.object(gate,'_secure_file') as secret,patch.object(gate,'_consume') as consume, \
+             patch.object(gate,'_operator') as operator:
+            with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):
+                gate.session('session-v1 on 6600 '+A+' '+retained,Path('/trusted/controller'))
+            secret.assert_not_called();consume.assert_not_called();operator.assert_not_called()
+        import install_controller as install
+        with patch.object(install.HostBinding,'from_marker'),patch.object(install,'_read_active',return_value={
+                'state':'ready_off','initial_a':A,'trial_origin':retained}), \
+             patch.object(install,'_scope_permit') as permit,patch('trial_cloud_control.require_ready') as ready:
+            with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):
+                install.authorize_live_on(6600)
+            permit.assert_not_called();ready.assert_not_called()
 
     def test_trial_on_is_held_before_consuming_authority_until_cloud_readiness(self):
         digest=hashlib.sha256(b'controller').hexdigest()

@@ -20,7 +20,7 @@ services:
       PYTHONPATH: /app/backend
       TRADEBOT_ENVIRONMENT: preprod
       TRADEBOT_DATA_MODE: pp_live
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-03
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-04
       TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
       TRADEBOT_COLLECTOR_ENABLED: 'false'
       TRADEBOT_CLOUD_ENABLED: 'false'
@@ -52,13 +52,13 @@ secrets:
   probe_local_dsn:
     file: /run/tradebot-pp-deploy/probe-local-dsn
   trial_archive_api_key:
-    file: /etc/tradebot/cloud/trial_20261119_03_archive_api_key
+    file: /etc/tradebot/cloud/trial_20261119_04_archive_api_key
   trial_archive_email:
-    file: /etc/tradebot/cloud/trial_20261119_03_archive_email
+    file: /etc/tradebot/cloud/trial_20261119_04_archive_email
   trial_archive_password:
-    file: /etc/tradebot/cloud/trial_20261119_03_archive_password
+    file: /etc/tradebot/cloud/trial_20261119_04_archive_password
   trial_archive_uid:
-    file: /etc/tradebot/cloud/trial_20261119_03_archive_uid
+    file: /etc/tradebot/cloud/trial_20261119_04_archive_uid
 networks:
   raw_archive_probe_egress:
     driver: bridge

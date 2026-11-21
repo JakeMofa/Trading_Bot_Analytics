@@ -1,3 +1,26 @@
+## November 20, 2026 CST — Indexed fix merged; fresh PP rehearsal preparation
+
+PR #201's existing-fixture CI failure was caused by a captured default origin.
+Resolving the default at call time passed the exact PostgreSQL 17 regression.
+The PR merged as `c278be7` and [merge CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44865255705) passed.
+
+Independent readback of trial03 B verified 25 raw objects (12,301 rows) and
+13,210 structured rows across 27 pages in 97.899 seconds. The slowest page
+was 2.627 seconds, using the existing receipt index and fresh connections.
+PP then returned to its generated-data profile with the collector and cloud
+workers off, keeping PostgreSQL in place. Before/after snapshots match for
+both retained partitions and the writer record. The prior live trial
+remains failed at retirement.
+
+The separate trial04 scope uses the same PP VM and a fresh A anchor.
+Its admission preserves both retained trial03 partitions. The collector will
+run only after exact Linux CI, controller qualification, explicit cloud
+role/policy checks, generated/OFF deployment proof and the production
+collector fence. The retirement verifier uses the index with fresh connections.
+Per-leg windows, fresh readback and retirement checks remain required.
+
+[Retained B readback and host preservation](evidence/pp26-retained-b-independent-readback-2026-11-20.json).
+
 ## November 20, 2026 — PP26 A read-only timeout reproduced and indexed readback passed
 
 The retained A audit used reader-only credentials, with both PP partitions

@@ -130,8 +130,8 @@ def audit(factory,transport,target, *, origin=None):
         origin = ORIGIN
     if (origin not in (ORIGIN, STOPPED_TRIAL) or transport.origin_id != origin
             or transport.generation_id != target.sealed
-            or (origin == STOPPED_TRIAL and (target.historical_off
-                or transport.structured.expected_role != cloud_binding(origin).reader_role
+            or (origin == STOPPED_TRIAL and (
+                transport.structured.expected_role != cloud_binding(origin).reader_role
                 or getattr(transport.raw, "_reader", False) is not True
                 or getattr(getattr(transport.raw, "_origin_binding", None), "origin_id", None) != origin))):
         raise LifecycleHold('exact PP retained archive transport required')
@@ -158,12 +158,21 @@ def audit(factory,transport,target, *, origin=None):
                 writers_on = db.execute("""SELECT EXISTS (SELECT 1 FROM ops.writer_state
                     WHERE collector_enabled OR collector_session_id IS NOT NULL
                         OR collector_lease_expires_at IS NOT NULL) AS running""").fetchone()
-                successor = db.execute("""SELECT slot, state, retired_at, started_at FROM archive.generations
-                    WHERE origin_id=%s AND generation_id=%s""", (origin, target.collecting)).fetchone()
-                if (writers_on['running'] or not successor or successor['slot'] != 'B'
-                        or successor['state'] != 'verified' or successor['retired_at'] is not None
-                        or successor['started_at'] != generation['sealed_at']):
-                    raise LifecycleHold('retained trial requires the verified opposite slot and all writers OFF')
+                if writers_on['running']:
+                    raise LifecycleHold('retained trial requires all writers OFF')
+                if target.historical_off:
+                    other = db.execute("""SELECT generation_id FROM archive.generations
+                        WHERE origin_id=%s AND slot='A' AND state='verified'
+                            AND retired_at IS NULL AND sealed_at=%s""",
+                        (origin, generation['started_at'])).fetchall()
+                    if len(other) != 1:
+                        raise LifecycleHold('retained B requires its verified A predecessor')
+                else:
+                    successor = db.execute("""SELECT slot, state, retired_at, started_at FROM archive.generations
+                        WHERE origin_id=%s AND generation_id=%s""", (origin, target.collecting)).fetchone()
+                    if (not successor or successor['slot'] != 'B' or successor['state'] != 'verified'
+                            or successor['retired_at'] is not None or successor['started_at'] != generation['sealed_at']):
+                        raise LifecycleHold('retained A requires its verified B successor')
             actual=db.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                 (target.sealed,)).fetchone()['count']
             if actual != target.count:

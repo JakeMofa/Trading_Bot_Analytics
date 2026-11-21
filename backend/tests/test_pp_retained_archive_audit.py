@@ -81,3 +81,33 @@ class RetainedAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(LifecycleHold, 'all writers OFF'):
                 audit(None, transport, target, origin=STOPPED_TRIAL)
             preflight.assert_not_called()
+
+    def test_stopped_trial_b_requires_its_verified_a_before_cloud_readback(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from postgres.cloud_origin_binding import cloud_binding
+        from postgres.pp_retained_archive_audit import STOPPED_TRIAL, audit
+
+        generation = str(uuid.uuid4())
+        target = AuditTarget(generation, generation, 'a'*64, 1, 1, 1, 1,
+                             '2026-11-20T19:30:04+00:00', historical_off=True)
+        transport = SimpleNamespace(origin_id=STOPPED_TRIAL, generation_id=generation,
+            structured=SimpleNamespace(expected_role=cloud_binding(STOPPED_TRIAL).reader_role),
+            raw=SimpleNamespace(_reader=True, _origin_binding=SimpleNamespace(origin_id=STOPPED_TRIAL)))
+        db = Mock()
+        db.execute.return_value.fetchone.side_effect = (
+            dict(slot='B', seal_count=1, seal_hash=target.seal_hash, started_at='seal'),
+            dict(generation_id=generation, collector_enabled=False,
+                 collector_session_id=None, collector_lease_expires_at=None),
+            dict(running=False),
+        )
+        db.execute.return_value.fetchall.return_value = []
+        module = 'postgres.pp_retained_archive_audit'
+        with patch(module+'.local_snapshot', return_value=nullcontext(db)), \
+                patch(module+'.LifecycleRepository._manifests', return_value=[{}]), \
+                patch(module+'.bound_catalog', return_value=True), \
+                patch(module+'.remote_preflight') as preflight:
+            with self.assertRaisesRegex(LifecycleHold, 'verified A predecessor'):
+                audit(None, transport, target, origin=STOPPED_TRIAL)
+            preflight.assert_not_called()

@@ -68,7 +68,7 @@ class StructuredServiceTests(unittest.TestCase):
         from postgres.cloud_origin_binding import NEXT_TRIAL_ORIGIN
         self.assertTrue(service.synchronized_batches_requested({'TRADEBOT_PP_SYNC_BARRIERS':'true'},
             origin=NEXT_TRIAL_ORIGIN, retain_revisions=True))
-        for origin in ('pp-live-pp-trial-20261119-04','pp-live-pp-trial-anything'):
+        for origin in ('pp-live-pp-trial-20261119-05','pp-live-pp-trial-anything'):
             with self.subTest(origin=origin),self.assertRaises(ArchiveIntegrityError):
                 service.synchronized_batches_requested({'TRADEBOT_PP_SYNC_BARRIERS':'true'},
                     origin=origin, retain_revisions=True)

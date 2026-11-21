@@ -1,3 +1,37 @@
+## November 20, 2026 CST — PP27 deployed; fresh trial04 ready with collection off
+
+[PR #202](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/202) and
+[PR #203](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/203) merged.
+The PP27 release binds exact preprod source `17ba31e`, exact push CI
+`44869270426`, verified controller `486ad278` and the existing PP VM.
+Trial04's fresh SQL and Storage identities passed exact authenticated
+synthetic readback and denial checks against the older scopes. Existing
+policy, grant, role and receipt/revision fingerprints matched.
+
+The first CD attempt `44869823304` held before migration on the 1 GiB
+memory floor and left its permit unused. The reviewed, temporary pause of
+idle fwupd yielded passing memory samples for one retry. [CD retry
+`44870088476`](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44870088476)
+passed generated acceptance with the guards unchanged. fwupd was restored
+and persistent enablement was unchanged. PostgreSQL was preserved.
+
+The source/image-bound trial04 proofs were installed and ENTER returned
+`PP_LIVE_READY_OFF`. A is empty and there is no collector session or lease.
+Both recurring workers are ready with retirement off. The private dashboard
+and SSE respond and the empty, OFF profile reports missing live feeds.
+A read-only snapshot after deployment and ENTER matched both attached
+trial03 partitions and their stopped writer. Production was not changed.
+
+Final retirement uses the qualified indexed receipt lookup and fresh
+connections. The existing recurring writer's separate connection reuse
+remains enabled. Do not start the new live rehearsal until the two fresh
+trial04 administrator mutation-free windows can be honored. Trial03's
+completed/expired windows do not carry over. When ready, establish the
+production collector fence and use a single finite quarter-aligned session.
+Live A → B → fresh A and both timely retirements remain unproven.
+
+[Sanitized PP27 deployment and ready-OFF evidence](PLAN/evidence/pp27-trial04-ready-off-2026-11-20.json).
+
 ## November 20, 2026 CST — Indexed fix merged; fresh PP rehearsal preparation
 
 PR #201's existing-fixture CI failure was caused by a captured default origin.

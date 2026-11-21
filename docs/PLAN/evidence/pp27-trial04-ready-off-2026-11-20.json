@@ -1,0 +1,323 @@
+{
+  "archive_worker": {
+    "initial_a": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+    "origin_id": "pp-live-pp-trial-20261119-04",
+    "retirement": "off",
+    "source_sha": "17ba31ec7ccb3ade9b94247291721f65d863f5da",
+    "status": "running",
+    "writer_proof_sha256": "7ca6b87118f39ebe8836a59e8670080bca25c40495953e7e5fafcc501f9d0258"
+  },
+  "controller_identity": {
+    "controller_sha256": "486ad2786f62f692b7377b9c7115c2c33a669b66d3eaf6326c4657bb2153f813",
+    "database_changed": false,
+    "gate": "IDENTITY_PASS",
+    "instance": "tradebot-preprod-01"
+  },
+  "controller_identity_run": 44868122716,
+  "deployment": {
+    "acceptance_scope": "generated_only",
+    "artifact_sha256": "754d35c4ad4d418e39028083d51e28d27d8966babab6a494e83a7c8d26b069fd",
+    "branch": "preprod",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "completed_at_utc": "2026-11-21T05:18:31.952300+00:00",
+    "controls_sha": "17ba31ec7ccb3ade9b94247291721f65d863f5da",
+    "environment": "preprod",
+    "gate": "PASS",
+    "instance": "tradebot-preprod-01",
+    "live_collector_enabled": false,
+    "paid_ai_enabled": false,
+    "policy_sha256": "d18c641009f5d77a4e84d9a62076e1be290be8bfd7ad9bb80ebd625bdf9a15f7",
+    "production_data_mounted": false,
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:84fcb2ebdc65c38ec7fb8e6292d4d06edb33f5383500904954cbf7d0a4fb4c52",
+    "release_version": "v0.2.0-pp.27",
+    "retention_enabled": false,
+    "run_attempt": 1,
+    "run_id": 44870088476,
+    "runtime_image_id": "sha256:00e5c2e1a52a287b388e60fea132428b8edf711e773025b39c5822ff29658017",
+    "scope": "exact-source runtime deployment and acceptance",
+    "source_ci_attempt": 1,
+    "source_ci_run_id": 44869270426,
+    "source_sha": "17ba31ec7ccb3ade9b94247291721f65d863f5da"
+  },
+  "fwupd_restored": true,
+  "guards": {
+    "indexed_final_receipts": true,
+    "recurring_structured_connection_reuse": true,
+    "retirement_connection_reuse": false
+  },
+  "initial_cd_failure": {
+    "controller": {
+      "gate": "BLOCKED",
+      "reason": "insufficient_host_headroom",
+      "stage": "preflight"
+    },
+    "environment": "preprod",
+    "gate": "BLOCKED",
+    "reason": "deployment controller failed; no automatic retry",
+    "scope": "deploy"
+  },
+  "initial_writer_snapshot": {
+    "admission": null,
+    "at_utc": "2026-11-21T05:19:39.766879+00:00",
+    "generations": [
+      {
+        "acknowledged": 0,
+        "created_at": "2026-11-21T05:19:28.377434+00:00",
+        "generation_id": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+        "hold_reason": null,
+        "official_market_pair": [],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 0,
+        "relation_bytes": 40960,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": null,
+        "seal_hash": null,
+        "sealed_at": null,
+        "slot": "A",
+        "started_at": "2026-11-21T05:19:28.377434+00:00",
+        "state": "collecting",
+        "verified_at": null,
+        "verified_manifests": 0
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-04",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 1,
+      "generation_id": "53505b6c-f9b2-4b4b-be55-e45f94a6841c"
+    }
+  },
+  "live_collector_started": false,
+  "live_started": false,
+  "merge_ci": 44868066198,
+  "merged_source": "1cca8c9edbe4e7a4d3d16ab69e89eb06cd372f71",
+  "origin": "pp-live-pp-trial-20261119-04",
+  "pp_profile_merge": "17ba31ec7ccb3ade9b94247291721f65d863f5da",
+  "pr_ci": 44867590680,
+  "preservation": {
+    "bucket_private": true,
+    "existing_grants_hash": "593b9954174c11340a259571f404c9cf",
+    "grants_preserved": true,
+    "history_policies_preserved": true,
+    "history_policy_hash": "ef9e5a2fd9875e8580106439b3606824",
+    "new_auth": 2,
+    "new_history_policies": 36,
+    "new_roles": 2,
+    "new_storage_policies": 6,
+    "project": "xttdqeimdujweijxcuro",
+    "retained_counts": {
+      "pp-live-pp": 42133,
+      "pp-live-pp-trial-20261119-01": 5652,
+      "pp-live-pp-trial-20261119-02": 20363,
+      "pp-live-pp-trial-20261119-03": 39691
+    },
+    "retained_counts_preserved": true,
+    "retained_revision_counts": {
+      "pp-live-pp": 42133,
+      "pp-live-pp-trial-20261119-01": 5652,
+      "pp-live-pp-trial-20261119-02": 20363,
+      "pp-live-pp-trial-20261119-03": 39691
+    },
+    "retained_revisions_preserved": true,
+    "roles_hash": "be8b5d5a5bec2f86c52afcaeca7da9c2",
+    "roles_preserved": true,
+    "scope": "preservation_excluding_exact04",
+    "storage_policies_preserved": true,
+    "storage_policy_hash": "e6ab3999f82590d40bdb5b511572a31c0c746cd39ccbc6272ce22eb2f97ae1bb"
+  },
+  "production_changed": false,
+  "proof_binding": {
+    "cloud_evidence_sha256": "9b5e68c94b37e57c46b836431c4c3894e5c2d3f2694781b5d368bd3883c05ed4",
+    "gate": "TRIAL_PROOFS_BOUND",
+    "image_id": "sha256:00e5c2e1a52a287b388e60fea132428b8edf711e773025b39c5822ff29658017",
+    "initial_a": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+    "origin_id": "pp-live-pp-trial-20261119-04",
+    "reader_proof_sha256": "552ca3605bc4a390a9c9eb92db6acb938cd8a0328f6afca8a760981c4554332a",
+    "source_sha": "17ba31ec7ccb3ade9b94247291721f65d863f5da",
+    "writer_proof_sha256": "7ca6b87118f39ebe8836a59e8670080bca25c40495953e7e5fafcc501f9d0258"
+  },
+  "publish": {
+    "run_id": 44869746466,
+    "source_sha": "17ba31ec7ccb3ade9b94247291721f65d863f5da"
+  },
+  "qualification_source": "c3ee7e16fbece3193aa29f43788a8b0e76e12826",
+  "release_version": "v0.2.0-pp.27",
+  "retained03_after_enter": {
+    "admission": {
+      "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+      "lease_seconds": 6600,
+      "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+    },
+    "at_utc": "2026-11-21T05:20:11.034795+00:00",
+    "generations": [
+      {
+        "acknowledged": 26480,
+        "created_at": "2026-11-20T17:32:27.907706+00:00",
+        "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795197600",
+            "market_id": "2730625",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795196700"
+          },
+          {
+            "duration": 900,
+            "end_epoch": "1795198500",
+            "market_id": "2730561",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795197600"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 24649,
+        "relation_bytes": 48906240,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 24649,
+        "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "sealed_at": "2026-11-20T18:15:07.207508+00:00",
+        "slot": "A",
+        "started_at": "2026-11-20T17:32:27.907706+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T18:17:00.381174+00:00",
+        "verified_manifests": 50
+      },
+      {
+        "acknowledged": 13210,
+        "created_at": "2026-11-20T18:15:07.207508+00:00",
+        "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795200300",
+            "market_id": "2730737",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795199400"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 12301,
+        "relation_bytes": 24477696,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 12301,
+        "seal_hash": "b4d1ce1096234ae9f1d27b6baf0c866f6dde4d52ec4e9abdb5262df43c1ec2d9",
+        "sealed_at": "2026-11-20T19:00:04.00268+00:00",
+        "slot": "B",
+        "started_at": "2026-11-20T18:15:07.207508+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T19:01:07.36414+00:00",
+        "verified_manifests": 25
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 5,
+      "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e"
+    }
+  },
+  "retired_partitions": 0,
+  "retirement_windows_confirmed": false,
+  "retry_preflight": {
+    "authority_expires_at": "2026-11-21T05:42:56.100402+00:00",
+    "authority_unused": true,
+    "available_bytes": [
+      1094344704,
+      1093136384,
+      1079730176,
+      1079730176
+    ],
+    "status": "retry_preflight_pass"
+  },
+  "source_ci": 44867575844,
+  "stage": {
+    "authority_staged": false,
+    "collector_started": false,
+    "legacy_files_replaced": false,
+    "private_files_staged": 10,
+    "status": "PASS"
+  },
+  "storage_smoke": {
+    "bytes": 210,
+    "hosted_denial_checks": {
+      "origin": "pp-live-pp-trial-20261119-04",
+      "public_read_denied": true,
+      "reader_hosted_create_denied": true,
+      "reader_listing_yields_no_objects": true,
+      "reader_old_origin_get_denied": true,
+      "reader_retained_01_get_denied": true,
+      "reader_retained_02_get_denied": true,
+      "reader_retained_03_get_denied": true,
+      "reader_signed_url_denied": true,
+      "scope": "isolated synthetic trial Storage and read-only check of a known existing old key",
+      "source_sha": "c3ee7e16fbece3193aa29f43788a8b0e76e12826",
+      "status": "PASS",
+      "writer_listing_yields_no_objects": true,
+      "writer_old_origin_get_denied": true,
+      "writer_retained_01_get_denied": true,
+      "writer_retained_02_get_denied": true,
+      "writer_retained_03_get_denied": true,
+      "writer_signed_url_denied": true
+    },
+    "independent_reader_authenticated_exact_readback": true,
+    "writer_authenticated_exact_readback": true
+  },
+  "structured_smoke": {
+    "exact_readback": true,
+    "live_trial_data_rows": 0,
+    "observer_sql_wrong_origin_denied": true,
+    "origin": "pp-live-pp-trial-20261119-04",
+    "retained_01_sql_read_denied": true,
+    "retained_01_sql_write_denied": true,
+    "retained_02_sql_read_denied": true,
+    "retained_02_sql_write_denied": true,
+    "retained_03_sql_read_denied": true,
+    "retained_03_sql_write_denied": true,
+    "source_sha": "c3ee7e16fbece3193aa29f43788a8b0e76e12826",
+    "sql_reader_insert_denied": true,
+    "status": "PASS",
+    "synthetic_receipts": 1,
+    "synthetic_revisions": 1
+  },
+  "structured_worker": {
+    "initial_a": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+    "origin_id": "pp-live-pp-trial-20261119-04",
+    "retirement": "off",
+    "source_sha": "17ba31ec7ccb3ade9b94247291721f65d863f5da",
+    "status": "running",
+    "writer_proof_sha256": "7ca6b87118f39ebe8836a59e8670080bca25c40495953e7e5fafcc501f9d0258"
+  }
+}

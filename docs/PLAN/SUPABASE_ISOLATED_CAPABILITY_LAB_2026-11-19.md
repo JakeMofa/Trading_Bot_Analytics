@@ -532,6 +532,15 @@ both generations verified and attached, unchanged seal hashes and row
 counts, and zero pending acknowledgements. No deletion or new live run
 occurred. [Index-only release candidate](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/201)
 
+PR #201 merged as `c278be7` and passed exact post-merge CI. A subsequent
+read-only audit of retained B used the existing receipt index with fresh
+connections. It verified all 25 raw objects covering 12,301 rows and all
+27 structured pages covering 13,210 rows in 97.899 seconds. The slowest
+structured page took 2.627 seconds, and the slowest indexed latest-receipt
+lookup took 0.092 seconds. It used 54 requests and recorded no retirement
+authority. The new rehearsal requires a separate scope while these old A
+and B remain attached. [Exact merge CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44865255705)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

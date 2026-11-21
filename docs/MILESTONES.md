@@ -35,8 +35,9 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   verified and attached. The stopped A read-only audit reproduced a Supabase
   transaction timeout on the first structured page. Repeating with the
   existing latest-receipt index verified all 50 raw objects and 53 structured
-  pages in 212.801 seconds with fresh per-page connections. Fresh A and
-  successful local retirement remain open.
+  pages in 212.801 seconds with fresh per-page connections. PR #201 merged
+  and exact merge CI passed. Retained B also passed independent indexed
+  readback in 97.899 seconds. Fresh A and successful local retirement remain open.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

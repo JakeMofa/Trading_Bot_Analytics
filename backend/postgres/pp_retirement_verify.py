@@ -2,14 +2,15 @@
 import argparse
 from dataclasses import dataclass
 import json
+import math
 import os
 import re
 import uuid
 from datetime import timedelta
 
-from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, encoded
+from .archive_codec import ArchiveError, ArchiveIntegrityError, ArchiveLimits, CycleBudget, encoded
 from .archive_transport import ScopedArchiveTransport
-from .retirement_accounting import accounted, bind_budget, measured_context, phase
+from .retirement_accounting import PHASES, accounted, bind_budget, measured_context, phase
 from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
@@ -267,6 +268,62 @@ def retirement_history_factory(environ):
     return factory_type(files['TRADEBOT_PP_HISTORY_DSN_FILE'],files['TRADEBOT_PP_HISTORY_CA_FILE'],origin_id=origin,reader=True)
 
 
+def retirement_indexed_latest(environ, origin):
+    """Opt in only for the bounded PP trial verifier."""
+    value = environ.get('TRADEBOT_PP_RETIREMENT_INDEXED_LATEST_RECEIPTS', 'false')
+    if value not in ('true', 'false') or (value == 'true' and origin not in TRIAL_ORIGINS):
+        raise LifecycleHold('exact PP trial retirement index opt-in required')
+    return value == 'true'
+
+
+def sanitize_phase_accounting(value):
+    """Public numeric diagnostics only; arbitrary exception attributes stay private."""
+    if not isinstance(value,dict):return None
+    def number(v,count=False):
+        try:
+            if type(v) not in (int,float) or not math.isfinite(v) or v<0 or count and type(v) is not int:return None
+            return v
+        except (OverflowError,ValueError):return None
+    try:
+        result={key:number(value.get(key),key in ('requests','logical_bytes'))
+                for key in ('elapsed_seconds','requests','logical_bytes','remaining_seconds')}
+        result['failed_phase']=value.get('failed_phase') if isinstance(value.get('failed_phase'),str) and value['failed_phase'] in PHASES else None
+        result['sqlstate']=value.get('sqlstate') if isinstance(value.get('sqlstate'),str) and re.fullmatch('[0-9A-Z]{5}',value['sqlstate']) else None
+        result['exhausted_limit']=value.get('exhausted_limit') if value.get('exhausted_limit') in ('seconds','requests','logical_bytes') else None
+        result['diagnostics_unavailable']=value.get('diagnostics_unavailable') if type(value.get('diagnostics_unavailable')) is bool else True
+        result['nested_phase_totals_overlap']=True
+        rows=value.get('phases');result['phases']={}
+        if isinstance(rows,dict):
+            for name,row in rows.items():
+                if name in PHASES and isinstance(row,dict):
+                    result['phases'][name]={key:number(row.get(key),key in ('calls','requests','logical_bytes'))
+                        for key in ('calls','seconds','max_seconds','requests','logical_bytes')}
+        return result
+    except Exception:
+        return {'diagnostics_unavailable':True}
+
+
+def retirement_failure(error,*,retirement_requested=False):
+    # ArchiveError.code is a class-defined public code, never str(error) or an
+    # arbitrary instance attribute. Other exception messages remain private.
+    code=getattr(type(error),'code',None) if isinstance(error,ArchiveError) else None
+    reason=code if isinstance(code,str) and re.fullmatch('[a-z][a-z0-9_]{0,95}',code) else type(error).__name__
+    try:accounting=sanitize_phase_accounting(getattr(error,'retirement_accounting',None))
+    except Exception:accounting={'diagnostics_unavailable':True}
+    return {'status':'HOLD','stage':'pp_retirement_verify','retirement_authorized':None if retirement_requested else False,
+            'reason':reason,'partition_outcome':'inspect_generation_and_ticket' if retirement_requested else 'readback_only',
+            'phase_accounting':accounting}
+
+
+def public_retirement_result(result,*,retirement_requested=False):
+    if result.get('status')!='HOLD':return result
+    value=dict(result,stage='pp_retirement_verify',retirement_authorized=None if retirement_requested else False)
+    inventory=value.get('inventory')
+    value['reason']='inventory_exceeds_limits' if isinstance(inventory,dict) and inventory.get('fit')=='exceeds_limits' else 'native_hold_reason_unreported'
+    value['phase_accounting']=sanitize_phase_accounting(value.get('phase_accounting'))
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--origin',choices=(ORIGIN,*sorted(TRIAL_ORIGINS)),help='optional exact origin assertion; must match the reviewed environment')
@@ -289,6 +346,7 @@ def main():
         if args.origin is not None and args.origin != origin:
             raise LifecycleHold('CLI origin does not match reviewed environment')
         reader=origin in TRIAL_ORIGINS
+        indexed_latest = retirement_indexed_latest(os.environ, origin)
         require_trial_files(os.environ,origin,reader=reader,structured=True,storage=True)
         files=cloud_files(origin,reader=reader)
         check_environment(os.environ,origin_id=origin,files=files)
@@ -326,22 +384,21 @@ def main():
             permit.validate()
         if args.inventory_only:
             result = verify(LifecycleRepository(factory), None, target, inventory_only=True, limits=limits,origin=origin)
+            result=public_retirement_result(result,retirement_requested=args.retire_with_pp_permit)
             print(json.dumps(result,sort_keys=True))
             return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
         history_factory = retirement_history_factory(os.environ)
         raw=SupabaseStorageTransport.from_machine_files(*storage_paths(files),reader=reader,origin_id=origin)
         structured=HistoryV2PostgresTransport(history_factory,origin_id=origin,
-            generation_id=target.sealed,expected_database='postgres',expected_role=cloud_binding(origin).role(reader=reader))
+            generation_id=target.sealed,expected_database='postgres',expected_role=cloud_binding(origin).role(reader=reader),
+            indexed_latest=indexed_latest)
         scoped=RetirementTransport(raw,structured,origin_id=origin,generation_id=target.sealed)
         result = verify(LifecycleRepository(factory),scoped,target,permit=permit,limits=limits,origin=origin)
+        result=public_retirement_result(result,retirement_requested=args.retire_with_pp_permit)
         print(json.dumps(result,sort_keys=True))
         return 1 if result['status'] == 'HOLD' or result.get('operation_deadline_met') is False else 0
     except Exception as error:
-        print(json.dumps({'status':'HOLD','retirement_authorized':False,
-                          'reason':getattr(error,'code',type(error).__name__),
-                          'partition_outcome':('inspect_generation_and_ticket' if args.retire_with_pp_permit
-                                               else 'readback_only'),
-                          'phase_accounting':getattr(error,'retirement_accounting',None)}))
+        print(json.dumps(retirement_failure(error,retirement_requested=args.retire_with_pp_permit),allow_nan=False))
         return 1
     finally:
         if history_factory is not None and hasattr(history_factory, 'close'):

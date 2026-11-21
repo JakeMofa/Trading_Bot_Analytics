@@ -1,0 +1,122 @@
+{
+  "cloud_readonly_inventory": {
+    "authenticated_object_readback_repeated": false,
+    "diagnostic_query_corrections": [
+      "Initial revision table name wrong; read-only query failed with42P01; corrected from actual migration to structured_revision_payloads",
+      "Literal-origin Storage search empty; exact SHA256-origin prefix from source returned expected one object"
+    ],
+    "known_smoke_intent_matches": true,
+    "origin": "pp-live-pp-trial-20261119-03",
+    "recorded_at_utc": "2026-11-20T17:28:37.140283+00:00",
+    "scope": "read_only_supabase_catalog_before_live_admission",
+    "storage_bytes": 210,
+    "storage_objects": 1,
+    "structured_receipts": 1,
+    "structured_revision_payloads": 1,
+    "unexpected_trial_records_observed": false,
+    "writes": 0
+  },
+  "collector_on_recorded": false,
+  "credential_contents_included": false,
+  "deployment": {
+    "acceptance_scope": "generated_only",
+    "artifact_sha256": "3c0de67b4c134a95d4777a18b020dcf430f2b7f2be4dc07d20d4e9eadf1d3796",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "completed_at_utc": "2026-11-20T17:29:32.972834+00:00",
+    "environment": "preprod",
+    "gate": "PASS",
+    "instance": "tradebot-preprod-01",
+    "live_collector_enabled": false,
+    "paid_ai_enabled": false,
+    "production_data_mounted": false,
+    "release_version": "v0.2.0-pp.26",
+    "retention_enabled": false,
+    "run_id": 44783463740,
+    "runtime_image_id": "sha256:6044c8591a4f3eb2df319927bb8e68016e20eed5e13ab7ff5b53a95f7437a4a4",
+    "source_ci_run_id": 44782153188,
+    "source_sha": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "live_collection_satisfied": false,
+  "local_source_evidence_sha256": {
+    "actualdeployment.json": "6c8ef6f4750f0135820a7bff0d92be99f8893294a55b9969686ab2c5cf23d9b1",
+    "profile-ci-rerun-decision.json": "6b02953a27121e45c83398ba8baac42853b478e240509f4186ddd2fec14379fb",
+    "profile-merge-result.json": "8a7db355faa1c955d57f428437d7c33769ce2b3646b174697159d445b3425aaf",
+    "release-manifest.json": "7c8d0377ca5977dd21909ff8901a9a369ee7ed1593687f9f86813a8d88c1e8ed",
+    "source.json": "20261e21c7bd0713ca143de61c831172903befe80c7e7edf4dcd39a194f0e02f",
+    "trial-proofs-bound.json": "58488f15b3227ccbbc6565f2463b368fcc4d491e6aa99b90b8cb9adbfa373ef9",
+    "trial03-cloud-readonly-inventory.json": "a06ae89ec4f5ccafb55a1835778513a2b4d76ee2622a6aeb23fe09a82ae1d01d"
+  },
+  "pull_requests": {
+    "199": {
+      "merge_sha": "e16d7b8cab06d49282cc4e002bb015f4a9127466",
+      "merged": true
+    },
+    "200": {
+      "live_on": false,
+      "merge_sha": "08ea1b99299475da24b96f778ebf12bf76a64e25",
+      "pr": 200,
+      "pr_attempt1": "FAIL_Node_10s_timeout_cause_unproven",
+      "pr_attempt2": "PASS_failed_jobs_only_rerun",
+      "pr_ci": 44780508098,
+      "production_changed": false,
+      "push_ci": 44780471640,
+      "push_result": "PASS",
+      "recorded_at_utc": "2026-11-20T17:19:32.325589+00:00",
+      "source_sha": "579fea9600847ed0306dcd78beb67e7da893349c"
+    }
+  },
+  "qualification": {
+    "attempt_1": "FAIL_Node_10s_timeout_cause_unproven",
+    "attempt_2": "PASS_failed_jobs_only_rerun",
+    "deployment_run": 44783463740,
+    "exact_merge_source_ci": 44782153188,
+    "exact_profile_source_push_ci": 44780471640,
+    "original_cause": "unproven",
+    "original_failure": "dashboard Node subprocess 10-second timeout",
+    "original_failure_preserved": true,
+    "profile_pr_run": 44780508098,
+    "profile_source_sha": "579fea9600847ed0306dcd78beb67e7da893349c",
+    "publication_run": 44783320663,
+    "timeout_limits_changed": false
+  },
+  "rebind": {
+    "backup": "pp25-authority-evidence-20261120T173125Z-cff0dc0c-5f00-482e-99b3-cf6e6825eee5",
+    "backup_retained_by_completed_transaction": true,
+    "cloud_evidence_sha256": "4bbebde7cc764c9a0797b3a299bbde73673a42a567b7284f35dd7af5b956a13e",
+    "cloud_qualification_source_sha": "413aac3ef2b67c5612d3786376c58f44e6ab3e87",
+    "collector_on_authorized_by_rebind": false,
+    "controller_sha256": "895d252f8999746ee15a3739529105ad81dbf465adf3aa5f85a0bca334b66ff4",
+    "gate": "TRIAL_AUTHORITIES_REBOUND_NOT_AUTHORIZED",
+    "image_id": "sha256:6044c8591a4f3eb2df319927bb8e68016e20eed5e13ab7ff5b53a95f7437a4a4",
+    "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "operation_id": "cff0dc0c-5f00-482e-99b3-cf6e6825eee5",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "pure_proofs_unchanged": true,
+    "reader_proof_sha256": "ee4ba0699698c454e4bb95095ffdb3b237c248c20e5b0d492564c7c588e0dc4e",
+    "scope": "same03_same_initial_a_existing_pure_proofs_only_source_image_authority_update",
+    "source_sha": "08ea1b99299475da24b96f778ebf12bf76a64e25",
+    "writer_proof_sha256": "08b37cbbb5e0a115a97d918ebda9ff6e82a0901c85edd07dc136a06663390218"
+  },
+  "recorded_checkpoint": "after 2026-11-20T17:29:32.972834+00:00 deployment and recorded 17:31:25 UTC rebind; before any recorded collector ON",
+  "remaining_acceptance": [
+    "Actual LIVE_READY_OFF receipt",
+    "Fresh source-bound production fence and finite ON authorization/admission",
+    "Two complete official 15-minute markets per leg",
+    "A to B to fresh A archive and two physical retirements with independent before/after historical readback parity"
+  ],
+  "retirement_trial_satisfied": false,
+  "sanitized": true,
+  "scope": "pp26_generated_deployment_and_existing_trial03_release_rebind"
+}

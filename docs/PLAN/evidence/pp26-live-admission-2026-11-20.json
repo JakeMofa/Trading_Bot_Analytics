@@ -1,0 +1,91 @@
+{
+  "limitations": [
+    "Neither outgoing partition has sealed or retired at this checkpoint.",
+    "Coinbase source-age excursions exceeded 30 seconds; forecasts truthfully abstained.",
+    "Production collector is temporarily fenced and must be restored only after PP durable OFF."
+  ],
+  "observations": {
+    "live-api.jsonl": {
+      "at": "2026-11-20T17:57:26.544730+00:00",
+      "coinbase_age_seconds": 28.929,
+      "coinbase_event_id": "exchange-trade-1139872883",
+      "coinbase_feed_status": "fresh",
+      "collector_enabled": true,
+      "data_mode": "pp_live",
+      "environment": "preprod",
+      "error": null,
+      "feature_age_seconds": 2.441,
+      "feature_id": "5047986df5414cee96952d0fa50510e88dc7307582660c15f969f70aa12f0465",
+      "health_latency_ms": 75.678,
+      "health_status": "ok",
+      "market_end": "2026-11-20T18:00:00Z",
+      "market_id": "2730625",
+      "origin_id": "pp-live-pp-trial-20261119-03",
+      "polymarket_feed_status": "fresh",
+      "polymarket_receipt_age_seconds": 6.515,
+      "polymarket_receipt_time": "2026-11-20T17:57:20.029279+00:00",
+      "polymarket_source_age_seconds": 24.075,
+      "prediction_id": "3dd11e0a04f4702c498b96c0f277b9efadc2ffee2f5d4a5d2f311aa60f516aeb",
+      "price_generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "state_latency_ms": 77.795,
+      "storage_status": "ok"
+    },
+    "live-contract.jsonl": {
+      "at": "2026-11-20T17:57:11.691998+00:00",
+      "chart_latency_ms": 160.729,
+      "chart_ok": true,
+      "dashboard_latency_ms": 113.768,
+      "dashboard_ok": true,
+      "error": null,
+      "history_latency_ms": 106.963,
+      "prediction_history_ok": true,
+      "sse_latency_ms": 83.357,
+      "sse_ok": true
+    },
+    "live-db.jsonl": {
+      "admission": {
+        "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+        "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+        "lease_seconds": 6600,
+        "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+      },
+      "at_utc": "2026-11-20T17:57:12.805247+00:00",
+      "generations": [
+        {
+          "acknowledged": 11110,
+          "created_at": "2026-11-20T17:32:27.907706+00:00",
+          "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+          "hold_reason": null,
+          "official_market_pair": [],
+          "oldest_pending_at": "2026-11-20T17:57:10.972716+00:00",
+          "partition_attached": true,
+          "pending": 24,
+          "raw_events": 10358,
+          "relation_bytes": 20594688,
+          "relation_exists": true,
+          "retired_at": null,
+          "seal_count": null,
+          "seal_hash": null,
+          "sealed_at": null,
+          "slot": "A",
+          "started_at": "2026-11-20T17:32:27.907706+00:00",
+          "state": "collecting",
+          "verified_at": null,
+          "verified_manifests": 0
+        }
+      ],
+      "origin_id": "pp-live-pp-trial-20261119-03",
+      "writer": {
+        "collector_enabled": true,
+        "collector_lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+        "collector_session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9",
+        "epoch": 2,
+        "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45"
+      }
+    }
+  },
+  "origin_id": "pp-live-pp-trial-20261119-03",
+  "source_sha": "08ea1b99299475da24b96f778ebf12bf76a64e25",
+  "status": "LIVE_IN_PROGRESS_NOT_ROTATION_PASS"
+}

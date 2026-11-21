@@ -1,0 +1,221 @@
+{
+  "evidence": {
+    "inventory-1-failure.json": {
+      "partition_outcome": "inspect_no_blind_retry",
+      "reason": "IndexError",
+      "stage": "independent_readback_and_retirement",
+      "status": "HOLD"
+    },
+    "inventory-1.json": {
+      "cloud_requests": 0,
+      "collecting": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+      "inventory": {
+        "auth_calls_reserved": 1,
+        "byte_limit": 134217728,
+        "bytes_minimum": 45856597,
+        "bytes_upper_bound": 225598276,
+        "deadline_seconds": 240.0,
+        "fit": "conditional_on_newer_revision_bytes",
+        "profile": "pp-two-market-v1",
+        "raw_bytes": 3300164,
+        "raw_objects": 50,
+        "remaining_work_seconds": 220.121,
+        "request_limit": 192,
+        "requests_minimum": 104,
+        "seal_deadline_utc": "2026-11-20T18:45:07.207508+00:00",
+        "structured_bytes_examined": 42556433,
+        "structured_inventory_complete": true,
+        "structured_pages_examined": 53,
+        "structured_rows": 26480
+      },
+      "phase_accounting": {
+        "diagnostics_unavailable": false,
+        "elapsed_seconds": 19.881988,
+        "exhausted_limit": null,
+        "failed_phase": null,
+        "logical_bytes": 0,
+        "nested_phase_totals_overlap": true,
+        "phases": {
+          "inventory": {
+            "calls": 1,
+            "logical_bytes": 0,
+            "max_seconds": 19.588486,
+            "requests": 0,
+            "seconds": 19.588486
+          },
+          "local_finish": {
+            "calls": 1,
+            "logical_bytes": 0,
+            "max_seconds": 0.003094,
+            "requests": 0,
+            "seconds": 0.003094
+          },
+          "local_open": {
+            "calls": 1,
+            "logical_bytes": 0,
+            "max_seconds": 0.261924,
+            "requests": 0,
+            "seconds": 0.261924
+          }
+        },
+        "remaining_seconds": 220.118085,
+        "requests": 0,
+        "sqlstate": null
+      },
+      "retirement_authorized": false,
+      "sealed": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "status": "inventory_only"
+    },
+    "off-durable-state.json": {
+      "admission": {
+        "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+        "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+        "lease_seconds": 6600,
+        "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+      },
+      "at_utc": "2026-11-20T18:31:37.106926+00:00",
+      "generations": [
+        {
+          "acknowledged": 26480,
+          "created_at": "2026-11-20T17:32:27.907706+00:00",
+          "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+          "hold_reason": null,
+          "official_market_pair": [
+            {
+              "duration": 900,
+              "end_epoch": "1795197600",
+              "market_id": "2730625",
+              "quote_seen": true,
+              "source": "polymarket_us",
+              "start_epoch": "1795196700"
+            },
+            {
+              "duration": 900,
+              "end_epoch": "1795198500",
+              "market_id": "2730561",
+              "quote_seen": true,
+              "source": "polymarket_us",
+              "start_epoch": "1795197600"
+            }
+          ],
+          "oldest_pending_at": null,
+          "partition_attached": true,
+          "pending": 0,
+          "raw_events": 24649,
+          "relation_bytes": 48906240,
+          "relation_exists": true,
+          "retired_at": null,
+          "seal_count": 24649,
+          "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+          "sealed_at": "2026-11-20T18:15:07.207508+00:00",
+          "slot": "A",
+          "started_at": "2026-11-20T17:32:27.907706+00:00",
+          "state": "verified",
+          "verified_at": "2026-11-20T18:17:00.381174+00:00",
+          "verified_manifests": 50
+        },
+        {
+          "acknowledged": 13210,
+          "created_at": "2026-11-20T18:15:07.207508+00:00",
+          "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+          "hold_reason": null,
+          "official_market_pair": [],
+          "oldest_pending_at": null,
+          "partition_attached": true,
+          "pending": 0,
+          "raw_events": 12301,
+          "relation_bytes": 24477696,
+          "relation_exists": true,
+          "retired_at": null,
+          "seal_count": null,
+          "seal_hash": null,
+          "sealed_at": null,
+          "slot": "B",
+          "started_at": "2026-11-20T18:15:07.207508+00:00",
+          "state": "collecting",
+          "verified_at": null,
+          "verified_manifests": 0
+        }
+      ],
+      "origin_id": "pp-live-pp-trial-20261119-03",
+      "writer": {
+        "collector_enabled": false,
+        "collector_lease_expires_at": null,
+        "collector_session_id": null,
+        "epoch": 4,
+        "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e"
+      }
+    },
+    "production-fence-restore.json": {
+      "collector": {
+        "enabled": true,
+        "error": null,
+        "running": false
+      },
+      "gate": "PROD_ORIGINAL_COLLECTOR_SETTING_RESTORED",
+      "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+    },
+    "retire-1-docker-events.json": {
+      "events": [
+        {
+          "action": "die",
+          "exitCode": "1",
+          "name": "tradebot-pp-trial-final-15a239c9-2f9",
+          "time": 1795199409
+        },
+        {
+          "action": "destroy",
+          "exitCode": null,
+          "name": "tradebot-pp-trial-final-15a239c9-2f9",
+          "time": 1795199409
+        }
+      ]
+    },
+    "retire-1-failure.json": {
+      "failure_receipt": "/private/tmp/tradebot-pp26-trial-release/retire-1-failure.json",
+      "partition_outcome": "inspect_no_blind_retry",
+      "preserved_original_failure": null,
+      "reason": "outcome_unproven",
+      "stage": "remote_result",
+      "status": "HOLD"
+    },
+    "sealed-archive-stop.json": {
+      "status": "off"
+    },
+    "structured-sync-stop.json": {
+      "status": "off"
+    },
+    "target-1.json": {
+      "collecting": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+      "row_count": 24649,
+      "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+      "sealed": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "sealed_at": "2026-11-20T18:15:07.207508+00:00"
+    }
+  },
+  "limitations": [
+    "Native final-verifier HOLD reason and phase accounting were lost by the wrapper; exit 1 and about 249 seconds do not prove a particular failed phase.",
+    "A remains verified and attached; B remains locally preserved and requires a reviewed failed-trial sealing/archive path.",
+    "No fresh A, no local DROP, no full I7 freshness acceptance."
+  ],
+  "passive_continuity": {
+    "api_errors": 0,
+    "api_timeouts": 0,
+    "coinbase_max_source_age_seconds": 71.138,
+    "coinbase_stale_samples": 191,
+    "contract_errors": 0,
+    "contract_samples": 47,
+    "dashboard_and_sse_available": true,
+    "live_api_samples": 564,
+    "max_health_ms": 217.789,
+    "max_sample_gap_seconds": 5.175681,
+    "max_state_ms": 500.284,
+    "polymarket_fresh_samples": 543,
+    "polymarket_missing_samples": 21,
+    "qualification_scope": "Observed sampled continuity, not proof of zero missed external events; initial history and boundary chart warmup gaps preserved.",
+    "unexpected_off": 0
+  },
+  "source_sha": "08ea1b99299475da24b96f778ebf12bf76a64e25",
+  "status": "A_TO_B_AND_ARCHIVE_PASS_RETIREMENT_FAIL"
+}

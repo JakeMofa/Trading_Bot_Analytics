@@ -1,0 +1,1101 @@
+{
+  "baseline": {
+    "code": {
+      "pp_retained_archive_audit": "987b8e2e49592f292c3abd1399f062c01b700e2a39de038f93dd4d4ced769d86",
+      "pp_retirement_verify": "d2c07e30c29c13c2502c16610e89d80d25514502d05c738c72253b86c433d5c5"
+    },
+    "events": [
+      {
+        "at": "2026-11-20T20:53:21.818654+00:00",
+        "rows": [
+          {
+            "query_age_ms": 222,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:29.985626+00:00",
+        "rows": [
+          {
+            "query_age_ms": 70,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:38.214435+00:00",
+        "rows": [
+          {
+            "query_age_ms": 425,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:46.340689+00:00",
+        "rows": [
+          {
+            "query_age_ms": 476,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:53:54.491239+00:00",
+        "rows": [
+          {
+            "query_age_ms": 3,
+            "state": "active",
+            "wait": "DataFileRead",
+            "wait_type": "IO"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:54:02.728113+00:00",
+        "rows": [
+          {
+            "query_age_ms": 541,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:54:10.917175+00:00",
+        "rows": [
+          {
+            "query_age_ms": 28,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "evidence_scope": "read_only_retained_archive_audit",
+        "original_trial_satisfied": false,
+        "partition_outcome": "readback_only",
+        "phase_accounting": {
+          "diagnostics_unavailable": false,
+          "elapsed_seconds": 58.300975,
+          "exhausted_limit": null,
+          "failed_phase": "history_projections",
+          "logical_bytes": 4101899,
+          "nested_phase_totals_overlap": true,
+          "phases": {
+            "history_checkout": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 2e-06,
+              "requests": 0,
+              "seconds": 3e-06
+            },
+            "history_connect": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 0.337235,
+              "requests": 0,
+              "seconds": 0.635255
+            },
+            "history_exact_revisions": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.922533,
+              "requests": 0,
+              "seconds": 0.922533
+            },
+            "history_identity_checkpoint": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.21575,
+              "requests": 0,
+              "seconds": 0.21575
+            },
+            "history_latest_receipts": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 2.435211,
+              "requests": 0,
+              "seconds": 2.435211
+            },
+            "history_newer_revisions": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.10499,
+              "requests": 0,
+              "seconds": 0.10499
+            },
+            "history_projections": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.154116,
+              "requests": 0,
+              "seconds": 0.154116
+            },
+            "history_release": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 0.00021,
+              "requests": 0,
+              "seconds": 0.000216
+            },
+            "history_transaction": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 3.881667,
+              "requests": 0,
+              "seconds": 4.220143
+            },
+            "inventory": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 13.88893,
+              "requests": 0,
+              "seconds": 13.88893
+            },
+            "local_finish": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.000722,
+              "requests": 0,
+              "seconds": 0.000722
+            },
+            "local_open": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.09916,
+              "requests": 0,
+              "seconds": 0.09916
+            },
+            "raw_auth_token": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.713338,
+              "requests": 1,
+              "seconds": 0.713795
+            },
+            "raw_local_compare": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.607724,
+              "requests": 0,
+              "seconds": 13.961694
+            },
+            "raw_read_decode": {
+              "calls": 50,
+              "logical_bytes": 3300164,
+              "max_seconds": 1.509127,
+              "requests": 51,
+              "seconds": 24.63121
+            },
+            "structured_local_page": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.32773,
+              "requests": 0,
+              "seconds": 0.32773
+            },
+            "structured_readback": {
+              "calls": 1,
+              "logical_bytes": 801735,
+              "max_seconds": 4.684658,
+              "requests": 1,
+              "seconds": 4.684658
+            }
+          },
+          "remaining_seconds": 181.699112,
+          "requests": 53,
+          "sqlstate": null
+        },
+        "reason": "archive_unavailable",
+        "retirement_authorized": false,
+        "stage": "pp_retirement_verify",
+        "status": "HOLD"
+      }
+    ],
+    "exit_code": 1,
+    "finished_at": "2026-11-20T20:54:16.816188+00:00",
+    "generation": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "mode": "original_session_and_rank",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "runtime_source": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "final_pp_snapshot": {
+    "admission": {
+      "admitted_at": "2026-11-20T17:44:08.840017+00:00",
+      "initial_a": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "lease_expires_at": "2026-11-20T19:34:08.840017+00:00",
+      "lease_seconds": 6600,
+      "session_id": "142a0c69-147d-4b90-8483-ac6d9773e7f9"
+    },
+    "at_utc": "2026-11-20T21:00:24.566407+00:00",
+    "generations": [
+      {
+        "acknowledged": 26480,
+        "created_at": "2026-11-20T17:32:27.907706+00:00",
+        "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795197600",
+            "market_id": "2730625",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795196700"
+          },
+          {
+            "duration": 900,
+            "end_epoch": "1795198500",
+            "market_id": "2730561",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795197600"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 24649,
+        "relation_bytes": 48906240,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 24649,
+        "seal_hash": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "sealed_at": "2026-11-20T18:15:07.207508+00:00",
+        "slot": "A",
+        "started_at": "2026-11-20T17:32:27.907706+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T18:17:00.381174+00:00",
+        "verified_manifests": 50
+      },
+      {
+        "acknowledged": 13210,
+        "created_at": "2026-11-20T18:15:07.207508+00:00",
+        "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795200300",
+            "market_id": "2730737",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795199400"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "raw_events": 12301,
+        "relation_bytes": 24477696,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 12301,
+        "seal_hash": "b4d1ce1096234ae9f1d27b6baf0c866f6dde4d52ec4e9abdb5262df43c1ec2d9",
+        "sealed_at": "2026-11-20T19:00:04.00268+00:00",
+        "slot": "B",
+        "started_at": "2026-11-20T18:15:07.207508+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-20T19:01:07.36414+00:00",
+        "verified_manifests": 25
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 5,
+      "generation_id": "381070ac-3624-4826-8dc6-7ea5a272f97e"
+    }
+  },
+  "indexed": {
+    "code": {
+      "pp_retained_archive_audit": "987b8e2e49592f292c3abd1399f062c01b700e2a39de038f93dd4d4ced769d86",
+      "pp_retirement_verify": "d2c07e30c29c13c2502c16610e89d80d25514502d05c738c72253b86c433d5c5"
+    },
+    "events": [
+      {
+        "at": "2026-11-20T20:55:07.487119+00:00",
+        "rows": [
+          {
+            "query_age_ms": 139,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:15.659203+00:00",
+        "rows": [
+          {
+            "query_age_ms": 219,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:23.847782+00:00",
+        "rows": [
+          {
+            "query_age_ms": 98,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:32.147068+00:00",
+        "rows": [
+          {
+            "query_age_ms": 403,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:40.440074+00:00",
+        "rows": [
+          {
+            "query_age_ms": 303,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:48.585267+00:00",
+        "rows": [
+          {
+            "query_age_ms": 622,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:55:56.771593+00:00",
+        "rows": [
+          {
+            "query_age_ms": 105,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:04.963293+00:00",
+        "rows": [
+          {
+            "query_age_ms": 3180,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:13.103724+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1753,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:21.271633+00:00",
+        "rows": [
+          {
+            "query_age_ms": 638,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:29.432493+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2700,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:37.565255+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1513,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:45.709421+00:00",
+        "rows": [
+          {
+            "query_age_ms": 875,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:56:53.855913+00:00",
+        "rows": [
+          {
+            "query_age_ms": 222,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:02.330433+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2781,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:10.465793+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1119,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:18.684898+00:00",
+        "rows": [
+          {
+            "query_age_ms": 753,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:26.830312+00:00",
+        "rows": [
+          {
+            "query_age_ms": 690,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:34.979367+00:00",
+        "rows": [
+          {
+            "query_age_ms": 149,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:43.206103+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2260,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:51.338066+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1377,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:57:59.485285+00:00",
+        "rows": [
+          {
+            "query_age_ms": 741,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:07.632470+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1797,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:15.797432+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1050,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:23.961621+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2906,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:58:32.106402+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1763,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "bytes": 45934243,
+        "evidence_scope": "read_only_retained_archive_audit",
+        "historical_off": false,
+        "inventory": {
+          "auth_calls_reserved": 1,
+          "byte_limit": 134217728,
+          "bytes_minimum": 45856597,
+          "bytes_upper_bound": 225598276,
+          "deadline_seconds": 240.0,
+          "fit": "conditional_on_newer_revision_bytes",
+          "raw_bytes": 3300164,
+          "raw_objects": 50,
+          "request_limit": 192,
+          "requests_minimum": 104,
+          "structured_bytes_examined": 42556433,
+          "structured_inventory_complete": true,
+          "structured_pages_examined": 53,
+          "structured_rows": 26480
+        },
+        "last_structured_id": 108869,
+        "latest_receipt_lookup": "indexed_tie_safe_lateral",
+        "local_role": "tradebot_reader",
+        "manifest_digest": "2d13fca5162dba62169331c3aa9e87cfca9939d03e256a9054776d6871d8d083",
+        "objects_read": 50,
+        "operation_deadline_met": true,
+        "opposite": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "origin_id": "pp-live-pp-trial-20261119-03",
+        "original_seal_deadline_utc": "2026-11-20T18:45:07.207508+00:00",
+        "original_seal_expired_at_audit_start": true,
+        "original_trial_satisfied": false,
+        "phase_accounting": {
+          "diagnostics_unavailable": false,
+          "elapsed_seconds": 212.80087,
+          "exhausted_limit": null,
+          "failed_phase": null,
+          "logical_bytes": 45934243,
+          "nested_phase_totals_overlap": true,
+          "phases": {
+            "history_checkout": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 2e-06,
+              "requests": 0,
+              "seconds": 7.1e-05
+            },
+            "history_connect": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 0.401162,
+              "requests": 0,
+              "seconds": 17.389709
+            },
+            "history_exact_revisions": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 1.401889,
+              "requests": 0,
+              "seconds": 48.013406
+            },
+            "history_identity_checkpoint": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.232483,
+              "requests": 0,
+              "seconds": 11.0526
+            },
+            "history_latest_receipts": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.129424,
+              "requests": 0,
+              "seconds": 3.090355
+            },
+            "history_newer_revisions": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.204061,
+              "requests": 0,
+              "seconds": 5.77297
+            },
+            "history_projections": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.622227,
+              "requests": 0,
+              "seconds": 7.84562
+            },
+            "history_release": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 0.000821,
+              "requests": 0,
+              "seconds": 0.014525
+            },
+            "history_transaction": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 2.109892,
+              "requests": 0,
+              "seconds": 81.694003
+            },
+            "inventory": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 14.77299,
+              "requests": 0,
+              "seconds": 14.77299
+            },
+            "local_finish": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.000465,
+              "requests": 0,
+              "seconds": 0.000465
+            },
+            "local_open": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.108603,
+              "requests": 0,
+              "seconds": 0.108603
+            },
+            "raw_auth_token": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.520224,
+              "requests": 1,
+              "seconds": 0.520675
+            },
+            "raw_local_compare": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.630889,
+              "requests": 0,
+              "seconds": 13.425472
+            },
+            "raw_read_decode": {
+              "calls": 50,
+              "logical_bytes": 3300164,
+              "max_seconds": 0.964296,
+              "requests": 51,
+              "seconds": 22.780961
+            },
+            "structured_compare": {
+              "calls": 53,
+              "logical_bytes": 0,
+              "max_seconds": 0.539932,
+              "requests": 0,
+              "seconds": 11.86222
+            },
+            "structured_local_page": {
+              "calls": 54,
+              "logical_bytes": 0,
+              "max_seconds": 0.717559,
+              "requests": 0,
+              "seconds": 17.222587
+            },
+            "structured_readback": {
+              "calls": 53,
+              "logical_bytes": 42634079,
+              "max_seconds": 3.264128,
+              "requests": 53,
+              "seconds": 131.720408
+            }
+          },
+          "remaining_seconds": 27.199212,
+          "requests": 105,
+          "sqlstate": null
+        },
+        "raw_count": 24649,
+        "requests": 105,
+        "retirement_authorized": false,
+        "sealed": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "status": "retained_archive_audit_verified",
+        "structured_count": 26480,
+        "structured_role": "tradebot_pp_trial_20261119_03_reader",
+        "structured_transactions": "repeatable_read_read_only"
+      }
+    ],
+    "exit_code": 0,
+    "finished_at": "2026-11-20T20:58:39.709147+00:00",
+    "generation": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "mode": "fresh_session_and_index",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "runtime_source": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "indexed_with_reuse": {
+    "code": {
+      "pp_retained_archive_audit": "987b8e2e49592f292c3abd1399f062c01b700e2a39de038f93dd4d4ced769d86",
+      "pp_retirement_verify": "48ce8dd466ad29e548326768e3f4e4b798b186dc2725bf9e9546a1a481acea95"
+    },
+    "events": [
+      {
+        "at": "2026-11-20T20:59:03.472580+00:00",
+        "rows": [
+          {
+            "query_age_ms": 162,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:59:11.637089+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:59:19.914056+00:00",
+        "rows": [
+          {
+            "query_age_ms": 183,
+            "state": "active",
+            "wait": null,
+            "wait_type": null
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:59:28.088882+00:00",
+        "rows": [
+          {
+            "query_age_ms": 238,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:59:36.401174+00:00",
+        "rows": [
+          {
+            "query_age_ms": 184,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:59:44.553922+00:00",
+        "rows": [
+          {
+            "query_age_ms": 523,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T20:59:52.713271+00:00",
+        "rows": [
+          {
+            "query_age_ms": 1408,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "at": "2026-11-20T21:00:00.988068+00:00",
+        "rows": [
+          {
+            "query_age_ms": 2148,
+            "state": "idle in transaction",
+            "wait": "ClientRead",
+            "wait_type": "Client"
+          }
+        ],
+        "status": "local_wait_sample"
+      },
+      {
+        "evidence_scope": "read_only_retained_archive_audit",
+        "original_trial_satisfied": false,
+        "partition_outcome": "readback_only",
+        "phase_accounting": {
+          "diagnostics_unavailable": false,
+          "elapsed_seconds": 63.875892,
+          "exhausted_limit": null,
+          "failed_phase": "history_release",
+          "logical_bytes": 6503149,
+          "nested_phase_totals_overlap": true,
+          "phases": {
+            "history_checkout": {
+              "calls": 5,
+              "logical_bytes": 0,
+              "max_seconds": 0.332762,
+              "requests": 0,
+              "seconds": 0.663854
+            },
+            "history_connect": {
+              "calls": 2,
+              "logical_bytes": 0,
+              "max_seconds": 0.332107,
+              "requests": 0,
+              "seconds": 0.661606
+            },
+            "history_exact_revisions": {
+              "calls": 4,
+              "logical_bytes": 0,
+              "max_seconds": 3.216583,
+              "requests": 0,
+              "seconds": 5.669397
+            },
+            "history_identity_checkpoint": {
+              "calls": 4,
+              "logical_bytes": 0,
+              "max_seconds": 0.223041,
+              "requests": 0,
+              "seconds": 0.876647
+            },
+            "history_latest_receipts": {
+              "calls": 4,
+              "logical_bytes": 0,
+              "max_seconds": 0.063506,
+              "requests": 0,
+              "seconds": 0.245773
+            },
+            "history_newer_revisions": {
+              "calls": 4,
+              "logical_bytes": 0,
+              "max_seconds": 0.224594,
+              "requests": 0,
+              "seconds": 0.570222
+            },
+            "history_projections": {
+              "calls": 4,
+              "logical_bytes": 0,
+              "max_seconds": 0.415582,
+              "requests": 0,
+              "seconds": 0.911047
+            },
+            "history_release": {
+              "calls": 5,
+              "logical_bytes": 0,
+              "max_seconds": 0.000337,
+              "requests": 0,
+              "seconds": 0.00044
+            },
+            "history_transaction": {
+              "calls": 5,
+              "logical_bytes": 0,
+              "max_seconds": 4.1489,
+              "requests": 0,
+              "seconds": 9.026237
+            },
+            "inventory": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 15.491162,
+              "requests": 0,
+              "seconds": 15.491162
+            },
+            "local_finish": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.135234,
+              "requests": 0,
+              "seconds": 0.135234
+            },
+            "local_open": {
+              "calls": 1,
+              "logical_bytes": 0,
+              "max_seconds": 0.176116,
+              "requests": 0,
+              "seconds": 0.176116
+            },
+            "raw_auth_token": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.739782,
+              "requests": 1,
+              "seconds": 0.740218
+            },
+            "raw_local_compare": {
+              "calls": 50,
+              "logical_bytes": 0,
+              "max_seconds": 0.533927,
+              "requests": 0,
+              "seconds": 13.233376
+            },
+            "raw_read_decode": {
+              "calls": 50,
+              "logical_bytes": 3300164,
+              "max_seconds": 1.469021,
+              "requests": 51,
+              "seconds": 21.47812
+            },
+            "structured_compare": {
+              "calls": 3,
+              "logical_bytes": 0,
+              "max_seconds": 0.243646,
+              "requests": 0,
+              "seconds": 0.510814
+            },
+            "structured_local_page": {
+              "calls": 4,
+              "logical_bytes": 0,
+              "max_seconds": 0.40214,
+              "requests": 0,
+              "seconds": 1.220002
+            },
+            "structured_readback": {
+              "calls": 4,
+              "logical_bytes": 3202985,
+              "max_seconds": 4.650307,
+              "requests": 4,
+              "seconds": 10.947743
+            }
+          },
+          "remaining_seconds": 176.12432,
+          "requests": 56,
+          "sqlstate": null
+        },
+        "reason": "archive_limit",
+        "retirement_authorized": false,
+        "stage": "pp_retirement_verify",
+        "status": "HOLD"
+      }
+    ],
+    "exit_code": 1,
+    "finished_at": "2026-11-20T21:00:05.694731+00:00",
+    "generation": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "mode": "reusable_session_and_index",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "runtime_source": "08ea1b99299475da24b96f778ebf12bf76a64e25"
+  },
+  "live_retirement_requalified": false,
+  "supabase_baseline": {
+    "at_utc": "2026-11-20T20:54:16.213+00:00",
+    "reported_condition": "transaction_timeout",
+    "sqlstate": "25P04",
+    "storage_distinct_successful_gets": 50
+  }
+}

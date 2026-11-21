@@ -1,3 +1,149 @@
+## November 20, 2026 — PP26 A read-only timeout reproduced and indexed readback passed
+
+The retained A audit used reader-only credentials, with both PP partitions
+attached and every collector off. The original rank lookup and fresh connection
+per page passed all 50 raw comparisons, then failed on the first structured page.
+The client recorded `history_projections` and the hosted PostgreSQL log reported
+`25P04` (transaction timeout) at 20:54:16.213 UTC. The latest-receipt rank lookup
+had consumed 2.435 seconds on that page. This establishes the diagnostic
+failure, independently of the missing details from the original live attempt.
+
+Changing only the receipt lookup to the existing checked index passed all
+50 objects and 26,480 structured records across 53 pages. Total measured work
+was 212.801 seconds, the slowest structured page was 3.264 seconds and the
+slowest indexed latest-receipt lookup was 0.129 seconds. The 240-second operation
+and four-second page limits stayed in force. Local wait samples reported no
+lock wait during either run. The read-only audit does not exercise concurrent
+opposite-slot writes, permit issuance or partition removal.
+
+The indexed query with a reused connection failed on structured page four
+at 4.650 seconds. The longest exact-revision span reached 3.217 seconds and
+the final error surfaced at connection release. A single comparison does
+not isolate reuse as the cause. The selected live verifier candidate keeps
+fresh connections and exposes an explicit PP trial-only indexed lookup using
+the existing checked index and exact receipt comparisons. A fresh database
+snapshot confirmed both trial03 partitions remain attached and verified,
+with unchanged row counts and a durably stopped collector.
+A fresh live rehearsal must preserve trial03 and qualify its own independently
+scoped writer, reader, release and retirement authority. Production and both
+retained trial03 partitions were untouched by these audits.
+
+[Sanitized timing and query-wait evidence](evidence/pp26-retained-a-diagnostic-2026-11-20.json).
+
+## November 20, 2026 — PP26 B archived during recovery; live retirement still open
+
+With PP's collector durably off, the exact Linux CI-passed B recovery helper
+sealed B at **19:00:04 UTC**. All **12,301 raw records** verified in **25
+Supabase Storage objects** at **19:01:07 UTC**, 63.36 seconds after seal.
+All **13,210 structured records** remained acknowledged with zero pending.
+The archive worker was stopped and a fresh database check confirmed A and B
+both verified, still attached and never retired. The collector remained off,
+with no active session or lease. This was maintenance of the stopped trial,
+so the live B → fresh A handoff and retirement deadline remain unproven.
+
+The retirement command now preserves the failure phase, sanitized timings,
+budget use and SQLSTATE when present. The original failure remains unknown.
+For the next read-only verifier run, correlate phase evidence with PP
+PostgreSQL wait samples and Supabase query and connection metrics. Keep
+timing and wait data separate from row payloads or credentials.
+
+[Sanitized recovery evidence](evidence/pp26-retained-b-archive-2026-11-20.json)
+and [exact Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44797052857).
+
+## November 20, 2026 — PP26 A→B/archive passed; retirement failed, recovery in progress
+
+The recovery candidate adds a B-only seal operation pinned to the failed
+trial, observed counts and durable OFF state. Seven focused PostgreSQL
+tests passed locally, including a generated fixture at the observed raw
+and structured row counts. The candidate also preserves the verifier's
+failure stage and timing on future attempts. This does not reconstruct
+the original failure. Linux CI and the PP B archive remain pending.
+
+A switched to B at **18:15:07.207508 UTC**, with the original collector session
+still running. A covered both complete official markets and sealed **24,649 raw
+records**. All **50 raw archive objects** verified by **18:17:00.381174 UTC**
+(113.174 seconds after seal); all **26,480 structured records** were acknowledged.
+Supported retained-A history and original-input deterministic replay passed.
+
+The first read-only inventory launcher failed at its 12-second supervisor; Docker
+exit 137 and an empty-output parsing bug were recorded. A reviewed, six-test
+correction aligned inventory supervision with the already-selected 240-second
+verifier budget, without changing final retirement limits. Inventory then passed
+in **19.882 seconds**, examining all 53 structured pages; this does not itself
+authorize retirement.
+
+The first announced final-verification window was **18:25:44–18:30:39 UTC**.
+The retirement attempt returned a native nonzero result after about 249 seconds;
+the wrapper discarded its detailed HOLD because the native response lacked the
+expected `stage` field. The exact failure reason/phase remains **unproven**.
+A fresh database check confirmed A remains verified, attached and not retired.
+**No DROP occurred. The window is consumed; no blind retry is authorized.**
+
+Root explicitly stopped PP after this failure. At **18:31:37 UTC** durable OFF
+was verified with NULL session and lease. B retained **12,301 raw records**, with
+**13,210 structured acknowledgements and zero pending**. Both recurring workers
+were stopped. Production's prior service setting was restored: same legacy
+revision, enabled but storage-guard-held collector. No production data changed.
+
+Next work is diagnostic preservation and a narrowly qualified failed-trial03 B
+sealing/archive path; the existing final-A helper cannot accept this failed chain.
+B raw is not yet archived. Both partitions remain local. No B→fresh A, retirement,
+or complete freshness PASS is claimed. Coinbase source-age excursions were kept
+separate from Polymarket continuity. Phase1.75/I7 remain open.
+
+[Sanitized outcome and recovery evidence](evidence/pp26-live-retirement-hold-2026-11-20.json).
+
+## November 20, 2026 — PP26 live rehearsal admitted; rotation not yet proven
+
+Actual PP admission succeeded at **17:44:08.840017 UTC** on deployed `08ea1b9`.
+Trial03 uses the same initial A `15a239c9-2f9b-4bdc-bd89-7cd1e2812f45` and
+session `142a0c69-147d-4b90-8483-ac6d9773e7f9`; its unchanged lease expires
+**19:34:08.840017 UTC**. Production is temporarily collector-fenced/read-only;
+restore its prior setting only after independently confirmed PP durable OFF.
+
+Polymarket crossed the 17:45 market boundary without stopping the session:
+discovery at +11.0 seconds, first official quote receipt at +22.252 seconds.
+The supported dashboard/history/chart/SSE checks advance. Coinbase source-age
+excursions exceeded 30 seconds while Polymarket continued; forecasts correctly
+abstained with `reference_price_not_fresh`. This is not a full freshness PASS.
+A separately coordinated 500-row local history query returned in 0.816 seconds.
+
+At this in-progress checkpoint A remains collecting, with no retirement yet.
+A's two full official markets are 17:45–18:00 and 18:00–18:15. B must likewise
+cover two full official markets: quarter alignment can make its elapsed duration
+longer than 30 minutes. Each retirement deadline remains actual seal +30 minutes.
+Root owns each announced final verification window, exact retirement, history
+parity, final OFF/drain and production-fence restoration. No cache purge is needed.
+
+[Sanitized admission/observation evidence](evidence/pp26-live-admission-2026-11-20.json).
+
+## November 20, 2026 — PP26 deployed; existing trial03 proofs rebound
+
+PP26 `v0.2.0-pp.26` is deployed in PP: source `08ea1b9`, image
+`sha256:6044c859…`, generated-only CD `44783463740` **PASS**. Exact merge-source
+CI `44782153188` and publication `44783320663` passed. PRs #199 and #200 are
+merged. This supersedes the earlier pending-deployment/rebind notes below.
+
+The CI history remains explicit: profile source `579fea9` passed exact push
+`44780471640`; PR run `44780508098` attempt 1 failed a dashboard Node subprocess
+at its existing 10-second timeout. Its cause remains unproven. One failed-jobs-only
+rerun, attempt 2, passed; the original failure is preserved and no timeout was raised.
+
+The completed local authority rebind preserves trial03 origin
+`pp-live-pp-trial-20261119-03`, initial A `15a239c9-2f9b-4bdc-bd89-7cd1e2812f45`,
+and cloud qualification source `413aac3`. Both pure proof byte hashes are unchanged;
+the original PP25 bytes remain in the dated root backup. The authorities now bind
+the actual PP26 source/image and installed controller `895d252f…`. Rebinding
+creates no collector authority. Read-only cloud inventory still contains only the
+known synthetic fixture: one receipt, one revision payload and one 210-byte object;
+that catalog check did not repeat authenticated object readback.
+
+At this checkpoint, no collector ON or live-trial success is recorded. Next are
+actual LIVE_READY_OFF, a fresh production fence and finite ON authorization/admission,
+then two complete official 15-minute markets per leg. A → B → fresh A archive,
+both physical retirements, and independent before/after historical readback parity
+remain unproven. [Sanitized deployment/rebind evidence](evidence/pp26-deployment-rebind-2026-11-20.json).
+
 ## November 20, 2026 — PP26 controller identity verified
 
 PR #199 merged as `e16d7b8` after exact-source and PR Linux CI passed

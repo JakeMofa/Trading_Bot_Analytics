@@ -14,13 +14,16 @@ import re
 import uuid
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, CycleBudget
+from .cloud_origin_binding import cloud_binding
+from .cloud_runtime_profile import cloud_files, require_trial_files, selected_cloud_origin, storage_paths
 from .history_v2_envelope import CLOUD_COLUMNS
 from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, _DeadlineConnection
 from .pp_retirement_report import bound_catalog
 from .pp_retirement_verify import (ORIGIN, Target, TwoMarketReadbackLimits,
-    RetirementTransport, inventory, retirement_history_factory)
+    RetirementTransport, inventory, retirement_failure, retirement_history_factory)
 from .retirement_accounting import accounted, bind_budget, measured_context, phase
 
+STOPPED_TRIAL = 'pp-live-pp-trial-20261119-03'
 LOCAL_DSN = '/run/secrets/pp_retained_reader_dsn'
 LOCAL_TABLES = ('ops.environment_identity', 'archive.generations', 'archive.manifests',
     'raw.events', 'ops.outbox', 'ops.writer_state')
@@ -78,7 +81,7 @@ def require_select(db, tables, *, latest_index=False):
 
 
 @contextmanager
-def local_snapshot(factory,budget):
+def local_snapshot(factory,budget, *, monitor=False):
     # No lifecycle credential, generation UPDATE lock, reader lease write,
     # checkpoint, permit or destructive method is used by this path.
     with factory() as connection:
@@ -92,6 +95,8 @@ def local_snapshot(factory,budget):
             if identity != dict(role='tradebot_reader',database='tradebot_pp',read_only='on'):
                 raise LifecycleHold('exact read-only local PP reader required')
             require_select(db,LOCAL_TABLES)
+            if monitor:
+                db.execute("SET LOCAL application_name='tradebot-retained-archive-audit'")
             db.execute("SET LOCAL lock_timeout='250ms'")
             # Compatible with B persistence; prevents concurrent partition DROP.
             db.execute('LOCK TABLE raw.events IN ACCESS SHARE MODE')
@@ -119,16 +124,23 @@ def remote_preflight(structured,budget):
 
 
 @accounted
-def audit(factory,transport,target):
+def audit(factory,transport,target, *, origin=None):
     target.validate()
-    if (transport.origin_id != ORIGIN or transport.generation_id != target.sealed):
+    if origin is None:
+        origin = ORIGIN
+    if (origin not in (ORIGIN, STOPPED_TRIAL) or transport.origin_id != origin
+            or transport.generation_id != target.sealed
+            or (origin == STOPPED_TRIAL and (target.historical_off
+                or transport.structured.expected_role != cloud_binding(origin).reader_role
+                or getattr(transport.raw, "_reader", False) is not True
+                or getattr(getattr(transport.raw, "_origin_binding", None), "origin_id", None) != origin))):
         raise LifecycleHold('exact PP retained archive transport required')
     limits=TwoMarketReadbackLimits()
     with CycleBudget(limits) as budget:
         bind_budget(budget)
-        with measured_context(local_snapshot(factory,budget),enter='local_open',finish='local_finish') as db:
+        with measured_context(local_snapshot(factory,budget,monitor=origin == STOPPED_TRIAL),enter='local_open',finish='local_finish') as db:
             generation=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s AND generation_id=%s',
-                (ORIGIN,target.sealed)).fetchone()
+                (origin,target.sealed)).fetchone()
             manifests=LifecycleRepository._manifests(db,target.sealed)
             slot = 'B' if target.historical_off else 'A'
             if (not generation or generation['slot'] != slot or generation['seal_count'] != target.count
@@ -136,12 +148,22 @@ def audit(factory,transport,target):
                     or len(manifests) != target.raw_objects):
                 raise LifecycleHold('reviewed retained seal or catalog changed')
             active=db.execute('''SELECT generation_id,collector_enabled,collector_session_id,
-                collector_lease_expires_at FROM ops.writer_state WHERE origin_id=%s''',(ORIGIN,)).fetchone()
+                collector_lease_expires_at FROM ops.writer_state WHERE origin_id=%s''',(origin,)).fetchone()
             if not active or str(active['generation_id']) != target.collecting:
                 raise LifecycleHold('reviewed writer generation changed')
             if target.historical_off and (active['collector_enabled'] or active['collector_session_id'] is not None
                     or active['collector_lease_expires_at'] is not None):
                 raise LifecycleHold('reviewed historical writer is not durably OFF')
+            if origin == STOPPED_TRIAL:
+                writers_on = db.execute("""SELECT EXISTS (SELECT 1 FROM ops.writer_state
+                    WHERE collector_enabled OR collector_session_id IS NOT NULL
+                        OR collector_lease_expires_at IS NOT NULL) AS running""").fetchone()
+                successor = db.execute("""SELECT slot, state, retired_at, started_at FROM archive.generations
+                    WHERE origin_id=%s AND generation_id=%s""", (origin, target.collecting)).fetchone()
+                if (writers_on['running'] or not successor or successor['slot'] != 'B'
+                        or successor['state'] != 'verified' or successor['retired_at'] is not None
+                        or successor['started_at'] != generation['sealed_at']):
+                    raise LifecycleHold('retained trial requires the verified opposite slot and all writers OFF')
             actual=db.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                 (target.sealed,)).fetchone()['count']
             if actual != target.count:
@@ -174,19 +196,20 @@ def audit(factory,transport,target):
         'structured_role':transport.structured.expected_role,
         'structured_transactions':'repeatable_read_read_only',
         'latest_receipt_lookup':'indexed_tie_safe_lateral' if transport.structured.indexed_latest else 'rank',
-        'sealed':target.sealed,'opposite':None if target.historical_off else target.collecting,
+        'origin_id':origin, 'sealed':target.sealed,'opposite':None if target.historical_off else target.collecting,
         'historical_off':target.historical_off,'inventory':estimate,**readback}
 
 
-def check_environment(environ):
+def check_environment(environ, *, origin=ORIGIN):
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
             environ.get('TRADEBOT_DATA_MODE') != 'pp_live' or
-            environ.get('TRADEBOT_ORIGIN_ID') != ORIGIN or
+            origin not in (ORIGIN, STOPPED_TRIAL) or
+            environ.get('TRADEBOT_ORIGIN_ID') != origin or
             environ.get('TRADEBOT_PP_RETAINED_ARCHIVE_AUDIT') != 'true' or
             environ.get('TRADEBOT_DATABASE_DSN_FILE') != LOCAL_DSN or
             environ.get('TRADEBOT_DATABASE_DSN') or
             any(environ.get(flag,'false') != 'false' for flag in OFF_FLAGS) or
-            os.path.exists('/run/secrets/pp_retirement_ticket')):
+            (os.path.lexists if origin == STOPPED_TRIAL else os.path.exists)('/run/secrets/pp_retirement_ticket')):
         raise LifecycleHold('isolated read-only retained audit identity required; no retirement ticket')
 
 
@@ -204,7 +227,9 @@ def main():
             args.structured_rows,args.raw_objects,args.structured_pages,args.original_deadline_utc,
             historical_off=args.historical_off)
         target.validate()
-        check_environment(os.environ)
+        origin=selected_cloud_origin(os.environ)
+        check_environment(os.environ, origin=origin)
+        require_trial_files(os.environ, origin, reader=True, structured=True, storage=True)
         from .connection import connect
         from .pp_structured_probe import private_dsn
         from .history_v2_transport import HistoryV2PostgresTransport
@@ -214,20 +239,19 @@ def main():
         dsn=private_dsn(Path(LOCAL_DSN))
         factory=lambda:connect(dsn,environment='preprod',readonly=True)
         history=retirement_history_factory(os.environ)
-        structured=HistoryV2PostgresTransport(history,origin_id=ORIGIN,generation_id=target.sealed,
-            expected_database='postgres',expected_role='tradebot_pp_history',
+        structured=HistoryV2PostgresTransport(history,origin_id=origin,generation_id=target.sealed,
+            expected_database='postgres',expected_role=cloud_binding(origin).role(reader=True),
             indexed_latest=indexed_latest_requested(os.environ))
-        raw=SupabaseStorageTransport.from_machine_files('/run/secrets/history_reader_api_key',
-            '/run/secrets/history_reader_email','/run/secrets/history_reader_password',
-            '/run/secrets/history_reader_uid',reader=True)
-        result=audit(factory,RetirementTransport(raw,structured,origin_id=ORIGIN,generation_id=target.sealed),target)
+        raw=SupabaseStorageTransport.from_machine_files(
+            *storage_paths(cloud_files(origin, reader=True)), reader=True, origin_id=origin)
+        result=audit(factory, RetirementTransport(raw, structured, origin_id=origin,
+            generation_id=target.sealed), target, origin=origin)
         print(json.dumps(result,sort_keys=True))
         return 0 if result['operation_deadline_met'] else 1
     except Exception as error:
-        print(json.dumps({'status':'HOLD','evidence_scope':'read_only_retained_archive_audit',
-            'retirement_authorized':False,'original_trial_satisfied':False,
-            'reason':getattr(error,'code',type(error).__name__),
-            'phase_accounting':getattr(error,'retirement_accounting',None)},sort_keys=True))
+        failure = retirement_failure(error)
+        failure.update(evidence_scope='read_only_retained_archive_audit', original_trial_satisfied=False)
+        print(json.dumps(failure, sort_keys=True, allow_nan=False))
         return 1
     finally:
         try:

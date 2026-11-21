@@ -541,6 +541,17 @@ lookup took 0.092 seconds. It used 54 requests and recorded no retirement
 authority. The new rehearsal requires a separate scope while these old A
 and B remain attached. [Exact merge CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44865255705)
 
+PP27 reached live-ready OFF in the fourth isolated trial on the same VM.
+The first deployment was held by the 1 GiB available-memory guard before
+migration. The exact release passed on one retry after temporarily pausing
+an idle firmware service, which was then restored. PostgreSQL was preserved.
+An independent comparison of the saved pre/post snapshots matched both
+trial03 generation records and the OFF writer exactly. Trial04 had one empty
+A, with no session or lease. Its retirement verifier uses the existing
+index with fresh per-page connections. The two trial04 archive-protection
+windows were pending confirmation when this snapshot was checked.
+[Successful deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44870088476)
+
 ## Product scope and decisions
 
 Managed Pipelines and Analytics Buckets require hosted capabilities. The

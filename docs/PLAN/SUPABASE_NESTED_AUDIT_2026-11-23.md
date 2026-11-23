@@ -37,6 +37,8 @@ The [workstation publisher](../../deploy/preprod/publish_archive_metrics.py) sub
 
 The first B observation arrived at 20:15:25 UTC with 57 acknowledged rows. B subsequently appeared alongside A in the three archive panels. Each series carries its slot and generation identity.
 
+The release observer recorded durable writer OFF at 20:23:04 UTC. A was verified with 25,872 acknowledged rows and B had 6,149 acknowledged rows. Both queues were empty. The publisher sent the last two generation samples at 20:23:12 UTC and exited successfully. Both samples matched entries in its HTTP-success ledger, which recorded 222 accepted line-protocol points over the trial. B stopped before completing its full market window, so the dashboard captured A and partial B.
+
 The managed backlog rule evaluates each generation every 10 seconds. It requires at least two samples within 50 seconds. All observed depths must exceed 200 rows and all observed oldest pending ages must exceed 20 seconds. Depth must increase between the last two observations, and both latest samples must be less than 35 seconds old. Missing data is reported as NoData. The rule uses the existing empty contact point and links to the pending-rows panel. In a hosted replay of A, the expression returned 1 at 20:01:25 UTC during the stall and 0 at 20:02:25 UTC during recovery. The saved rule subsequently showed Normal. [Grafana alert rule](https://heftychameleon632.grafana.net/alerting/grafana/eg577vysed05ce/view) · [Trial05 timing evidence](evidence/trial05-writer-timeout-window-2026-11-23.json)
 
 | Observation and scope | Hosted statement statistics | PostgreSQL client connections | PP oldest pending age | PP structured ACKs |

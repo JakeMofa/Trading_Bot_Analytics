@@ -1,3 +1,20 @@
+## November 23, 2026 CST — PP28 live preflight found no unused trial scope
+
+The temporary production fence was authorized for a fresh PP28 run. The
+read-only PP preflight stopped before installing it. The deployed controller
+allows trial04 as its only writable qualified trial scope. The earlier trial
+scopes are retained or already populated. Trial04's writer is OFF at epoch 3,
+with its prior admission recorded, 659 raw events and 705 outbox records
+retained. Its preparation checkpoint belongs to PP27 source `17ba31e`.
+PP28's preparation requires an unused epoch-1 A, no event or outbox
+rows, and a checkpoint bound to its exact source. Its independent cloud
+reader and writer proofs also bind the exact source, image and anchor.
+
+A fresh rehearsal requires an isolated trial scope that preserves trial04.
+Both collectors' configuration and the Supabase policies stayed as found.
+PP remained in generated mode with zero enabled live writers. No rehearsal
+authority was issued, and neither verification window or deletion ran.
+
 ## November 23, 2026 CST — PP28 deployed and validated in generated mode
 
 [PR #204](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/204) merged

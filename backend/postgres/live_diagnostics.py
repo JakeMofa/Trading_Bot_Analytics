@@ -23,7 +23,7 @@ CATEGORIES = frozenset({
     'http_unexpected',
     'invalid_or_unavailable', 'identity_mismatch', 'invalid_quote', 'invalid_source_time',
     'response_limit', 'invalid_json', 'write_rejected', 'unexpected', 'ended',
-    'lease_lost', 'deadline_reached', 'durable_off_unproven',
+    'lease_lost', 'database_unavailable', 'deadline_reached', 'durable_off_unproven',
     'ws_closed_ok', 'ws_closed_error', 'ws_handshake_invalid', 'ws_protocol',
 })
 

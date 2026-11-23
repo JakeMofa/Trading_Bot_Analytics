@@ -9,6 +9,8 @@ from __future__ import annotations
 import asyncio
 import logging
 
+from psycopg import Error as PostgresError
+
 from .rehearsal_profile import lease_cap, CYCLE_ORIGINS
 from datetime import datetime, timezone
 
@@ -32,6 +34,8 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                       clock=lambda: datetime.now(timezone.utc), rehearsal_anchor=None):
     """Run three independent read-only feed tasks while ownership stays valid.
 
+    `owner_check` must prove the current session ID and unexpired durable
+    writer lease together. A failed or inconclusive check ends the session.
     Source-only Coinbase stream retries are rate-limited in coinbase_session;
     candle transport/429/5xx failures wait for the normal candle cadence. Other
     failures abort, and this session deadline bounds all retries. Retry does not
@@ -47,16 +51,24 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     if not 1 <= market_interval <= 10 or not 60 <= candle_interval <= 300:
         raise ValueError('source cadence outside qualified bounds')
 
-    def assert_fence():
-        if owner_check() is not True or store.collector_enabled() is not True:
+    async def assert_fence():
+        # The operator callback checks the session ID, durable enable flag,
+        # and lease expiry together in one database read.
+        try:
+            owned = await asyncio.wait_for(asyncio.to_thread(owner_check), timeout=2)
+        except TimeoutError:
+            raise LiveDiagnostic('ownership', 'timeout') from None
+        except PostgresError as error:
+            category = 'timeout' if error.sqlstate == '57014' else 'database_unavailable'
+            raise LiveDiagnostic('ownership', category) from None
+        except Exception as error:
+            raise diagnose('ownership', error) from None
+        if owned is not True:
             raise LiveDiagnostic('ownership', 'lease_lost')
 
     async def watch_fence():
         while not stop.is_set():
-            try:
-                await asyncio.wait_for(asyncio.to_thread(assert_fence), timeout=2)
-            except Exception:
-                raise LiveDiagnostic('ownership', 'lease_lost') from None
+            await assert_fence()
             await _pause_or_stop(stop, 1)
 
     async def coinbase_stream():
@@ -99,7 +111,7 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     tasks = []
     stop_task = None
     try:
-        await asyncio.wait_for(asyncio.to_thread(assert_fence), timeout=2)  # No source opens first.
+        await assert_fence()  # No source opens first.
         named = {'ownership': watch_fence, 'coinbase_stream': coinbase_stream,
                  'polymarket_loop': market_loop, 'coinbase_candle_loop': candle_loop}
         tasks = [asyncio.create_task(task()) for task in named.values()]

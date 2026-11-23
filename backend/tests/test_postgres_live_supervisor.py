@@ -9,6 +9,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx
+from psycopg import OperationalError
+from psycopg.errors import QueryCanceled
 from postgres.live_ingest import polymarket_cycle
 from postgres.live_supervisor import CollectorHold, run_bounded
 from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
@@ -178,7 +180,7 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(store.calls, 0)
         self.assertEqual(store.stops, 1)
         with self.assertRaises(CollectorHold):
-            await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
+            await run_bounded(store, None, asyncio.Event(), owner_check=store.collector_enabled,
                               disable_collector=store.disable, max_seconds=1,
                               coinbase=source, market=source, candles=source)
 
@@ -202,6 +204,33 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('market', calls)
         self.assertIn('candle', calls)
         self.assertFalse(store.enabled)
+        self.assertEqual(store.calls, 0)
+
+    async def test_ownership_read_errors_report_fixed_codes_and_leave_writer_off(self):
+        for error, code in (
+            (TimeoutError('private scheduling details'), 'ownership.timeout'),
+            (QueryCanceled('private SQL'), 'ownership.timeout'),
+            (OperationalError('private connection details'), 'ownership.database_unavailable'),
+        ):
+            with self.subTest(code=code):
+                store, stop = Store(), asyncio.Event()
+                checks = 0
+                def check_owner():
+                    nonlocal checks
+                    checks += 1
+                    if checks > 1:
+                        raise error
+                    return True
+                async def idle(*_args, **_kwargs):
+                    await stop.wait()
+                with self.assertRaises(LiveDiagnostic) as caught:
+                    await run_bounded(store, None, stop, owner_check=check_owner,
+                                      disable_collector=store.disable, max_seconds=2,
+                                      coinbase=idle, market=idle, candles=idle)
+                self.assertEqual(caught.exception.code, code)
+                self.assertNotIn('private', str(caught.exception))
+                self.assertEqual((checks, store.calls, store.stops), (2, 0, 1))
+                self.assertFalse(store.enabled)
 
     async def test_lost_durable_flag_cancels_waiting_feed(self):
         store, stop = Store(), asyncio.Event()
@@ -218,7 +247,7 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
             store.enabled = False
         revoker = asyncio.create_task(revoke())
         with self.assertRaises(CollectorHold):
-            await run_bounded(store, None, stop, owner_check=lambda: True,
+            await run_bounded(store, None, stop, owner_check=store.collector_enabled,
                               disable_collector=store.disable, max_seconds=2,
                               coinbase=coinbase, market=idle, candles=idle)
         await revoker

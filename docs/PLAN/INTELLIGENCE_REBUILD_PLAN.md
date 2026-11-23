@@ -1,3 +1,66 @@
+## November 23, 2026 CST — PP27 trial04 stopped before A could seal
+
+**Trial04 FAILED before storage rotation.** PP27 source `17ba31e` admitted
+the one-use collector at 11:59:09.700 a.m. CST. Its durable writer went OFF
+at 12:00:03.798 p.m. CST after 54.098 seconds. The private operator reported
+`ownership.lease_lost`. In PP27 this code covers a negative ownership result,
+a watchdog deadline and an exception in either of two database reads.
+The underlying trigger remains unproven. The Polymarket quote received after
+noon carries a pre-boundary source time. New-market quote acceptance remains open.
+
+Initial A remains attached with 659 raw events, including eight Polymarket
+quotes. Its 705 structured outbox records were acknowledged and zero remain
+pending. Raw archival requires a seal, which this attempt never reached.
+Both prior trial03 partitions remain attached and verified. Neither trial04
+freeze window opened, no B was created, and zero partitions were removed.
+
+PP collection and both trial cloud workers are confirmed OFF. The original
+production service setting was restored after durable PP OFF. Production is
+still held by its existing legacy storage guard.
+
+The successor on review uses one exact session-ID, enable flag and expiry
+read for the watchdog. It preserves the two-second watchdog deadline,
+transactional write fences and OFF-on-failure behavior. Sanitized operator logs
+distinguish a negative ownership result from a watchdog timeout or database
+failure. The successor requires exact CI and a fresh, separately scoped PP
+trial. A consumed trial04 admission and its nonempty initial A remain evidence.
+
+[Sanitized trial04 evidence](evidence/pp27-trial04-boundary-stop-2026-11-23.json).
+
+## November 20, 2026 CST — PP27 deployed; fresh trial04 ready with collection off
+
+[PR #202](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/202) and
+[PR #203](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/203) merged.
+The PP27 release binds exact preprod source `17ba31e`, exact push CI
+`44869270426`, verified controller `486ad278` and the existing PP VM.
+Trial04's fresh SQL and Storage identities passed exact authenticated
+synthetic readback and denial checks against the older scopes. Existing
+policy, grant, role and receipt/revision fingerprints matched.
+
+The first CD attempt `44869823304` held before migration on the 1 GiB
+memory floor and left its permit unused. The reviewed, temporary pause of
+idle fwupd yielded passing memory samples for one retry. [CD retry
+`44870088476`](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44870088476)
+passed generated acceptance with the guards unchanged. fwupd was restored
+and persistent enablement was unchanged. PostgreSQL was preserved.
+
+The source/image-bound trial04 proofs were installed and ENTER returned
+`PP_LIVE_READY_OFF`. A is empty and there is no collector session or lease.
+Both recurring workers are ready with retirement off. The private dashboard
+and SSE respond and the empty, OFF profile reports missing live feeds.
+A read-only snapshot after deployment and ENTER matched both attached
+trial03 partitions and their stopped writer. Production was not changed.
+
+Final retirement uses the qualified indexed receipt lookup and fresh
+connections. The existing recurring writer's separate connection reuse
+remains enabled. Do not start the new live rehearsal until the two fresh
+trial04 administrator mutation-free windows can be honored. Trial03's
+completed/expired windows do not carry over. When ready, establish the
+production collector fence and use a single finite quarter-aligned session.
+Live A → B → fresh A and both timely retirements remain unproven.
+
+[Sanitized PP27 deployment and ready-OFF evidence](evidence/pp27-trial04-ready-off-2026-11-20.json).
+
 ## November 20, 2026 CST — Indexed fix merged; fresh PP rehearsal preparation
 
 PR #201's existing-fixture CI failure was caused by a captured default origin.

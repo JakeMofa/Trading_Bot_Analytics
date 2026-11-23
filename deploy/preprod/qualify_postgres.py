@@ -146,7 +146,9 @@ def isolate_controller_fixture(runtime_env,owned):
 
 
 FAILED_RECOVERY_MODULE='test_postgres_failed_trial_drain'
-APPLICATION_TEST_PHASES=(('application_lifecycle',180),('failed_trial_recovery',90))
+TERMINAL_ARCHIVE_MODULE='test_postgres_third_trial_final_drain'
+APPLICATION_TEST_PHASES=(('application_lifecycle',180),('terminal_archive_recovery',90),
+                         ('failed_trial_recovery',90))
 
 
 def partition_application_tests(suite):
@@ -160,19 +162,21 @@ def partition_application_tests(suite):
         else:
             raise RuntimeError('unexpected application test node')
     original=list(cases(suite))
-    def is_recovery(case):
-        return (type(case).__module__==FAILED_RECOVERY_MODULE or
-                case.id()=='unittest.loader._FailedTest.'+FAILED_RECOVERY_MODULE)
-    recovery=[case for case in original if is_recovery(case)]
-    application=[case for case in original if not is_recovery(case)]
-    if not original or not application or not recovery:
-        raise RuntimeError('both application and failed-trial recovery tests are required')
+    module_phases={FAILED_RECOVERY_MODULE:'failed_trial_recovery',
+                   TERMINAL_ARCHIVE_MODULE:'terminal_archive_recovery'}
+    groups={phase:[] for phase,_ in APPLICATION_TEST_PHASES}
+    for case in original:
+        module=type(case).__module__
+        if case.id().startswith('unittest.loader._FailedTest.'):
+            module=case.id().removeprefix('unittest.loader._FailedTest.')
+        groups[module_phases.get(module,'application_lifecycle')].append(case)
+    if not all(groups.values()):
+        raise RuntimeError('all PostgreSQL application qualification phases are required')
     before=Counter(case.id() for case in original)
-    after=Counter(case.id() for case in application+recovery)
-    if before!=after or len(application)+len(recovery)!=len(original):
+    after=Counter(case.id() for group in groups.values() for case in group)
+    if before!=after:
         raise RuntimeError('application test partition lost or duplicated a test')
-    return {'application_lifecycle':unittest.TestSuite(application),
-            'failed_trial_recovery':unittest.TestSuite(recovery)}
+    return {phase:unittest.TestSuite(group) for phase,group in groups.items()}
 
 
 def application_test_code(phase):

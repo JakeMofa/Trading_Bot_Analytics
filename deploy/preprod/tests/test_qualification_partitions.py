@@ -29,17 +29,21 @@ def ids(suite):
 
 
 class PartitionTests(unittest.TestCase):
-    def test_only_exact_recovery_module_moves_with_no_lost_or_duplicated_tests(self):
+    def test_exact_recovery_modules_move_without_lost_or_duplicated_tests(self):
         before=unittest.TestSuite([case('test_postgres_application','App'),unittest.TestSuite([
             case(q.FAILED_RECOVERY_MODULE,'RecoveryA'),case(q.FAILED_RECOVERY_MODULE,'RecoveryB'),
-            case(q.FAILED_RECOVERY_MODULE+'_extra','Neighbor')])])
+            case(q.FAILED_RECOVERY_MODULE+'_extra','Neighbor'),
+            case(q.TERMINAL_ARCHIVE_MODULE,'FinalArchive')])])
         expected=Counter(ids(before))
         parts=q.partition_application_tests(before)
         self.assertEqual(parts['application_lifecycle'].countTestCases(),2)
         self.assertEqual(parts['failed_trial_recovery'].countTestCases(),2)
-        combined=Counter(ids(parts['application_lifecycle']))+Counter(ids(parts['failed_trial_recovery']))
-        self.assertEqual(combined,expected)
-        self.assertTrue(all(name.startswith(q.FAILED_RECOVERY_MODULE+'.') for name in ids(parts['failed_trial_recovery'])))
+        self.assertEqual(parts['terminal_archive_recovery'].countTestCases(),1)
+        self.assertEqual(Counter(name for suite in parts.values() for name in ids(suite)),expected)
+        self.assertEqual({name.split('.')[0] for name in ids(parts['failed_trial_recovery'])},
+                         {q.FAILED_RECOVERY_MODULE})
+        self.assertEqual({name.split('.')[0] for name in ids(parts['terminal_archive_recovery'])},
+                         {q.TERMINAL_ARCHIVE_MODULE})
 
     def test_empty_missing_or_malformed_phases_are_not_silently_qualified(self):
         for suite in (unittest.TestSuite(),unittest.TestSuite([case('test_postgres_application','App')]),
@@ -51,7 +55,8 @@ class PartitionTests(unittest.TestCase):
         missing='test_postgres_missing_recovery_fixture_8b4fb'
         loader=unittest.TestLoader();failed=loader.loadTestsFromName(missing)
         self.assertEqual(len(loader.errors),1)
-        suite=unittest.TestSuite([case('test_postgres_application','App'),failed])
+        suite=unittest.TestSuite([case('test_postgres_application','App'),
+                                 case(q.TERMINAL_ARCHIVE_MODULE,'FinalArchive'),failed])
         with patch.object(q,'FAILED_RECOVERY_MODULE',missing):
             parts=q.partition_application_tests(suite)
         self.assertEqual(parts['failed_trial_recovery'].countTestCases(),1)
@@ -60,7 +65,8 @@ class PartitionTests(unittest.TestCase):
         self.assertIn(missing,result.errors[0][1])
 
     def test_phase_bounds_and_child_code_keep_skip_rejection_and_global_deadline(self):
-        self.assertEqual(q.APPLICATION_TEST_PHASES,(('application_lifecycle',180),('failed_trial_recovery',90)))
+        self.assertEqual(q.APPLICATION_TEST_PHASES,(('application_lifecycle',180),
+            ('terminal_archive_recovery',90),('failed_trial_recovery',90)))
         for phase,_ in q.APPLICATION_TEST_PHASES:
             code=q.application_test_code(phase)
             compile(code,'<child>','exec')

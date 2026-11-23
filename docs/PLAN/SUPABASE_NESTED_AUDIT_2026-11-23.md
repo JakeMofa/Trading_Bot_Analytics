@@ -22,6 +22,17 @@ The team used dedicated Chrome tabs and reviewed setup before submission. No set
 
 ## SQL, connections, archive lag and acknowledgements
 
+On November 23 the TokenBot Grafana Cloud scrape returned `up = 1` with
+successive sample timestamps of 19:40:29.318 and 19:41:29.318 UTC. The
+[live Grafana dashboard](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-archive-observability)
+shows project-wide SQL statement rate, SQL execution time per second, pooled
+database connections and scrape health. The spot check returned 0.083 SQL
+statements/s over five minutes and one PgBouncer database connection.
+The scrape exposed no matching VM archive lag or ACK series. The local
+[observation renderer](../../deploy/preprod/render_archive_observation.py)
+combines timestamped hosted role counters with the release observer's PP
+outbox samples. The PP database can stay on its existing private network.
+
 | Observation and scope | Hosted statement statistics | PostgreSQL client connections | PP oldest pending age | PP structured ACKs |
 | --- | --- | --- | --- | --- |
 | Hosted TokenBot, November 23 at 19:40:03.939237 UTC. SQL totals scoped to trial03 reader roles in the current database. | 29 statement entries, 7,105 calls, 26,791.42 ms cumulative execution | 5 database clients including the sampler. At 19:39:57 UTC, a separate sample observed 0 other active clients. | Unavailable in this sample | Unavailable in this sample |

@@ -1,3 +1,24 @@
+## November 23, 2026 CST — Trial06 isolated candidate for live requalification
+
+The retained trial05 readback passed with 65.580 seconds of headroom. Trial06
+is the isolated follow-up on the same PP host. It uses a new empty A and
+separate authenticated Storage and structured-history identities. The controller
+disallows restarting retained trial05. Preparation checks the prior A/B
+attachments, exact seal and writer, and protected evidence before creating
+the new generation. Trial05 and earlier archives remain available.
+
+The trial06 retirement verifier requires connection reuse and a fresh read-only
+transaction on each page. The 4-second page, 240-second final readback and
+30-minute seal limits remain fixed. The operator confirmed both administrative
+freeze windows of at most 295 seconds. Each window opens only on its separately
+announced, exact sealed-generation authorization. Both collectors are currently
+durably OFF. No trial06 cloud permissions or live run have been applied.
+
+The live checkpoint requires two Polymarket markets in each outgoing generation,
+full raw and structured verification before each partition is removed, Polymarket
+persistence on the successor, and historical reads after removal. End with PP
+OFF and fresh A preserved. Production collection stays OFF.
+
 ## November 23, 2026 CST — Trial05 retained A passes read-only connection reuse
 
 The PP29 retained readback verified all 52 structured pages (25,872 rows)

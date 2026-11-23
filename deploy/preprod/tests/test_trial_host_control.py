@@ -122,8 +122,8 @@ class TrialHostTests(unittest.TestCase):
         self.assertTrue(any(any('runtime.retained-trial-03.compose.yaml' in value for value in command) for command in commands))
         self.assertFalse(any('postgres.pp_trial_prepare' in command for command in commands))
 
-    def test_retained_third_on_rejects_before_secrets_authority_or_network(self):
-        retained='pp-live-pp-trial-20261119-03'
+    def test_retained_fifth_on_rejects_before_secrets_authority_or_network(self):
+        retained='pp-live-pp-trial-20261119-05'
         with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value={
                 'state':'ready_off','initial_a':A,'trial_origin':retained}), \
              patch.object(gate,'_secure_file') as secret,patch.object(gate,'_consume') as consume, \

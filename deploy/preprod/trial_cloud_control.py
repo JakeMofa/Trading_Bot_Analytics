@@ -12,12 +12,12 @@ from linux_actions import LinuxActions,PROJECT,RUNTIME_SECRETS,TRIAL_ORIGIN,cycl
 from trial_cloud_profile import WRITER_SQL,WRITER_AUTH,overlay,service_name,profile_name,validate_profile
 
 CLOUD_DIR=Path('/etc/tradebot/cloud')
-AUTHORITY=RUNTIME_SECRETS/'trial_20261119_05_writer_authority.json'
-PROOF=RUNTIME_SECRETS/'trial_20261119_05_writer_proof.json'
-WRITER_ROLE='tradebot_pp_trial_20261119_05_writer'
-READER_ROLE='tradebot_pp_trial_20261119_05_reader'
-VERDICTS=('trial_02_independent_archive_verified','trial_03_independent_archive_verified','trial_04_retained_locally','sql_writer_insert','sql_reader_select','sql_wrong_origin_denied','sql_reader_mutation_denied',
-          'storage_upload_readback','storage_wrong_origin_denied','storage_reader_get','storage_reader_create_denied','sql_trial_01_denied','storage_trial_01_denied','sql_trial_02_denied','storage_trial_02_denied','sql_trial_03_denied','storage_trial_03_denied','sql_trial_04_denied','storage_trial_04_denied')
+AUTHORITY=RUNTIME_SECRETS/'trial_20261119_06_writer_authority.json'
+PROOF=RUNTIME_SECRETS/'trial_20261119_06_writer_proof.json'
+WRITER_ROLE='tradebot_pp_trial_20261119_06_writer'
+READER_ROLE='tradebot_pp_trial_20261119_06_reader'
+VERDICTS=('trial_02_independent_archive_verified','trial_03_independent_archive_verified','trial_04_retained_locally','trial_05_retained_locally','sql_writer_insert','sql_reader_select','sql_wrong_origin_denied','sql_reader_mutation_denied',
+          'storage_upload_readback','storage_wrong_origin_denied','storage_reader_get','storage_reader_create_denied','sql_trial_01_denied','storage_trial_01_denied','sql_trial_02_denied','storage_trial_02_denied','sql_trial_03_denied','storage_trial_03_denied','sql_trial_04_denied','storage_trial_04_denied','sql_trial_05_denied','storage_trial_05_denied')
 
 
 def _metadata(path,*,uid,mode,limit):

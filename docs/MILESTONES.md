@@ -8,6 +8,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] A read-only trial05 A diagnostic verified 49 raw objects and 52 structured pages in 174.420 seconds with connection reuse and a fresh transaction per page. B was off. The prior live attempt stopped at 51 completed pages in 239.641 seconds. Live retirement and fresh A remain open. [Audit evidence](PLAN/evidence/trial05-a-reused-session-52-pages.json)
+- [x] The isolated archive status trigger and private Realtime subscription policy passed two-identity WebSocket verification. Two committed phase transitions were delivered in order. An unchanged phase and a rolled-back transition emitted no notice. [Local probe](../deploy/preprod/lab/archive-notices/probe.py)
 - [x] Replayed Data API/RPC, Edge Functions, private Storage and Cron/Queues on an unlinked local stack. Two identities, 500/25-row pagination, decimal parity, denied reads and job retry behavior passed. [Reproducible lab](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md#november-23-local-data-api-edge-and-storage-replay)
 - [x] Correlated 13 Supavisor database-handler timeout messages and 13 client-handler checkout timeout messages for the trial05 writer with a 60-second A acknowledgement stall. All 26 timestamps fell inside the observed stall. Individual PP retry attempts and a root cause still need timestamped worker evidence. [Matched UTC events and PP samples](PLAN/evidence/trial05-writer-timeout-window-2026-11-23.json)
 

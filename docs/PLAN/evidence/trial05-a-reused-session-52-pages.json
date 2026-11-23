@@ -1,0 +1,155 @@
+{
+  "sealed": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+  "manifest_digest": "1275e64a5f299881d6fb78d43735ee0563aa028421110a47fb84e70abc110b43",
+  "raw_count": 24044,
+  "structured_count": 25872,
+  "objects_read": 49,
+  "bytes": 44948463,
+  "requests": 103,
+  "retirement_authorized": false,
+  "original_trial_satisfied": false,
+  "structured_transactions": "repeatable_read_read_only",
+  "latest_receipt_lookup": "indexed_tie_safe_lateral",
+  "phase_accounting": {
+    "diagnostics_unavailable": false,
+    "elapsed_seconds": 174.419825,
+    "exhausted_limit": null,
+    "failed_phase": null,
+    "logical_bytes": 44948463,
+    "nested_phase_totals_overlap": true,
+    "phases": {
+      "history_checkout": {
+        "calls": 53,
+        "logical_bytes": 0,
+        "max_seconds": 0.323462,
+        "requests": 0,
+        "seconds": 0.648738
+      },
+      "history_connect": {
+        "calls": 2,
+        "logical_bytes": 0,
+        "max_seconds": 0.3228,
+        "requests": 0,
+        "seconds": 0.629852
+      },
+      "history_exact_revisions": {
+        "calls": 52,
+        "logical_bytes": 0,
+        "max_seconds": 0.939446,
+        "requests": 0,
+        "seconds": 38.351969
+      },
+      "history_identity_checkpoint": {
+        "calls": 52,
+        "logical_bytes": 0,
+        "max_seconds": 0.420471,
+        "requests": 0,
+        "seconds": 11.209382
+      },
+      "history_latest_receipts": {
+        "calls": 52,
+        "logical_bytes": 0,
+        "max_seconds": 0.106555,
+        "requests": 0,
+        "seconds": 2.890318
+      },
+      "history_newer_revisions": {
+        "calls": 52,
+        "logical_bytes": 0,
+        "max_seconds": 0.180906,
+        "requests": 0,
+        "seconds": 5.67167
+      },
+      "history_projections": {
+        "calls": 52,
+        "logical_bytes": 0,
+        "max_seconds": 0.23725,
+        "requests": 0,
+        "seconds": 6.90241
+      },
+      "history_release": {
+        "calls": 53,
+        "logical_bytes": 0,
+        "max_seconds": 4.5e-05,
+        "requests": 0,
+        "seconds": 0.001264
+      },
+      "history_transaction": {
+        "calls": 53,
+        "logical_bytes": 0,
+        "max_seconds": 1.639285,
+        "requests": 0,
+        "seconds": 70.944785
+      },
+      "inventory": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 13.525543,
+        "requests": 0,
+        "seconds": 13.525543
+      },
+      "local_finish": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.000481,
+        "requests": 0,
+        "seconds": 0.000481
+      },
+      "local_open": {
+        "calls": 1,
+        "logical_bytes": 0,
+        "max_seconds": 0.105494,
+        "requests": 0,
+        "seconds": 0.105494
+      },
+      "raw_auth_token": {
+        "calls": 49,
+        "logical_bytes": 0,
+        "max_seconds": 0.515152,
+        "requests": 1,
+        "seconds": 0.51557
+      },
+      "raw_local_compare": {
+        "calls": 49,
+        "logical_bytes": 0,
+        "max_seconds": 1.260414,
+        "requests": 0,
+        "seconds": 13.407492
+      },
+      "raw_read_decode": {
+        "calls": 49,
+        "logical_bytes": 3214550,
+        "max_seconds": 1.381415,
+        "requests": 50,
+        "seconds": 22.685126
+      },
+      "structured_compare": {
+        "calls": 52,
+        "logical_bytes": 0,
+        "max_seconds": 0.534905,
+        "requests": 0,
+        "seconds": 9.059265
+      },
+      "structured_local_page": {
+        "calls": 53,
+        "logical_bytes": 0,
+        "max_seconds": 0.693509,
+        "requests": 0,
+        "seconds": 15.220607
+      },
+      "structured_readback": {
+        "calls": 52,
+        "logical_bytes": 41733913,
+        "max_seconds": 2.855035,
+        "requests": 52,
+        "seconds": 99.711394
+      }
+    },
+    "remaining_seconds": 65.580262,
+    "requests": 103,
+    "sqlstate": null
+  },
+  "earlier_live_attempt_seconds": 239.64063,
+  "earlier_completed_compares": 51,
+  "workload_conditions": "Quiet read-only retained audit versus live B retirement attempt"
+}

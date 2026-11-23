@@ -40,6 +40,14 @@ attempt or hosted configuration change was started.
 
 [Full trial06 outcome](evidence/pp30-trial06-live-result-2026-11-23.json).
 
+A separate read-only retained B first-page diagnostic stopped in local
+reconstruction with PostgreSQL `QueryCanceled` after 3.577 seconds.
+The attempt made zero hosted page requests. It did not isolate the local
+statement or establish an exact-revision timing for Supabase. The next
+diagnostic should time the local guards and page query separately before
+attributing this hold to hosted SQL. B remained intact.
+[Diagnostic evidence](evidence/pp30-trial06-retained-b-first-page-hold-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial06 A verified and retired while B collected
 
 PP30 admitted trial06 at **3:44:09 p.m. CST**. A switched to B at 4:15:25

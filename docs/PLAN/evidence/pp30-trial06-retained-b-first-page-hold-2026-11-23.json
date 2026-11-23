@@ -1,0 +1,28 @@
+{
+  "attempts": 1,
+  "error": "QueryCanceled",
+  "generation_id": "e07e981a-2617-43ac-a050-fcf4455a12f1",
+  "hosted_page_budget_seconds": 4,
+  "hosted_page_requests": 0,
+  "hosted_reader_connected": false,
+  "local_cloud_exact": false,
+  "local_server_statement_attributed": false,
+  "max_page_logical_bytes": 4194304,
+  "max_page_rows": 500,
+  "mutations": 0,
+  "nested_timings_overlap": true,
+  "origin_id": "pp-live-pp-trial-20261119-06",
+  "prior_live_page_hash_available": false,
+  "retirement_authorized": false,
+  "scope": "retained_b_first_page_fresh_read_only",
+  "server_execution_seconds": null,
+  "stage": "local",
+  "status": "HOLD",
+  "timings": {
+    "local_reconstruct_and_validate_page": {
+      "calls": 1,
+      "seconds": 3.576582
+    }
+  },
+  "transfer_only_seconds": null
+}

@@ -75,6 +75,34 @@ volumes, start the existing containers by their exact project label.
 docker ps -aq --filter label=com.supabase.cli.project=tradebot-archive-lab | xargs docker start
 ```
 
+### Redis foreign-data wrapper for a sealed page
+
+The workstation lab runs Redis 7.4.0 and Supabase Wrappers 0.5.7. Redis has
+no host port. Its internal Docker network connects the lab database and Redis.
+The foreign server stores a Vault credential ID for a read-only Redis account.
+The foreign table is in the private `archive_cache_lab` schema. The lab's API
+roles lack schema access. Redis holds at most 16 MiB of cache data subject to
+its eviction policy, uses a one-hour expiry on the generated test hash, and
+starts empty after a restart.
+
+The [lab probe](../../deploy/preprod/lab/archive-redis/probe.py) read 500
+generated A records with 36,393 canonical bytes. A cache hit matched the
+PostgreSQL page manifest. A missing field, intentionally corrupted bytes and
+an actual Redis outage all recovered the same page by reading PostgreSQL.
+The Redis outage raised FDW SQLSTATE `HV000`. A Redis write attempt by the
+reader was denied. After restart the test repopulated and verified the cache.
+The command below reads the existing page and reports its source and digest.
+
+```sh
+"$HOME/.local/share/tradebot-archive-lab/venv/bin/python" deploy/preprod/lab/archive-redis/probe.py --read
+```
+
+Run the probe without `--read` to warm and verify the fixture. Add
+`--test-outage` to exercise and restore the disposable Redis service. The
+fixture checks one page for one generated owner with a known digest. It
+measures neither PP latency nor memory savings. The wrapper's single-hash mode
+reads the hash, so its size matters before testing wider workloads. [Redis wrapper](https://supabase.com/docs/guides/database/extensions/wrappers/redis)
+
 ## Combined archive status prototype
 
 The [isolated scheduler probe](../../deploy/preprod/probe_archive_health_scheduler.py)

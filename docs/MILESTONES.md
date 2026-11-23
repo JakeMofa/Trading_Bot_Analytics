@@ -8,6 +8,7 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] Replayed Data API/RPC, Edge Functions, private Storage and Cron/Queues on an unlinked local stack. Two identities, 500/25-row pagination, decimal parity, denied reads and job retry behavior passed. [Reproducible lab](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md#november-23-local-data-api-edge-and-storage-replay)
 - [x] Correlated 13 Supavisor database-handler timeout messages and 13 client-handler checkout timeout messages for the trial05 writer with a 60-second A acknowledgement stall. All 26 timestamps fell inside the observed stall. Individual PP retry attempts and a root cause still need timestamped worker evidence. [Matched UTC events and PP samples](PLAN/evidence/trial05-writer-timeout-window-2026-11-23.json)
 
 - [x] The local PP archive observer view plots per-generation ACK/s against the 14 rows/s target and oldest pending age over UTC observation time. A live trial05 A sample and fixtures for missed samples, retired A, B, fresh A and counter resets passed. [Observation renderer](../deploy/preprod/render_archive_observation.py)

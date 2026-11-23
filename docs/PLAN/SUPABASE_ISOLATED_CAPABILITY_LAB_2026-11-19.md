@@ -21,6 +21,27 @@ identities. PP, production and the hosted Supabase project were outside the lab.
 | Realtime | Two signed-in clients subscribed to the same generated table and each received its own committed notice, with no cross-scope notice observed in the bounded test. | Can deliver dashboard archive status updates. The fixture did not compare it with the VM’s existing SSE or test reconnection recovery. |
 | PostgreSQL telemetry | Local `pg_stat_statements` recorded the generated RPC statements. | Pair statement counters with VM archive phase timings and oldest pending age. A live Grafana scrape and combined dashboard have separate acceptance. |
 
+## November 23 local Data API, Edge and Storage replay
+
+The [archive-page lab](../../deploy/preprod/lab/archive-page/probe.py)
+exercised two signed-in identities in a fresh, unlinked Supabase stack. One
+identity read 500 generated A rows and 25 B rows by cursor. The other read
+only its single row. The Data API and Edge Function returned identical ordered
+IDs and exact decimal text. Both paths denied the anonymous role. The Edge
+Function rejected a negative cursor. A private Storage object returned the
+original bytes to the lab service identity and denied anonymous reads.
+
+To reproduce, initialize a disposable local Supabase project with API port
+57321 and database port 57322. Copy the lab's `index.ts` to
+`supabase/functions/archive-page/index.ts` in that project. Start the local
+stack and serve functions. Save `supabase status -o json` in an owner-only
+temporary file and pass its path to the probe with Python and psycopg 3.
+The fixture installs its own synthetic table, policies and function in that
+fresh database. Neither the fixture nor the Edge Function is a hosted migration.
+The same lab also reran the existing Cron/Queues health probe, including
+rollback, redelivery, duplicate suppression and stale or missing evidence.
+The separate PP26 benchmark measures the actual history verifier.
+
 ## Combined archive status prototype
 
 The [isolated scheduler probe](../../deploy/preprod/probe_archive_health_scheduler.py)

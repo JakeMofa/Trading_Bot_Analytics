@@ -1,3 +1,30 @@
+## November 23, 2026 CST — PP30 deployed and trial06 ready with collectors OFF
+
+[PR #208](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/208) bound
+the attested controller to the release profile. An outdated CI pin was
+updated to match the identity workflow. The exact push then timed out in
+the shared PostgreSQL lifecycle phase. The existing terminal archive
+module now runs in its own bounded CI child, preserving every case and
+the overall qualification deadline. The controller bundle stayed identical.
+Merged source `ad11d85` passed
+[exact-release CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45268743428).
+
+The first PP30 deployment stopped at the existing RAM floor before
+consuming its permit. After a bounded, reversible PP firmware-service
+pause, the same source and permit passed all 11 generated deployment checks
+in [CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45270349587).
+The firmware service was restored. Trial05's two partitions, exact raw
+and outbox fingerprints, and manifest and checkpoint digests matched
+before deploy, after deploy, and at ready-off.
+
+Trial06 has a new empty A and two scoped archive workers ready. The admin
+freeze confirmation covers both 295-second windows. At ready-off, both
+collectors were disabled and neither window had opened. The planned
+admission targets the 3:45 p.m. CST market boundary. Production remains
+on `d56b4a7` with collection OFF.
+
+[PP30 readiness evidence](evidence/pp30-trial06-ready-off-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial06 isolated candidate for live requalification
 
 The retained trial05 readback passed with 65.580 seconds of headroom. Trial06

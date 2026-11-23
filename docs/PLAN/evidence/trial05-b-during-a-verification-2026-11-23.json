@@ -1,0 +1,32 @@
+{
+  "origin_id": "pp-live-pp-trial-20261119-05",
+  "sealed_a": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+  "collecting_b": "7eb27e2f-f53b-4b50-98db-00a318853b0b",
+  "dispatch_at": "2026-11-23T20:18:37.005609+00:00",
+  "receipt_known_by": "2026-11-23T20:23:04.566176+00:00",
+  "verifier_elapsed_seconds": 239.64063,
+  "status": "HOLD",
+  "retirement_authorized": null,
+  "failure_reason": "archive_limit",
+  "raw_objects_compared": 49,
+  "raw_objects_required": 49,
+  "structured_pages_compared": 51,
+  "structured_pages_required": 52,
+  "conservative_verifier_interval_utc": [
+    "2026-11-23T20:19:04.925546+00:00",
+    "2026-11-23T20:22:36.646239+00:00"
+  ],
+  "b_count_observations": 10,
+  "b_first_time_and_count": [
+    "2026-11-23T20:19:24.243697+00:00",
+    29
+  ],
+  "b_last_time_and_count": [
+    "2026-11-23T20:22:24.712494+00:00",
+    56
+  ],
+  "b_quote_count_increase": 27,
+  "old_a_physical_removal_observed": false,
+  "fresh_a_after_removal": null,
+  "interpretation": "Counts cover persisted Polymarket quotes between observer samples. Gaps in upstream delivery can occur inside this interval."
+}

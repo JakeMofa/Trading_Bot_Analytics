@@ -8,6 +8,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] Recorded persisted trial05 B quote counts within A's verifier runtime. Ten snapshots inside the conservative overlap showed 29 → 56 quotes. All 49 raw objects and 51 of 52 structured pages completed before HOLD at 239.641 seconds. The old A stayed attached and the trial ended before fresh A. The [read-only report](../deploy/preprod/retirement_observation_report.py) uses the saved attempt dispatch and a known post-receipt event to bound the verifier's wall-clock interval. For [trial05](PLAN/evidence/trial05-b-during-a-verification-2026-11-23.json), the upper bound comes from the durable OFF record in `observer-end.jsonl`. Quote counts between samples leave intra-window gaps unresolved.
+
 - [x] Extended the hosted Grafana archive panels and backlog alert to trials 05 and 06. Confirmed both previously observed trial05 generations still rendered. Trial06 delivery awaits its first published sample. [Dashboard and alert](PLAN/SUPABASE_NESTED_AUDIT_2026-11-23.md#sql-connections-archive-lag-and-acknowledgements)
 
 - [x] A read-only trial05 A diagnostic verified 49 raw objects and 52 structured pages in 174.420 seconds with connection reuse and a fresh transaction per page. B was off. The prior live attempt stopped at 51 completed pages in 239.641 seconds. Live retirement and fresh A remain open. [Audit evidence](PLAN/evidence/trial05-a-reused-session-52-pages.json)

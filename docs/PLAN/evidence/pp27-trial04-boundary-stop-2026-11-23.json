@@ -1,0 +1,130 @@
+{
+  "activation": {
+    "activation_sample_rows": 178,
+    "admitted_at": "2026-11-23T17:59:09.700279+00:00",
+    "durably_disabled_at": "2026-11-23T18:00:03.798096+00:00",
+    "duration_seconds": 54.097817,
+    "final_writer_epoch": 3,
+    "first_official_boundary_utc": "2026-11-23T18:00:00Z",
+    "initial_writer_epoch": 2,
+    "planned_lease_expires_at": "2026-11-23T19:49:09.700279+00:00"
+  },
+  "api_observation": {
+    "collector_was_enabled_at_last_sample": true,
+    "last_market_boundary_sample": "2026-11-23T18:00:00.893086+00:00",
+    "last_sample_market": null,
+    "sampled_errors": 0,
+    "samples": 33,
+    "scope": "Short observation only. Observer exited near the boundary. A subsequent DB read confirmed durable stop."
+  },
+  "archive_worker_stop": {
+    "status": "off"
+  },
+  "attribution": {
+    "hosted_log_observation": "No exact-role timeout or disconnect surfaced in the read-only dashboard window. This does not establish absence.",
+    "local_pg_log": {
+      "matches": [
+        {
+          "at": "2026-11-23T18:00:22.196053885Z",
+          "codes": [
+            "checkpoint_start"
+          ]
+        }
+      ],
+      "total_lines": 1
+    },
+    "precise_trigger": "UNPROVEN",
+    "reported_code": "ownership.lease_lost"
+  },
+  "b_created": false,
+  "deployment": 44870088476,
+  "freeze_windows_started": 0,
+  "fresh_a_created": false,
+  "generation": {
+    "acknowledged": 705,
+    "created_at": "2026-11-21T05:19:28.377434+00:00",
+    "generation_id": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+    "hold_reason": null,
+    "official_market_pair": [],
+    "oldest_pending_at": null,
+    "partition_attached": true,
+    "pending": 0,
+    "polymarket_quotes": {
+      "newest_receipt": "2026-11-23T18:00:03.563975+00:00",
+      "newest_source": 1795456788.214128,
+      "rows": 8
+    },
+    "raw_events": 659,
+    "relation_bytes": 1384448,
+    "relation_exists": true,
+    "retired_at": null,
+    "seal_count": null,
+    "seal_hash": null,
+    "sealed_at": null,
+    "slot": "A",
+    "started_at": "2026-11-21T05:19:28.377434+00:00",
+    "state": "collecting",
+    "verified_at": null,
+    "verified_manifests": 0
+  },
+  "origin": "pp-live-pp-trial-20261119-04",
+  "partitions_removed": 0,
+  "production_fence": {
+    "installed": "PROD_COLLECTOR_FENCE_ACTIVE",
+    "restored": {
+      "collector": {
+        "enabled": true,
+        "error": null,
+        "running": false
+      },
+      "gate": "PROD_ORIGINAL_COLLECTOR_SETTING_RESTORED",
+      "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+    }
+  },
+  "raw_archive": "NOT_RUN_A_UNSEALED",
+  "release": "v0.2.0-pp.27",
+  "result": "FAILED_BEFORE_FIRST_STORAGE_ROTATION",
+  "retained_trial03": [
+    {
+      "attached": true,
+      "id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "slot": "A",
+      "state": "verified"
+    },
+    {
+      "attached": true,
+      "id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+      "slot": "B",
+      "state": "verified"
+    }
+  ],
+  "retirement_attempts": 0,
+  "sampled_resources": {
+    "after": {
+      "filesystem_free_bytes": 56024461312,
+      "host_memory_available_bytes": 1073008640,
+      "observed_at_utc": "2026-11-23T18:06:20.190358+00:00",
+      "wal_segment_bytes": 117440512
+    },
+    "before": {
+      "filesystem_free_bytes": 56015319040,
+      "host_memory_available_bytes": 1000673280,
+      "observed_at_utc": "2026-11-23T17:53:59.346151+00:00",
+      "wal_segment_bytes": 117440512
+    }
+  },
+  "source": "17ba31ec7ccb3ade9b94247291721f65d863f5da",
+  "source_ci": 44869270426,
+  "stop_evidence": {
+    "collector_enabled": false,
+    "epoch": 3,
+    "generation_id": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+    "lease_expires_at": null,
+    "origin_id": "pp-live-pp-trial-20261119-04",
+    "process_running": false,
+    "session_failure_code": "ownership.lease_lost"
+  },
+  "structured_worker_stop": {
+    "status": "off"
+  }
+}

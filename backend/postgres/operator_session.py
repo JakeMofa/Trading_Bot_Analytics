@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 
 from .live_diagnostics import LiveDiagnostic
 from .rehearsal_profile import lease_cap
@@ -68,6 +69,9 @@ class OperatorSession:
             except BaseException:
                 self._last_error = 'durable_off_unproven'
                 self._last_failure_code = 'session.durable_off_unproven'
+            if self._last_failure_code:
+                logging.getLogger(__name__).warning(
+                    'pp_collector_session_stopped reason=%s', self._last_failure_code)
 
     async def stop(self, *, timeout_seconds: float = 5):
         if not 0 < timeout_seconds <= 5:

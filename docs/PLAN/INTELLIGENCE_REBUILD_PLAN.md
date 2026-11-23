@@ -1,3 +1,32 @@
+## November 23, 2026 CST — PP27 trial04 stopped before A could seal
+
+**Trial04 FAILED before storage rotation.** PP27 source `17ba31e` admitted
+the one-use collector at 11:59:09.700 a.m. CST. Its durable writer went OFF
+at 12:00:03.798 p.m. CST after 54.098 seconds. The private operator reported
+`ownership.lease_lost`. In PP27 this code covers a negative ownership result,
+a watchdog deadline and an exception in either of two database reads.
+The underlying trigger remains unproven. The Polymarket quote received after
+noon carries a pre-boundary source time. New-market quote acceptance remains open.
+
+Initial A remains attached with 659 raw events, including eight Polymarket
+quotes. Its 705 structured outbox records were acknowledged and zero remain
+pending. Raw archival requires a seal, which this attempt never reached.
+Both prior trial03 partitions remain attached and verified. Neither trial04
+freeze window opened, no B was created, and zero partitions were removed.
+
+PP collection and both trial cloud workers are confirmed OFF. The original
+production service setting was restored after durable PP OFF. Production is
+still held by its existing legacy storage guard.
+
+The successor on review uses one exact session-ID, enable flag and expiry
+read for the watchdog. It preserves the two-second watchdog deadline,
+transactional write fences and OFF-on-failure behavior. Sanitized operator logs
+distinguish a negative ownership result from a watchdog timeout or database
+failure. The successor requires exact CI and a fresh, separately scoped PP
+trial. A consumed trial04 admission and its nonempty initial A remain evidence.
+
+[Sanitized trial04 evidence](evidence/pp27-trial04-boundary-stop-2026-11-23.json).
+
 ## November 20, 2026 CST — PP27 deployed; fresh trial04 ready with collection off
 
 [PR #202](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/202) and

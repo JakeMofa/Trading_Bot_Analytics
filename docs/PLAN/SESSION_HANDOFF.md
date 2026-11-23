@@ -1,4 +1,3 @@
-## November 20, 2026 CST — PP27 deployed; fresh trial04 ready with collection off
 ## November 23, 2026 CST — PP27 trial04 stopped before A could seal
 
 **Trial04 FAILED before storage rotation.** PP27 source `17ba31e` admitted
@@ -27,6 +26,8 @@ failure. The successor requires exact CI and a fresh, separately scoped PP
 trial. A consumed trial04 admission and its nonempty initial A remain evidence.
 
 [Sanitized trial04 evidence](evidence/pp27-trial04-boundary-stop-2026-11-23.json).
+
+## November 20, 2026 CST — PP27 deployed; fresh trial04 ready with collection off
 
 [PR #202](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/202) and
 [PR #203](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/203) merged.

@@ -1,0 +1,142 @@
+{
+  "checkpoint": "PP trial05 admission preparation",
+  "cloud": {
+    "fences": {
+      "public_read_denied": true,
+      "reader_create_denied": true,
+      "reader_denied_pp-live-pp": true,
+      "reader_denied_pp-live-pp-trial-20261119-01": true,
+      "reader_denied_pp-live-pp-trial-20261119-02": true,
+      "reader_denied_pp-live-pp-trial-20261119-03": true,
+      "reader_denied_pp-live-pp-trial-20261119-04": true,
+      "reader_list_denied": true,
+      "reader_sign_denied": true,
+      "status": "PASS",
+      "writer_denied_pp-live-pp": true,
+      "writer_denied_pp-live-pp-trial-20261119-01": true,
+      "writer_denied_pp-live-pp-trial-20261119-02": true,
+      "writer_denied_pp-live-pp-trial-20261119-03": true,
+      "writer_denied_pp-live-pp-trial-20261119-04": true,
+      "writer_list_denied": true,
+      "writer_sign_denied": true
+    },
+    "origin": "pp-live-pp-trial-20261119-05",
+    "preservation": {
+      "bucket_private": true,
+      "new_auth": 2,
+      "new_history": 36,
+      "new_storage": 6,
+      "retained_history_policy_hash": "6dc28fa48dad992c01970821a60441b7",
+      "retained_receipts": {
+        "pp-live-pp": 42133,
+        "pp-live-pp-trial-20261119-01": 5652,
+        "pp-live-pp-trial-20261119-02": 20363,
+        "pp-live-pp-trial-20261119-03": 39691,
+        "pp-live-pp-trial-20261119-04": 706
+      },
+      "retained_revisions": {
+        "pp-live-pp": 42133,
+        "pp-live-pp-trial-20261119-01": 5652,
+        "pp-live-pp-trial-20261119-02": 20363,
+        "pp-live-pp-trial-20261119-03": 39691,
+        "pp-live-pp-trial-20261119-04": 706
+      },
+      "storage_catalog_hash": "3ae2b7305127e0868ae68a0add1a4b75be7918a2c2c63d07308094d043c683da"
+    },
+    "source_sha": "08903dba021c8b1885dd6463d42c0d665a9398e4",
+    "sql": {
+      "exact_readback": true,
+      "live_trial_data_rows": 0,
+      "observer_sql_wrong_origin_denied": true,
+      "sql_reader_insert_denied": true,
+      "status": "PASS",
+      "synthetic_receipts": 1,
+      "synthetic_revisions": 1
+    },
+    "storage": {
+      "actual_trial_data_rows": 0,
+      "bytes": 209,
+      "client_reader_and_origin_fences": true,
+      "independent_reader_readback": true,
+      "origin": "pp-live-pp-trial-20261119-05",
+      "status": "PASS",
+      "synthetic_objects": 1,
+      "writer_readback": true
+    }
+  },
+  "controller_identity_run_id": 45244648698,
+  "deployment": {
+    "acceptance_scope": "generated_only",
+    "artifact_sha256": "c5f41df30b020974f1129d1d8a13ce4096bfd9ff0a3ce726832a2145eed57eef",
+    "branch": "preprod",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "completed_at_utc": "2026-11-23T19:21:32.885689+00:00",
+    "controls_sha": "74f2aa276ff68d44ef943295841380d198ca571b",
+    "environment": "preprod",
+    "gate": "PASS",
+    "instance": "tradebot-preprod-01",
+    "live_collector_enabled": false,
+    "paid_ai_enabled": false,
+    "policy_sha256": "42b0c832908db2166dd24ee42d99cca8825edd25c992948f52edc68178d3fcc6",
+    "production_data_mounted": false,
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:702b232d030a9651ae7c456a53fbd9cf309046491c9b752fb119b943394cb471",
+    "release_version": "v0.2.0-pp.29",
+    "retention_enabled": false,
+    "run_attempt": 1,
+    "run_id": 45247660239,
+    "runtime_image_id": "sha256:ea4f439c8b2322d96732885fdca8f1b71a5f4d83b24eab42a3763f20e85282a2",
+    "scope": "exact-source runtime deployment and acceptance",
+    "source_ci_attempt": 1,
+    "source_ci_run_id": 45246319676,
+    "source_sha": "74f2aa276ff68d44ef943295841380d198ca571b"
+  },
+  "idle_workers": {
+    "archive": "running",
+    "structured": "running"
+  },
+  "initial_a": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+  "origin_id": "pp-live-pp-trial-20261119-05",
+  "pp_fwupd_maintenance": {
+    "initial_restore_report": "restore_unproven",
+    "persistent_enablement_changed": false,
+    "subsequent_verification": "FWUPD_RESTORED"
+  },
+  "production_fence": {
+    "collector": {
+      "enabled": false,
+      "error": null,
+      "running": false
+    },
+    "gate": "PROD_COLLECTOR_FENCE_ACTIVE",
+    "pid": "159035",
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+  },
+  "publication_run_id": 45247466993,
+  "recorded_utc": "2026-11-23T19:26:32.701102+00:00",
+  "result": "READY_OFF",
+  "retained_trial04": {
+    "acknowledged": 705,
+    "enabled": false,
+    "rows": 659
+  },
+  "retained_trial04_exact_fingerprints_match": true,
+  "trial05_live_started": false,
+  "trial05_local_outbox_rows": 0,
+  "trial05_local_raw_rows": 0,
+  "trial05_real_archive_verified": false,
+  "trial05_retirements": 0,
+  "writer_epoch": 1,
+  "writers_active": 0
+}

@@ -1,3 +1,38 @@
+## November 23, 2026 CST — PP29 trial05 ready with collectors OFF
+
+[PR #205](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/205)
+isolated trial05 and carried the PP28 lease watchdog fix forward.
+[PR #206](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/206) bound
+the verified controller to the PP deployment profile. Source `74f2aa2`
+passed [exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45246319676).
+[CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45247660239)
+deployed `v0.2.0-pp.29` and passed all 11 generated acceptance checks.
+The temporary deployment runner deregistered, and PP firmware service
+settings were restored and reverified.
+
+Trial05's restricted Supabase writer and independent reader passed exact
+synthetic structured and private-object readback and cross-origin denial
+checks. Trial04's 659 local raw rows and 705 acknowledged outbox rows
+matched their before/after fingerprints. Its 706 hosted receipts and
+revisions were preserved. Both trial03 partitions remain attached.
+
+PP is in `ready_off` with an unused A, zero trial05 local raw and outbox
+rows, and both scoped workers running idle. Production's collector was
+independently verified OFF at `d56b4a7` and will stay OFF. The remaining
+admission prerequisite is trial05's confirmation that administrators and
+privileged automation will leave each sealed generation's Supabase objects,
+history and access policies untouched during its announced verification
+and retirement window. Neither window has opened.
+
+After confirmation, start PP ahead of a Polymarket boundary. Require two
+complete 15-minute markets in A and then in B. Count each sealed generation
+as passed only after its authenticated Supabase verification, local
+retirement within 30 minutes while the successor continues collecting, and
+post-retirement dashboard history checks. End with PP durably OFF and drain
+the final fresh A without removing it.
+
+[Sanitized readiness evidence](evidence/pp29-trial05-ready-off-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial05 isolated scope and production collector off
 
 Production's collector was explicitly disabled at the approved service fence.

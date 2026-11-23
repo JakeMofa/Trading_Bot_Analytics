@@ -116,6 +116,12 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   separate qualification.
   [Lab findings and PP decisions](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
+- [x] **TokenBot nested dashboard audit.** Revisited the dashboard,
+  application schema definitions, integration cards, reports, and safe
+  setup screens individually. The ledger records access gates, timeouts,
+  linked documentation, and the remaining performance measurements.
+  [Screen-by-screen inventory](PLAN/SUPABASE_NESTED_AUDIT_2026-11-23.md)
+
 - [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**
   Exact qualified canonical-byte transport verified all 57 raw objects / 28,411
   rows and 63 structured pages / 31,162 rows. Core elapsed 214.390169 s under

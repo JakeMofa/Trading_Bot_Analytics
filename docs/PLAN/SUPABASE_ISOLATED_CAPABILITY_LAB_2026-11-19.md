@@ -42,6 +42,39 @@ The same lab also reran the existing Cron/Queues health probe, including
 rollback, redelivery, duplicate suppression and stale or missing evidence.
 The separate PP26 benchmark measures the actual history verifier.
 
+### Running workstation archive lab
+
+The unlinked `tradebot-archive-lab` Docker stack keeps its synthetic fixtures
+on this workstation. Kong listens on `127.0.0.1:57321`, PostgreSQL on
+`127.0.0.1:57322`. Docker Desktop initially reported wildcard mappings despite
+the loopback bridge setting. Explicit loopback mappings on both published
+containers were confirmed with Docker inspection and `lsof`. Auth, PostgREST,
+Storage, Realtime and the Edge runtime communicate inside the lab network.
+The authenticated endpoints are `GET /functions/v1/archive-page?after=500`
+and `POST /rest/v1/rpc/lab_archive_page`. Local configuration and two
+generated accounts live in owner-only files under `~/.local/share/tradebot-archive-lab`.
+
+From this worktree, run the smoke check or request the second page directly.
+The reader signs in locally and prints only generated records.
+
+```sh
+deploy/preprod/lab/archive-page/check-workstation.sh
+deploy/preprod/lab/archive-page/check-workstation.sh --read-after 500
+```
+
+The first page contained synthetic IDs 1–500 and the second contained IDs
+501–525. A second account retrieved only its own row. The repeated smoke
+used the same accounts, rows and private bucket. Cron delivered the scheduler
+fixture job, PGMQ redelivered a rolled-back acknowledgement, and the final
+status table contained three expected cases. The test unscheduled its job
+after delivery. All seven lab containers use Docker's `unless-stopped` policy.
+To resume a deliberately stopped lab while preserving its bindings and
+volumes, start the existing containers by their exact project label.
+
+```sh
+docker ps -aq --filter label=com.supabase.cli.project=tradebot-archive-lab | xargs docker start
+```
+
 ## Combined archive status prototype
 
 The [isolated scheduler probe](../../deploy/preprod/probe_archive_health_scheduler.py)

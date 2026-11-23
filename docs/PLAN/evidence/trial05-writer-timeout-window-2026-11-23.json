@@ -1,0 +1,163 @@
+{
+  "scope": {
+    "origin": "pp-live-pp-trial-20261119-05",
+    "role": "tradebot_pp_trial_20261119_05_writer",
+    "source": "supavisor_logs",
+    "start_utc": "2026-11-23T20:00:23Z",
+    "end_utc": "2026-11-23T20:01:24Z",
+    "filter": "Exact role and case-insensitive timeout text. Categories identify handler and connect/checkout keywords."
+  },
+  "hosted_events": [
+    {
+      "at_utc": "2026-11-23T20:00:29.547472Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:29.547619Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:29.548012Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:29.548165Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:37.050357Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:37.050492Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:37.727360Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:37.727514Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:37.727703Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:37.727827Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:40.736387Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:40.736534Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:40.736954Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:40.737064Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:48.238842Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:48.238950Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:50.945302Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:50.945467Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:55.740344Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:55.740454Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:03.242853Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:03.242988Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:10.744303Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:10.744448Z",
+      "category": "clienthandler_checkout_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:10.744732Z",
+      "category": "dbhandler_connect_timeout_text"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:10.744878Z",
+      "category": "clienthandler_checkout_timeout_text"
+    }
+  ],
+  "pp_observer_file": "live-db.jsonl",
+  "pp_worker_retry_log_status": "No timestamped structured worker output found among saved workstation artifacts at initial review. Release owner asked for a matching artifact.",
+  "attribution": "Hosted writer pooler timeouts and the PP ACK stall overlap in this observation. Each handler can emit multiple events per attempt. One-to-one worker attempts and their causes remain unverified.",
+  "pp_outbox_samples": [
+    {
+      "at_utc": "2026-11-23T20:00:23.340372+00:00",
+      "acknowledged": 13043,
+      "pending": 78,
+      "oldest_pending_at": "2026-11-23T20:00:18.679685+00:00"
+    },
+    {
+      "at_utc": "2026-11-23T20:00:44.213913+00:00",
+      "acknowledged": 13043,
+      "pending": 410,
+      "oldest_pending_at": "2026-11-23T20:00:18.679685+00:00"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:03.942575+00:00",
+      "acknowledged": 13043,
+      "pending": 680,
+      "oldest_pending_at": "2026-11-23T20:00:18.679685+00:00"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:23.674033+00:00",
+      "acknowledged": 13043,
+      "pending": 989,
+      "oldest_pending_at": "2026-11-23T20:00:18.679685+00:00"
+    },
+    {
+      "at_utc": "2026-11-23T20:01:43.429871+00:00",
+      "acknowledged": 13793,
+      "pending": 529,
+      "oldest_pending_at": "2026-11-23T20:01:08.798152+00:00"
+    },
+    {
+      "at_utc": "2026-11-23T20:02:04.142522+00:00",
+      "acknowledged": 14493,
+      "pending": 99,
+      "oldest_pending_at": "2026-11-23T20:01:55.69869+00:00"
+    },
+    {
+      "at_utc": "2026-11-23T20:02:23.631276+00:00",
+      "acknowledged": 14822,
+      "pending": 16,
+      "oldest_pending_at": "2026-11-23T20:02:22.557171+00:00"
+    }
+  ]
+}

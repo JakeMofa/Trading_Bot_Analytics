@@ -8,6 +8,8 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 ## Progress
 
+- [x] Grafana accepted a fresh production `/health` sample at 22:00:12 UTC November 23. The API reported both `collector.running=false` and `collector.enabled=false`. The [bounded workstation probe](../deploy/preprod/publish_production_collector_health.py) reads once per minute via the pinned production SSH connection and omits failed observations. The trial06 probe expires at 23:35 UTC.
+
 - [x] Published the active trial06 writer’s slot, generation, collector state, persisted Polymarket quote count and latest quote receipt time to Grafana from the existing PP observer files. Grafana accepted 39 collector observations through 21:55:03 UTC on November 23. Initial A had 89 persisted quotes at that sample, with its most recent receipt at 21:54:57 UTC. [Publisher](../deploy/preprod/publish_archive_metrics.py)
 
 - [x] Recorded persisted trial05 B quote counts within A's verifier runtime. Ten snapshots inside the conservative overlap showed 29 → 56 quotes. All 49 raw objects and 51 of 52 structured pages completed before HOLD at 239.641 seconds. The old A stayed attached and the trial ended before fresh A. The [read-only report](../deploy/preprod/retirement_observation_report.py) uses the saved attempt dispatch and a known post-receipt event to bound the verifier's wall-clock interval. For [trial05](PLAN/evidence/trial05-b-during-a-verification-2026-11-23.json), the upper bound comes from the durable OFF record in `observer-end.jsonl`. Quote counts between samples leave intra-window gaps unresolved.

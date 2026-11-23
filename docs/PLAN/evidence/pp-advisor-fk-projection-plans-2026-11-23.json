@@ -1,0 +1,361 @@
+{
+  "scope": "Generated local PG17, projection-read phase, database owner, warmed private socket",
+  "server": "17.2 (Homebrew)",
+  "rows_per_table": 10000,
+  "page_size": 500,
+  "lookups_per_advised_table": 125,
+  "cases": {
+    "one_snapshot_per_evidence": {
+      "arms": {
+        "original": {
+          "plans": {
+            "core.protected_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "protected_evidence_origin_id_evidence_id_market_id_key",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.snapshot_evidence": {
+              "Node Type": "Index Only Scan",
+              "Index Name": "snapshot_evidence_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (snapshot_id = 's73'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.predictions": {
+              "Node Type": "Index Scan",
+              "Index Name": "predictions_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (prediction_id = 'p73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.outcomes": {
+              "Node Type": "Index Scan",
+              "Index Name": "outcomes_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (outcome_id = 'o73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            }
+          },
+          "page_ms": [
+            23.0422,
+            22.5535,
+            23.0652,
+            22.5035,
+            22.234,
+            21.9077,
+            23.3365,
+            28.5844,
+            22.8028,
+            22.8589,
+            22.9479,
+            22.4664
+          ],
+          "median_page_ms": 22.8308
+        },
+        "four_indexes": {
+          "plans": {
+            "core.protected_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "protected_evidence_origin_id_evidence_id_market_id_key",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.snapshot_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "candidate_snapshot_evidence",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": "(snapshot_id = 's73'::text)",
+              "Rows Removed by Filter": 0,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.predictions": {
+              "Node Type": "Index Scan",
+              "Index Name": "predictions_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (prediction_id = 'p73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.outcomes": {
+              "Node Type": "Index Scan",
+              "Index Name": "outcomes_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (outcome_id = 'o73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            }
+          },
+          "page_ms": [
+            22.3847,
+            22.5592,
+            22.5323,
+            22.2527,
+            26.2211,
+            22.806,
+            22.9364,
+            22.7278,
+            21.1529,
+            22.0655,
+            20.8784,
+            21.8268
+          ],
+          "median_page_ms": 22.4585,
+          "index_bytes": {
+            "protected_evidence": 516096,
+            "snapshot_evidence": 516096,
+            "predictions": 688128,
+            "outcomes": 589824
+          }
+        },
+        "original_restored": {
+          "plans": {
+            "core.protected_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "protected_evidence_origin_id_evidence_id_market_id_key",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.snapshot_evidence": {
+              "Node Type": "Index Only Scan",
+              "Index Name": "snapshot_evidence_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (snapshot_id = 's73'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.predictions": {
+              "Node Type": "Index Scan",
+              "Index Name": "predictions_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (prediction_id = 'p73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.outcomes": {
+              "Node Type": "Index Scan",
+              "Index Name": "outcomes_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (outcome_id = 'o73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            }
+          },
+          "page_ms": [
+            21.3622,
+            26.0321,
+            22.665,
+            21.3522,
+            23.7222,
+            23.312,
+            23.6382,
+            22.6542,
+            21.249,
+            21.4317,
+            21.4012,
+            28.1223
+          ],
+          "median_page_ms": 22.6596
+        }
+      },
+      "canonical_projection_result_sha256": "a1e8f45d80d848e4564dbe0d3c289fc9ffe83698b1ebbd2be3b8df68d7f99197"
+    },
+    "sixteen_snapshots_per_evidence": {
+      "arms": {
+        "original": {
+          "plans": {
+            "core.protected_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "protected_evidence_origin_id_evidence_id_market_id_key",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.snapshot_evidence": {
+              "Node Type": "Index Only Scan",
+              "Index Name": "snapshot_evidence_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (snapshot_id = 's73'::text) AND (evidence_id = 'e65'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.predictions": {
+              "Node Type": "Index Scan",
+              "Index Name": "predictions_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (prediction_id = 'p73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.outcomes": {
+              "Node Type": "Index Scan",
+              "Index Name": "outcomes_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (outcome_id = 'o73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            }
+          },
+          "page_ms": [
+            22.4152,
+            21.7007,
+            21.6631,
+            20.8663,
+            23.5378,
+            23.3909,
+            22.9535,
+            23.0003,
+            27.378,
+            23.5688,
+            23.121,
+            23.2798
+          ],
+          "median_page_ms": 23.0606
+        },
+        "four_indexes": {
+          "plans": {
+            "core.protected_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "protected_evidence_origin_id_evidence_id_market_id_key",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.snapshot_evidence": {
+              "Node Type": "Index Only Scan",
+              "Index Name": "snapshot_evidence_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (snapshot_id = 's73'::text) AND (evidence_id = 'e65'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.predictions": {
+              "Node Type": "Index Scan",
+              "Index Name": "predictions_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (prediction_id = 'p73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.outcomes": {
+              "Node Type": "Index Scan",
+              "Index Name": "outcomes_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (outcome_id = 'o73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            }
+          },
+          "page_ms": [
+            20.8586,
+            20.9439,
+            20.7181,
+            22.1915,
+            22.8559,
+            27.2647,
+            21.8873,
+            23.0409,
+            22.3274,
+            67.2372,
+            22.7256,
+            23.029
+          ],
+          "median_page_ms": 22.5265,
+          "index_bytes": {
+            "protected_evidence": 516096,
+            "snapshot_evidence": 114688,
+            "predictions": 688128,
+            "outcomes": 589824
+          }
+        },
+        "original_restored": {
+          "plans": {
+            "core.protected_evidence": {
+              "Node Type": "Index Scan",
+              "Index Name": "protected_evidence_origin_id_evidence_id_market_id_key",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (evidence_id = 'e73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.snapshot_evidence": {
+              "Node Type": "Index Only Scan",
+              "Index Name": "snapshot_evidence_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (snapshot_id = 's73'::text) AND (evidence_id = 'e65'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.predictions": {
+              "Node Type": "Index Scan",
+              "Index Name": "predictions_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (prediction_id = 'p73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            },
+            "core.outcomes": {
+              "Node Type": "Index Scan",
+              "Index Name": "outcomes_pkey",
+              "Index Cond": "((origin_id = 'generated_fk_fixture'::text) AND (outcome_id = 'o73'::text))",
+              "Filter": null,
+              "Rows Removed by Filter": null,
+              "Actual Rows": 1,
+              "Shared Hit Blocks": 3
+            }
+          },
+          "page_ms": [
+            22.7955,
+            22.8166,
+            22.5959,
+            26.287,
+            23.2419,
+            23.0135,
+            21.8764,
+            22.4165,
+            22.2767,
+            22.083,
+            22.3769,
+            22.0637
+          ],
+          "median_page_ms": 22.5062
+        }
+      },
+      "canonical_projection_result_sha256": "d06947b6286d869bea0d89cb774f6c3ba45abf8f7194be5d197722cc0ba30ee9"
+    }
+  }
+}

@@ -52,6 +52,9 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   page and verified 500 rows byte for byte in 2.300 seconds under the
   four-second hosted verifier budget. A stayed attached. SQL execution and
   transfer are still combined in the client timing.
+  An isolated 500-key projection test of four Advisor FK indexes showed
+  comparable 22–23 ms medians across two generated distributions. The
+  release keeps its existing receipt index. [Projection plans](PLAN/evidence/pp-advisor-fk-projection-plans-2026-11-23.json)
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

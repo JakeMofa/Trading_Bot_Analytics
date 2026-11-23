@@ -443,6 +443,8 @@ Opened the Info tab and all four Unindexed foreign keys detail panels for `histo
 
 These four lints concern foreign-key coverage. To estimate a speed benefit for PP, compare the actual predicates and plans on the exact verifier statements and measure lookup time and write overhead.
 
+The [PG17 fixture](../../deploy/preprod/bench_archive_fk_advice.py) ran the verifier's pipelined projection lookup on 500 generated keys across these four tables. Each table held 10,000 rows. Twelve warmed reads per configuration returned identical projected rows within each fixture. With one snapshot per evidence item, the median page took 22.83 ms originally, 22.46 ms with the four indexes, and 22.66 ms after removing them. Only the snapshot-evidence candidate appeared in its representative query plan, with three shared-buffer hits either way. With sixteen snapshots per evidence item, all four projection queries kept their original indexes. Medians were 23.06, 22.53, and 22.51 ms. The four supplemental indexes occupied 1.82–2.20 MiB in these fixtures. Keep the current hosted indexes for this workload. Parent-row deletes and updates, index maintenance on writes, hosted RLS, and other verifier phases need separate evidence. [Saved plans and timings](evidence/pp-advisor-fk-projection-plans-2026-11-23.json)
+
 ### Advisor Center
 
 Opened the toolbar Advisor Center. The panel surfaced potential database issues and displayed diagnostic entries that can be expanded individually. It surfaced public and signed-in eligibility to execute a security-definer function. This was a dashboard advisory observation, with no execution or grants checked. No suppression or remediation was applied. [Advisors documentation](https://supabase.com/docs/guides/observability/advisors)

@@ -1,3 +1,24 @@
+## November 23, 2026 CST — Trial05 isolated scope and production collector off
+
+Production's collector was explicitly disabled at the approved service fence.
+The deployed production source remains `d56b4a7`. The operator verified both
+collector flags were false. Production collection is to stay OFF after the
+rehearsal, pending the separately reviewed PostgreSQL cutover.
+
+Trial05 uses a new origin with distinct structured SQL and private Storage
+principals. Its candidate inherits the PP28 lease watchdog fix. Local
+preparation checks the exact stopped trial04 writer, attached A, preparation
+and admission checkpoints, 659 raw row identities and hashes, and all 705
+acknowledged outbox entries. It binds that evidence to trial05 and makes no
+changes to trial04. Retained04 is excluded from new collector entry and ON.
+
+Generated PostgreSQL 17 tests passed trial05 A → B → fresh A, both fresh
+readback and independent successor-write retirement checks, and trial04
+isolation. Hosted preflight found 12 RLS history tables, a private raw bucket,
+706 retained trial04 receipts and revision payloads, and zero trial05 roles
+or Auth users. Hosted identities and verification remain pending. PP remains
+in generated mode with its live collector off.
+
 ## November 23, 2026 CST — PP28 live preflight found no unused trial scope
 
 The temporary production fence was authorized for a fresh PP28 run. The

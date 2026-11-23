@@ -3,7 +3,7 @@
 services:
   api:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-04
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-05
       TRADEBOT_PP_ARCHIVE_HISTORY: 'true'
     secrets:
       - trial_history_reader_api_key
@@ -11,7 +11,7 @@ services:
       - trial_history_reader_password
       - trial_history_reader_uid
 secrets:
-  trial_history_reader_api_key: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_04_history_reader_api_key"}
-  trial_history_reader_email: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_04_history_reader_email"}
-  trial_history_reader_password: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_04_history_reader_password"}
-  trial_history_reader_uid: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_04_history_reader_uid"}
+  trial_history_reader_api_key: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_05_history_reader_api_key"}
+  trial_history_reader_email: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_05_history_reader_email"}
+  trial_history_reader_password: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_05_history_reader_password"}
+  trial_history_reader_uid: {file: "${PP_RUNTIME_SECRET_DIR:?missing runtime directory}/trial_20261119_05_history_reader_uid"}

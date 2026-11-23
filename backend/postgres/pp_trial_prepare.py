@@ -11,12 +11,14 @@ import uuid
 
 from .archive_codec import ArchiveLimits, CycleBudget, encoded, sha256, wire
 from .lifecycle import LifecycleHold, LifecycleRepository, validate_manifest_chain
-from .rehearsal_profile import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN, TRIAL_ORIGINS, canonical_anchor, cycle_anchor
+from .rehearsal_profile import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, TRIAL_ORIGINS, canonical_anchor, cycle_anchor
 
 CONSUMER='trial:initial-a-prepare-v1'
 RETAINED_SECOND_INITIAL_A='41c82044-0fb8-4900-bea0-7c43ba079ff0'
 RETAINED_THIRD_A='15a239c9-2f9b-4bdc-bd89-7cd1e2812f45'
 RETAINED_THIRD_B='381070ac-3624-4826-8dc6-7ea5a272f97e'
+RETAINED_FOURTH_A='53505b6c-f9b2-4b4b-be55-e45f94a6841c'
+RETAINED_FOURTH_SOURCE='17ba31ec7ccb3ade9b94247291721f65d863f5da'
 
 
 def retained_third_fingerprint(db,writers):
@@ -64,14 +66,61 @@ def retained_third_fingerprint(db,writers):
     return sha256(encoded(dict(generations=snapshots,writer=wire(old))))
 
 
+def retained_fourth_fingerprint(db, writers):
+    """Bind the stopped, unsealed trial04 partition to the trial05 admission."""
+    rows = db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
+                      'ORDER BY created_at,generation_id LIMIT 2 FOR SHARE',
+                      (FOURTH_TRIAL_ORIGIN,)).fetchall()
+    writer = next((row for row in writers if row['origin_id']==FOURTH_TRIAL_ORIGIN), None)
+    if (len(rows)!=1 or writer is None or writer['generation_id']!=RETAINED_FOURTH_A
+            or writer['epoch']!=3 or writer['collector_enabled']
+            or writer['collector_session_id'] is not None or writer['collector_lease_expires_at'] is not None):
+        raise LifecycleHold('exact stopped fourth trial writer required')
+    row = rows[0]
+    child = 'events_g_'+RETAINED_FOURTH_A.replace('-','')
+    if (row['generation_id']!=RETAINED_FOURTH_A or row['partition_name']!=child
+            or row['slot']!='A' or row['state']!='collecting' or row['sealed_at'] is not None
+            or row['retired_at'] is not None or row['hold_reason'] is not None):
+        raise LifecycleHold('exact unsealed fourth trial A required')
+    attached = db.execute("SELECT EXISTS(SELECT 1 FROM pg_inherits i "
+        "WHERE i.inhparent='raw.events'::regclass AND i.inhrelid=to_regclass(%s) "
+        "AND pg_get_expr((SELECT relpartbound FROM pg_class WHERE oid=i.inhrelid),i.inhrelid)"
+        "=format('FOR VALUES IN (%%L)',%s::text)) AS valid",
+        ('raw.'+child, RETAINED_FOURTH_A)).fetchone()['valid']
+    checkpoints = {entry['consumer']:entry['cursor'] for entry in db.execute(
+        'SELECT consumer,cursor FROM archive.checkpoints WHERE origin_id=%s AND generation_id=%s '
+        'AND consumer IN (%s,%s)',(FOURTH_TRIAL_ORIGIN,RETAINED_FOURTH_A,CONSUMER,
+                                  'rehearsal:two-leg-session')).fetchall()}
+    prepared = checkpoints.get(CONSUMER,{})
+    admitted = checkpoints.get('rehearsal:two-leg-session',{})
+    if (not attached or prepared.get('source_sha')!=RETAINED_FOURTH_SOURCE
+            or prepared.get('initial_a')!=RETAINED_FOURTH_A
+            or admitted.get('initial_a')!=RETAINED_FOURTH_A or admitted.get('lease_seconds')!=6600
+            or LifecycleRepository._manifests(db,RETAINED_FOURTH_A)):
+        raise LifecycleHold('retained fourth trial attachment or evidence changed')
+    raw = db.execute('SELECT event_id,source,content_hash FROM raw.events WHERE origin_id=%s '
+                     'AND generation_id=%s ORDER BY source,event_id LIMIT 660',
+                     (FOURTH_TRIAL_ORIGIN,RETAINED_FOURTH_A)).fetchall()
+    outbox = db.execute('SELECT id,generation_id,content_hash,acknowledged_at FROM ops.outbox '
+                        'WHERE origin_id=%s ORDER BY id LIMIT 706',(FOURTH_TRIAL_ORIGIN,)).fetchall()
+    if (len(raw)!=659 or len(outbox)!=705 or any(entry['generation_id']!=RETAINED_FOURTH_A
+            or entry['acknowledged_at'] is None for entry in outbox)):
+        raise LifecycleHold('retained fourth trial row or acknowledgement count changed')
+    return sha256(encoded(wire(dict(generation=row,writer=writer,checkpoints=checkpoints,
+                                    raw=raw,outbox=outbox))))
+
 
 def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN):
     canonical_anchor(initial_a)
     if (execute is not True or repository.environment!='preprod' or origin_id not in TRIAL_ORIGINS
             or not isinstance(source_sha,str) or not re.fullmatch('[0-9a-f]{40}',source_sha)):
         raise LifecycleHold('explicit exact trial preparation scope required')
-    if origin_id==FOURTH_TRIAL_ORIGIN and (uuid.UUID(initial_a).int==0 or initial_a in (RETAINED_THIRD_A,RETAINED_THIRD_B)):
-        raise LifecycleHold('new fourth trial requires a distinct nonzero initial A')
+    preserved = (RETAINED_THIRD_A,RETAINED_THIRD_B)
+    if origin_id==FIFTH_TRIAL_ORIGIN:
+        preserved += (RETAINED_FOURTH_A,)
+    if origin_id in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN) and (
+            uuid.UUID(initial_a).int==0 or initial_a in preserved):
+        raise LifecycleHold('new trial requires a distinct nonzero initial A')
     with CycleBudget(ArchiveLimits(max_seconds=20)), repository.transaction() as db:
         identity=db.execute("""SELECT current_database()='tradebot_pp'
             AND session_user='tradebot_lifecycle' AND count(*)=1
@@ -89,9 +138,11 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
             raise LifecycleHold('all PP collectors must be durably OFF before trial preparation')
         if db.execute('SELECT 1 FROM ops.writer_state WHERE collector_enabled LIMIT 1').fetchone():
             raise LifecycleHold('all database collector flags must be OFF')
-        retained=None
-        if origin_id==FOURTH_TRIAL_ORIGIN:
-            retained=retained_third_fingerprint(db,writers)
+        retained={}
+        if origin_id in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN):
+            retained['retained_trial03_sha256']=retained_third_fingerprint(db,writers)
+        if origin_id==FIFTH_TRIAL_ORIGIN:
+            retained['retained_trial04_sha256']=retained_fourth_fingerprint(db,writers)
         if origin_id==THIRD_TRIAL_ORIGIN:
             # New03 follows only the exact archived failed02 initial A. Keep
             # its partition, pointer, seal and old authority entirely unchanged.
@@ -121,8 +172,7 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
         existing=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
                             'ORDER BY created_at,generation_id LIMIT 2 FOR UPDATE',(origin_id,)).fetchall()
         writer=next((row for row in writers if row['origin_id']==origin_id),None)
-        expected=dict(initial_a=initial_a,source_sha=source_sha,policy=CONSUMER)
-        if retained is not None:expected['retained_trial03_sha256']=retained
+        expected=dict(initial_a=initial_a,source_sha=source_sha,policy=CONSUMER,**retained)
         if existing or writer:
             checkpoint=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
                 'AND generation_id=%s AND consumer=%s',(origin_id,initial_a,CONSUMER)).fetchone()

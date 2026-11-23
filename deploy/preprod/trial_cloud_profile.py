@@ -5,9 +5,9 @@ from linux_actions import PROJECT,TRIAL_ORIGIN,cycle_environment
 from live_profile import validate_live_profile
 from structured_probe_profile import LOCAL_STAGED,OFF
 
-WRITER_SQL={'pp_trial_history_writer_dsn':'/etc/tradebot/cloud/trial_20261119_04_history_writer_dsn',
+WRITER_SQL={'pp_trial_history_writer_dsn':'/etc/tradebot/cloud/trial_20261119_05_history_writer_dsn',
             'pp_history_ca':'/etc/tradebot/cloud/pp_history_ca'}
-WRITER_AUTH={f'trial_archive_{field}':f'/etc/tradebot/cloud/trial_20261119_04_archive_{field}'
+WRITER_AUTH={f'trial_archive_{field}':f'/etc/tradebot/cloud/trial_20261119_05_archive_{field}'
              for field in ('api_key','email','password','uid')}
 
 

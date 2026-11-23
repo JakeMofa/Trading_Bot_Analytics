@@ -16,19 +16,19 @@ import uuid
 
 from controller import require
 
-TRIAL_ORIGIN='pp-live-pp-trial-20261119-04'
-TRIAL_SQL_READER='tradebot_pp_trial_20261119_04_reader'
+TRIAL_ORIGIN='pp-live-pp-trial-20261119-05'
+TRIAL_SQL_READER='tradebot_pp_trial_20261119_05_reader'
 RUNTIME_SECRETS=Path('/etc/tradebot/pp-runtime')
 TRIAL_HISTORY_READER_FILES=tuple('trial_history_reader_'+field for field in ('api_key','email','password','uid'))
 TRIAL_HISTORY_READER_OVERLAY='runtime.trial-history-reader.compose.yaml'
-AUTHORITY_FILENAME='trial_20261119_04_history_reader_authority.json'
-PROOF_FILENAME='trial_20261119_04_history_reader_proof.json'
+AUTHORITY_FILENAME='trial_20261119_05_history_reader_authority.json'
+PROOF_FILENAME='trial_20261119_05_history_reader_proof.json'
 
 
 def trial_history_reader_source(name):
     require(name in TRIAL_HISTORY_READER_FILES,'unreviewed_trial_history_reader_file')
-    return RUNTIME_SECRETS/('trial_20261119_04_history_reader_'+name.removeprefix('trial_history_reader_'))
-HOSTED_DENIED=['old_origin','retained_trial_01_origin','retained_trial_02_origin','retained_trial_03_origin','list','upload','sign','public']
+    return RUNTIME_SECRETS/('trial_20261119_05_history_reader_'+name.removeprefix('trial_history_reader_'))
+HOSTED_DENIED=['old_origin','retained_trial_01_origin','retained_trial_02_origin','retained_trial_03_origin','retained_trial_04_origin','list','upload','sign','public']
 POLICY_FIXTURE_DENIED=['production_origin','replace','move','delete']
 SCOPE='pp_trial_raw_get_only_v1'
 HEX=re.compile(r'[0-9a-f]{64}\Z')

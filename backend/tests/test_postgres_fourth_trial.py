@@ -1,4 +1,5 @@
 """Exact04 admission and SQL gates; retained03 A/B are owned generated fixtures."""
+from datetime import timedelta
 import os
 from pathlib import Path
 import sys
@@ -7,7 +8,7 @@ from unittest.mock import patch
 import uuid
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from postgres.cloud_origin_binding import (TRIAL_ORIGINS,THIRD_TRIAL_ORIGIN,FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,
+from postgres.cloud_origin_binding import (TRIAL_ORIGINS,THIRD_TRIAL_ORIGIN,FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN,
     FOURTH_TRIAL_WRITER,FOURTH_TRIAL_READER,cloud_binding)
 from postgres.pp_trial_prepare import prepare,CONSUMER,RETAINED_FOURTH_A,RETAINED_FOURTH_SOURCE
 from postgres.lifecycle import LifecycleHold
@@ -20,28 +21,28 @@ class FourthControls(unittest.TestCase):
         from postgres.rehearsal_profile import lease_cap,CYCLE_POLICY
         self.assertEqual((cloud_binding(FOURTH_TRIAL_ORIGIN).writer_role,cloud_binding(FOURTH_TRIAL_ORIGIN).reader_role),
                          (FOURTH_TRIAL_WRITER,FOURTH_TRIAL_READER))
-        self.assertEqual(len(TRIAL_ORIGINS),5)
-        self.assertEqual(len({cloud_binding(o).raw_prefix for o in TRIAL_ORIGINS}),5)
+        self.assertEqual(len(TRIAL_ORIGINS),6)
+        self.assertEqual(len({cloud_binding(o).raw_prefix for o in TRIAL_ORIGINS}),6)
         anchor=str(uuid.uuid4());env=dict(TRADEBOT_ENVIRONMENT='preprod',TRADEBOT_DATA_MODE='pp_live',
             TRADEBOT_ORIGIN_ID=FOURTH_TRIAL_ORIGIN,TRADEBOT_PP_WINDOW_POLICY=CYCLE_POLICY,TRADEBOT_PP_CYCLE_INITIAL_A=anchor)
         self.assertEqual(selected_cloud_origin(env),FOURTH_TRIAL_ORIGIN)
         require_trial_files(env|cloud_files(FOURTH_TRIAL_ORIGIN),FOURTH_TRIAL_ORIGIN,structured=True,storage=True)
         self.assertEqual((lease_cap(),lease_cap(anchor)),(4560,6600))
-        for origin in ('pp-live-pp-trial-20261119-06','pp-live-pp-trial-anything','pp-live-pp-trial-20261119-%'):
+        for origin in ('pp-live-pp-trial-20261119-07','pp-live-pp-trial-anything','pp-live-pp-trial-20261119-%'):
             with self.assertRaises(ValueError):selected_cloud_origin(env|dict(TRADEBOT_ORIGIN_ID=origin))
         from postgres.history_v2_transport import HistoryV2PostgresTransport
         for role in (cloud_binding(THIRD_TRIAL_ORIGIN).reader_role,cloud_binding(THIRD_TRIAL_ORIGIN).writer_role):
             with self.assertRaises(ValueError):HistoryV2PostgresTransport(lambda **_:None,origin_id=FOURTH_TRIAL_ORIGIN,
                 generation_id=anchor,expected_role=role,expected_database='postgres')
 
-    def test_terminal_scope_preserves_old_bounds_and_does_not_admit_sixth(self):
+    def test_terminal_scope_preserves_old_bounds_and_does_not_admit_unreviewed_scope(self):
         from postgres.pp_final_trial_drain import acknowledged_row_limit,SealTarget
         self.assertEqual(acknowledged_row_limit('pp-live-pp-trial-20261119-02'),10000)
         self.assertEqual(acknowledged_row_limit(THIRD_TRIAL_ORIGIN),64000)
         self.assertEqual(acknowledged_row_limit(FOURTH_TRIAL_ORIGIN),64000)
         anchor=str(uuid.uuid4());target=SealTarget(str(uuid.uuid4()),anchor,4,1,10001,'a'*40,str(uuid.uuid4()),'b'*40)
         target.validate(origin_id=FOURTH_TRIAL_ORIGIN)
-        with self.assertRaises(LifecycleHold):acknowledged_row_limit('pp-live-pp-trial-20261119-06')
+        with self.assertRaises(LifecycleHold):acknowledged_row_limit('pp-live-pp-trial-20261119-07')
 
 
 class FourthNative(recovery.Native):
@@ -202,7 +203,7 @@ class FourthNative(recovery.Native):
         env=dict(TRADEBOT_TEST_LIFECYCLE_DSN=self.lifecycle_dsn,TRADEBOT_TEST_APP_DSN=self.app_dsn,
             TRADEBOT_TEST_MIGRATOR_DSN=self.migrator_dsn,TRADEBOT_DATA_MODE='generated',TRADEBOT_ORIGIN_ID='generated-pp')
         with patch.dict(os.environ,env):
-            for origin in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN):
+            for origin in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN):
                 with self.subTest(origin=origin):
                     case=NativeCycleTests('test_exact_finite_cycle_retained_rejection_and_successor_writes')
                     try:case._exercise_cycle(origin=origin)
@@ -214,12 +215,95 @@ class FourthNative(recovery.Native):
         env=dict(TRADEBOT_TEST_LIFECYCLE_DSN=self.lifecycle_dsn,TRADEBOT_TEST_APP_DSN=self.app_dsn,
             TRADEBOT_TEST_MIGRATOR_DSN=self.migrator_dsn,TRADEBOT_DATA_MODE='generated',TRADEBOT_ORIGIN_ID='generated-pp')
         if not self.external:env['PATH']=str(self.bin)+os.pathsep+os.environ['PATH']
-        case=PostgreSQLLifecycleIntegration('test_exact_trial_origin_uses_two_market_permits_without_legacy_origin_aliasing')
         with patch.dict(os.environ,env):
-            try:
-                case.setUp()
-                case._exercise_exact_pp_permits(FIFTH_TRIAL_ORIGIN)
-            finally:case.doCleanups()
+            for origin in (FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN):
+                with self.subTest(origin=origin):
+                    case=PostgreSQLLifecycleIntegration('test_exact_trial_origin_uses_two_market_permits_without_legacy_origin_aliasing')
+                    try:
+                        case.setUp()
+                        case._exercise_exact_pp_permits(origin)
+                    finally:case.doCleanups()
+
+    def test_sixth_preparation_pins_retained_fifth_a_b_and_refuses_fingerprint_drift(self):
+        from psycopg import sql
+        from psycopg.types.json import Jsonb
+        from postgres import pp_trial_prepare as trial
+        from postgres.archive_codec import ArchiveLimits, pack_chunk, sha256
+        a,b=trial.RETAINED_FIFTH_A,trial.RETAINED_FIFTH_B
+        prepared_at=trial.RETAINED_FIFTH_SEALED_AT
+        anchor=str(uuid.uuid4())
+        with self.admin() as db:
+            for origin in (FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN):
+                if db.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s LIMIT 1',(origin,)).fetchone():
+                    raise RuntimeError('refusing existing test scope; no cleanup registered')
+            for slot,generation in zip(('A','B'),(a,b)):
+                created_at=prepared_at-timedelta(seconds=1) if slot=='A' else prepared_at
+                db.execute("INSERT INTO archive.generations(origin_id,generation_id,slot,state,partition_name,created_at) "
+                           "VALUES(%s,%s,%s,'prepared',%s,%s)",
+                           (FIFTH_TRIAL_ORIGIN,generation,slot,'events_g_'+generation.replace('-',''),created_at))
+                db.execute('SELECT archive.create_generation_partition(%s,%s)',(FIFTH_TRIAL_ORIGIN,generation))
+                db.execute("UPDATE archive.generations SET state='collecting',started_at=%s WHERE generation_id=%s",
+                           (prepared_at,generation))
+                db.execute("INSERT INTO raw.events(generation_id,origin_id,source,event_id,kind,received_at,available_at,payload,content_hash) "
+                           "VALUES(%s,%s,'fixture',%s,'price',now(),now(),'{}',%s)",(generation,FIFTH_TRIAL_ORIGIN,slot,'a'*64))
+                db.execute("INSERT INTO ops.outbox(origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at,acknowledged_at) "
+                           "VALUES(%s,%s,'fixture',%s,%s,'{}',now(),now())",(FIFTH_TRIAL_ORIGIN,generation,slot,'b'*64))
+                if slot=='A':
+                    db.execute("UPDATE archive.generations SET state='sealed',sealed_at=%s,seal_count=1 WHERE generation_id=%s",
+                               (prepared_at,generation))
+            db.execute("INSERT INTO ops.writer_state(origin_id,generation_id,epoch,collector_enabled,updated_at) "
+                       "VALUES(%s,%s,4,false,now())",(FIFTH_TRIAL_ORIGIN,b))
+            for consumer,cursor in ((CONSUMER,dict(policy=CONSUMER,initial_a=a,source_sha=trial.RETAINED_FIFTH_SOURCE)),
+                    ('rehearsal:two-leg-session',dict(initial_a=a,session_id=trial.RETAINED_FIFTH_SESSION,lease_seconds=6600))):
+                db.execute('INSERT INTO archive.checkpoints VALUES(%s,%s,%s,%s,now())',
+                           (FIFTH_TRIAL_ORIGIN,a,consumer,Jsonb(cursor)))
+            raw=db.execute('SELECT * FROM raw.events WHERE generation_id=%s',(a,)).fetchall()
+        def cleanup(origin,generations):
+            with self.admin() as db:
+                for table in ('archive.manifests','archive.checkpoints','ops.outbox','ops.writer_state'):
+                    db.execute(sql.SQL('DELETE FROM {} WHERE origin_id=%s AND generation_id=ANY(%s)').format(
+                               sql.Identifier(*table.split('.'))),(origin,list(generations)))
+                for generation in generations:
+                    child='events_g_'+generation.replace('-','')
+                    db.execute(sql.SQL('DROP TABLE IF EXISTS raw.{}').format(sql.Identifier(child)))
+                    db.execute('DELETE FROM archive.generations WHERE origin_id=%s AND generation_id=%s',(origin,generation))
+        self.addCleanup(cleanup,FIFTH_TRIAL_ORIGIN,(a,b))
+        _,manifest=pack_chunk(raw,origin_id=FIFTH_TRIAL_ORIGIN,generation_id=a,after=None,limits=ArchiveLimits())
+        manifest.update(manifest_id='raw.events:000000000000',
+            object_key='raw-v1/'+sha256(FIFTH_TRIAL_ORIGIN.encode())+'/'+a+'/'+manifest['sha256']+'.jsonl.gz')
+        self.repo.record_manifest(a,manifest)
+        seal=self.repo.mark_verified(a)
+
+        def fingerprint():
+            with self.repo.transaction() as db:
+                writers=db.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s',(FIFTH_TRIAL_ORIGIN,)).fetchall()
+                return trial.retained_fifth_fingerprint(db,writers)
+
+        with patch.multiple(trial,RETAINED_FIFTH_SEAL=seal,RETAINED_FIFTH_RAW=(1,1),
+                            RETAINED_FIFTH_ACK=(1,1),RETAINED_FIFTH_MANIFESTS=1), \
+                patch.object(trial,'retained_third_fingerprint',return_value='a'*64), \
+                patch.object(trial,'retained_fourth_fingerprint',return_value='b'*64):
+            before=fingerprint()
+            for reused_anchor in (a,b):
+                with self.assertRaisesRegex(LifecycleHold,'distinct nonzero'):
+                    prepare(self.repo,reused_anchor,'f'*40,execute=True,origin_id=SIXTH_TRIAL_ORIGIN)
+            result=prepare(self.repo,anchor,'f'*40,execute=True,origin_id=SIXTH_TRIAL_ORIGIN)
+            self.addCleanup(cleanup,SIXTH_TRIAL_ORIGIN,(anchor,))
+            self.assertFalse(result['collector_enabled'])
+            self.assertEqual(prepare(self.repo,anchor,'f'*40,execute=True,origin_id=SIXTH_TRIAL_ORIGIN),result)
+            self.assertEqual(fingerprint(),before)
+            with self.admin() as db:
+                proof=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s AND generation_id=%s AND consumer=%s',
+                                 (SIXTH_TRIAL_ORIGIN,anchor,CONSUMER)).fetchone()['cursor']
+                self.assertEqual(proof['retained_trial05_sha256'],before)
+                db.execute("UPDATE raw.events SET content_hash=%s WHERE generation_id=%s",('d'*64,b))
+            self.assertNotEqual(fingerprint(),before)
+            with self.assertRaisesRegex(LifecycleHold,'unused initial-A'):
+                prepare(self.repo,anchor,'f'*40,execute=True,origin_id=SIXTH_TRIAL_ORIGIN)
+            with self.admin() as db:
+                db.execute("UPDATE ops.outbox SET acknowledged_at=NULL WHERE generation_id=%s",(b,))
+            with self.assertRaisesRegex(LifecycleHold,'acknowledgements'):
+                prepare(self.repo,anchor,'f'*40,execute=True,origin_id=SIXTH_TRIAL_ORIGIN)
 
     def test_both_real04_sql_retirements_and_terminal_scope_preserve03(self):
         from test_postgres_lifecycle_integration import PostgreSQLLifecycleIntegration

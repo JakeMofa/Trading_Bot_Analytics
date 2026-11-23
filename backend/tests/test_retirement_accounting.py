@@ -1,8 +1,10 @@
 """Diagnostics cannot change authority, exception identity, or budget limits."""
 import json
+import io
+import os
 import unittest
 from unittest.mock import patch
-from contextlib import contextmanager
+from contextlib import contextmanager, redirect_stdout
 
 from postgres.archive_codec import ArchiveLimit, CycleBudget
 from postgres.pp_retirement_verify import TwoMarketReadbackLimits
@@ -24,6 +26,32 @@ class AccountingTests(unittest.TestCase):
         for value in ('TRUE','1','',True):
             with self.assertRaises(LifecycleHold):
                 retirement_history_factory({'TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION':value})
+
+    def test_trial06_permitted_retirement_requires_reuse_before_files_or_connections(self):
+        from postgres import pp_retirement_verify
+        from postgres.rehearsal_profile import CYCLE_POLICY, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN
+
+        sealed='00000000-0000-4000-8000-000000000001'
+        argv=['verify','--sealed',sealed,'--collecting','00000000-0000-4000-8000-000000000002',
+              '--seal-hash','a'*64,'--count','1','--two-market-window']
+        environment=dict(TRADEBOT_ENVIRONMENT='preprod',TRADEBOT_DATA_MODE='pp_live',
+                         TRADEBOT_ORIGIN_ID=SIXTH_TRIAL_ORIGIN,TRADEBOT_PP_WINDOW_POLICY=CYCLE_POLICY,
+                         TRADEBOT_PP_CYCLE_INITIAL_A=sealed)
+        for origin,operation,opt_in,allowed in (
+                (SIXTH_TRIAL_ORIGIN,'--retire-with-pp-permit','false',False),
+                (SIXTH_TRIAL_ORIGIN,'--retire-with-pp-permit','TRUE',False),
+                (SIXTH_TRIAL_ORIGIN,'--retire-with-pp-permit','true',True),
+                (SIXTH_TRIAL_ORIGIN,'--inventory-only','false',True),
+                (FIFTH_TRIAL_ORIGIN,'--retire-with-pp-permit','false',True)):
+            env=environment|dict(TRADEBOT_ORIGIN_ID=origin,TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION=opt_in)
+            with self.subTest(origin=origin,operation=operation,opt_in=opt_in), \
+                    patch.dict(os.environ,env,clear=True), \
+                    patch('sys.argv',argv+[operation]), \
+                    patch.object(pp_retirement_verify,'require_trial_files',side_effect=AssertionError) as files, \
+                    redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(pp_retirement_verify.main(),1)
+                self.assertEqual(files.called,allowed)
+                self.assertEqual(json.loads(output.getvalue())['reason'],'AssertionError' if allowed else 'lifecycle_hold')
 
     def test_connection_sqlstate_survives_sanitizing_factory(self):
         from postgres.pp_history_connection import PPHistoryConnectionFactory

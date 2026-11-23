@@ -1,3 +1,133 @@
+## November 23, 2026 CST — Trial06 isolated candidate for live requalification
+
+The retained trial05 readback passed with 65.580 seconds of headroom. Trial06
+is the isolated follow-up on the same PP host. It uses a new empty A and
+separate authenticated Storage and structured-history identities. The controller
+disallows restarting retained trial05. Preparation checks the prior A/B
+attachments, exact seal and writer, and protected evidence before creating
+the new generation. Trial05 and earlier archives remain available.
+
+The trial06 retirement verifier requires connection reuse and a fresh read-only
+transaction on each page. The 4-second page, 240-second final readback and
+30-minute seal limits remain fixed. The operator confirmed both administrative
+freeze windows of at most 295 seconds. Each window opens only on its separately
+announced, exact sealed-generation authorization. Both collectors are currently
+durably OFF. No trial06 cloud permissions or live run have been applied.
+
+The live checkpoint requires two Polymarket markets in each outgoing generation,
+full raw and structured verification before each partition is removed, Polymarket
+persistence on the successor, and historical reads after removal. End with PP
+OFF and fresh A preserved. Production collection stays OFF.
+
+## November 23, 2026 CST — Trial05 retained A passes read-only connection reuse
+
+The PP29 retained readback verified all 52 structured pages (25,872 rows)
+and all 49 raw objects (24,044 events) in **174.420 seconds** against the
+unchanged **240-second** operation cap. The slowest structured readback
+was 2.855 seconds under the 4-second page cap. The run left 65.580 seconds
+of operation headroom and charged 103 requests including preflight and
+44,948,463 logical bytes. Fifty-three read-only transactions used two
+physical connections. The exact A seal, both attached partitions and
+both empty structured queues matched after the test. Both collectors
+remain durably OFF.
+
+The previous live verifier held at 239.641 seconds with 51 completed
+pages while B was writing. The observed 65.221-second difference
+combines connection reuse and different runtime conditions. This is
+retained-workload evidence. It grants no retirement authority and
+leaves the trial05 live result unchanged.
+
+The test used the existing PP29 read-only audit and exact scoped
+credentials. Two setup failures were corrected before the full timed
+workload. The original operation, request and byte caps stayed fixed.
+The one-use trial05 scope now contains retained A and B, so the next
+live attempt needs a clean isolated scope and its own destructive
+verification windows. Use one authenticated reader connection with a
+fresh read-only transaction per page in that attempt. Preserve trial05
+and the earlier trials, record the actual live margin for both seals,
+and prove history following physical retirement.
+
+[Full readback evidence](evidence/pp29-trial05-retained-a-reuse-2026-11-23.json).
+
+## November 23, 2026 CST — Trial05 A switched to B, retirement held
+
+PP29 admitted the single trial05 collector at 1:44:09 p.m. CST. The same
+session persisted through A's two 15-minute Polymarket markets (1:45–2:00
+and 2:00–2:15) and switched to B at 2:15:20. The first observed quote for
+the 2:00 market arrived 66.46 seconds after its start. Rollover latency and
+continuous collector ownership are separate acceptance results.
+
+A sealed with 24,044 raw events and 25,872 structured acknowledgements.
+Its worker verified 49 raw objects. While B persisted new Polymarket
+quotes, A's independent final verifier opened the single 295-second
+freeze at 2:18:34. The verifier held at 239.641 seconds during structured
+readback with 51 of 52 pages completed and 0.359 seconds remaining. The
+receipt reports `archive_limit`, 102 requests and 44,947,056 logical bytes.
+The inventory identified 52 pages. The readback consumed 138.801 seconds
+in the structured phase, including nested connection/query accounting.
+The read-only pre-retirement history check replayed original inputs.
+
+A remained attached. PP was durably stopped at about 2:23 p.m. with B
+attached, 5,690 raw events and 6,149 structured acknowledgements. Both
+outboxes had zero pending records. Production's collector remains OFF at
+`d56b4a7`, and both scoped PP workers were stopped. B's complete market
+pair, fresh A, the second verification window and post-removal history
+were not reached. No partitions were deleted. Trial04 remained outside
+trial05's scope.
+
+The observer saw 466 live API samples with zero errors and a maximum of
+465.612 ms. All 38 dashboard, prediction-history and SSE checks passed.
+The chart had data in 35 of 38 checks. The dashboard still returned
+HTTP 200 after stopping PP.
+
+**Next gate:** qualify the existing PP-only option for a single authenticated
+reader connection across the entire retained 52-page workload. Keep each
+page in its own fresh read-only transaction and preserve the 4-second page,
+240-second operation and 30-minute seal limits. The failed run opened 51
+physical connections totalling 16.292 seconds. That is an optimization
+target, not a measured savings claim. Ten session safety, six accounting
+and three canonical-readback tests passed offline. The full retained
+workload must show margin before any fresh live attempt. Preserve
+mandatory independent readback, references and reader drainage, and leave
+trial05's original seal-deadline result recorded as held.
+
+[Sanitized outcome and phase timings](evidence/pp29-trial05-retirement-hold-2026-11-23.json).
+
+## November 23, 2026 CST — PP29 trial05 ready with collectors OFF
+
+[PR #205](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/205)
+isolated trial05 and carried the PP28 lease watchdog fix forward.
+[PR #206](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/206) bound
+the verified controller to the PP deployment profile. Source `74f2aa2`
+passed [exact CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45246319676).
+[CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45247660239)
+deployed `v0.2.0-pp.29` and passed all 11 generated acceptance checks.
+The temporary deployment runner deregistered, and PP firmware service
+settings were restored and reverified.
+
+Trial05's restricted Supabase writer and independent reader passed exact
+synthetic structured and private-object readback and cross-origin denial
+checks. Trial04's 659 local raw rows and 705 acknowledged outbox rows
+matched their before/after fingerprints. Its 706 hosted receipts and
+revisions were preserved. Both trial03 partitions remain attached.
+
+PP is in `ready_off` with an unused A, zero trial05 local raw and outbox
+rows, and both scoped workers running idle. Production's collector was
+independently verified OFF at `d56b4a7` and will stay OFF. The remaining
+admission prerequisite is trial05's confirmation that administrators and
+privileged automation will leave each sealed generation's Supabase objects,
+history and access policies untouched during its announced verification
+and retirement window. Neither window has opened.
+
+After confirmation, start PP ahead of a Polymarket boundary. Require two
+complete 15-minute markets in A and then in B. Count each sealed generation
+as passed only after its authenticated Supabase verification, local
+retirement within 30 minutes while the successor continues collecting, and
+post-retirement dashboard history checks. End with PP durably OFF and drain
+the final fresh A without removing it.
+
+[Sanitized readiness evidence](evidence/pp29-trial05-ready-off-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial05 isolated scope and production collector off
 
 Production's collector was explicitly disabled at the approved service fence.

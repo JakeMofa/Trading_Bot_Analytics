@@ -1,0 +1,67 @@
+-- REVIEW TEMPLATE ONLY. Render with reviewed new Auth UIDs and current catalog hash.
+-- Additive exact-origin policies; preserve all legacy identities/policies/data.
+BEGIN;
+DO $preflight$
+DECLARE actual text; marker text;
+BEGIN
+  IF '__TRIAL_WRITER_UID__' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+     OR '__TRIAL_READER_UID__' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+     OR '__TRIAL_WRITER_UID__' = '__TRIAL_READER_UID__'
+     OR '__STORAGE_POLICY_SHA256__' !~ '^[0-9a-f]{64}$' THEN
+    RAISE EXCEPTION 'reviewed distinct trial identities and catalog hash required';
+  END IF;
+  IF NOT EXISTS (SELECT FROM auth.users WHERE id='__TRIAL_WRITER_UID__'::uuid
+       AND email='__TRIAL_WRITER_EMAIL__' AND role='authenticated' AND email_confirmed_at IS NOT NULL
+       AND raw_app_meta_data->>'tradebot_role'='pp_storage_archive'
+       AND raw_app_meta_data->>'tradebot_origin'='pp-live-pp-trial-20261119-06')
+     OR NOT EXISTS (SELECT FROM auth.users WHERE id='__TRIAL_READER_UID__'::uuid
+       AND email='__TRIAL_READER_EMAIL__' AND role='authenticated' AND email_confirmed_at IS NOT NULL
+       AND raw_app_meta_data->>'tradebot_role'='pp_storage_history_reader'
+       AND raw_app_meta_data->>'tradebot_origin'='pp-live-pp-trial-20261119-06') THEN
+    RAISE EXCEPTION 'trial Auth identity metadata changed';
+  END IF;
+  IF NOT EXISTS (SELECT FROM storage.buckets WHERE id='market-raw' AND NOT public)
+     OR NOT EXISTS (SELECT FROM pg_class WHERE oid='storage.objects'::regclass AND relrowsecurity) THEN
+    RAISE EXCEPTION 'private raw bucket/RLS binding changed';
+  END IF;
+  SELECT encode(sha256(convert_to(COALESCE(jsonb_agg(to_jsonb(p) ORDER BY p.policyname),'[]'::jsonb)::text,'UTF8')),'hex')
+    INTO actual FROM pg_policies p WHERE schemaname='storage' AND tablename='objects';
+  IF actual <> '__STORAGE_POLICY_SHA256__' THEN
+    RAISE EXCEPTION 'Storage policy catalog drift; refresh independent review';
+  END IF;
+  IF EXISTS (SELECT FROM pg_policies WHERE schemaname='storage' AND tablename='objects'
+    AND (coalesce(qual,'') || coalesce(with_check,'')) ~
+      '(__TRIAL_WRITER_UID__|__TRIAL_READER_UID__)') THEN
+    RAISE EXCEPTION 'sixth trial requires fresh identities without existing policy authority';
+  END IF;
+END $preflight$;
+
+CREATE POLICY pp_trial_20261119_06_upload ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (auth.uid()='__TRIAL_WRITER_UID__'::uuid
+    AND bucket_id='market-raw'
+    AND name ~ '^raw-v1/9c13c0f97ff3cd5c523821f5604630709b8d3733cd1a6aa405d359bbee7729fc/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
+    AND storage.allow_only_operation('storage.object.upload'));
+CREATE POLICY pp_trial_20261119_06_select ON storage.objects FOR SELECT TO authenticated
+  USING (auth.uid() IN ('__TRIAL_WRITER_UID__'::uuid,'__TRIAL_READER_UID__'::uuid)
+    AND bucket_id='market-raw'
+    AND name ~ '^raw-v1/9c13c0f97ff3cd5c523821f5604630709b8d3733cd1a6aa405d359bbee7729fc/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
+    AND storage.allow_any_operation(ARRAY['storage.object.get_authenticated','object.get_authenticated_info']));
+-- Restrictive fences apply only to new UIDs and survive unrelated permissive grants.
+CREATE POLICY pp_trial_20261119_06_read_fence ON storage.objects AS RESTRICTIVE FOR SELECT TO authenticated
+  USING ((auth.uid() IS DISTINCT FROM '__TRIAL_WRITER_UID__'::uuid
+         AND auth.uid() IS DISTINCT FROM '__TRIAL_READER_UID__'::uuid) OR (
+    bucket_id='market-raw'
+    AND name ~ '^raw-v1/9c13c0f97ff3cd5c523821f5604630709b8d3733cd1a6aa405d359bbee7729fc/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
+    AND storage.allow_any_operation(ARRAY['storage.object.get_authenticated','object.get_authenticated_info'])));
+CREATE POLICY pp_trial_20261119_06_insert_fence ON storage.objects AS RESTRICTIVE FOR INSERT TO authenticated
+  WITH CHECK ((auth.uid() IS DISTINCT FROM '__TRIAL_WRITER_UID__'::uuid
+              AND auth.uid() IS DISTINCT FROM '__TRIAL_READER_UID__'::uuid) OR (
+    auth.uid()='__TRIAL_WRITER_UID__'::uuid AND bucket_id='market-raw'
+    AND name ~ '^raw-v1/9c13c0f97ff3cd5c523821f5604630709b8d3733cd1a6aa405d359bbee7729fc/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{64}[.]jsonl[.]gz$'
+    AND storage.allow_only_operation('storage.object.upload')));
+CREATE POLICY pp_trial_20261119_06_deny_update ON storage.objects AS RESTRICTIVE FOR UPDATE TO authenticated
+  USING (auth.uid() IS DISTINCT FROM '__TRIAL_WRITER_UID__'::uuid AND auth.uid() IS DISTINCT FROM '__TRIAL_READER_UID__'::uuid)
+  WITH CHECK (auth.uid() IS DISTINCT FROM '__TRIAL_WRITER_UID__'::uuid AND auth.uid() IS DISTINCT FROM '__TRIAL_READER_UID__'::uuid);
+CREATE POLICY pp_trial_20261119_06_deny_delete ON storage.objects AS RESTRICTIVE FOR DELETE TO authenticated
+  USING (auth.uid() IS DISTINCT FROM '__TRIAL_WRITER_UID__'::uuid AND auth.uid() IS DISTINCT FROM '__TRIAL_READER_UID__'::uuid);
+COMMIT;

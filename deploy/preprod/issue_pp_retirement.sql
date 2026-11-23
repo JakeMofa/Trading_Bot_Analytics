@@ -35,7 +35,7 @@ WHERE :'freeze_started_at' ~ 'T[0-9:.]+(Z|[+-][0-9]{2}:[0-9]{2})$'
   AND current_database()='tradebot_pp' AND session_user='tradebot_migrator'
   AND EXISTS(SELECT FROM ops.environment_identity WHERE environment='preprod' AND foundation_version=1)
   AND (a.origin_id='pp-live-pp' OR
-       (a.origin_id IN ('pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05')
+       (a.origin_id IN ('pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05','pp-live-pp-trial-20261119-06')
         AND :'window_profile'='two_markets'))
   AND a.generation_id=:'sealed' AND a.seal_hash=:'seal_hash'
   AND a.seal_count=:'row_count'::bigint AND a.state='verified' AND a.hold_reason IS NULL

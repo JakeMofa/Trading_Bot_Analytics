@@ -70,7 +70,7 @@
           },
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT statement_timestamp() AS observed_at, r.rolname AS reader, count(s.queryid) AS statement_entries, sum(s.calls) AS calls, round(sum(s.total_exec_time)::numeric, 2) AS execution_ms\nFROM pg_roles r LEFT JOIN extensions.pg_stat_statements s ON s.userid = r.oid AND s.dbid = (SELECT oid FROM pg_database WHERE datname = current_database())\nWHERE r.rolname = ${reader:sqlstring}\nGROUP BY r.rolname"
+          "rawSql": "SELECT statement_timestamp() AS observed_at, r.rolname AS reader, count(s.userid) AS statement_entries, sum(s.calls) AS calls, round(sum(s.total_exec_time)::numeric, 2) AS execution_ms\nFROM pg_roles r LEFT JOIN extensions.pg_stat_statements s ON s.userid = r.oid AND s.dbid = (SELECT oid FROM pg_database WHERE datname = current_database())\nWHERE r.rolname = ${reader:sqlstring}\nGROUP BY r.rolname"
         }
       ],
       "options": {

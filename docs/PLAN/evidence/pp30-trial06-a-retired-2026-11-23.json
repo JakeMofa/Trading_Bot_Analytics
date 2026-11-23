@@ -1,0 +1,266 @@
+{
+  "exact_retirement": {
+    "bytes": 37522041,
+    "collecting": "e07e981a-2617-43ac-a050-fcf4455a12f1",
+    "inventory": {
+      "auth_calls_reserved": 1,
+      "byte_limit": 134217728,
+      "bytes_minimum": 37464833,
+      "bytes_upper_bound": 178707043,
+      "deadline_seconds": 240.0,
+      "fit": "conditional_on_newer_revision_bytes",
+      "profile": "pp-two-market-v1",
+      "raw_bytes": 2546275,
+      "raw_objects": 39,
+      "remaining_work_seconds": 221.767,
+      "request_limit": 192,
+      "requests_minimum": 82,
+      "seal_deadline_utc": "2026-11-23T22:45:25.623277+00:00",
+      "structured_bytes_examined": 34918558,
+      "structured_inventory_complete": true,
+      "structured_pages_examined": 42,
+      "structured_rows": 20874
+    },
+    "last_structured_id": 177477,
+    "manifest_digest": "f442cb52e225f10c4080878875ab20b003cb07053e388eced2f18490a9ec523e",
+    "objects_read": 39,
+    "operation_deadline_met": true,
+    "opposite_slot_new_rows": 1554,
+    "phase_accounting": {
+      "diagnostics_unavailable": false,
+      "elapsed_seconds": 189.11128,
+      "exhausted_limit": null,
+      "failed_phase": null,
+      "logical_bytes": 37522041,
+      "nested_phase_totals_overlap": true,
+      "phases": {
+        "history_checkout": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 0.343689,
+          "requests": 0,
+          "seconds": 0.366658
+        },
+        "history_connect": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.340178,
+          "requests": 0,
+          "seconds": 0.340178
+        },
+        "history_exact_revisions": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 1.717659,
+          "requests": 0,
+          "seconds": 46.253094
+        },
+        "history_identity_checkpoint": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 0.426591,
+          "requests": 0,
+          "seconds": 9.194509
+        },
+        "history_latest_receipts": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 0.120042,
+          "requests": 0,
+          "seconds": 2.542892
+        },
+        "history_newer_revisions": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 0.160423,
+          "requests": 0,
+          "seconds": 4.622237
+        },
+        "history_projections": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 0.299385,
+          "requests": 0,
+          "seconds": 7.766517
+        },
+        "history_release": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 5.3e-05,
+          "requests": 0,
+          "seconds": 0.001056
+        },
+        "history_transaction": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 2.442929,
+          "requests": 0,
+          "seconds": 75.075275
+        },
+        "inventory": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 18.019526,
+          "requests": 0,
+          "seconds": 18.019526
+        },
+        "local_finish": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.008534,
+          "requests": 0,
+          "seconds": 0.008534
+        },
+        "local_open": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.190092,
+          "requests": 0,
+          "seconds": 0.190092
+        },
+        "permit_drop": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.177512,
+          "requests": 0,
+          "seconds": 0.177512
+        },
+        "raw_auth_token": {
+          "calls": 39,
+          "logical_bytes": 0,
+          "max_seconds": 0.492239,
+          "requests": 1,
+          "seconds": 0.492619
+        },
+        "raw_local_compare": {
+          "calls": 39,
+          "logical_bytes": 0,
+          "max_seconds": 0.978026,
+          "requests": 0,
+          "seconds": 14.734091
+        },
+        "raw_read_decode": {
+          "calls": 39,
+          "logical_bytes": 2546275,
+          "max_seconds": 0.93704,
+          "requests": 40,
+          "seconds": 17.799683
+        },
+        "structured_compare": {
+          "calls": 42,
+          "logical_bytes": 0,
+          "max_seconds": 1.064279,
+          "requests": 0,
+          "seconds": 12.738771
+        },
+        "structured_local_page": {
+          "calls": 43,
+          "logical_bytes": 0,
+          "max_seconds": 1.735264,
+          "requests": 0,
+          "seconds": 16.598124
+        },
+        "structured_readback": {
+          "calls": 42,
+          "logical_bytes": 34975766,
+          "max_seconds": 3.657523,
+          "requests": 42,
+          "seconds": 108.768408
+        }
+      },
+      "remaining_seconds": 50.888798,
+      "requests": 82,
+      "sqlstate": null
+    },
+    "policy_version": "pp-retirement-readback-v2",
+    "raw_count": 19018,
+    "requests": 82,
+    "retirement_authorized": true,
+    "seal_deadline_met": true,
+    "sealed": "bf43a58d-4171-435a-b657-79c335b2eea3",
+    "status": "retired_pp",
+    "structured_count": 20874
+  },
+  "original_writer": {
+    "collector_enabled": true,
+    "collector_lease_expires_at": "2026-11-23T23:34:09.200169+00:00",
+    "collector_session_id": "7ecafe53-0074-4107-900d-bcde0e426957",
+    "epoch": 3,
+    "generation_id": "e07e981a-2617-43ac-a050-fcf4455a12f1"
+  },
+  "physical_removal": true,
+  "polylive_inside_verifier": [
+    {
+      "at_utc": "2026-11-23T22:18:04.21924+00:00",
+      "quotes": 18
+    },
+    {
+      "at_utc": "2026-11-23T22:18:24.30061+00:00",
+      "quotes": 21
+    },
+    {
+      "at_utc": "2026-11-23T22:18:44.893008+00:00",
+      "quotes": 24
+    },
+    {
+      "at_utc": "2026-11-23T22:19:04.202494+00:00",
+      "quotes": 27
+    },
+    {
+      "at_utc": "2026-11-23T22:19:24.11261+00:00",
+      "quotes": 30
+    },
+    {
+      "at_utc": "2026-11-23T22:19:44.061475+00:00",
+      "quotes": 33
+    },
+    {
+      "at_utc": "2026-11-23T22:20:05.169226+00:00",
+      "quotes": 36
+    },
+    {
+      "at_utc": "2026-11-23T22:20:24.055199+00:00",
+      "quotes": 39
+    },
+    {
+      "at_utc": "2026-11-23T22:20:44.134808+00:00",
+      "quotes": 42
+    },
+    {
+      "at_utc": "2026-11-23T22:21:04.211203+00:00",
+      "quotes": 45
+    }
+  ],
+  "replay": {
+    "archive_provenance": {
+      "dataset": "raw.events",
+      "generation_id": "bf43a58d-4171-435a-b657-79c335b2eea3",
+      "historical_only": true,
+      "official_settlement": false,
+      "origin_id": "pp-live-pp-trial-20261119-06",
+      "sealed_at": "2026-11-23T22:15:25.623277+00:00",
+      "sha256": [
+        "d179c0951065d9e805ac2822515f7572efbf9363e4e4a0aeea48372b9eb8ee16"
+      ],
+      "state": "retired",
+      "tier": "authenticated_archive"
+    },
+    "exact_parity": {
+      "historical_recompute_hash": "c20a219f1ed049795b71202bf1910ed32362a27eeaeee48a31a7e7abbb4280fe",
+      "prediction_id": "4892a7c69540e0933ce260da616206fe3116c5262dd3b5524dd49fd80792e989",
+      "quote_normalized_hash": "183ed02576b2bd5b468fbff4d49f05da19a036f1971bdbff4399d2c74dd91ebb",
+      "raw_input_hash": "ae0a615c92722509f0b7ec8283b2e3b7303315da72fb20ae5619b08ee898e836",
+      "raw_input_id": "bbo-2849248-20c934ddb0e69b340f77c38a22a07313cd102bb87b1391b66db65b6db3b729cd",
+      "snapshot_id": "81de4e0fa855c5951f58e142a4bba6f84da494ac066e21d3299d96a7cf4250ab"
+    },
+    "historical_replay": {
+      "present": true,
+      "required_inputs_missing": false,
+      "status": "preserved_original_inputs_replayed",
+      "verified": true
+    }
+  },
+  "seal_to_retirement_seconds": 342.17712,
+  "status": "PASS",
+  "strict_polymarket_quote_delta": 27
+}

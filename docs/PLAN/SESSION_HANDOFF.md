@@ -1,3 +1,22 @@
+## November 23, 2026 CST — Trial06 A verified and retired while B collected
+
+PP30 admitted trial06 at **3:44:09 p.m. CST**. A switched to B at 4:15:25
+on the original collector session after the two required Polymarket
+markets. The independent Supabase reader matched all 39 raw objects
+(19,018 events) and 42 structured pages (20,874 rows) in **189.111 seconds**
+with **50.889 seconds** of headroom. A single physical connection served
+42 fresh read-only transactions. The longest page took 3.658 seconds.
+
+B persisted 27 Polymarket quotes between read-only snapshots taken within
+the verification interval. The verifier measured 1,554 new B rows while
+running. A's local partition was removed at 4:21:07, **342.177 seconds**
+after sealing, and its dashboard history and deterministic replay matched
+after removal. Trial05's older A and B remain outside this scope.
+B is active. Its two full markets, retirement, fresh A and final OFF
+checks remain in progress. Production collection stays OFF.
+
+[First retirement evidence](evidence/pp30-trial06-a-retired-2026-11-23.json).
+
 ## November 23, 2026 CST — PP30 deployed and trial06 ready with collectors OFF
 
 [PR #208](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/208) bound

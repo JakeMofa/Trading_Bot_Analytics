@@ -1,3 +1,45 @@
+## November 23, 2026 CST — Trial06 completed both switches; B retirement held
+
+PP30 admitted trial06 at 3:44:09 p.m. CST. The live collector moved from A
+to B at 4:15:25 and from B to a distinct fresh A at 5:00:29 on the original
+session. Each outgoing slot recorded both required Polymarket markets.
+The first observed quotes across six boundaries arrived 64.0–125.2 seconds
+after each boundary. Storage switching passed. I7 rollover freshness
+remains open.
+
+- **Original A retired.** The independent Supabase verifier matched 39
+  raw objects and 42 structured pages in 189.111 seconds while B collected.
+  Local removal took 342.177 seconds from seal. Dashboard history and
+  deterministic replay matched after physical removal.
+- **B held.** The archive worker verified all 50 raw objects and all 27,528
+  structured records were acknowledged. The separate mandatory final
+  verification completed 54 of 56 structured pages when the 240-second
+  operation deadline expired. The one pooled reader connection took
+  0.371 seconds to establish. No destruction began, and all 24,896 B raw
+  events remain attached.
+- **Fresh A wrote live data.** Its Polymarket quote count rose by 32 between
+  samples within the B verification interval. At durable OFF, it held
+  5,084 raw events including 59 Polymarket quotes and 5,523 acknowledged
+  structured records. Fresh A remains unsealed and attached.
+
+Both collectors and both trial06 archive workers were verified OFF. All
+structured queues were drained. Trial05's two local fingerprints matched
+the predeployment record. Dashboard, prediction history and SSE passed all
+85 sampled checks. Dashboard returned HTTP 200 after OFF. B post-removal
+history was not performed because B remained attached.
+
+**Next gate:** profile and qualify the larger 56-page workload before
+another live attempt. Connection reuse already reduced setup to one
+connection. The B hold spent 24.282 seconds on the in-window inventory,
+30.482 seconds on raw local comparison, and 13.844 seconds on the final
+structured comparison. These are separate measured local spans; nested
+cloud timings must not be added together. Target redundant local work
+while preserving fresh authenticated comparison for every row, exact
+coverage, and the unchanged 240-second operation cap. No further live
+attempt or hosted configuration change was started.
+
+[Full trial06 outcome](PLAN/evidence/pp30-trial06-live-result-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial06 A verified and retired while B collected
 
 PP30 admitted trial06 at **3:44:09 p.m. CST**. A switched to B at 4:15:25

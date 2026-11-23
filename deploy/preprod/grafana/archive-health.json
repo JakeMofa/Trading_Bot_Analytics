@@ -1,0 +1,141 @@
+{
+  "__inputs": [
+    {
+      "name": "SUPABASE",
+      "label": "Hosted Supabase PostgreSQL",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    },
+    {
+      "name": "PP",
+      "label": "PP PostgreSQL",
+      "type": "datasource",
+      "pluginId": "grafana-postgresql-datasource",
+      "pluginName": "PostgreSQL"
+    }
+  ],
+  "title": "PP archive health",
+  "uid": "pp-archive-health",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "",
+  "timezone": "utc",
+  "templating": {
+    "list": [
+      {
+        "name": "reader",
+        "type": "textbox",
+        "label": "Hosted archive reader",
+        "query": "tradebot_pp_trial_20261119_05_reader",
+        "current": {
+          "text": "tradebot_pp_trial_20261119_05_reader",
+          "value": "tradebot_pp_trial_20261119_05_reader"
+        }
+      },
+      {
+        "name": "origin",
+        "type": "textbox",
+        "label": "PP origin",
+        "query": "pp-live-pp-trial-20261119-05",
+        "current": {
+          "text": "pp-live-pp-trial-20261119-05",
+          "value": "pp-live-pp-trial-20261119-05"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Hosted SQL execution by archive reader",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${SUPABASE}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${SUPABASE}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT statement_timestamp() AS observed_at, r.rolname AS reader, count(s.queryid) AS statement_entries, sum(s.calls) AS calls, round(sum(s.total_exec_time)::numeric, 2) AS execution_ms\nFROM pg_roles r LEFT JOIN extensions.pg_stat_statements s ON s.userid = r.oid AND s.dbid = (SELECT oid FROM pg_database WHERE datname = current_database())\nWHERE r.rolname = ${reader:sqlstring}\nGROUP BY r.rolname"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 2,
+      "title": "Hosted PostgreSQL client connections",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${SUPABASE}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 6,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${SUPABASE}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT statement_timestamp() AS observed_at, count(*) AS clients_including_sampler, count(*) FILTER (WHERE state = 'active' AND pid <> pg_backend_pid()) AS other_active_visible\nFROM pg_stat_activity WHERE datname = current_database() AND backend_type = 'client backend'"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 3,
+      "title": "PP pending rows, age and recent ACKs",
+      "type": "table",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "${PP}"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 24,
+        "h": 6
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "${PP}"
+          },
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT statement_timestamp() AS observed_at, g.slot, g.generation_id, count(o.id) FILTER (WHERE o.acknowledged_at IS NULL) AS pending_rows,\nround(extract(epoch FROM statement_timestamp() - min(o.created_at) FILTER (WHERE o.acknowledged_at IS NULL))::numeric, 3) AS oldest_pending_age_s,\ncount(o.id) FILTER (WHERE o.acknowledged_at > statement_timestamp() - interval '60 seconds' AND o.acknowledged_at <= statement_timestamp()) AS acks_last_60s,\nround(count(o.id) FILTER (WHERE o.acknowledged_at > statement_timestamp() - interval '60 seconds' AND o.acknowledged_at <= statement_timestamp()) / 60.0, 3) AS acks_per_s_last_60s\nFROM archive.generations g LEFT JOIN ops.outbox o ON o.origin_id = g.origin_id AND o.generation_id = g.generation_id\nWHERE g.origin_id = ${origin:sqlstring} AND g.retired_at IS NULL\nGROUP BY g.slot, g.generation_id ORDER BY g.slot, g.generation_id"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    }
+  ]
+}

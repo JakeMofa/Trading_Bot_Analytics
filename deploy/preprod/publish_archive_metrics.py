@@ -7,6 +7,8 @@ from http.client import HTTPSConnection
 import json
 from pathlib import Path
 import re
+import os
+import stat
 from urllib.parse import urlsplit
 from uuid import UUID
 
@@ -20,16 +22,29 @@ def point(measurement, labels, fields, observed):
     return f'{measurement},{tags} {values} {nanos}'
 
 
-def archive_points(row, origin):
+def archive_points(row, origin, previous=None):
     observed = timestamp(row['at_utc'])
     if row.get('origin_id') != origin or not row.get('writer'):
         return
+    older = {}
+    elapsed = None
+    if previous and previous.get('origin_id') == origin and previous.get('writer', {}).get('collector_enabled'):
+        elapsed = (observed - timestamp(previous['at_utc'])).total_seconds()
+        older = {g['generation_id']: g for g in previous['generations']}
     for gen in row['generations']:
+        if gen.get('retired_at'):
+            continue
         if gen['slot'] not in ('A', 'B'):
             raise ValueError('Unsupported archive slot')
         labels = dict(origin=origin, slot=gen['slot'], generation=str(UUID(gen['generation_id'])))
         fields = {k: int(gen[src]) for k, src in [('acknowledged_rows_total', 'acknowledged'),
                   ('pending_rows', 'pending')] if gen.get(src) is not None}
+        prior_count = older.get(gen['generation_id'], {}).get('acknowledged')
+        count = fields.get('acknowledged_rows_total')
+        if (row['writer'].get('collector_enabled') and prior_count is not None and count is not None
+                and count >= prior_count and elapsed and elapsed > 0):
+            fields['ack_rate'] = round((count - prior_count) / elapsed, 6)
+            fields['ack_interval_seconds'] = round(elapsed, 6)
         if fields.get('pending_rows') == 0:
             fields['oldest_pending_age_seconds'] = 0
         elif gen.get('oldest_pending_at'):
@@ -95,10 +110,21 @@ def main():
         parser.error('Sending requires an endpoint, numeric tenant and local token file')
     def selected(path):
         return [r for r in samples(path) if start < timestamp(r['at_utc']) <= end]
-    lines = [p for r in selected(args.vm) for p in archive_points(r, args.origin)]
+    lines = []
+    previous = None
+    for row in samples(args.vm):
+        if row.get('origin_id') == args.origin and row.get('writer'):
+            if start < timestamp(row['at_utc']) <= end:
+                lines.extend(archive_points(row, args.origin, previous))
+            previous = row
     lines.extend(hosted_points(selected(args.hosted), args.origin, args.role))
     if args.send and lines:
-        token = args.token_file.read_text().strip()
+        with args.token_file.open() as credential:
+            info = os.fstat(credential.fileno())
+            if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+                    or stat.S_IMODE(info.st_mode) & 0o077):
+                parser.error('Token file must be private to its owner')
+            token = credential.read().strip()
         if not token:
             parser.error('The local token file is empty')
         for offset in range(0, len(lines), 500):

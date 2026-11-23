@@ -118,8 +118,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 - [x] **TokenBot nested dashboard audit.** Revisited the dashboard,
   application schema definitions, integration cards, reports, and safe
-  setup screens individually. The ledger records access gates, timeouts,
-  linked documentation, and the remaining performance measurements.
+  setup screens individually. Reopened and verified the nine system-table
+  Definitions that first timed out, bringing coverage to 41 of 42 physical
+  system tables. The ledger records the remaining access gates and
+  performance measurements.
   [Screen-by-screen inventory](PLAN/SUPABASE_NESTED_AUDIT_2026-11-23.md)
 
 - [x] **PP21 retained-A read-only verifier — bounded diagnostic passed.**

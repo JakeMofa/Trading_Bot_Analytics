@@ -426,11 +426,23 @@ This read-only follow-up used the [project Table Editor](https://supabase.com/da
 
 | Schema | Physical tables in publication inventory | Individually confirmed Definition screens | Coverage detail |
 | --- | ---: | ---: | --- |
-| `auth` | 27 | 22 | Confirmed the tables from `audit_log_entries` through `saml_relay_states` in sidebar order, then `sso_providers`, `users`, `webauthn_challenges`, and `webauthn_credentials`. Five additional Table Editor tabs opened, but the Definition renders for `schema_migrations`, `scim_tokens`, `scim_users`, `sessions`, and `sso_domains` could not be independently confirmed before the browser batch timed out. |
-| `storage` | 10 | 6 | Confirmed `bucket_lifecycle_states`, `buckets`, `buckets_analytics`, `buckets_vectors`, `lifecycle_abandoned_artifacts`, and `vector_indexes`. The `migrations`, `objects`, `s3_multipart_uploads`, and `s3_multipart_uploads_parts` tabs opened, but independent confirmation of their Definition renders was unavailable after the browser batch timed out. |
+| `auth` | 27 | 27 | The follow-up verified all five previously timed-out Definitions. Direct links are listed below. |
+| `storage` | 10 | 10 | The follow-up verified all four previously timed-out Definitions. Direct links are listed below. |
 | `realtime` | 3 | 3 | Confirmed `messages`, `schema_migrations`, and `subscription`. |
 | `supabase_migrations` | 1 | 1 | Confirmed `schema_migrations` after recovering the browser tab. |
 | `vault` | 1 | 0 | Located `secrets` and the `decrypted_secrets` view in Table Editor. Normal table navigation initially opens Data, and the inspection did not open either secret-bearing relation. |
 | `extensions`, `graphql`, `graphql_public`, `pgbouncer` | 0 | 0 | Each was previously opened in Schema Visualizer and in Publication Membership. Publication Membership displayed no physical tables. This follow-up did not verify individual views or empty states in Table Editor for these schemas. |
 
-The confirmed total is **32 of 42 physical system table Definition screens**. Another nine table tabs opened in the attempted Definition pass, but their Definition renders remain unverified. Browser session evidence retained the navigation tab list and the final selected Definition on each recovered tab. The Table Editor virtualizes the auth sidebar, and an exact search intermittently left the previous entry visible. Scrolling made the remaining entries reachable, but the two longer automation calls interrupted confirmation. No Data grid output was collected, no secret values were captured, and no project changes were made.
+The confirmed total is **41 of 42 physical system table Definition screens**, in addition to all 22 application table Definitions. For each of the nine recovered views, Chrome showed the selected schema-qualified table tab, the exact table name under SQL Definition, and a matching rendered `CREATE TABLE` statement. `vault.secrets` remains at list-level evidence. The `vault.decrypted_secrets` view is outside the physical-table count. No Data grid output was collected, no secret values were captured, and no project settings changed.
+
+| Recovered table | Verified Definition |
+| --- | --- |
+| `auth.schema_migrations` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/16537?schema=auth&view=definition) |
+| `auth.scim_tokens` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/17198?schema=auth&view=definition) |
+| `auth.scim_users` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/17167?schema=auth&view=definition) |
+| `auth.sessions` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/16716?schema=auth&view=definition) |
+| `auth.sso_domains` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/16803?schema=auth&view=definition) |
+| `storage.migrations` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/17262?schema=storage&view=definition) |
+| `storage.objects` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/17280?schema=storage&view=definition) |
+| `storage.s3_multipart_uploads` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/17329?schema=storage&view=definition) |
+| `storage.s3_multipart_uploads_parts` | [Open](https://supabase.com/dashboard/project/xttdqeimdujweijxcuro/editor/17343?schema=storage&view=definition) |

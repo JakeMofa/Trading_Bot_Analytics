@@ -33,6 +33,8 @@ The scrape exposed no matching VM archive lag or ACK series. The local
 combines timestamped hosted role counters with the release observer's PP
 outbox samples. The PP database can stay on its existing private network.
 
+The [workstation publisher](../../deploy/preprod/publish_archive_metrics.py) subsequently sent PP observer samples to Grafana Cloud using a short-lived metrics writer. The first batch of 68 points was accepted at 19:52:45 UTC. The live dashboard rendered the active A generation on all three added panels: observed ACKs/s with a 14/s reference, oldest pending age, and pending rows. Panels filter samples older than 90 seconds. Through 19:53:42 UTC, seven of 28 consecutive A intervals following the first nonzero ACK count fell below 14/s. At the last sample A had 8,314 acknowledged rows and 29 pending.
+
 | Observation and scope | Hosted statement statistics | PostgreSQL client connections | PP oldest pending age | PP structured ACKs |
 | --- | --- | --- | --- | --- |
 | Hosted TokenBot, November 23 at 19:40:03.939237 UTC. SQL totals scoped to trial03 reader roles in the current database. | 29 statement entries, 7,105 calls, 26,791.42 ms cumulative execution | 5 database clients including the sampler. At 19:39:57 UTC, a separate sample observed 0 other active clients. | Unavailable in this sample | Unavailable in this sample |

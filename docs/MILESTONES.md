@@ -10,7 +10,7 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
 
 - [x] The local PP archive observer view plots per-generation ACK/s against the 14 rows/s target and oldest pending age over UTC observation time. A live trial05 A sample and fixtures for missed samples, retired A, B, fresh A and counter resets passed. [Observation renderer](../deploy/preprod/render_archive_observation.py)
 
-- [x] Added a combined archive-health view with hosted PostgreSQL statement and connection measurements alongside PP pending age and ACK rate. The importable Grafana dashboard's three read-only queries passed on isolated PostgreSQL 17. Live Grafana rendering and end-to-end scrape verification remain open. [Samples and dashboard](PLAN/SUPABASE_NESTED_AUDIT_2026-11-23.md#sql-connections-archive-lag-and-acknowledgements)
+- [x] Added a combined archive-health view with hosted PostgreSQL statement and connection measurements alongside PP pending age and ACK rate. The importable Grafana dashboard's three read-only queries passed on isolated PostgreSQL 17. The Grafana Cloud Supabase scrape and live trial05 A archive panels were verified. B coverage and the post-trial PP26 page rerun are pending. [Samples and dashboard](PLAN/SUPABASE_NESTED_AUDIT_2026-11-23.md#sql-connections-archive-lag-and-acknowledgements)
 
 - [ ] **PP23 Coinbase continuity.** Reproduced the session-wide reconnect
   cap after successful fixture saves. A separate generated PostgreSQL

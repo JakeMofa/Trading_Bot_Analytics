@@ -50,12 +50,35 @@
     "reason": "Saved trial06 receipts contain inclusive phase timers. PP26 timings cover different data and cannot supply the missing B attribution."
   },
   "matched_benchmark": {
-    "status": "Pending quiet read-only measurement on retained B.",
+    "status": "Attempted once. Local page reconstruction/validation canceled before contacting hosted SQL; individual local statement unavailable.",
     "method": [
       "Pin origin, sealed generation, ordered IDs, page digest and byte count. Use identical 500 records for repeated reads. Report warmup separately.",
       "Measure execute/fetch elapsed and client-side decode, canonicalization, and comparison separately. Attribute server execution time only with matched statement statistics; mark contaminated samples unavailable.",
       "Report server execution, client verification, and the remaining transport/driver time with its uncertainty. Pure wire transfer requires an independent measurement. Compare the same page and digest before considering RPC."
-    ]
+    ],
+    "result": {
+      "error": "QueryCanceled",
+      "generation_id": "e07e981a-2617-43ac-a050-fcf4455a12f1",
+      "hosted_page_budget_seconds": 4,
+      "local_cloud_exact": false,
+      "max_page_logical_bytes": 4194304,
+      "max_page_rows": 500,
+      "nested_timings_overlap": true,
+      "origin_id": "pp-live-pp-trial-20261119-06",
+      "prior_live_page_hash_available": false,
+      "retirement_authorized": false,
+      "scope": "retained_b_first_page_fresh_read_only",
+      "server_execution_seconds": null,
+      "stage": "local",
+      "status": "HOLD",
+      "timings": {
+        "local_reconstruct_and_validate_page": {
+          "calls": 1,
+          "seconds": 3.576582
+        }
+      },
+      "transfer_only_seconds": null
+    }
   },
   "capacity": "Trial06 is one short finite workload. A 72-hour sealed generation and concurrent writer require a separate representative capacity rehearsal.",
   "new_local_instrumentation": {

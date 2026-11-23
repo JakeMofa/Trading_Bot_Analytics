@@ -53,6 +53,15 @@ def archive_points(row, origin, previous=None):
                 fields['oldest_pending_age_seconds'] = round(age, 6)
         if fields:
             yield point('pp_archive', labels, fields, observed)
+        writer = row['writer']
+        if gen['generation_id'] == writer.get('generation_id') and isinstance(writer.get('collector_enabled'), bool):
+            collector = {'enabled': int(writer['collector_enabled'])}
+            quotes = gen.get('polymarket_quotes') or {}
+            if quotes.get('rows') is not None:
+                collector['polymarket_quotes'] = int(quotes['rows'])
+            if quotes.get('newest_receipt'):
+                collector['last_quote_receipt_timestamp_seconds'] = timestamp(quotes['newest_receipt']).timestamp()
+            yield point('pp_collector', labels, collector, observed)
 
 
 def hosted_points(rows, origin, roles):

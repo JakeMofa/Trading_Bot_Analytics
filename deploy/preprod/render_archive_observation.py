@@ -43,8 +43,19 @@ def table(headers, rows):
 
 def snapshot(hosted, vm, origin, roles):
     vm = [r for r in vm if r.get('origin_id') == origin and r.get('writer')]
-    current = vm[-1] if vm else None
-    previous = vm[-2] if len(vm) > 1 else None
+    # Use the PP samples inside the latest hosted interval when available.
+    vm_pair = vm[-2:]
+    scoped = [r for r in hosted if r['role'] in roles]
+    if scoped:
+        last_role = scoped[-1]['role']
+        pair = [r for r in scoped if r['role'] == last_role][-2:]
+        if len(pair) == 2:
+            start, end = (timestamp(r['at_utc']) for r in pair)
+            aligned = [r for r in vm if start <= timestamp(r['at_utc']) <= end]
+            if len(aligned) >= 2:
+                vm_pair = [aligned[0], aligned[-1]]
+    current = vm_pair[-1] if vm_pair else None
+    previous = vm_pair[0] if len(vm_pair) == 2 else None
     db_rows, archive_rows = [], []
     for role in roles:
         readings = [r for r in hosted if r['role'] == role]
@@ -95,7 +106,7 @@ def snapshot(hosted, vm, origin, roles):
         table(['Role', 'Sample window', 'Statement calls Δ', 'Server execution Δ', 'Cumulative SQL ms', 'Connections', 'Overlap'], db_rows),
         f'<h2>Archive outbox</h2><p>{escape(vm_window)}</p>',
         table(['Slot', 'Generation', 'Pending rows', 'Oldest pending age', 'Acknowledged rows', 'ACK rate'], archive_rows),
-        '<p>SQL counters come from Supabase. Archive counters come from the PP release observer. Each rate uses consecutive observations from the same source and generation.</p></html>',
+        '<p>SQL counters come from Supabase. Archive counters come from the PP release observer. Each rate uses observations from the same source and generation. Where available, PP observations fall inside the latest hosted sample window.</p></html>',
     ])
 
 

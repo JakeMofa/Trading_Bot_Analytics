@@ -1,0 +1,102 @@
+{
+  "both_administrator_windows_confirmed": true,
+  "ci_pr_run": 45264152276,
+  "ci_push_run": 45264102185,
+  "controller_identity_run": 45265535500,
+  "controller_installation": {
+    "authority_created": false,
+    "controller_sha256": "4400690fea3e76da74b1cf15b149e4faf1a758519401150da2af161395e01f33",
+    "database_changed": false,
+    "gate": "CONTROLLER_INSTALLED_NOT_AUTHORIZED",
+    "previous_sha256": "cef6662d9caae7a667b70e33b88c9a9ab9d5670ce7473dc084a680e275c24d84",
+    "source_sha": "ce85b7e6bdd7e58fae4a212a79dae58a716434bb"
+  },
+  "credential_staging": {
+    "authority_staged": false,
+    "collector_started": false,
+    "legacy_files_replaced": false,
+    "private_files_staged": 10,
+    "status": "PASS"
+  },
+  "exact_candidate": "ce85b7e6bdd7e58fae4a212a79dae58a716434bb",
+  "live_trial_started": false,
+  "new_sql_logins": 2,
+  "new_storage_identities": 2,
+  "new_storage_policies": 6,
+  "new_structured_policies": 36,
+  "origin_id": "pp-live-pp-trial-20261119-06",
+  "pr": 207,
+  "production": {
+    "collector": {
+      "enabled": false,
+      "error": null,
+      "running": false
+    },
+    "gate": "PROD_COLLECTOR_FENCE_ACTIVE",
+    "pid": "159035",
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+  },
+  "retained_policy_and_counts_match": true,
+  "retained_prior_hosted_records": {
+    "pp-live-pp": 42133,
+    "pp-live-pp-trial-20261119-01": 5652,
+    "pp-live-pp-trial-20261119-02": 20363,
+    "pp-live-pp-trial-20261119-03": 39691,
+    "pp-live-pp-trial-20261119-04": 706,
+    "pp-live-pp-trial-20261119-05": 32022
+  },
+  "retirement_performed": false,
+  "scope": "PP trial06 qualification before deployment",
+  "storage": {
+    "actual_trial_data_rows": 0,
+    "bytes": 211,
+    "client_reader_and_origin_fences": true,
+    "independent_reader_readback": true,
+    "origin": "pp-live-pp-trial-20261119-06",
+    "status": "PASS",
+    "synthetic_objects": 1,
+    "writer_readback": true
+  },
+  "storage_permission_checks": 18,
+  "structured": {
+    "exact_readback": true,
+    "live_trial_data_rows": 0,
+    "observer_sql_wrong_origin_denied": true,
+    "sql_reader_insert_denied": true,
+    "status": "PASS",
+    "synthetic_receipts": 1,
+    "synthetic_revisions": 1
+  },
+  "trial05_generations": [
+    {
+      "attached": true,
+      "generation_id": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+      "outbox": {
+        "n": 25872,
+        "pending": 0,
+        "sha256": "83d383c8e07c54378d225d47471afc950b24d25e0961353966952a0f83806e68"
+      },
+      "raw": {
+        "n": 24044,
+        "sha256": "5b8fd2b83ef996010fad4cd9e2aacac688ca2f1f77e0db53acf13eebc5cb02b7"
+      },
+      "slot": "A",
+      "state": "verified"
+    },
+    {
+      "attached": true,
+      "generation_id": "7eb27e2f-f53b-4b50-98db-00a318853b0b",
+      "outbox": {
+        "n": 6149,
+        "pending": 0,
+        "sha256": "47db2989a804c8024008e83f2b3a7f1f07598c84da08e014fb28182ab20d8472"
+      },
+      "raw": {
+        "n": 5690,
+        "sha256": "76e72022d0afac4041896967ed46ccbe7b666a6556a85875dcf0cb8c9f2dda6c"
+      },
+      "slot": "B",
+      "state": "collecting"
+    }
+  ]
+}

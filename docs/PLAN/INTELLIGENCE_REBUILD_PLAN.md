@@ -7,12 +7,21 @@ disallows restarting retained trial05. Preparation checks the prior A/B
 attachments, exact seal and writer, and protected evidence before creating
 the new generation. Trial05 and earlier archives remain available.
 
+[PR #207](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/207)
+passed exact candidate CI and merged to `preprod`. The new controller was
+installed code-only and passed the dedicated identity workflow. Hosted
+trial06 synthetic write and independent authenticated readback passed for
+structured data and Storage. All 18 Storage permission checks passed, and
+the prior policy fingerprints, object references and receipt counts matched.
+PP has restored generated mode and both collectors remain OFF pending the
+release. [Qualification evidence](evidence/pp30-trial06-cloud-and-controller-2026-11-23.json).
+
 The trial06 retirement verifier requires connection reuse and a fresh read-only
 transaction on each page. The 4-second page, 240-second final readback and
 30-minute seal limits remain fixed. The operator confirmed both administrative
 freeze windows of at most 295 seconds. Each window opens only on its separately
 announced, exact sealed-generation authorization. Both collectors are currently
-durably OFF. No trial06 cloud permissions or live run have been applied.
+durably OFF. The trial06 live run remains pending.
 
 The live checkpoint requires two Polymarket markets in each outgoing generation,
 full raw and structured verification before each partition is removed, Polymarket

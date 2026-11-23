@@ -541,6 +541,35 @@ lookup took 0.092 seconds. It used 54 requests and recorded no retirement
 authority. The new rehearsal requires a separate scope while these old A
 and B remain attached. [Exact merge CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/44865255705)
 
+### First 500 retained PP26 A records on November 23
+
+The release benchmark agent ran one read-only attempt on the PP VM in a
+quiet window. The reconstructed first page from sealed trial03 A had 500
+ordered outbox IDs, 82351–82850. Its 801,735 canonical bytes matched the
+historical first-page byte count, and the local and hosted pages matched
+byte for byte. The old run retained neither an ordered-ID digest nor a
+canonical digest. This run saved both for future comparisons. A stayed attached.
+
+| Phase | Seconds |
+| --- | ---: |
+| Hosted verifier wall time | 2.299759 |
+| Fresh hosted connection | 0.398666 |
+| SQL execute through result ready, including pipeline receive | 1.126050 |
+| Buffered fetch and conversion | 0.006484 |
+| Hosted verifier input validation and encoding | 0.293647 |
+| Revision decode and integrity checks | 0.341147 |
+| Local reconstruction and validation outside the hosted timer | 0.603160 |
+| Final local/cloud comparison outside the hosted timer | 0.023331 |
+
+The hosted verifier passed the four-second budget with 1.700241 seconds
+remaining. Some measurements are nested. Execute and receive combine database
+work, round trips, result transfer and driver overhead. The probe has no
+independent server or transfer-only duration. RPC remains an isolated
+experiment pending evidence that reducing sequential calls would materially
+improve the retained verifier. [Sanitized benchmark evidence](evidence/pp26-first-500-benchmark-2026-11-23.json)
+
+### PP27 trial04 readiness
+
 PP27 reached live-ready OFF in the fourth isolated trial on the same VM.
 The first deployment was held by the 1 GiB available-memory guard before
 migration. The exact release passed on one retry after temporarily pausing

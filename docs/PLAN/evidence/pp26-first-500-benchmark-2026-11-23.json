@@ -1,0 +1,71 @@
+{
+    "canonical_logical_bytes": 801735,
+    "canonical_sha256": "35fa8f93a068a60ea1c361a6d2726ef540cefd8cca7603c6958aa11301682551",
+    "first_id": 82351,
+    "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "historical_byte_count_match": true,
+    "historical_exact_digest_available": false,
+    "hosted_budgeted_logical_bytes": 803099,
+    "hosted_page_budget_seconds": 4,
+    "indexed_latest_verified": true,
+    "last_id": 82850,
+    "local_cloud_exact": true,
+    "max_page_logical_bytes": 4194304,
+    "max_page_rows": 500,
+    "nested_timings_overlap": true,
+    "ordered_ids_sha256": "832a60601a70579eea5ae27ca7c18cbec6571123969c0cec2e7d0a55fa739078",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "retirement_authorized": false,
+    "rows": 500,
+    "scope": "reconstructed_first_page_fresh_read_only",
+    "server_execution_seconds": null,
+    "stage": "complete",
+    "status": "reconstructed_page_parity",
+    "timings": {
+        "client_buffered_fetch_convert": {
+            "calls": 67,
+            "seconds": 0.006484
+        },
+        "client_input_validate_encode": {
+            "calls": 1,
+            "seconds": 0.293647
+        },
+        "client_revision_decode_integrity": {
+            "calls": 2,
+            "seconds": 0.341147
+        },
+        "execute_until_client_result_ready": {
+            "calls": 8,
+            "seconds": 0.92678
+        },
+        "fresh_hosted_connection_wall": {
+            "calls": 1,
+            "seconds": 0.398666
+        },
+        "hosted_verifier_wall": {
+            "calls": 1,
+            "seconds": 2.299759
+        },
+        "local_cloud_canonical_comparison": {
+            "calls": 1,
+            "seconds": 0.023331
+        },
+        "local_reconstruct_and_validate_page": {
+            "calls": 1,
+            "seconds": 0.60316
+        },
+        "pipeline_begin": {
+            "calls": 1,
+            "seconds": 4.1e-05
+        },
+        "pipeline_drain_receive": {
+            "calls": 1,
+            "seconds": 0.19927
+        },
+        "pipeline_enqueue_client_driver": {
+            "calls": 61,
+            "seconds": 0.0047
+        }
+    },
+    "transfer_only_seconds": null
+}

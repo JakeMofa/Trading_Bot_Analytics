@@ -41,6 +41,10 @@ Build a local, read-only analysis system for Polymarket US BTC Up/Down markets. 
   trial04 reached live-ready OFF on the same VM. The retained trial03 A and
   B and writer record matched before and after deployment and entry. The
   new live exercise and successful local retirement remain open.
+  A November 23 read-only benchmark reconstructed the first sealed PP26 A
+  page and verified 500 rows byte for byte in 2.300 seconds under the
+  four-second hosted verifier budget. A stayed attached. SQL execution and
+  transfer are still combined in the client timing.
   [Independent checks](PLAN/SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
 
 - [ ] **Fresh PP23 rehearsal.** The independent isolated exact-head run

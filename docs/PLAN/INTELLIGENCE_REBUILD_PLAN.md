@@ -1,3 +1,33 @@
+## November 23, 2026 CST — Trial05 retained A passes read-only connection reuse
+
+The PP29 retained readback verified all 52 structured pages (25,872 rows)
+and all 49 raw objects (24,044 events) in **174.420 seconds** against the
+unchanged **240-second** operation cap. The slowest structured readback
+was 2.855 seconds under the 4-second page cap. The run left 65.580 seconds
+of operation headroom and charged 103 requests including preflight and
+44,948,463 logical bytes. Fifty-three read-only transactions used two
+physical connections. The exact A seal, both attached partitions and
+both empty structured queues matched after the test. Both collectors
+remain durably OFF.
+
+The previous live verifier held at 239.641 seconds with 51 completed
+pages while B was writing. The observed 65.221-second difference
+combines connection reuse and different runtime conditions. This is
+retained-workload evidence. It grants no retirement authority and
+leaves the trial05 live result unchanged.
+
+The test used the existing PP29 read-only audit and exact scoped
+credentials. Two setup failures were corrected before the full timed
+workload. The original operation, request and byte caps stayed fixed.
+The one-use trial05 scope now contains retained A and B, so the next
+live attempt needs a clean isolated scope and its own destructive
+verification windows. Use one authenticated reader connection with a
+fresh read-only transaction per page in that attempt. Preserve trial05
+and the earlier trials, record the actual live margin for both seals,
+and prove history following physical retirement.
+
+[Full readback evidence](evidence/pp29-trial05-retained-a-reuse-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial05 A switched to B, retirement held
 
 PP29 admitted the single trial05 collector at 1:44:09 p.m. CST. The same

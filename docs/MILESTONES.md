@@ -1,3 +1,47 @@
+## November 23, 2026 CST — Trial05 A switched to B, retirement held
+
+PP29 admitted the single trial05 collector at 1:44:09 p.m. CST. The same
+session persisted through A's two 15-minute Polymarket markets (1:45–2:00
+and 2:00–2:15) and switched to B at 2:15:20. The first observed quote for
+the 2:00 market arrived 66.46 seconds after its start. Rollover latency and
+continuous collector ownership are separate acceptance results.
+
+A sealed with 24,044 raw events and 25,872 structured acknowledgements.
+Its worker verified 49 raw objects. While B persisted new Polymarket
+quotes, A's independent final verifier opened the single 295-second
+freeze at 2:18:34. The verifier held at 239.641 seconds during structured
+readback with 51 of 52 pages completed and 0.359 seconds remaining. The
+receipt reports `archive_limit`, 102 requests and 44,947,056 logical bytes.
+The inventory identified 52 pages. The readback consumed 138.801 seconds
+in the structured phase, including nested connection/query accounting.
+The read-only pre-retirement history check replayed original inputs.
+
+A remained attached. PP was durably stopped at about 2:23 p.m. with B
+attached, 5,690 raw events and 6,149 structured acknowledgements. Both
+outboxes had zero pending records. Production's collector remains OFF at
+`d56b4a7`, and both scoped PP workers were stopped. B's complete market
+pair, fresh A, the second verification window and post-removal history
+were not reached. No partitions were deleted. Trial04 remained outside
+trial05's scope.
+
+The observer saw 466 live API samples with zero errors and a maximum of
+465.612 ms. All 38 dashboard, prediction-history and SSE checks passed.
+The chart had data in 35 of 38 checks. The dashboard still returned
+HTTP 200 after stopping PP.
+
+**Next gate:** qualify the existing PP-only option for a single authenticated
+reader connection across the entire retained 52-page workload. Keep each
+page in its own fresh read-only transaction and preserve the 4-second page,
+240-second operation and 30-minute seal limits. The failed run opened 51
+physical connections totalling 16.292 seconds. That is an optimization
+target, not a measured savings claim. Ten session safety, six accounting
+and three canonical-readback tests passed offline. The full retained
+workload must show margin before any fresh live attempt. Preserve
+mandatory independent readback, references and reader drainage, and leave
+trial05's original seal-deadline result recorded as held.
+
+[Sanitized outcome and phase timings](PLAN/evidence/pp29-trial05-retirement-hold-2026-11-23.json).
+
 ## November 23, 2026 CST — PP29 trial05 ready with collectors OFF
 
 [PR #205](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/205)

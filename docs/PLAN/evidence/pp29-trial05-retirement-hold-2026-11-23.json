@@ -1,0 +1,377 @@
+{
+  "admission": {
+    "admitted_at": "2026-11-23T19:44:09.168543+00:00",
+    "initial_a": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+    "lease_expires_at": "2026-11-23T21:34:09.168543+00:00",
+    "lease_seconds": 6600,
+    "session_id": "070bb486-2405-4695-8d67-e49a940bcb7b"
+  },
+  "checkpoint": "PP29 trial05 live A to B and first retirement",
+  "dashboard_after_off_http": 200,
+  "evidence_sha256": {
+    "live-api.jsonl": "eb63fc3b84af7c5a33bc6b350eaabc8ca2a0bf939b1bc00f40342f0cec03d419",
+    "live-contract.jsonl": "b436e1ea8462e66c4bdb89a8da4d17fdf032eaa0ac55ecc00c9969a18b6fffc0",
+    "live-db.jsonl": "2ed652b9d2e3e39c266f21508bc475347efdc27db965e115dff8b2f3ca753faa",
+    "retire-1-failure.json": "c6c98824e54d7949b34751e1add1f737951dc27ca74d3c74a04fcdf1a12d4650"
+  },
+  "first_window": {
+    "announcement_sha256": "083900b915c181bd0f3e14f21270fb06604123486f93cc4aae7eed6049f9d522",
+    "collecting": "7eb27e2f-f53b-4b50-98db-00a318853b0b",
+    "confirmed": true,
+    "ends_at": "2026-11-23T20:23:29+00:00",
+    "max_freeze_seconds": 295,
+    "ordinal": 1,
+    "policy_epoch": "bfa720a0319a6ac05835434fa3d3285bf403030d05c4b6c4a8ef0af9428b5714",
+    "proposal_only": false,
+    "sealed": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+    "started_at": "2026-11-23T20:18:34+00:00"
+  },
+  "initial_history_recompute": {
+    "after_retirement_performed": false,
+    "historical_replay": {
+      "present": true,
+      "required_inputs_missing": false,
+      "status": "preserved_original_inputs_replayed",
+      "verified": true
+    },
+    "parity": {
+      "historical_recompute_hash": "535da094b5d6b527e4f4a537e34faa6d764045f07cb3f548776787e120e7b56d",
+      "prediction_id": "52cbf89ef089a199a6d532545df51a22a88504dce54ee0569ae9d9c4070abaa1",
+      "quote_normalized_hash": "fc39f37ec2992321f88ca2b53cf78dac869f386bc25f971fe680630e950068d0",
+      "raw_input_hash": "11df67724e6c53ba15882225581bda49a55647bde4e162b95e2a4320d79f2e0d",
+      "raw_input_id": "bbo-2847535-7c25c710b7476c9482153fc09867fb948c4d646bc4de4bfaaca2d099b816583c",
+      "snapshot_id": "3aeff22495ca59751ebd682b6b3b700346913876143e74e73ca98f63b5439629"
+    },
+    "status": "exact_history_recompute_verified"
+  },
+  "live_observation": {
+    "boundary_samples": {
+      "api_max_ms": 465.612,
+      "api_median_ms": 111.89699999999999,
+      "api_requests_at_or_above_2_seconds": 0,
+      "count": 466,
+      "distinct_features": 438,
+      "distinct_polymarket_receipts": 321,
+      "distinct_predictions": 438,
+      "errors": {},
+      "feed_statuses": {
+        "coinbase": {
+          "fresh": 410,
+          "stale": 56
+        },
+        "polymarket": {
+          "fresh": 436,
+          "missing": 30
+        }
+      },
+      "markets": [
+        "2847558",
+        "2847539",
+        "2847535",
+        "2847918"
+      ]
+    },
+    "contracts": {
+      "count": 38,
+      "seen_ok": {
+        "chart_ok": 35,
+        "dashboard_ok": 38,
+        "prediction_history_ok": 38,
+        "sse_ok": 38
+      }
+    }
+  },
+  "origin_id": "pp-live-pp-trial-20261119-05",
+  "pp_off_receipt": {
+    "collector_enabled": false,
+    "gate": "PP_LIVE_OFF",
+    "origin_id": "pp-live-pp-trial-20261119-05"
+  },
+  "production_fence": {
+    "collector": {
+      "enabled": false,
+      "error": null,
+      "running": false
+    },
+    "gate": "PROD_COLLECTOR_FENCE_ACTIVE",
+    "pid": "159035",
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+  },
+  "result": "HOLD_A_RETIREMENT",
+  "retirement": {
+    "confirmed_retired_partitions": 0,
+    "indexed_latest_receipts_enabled": true,
+    "phase_accounting": {
+      "diagnostics_unavailable": false,
+      "elapsed_seconds": 239.64063,
+      "exhausted_limit": null,
+      "failed_phase": "structured_readback",
+      "logical_bytes": 44947056,
+      "nested_phase_totals_overlap": true,
+      "phases": {
+        "history_checkout": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 3e-06,
+          "requests": 0,
+          "seconds": 8.8e-05
+        },
+        "history_connect": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.381762,
+          "requests": 0,
+          "seconds": 16.291598
+        },
+        "history_exact_revisions": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 1.84423,
+          "requests": 0,
+          "seconds": 48.468708
+        },
+        "history_identity_checkpoint": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.220854,
+          "requests": 0,
+          "seconds": 10.459847
+        },
+        "history_latest_receipts": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.057204,
+          "requests": 0,
+          "seconds": 2.693603
+        },
+        "history_newer_revisions": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.128745,
+          "requests": 0,
+          "seconds": 5.280156
+        },
+        "history_projections": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.274103,
+          "requests": 0,
+          "seconds": 7.781331
+        },
+        "history_release": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.003669,
+          "requests": 0,
+          "seconds": 0.020376
+        },
+        "history_transaction": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 2.52729,
+          "requests": 0,
+          "seconds": 79.951466
+        },
+        "inventory": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 19.685294,
+          "requests": 0,
+          "seconds": 19.685294
+        },
+        "local_finish": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.005449,
+          "requests": 0,
+          "seconds": 0.005449
+        },
+        "local_open": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.471621,
+          "requests": 0,
+          "seconds": 0.471621
+        },
+        "raw_auth_token": {
+          "calls": 49,
+          "logical_bytes": 0,
+          "max_seconds": 0.393184,
+          "requests": 1,
+          "seconds": 0.393639
+        },
+        "raw_local_compare": {
+          "calls": 49,
+          "logical_bytes": 0,
+          "max_seconds": 1.100391,
+          "requests": 0,
+          "seconds": 25.342267
+        },
+        "raw_read_decode": {
+          "calls": 49,
+          "logical_bytes": 3214550,
+          "max_seconds": 0.983524,
+          "requests": 50,
+          "seconds": 19.897416
+        },
+        "structured_compare": {
+          "calls": 51,
+          "logical_bytes": 0,
+          "max_seconds": 0.458342,
+          "requests": 0,
+          "seconds": 15.102142
+        },
+        "structured_local_page": {
+          "calls": 52,
+          "logical_bytes": 0,
+          "max_seconds": 1.189942,
+          "requests": 0,
+          "seconds": 20.211974
+        },
+        "structured_readback": {
+          "calls": 52,
+          "logical_bytes": 41732506,
+          "max_seconds": 4.33252,
+          "requests": 52,
+          "seconds": 138.800549
+        }
+      },
+      "remaining_seconds": 0.359451,
+      "requests": 102,
+      "sqlstate": null
+    },
+    "physical_history_session_reuse_enabled": false,
+    "prior_inventory": {
+      "auth_calls_reserved": 1,
+      "byte_limit": 134217728,
+      "bytes_minimum": 44877587,
+      "bytes_upper_bound": 221318358,
+      "deadline_seconds": 240.0,
+      "fit": "conditional_on_newer_revision_bytes",
+      "profile": "pp-two-market-v1",
+      "raw_bytes": 3214550,
+      "raw_objects": 49,
+      "remaining_work_seconds": 221.794,
+      "request_limit": 192,
+      "requests_minimum": 102,
+      "seal_deadline_utc": "2026-11-23T20:45:20.379646+00:00",
+      "structured_bytes_examined": 41663037,
+      "structured_inventory_complete": true,
+      "structured_pages_examined": 52,
+      "structured_rows": 25872
+    },
+    "reason": "archive_limit",
+    "status": "HOLD",
+    "structured_pages_completed": 51,
+    "structured_pages_required": 52
+  },
+  "scoped_workers": {
+    "sealed-archive": "off",
+    "structured-sync": "off"
+  },
+  "second_window_opened": false,
+  "source_sha": "74f2aa276ff68d44ef943295841380d198ca571b",
+  "targeted_offline_followup": {
+    "canonical_readback_tests_passed": 3,
+    "physical_session_reuse_tests_passed": 10,
+    "retirement_accounting_tests_passed": 6,
+    "same_limits_full_workload_performance_proven": false
+  },
+  "trial05_admin_confirmation": {
+    "at": "2026-11-23T19:28:22.919362+00:00",
+    "operator_confirmed": true,
+    "origin_id": "pp-live-pp-trial-20261119-05",
+    "scope": "two announced windows <=295s; admins and privileged automation will leave sealed archives, history and policies untouched"
+  },
+  "writer_and_generations_after_hold": {
+    "admission": {
+      "admitted_at": "2026-11-23T19:44:09.168543+00:00",
+      "initial_a": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+      "lease_expires_at": "2026-11-23T21:34:09.168543+00:00",
+      "lease_seconds": 6600,
+      "session_id": "070bb486-2405-4695-8d67-e49a940bcb7b"
+    },
+    "at_utc": "2026-11-23T20:23:25.309148+00:00",
+    "generations": [
+      {
+        "acknowledged": 25872,
+        "created_at": "2026-11-23T19:23:10.382729+00:00",
+        "generation_id": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+        "hold_reason": null,
+        "official_market_pair": [
+          {
+            "duration": 900,
+            "end_epoch": "1795464000",
+            "market_id": "2847539",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795463100"
+          },
+          {
+            "duration": 900,
+            "end_epoch": "1795464900",
+            "market_id": "2847535",
+            "quote_seen": true,
+            "source": "polymarket_us",
+            "start_epoch": "1795464000"
+          }
+        ],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "polymarket_quotes": {
+          "newest_receipt": "2026-11-23T20:14:59.650311+00:00",
+          "newest_source": 1795464873.600382,
+          "rows": 263
+        },
+        "raw_events": 24044,
+        "relation_bytes": 47710208,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": 24044,
+        "seal_hash": "1275e64a5f299881d6fb78d43735ee0563aa028421110a47fb84e70abc110b43",
+        "sealed_at": "2026-11-23T20:15:20.379646+00:00",
+        "slot": "A",
+        "started_at": "2026-11-23T19:23:10.382729+00:00",
+        "state": "verified",
+        "verified_at": "2026-11-23T20:17:08.491864+00:00",
+        "verified_manifests": 49
+      },
+      {
+        "acknowledged": 6149,
+        "created_at": "2026-11-23T20:15:20.379646+00:00",
+        "generation_id": "7eb27e2f-f53b-4b50-98db-00a318853b0b",
+        "hold_reason": null,
+        "official_market_pair": [],
+        "oldest_pending_at": null,
+        "partition_attached": true,
+        "pending": 0,
+        "polymarket_quotes": {
+          "newest_receipt": "2026-11-23T20:22:56.463169+00:00",
+          "newest_source": 1795465364.7438996,
+          "rows": 61
+        },
+        "raw_events": 5690,
+        "relation_bytes": 11304960,
+        "relation_exists": true,
+        "retired_at": null,
+        "seal_count": null,
+        "seal_hash": null,
+        "sealed_at": null,
+        "slot": "B",
+        "started_at": "2026-11-23T20:15:20.379646+00:00",
+        "state": "collecting",
+        "verified_at": null,
+        "verified_manifests": 0
+      }
+    ],
+    "origin_id": "pp-live-pp-trial-20261119-05",
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 4,
+      "generation_id": "7eb27e2f-f53b-4b50-98db-00a318853b0b"
+    }
+  }
+}

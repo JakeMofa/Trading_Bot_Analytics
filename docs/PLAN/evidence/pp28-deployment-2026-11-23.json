@@ -1,0 +1,88 @@
+{
+  "deployment": {
+    "acceptance_scope": "generated_only",
+    "artifact_sha256": "8321e4a084089d1cfd180d2ad362791bd72228debb4619712a0be2ad87992ff2",
+    "branch": "preprod",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "completed_at_utc": "2026-11-23T18:38:24.176858+00:00",
+    "controls_sha": "88da36adec5d85f4302d834d16f79f2df8aded24",
+    "environment": "preprod",
+    "gate": "PASS",
+    "instance": "tradebot-preprod-01",
+    "live_collector_enabled": false,
+    "paid_ai_enabled": false,
+    "policy_sha256": "d18c641009f5d77a4e84d9a62076e1be290be8bfd7ad9bb80ebd625bdf9a15f7",
+    "production_data_mounted": false,
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:63cc46b020b2366066b7637ccfd00499cb46a8db868a40bb4bf792f4cc5ace1a",
+    "release_version": "v0.2.0-pp.28",
+    "retention_enabled": false,
+    "run_attempt": 1,
+    "run_id": 45240092424,
+    "runtime_image_id": "sha256:477db73f4bfe3088e601774687fb96f5c354d4450bb293ed698ebae17896d7ba",
+    "scope": "exact-source runtime deployment and acceptance",
+    "source_ci_attempt": 1,
+    "source_ci_run_id": 45238401404,
+    "source_sha": "88da36adec5d85f4302d834d16f79f2df8aded24"
+  },
+  "live_rehearsal": {
+    "live_rotation_observed": false,
+    "local_partitions_removed": 0,
+    "reason": "Production collector is configured on and held by its storage guard. PP requires durable sole collector ownership. Production must stay unchanged.",
+    "status": "BLOCKED_BEFORE_ON",
+    "verification_windows_started": 0
+  },
+  "main_unchanged": "3162d7ef75f290a7fc9e0f425ae8e02bf81d2672",
+  "pp_retained": {
+    "api_image": "sha256:477db73f4bfe3088e601774687fb96f5c354d4450bb293ed698ebae17896d7ba",
+    "trial03": [
+      {
+        "attached": true,
+        "id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "slot": "A",
+        "state": "verified"
+      },
+      {
+        "attached": true,
+        "id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "slot": "B",
+        "state": "verified"
+      }
+    ],
+    "trial04": {
+      "acknowledged": 705,
+      "attached": true,
+      "generation_id": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+      "pending": 0,
+      "raw_events": 659,
+      "state": "collecting"
+    },
+    "writers_on": 0
+  },
+  "pr": 204,
+  "production": {
+    "collector": {
+      "enabled": true,
+      "error": null,
+      "running": false
+    },
+    "gate": "PROD_STORAGE_HELD",
+    "original_unit_sha256": "0a3c1633a146e4009b556df09f0e0769f1dbe5542afd495e5e12b3df79ca7234",
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+  },
+  "publication": 45239533391,
+  "result": "PP28_DEPLOYED_GENERATED_PASS_LIVE_HELD",
+  "runner_deregistered": true,
+  "unused_pp_authority": false
+}

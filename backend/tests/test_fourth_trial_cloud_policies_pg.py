@@ -19,6 +19,7 @@ from bind_trial_cloud_policy import render as first_render
 from bind_second_trial_cloud_policy import render as second_render
 from bind_third_trial_cloud_policy import render as third_render
 from bind_fourth_trial_cloud_policy import render
+from bind_fifth_trial_cloud_policy import render as fifth_render
 
 FIRST='pp-live-pp-trial-20261119-01'
 RETAINED_SECOND='pp-live-pp-trial-20261119-02'
@@ -172,6 +173,39 @@ class FourthTrialPolicyPGTests(unittest.TestCase):
             with self.assertRaises(psycopg.errors.RaiseException):db.execute(render(**self.bindings))
         with self.admin() as db:
             with self.assertRaises(psycopg.errors.RaiseException):db.execute((ROOT/'supabase/review/pp_trial_20261119_04_structured.sql').read_text())
+
+    def test_fifth_reader_and_writer_are_isolated_from_fourth(self):
+        fifth='pp-live-pp-trial-20261119-05'
+        writer='00000000-0000-4000-8000-000000000044'
+        reader='00000000-0000-4000-8000-000000000055'
+        # The reviewed scripts include COMMIT. Run them in the isolated fixture
+        # after stripping their outer transaction to roll back this test only.
+        def body(script):
+            self.assertIn('\nBEGIN;\n',script);self.assertTrue(script.rstrip().endswith('COMMIT;'))
+            return script.replace('\nBEGIN;\n','\n',1).rsplit('COMMIT;',1)[0]
+        with self.admin() as db:
+            for uid,kind in ((writer,'archive'),(reader,'history_reader')):
+                db.execute("INSERT INTO auth.users VALUES(%s,%s,'authenticated',now(),%s::jsonb)",
+                           (uid,kind+'05@example.invalid',
+                            json.dumps(dict(tradebot_role='pp_storage_'+kind,tradebot_origin=fifth))))
+            db.execute(body((ROOT/'supabase/review/pp_trial_20261119_05_structured.sql').read_text()))
+            db.execute(body(fifth_render(writer_uid=writer,writer_email='archive05@example.invalid',
+                       reader_uid=reader,reader_email='history_reader05@example.invalid',
+                       policy_sha256=db.execute(HASH).fetchone()[0])))
+            self.seed(db,fifth)
+            for role,origin in ((READER,FOURTH),('tradebot_pp_trial_20261119_05_reader',fifth),
+                                ('tradebot_pp_trial_20261119_05_writer',fifth)):
+                self.role(db,role)
+                self.assertEqual(db.execute('SELECT origin_id FROM history_v2.generation_checkpoints').fetchall(),[(origin,)])
+                db.execute('RESET ROLE')
+            for uid,origin in ((UIDS[7],FOURTH),(reader,fifth),(writer,fifth)):
+                self.request(db,uid,'storage.object.get_authenticated')
+                self.assertEqual(db.execute('SELECT name FROM storage.objects').fetchall(),[(self.key(origin),)])
+                db.execute('RESET ROLE')
+            self.request(db,writer,'storage.object.upload')
+            with self.assertRaises(psycopg.errors.InsufficientPrivilege), db.transaction():
+                db.execute("INSERT INTO storage.objects(bucket_id,name) VALUES('market-raw',%s)",(self.key(FOURTH,'b'),))
+            db.rollback()
 
 
 if __name__=='__main__':unittest.main()

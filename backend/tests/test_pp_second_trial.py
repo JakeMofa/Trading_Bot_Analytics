@@ -29,7 +29,7 @@ class SecondTrialControls(unittest.TestCase):
             TRADEBOT_PP_WINDOW_POLICY='two-official-markets-cycle')
         self.assertEqual(selected_cloud_origin(env),NEXT_TRIAL_ORIGIN)
         self.assertEqual(cycle_anchor(env),anchor)
-        for changes in ({'TRADEBOT_ORIGIN_ID':'pp-live-pp-trial-20261119-05'},
+        for changes in ({'TRADEBOT_ORIGIN_ID':'pp-live-pp-trial-20261119-06'},
                         {'TRADEBOT_PP_WINDOW_POLICY':'two-official-markets'},
                         {'TRADEBOT_ENVIRONMENT':'production'}):
             with self.subTest(changes=changes),self.assertRaises(ValueError):selected_cloud_origin(env|changes)

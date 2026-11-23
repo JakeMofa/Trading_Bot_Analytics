@@ -15,12 +15,12 @@ import uuid
 from .archive_codec import ArchiveLimits, CycleBudget
 from .lifecycle import LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import OFF_FLAGS
-from .rehearsal_profile import NEXT_TRIAL_ORIGIN as ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN, canonical_anchor, cycle_anchor
+from .rehearsal_profile import NEXT_TRIAL_ORIGIN as ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, canonical_anchor, cycle_anchor
 from .pp_trial_prepare import CONSUMER as PREPARE_CONSUMER
 from .pp_structured_probe import LOCAL_DSN, private_dsn
 
 CONSUMER = 'trial:final-a-maintenance-seal-v1'
-MAINTENANCE_ORIGINS=frozenset({ORIGIN,THIRD_TRIAL_ORIGIN,FOURTH_TRIAL_ORIGIN})
+MAINTENANCE_ORIGINS=frozenset({ORIGIN,THIRD_TRIAL_ORIGIN,FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN})
 MAX_OUTBOX_ROWS = 10_000  # Original02 total; pending queue capacity is unchanged.
 THIRD_MAX_ACKNOWLEDGED_ROWS = 64_000  # Existing bounded maintenance inventory only.
 MAX_RAW_ROWS = 128 * 500  # Existing sealed archive catalog, without enlargement.
@@ -30,7 +30,7 @@ LIMITS = ArchiveLimits(max_seconds=20)
 def acknowledged_row_limit(origin_id):
     if origin_id not in MAINTENANCE_ORIGINS:
         raise LifecycleHold('exact final trial maintenance origin required')
-    return THIRD_MAX_ACKNOWLEDGED_ROWS if origin_id in (THIRD_TRIAL_ORIGIN,FOURTH_TRIAL_ORIGIN) else MAX_OUTBOX_ROWS
+    return THIRD_MAX_ACKNOWLEDGED_ROWS if origin_id in (THIRD_TRIAL_ORIGIN,FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN) else MAX_OUTBOX_ROWS
 
 
 @dataclass(frozen=True)

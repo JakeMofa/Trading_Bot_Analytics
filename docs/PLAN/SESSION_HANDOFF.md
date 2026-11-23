@@ -1,3 +1,30 @@
+## November 23, 2026 CST — PP28 deployed and validated in generated mode
+
+[PR #204](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/204) merged
+into `preprod` as `88da36a`. The exact
+[merge CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45238401404)
+and [release publication](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45239533391)
+passed. [CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45240092424)
+deployed `v0.2.0-pp.28` and passed all 11 generated acceptance checks.
+The deployed API image was independently matched to the CD record, and the
+private dashboard returned HTTP 200. The deploy permit was consumed and
+the temporary private runner deregistered.
+
+The exact PP27 transition returned to generated mode before deployment.
+PostgreSQL preserved trial04 A with 659 raw events, 705 structured
+acknowledgements and zero pending records. Both trial03 partitions remain
+attached and verified. No live PP writers are enabled.
+
+**Fresh live rehearsal is held before ON.** Production remains on
+`d56b4a7` with its original collector configuration. Read-only checks before
+and after deployment confirmed it is enabled and stopped by its legacy
+storage guard. The current plan requires durable sole ownership for PP
+collection. Neither the production configuration nor `main` changed.
+Live A → B → fresh A, independent Supabase verification and timely
+physical retirement are still open. Both verification windows are unopened.
+
+[Sanitized deployment and preservation evidence](evidence/pp28-deployment-2026-11-23.json).
+
 ## November 23, 2026 CST — PP27 trial04 stopped before A could seal
 
 **Trial04 FAILED before storage rotation.** PP27 source `17ba31e` admitted

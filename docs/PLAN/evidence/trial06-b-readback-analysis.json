@@ -1,0 +1,67 @@
+{
+  "scope": "Saved PP trial06 B retirement attempt with fresh A collecting, 2026-11-23. Offline analysis.",
+  "source_receipts": {
+    "retire-2-failure.json": {
+      "sha256": "3b1732699037b78fea521be63fbd80f3816024bb3d055f9eb3b5163c4faa80d1"
+    },
+    "inventory-2.json": {
+      "sha256": "00ec41c6d3402111594e499c6cba95eced997bb7d47ce41ebcd299f098df0778"
+    }
+  },
+  "reproduce": {
+    "directory": "/private/tmp/tradebot-pp-trial06-20261123",
+    "phase_summary_command": "PYTHONPATH=backend python3 -m postgres.retirement_telemetry /private/tmp/tradebot-pp-trial06-20261123/retire-2-failure.json",
+    "phase_selection": "Read seconds and calls from phase_accounting.phases. Read required counts from inventory-2.json inventory."
+  },
+  "observation": {
+    "status": "HOLD",
+    "exhausted_limit": "seconds",
+    "elapsed_seconds": 240.191566,
+    "allowed_seconds": 240.0,
+    "raw_objects": 50,
+    "raw_compare_calls": 50,
+    "structured_rows": 27528,
+    "structured_pages_required": 56,
+    "structured_compare_calls": 54,
+    "structured_logical_bytes_read": 46009916
+  },
+  "phase_wall_seconds": {
+    "inventory": 24.281811,
+    "raw_read_decode": 21.310853,
+    "raw_local_compare": 30.481731,
+    "structured_local_page": 27.634053,
+    "structured_readback": 121.996124,
+    "structured_compare": 13.844207,
+    "history_transaction": 83.180798,
+    "history_exact_revisions": 49.221059,
+    "history_latest_receipts": 3.143837,
+    "history_connect": 0.370873
+  },
+  "phase_boundaries": {
+    "structured_readback": "Encloses hosted history transaction and client validation. Also includes client work outside that transaction.",
+    "history_exact_revisions": "Nested inside history_transaction. Includes SQL round trip, buffered result decoding, JSON parsing, canonical re-encoding, stream and hash validation, and exact byte comparison.",
+    "raw_read_decode": "Includes transfer and decode.",
+    "caution": "Nested phase totals overlap; logical bytes represent budget charges, not network traffic."
+  },
+  "retained_B_attribution_seconds": {
+    "postgres_execution": null,
+    "network_transfer": null,
+    "client_decode": null,
+    "reason": "Saved trial06 receipts contain inclusive phase timers. PP26 timings cover different data and cannot supply the missing B attribution."
+  },
+  "matched_benchmark": {
+    "status": "Pending quiet read-only measurement on retained B.",
+    "method": [
+      "Pin origin, sealed generation, ordered IDs, page digest and byte count. Use identical 500 records for repeated reads. Report warmup separately.",
+      "Measure execute/fetch elapsed and client-side decode, canonicalization, and comparison separately. Attribute server execution time only with matched statement statistics; mark contaminated samples unavailable.",
+      "Report server execution, client verification, and the remaining transport/driver time with its uncertainty. Pure wire transfer requires an independent measurement. Compare the same page and digest before considering RPC."
+    ]
+  },
+  "capacity": "Trial06 is one short finite workload. A 72-hour sealed generation and concurrent writer require a separate representative capacity rehearsal.",
+  "new_local_instrumentation": {
+    "history_exact_execute": "Wall time of buffered psycopg execute, including server execution, network and driver handling.",
+    "history_exact_fetch": "Wall time materializing buffered results to Python rows.",
+    "history_exact_validate": "Ordered ID, size, canonical JSON, provenance and hash verification. The enclosing history_exact_revisions additionally times join and exact byte comparison.",
+    "status": "Local transport path exercised on generated canonical records. Historical trial06 B predates these counters."
+  }
+}

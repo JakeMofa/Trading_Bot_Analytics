@@ -1,0 +1,68 @@
+{
+  "scope": "Synthetic 500-candle page, local Unix socket, fresh read-only transaction per run, one reused connection.",
+  "limitations": "PostgreSQL execution is nested in execute. Residual includes planning, protocol, driver and local transfer. No network-only timing or hosted B speedup measured.",
+  "postgres_version_num": 170002,
+  "driver": "3.2.13",
+  "page_sha256": "4b935f6447777ef8638d8d0a246f10ab7432d01da38bb8fc659b298414bcbc1f",
+  "canonical_bytes": 364893,
+  "rows": 500,
+  "warmup": {
+    "full_page_ms": 113.938,
+    "exact_server_exec_ms": 2.054,
+    "history_exact_execute_ms": 3.388,
+    "history_exact_fetch_ms": 1.08,
+    "history_exact_validate_ms": 28.309,
+    "history_exact_revisions_ms": 33.023
+  },
+  "samples": [
+    {
+      "full_page_ms": 111.116,
+      "exact_server_exec_ms": 2.414,
+      "history_exact_execute_ms": 3.421,
+      "history_exact_fetch_ms": 1.011,
+      "history_exact_validate_ms": 28.487,
+      "history_exact_revisions_ms": 33.095
+    },
+    {
+      "full_page_ms": 121.336,
+      "exact_server_exec_ms": 2.195,
+      "history_exact_execute_ms": 3.113,
+      "history_exact_fetch_ms": 1.066,
+      "history_exact_validate_ms": 28.492,
+      "history_exact_revisions_ms": 32.827
+    },
+    {
+      "full_page_ms": 110.033,
+      "exact_server_exec_ms": 2.499,
+      "history_exact_execute_ms": 3.383,
+      "history_exact_fetch_ms": 1.094,
+      "history_exact_validate_ms": 28.385,
+      "history_exact_revisions_ms": 33.031
+    },
+    {
+      "full_page_ms": 111.121,
+      "exact_server_exec_ms": 2.325,
+      "history_exact_execute_ms": 3.346,
+      "history_exact_fetch_ms": 1.002,
+      "history_exact_validate_ms": 29.287,
+      "history_exact_revisions_ms": 33.851
+    },
+    {
+      "full_page_ms": 111.709,
+      "exact_server_exec_ms": 2.331,
+      "history_exact_execute_ms": 3.427,
+      "history_exact_fetch_ms": 1.001,
+      "history_exact_validate_ms": 28.604,
+      "history_exact_revisions_ms": 33.2
+    }
+  ],
+  "median": {
+    "full_page_ms": 111.121,
+    "exact_server_exec_ms": 2.331,
+    "history_exact_execute_ms": 3.383,
+    "history_exact_fetch_ms": 1.011,
+    "history_exact_validate_ms": 28.492,
+    "history_exact_revisions_ms": 33.095
+  },
+  "reproduce": "uv run --no-project --with 'psycopg[binary]==3.2.13' --with 'httpx==0.28.1' python deploy/preprod/bench_exact_revision_phases.py --pg-bin /opt/homebrew/opt/postgresql@17/bin"
+}

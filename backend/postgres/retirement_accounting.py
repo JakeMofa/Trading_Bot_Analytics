@@ -15,7 +15,8 @@ PHASES = frozenset(('local_open', 'local_finish', 'inventory', 'raw_read_decode'
     'raw_local_compare', 'raw_auth_token', 'structured_local_page', 'structured_readback',
     'structured_compare', 'history_connect', 'history_checkout', 'history_release', 'history_transaction',
     'history_identity_checkpoint', 'history_exact_revisions', 'history_latest_receipts',
-    'history_newer_revisions', 'history_projections', 'permit_drop'))
+    'history_newer_revisions', 'history_projections', 'permit_drop',
+    'history_exact_execute', 'history_exact_fetch', 'history_exact_validate'))
 
 
 class Accounting:

@@ -7,6 +7,7 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from postgres.archive_codec import ArchiveIntegrityError, encoded, sha256
+from postgres.retirement_accounting import accounted
 from postgres.history_v2_transport import HistoryV2PostgresTransport
 
 
@@ -63,6 +64,26 @@ class CanonicalReadbackTests(unittest.TestCase):
         self.assertEqual(b'[' + b','.join(envelopes) + b']', original)
         self.assertEqual(self.transport._validate(self.records, max_bytes=8192), original)
         self.assertEqual(len(original), len(b'[' + b','.join(envelopes) + b']'))
+
+    def test_exact_read_timings_scope_and_corrupt_row_failure(self):
+        @accounted
+        def observe(rows, canonical):
+            self.transport._read_revisions(Rows(rows), [1, 2], 8192,
+                                           _canonical_envelopes=canonical)
+            return {}
+
+        rows = [receipt(r) for r in self.records]
+        metrics = observe(rows, [])['phase_accounting']
+        keys = {'history_exact_execute', 'history_exact_fetch', 'history_exact_validate'}
+        self.assertEqual(set(metrics['phases']), keys)
+        self.assertTrue(all(metrics['phases'][k]['calls'] == 1 for k in keys))
+        self.assertFalse(metrics['diagnostics_unavailable'])
+        self.assertEqual(observe(rows, None)['phase_accounting']['phases'], {})
+        rows[0]['envelope_hash'] = 'b' * 64
+        with self.assertRaises(ArchiveIntegrityError) as caught:
+            observe(rows, [])
+        self.assertEqual(caught.exception.retirement_accounting['failed_phase'],
+                         'history_exact_validate')
 
     def test_every_receipt_field_remains_independently_checked(self):
         for name in ('entity_type', 'entity_id', 'content_hash', 'payload_hash', 'envelope_hash'):

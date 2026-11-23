@@ -7,6 +7,7 @@ verifies those receipts before the local worker may acknowledge its outbox.
 """
 from __future__ import annotations
 
+from contextlib import nullcontext
 from datetime import datetime, timezone
 import time
 import json
@@ -173,7 +174,7 @@ class HistoryV2PostgresTransport:
         # text separately. Sum lengths rather than concatenate corrupt metadata.
         # Neither payload nor text is transferred when either aggregate exceeds
         # max_bytes. Fixed-width fields, row/protocol/TLS overhead are additional.
-        rows=connection.execute("""WITH sizes AS (
+        statement = """WITH sizes AS (
                 SELECT p.outbox_id, sum(octet_length(p.envelope)) OVER () total,
                     sum(coalesce(octet_length(r.entity_type),0)
                       + coalesce(octet_length(r.entity_id),0)
@@ -197,32 +198,41 @@ class HistoryV2PostgresTransport:
                 p.origin_id=%s AND p.generation_id=%s AND p.outbox_id=s.outbox_id
             JOIN history_v2.structured_receipts r ON (r.origin_id,r.generation_id,r.outbox_id)=
                     (p.origin_id,p.generation_id,p.outbox_id)
-            ORDER BY p.outbox_id""", (self.origin_id,generation_id,ids,max_bytes,max_bytes,
-                                      self.origin_id,generation_id)).fetchall()
-        if [r['outbox_id'] for r in rows] != ids:
-            raise ArchiveIntegrityError('historical revision or receipt missing')
-        records=[]
-        for row in rows:
-            if (row['total']>max_bytes or row['metadata_total']>max_bytes
-                    or row['envelope'] is None):
-                raise ArchiveLimit('stored revision batch exceeds read bound')
-            raw=bytes(row['envelope'])
-            try:
-                record=json.loads(raw)
-            except (ValueError,UnicodeError):
-                raise ArchiveIntegrityError('stored revision encoding invalid') from None
-            if (not isinstance(record,dict) or record.get('id')!=row['outbox_id'] or
-                    encoded(record)!=raw):
-                raise ArchiveIntegrityError('stored revision not canonical')
-            validate_outbox_stream([record],origin_id=self.origin_id,generation_id=generation_id)
-            # raw has already passed exact canonical re-encoding above. Hash
-            # those same authenticated bytes instead of serializing them again.
-            self._check_receipt_hashes(row,record,
-                sha256(encoded(record['payload'])),sha256(raw))
-            records.append(record)
-            if _canonical_envelopes is not None:
-                _canonical_envelopes.append(raw)
-        return records
+            ORDER BY p.outbox_id"""
+        parameters = (self.origin_id, generation_id, ids, max_bytes, max_bytes,
+                      self.origin_id, generation_id)
+        # psycopg's buffered execute includes server work and transfer. Fetch
+        # materializes Python rows. Only instrument the exact retirement page.
+        exact = _canonical_envelopes is not None
+        with phase('history_exact_execute') if exact else nullcontext():
+            cursor = connection.execute(statement, parameters)
+        with phase('history_exact_fetch') if exact else nullcontext():
+            rows = cursor.fetchall()
+        with phase('history_exact_validate') if exact else nullcontext():
+            if [r['outbox_id'] for r in rows] != ids:
+                raise ArchiveIntegrityError('historical revision or receipt missing')
+            records=[]
+            for row in rows:
+                if (row['total']>max_bytes or row['metadata_total']>max_bytes
+                        or row['envelope'] is None):
+                    raise ArchiveLimit('stored revision batch exceeds read bound')
+                raw=bytes(row['envelope'])
+                try:
+                    record=json.loads(raw)
+                except (ValueError,UnicodeError):
+                    raise ArchiveIntegrityError('stored revision encoding invalid') from None
+                if (not isinstance(record,dict) or record.get('id')!=row['outbox_id'] or
+                        encoded(record)!=raw):
+                    raise ArchiveIntegrityError('stored revision not canonical')
+                validate_outbox_stream([record],origin_id=self.origin_id,generation_id=generation_id)
+                # raw has already passed exact canonical re-encoding above. Hash
+                # those same authenticated bytes instead of serializing them again.
+                self._check_receipt_hashes(row,record,
+                    sha256(encoded(record['payload'])),sha256(raw))
+                records.append(record)
+                if _canonical_envelopes is not None:
+                    _canonical_envelopes.append(raw)
+            return records
 
     def backfill_verified_revisions(self, records, *, timeout_seconds):
         """Insert original bytes for independently matched existing receipts only."""

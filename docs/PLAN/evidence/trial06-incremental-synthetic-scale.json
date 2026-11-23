@@ -1,0 +1,18 @@
+{
+  "scope": "Local synthetic row-count exercise with compact 16-byte records, one raw batch per page",
+  "structured_rows": 3628800,
+  "page_size": 500,
+  "total_batches": 14516,
+  "preverified_batches": 14514,
+  "verified_after_seal": 2,
+  "seal_to_finish_seconds": 0.224,
+  "staging_and_incremental_verification_seconds": 18.6007,
+  "result": {
+    "status": "complete",
+    "verified_now": 2,
+    "reused": 14514,
+    "total": 14516,
+    "seal_sha256": "d8e87cb67686e4bee0c9f62b1b47568c26a396827f28a1fec07b13bc717fd3a3",
+    "retirement_authorized": false
+  }
+}

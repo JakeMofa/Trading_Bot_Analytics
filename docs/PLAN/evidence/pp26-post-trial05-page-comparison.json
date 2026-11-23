@@ -1,0 +1,158 @@
+{
+  "page": {
+    "canonical_logical_bytes": 801735,
+    "canonical_sha256": "35fa8f93a068a60ea1c361a6d2726ef540cefd8cca7603c6958aa11301682551",
+    "first_id": 82351,
+    "generation_id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+    "historical_byte_count_match": true,
+    "historical_exact_digest_available": false,
+    "hosted_budgeted_logical_bytes": 803099,
+    "hosted_finish_utc": "2026-11-23T20:26:09.120110+00:00",
+    "hosted_page_budget_seconds": 4,
+    "hosted_start_utc": "2026-11-23T20:26:07.035989+00:00",
+    "indexed_latest_verified": true,
+    "last_id": 82850,
+    "local_cloud_exact": true,
+    "max_page_logical_bytes": 4194304,
+    "max_page_rows": 500,
+    "nested_timings_overlap": true,
+    "ordered_ids_sha256": "832a60601a70579eea5ae27ca7c18cbec6571123969c0cec2e7d0a55fa739078",
+    "origin_id": "pp-live-pp-trial-20261119-03",
+    "retirement_authorized": false,
+    "rows": 500,
+    "scope": "reconstructed_first_page_fresh_read_only",
+    "server_execution_seconds": null,
+    "stage": "complete",
+    "statement_counts": {
+      "generation_checkpoint": {
+        "calls": 1,
+        "rows": 1,
+        "unknown_rows": 0
+      },
+      "hosted_identity": {
+        "calls": 1,
+        "rows": 1,
+        "unknown_rows": 0
+      },
+      "indexed_generation_checkpoint": {
+        "calls": 1,
+        "rows": 1,
+        "unknown_rows": 0
+      },
+      "indexed_latest_receipts": {
+        "calls": 1,
+        "rows": 61,
+        "unknown_rows": 0
+      },
+      "projection:candles": {
+        "calls": 17,
+        "rows": 17,
+        "unknown_rows": 0
+      },
+      "projection:current_prices": {
+        "calls": 1,
+        "rows": 1,
+        "unknown_rows": 0
+      },
+      "projection:feature_snapshots": {
+        "calls": 7,
+        "rows": 7,
+        "unknown_rows": 0
+      },
+      "projection:markets": {
+        "calls": 1,
+        "rows": 1,
+        "unknown_rows": 0
+      },
+      "projection:predictions": {
+        "calls": 7,
+        "rows": 7,
+        "unknown_rows": 0
+      },
+      "projection:protected_evidence": {
+        "calls": 14,
+        "rows": 14,
+        "unknown_rows": 0
+      },
+      "projection:snapshot_evidence": {
+        "calls": 14,
+        "rows": 14,
+        "unknown_rows": 0
+      },
+      "readonly_transaction": {
+        "calls": 1,
+        "rows": 0,
+        "unknown_rows": 0
+      },
+      "structured_exact_revisions": {
+        "calls": 2,
+        "rows": 501,
+        "unknown_rows": 0
+      },
+      "transaction_limits": {
+        "calls": 1,
+        "rows": 1,
+        "unknown_rows": 0
+      }
+    },
+    "status": "reconstructed_page_parity",
+    "timings": {
+      "client_buffered_fetch_convert": {
+        "calls": 67,
+        "seconds": 0.006522
+      },
+      "client_input_validate_encode": {
+        "calls": 1,
+        "seconds": 0.295995
+      },
+      "client_revision_decode_integrity": {
+        "calls": 2,
+        "seconds": 0.256895
+      },
+      "execute_until_client_result_ready": {
+        "calls": 8,
+        "seconds": 0.823243
+      },
+      "fresh_hosted_connection_wall": {
+        "calls": 1,
+        "seconds": 0.362016
+      },
+      "hosted_verifier_wall": {
+        "calls": 1,
+        "seconds": 2.084084
+      },
+      "local_cloud_canonical_comparison": {
+        "calls": 1,
+        "seconds": 0.023623
+      },
+      "local_reconstruct_and_validate_page": {
+        "calls": 1,
+        "seconds": 0.604963
+      },
+      "pipeline_begin": {
+        "calls": 1,
+        "seconds": 4.3e-05
+      },
+      "pipeline_drain_receive": {
+        "calls": 1,
+        "seconds": 0.130934
+      },
+      "pipeline_enqueue_client_driver": {
+        "calls": 61,
+        "seconds": 0.0045
+      }
+    },
+    "transfer_only_seconds": null
+  },
+  "statement_attribution": {
+    "application_queries": 69,
+    "application_reported_rows": 627,
+    "epochs_stable": true,
+    "keys_stable": true,
+    "server_application_exec_ms": 85.05348899999957,
+    "projection_exec_ms": 32.79874899999909,
+    "planning_included": false,
+    "transfer_only_seconds": null,
+    "verifier_wall_minus_server_application_exec_seconds": 1.9990305110000002
+  }
+}

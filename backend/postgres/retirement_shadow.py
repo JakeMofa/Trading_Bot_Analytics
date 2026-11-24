@@ -26,9 +26,10 @@ def trusted_version(view, batch):
     return value
 
 
-def verify_shadow(repository, transport, journal_factory, target, *, source, limits, batch_budget, journal_key):
+def verify_shadow(repository, transport, journal_factory, target, *, expected_origin, source, limits, batch_budget, journal_key):
     target.validate()
-    if (repository.environment != 'preprod' or not transport.origin_id.startswith('generated-')
+    if (repository.environment != 'preprod' or not isinstance(expected_origin, str)
+            or not expected_origin.startswith('generated-') or transport.origin_id != expected_origin
             or str(transport.generation_id) != target.sealed
             or not re.fullmatch('[0-9a-f]{40}', source)
             or not isinstance(journal_key,bytes) or len(journal_key) < 32
@@ -38,7 +39,8 @@ def verify_shadow(repository, transport, journal_factory, target, *, source, lim
     observed = {}
     # Each receipt uses an independent committed journal transaction. Neither an
     # interruption nor rolling back the local read transaction erases prior work.
-    with CycleBudget(limits) as budget, repository.retirement(target.sealed) as (db, gen, manifests):
+    with CycleBudget(limits) as budget, repository.retirement(
+            target.sealed, expected_origin=expected_origin) as (db, gen, manifests):
         sampled = budget.clock()
         wall_now = db.execute("SELECT clock_timestamp() AS now").fetchone()["now"]
         if not gen["sealed_at"] or gen["sealed_at"] > wall_now:
@@ -47,12 +49,12 @@ def verify_shadow(repository, transport, journal_factory, target, *, source, lim
         budget.deadline = min(budget.deadline, sampled + (expires - wall_now).total_seconds())
         budget.check()
         digest = validate_manifest_chain(manifests, gen)
-        before = active_sample(db, transport.origin_id)
-        if (not bound_catalog(gen, manifests) or gen['origin_id'] != transport.origin_id or digest != target.seal_hash
+        before = active_sample(db, expected_origin)
+        if (not bound_catalog(gen, manifests) or gen['origin_id'] != expected_origin or digest != target.seal_hash
                 or digest != gen['seal_hash'] or gen['seal_count'] != target.count
                 or not before or before['generation_id'] != target.collecting):
             raise LifecycleHold('shadow target changed')
-        scope = sha256(encoded(['shadow-v1', source, transport.origin_id, target.sealed,
+        scope = sha256(encoded(['shadow-v1', source, expected_origin, target.sealed,
                                 target.collecting, digest, target.count, limits.max_rows,
                                 limits.max_decoded_bytes]))
         with transport.pin_shadow_versions() as view, journal_factory() as journal:
@@ -112,7 +114,7 @@ def verify_shadow(repository, transport, journal_factory, target, *, source, lim
                     records = ArchiveWorker.structured_records(rows)
                     ids = [row['id'] for row in records]
                     if (ids != sorted(set(ids)) or ids[0] <= after or any(
-                            row['origin_id'] != transport.origin_id or
+                            row['origin_id'] != expected_origin or
                             str(row['generation_id']) != target.sealed for row in records)):
                         raise ArchiveIntegrityError('invalid shadow page')
                     canonical = encoded(records)
@@ -136,7 +138,7 @@ def verify_shadow(repository, transport, journal_factory, target, *, source, lim
                     raise ArchiveIntegrityError('destination changed during reconciliation')
                 if set(observed) != {row['batch'] for row in prior}:
                     raise ArchiveIntegrityError('shadow page inventory changed')
-            finished = active_sample(db, transport.origin_id)
+            finished = active_sample(db, expected_origin)
             if not finished or finished['generation_id'] != target.collecting:
                 raise LifecycleHold('active writer changed')
             budget.check()

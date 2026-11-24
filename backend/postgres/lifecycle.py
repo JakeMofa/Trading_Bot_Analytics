@@ -707,15 +707,23 @@ class LifecycleRepository:
                                   'content_hash': record['content_hash']})
 
     @contextmanager
-    def retirement(self, generation_id):
+    def retirement(self, generation_id, *, expected_origin=None):
         """Lock generation, readers, and protected evidence for final readback.
 
         Writers in the other slot need neither this lock nor this connection.
         Abort/exception rolls back the txid checkpoint and DROP together.
         """
         with self.transaction() as connection:
-            generation = connection.execute('SELECT * FROM archive.generations WHERE generation_id=%s FOR UPDATE',
-                                            (generation_id,)).fetchone()
+            if expected_origin is None:
+                generation = connection.execute(
+                    'SELECT * FROM archive.generations WHERE generation_id=%s FOR UPDATE',
+                    (generation_id,)).fetchone()
+            else:
+                # Decide scope in the locking statement itself. A separate read and
+                # check after FOR UPDATE would still contend with another origin.
+                generation = connection.execute(
+                    'SELECT * FROM archive.generations WHERE origin_id=%s AND generation_id=%s FOR UPDATE',
+                    (expected_origin, generation_id)).fetchone()
             if not generation or generation['state'] != 'verified':
                 raise LifecycleHold('generation not verified')
             if connection.execute('''SELECT 1 FROM archive.reader_leases

@@ -11,7 +11,7 @@ import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveLimits, encoded, sha256
 from postgres.connection import connect
-from postgres.lifecycle import ArchiveWorker, LifecycleRepository
+from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from postgres.pp_retirement_verify import Target
 from postgres.retirement_shadow import JOURNAL_DDL, verify_shadow
 import test_pp_initial_trial_drain as cluster
@@ -70,9 +70,9 @@ class ShadowNative(unittest.TestCase):
         self.target = Target(sealed, active, self.repo.generation(sealed)['seal_hash'], 1)
         self.limits = ArchiveLimits(max_rows=1, max_requests=100)
 
-    def read(self, cap):
+    def read(self, cap, *, origin=None):
         return verify_shadow(self.repo, self.transport, self.admin, self.target,
-                             source='b'*40, limits=self.limits, batch_budget=cap, journal_key=self.journal_key)
+                             expected_origin=self.origin if origin is None else origin, source='b'*40, limits=self.limits, batch_budget=cap, journal_key=self.journal_key)
 
     def test_resume_with_opposite_slot_committing_and_ambiguous_attempt(self):
         # Independent writer commits while the verifier holds the sealed generation.
@@ -151,3 +151,22 @@ class ShadowNative(unittest.TestCase):
                        ('0'*64, saved['scope']))
         with self.assertRaisesRegex(ArchiveIntegrityError, 'journal signature'):
             self.read(2)
+
+    def test_caller_scoped_shadow_rejects_foreign_generation_while_it_is_locked(self):
+        from psycopg.errors import LockNotAvailable
+
+        foreign_origin = 'generated-shadow-other-' + uuid.uuid4().hex
+        with self.admin() as holder, holder.transaction():
+            holder.execute('SELECT generation_id FROM archive.generations WHERE generation_id=%s FOR UPDATE',
+                           (self.target.sealed,)).fetchone()
+            # Even a valid generated transport must match the independently supplied caller scope.
+            with self.assertRaisesRegex(LifecycleHold, 'isolated shadow scope'):
+                self.read(1, origin=foreign_origin)
+            self.transport.origin_id = foreign_origin
+            # Both caller and transport now agree, but the supplied UUID belongs to
+            # our original origin. A UUID-only lock would hit the held row here.
+            with self.assertRaisesRegex(LifecycleHold, 'generation not verified'):
+                self.read(1, origin=foreign_origin)
+            self.transport.origin_id = self.origin
+            with self.assertRaises(LockNotAvailable):
+                self.read(1)

@@ -15,6 +15,7 @@ from urllib.parse import quote
 import httpx
 from websockets.asyncio.client import connect as websocket_connect
 
+from .boundary_trace import boundary_trace
 from .coinbase_timing import ACTIVE_TIMING, observed_connection
 from .contract import source_timestamp
 from .live_contract import QuoteContractError, coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
@@ -173,11 +174,13 @@ async def fetch_polymarket_bbo(client: httpx.AsyncClient, market_event: dict):
     if not isinstance(slug, str) or not slug or len(slug) > 256:
         raise ValueError('invalid BBO market slug')
     for route in ('bbo', 'book'):
+        boundary_trace('bbo_request', market_event, route=route)
         try:
             async with client.stream('GET', POLYMARKET_REST + '/v1/markets/' +
                                      quote(slug, safe='') + '/' + route,
                                      headers={'Accept': 'application/json'},
                                      timeout=4, follow_redirects=False) as response:
+                boundary_trace('bbo_response', market_event, route=route, status=response.status_code)
                 if response.status_code == 404 and route == 'bbo':
                     continue
                 if response.status_code != 200:

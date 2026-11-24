@@ -48,6 +48,14 @@ diagnostic should time the local guards and page query separately before
 attributing this hold to hosted SQL. B remained intact.
 [Diagnostic evidence](evidence/pp30-trial06-retained-b-first-page-hold-2026-11-23.json).
 
+### Work assigned after trial06
+
+1. **PP release owner — diagnose retained B.** Instrument the local scope checks and first-page query separately. Capture the failing statement and wait evidence before changing SQL or indexing. Compare the same ordered 500 records with a pinned digest. The PP release owner coordinates access to the retained partitions and publishes the result here.
+2. **Verification branch — qualify restart evidence offline.** Bind each completed batch to the sealed generation, immutable archive identity, verifier version and expiry. Test interruption, restart and invalidation on disposable data. Treat the journal as experimental evidence. The deployed retirement controller still requires its entire fresh authenticated comparison and existing permit.
+3. **Live acceptance of steps 1–2 — pending release qualification.** Use a fresh rehearsal generation. Capture the writer session ID, successor generation UUID, and timestamped persisted Polymarket counts. Interrupt only the verifier with two structured pages outstanding, check that B is attached, then restart it. Require advancing successor quotes across the interruption and during resumed verification. Record elapsed time for each attempt and total seal-to-removal time. Confirm B's exact archive inventory, valid retirement receipt, physical partition removal and dashboard replay after removal. Preserve and compare both retained trial05 fingerprints. A rehearsal with a missing receipt remains unqualified.
+
+The release decision is whether the hosted stores can establish the same archive identity at final authorization under concurrent updates, including privileged mutations. Qualify that property before changing the mandatory final check. Separately, the collector and dashboard can be evaluated against the current API throughout this work.
+
 ## November 23, 2026 CST — Trial06 A verified and retired while B collected
 
 PP30 admitted trial06 at **3:44:09 p.m. CST**. A switched to B at 4:15:25

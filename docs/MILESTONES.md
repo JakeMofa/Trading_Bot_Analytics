@@ -846,3 +846,9 @@ Stay on 15-minute markets. The read-only `data_quality.py` report groups the 20 
 ## Run and validate
 
 From the project root, run `.venv/bin/python -m unittest discover -s backend/tests -v`, then `.venv/bin/python backend/app/streaming.py --seconds 60` for a bounded live check. See [README.md](../README.md) for setup. Inspect SQLite `feed_health`, `runs`, `feature_snapshots`, and `predictions` before declaring a live feed healthy.
+
+## November 23 — sealed B restart qualification
+
+On a disposable PostgreSQL 17 cluster, an independent generated writer committed in the successor slot during predecessor verification. An interruption before structured page 55 left committed receipts for one raw file and 54 structured pages. Subsequent bounded attempts reconciled the unfinished pages; mutation and expiry produced a hold. The destination version catalog in this experiment is generated. It models a trusted view of both content and mutable dependencies. Its hashes and local timings do not qualify hosted version identity, throughput or deletion authority.
+
+The offline live-rehearsal checker requires the same collector session, advancing persisted quotes during each observation interval, a bound native resume receipt, full inventory, verified removal, replay parity and preserved trial05 fingerprints. The original trial06 bundle correctly reports pending. Implementation and live qualification of the hosted version/final permit contract remain open. The [master plan](PLAN/INTELLIGENCE_REBUILD_PLAN.md) assigns live operations and retained-B local statement diagnosis to the PP release owner.

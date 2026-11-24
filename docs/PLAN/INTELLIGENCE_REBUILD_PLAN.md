@@ -1,3 +1,28 @@
+## November 23, 2026 CST — Trial07 size-triggered rehearsal preparation
+
+Generated PostgreSQL 17 passed the two sized switches and both verified
+physical removals at source `09ea236`. All 15 focused tests and
+[exact Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45302294890)
+passed. The rehearsal uses **32 MiB** as its candidate trigger. Record actual
+sealed allocation, overshoot, raw objects and structured page and byte counts
+on each leg. A raw partition's size alone does not bound structured readback.
+
+Require the exact trial07 origin, release and profile in preparation, operator
+admission, controller authorization and retirement. Before each permit, the
+authorized PP operator records a separate freeze of at most 295 seconds,
+covering all administrators and privileged automation that can change that
+seal's Storage objects, structured history or access policy. Normal successor
+writes may continue. Trial06 authority cannot authorize trial07 removal.
+Fresh readback still has 240 seconds, and local retirement must finish within
+30 minutes of the original seal. A verification or permit failure preserves
+the partition.
+
+After both verified retirements, durably stop PP, drain structured writes,
+seal the terminal fresh A, verify its archive independently, and prove its
+history is queryable while preserving its local partition. Preserve trial05,
+trial06 B and the attached trial06 terminal A. Production remains OFF.
+Trial07 has not started live.
+
 ## November 23, 2026 CST — Retained B timeout identified on PP
 
 The bounded read-only check stopped in the local page-size query with SQLSTATE

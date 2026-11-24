@@ -21,7 +21,9 @@ import urllib.request
 import uuid
 
 from controller import Budget, Context, DeploymentHold, HostBinding, Request, _secure_file, require
-from linux_actions import LinuxActions, RUNTIME_SECRETS, CYCLE_SESSION_MAX_SECONDS, cycle_environment, live_origin, TRIAL_ORIGIN, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS
+from linux_actions import (LinuxActions, RUNTIME_SECRETS, CYCLE_SESSION_MAX_SECONDS,
+                           cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
+                           RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
 
 ROOT = Path('/var/lib/tradebot-pp/deployments')
 ACTIVE = ROOT / 'active-live-transition.json'
@@ -119,7 +121,7 @@ class TransitionRequest:
         binding = {key: getattr(self, key) for key in ('environment', 'instance', 'operation',
             'source_sha', 'artifact_sha256', 'controller_sha256', 'image_id')}
         return binding | ({'initial_a': self.initial_a} if self.initial_a is not None else {}) | (
-            {'trial_origin':self.trial_origin} if self.trial_origin is not None else {})
+            {'trial_origin':self.trial_origin} if self.trial_origin is not None else {}) | cycle_profile_binding(self.trial_origin)
 
 
 def _consume(path, expected):
@@ -168,6 +170,9 @@ def _read_active():
             and IMAGE.fullmatch(data.get('image_id', '')),
             'invalid_active_transition_binding')
     cycle_environment(data.get('initial_a'),data.get('trial_origin'))
+    expected_profile=cycle_profile_binding(data.get('trial_origin'))
+    require(all(data.get(key)==expected_profile.get(key) for key in ('profile','threshold_bytes')),
+            'invalid_active_cycle_profile')
     return data
 
 
@@ -423,7 +428,8 @@ def session(command, controller_path):
                 'pp_cycle_initial_generation_not_ready')
     _consume(ON_AUTHORITY, {k: active[k] for k in ('environment', 'instance', 'source_sha',
         'artifact_sha256', 'controller_sha256', 'image_id')} |
-        {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds} | cycle)
+        {'transition_nonce': active['nonce'], 'scope': 'pp_live_session_on', 'max_seconds': seconds} | cycle
+        | cycle_profile_binding(active.get('trial_origin')))
     try:
         accepted = _operator(token, '/collector/on', seconds=seconds)
         require(accepted.get('accepted') is True and accepted.get('origin_id') == live_origin(active.get('trial_origin')),
@@ -438,7 +444,7 @@ def session(command, controller_path):
                 remaining = (expiry - datetime.now(timezone.utc)).total_seconds()
                 require(0 < remaining <= seconds + 15, 'collector_lease_exceeds_session_bound')
                 return {'gate': 'PP_LIVE_ON', 'origin_id': live_origin(active.get('trial_origin')),
-                        'collector_enabled': True, 'max_seconds': seconds} | cycle
+                        'collector_enabled': True, 'max_seconds': seconds} | cycle | cycle_profile_binding(active.get('trial_origin'))
             require(time.monotonic() < deadline, 'collector_on_not_durable')
             time.sleep(.2)
     except Exception:

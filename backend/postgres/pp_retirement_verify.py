@@ -15,7 +15,7 @@ from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
 from .pp_structured_probe import LOCAL_DSN, private_dsn
-from .rehearsal_profile import SIXTH_TRIAL_ORIGIN, TRIAL_ORIGINS
+from .rehearsal_profile import SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS
 from .cloud_origin_binding import cloud_binding
 from .cloud_runtime_profile import selected_cloud_origin,cloud_files,storage_paths,require_trial_files
 
@@ -345,11 +345,13 @@ def main():
         origin=selected_cloud_origin(os.environ)
         if args.origin is not None and args.origin != origin:
             raise LifecycleHold('CLI origin does not match reviewed environment')
-        if (origin == SIXTH_TRIAL_ORIGIN and args.retire_with_pp_permit
+        if (origin in (SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN) and args.retire_with_pp_permit
                 and os.environ.get('TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION') != 'true'):
-            raise LifecycleHold('trial06 permitted retirement requires reviewed reader session reuse')
+            raise LifecycleHold('permitted retirement requires reviewed reader session reuse')
         reader=origin in TRIAL_ORIGINS
         indexed_latest = retirement_indexed_latest(os.environ, origin)
+        if origin == SEVENTH_TRIAL_ORIGIN and args.retire_with_pp_permit and not indexed_latest:
+            raise LifecycleHold('trial07 permitted retirement requires indexed receipt verification')
         require_trial_files(os.environ,origin,reader=reader,structured=True,storage=True)
         files=cloud_files(origin,reader=reader)
         check_environment(os.environ,origin_id=origin,files=files)

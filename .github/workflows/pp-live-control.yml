@@ -35,7 +35,7 @@ on:
         type: string
 
       trial_origin:
-        description: Optional exact fresh trial origin pp-live-pp-trial-20261119-03 (requires anchor)
+        description: Optional exact fresh trial07 origin pp-live-pp-trial-20261119-07 (requires anchor)
         required: false
         type: string
       cycle_initial_a:

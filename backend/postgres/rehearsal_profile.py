@@ -2,7 +2,9 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from .cloud_origin_binding import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, TRIAL_ORIGINS
+from .cloud_origin_binding import (TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
+                                   FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN,
+                                   SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS)
 
 NORMAL_LEASE_CAP_SECONDS = 4560
 # Admission is within the final minute before the first quarter. B may wait
@@ -13,6 +15,7 @@ CYCLE_POLICY = 'two-official-markets-cycle'
 SIZE_CYCLE_POLICY = 'bounded-size-cycle'
 SIZE_CYCLE_MAX_BYTES = 32 * 1024 * 1024
 SIZE_CYCLE_CHECKPOINT = 'rehearsal:generated-size-cycle'
+TRIAL_PREPARATION_CHECKPOINT = 'trial:initial-a-prepare-v1'
 # One reviewed trial namespace in the SAME environment database, not a wildcard.
 CYCLE_ORIGINS = frozenset({'pp-live-pp', *TRIAL_ORIGINS})
 
@@ -27,11 +30,36 @@ def canonical_anchor(value):
     return value
 
 
+def size_cycle_bytes(environ):
+    origin = environ.get('TRADEBOT_ORIGIN_ID')
+    policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
+    raw = environ.get('TRADEBOT_PP_SIZE_CYCLE_BYTES')
+    if origin != SEVENTH_TRIAL_ORIGIN:
+        if policy == SIZE_CYCLE_POLICY or raw is not None:
+            raise ValueError('size cycle requires the exact seventh PP trial')
+        return None
+    if (policy != SIZE_CYCLE_POLICY or raw != str(SIZE_CYCLE_MAX_BYTES)
+            or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod'
+            or environ.get('TRADEBOT_DATA_MODE') != 'pp_live'):
+        raise ValueError('seventh trial requires its exact size-cycle profile')
+    return SIZE_CYCLE_MAX_BYTES
+
+
+def size_cycle_binding(origin, threshold_bytes):
+    if origin == SEVENTH_TRIAL_ORIGIN:
+        if type(threshold_bytes) is not int or threshold_bytes != SIZE_CYCLE_MAX_BYTES:
+            raise ValueError('seventh trial size threshold mismatch')
+        return {'profile': SIZE_CYCLE_POLICY, 'threshold_bytes': threshold_bytes}
+    if threshold_bytes is not None:
+        raise ValueError('size cycle requires the exact seventh PP trial')
+    return {}
+
+
 def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
-    if policy == SIZE_CYCLE_POLICY:
-        raise ValueError('size cycle requires offline qualification')
+    if size_cycle_bytes(environ) is not None:
+        return canonical_anchor(anchor)
     if policy != CYCLE_POLICY:
         if environ.get('TRADEBOT_ORIGIN_ID') in TRIAL_ORIGINS:
             raise ValueError('exact trial origin requires explicit two-leg cycle profile')

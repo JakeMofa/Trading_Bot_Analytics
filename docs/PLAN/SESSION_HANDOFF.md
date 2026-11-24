@@ -1,3 +1,23 @@
+## Retained B verifier timing passed before the trial07 rollout
+
+The exact `65cfda8` query verified trial06 B in **192.321 seconds** with
+**47.679 seconds remaining** under the existing 240-second limit. It read
+all **50 raw objects / 24,896 raw events** and **56 structured pages /
+27,528 rows**. The end-to-end read-only probe used the exact PP30 image
+plus the isolated query and audit code. A catalog check confirmed the
+full local index is still absent. The index migration passed exact
+[Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45335944573)
+and is included in [PR #211](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/211),
+merged to `preprod` as `90a10bd`. No PP schema change, local removal,
+or live activation occurred in the audit.
+[Read-only evidence](evidence/pp30-trial06-b-optimized-read-only.json).
+
+Qualify the merged release and apply the index through the PP deployment
+procedure with the collector off. Verify the exact installed index and
+trial07's independent Storage and history scope before activation. The
+post-migration read-only check still needs to meet the same timing gate.
+The 30-minute collection windows and original per-seal limits stay fixed.
+
 ## Trial07 gate — qualify retained B before another live run
 
 The elapsed candidate passed exact Linux CI. Before admission, qualify the

@@ -644,9 +644,18 @@ class LifecycleRepository:
     def _pending(connection, generation_id, limit, *, include_acknowledged=False, max_bytes=4 * 1024 * 1024, after_id=0):
         condition = '' if include_acknowledged else 'AND acknowledged_at IS NULL'
         with phase('structured_page_size_query'):
+            # A first page should start at this generation rather than walk
+            # the global primary key past every earlier generation.
+            first_id = after_id
+            if after_id == 0:
+                first_id = connection.execute(f'''SELECT min(id) AS id FROM ops.outbox
+                    WHERE generation_id=%s AND id>0 {condition}''', (generation_id,)).fetchone()['id']
+                if first_id is None:
+                    return []
+            lower_bound = '>=' if after_id == 0 else '>'
             sizes = connection.execute(f'''SELECT id,octet_length(row_to_json(o)::text) AS bytes
-                FROM ops.outbox o WHERE generation_id=%s AND id>%s {condition} ORDER BY id LIMIT %s''',
-                                       (generation_id, after_id, limit)).fetchall()
+                FROM ops.outbox o WHERE generation_id=%s AND id{lower_bound}%s {condition} ORDER BY id LIMIT %s''',
+                                       (generation_id, first_id, limit)).fetchall()
         chosen, total = [], 0
         for row in sizes:
             cost = row['bytes'] * 2 + 256
@@ -660,7 +669,7 @@ class LifecycleRepository:
             return []
         with phase('structured_page_payload_query'):
             return connection.execute(f'''SELECT * FROM ops.outbox WHERE generation_id=%s {condition}
-                AND id>%s AND id<=%s ORDER BY id LIMIT %s''', (generation_id, after_id, chosen[-1], limit)).fetchall()
+                AND id>=%s AND id<=%s ORDER BY id LIMIT %s''', (generation_id, chosen[0], chosen[-1], limit)).fetchall()
 
     def outbox(self, generation_id, limit, max_bytes=4 * 1024 * 1024):
         with self.transaction() as connection:

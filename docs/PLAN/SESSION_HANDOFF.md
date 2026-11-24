@@ -1,3 +1,20 @@
+## Trial07 gate — qualify retained B before another live run
+
+The elapsed candidate passed exact Linux CI. Before admission, qualify the
+outbox page change on trial06 retained B with 56 structured pages and 50 raw
+objects. The first page starts at the generation's own minimum qualifying
+outbox ID; the payload query starts at the first selected ID. The additive
+`(generation_id, id)` migration covers acknowledged rows as well as pending
+ones. Generated PostgreSQL verified that the new query returns the same
+ordered rows and hashes across both filters and byte-limited pages.
+
+The PP audit is read-only and will use the existing catalog. It may establish
+query-only performance but cannot prove the index's impact on that host.
+Keep the 240-second deadline and require at least 30 seconds of measured
+headroom before live trial admission. Preserve trial05 and both retained
+trial06 generations. Neither the audit nor this code change authorizes any
+retirement.
+
 ## November 23, 2026 CST — Trial07 uses two elapsed collection windows
 
 The user clarified that a size trigger would shorten the collection window

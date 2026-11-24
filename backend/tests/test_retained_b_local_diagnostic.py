@@ -26,6 +26,7 @@ class RetainedBLocalTests(unittest.TestCase):
             ('off', None), ('writer', dict(generation_id=diagnostic.SUCCESSOR, epoch=5)),
             ('generation', generation), ('attachment', dict(present=True)),
             ('manifests', [{}] * 50), ('coverage', dict(rows=27528, pending=0)),
+            ('first_id', dict(id=1)),
             ('sizes', [dict(id=index, bytes=200) for index in range(1, 501)]),
             ('payloads', rows),
         )
@@ -61,6 +62,7 @@ class RetainedBLocalTests(unittest.TestCase):
     def test_cancellation_identifies_statement_even_during_fetch(self):
         for failure, expected in (
             ('coverage', 'retained_outbox_coverage'),
+            ('first_id', 'structured_page_size_query'),
             ('sizes', 'structured_page_size_query'),
             ('payloads', 'structured_page_payload_query'),
         ):

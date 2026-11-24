@@ -1,3 +1,203 @@
+## Trial07 gate — qualify retained B before another live run
+
+The elapsed candidate passed exact Linux CI. Before admission, qualify the
+outbox page change on trial06 retained B with 56 structured pages and 50 raw
+objects. The first page starts at the generation's own minimum qualifying
+outbox ID; the payload query starts at the first selected ID. The additive
+`(generation_id, id)` migration covers acknowledged rows as well as pending
+ones. Generated PostgreSQL verified that the new query returns the same
+ordered rows and hashes across both filters and byte-limited pages.
+
+The PP audit is read-only and will use the existing catalog. It may establish
+query-only performance but cannot prove the index's impact on that host.
+Keep the 240-second deadline and require at least 30 seconds of measured
+headroom before live trial admission. Preserve trial05 and both retained
+trial06 generations. Neither the audit nor this code change authorizes any
+retirement.
+
+## November 23, 2026 CST — Trial07 uses two elapsed collection windows
+
+The user clarified that a size trigger would shorten the collection window
+as traffic varies. Trial07 therefore measures **30 minutes from durable A
+collector admission** and **30 minutes from the actual A-to-B switch**. The
+clock uses the persisted database timestamps. Log relation size, raw events,
+archive objects and structured pages and bytes at seal. Allocation is evidence
+for this trial. Existing disk, occupied-slot, and outbox safeguards still hold
+when their own conditions are met.
+
+A keeps its archive and exact protected history through verification while B
+collects. Repeat for B with fresh A. Each final verification still has 240
+seconds, and each seal-to-removal interval still has a 30-minute deadline.
+Each removal needs its own separately announced verification window of at
+most 295 seconds. The trial07 confirmation already covers both windows.
+Fresh A must persist a Polymarket quote before durable OFF. Then finish its
+structured drain, seal it, verify its archive and history, and keep its raw
+partition attached.
+
+The prior 32 MiB candidate is isolated in draft
+[PR #210](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/210).
+It was never deployed. Its [exact check](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45304028083)
+failed because a new permit test skipped inside a phase that rejects skips.
+The elapsed candidate's permit test accepts the existing isolated Linux CI
+database and still exercises actual PostgreSQL on a disposable cluster locally.
+A fresh read-only PP check confirmed PP30 deployed with collection OFF.
+Trial05 A/B and trial06 verified B and terminal A remain attached with their
+writers OFF. Trial07 has no generation or writer yet. No production size or retirement policy changes.
+
+## November 23, 2026 CST — Trial07 size-triggered rehearsal preparation
+
+Generated PostgreSQL 17 passed the two sized switches and both verified
+physical removals at source `09ea236`. All 15 focused tests and
+[exact Linux CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45302294890)
+passed. The rehearsal uses **32 MiB** as its candidate trigger. Record actual
+sealed allocation, overshoot, raw objects and structured page and byte counts
+on each leg. A raw partition's size alone does not bound structured readback.
+
+Require the exact trial07 origin, release and profile in preparation, operator
+admission, controller authorization and retirement. Before each permit, the
+authorized PP operator records a separate freeze of at most 295 seconds,
+covering all administrators and privileged automation that can change that
+seal's Storage objects, structured history or access policy. Normal successor
+writes may continue. Trial06 authority cannot authorize trial07 removal.
+The user confirmed both future announced trial07 windows in item
+`01a20b1f-cafa-74b3-8f6c-3bfbb3692fff`. Each window still needs its own start
+and expiry recorded against the exact seal before permit issue.
+Fresh readback still has 240 seconds, and local retirement must finish within
+30 minutes of the original seal. A verification or permit failure preserves
+the partition.
+
+After both verified retirements, durably stop PP, drain structured writes,
+seal the terminal fresh A, verify its archive independently, and prove its
+history is queryable while preserving its local partition. Preserve trial05,
+trial06 B and the attached trial06 terminal A. Production remains OFF.
+Trial07 has not started live.
+
+## November 23, 2026 CST — Retained B timeout identified on PP
+
+The bounded read-only check stopped in the local page-size query with SQLSTATE
+`25P04`. The outbox coverage query took 1.532 seconds, and PostgreSQL canceled
+the next query when their transaction reached the unchanged 3.5-second limit.
+Zero requests reached Supabase. The larger live verification holds separately
+at 54 of 56 pages under the unchanged 240-second gate.
+
+The deployed live controller uses official market windows and rejects a size
+override. The size-triggered live rehearsal needs a dedicated PP profile,
+a fresh isolated origin and its own verification and removal authority.
+Trial05 and trial06 B stay preserved. Both collectors were OFF after this
+diagnostic. [Diagnostic evidence](evidence/pp30-retained-b-local-transaction-hold-2026-11-23.md).
+
+## Retained B local query timing is ready for a reviewed diagnostic
+
+The local-only diagnostic records the reader, writer, attachment, manifest,
+outbox coverage, page-size and payload query phases separately. A canceled
+query retains its fixed phase and SQLSTATE without exposing database
+credentials, statement text or row payloads. Timing the original two page
+queries preserves their existing limits and selection behavior.
+
+Generated PostgreSQL 17 read 500 rows from 27,528 acknowledged records and
+validated 50 manifest entries in the same local diagnostic. A forced
+cancellation was correctly identified as the page-size statement with
+SQLSTATE `57014`. The 29 focused unit and lifecycle tests passed. The
+original PP cancellation still has no statement attribution. This change
+was qualified offline and did not run on PP or Supabase.
+[Isolated qualification](evidence/pp30-retained-b-statement-diagnostic-isolated.json).
+
+## November 23, 2026 CST — Trial06 completed both switches; B retirement held
+
+PP30 admitted trial06 at 3:44:09 p.m. CST. The live collector moved from A
+to B at 4:15:25 and from B to a distinct fresh A at 5:00:29 on the original
+session. Each outgoing slot recorded both required Polymarket markets.
+The first observed quotes across six boundaries arrived 64.0–125.2 seconds
+after each boundary. Storage switching passed. I7 rollover freshness
+remains open.
+
+- **Original A retired.** The independent Supabase verifier matched 39
+  raw objects and 42 structured pages in 189.111 seconds while B collected.
+  Local removal took 342.177 seconds from seal. Dashboard history and
+  deterministic replay matched after physical removal.
+- **B held.** The archive worker verified all 50 raw objects and all 27,528
+  structured records were acknowledged. The separate mandatory final
+  verification completed 54 of 56 structured pages when the 240-second
+  operation deadline expired. The one pooled reader connection took
+  0.371 seconds to establish. No destruction began, and all 24,896 B raw
+  events remain attached.
+- **Fresh A wrote live data.** Its Polymarket quote count rose by 32 between
+  samples within the B verification interval. At durable OFF, it held
+  5,084 raw events including 59 Polymarket quotes and 5,523 acknowledged
+  structured records. Fresh A remains unsealed and attached.
+
+Both collectors and both trial06 archive workers were verified OFF. All
+structured queues were drained. Trial05's two local fingerprints matched
+the predeployment record. Dashboard, prediction history and SSE passed all
+85 sampled checks. Dashboard returned HTTP 200 after OFF. B post-removal
+history was not performed because B remained attached.
+
+**Next gate:** profile and qualify the larger 56-page workload before
+another live attempt. Connection reuse already reduced setup to one
+connection. The B hold spent 24.282 seconds on the in-window inventory,
+30.482 seconds on raw local comparison, and 13.844 seconds on the final
+structured comparison. These are separate measured local spans; nested
+cloud timings must not be added together. Target redundant local work
+while preserving fresh authenticated comparison for every row, exact
+coverage, and the unchanged 240-second operation cap. No further live
+attempt or hosted configuration change was started.
+
+[Full trial06 outcome](evidence/pp30-trial06-live-result-2026-11-23.json).
+
+A separate read-only retained B first-page diagnostic stopped in local
+reconstruction with PostgreSQL `QueryCanceled` after 3.577 seconds.
+The attempt made zero hosted page requests. It did not isolate the local
+statement or establish an exact-revision timing for Supabase. The next
+diagnostic should time the local guards and page query separately before
+attributing this hold to hosted SQL. B remained intact.
+[Diagnostic evidence](evidence/pp30-trial06-retained-b-first-page-hold-2026-11-23.json).
+
+## November 23, 2026 CST — Trial06 A verified and retired while B collected
+
+PP30 admitted trial06 at **3:44:09 p.m. CST**. A switched to B at 4:15:25
+on the original collector session after the two required Polymarket
+markets. The independent Supabase reader matched all 39 raw objects
+(19,018 events) and 42 structured pages (20,874 rows) in **189.111 seconds**
+with **50.889 seconds** of headroom. A single physical connection served
+42 fresh read-only transactions. The longest page took 3.658 seconds.
+
+B persisted 27 Polymarket quotes between read-only snapshots taken within
+the verification interval. The verifier measured 1,554 new B rows while
+running. A's local partition was removed at 4:21:07, **342.177 seconds**
+after sealing, and its dashboard history and deterministic replay matched
+after removal. Trial05's older A and B remain outside this scope.
+B is active. Its two full markets, retirement, fresh A and final OFF
+checks remain in progress. Production collection stays OFF.
+
+[First retirement evidence](evidence/pp30-trial06-a-retired-2026-11-23.json).
+
+## November 23, 2026 CST — PP30 deployed and trial06 ready with collectors OFF
+
+[PR #208](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/208) bound
+the attested controller to the release profile. An outdated CI pin was
+updated to match the identity workflow. The exact push then timed out in
+the shared PostgreSQL lifecycle phase. The existing terminal archive
+module now runs in its own bounded CI child, preserving every case and
+the overall qualification deadline. The controller bundle stayed identical.
+Merged source `ad11d85` passed
+[exact-release CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45268743428).
+
+The first PP30 deployment stopped at the existing RAM floor before
+consuming its permit. After a bounded, reversible PP firmware-service
+pause, the same source and permit passed all 11 generated deployment checks
+in [CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45270349587).
+The firmware service was restored. Trial05's two partitions, exact raw
+and outbox fingerprints, and manifest and checkpoint digests matched
+before deploy, after deploy, and at ready-off.
+
+Trial06 has a new empty A and two scoped archive workers ready. The admin
+freeze confirmation covers both 295-second windows. At ready-off, both
+collectors were disabled and neither window had opened. The planned
+admission targets the 3:45 p.m. CST market boundary. Production remains
+on `d56b4a7` with collection OFF.
+
+[PP30 readiness evidence](evidence/pp30-trial06-ready-off-2026-11-23.json).
+
 ## November 23, 2026 CST — Trial06 isolated candidate for live requalification
 
 The retained trial05 readback passed with 65.580 seconds of headroom. Trial06

@@ -25,7 +25,7 @@ class ThirdTrialControls(unittest.TestCase):
         self.assertEqual(selected_cloud_origin(env),THIRD_TRIAL_ORIGIN);self.assertEqual(cycle_anchor(env),anchor)
         self.assertEqual((lease_cap(),lease_cap(anchor)),(4560,6600))
         require_trial_files(env|cloud_files(THIRD_TRIAL_ORIGIN),THIRD_TRIAL_ORIGIN,structured=True,storage=True)
-        for bad in ('pp-live-pp-trial-20261119-07','pp-live-pp-trial-anything'):
+        for bad in ('pp-live-pp-trial-20261119-08','pp-live-pp-trial-anything'):
             with self.assertRaises(ValueError):selected_cloud_origin(env|{'TRADEBOT_ORIGIN_ID':bad})
         from postgres import pp_failed_trial_drain,pp_final_trial_drain
         self.assertEqual((pp_failed_trial_drain.ORIGIN,pp_final_trial_drain.ORIGIN),(NEXT_TRIAL_ORIGIN,NEXT_TRIAL_ORIGIN))

@@ -114,6 +114,40 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         self.assertEqual(result['status'], 'switched')
         return result
 
+    def test_outbox_page_bounds_preserve_ids_hashes_and_pending_filter(self):
+        other = self.repository.bootstrap('generated-page-other-' + uuid.uuid4().hex)
+        generation = self.first['generation_id']
+        inserted = []
+        with self.app_factory() as db:
+            for index in range(12):
+                target = other if index % 3 == 0 else self.first
+                saved = db.execute("""INSERT INTO ops.outbox
+                    (origin_id,generation_id,entity_type,entity_id,content_hash,payload,created_at)
+                    VALUES(%s,%s,'core.current_prices',%s,%s,'{}',now()) RETURNING id""",
+                    (target['origin_id'],target['generation_id'],str(uuid.uuid4()),f'{index:064x}')).fetchone()
+                if target == self.first:
+                    inserted.append(saved['id'])
+        with self.factory() as db:
+            db.execute('UPDATE ops.outbox SET acknowledged_at=now() WHERE id=ANY(%s)', (inserted[::2],))
+            index_sql = db.execute("SELECT pg_get_indexdef('ops.outbox_generation_id'::regclass) AS ddl").fetchone()['ddl']
+            self.assertIn('USING btree (generation_id, id)', index_sql)
+            for include in (True,False):
+                with self.subTest(include_acknowledged=include):
+                    expected = db.execute("""SELECT * FROM ops.outbox
+                        WHERE generation_id=%s AND (%s OR acknowledged_at IS NULL)
+                        ORDER BY id""", (generation,include)).fetchall()
+                    actual, after = [], 0
+                    while rows := self.repository._pending(db,generation,3,
+                            include_acknowledged=include,after_id=after):
+                        actual.extend(rows)
+                        after = rows[-1]['id']
+                    self.assertEqual(actual,expected)
+                    first = self.repository._pending(db,generation,3,include_acknowledged=include,
+                                                     max_bytes=1200)
+                    self.assertEqual(first,expected[:len(first)])
+                    self.assertGreater(len(first),0)
+                    self.assertLess(len(first),3)
+
     def test_structured_pending_selector_prioritizes_sealed_and_holds_unknown(self):
         """Real PostgreSQL query; disposable origin and no cloud transport."""
         switched = self.rotate()

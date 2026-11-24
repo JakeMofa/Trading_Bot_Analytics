@@ -14,7 +14,7 @@ import zipfile
 
 from controller import HostBinding,Request,require
 from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _cycle_args, _read_active
-from linux_actions import CYCLE_SESSION_MAX_SECONDS, RETAINED_TRIAL_ORIGINS
+from linux_actions import CYCLE_SESSION_MAX_SECONDS, RETAINED_TRIAL_ORIGINS, cycle_profile_binding
 
 PROBE_AUTHORITY=Path('/run/tradebot-pp-deploy/structured-probe.json')
 RAW_ARCHIVE_AUTHORITY=Path('/run/tradebot-pp-deploy/raw-archive-probe.json')
@@ -183,7 +183,8 @@ def authorize_live_on(seconds):
     checked_bundle(LIB/'controller.pyz',active['controller_sha256'])
     return _scope_permit(ON_AUTHORITY,{k:active[k] for k in ('environment','instance','source_sha',
         'artifact_sha256','controller_sha256','image_id')}|
-        {'transition_nonce':active['nonce'],'scope':'pp_live_session_on','max_seconds':seconds}|cycle)
+        {'transition_nonce':active['nonce'],'scope':'pp_live_session_on','max_seconds':seconds}|cycle|
+        cycle_profile_binding(active.get('trial_origin')))
 
 
 def authorize_structured_probe(generation_id,expected_state,first_outbox_id):

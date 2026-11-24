@@ -15,7 +15,14 @@ PHASES = frozenset(('local_open', 'local_finish', 'inventory', 'raw_read_decode'
     'raw_local_compare', 'raw_auth_token', 'structured_local_page', 'structured_readback',
     'structured_compare', 'history_connect', 'history_checkout', 'history_release', 'history_transaction',
     'history_identity_checkpoint', 'history_exact_revisions', 'history_latest_receipts',
-    'history_newer_revisions', 'history_projections', 'permit_drop'))
+    'history_newer_revisions', 'history_projections', 'permit_drop',
+    'structured_page_size_query', 'structured_page_payload_query',
+    'retained_local_connect', 'retained_transaction_begin', 'retained_transaction_finish',
+    'retained_snapshot_mode', 'retained_transaction_timeout', 'retained_statement_timeout',
+    'retained_lock_timeout', 'retained_local_identity', 'retained_writer_off',
+    'retained_writer_pointer', 'retained_generation', 'retained_attachment',
+    'retained_manifest_query', 'retained_manifest_integrity', 'retained_outbox_coverage',
+    'retained_page_canonicalize'))
 
 
 class Accounting:

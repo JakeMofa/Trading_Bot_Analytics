@@ -20,7 +20,7 @@ services:
       PYTHONPATH: /app/backend
       TRADEBOT_ENVIRONMENT: preprod
       TRADEBOT_DATA_MODE: pp_live
-      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-06
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-07
       TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
       TRADEBOT_COLLECTOR_ENABLED: 'false'
       TRADEBOT_CLOUD_ENABLED: 'false'
@@ -29,7 +29,8 @@ services:
       ENABLE_LOCAL_RETENTION: 'false'
       ENABLE_OPENAI_ANALYST: 'false'
       TRADEBOT_PP_SEALED_ARCHIVE: 'true'
-      TRADEBOT_PP_WINDOW_POLICY: two-official-markets-cycle
+      TRADEBOT_PP_WINDOW_POLICY: ${TRADEBOT_PP_WINDOW_POLICY:?reviewed cycle required}
+      TRADEBOT_PP_ELAPSED_CYCLE_SECONDS: ${TRADEBOT_PP_ELAPSED_CYCLE_SECONDS:?reviewed elapsed window required}
       TRADEBOT_PP_CYCLE_INITIAL_A: ${TRADEBOT_PP_CYCLE_INITIAL_A:?trial anchor required}
       TRADEBOT_PP_STORAGE_API_KEY_FILE: /run/secrets/trial_archive_api_key
       TRADEBOT_PP_STORAGE_AUTH_EMAIL_FILE: /run/secrets/trial_archive_email
@@ -52,13 +53,13 @@ secrets:
   probe_local_dsn:
     file: /run/tradebot-pp-deploy/probe-local-dsn
   trial_archive_api_key:
-    file: /etc/tradebot/cloud/trial_20261119_06_archive_api_key
+    file: /etc/tradebot/cloud/trial_20261119_07_archive_api_key
   trial_archive_email:
-    file: /etc/tradebot/cloud/trial_20261119_06_archive_email
+    file: /etc/tradebot/cloud/trial_20261119_07_archive_email
   trial_archive_password:
-    file: /etc/tradebot/cloud/trial_20261119_06_archive_password
+    file: /etc/tradebot/cloud/trial_20261119_07_archive_password
   trial_archive_uid:
-    file: /etc/tradebot/cloud/trial_20261119_06_archive_uid
+    file: /etc/tradebot/cloud/trial_20261119_07_archive_uid
 networks:
   raw_archive_probe_egress:
     driver: bridge

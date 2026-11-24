@@ -73,6 +73,11 @@ def exact_deployed_ci(api, candidate, branch):
     return run_id
 
 
+ELAPSED_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-07'
+ELAPSED_TRIAL_BINDING = {'profile': 'elapsed-30m-cycle', 'window_seconds': 1800}
+STOP_ORIGINS = ('pp-live-pp', *(f'pp-live-pp-trial-20261119-{leg:02}' for leg in range(1, 8)))
+
+
 def command_for(env, api, profile):
     operation = env.get('PP_LIVE_OPERATION')
     require(operation in ('enter', 'leave', 'on', 'off'), 'invalid PP live operation')
@@ -84,7 +89,7 @@ def command_for(env, api, profile):
     anchor = env.get('PP_CYCLE_INITIAL_A', '')
     trial_origin=env.get('PP_TRIAL_ORIGIN','')
     if trial_origin:
-        require(trial_origin=='pp-live-pp-trial-20261119-03' and bool(anchor)
+        require(trial_origin==ELAPSED_TRIAL_ORIGIN and bool(anchor)
                 and operation in ('enter','on'),'exact anchored PP trial origin required')
     if anchor:
         try:
@@ -152,13 +157,16 @@ def validated_result(operation, result, initial_a=None, trial_origin=None):
     expected = {'enter':'PP_LIVE_READY_OFF', 'leave':'PP_GENERATED_RESTORED',
                 'on':'PP_LIVE_ON', 'off':'PP_LIVE_OFF'}[operation]
     expected_origin='generated-pp' if operation=='leave' else (trial_origin or 'pp-live-pp')
-    valid_origin=(result.get('origin_id') in ('pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03')
+    valid_origin=(result.get('origin_id') in STOP_ORIGINS
                   if operation=='off' else result.get('origin_id')==expected_origin)
     require(result.get('gate') == expected and valid_origin
             and result.get('collector_enabled') is (operation == 'on')
             and result.get('initial_a') == initial_a, 'PP live result mismatch')
+    binding = ELAPSED_TRIAL_BINDING if trial_origin == ELAPSED_TRIAL_ORIGIN else {}
+    require(all(result.get(key) == binding.get(key) for key in ELAPSED_TRIAL_BINDING),
+            'PP live elapsed profile mismatch')
     return {'gate': expected, 'origin_id': result['origin_id'],
-            'collector_enabled': result['collector_enabled']}
+            'collector_enabled': result['collector_enabled']} | binding
 
 
 def main():

@@ -10,7 +10,10 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import wait_generated_host_routes, LinuxActions, SERVICES, PROJECT, history_reader_enabled, cycle_environment, live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS, RETAINED_TRIAL_OVERLAYS
+from linux_actions import (wait_generated_host_routes, LinuxActions, SERVICES, PROJECT,
+                           history_reader_enabled, cycle_environment, cycle_profile_binding,
+                           live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS,
+                           RETAINED_TRIAL_OVERLAYS)
 from live_profile import validate_live_profile
 
 
@@ -68,7 +71,8 @@ class LiveTransition:
             ['python','-m','postgres.pp_trial_prepare','--initial-a',self.initial_a,
              '--source-sha',self.context.request.source_sha,'--execute'],timeout=30,compose=live))
         require(result.get('status')=='trial_ready_off' and result.get('origin_id')==self.origin
-                and result.get('generation_id')==self.initial_a and result.get('collector_enabled') is False,
+                and result.get('generation_id')==self.initial_a and result.get('collector_enabled') is False
+                and all(result.get(key)==value for key,value in cycle_profile_binding(self.trial_origin).items()),
                 'pp_trial_preparation_unproven')
 
     def _live_off(self):
@@ -169,7 +173,7 @@ class LiveTransition:
         return {'gate':'PP_LIVE_READY_OFF','origin_id':self.origin,
                 'collector_enabled':False,'postgres_recreated':False,
                 'cloud_enabled':False,'retirement_enabled':False} | (
-                    ({'initial_a': self.initial_a} | ({'trial_origin':self.trial_origin,'collector_on_qualified':False} if self.trial_origin else {})) if self.cycle else {})
+                    ({'initial_a': self.initial_a} | ({'trial_origin':self.trial_origin,'collector_on_qualified':False} if self.trial_origin else {})) if self.cycle else {}) | cycle_profile_binding(self.trial_origin)
 
     def leave(self):
         """Drain durable writes before quiescing; admit restored workload afterward."""

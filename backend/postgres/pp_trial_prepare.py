@@ -14,10 +14,10 @@ from .archive_codec import ArchiveLimits, CycleBudget, encoded, sha256, wire
 from .lifecycle import LifecycleHold, LifecycleRepository, validate_manifest_chain
 from .pp_retirement_report import bound_catalog
 from .rehearsal_profile import (TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
-    FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, TRIAL_ORIGINS,
-    canonical_anchor, cycle_anchor)
+    FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS,
+    canonical_anchor, cycle_anchor, elapsed_cycle_binding, elapsed_cycle_seconds, TRIAL_PREPARATION_CHECKPOINT)
 
-CONSUMER='trial:initial-a-prepare-v1'
+CONSUMER=TRIAL_PREPARATION_CHECKPOINT
 RETAINED_SECOND_INITIAL_A='41c82044-0fb8-4900-bea0-7c43ba079ff0'
 RETAINED_THIRD_A='15a239c9-2f9b-4bdc-bd89-7cd1e2812f45'
 RETAINED_THIRD_B='381070ac-3624-4826-8dc6-7ea5a272f97e'
@@ -32,6 +32,15 @@ RETAINED_FIFTH_SESSION='070bb486-2405-4695-8d67-e49a940bcb7b'
 RETAINED_FIFTH_RAW=(24044,5690)
 RETAINED_FIFTH_ACK=(25872,6149)
 RETAINED_FIFTH_MANIFESTS=49
+RETAINED_SIXTH_IDS=(
+    'bf43a58d-4171-435a-b657-79c335b2eea3',
+    'e07e981a-2617-43ac-a050-fcf4455a12f1',
+    '77ee5f30-7c3d-4285-8807-7d5543cf4bde',
+)
+RETAINED_SIXTH_B_SEAL='c89d16e6066a3f33f0ce5ee1902a754ff2397d84d9c6c901b4fbb3c2cd51a85b'
+RETAINED_SIXTH_B_RAW=24896
+RETAINED_SIXTH_B_ACK=27528
+RETAINED_SIXTH_B_MANIFESTS=50
 
 
 def retained_third_fingerprint(db,writers):
@@ -191,17 +200,69 @@ def retained_fifth_fingerprint(db, writers):
     return sha256(encoded(wire(dict(generations=snapshots,writer=writer,checkpoints=checkpoints))))
 
 
-def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN):
+def retained_sixth_fingerprint(db, writers):
+    """Fingerprint the held B without changing any of the prior trial rows."""
+    generations = db.execute('''SELECT * FROM archive.generations WHERE origin_id=%s
+        ORDER BY created_at,generation_id LIMIT 4 FOR SHARE''', (SIXTH_TRIAL_ORIGIN,)).fetchall()
+    writer = next((row for row in writers if row['origin_id'] == SIXTH_TRIAL_ORIGIN), None)
+    if ([row['generation_id'] for row in generations] != list(RETAINED_SIXTH_IDS)
+            or not writer or writer['generation_id'] != RETAINED_SIXTH_IDS[-1] or writer['epoch'] != 5
+            or writer['collector_enabled'] or writer['collector_session_id'] is not None
+            or writer['collector_lease_expires_at'] is not None):
+        raise LifecycleHold('exact stopped sixth trial generation chain required')
+    a, b, fresh = generations
+    if ([(row['slot'], row['state']) for row in generations]
+            != [('A', 'retired'), ('B', 'verified'), ('A', 'collecting')]
+            or a['retired_at'] is None or a['sealed_at'] != b['started_at']
+            or b['sealed_at'] != fresh['started_at'] or b['retired_at'] is not None
+            or b['hold_reason'] is not None or b['seal_hash'] != RETAINED_SIXTH_B_SEAL
+            or b['seal_count'] != RETAINED_SIXTH_B_RAW):
+        raise LifecycleHold('retained sixth trial seal or successor changed')
+    generation = RETAINED_SIXTH_IDS[1]
+    attached = db.execute("""SELECT EXISTS(SELECT 1 FROM pg_inherits i
+        WHERE i.inhparent='raw.events'::regclass AND i.inhrelid=to_regclass(%s)
+        AND pg_get_expr((SELECT relpartbound FROM pg_class WHERE oid=i.inhrelid),i.inhrelid)
+            =format('FOR VALUES IN (%%L)',%s::text)) AS valid""",
+        ('raw.events_g_' + generation.replace('-', ''), generation)).fetchone()['valid']
+    manifests = LifecycleRepository._manifests(db, generation)
+    if not attached or len(manifests) != RETAINED_SIXTH_B_MANIFESTS or not bound_catalog(b, manifests):
+        raise LifecycleHold('retained sixth trial B catalog changed')
+    raw = db.execute("""SELECT count(*) AS n, encode(sha256(convert_to(
+        string_agg(jsonb_build_array(source,event_id,content_hash)::text,E'\n'
+                   ORDER BY source COLLATE "C",event_id COLLATE "C"),'UTF8')),'hex') AS digest
+        FROM (SELECT source,event_id,content_hash FROM raw.events
+              WHERE origin_id=%s AND generation_id=%s LIMIT %s) bounded""",
+        (SIXTH_TRIAL_ORIGIN, generation, RETAINED_SIXTH_B_RAW + 1)).fetchone()
+    outbox = db.execute("""SELECT count(*) AS n, count(*) FILTER(WHERE acknowledged_at IS NULL) AS pending,
+        encode(sha256(convert_to(string_agg(jsonb_build_array(id,content_hash,acknowledged_at)::text,E'\n'
+                   ORDER BY id),'UTF8')),'hex') AS digest
+        FROM (SELECT id,content_hash,acknowledged_at FROM ops.outbox
+              WHERE origin_id=%s AND generation_id=%s LIMIT %s) bounded""",
+        (SIXTH_TRIAL_ORIGIN, generation, RETAINED_SIXTH_B_ACK + 1)).fetchone()
+    if raw['n'] != RETAINED_SIXTH_B_RAW or outbox['n'] != RETAINED_SIXTH_B_ACK or outbox['pending']:
+        raise LifecycleHold('retained sixth trial B count or acknowledgement changed')
+    return sha256(encoded(wire(dict(generations=generations, writer=writer, manifests=manifests,
+                                    raw=raw, outbox=outbox))))
+
+
+def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN,
+            rehearsal_window_seconds=None):
     canonical_anchor(initial_a)
     if (execute is not True or repository.environment!='preprod' or origin_id not in TRIAL_ORIGINS
             or not isinstance(source_sha,str) or not re.fullmatch('[0-9a-f]{40}',source_sha)):
         raise LifecycleHold('explicit exact trial preparation scope required')
+    try:
+        profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
+    except ValueError as error:
+        raise LifecycleHold(str(error)) from None
     preserved = (RETAINED_THIRD_A,RETAINED_THIRD_B)
-    if origin_id in (FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN):
+    if origin_id in (FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN,SEVENTH_TRIAL_ORIGIN):
         preserved += (RETAINED_FOURTH_A,)
-    if origin_id==SIXTH_TRIAL_ORIGIN:
+    if origin_id in (SIXTH_TRIAL_ORIGIN,SEVENTH_TRIAL_ORIGIN):
         preserved += (RETAINED_FIFTH_A,RETAINED_FIFTH_B)
-    if origin_id in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN) and (
+    if profile:
+        preserved += RETAINED_SIXTH_IDS
+    if origin_id in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN,SEVENTH_TRIAL_ORIGIN) and (
             uuid.UUID(initial_a).int==0 or initial_a in preserved):
         raise LifecycleHold('new trial requires a distinct nonzero initial A')
     with CycleBudget(ArchiveLimits(max_seconds=20)), repository.transaction() as db:
@@ -222,12 +283,14 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
         if db.execute('SELECT 1 FROM ops.writer_state WHERE collector_enabled LIMIT 1').fetchone():
             raise LifecycleHold('all database collector flags must be OFF')
         retained={}
-        if origin_id in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN):
+        if origin_id in (FOURTH_TRIAL_ORIGIN,FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN,SEVENTH_TRIAL_ORIGIN):
             retained['retained_trial03_sha256']=retained_third_fingerprint(db,writers)
-        if origin_id in (FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN):
+        if origin_id in (FIFTH_TRIAL_ORIGIN,SIXTH_TRIAL_ORIGIN,SEVENTH_TRIAL_ORIGIN):
             retained['retained_trial04_sha256']=retained_fourth_fingerprint(db,writers)
-        if origin_id==SIXTH_TRIAL_ORIGIN:
+        if origin_id in (SIXTH_TRIAL_ORIGIN,SEVENTH_TRIAL_ORIGIN):
             retained['retained_trial05_sha256']=retained_fifth_fingerprint(db,writers)
+        if profile:
+            retained['retained_trial06_sha256']=retained_sixth_fingerprint(db,writers)
         if origin_id==THIRD_TRIAL_ORIGIN:
             # New03 follows only the exact archived failed02 initial A. Keep
             # its partition, pointer, seal and old authority entirely unchanged.
@@ -257,7 +320,7 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
         existing=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
                             'ORDER BY created_at,generation_id LIMIT 2 FOR UPDATE',(origin_id,)).fetchall()
         writer=next((row for row in writers if row['origin_id']==origin_id),None)
-        expected=dict(initial_a=initial_a,source_sha=source_sha,policy=CONSUMER,**retained)
+        expected=dict(initial_a=initial_a,source_sha=source_sha,policy=CONSUMER,**retained,**profile)
         if existing or writer:
             checkpoint=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
                 'AND generation_id=%s AND consumer=%s',(origin_id,initial_a,CONSUMER)).fetchone()
@@ -283,7 +346,7 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
                        'VALUES(%s,%s,1,false,%s)',(origin_id,initial_a,now))
             repository._checkpoint(db,dict(origin_id=origin_id,generation_id=initial_a),CONSUMER,expected)
     return dict(status='trial_ready_off',origin_id=origin_id,generation_id=initial_a,
-                collector_enabled=False,source_sha=source_sha,retirement_authorized=False)
+                collector_enabled=False,source_sha=source_sha,retirement_authorized=False,**profile)
 
 
 def main(argv=None):
@@ -303,7 +366,9 @@ def main(argv=None):
     dsn=read_dsn(os.environ)
     factory=lambda:connect(dsn,environment='preprod')
     with factory() as db:validate_schema(db,'preprod')
-    print(json.dumps(prepare(LifecycleRepository(factory),args.initial_a,args.source_sha,execute=args.execute,origin_id=os.environ['TRADEBOT_ORIGIN_ID'])),flush=True)
+    print(json.dumps(prepare(LifecycleRepository(factory),args.initial_a,args.source_sha,
+                             execute=args.execute,origin_id=os.environ['TRADEBOT_ORIGIN_ID'],
+                             rehearsal_window_seconds=elapsed_cycle_seconds(os.environ))),flush=True)
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

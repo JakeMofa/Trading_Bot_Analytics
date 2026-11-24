@@ -1,0 +1,33 @@
+{
+  "hosted_requests": 0,
+  "live_original_statement_attributed": false,
+  "local_fixture": {
+    "canonical_bytes": 828785,
+    "generated_manifests": 50,
+    "generated_outbox_rows": 27528,
+    "local_page_rows": 500,
+    "local_seconds": 0.041707,
+    "postgres": 17,
+    "query_seconds": {
+      "retained_outbox_coverage": 0.01644,
+      "retained_page_canonicalize": 0.006754,
+      "structured_page_payload_query": 0.005691,
+      "structured_page_size_query": 0.003705
+    },
+    "result": "PASS"
+  },
+  "native_injected_statement_cancellation": {
+    "failed_statement_seconds": 2.002266,
+    "forced_cancellation": "structured_page_size_query",
+    "result": "PASS",
+    "sqlstate": "57014"
+  },
+  "pp_host_requests": 0,
+  "retirement_authorized": false,
+  "scope": "isolated_generated_postgresql_17_and_unit_tests",
+  "tests_passed": {
+    "postgres_lifecycle": 20,
+    "retained_b_diagnostic": 2,
+    "retirement_accounting": 7
+  }
+}

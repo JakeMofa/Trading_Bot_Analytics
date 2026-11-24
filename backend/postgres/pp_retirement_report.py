@@ -21,7 +21,16 @@ def snapshot(factory):
         yield db
 
 
-def active_sample(db, origin):
+def active_sample(db, origin, *, include_polymarket=False):
+    if include_polymarket:
+        return db.execute("""SELECT g.generation_id,g.slot, counts.committed_rows, counts.polymarket_quotes
+            FROM ops.writer_state w JOIN archive.generations g USING(origin_id,generation_id)
+            CROSS JOIN LATERAL (SELECT count(*) AS committed_rows,
+                count(*) FILTER (WHERE e.source='polymarket_us' AND e.kind='quote'
+                    AND e.received_at>=g.started_at) AS polymarket_quotes
+                FROM raw.events e WHERE e.origin_id=g.origin_id
+                    AND e.generation_id=g.generation_id) counts
+            WHERE w.origin_id=%s AND g.state='collecting'""", (origin,)).fetchone()
     return db.execute("""SELECT g.generation_id,g.slot,
         (SELECT count(*) FROM raw.events e WHERE e.origin_id=g.origin_id
             AND e.generation_id=g.generation_id) AS committed_rows

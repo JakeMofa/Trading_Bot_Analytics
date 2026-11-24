@@ -110,7 +110,7 @@ class MemorySequencingTests(unittest.TestCase):
   self.assertFalse(any(isinstance(v,tuple) and 'up' in v[1] for v in actions.calls))
  def test_prepare_and_live_start_each_need_full_quiescent_headroom(self):
   actions,context,_=self.component()
-  live=LiveTransition(actions,context,Budget(actions),initial_a=str(uuid.uuid4()),trial_origin='pp-live-pp-trial-20261119-06')
+  live=LiveTransition(actions,context,Budget(actions),initial_a=str(uuid.uuid4()),trial_origin='pp-live-pp-trial-20261119-07')
   live._profile=lambda **_:None;events=[]
   live._prepare_trial=lambda:events.append('prepare')
   live._check_live_off=lambda:events.append('ready_off')

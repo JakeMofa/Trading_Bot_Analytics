@@ -1,0 +1,14 @@
+# Exact origin override. Includes no cloud identity, grant or collector activation.
+services:
+  api:
+    environment:
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-06
+  calculation:
+    environment:
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-06
+  lifecycle:
+    environment:
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-06
+  operator:
+    environment:
+      TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-06

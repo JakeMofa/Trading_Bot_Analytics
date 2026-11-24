@@ -93,7 +93,7 @@ class ProvisionTests(unittest.TestCase):
             })
             return 201, json.dumps(dict(id=UID, email=EMAIL,
                                         app_metadata=body["app_metadata"])).encode()
-        for origin in ('pp-live-pp-trial-20261119-07', 'pp-live-pp-trial-20261119-%'):
+        for origin in ('pp-live-pp-trial-20261119-08', 'pp-live-pp-trial-20261119-%'):
             with self.assertRaises(module.ProvisionError):
                 self.invoke(create, purpose="history-reader", origin=origin)
         self.assertEqual(self.calls, 0)
@@ -112,7 +112,7 @@ class ProvisionTests(unittest.TestCase):
             })
             return 201, json.dumps(dict(id=UID, email=EMAIL,
                                         app_metadata=body["app_metadata"])).encode()
-        for origin in ('pp-live-pp-trial-20261119-07', 'pp-live-pp-trial-20261119-%'):
+        for origin in ('pp-live-pp-trial-20261119-08', 'pp-live-pp-trial-20261119-%'):
             with self.assertRaises(module.ProvisionError):
                 self.invoke(create, purpose="history-reader", origin=origin)
         self.assertEqual(self.calls, 0)
@@ -131,7 +131,7 @@ class ProvisionTests(unittest.TestCase):
             })
             return 201, json.dumps(dict(id=UID, email=EMAIL,
                                         app_metadata=body["app_metadata"])).encode()
-        for origin in ('pp-live-pp-trial-20261119-07', 'pp-live-pp-trial-20261119-%'):
+        for origin in ('pp-live-pp-trial-20261119-08', 'pp-live-pp-trial-20261119-%'):
             with self.assertRaises(module.ProvisionError):
                 self.invoke(create, purpose="history-reader", origin=origin)
         self.assertEqual(self.calls, 0)
@@ -150,13 +150,32 @@ class ProvisionTests(unittest.TestCase):
             })
             return 201, json.dumps(dict(id=UID, email=EMAIL,
                                         app_metadata=body["app_metadata"])).encode()
-        for origin in ('pp-live-pp-trial-20261119-07', 'pp-live-pp-trial-20261119-%'):
+        for origin in ('pp-live-pp-trial-20261119-08', 'pp-live-pp-trial-20261119-%'):
             with self.assertRaises(module.ProvisionError):
                 self.invoke(create, purpose="history-reader", origin=origin)
         self.assertEqual(self.calls, 0)
         self.assertEqual(self.invoke(create, purpose="history-reader", origin=module.SIXTH_TRIAL_ORIGIN), UID)
         with self.assertRaises(module.ProvisionError):
             self.invoke(create, purpose="history-reader", origin=module.SIXTH_TRIAL_ORIGIN)
+        self.assertEqual(self.calls, 1)
+
+    def test_seventh_trial_identity_is_create_only_and_exactly_scoped(self):
+        def create(payload, key):
+            self.calls += 1
+            body = json.loads(payload)
+            self.assertEqual(body["app_metadata"], {
+                "tradebot_role": "pp_storage_history_reader",
+                "tradebot_origin": "pp-live-pp-trial-20261119-07",
+            })
+            return 201, json.dumps(dict(id=UID, email=EMAIL,
+                                        app_metadata=body["app_metadata"])).encode()
+        for origin in ('pp-live-pp-trial-20261119-08', 'pp-live-pp-trial-20261119-%'):
+            with self.assertRaises(module.ProvisionError):
+                self.invoke(create, purpose="history-reader", origin=origin)
+        self.assertEqual(self.calls, 0)
+        self.assertEqual(self.invoke(create, purpose="history-reader", origin=module.SEVENTH_TRIAL_ORIGIN), UID)
+        with self.assertRaises(module.ProvisionError):
+            self.invoke(create, purpose="history-reader", origin=module.SEVENTH_TRIAL_ORIGIN)
         self.assertEqual(self.calls, 1)
 
     def test_private_history_reader_stages_distinct_files_and_verifies_role(self):

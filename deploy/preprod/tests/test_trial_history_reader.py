@@ -73,20 +73,20 @@ class TrialHistoryReaderTests(unittest.TestCase):
         authority,evidence,_=fixture();authority['origin_id']='pp-live-pp-trial-20261119-01'
         with self.assertRaises(DeploymentHold):reader.validate_trial_reader_attestation(CONTEXT,authority,evidence,initial_a=A)
 
-    def test_sixth_reader_requires_fresh_files_and_retained_fifth_denial(self):
-        self.assertEqual(reader.TRIAL_ORIGIN,'pp-live-pp-trial-20261119-06')
-        self.assertEqual(reader.TRIAL_SQL_READER,'tradebot_pp_trial_20261119_06_reader')
-        self.assertIn('retained_trial_05_origin',reader.HOSTED_DENIED)
+    def test_seventh_reader_requires_fresh_files_and_retained_sixth_denial(self):
+        self.assertEqual(reader.TRIAL_ORIGIN,'pp-live-pp-trial-20261119-07')
+        self.assertEqual(reader.TRIAL_SQL_READER,'tradebot_pp_trial_20261119_07_reader')
+        self.assertIn('retained_trial_06_origin',reader.HOSTED_DENIED)
         with tempfile.TemporaryDirectory() as folder,patch.object(reader,'RUNTIME_SECRETS',Path(folder)),patch.object(reader,'_read_owned') as read:
-            old=Path(folder)/'trial_20261119_05_history_reader_authority.json'
-            old.write_text('retained-fifth-trial')
+            old=Path(folder)/'trial_20261119_06_history_reader_authority.json'
+            old.write_text('retained-sixth-trial')
             self.assertFalse(reader.trial_history_reader_enabled(CONTEXT,A))
             read.assert_not_called()
-            self.assertEqual(old.read_text(),'retained-fifth-trial')
+            self.assertEqual(old.read_text(),'retained-sixth-trial')
             self.assertEqual(reader.trial_history_reader_source('trial_history_reader_uid').name,
-                             'trial_20261119_06_history_reader_uid')
+                             'trial_20261119_07_history_reader_uid')
         authority,evidence,_=fixture()
-        evidence['hosted_denied'].remove('retained_trial_05_origin')
+        evidence['hosted_denied'].remove('retained_trial_06_origin')
         authority['policy_proof_sha256']=hashlib.sha256(json.dumps(evidence,sort_keys=True).encode()).hexdigest()
         with self.assertRaises(DeploymentHold):
             reader.validate_trial_reader_attestation(CONTEXT,authority,evidence,initial_a=A)

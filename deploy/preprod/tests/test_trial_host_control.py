@@ -29,10 +29,24 @@ class TrialHostTests(unittest.TestCase):
         for name in ('api','calculation','lifecycle','operator'):
             bad=deepcopy(live);bad['services'][name]['environment']['TRADEBOT_ORIGIN_ID']='pp-live-pp'
             with self.assertRaises(DeploymentHold):validate_live_profile(base,bad,source,IMAGE,initial_a=A,trial_origin=TRIAL)
+        for name in ('lifecycle','operator'):
+            bad=deepcopy(live);bad['services'][name]['environment']['TRADEBOT_PP_ELAPSED_CYCLE_SECONDS']='1'
+            with self.assertRaises(DeploymentHold):validate_live_profile(base,bad,source,IMAGE,initial_a=A,trial_origin=TRIAL)
         for origin,anchor in ((TRIAL+'-other',A),(TRIAL,None)):
             with self.assertRaises(DeploymentHold):actions.cycle_environment(anchor,origin)
         with self.assertRaises(DeploymentHold):validate_live_profile(base,live,source,IMAGE,initial_a=A,trial_origin=TRIAL,reader=True)
         self.assertFalse(any('history' in secret['source'] for secret in live['services']['api']['secrets']))
+
+    def test_fresh_permits_bind_profile_and_elapsed_window_and_retained_sixth_cannot_enter(self):
+        request=gate.TransitionRequest('enter','a'*40,'b'*64,'c'*64,IMAGE,initial_a=A,trial_origin=TRIAL)
+        request.validate()
+        self.assertEqual((request.bindings()['profile'],request.bindings()['window_seconds']),
+                         ('elapsed-30m-cycle',1800))
+        old='pp-live-pp-trial-20261119-06'
+        self.assertEqual(actions.cycle_environment(A,old)['TRADEBOT_PP_WINDOW_POLICY'],
+                         'two-official-markets-cycle')
+        with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):
+            gate.TransitionRequest('enter','a'*40,'b'*64,'c'*64,IMAGE,initial_a=A,trial_origin=old).validate()
 
     def test_timing_is_exact_active_trial_operator_only_and_cannot_be_removed(self):
         source=Path('/reviewed/source');base=configuration(source)
@@ -171,7 +185,7 @@ class TrialHostTests(unittest.TestCase):
             def run(self,args,**kwargs):
                 if 'postgres.pp_trial_prepare' in args:
                     owned.calls.append(('prepare',tuple(args)))
-                    return json.dumps(dict(status='trial_ready_off',origin_id=TRIAL,generation_id=A,collector_enabled=False)).encode()
+                    return json.dumps(dict(status='trial_ready_off',origin_id=TRIAL,generation_id=A,collector_enabled=False) | actions.cycle_profile_binding(TRIAL)).encode()
                 result=base.run(args,**kwargs)
                 return result.replace(b'pp-live-pp',TRIAL.encode()) if args[-1] in ('--stop-collector','--collector-status') else result
         context=SimpleNamespace(source=Path('/reviewed/source'),image=IMAGE,request=SimpleNamespace(source_sha='a'*40))

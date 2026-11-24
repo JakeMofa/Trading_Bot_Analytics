@@ -21,14 +21,15 @@ class FourthControls(unittest.TestCase):
         from postgres.rehearsal_profile import lease_cap,CYCLE_POLICY
         self.assertEqual((cloud_binding(FOURTH_TRIAL_ORIGIN).writer_role,cloud_binding(FOURTH_TRIAL_ORIGIN).reader_role),
                          (FOURTH_TRIAL_WRITER,FOURTH_TRIAL_READER))
-        self.assertEqual(len(TRIAL_ORIGINS),6)
-        self.assertEqual(len({cloud_binding(o).raw_prefix for o in TRIAL_ORIGINS}),6)
+        known = {f'pp-live-pp-trial-20261119-{number:02}' for number in range(1, 8)}
+        self.assertEqual(TRIAL_ORIGINS, known)
+        self.assertEqual(len({cloud_binding(origin).raw_prefix for origin in known}), len(known))
         anchor=str(uuid.uuid4());env=dict(TRADEBOT_ENVIRONMENT='preprod',TRADEBOT_DATA_MODE='pp_live',
             TRADEBOT_ORIGIN_ID=FOURTH_TRIAL_ORIGIN,TRADEBOT_PP_WINDOW_POLICY=CYCLE_POLICY,TRADEBOT_PP_CYCLE_INITIAL_A=anchor)
         self.assertEqual(selected_cloud_origin(env),FOURTH_TRIAL_ORIGIN)
         require_trial_files(env|cloud_files(FOURTH_TRIAL_ORIGIN),FOURTH_TRIAL_ORIGIN,structured=True,storage=True)
         self.assertEqual((lease_cap(),lease_cap(anchor)),(4560,6600))
-        for origin in ('pp-live-pp-trial-20261119-07','pp-live-pp-trial-anything','pp-live-pp-trial-20261119-%'):
+        for origin in ('pp-live-pp-trial-20261119-08','pp-live-pp-trial-anything','pp-live-pp-trial-20261119-%'):
             with self.assertRaises(ValueError):selected_cloud_origin(env|dict(TRADEBOT_ORIGIN_ID=origin))
         from postgres.history_v2_transport import HistoryV2PostgresTransport
         for role in (cloud_binding(THIRD_TRIAL_ORIGIN).reader_role,cloud_binding(THIRD_TRIAL_ORIGIN).writer_role):
@@ -42,7 +43,7 @@ class FourthControls(unittest.TestCase):
         self.assertEqual(acknowledged_row_limit(FOURTH_TRIAL_ORIGIN),64000)
         anchor=str(uuid.uuid4());target=SealTarget(str(uuid.uuid4()),anchor,4,1,10001,'a'*40,str(uuid.uuid4()),'b'*40)
         target.validate(origin_id=FOURTH_TRIAL_ORIGIN)
-        with self.assertRaises(LifecycleHold):acknowledged_row_limit('pp-live-pp-trial-20261119-07')
+        with self.assertRaises(LifecycleHold):acknowledged_row_limit('pp-live-pp-trial-20261119-08')
 
 
 class FourthNative(recovery.Native):

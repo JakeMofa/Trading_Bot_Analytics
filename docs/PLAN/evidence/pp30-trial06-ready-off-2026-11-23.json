@@ -1,0 +1,137 @@
+{
+  "admission_plan": {
+    "admission_check_utc": "2026-11-23T21:44:04+00:00",
+    "collector_started": false,
+    "initial_a": "bf43a58d-4171-435a-b657-79c335b2eea3",
+    "lease_seconds": 6600,
+    "official_boundary_utc": "2026-11-23T21:45:00+00:00",
+    "origin_id": "pp-live-pp-trial-20261119-06",
+    "source_sha": "ad11d8524c781f8a6289ba36d43deeaa02d6421a"
+  },
+  "both_admin_freeze_windows_confirmed": true,
+  "ci_timeout": {
+    "budget_seconds": 180,
+    "correction": "terminal archive module qualified in its own bounded CI phase",
+    "phase": "application_lifecycle",
+    "reaped": true,
+    "run_id": 45265985217
+  },
+  "collector_started_at_this_checkpoint": false,
+  "exact_deployment": {
+    "acceptance_scope": "generated_only",
+    "artifact_sha256": "f188ad39ff4e4016a335f8aa85209121172a9fdcac2aee9b90eb1c2fb16f0b7a",
+    "branch": "preprod",
+    "checks": {
+      "api": "PASS",
+      "collector_ownership": "PASS",
+      "data_correctness": "PASS",
+      "disabled_flags": "PASS",
+      "freshness": "PASS",
+      "market_identity": "PASS",
+      "migration": "PASS",
+      "operator_control": "PASS",
+      "recovery": "PASS",
+      "schema": "PASS",
+      "sse": "PASS"
+    },
+    "completed_at_utc": "2026-11-23T21:32:59.759713+00:00",
+    "controls_sha": "ad11d8524c781f8a6289ba36d43deeaa02d6421a",
+    "environment": "preprod",
+    "gate": "PASS",
+    "instance": "tradebot-preprod-01",
+    "live_collector_enabled": false,
+    "paid_ai_enabled": false,
+    "policy_sha256": "7e772b71df1a83432495b9658eee918167f2e9d9b196c9e945495dfb3301fab2",
+    "production_data_mounted": false,
+    "registry": "ghcr.io/jakemofa/trading_bot_analytics/releases@sha256:8120aa6264ecaec01ded8d895d0cf317b50be2dae62d6aca7054e91ebb38eba8",
+    "release_version": "v0.2.0-pp.30",
+    "retention_enabled": false,
+    "run_attempt": 1,
+    "run_id": 45270349587,
+    "runtime_image_id": "sha256:318921ce5c65061df74fbcacbe00956734d24106715fb6714e55e27bea233798",
+    "scope": "exact-source runtime deployment and acceptance",
+    "source_ci_attempt": 1,
+    "source_ci_run_id": 45268743428,
+    "source_sha": "ad11d8524c781f8a6289ba36d43deeaa02d6421a"
+  },
+  "firmware_service": {
+    "persistent_enablement_changed": false,
+    "restored": true,
+    "temporarily_paused_to_meet_existing_floor": true
+  },
+  "first_cd_result": {
+    "controller": {
+      "gate": "BLOCKED",
+      "reason": "insufficient_host_headroom",
+      "stage": "preflight"
+    },
+    "environment": "preprod",
+    "gate": "BLOCKED",
+    "reason": "deployment controller failed; no automatic retry",
+    "scope": "deploy"
+  },
+  "first_cd_run": 45269903981,
+  "pr": 208,
+  "preserved_trial05_fingerprint": "379ebe6fe52ee964169483c23618d2c6c77320c9b555a11ce11989c0084d3751",
+  "production": {
+    "collector": {
+      "enabled": false,
+      "error": null,
+      "running": false
+    },
+    "gate": "PROD_COLLECTOR_FENCE_ACTIVE",
+    "pid": "159035",
+    "revision": "d56b4a73ad6f1a10ba2bac928087cd5d85c6a42a"
+  },
+  "ready_off": {
+    "available_memory_bytes": 950255616,
+    "generations": [
+      {
+        "id": "bf43a58d-4171-435a-b657-79c335b2eea3",
+        "retired_at": null,
+        "slot": "A",
+        "state": "collecting"
+      }
+    ],
+    "outbox": 0,
+    "raw": 0,
+    "retained03": [
+      {
+        "attached": true,
+        "id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+        "slot": "A",
+        "state": "verified"
+      },
+      {
+        "attached": true,
+        "id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+        "slot": "B",
+        "state": "verified"
+      }
+    ],
+    "retained04": {
+      "acknowledged": 705,
+      "enabled": false,
+      "rows": 659
+    },
+    "retained05": {
+      "acknowledged": 32021,
+      "enabled": false,
+      "rows": 29734
+    },
+    "workers": {
+      "archive": "running",
+      "structured": "running"
+    },
+    "writer": {
+      "collector_enabled": false,
+      "collector_lease_expires_at": null,
+      "collector_session_id": null,
+      "epoch": 1,
+      "generation_id": "bf43a58d-4171-435a-b657-79c335b2eea3",
+      "origin_id": "pp-live-pp-trial-20261119-06"
+    },
+    "writers_active": 0
+  },
+  "result": "READY_OFF"
+}

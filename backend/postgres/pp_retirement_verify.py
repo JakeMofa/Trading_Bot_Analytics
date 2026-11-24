@@ -15,7 +15,7 @@ from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository
 from .pp_raw_archive_probe import ORIGIN, check_environment
 from .pp_retirement_report import active_sample, bound_catalog
 from .pp_structured_probe import LOCAL_DSN, private_dsn
-from .rehearsal_profile import SIXTH_TRIAL_ORIGIN, TRIAL_ORIGINS
+from .rehearsal_profile import SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS
 from .cloud_origin_binding import cloud_binding
 from .cloud_runtime_profile import selected_cloud_origin,cloud_files,storage_paths,require_trial_files
 
@@ -82,16 +82,21 @@ class Permit:
             raise LifecycleHold('invalid one-use PP retirement permit')
 
 
-def retire_with_permit(db, generation, target, permit, new_rows):
+def retire_with_permit(db, generation, target, permit, new_rows, *, new_polymarket_quotes=None):
     # The caller's local generation row lock and all manifest share locks
     # remain held until the verification, permit consumption and DROP commit.
+    if generation['origin_id'] == SEVENTH_TRIAL_ORIGIN and (
+            type(new_polymarket_quotes) is not int or new_polymarket_quotes <= 0):
+        raise LifecycleHold('exact successor Polymarket persistence evidence required')
     txid = db.execute('SELECT txid_current() AS txid').fetchone()['txid']
+    quote_proof = ({'active_new_polymarket_quotes': new_polymarket_quotes}
+                   if new_polymarket_quotes is not None else {})
     LifecycleRepository._checkpoint(db, generation, 'retirement:pp-fresh-readback', {
         'txid': txid, 'enabled':True, 'policy':'pp-exact-retirement-v1',
         'policy_epoch':permit.policy_epoch, 'source':permit.release,
         'history_reader_proof':permit.history_reader_proof,
         'seal_hash':target.seal_hash, 'count':target.count, 'active':target.collecting,
-        'active_new_rows':new_rows})
+        'active_new_rows':new_rows, **quote_proof})
     db.execute("SET LOCAL lock_timeout='5ms'")
     db.execute('SELECT archive.retire_pp_generation(%s,%s,%s,%s,%s,%s)',
                (permit.ticket, target.sealed, target.collecting, permit.release, permit.policy_epoch,
@@ -202,7 +207,8 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
             if (generation['origin_id'] != origin or generation['seal_count'] != target.count
                     or generation['seal_hash'] != target.seal_hash or not bound_catalog(generation,manifests)):
                 raise LifecycleHold('reviewed seal or authenticated catalog changed')
-            before = active_sample(db, origin)
+            quote_sample = {'include_polymarket': True} if origin == SEVENTH_TRIAL_ORIGIN else {}
+            before = active_sample(db, origin, **quote_sample)
             if (not before or before['generation_id'] != target.collecting
                     or before['slot'] == generation['slot']):
                 raise LifecycleHold('reviewed active slot changed')
@@ -223,15 +229,22 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
                         'cloud_requests':0, 'inventory':estimate}
             worker = ArchiveWorker(repository, transport, limits)
             readback = worker.fresh_retirement_readback(db, generation, manifests, budget)
-            after = active_sample(db, origin)
+            after = active_sample(db, origin, **quote_sample)
             if (not after or after['generation_id'] != target.collecting
                     or after['slot'] != before['slot'] or after['committed_rows'] <= before['committed_rows']):
                 raise LifecycleHold('concurrent opposite-slot persistence unobserved')
+            new_quotes = None
+            if quote_sample:
+                new_quotes = after['polymarket_quotes'] - before['polymarket_quotes']
+                if new_quotes <= 0:
+                    raise LifecycleHold('concurrent opposite-slot Polymarket persistence unobserved')
             budget.check()
             if permit is not None:
                 with phase('permit_drop'):
                     retire_with_permit(db, generation, target, permit,
-                                       after['committed_rows'] - before['committed_rows'])
+                                       after['committed_rows'] - before['committed_rows'],
+                                       **({'new_polymarket_quotes': new_quotes}
+                                          if new_quotes is not None else {}))
                 if windowed:
                     # Recheck the DB clock after DROP, with rollback still possible.
                     late = db.execute('SELECT clock_timestamp()>=%s AS late',(expires_at,)).fetchone()['late']
@@ -251,7 +264,8 @@ def verify(repository, transport, target, *, limits=ArchiveLimits(), origin=ORIG
             'retirement_authorized':permit is not None,
             'policy_version':'pp-retirement-readback-v2','sealed':target.sealed,
             'collecting':target.collecting,'opposite_slot_new_rows':after['committed_rows']-before['committed_rows'],
-            'inventory':estimate, **readback}
+            'inventory':estimate, **readback,
+            **({'opposite_slot_new_polymarket_quotes': new_quotes} if new_quotes is not None else {})}
 
 
 def retirement_history_factory(environ):
@@ -345,11 +359,13 @@ def main():
         origin=selected_cloud_origin(os.environ)
         if args.origin is not None and args.origin != origin:
             raise LifecycleHold('CLI origin does not match reviewed environment')
-        if (origin == SIXTH_TRIAL_ORIGIN and args.retire_with_pp_permit
+        if (origin in (SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN) and args.retire_with_pp_permit
                 and os.environ.get('TRADEBOT_PP_RETIREMENT_REUSE_HISTORY_SESSION') != 'true'):
-            raise LifecycleHold('trial06 permitted retirement requires reviewed reader session reuse')
+            raise LifecycleHold('permitted retirement requires reviewed reader session reuse')
         reader=origin in TRIAL_ORIGINS
         indexed_latest = retirement_indexed_latest(os.environ, origin)
+        if origin == SEVENTH_TRIAL_ORIGIN and args.retire_with_pp_permit and not indexed_latest:
+            raise LifecycleHold('trial07 permitted retirement requires indexed receipt verification')
         require_trial_files(os.environ,origin,reader=reader,structured=True,storage=True)
         files=cloud_files(origin,reader=reader)
         check_environment(os.environ,origin_id=origin,files=files)

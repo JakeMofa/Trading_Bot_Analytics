@@ -111,3 +111,43 @@ class RetainedAuditTests(unittest.TestCase):
             with self.assertRaisesRegex(LifecycleHold, 'verified A predecessor'):
                 audit(None, transport, target, origin=STOPPED_TRIAL)
             preflight.assert_not_called()
+
+    def test_trial06_b_requires_both_attachments_and_acknowledgement_before_cloud(self):
+        from contextlib import nullcontext
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+
+        from postgres.cloud_origin_binding import SIXTH_TRIAL_ORIGIN, cloud_binding
+        from postgres.pp_retained_archive_audit import audit
+
+        target = AuditTarget(str(uuid.uuid4()), str(uuid.uuid4()), 'a' * 64, 24896, 27528,
+                             50, 56, '2026-11-23T23:30:29.987862+00:00')
+        origin = SIXTH_TRIAL_ORIGIN
+        transport = SimpleNamespace(origin_id=origin,generation_id=target.sealed,
+            structured=SimpleNamespace(expected_role=cloud_binding(origin).reader_role),
+            raw=SimpleNamespace(_reader=True,_origin_binding=SimpleNamespace(origin_id=origin)))
+        module = 'postgres.pp_retained_archive_audit'
+        for attached, pending, reason in ((False,False,'attachments changed'),
+                                          (True,True,'not fully acknowledged')):
+            db = Mock()
+            db.execute.return_value.fetchone.side_effect = [
+                dict(slot='B', seal_count=target.count, seal_hash=target.seal_hash),
+                dict(generation_id=target.collecting, collector_enabled=False),
+                dict(running=False), dict(pending=pending),
+            ]
+            db.execute.return_value.fetchall.return_value = [
+                dict(slot='A', state='retired', present=False, attached=False,
+                     retired_at='later', sealed_at='seal-a'),
+                dict(slot='B', state='verified', present=True, attached=attached,
+                     retired_at=None, generation_id=target.sealed, started_at='seal-a', sealed_at='seal-b'),
+                dict(slot='A', state='collecting', present=True, attached=True,
+                     generation_id=target.collecting, started_at='seal-b'),
+            ]
+            with self.subTest(attached=attached,pending=pending), \
+                    patch(module+'.local_snapshot',return_value=nullcontext(db)), \
+                    patch(module+'.LifecycleRepository._manifests',return_value=[{}] * 50), \
+                    patch(module+'.bound_catalog',return_value=True), \
+                    patch(module+'.remote_preflight') as preflight:
+                with self.assertRaisesRegex(LifecycleHold, reason):
+                    audit(None,transport,target,origin=origin)
+                preflight.assert_not_called()

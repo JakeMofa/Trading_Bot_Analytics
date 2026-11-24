@@ -14,7 +14,7 @@ import re
 import uuid
 
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, CycleBudget
-from .cloud_origin_binding import cloud_binding
+from .cloud_origin_binding import SIXTH_TRIAL_ORIGIN, cloud_binding
 from .cloud_runtime_profile import cloud_files, require_trial_files, selected_cloud_origin, storage_paths
 from .history_v2_envelope import CLOUD_COLUMNS
 from .lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, _DeadlineConnection
@@ -24,6 +24,7 @@ from .pp_retirement_verify import (ORIGIN, Target, TwoMarketReadbackLimits,
 from .retirement_accounting import accounted, bind_budget, measured_context, phase
 
 STOPPED_TRIAL = 'pp-live-pp-trial-20261119-03'
+SCOPED_RETAINED_TRIALS = (STOPPED_TRIAL, SIXTH_TRIAL_ORIGIN)
 LOCAL_DSN = '/run/secrets/pp_retained_reader_dsn'
 LOCAL_TABLES = ('ops.environment_identity', 'archive.generations', 'archive.manifests',
     'raw.events', 'ops.outbox', 'ops.writer_state')
@@ -128,9 +129,9 @@ def audit(factory,transport,target, *, origin=None):
     target.validate()
     if origin is None:
         origin = ORIGIN
-    if (origin not in (ORIGIN, STOPPED_TRIAL) or transport.origin_id != origin
+    if (origin not in (ORIGIN, *SCOPED_RETAINED_TRIALS) or transport.origin_id != origin
             or transport.generation_id != target.sealed
-            or (origin == STOPPED_TRIAL and (
+            or (origin in SCOPED_RETAINED_TRIALS and (
                 transport.structured.expected_role != cloud_binding(origin).reader_role
                 or getattr(transport.raw, "_reader", False) is not True
                 or getattr(getattr(transport.raw, "_origin_binding", None), "origin_id", None) != origin))):
@@ -138,11 +139,11 @@ def audit(factory,transport,target, *, origin=None):
     limits=TwoMarketReadbackLimits()
     with CycleBudget(limits) as budget:
         bind_budget(budget)
-        with measured_context(local_snapshot(factory,budget,monitor=origin == STOPPED_TRIAL),enter='local_open',finish='local_finish') as db:
+        with measured_context(local_snapshot(factory,budget,monitor=origin in SCOPED_RETAINED_TRIALS),enter='local_open',finish='local_finish') as db:
             generation=db.execute('SELECT * FROM archive.generations WHERE origin_id=%s AND generation_id=%s',
                 (origin,target.sealed)).fetchone()
             manifests=LifecycleRepository._manifests(db,target.sealed)
-            slot = 'B' if target.historical_off else 'A'
+            slot = 'B' if target.historical_off or origin == SIXTH_TRIAL_ORIGIN else 'A'
             if (not generation or generation['slot'] != slot or generation['seal_count'] != target.count
                     or generation['seal_hash'] != target.seal_hash or not bound_catalog(generation,manifests)
                     or len(manifests) != target.raw_objects):
@@ -154,13 +155,35 @@ def audit(factory,transport,target, *, origin=None):
             if target.historical_off and (active['collector_enabled'] or active['collector_session_id'] is not None
                     or active['collector_lease_expires_at'] is not None):
                 raise LifecycleHold('reviewed historical writer is not durably OFF')
-            if origin == STOPPED_TRIAL:
+            if origin in SCOPED_RETAINED_TRIALS:
                 writers_on = db.execute("""SELECT EXISTS (SELECT 1 FROM ops.writer_state
                     WHERE collector_enabled OR collector_session_id IS NOT NULL
                         OR collector_lease_expires_at IS NOT NULL) AS running""").fetchone()
                 if writers_on['running']:
                     raise LifecycleHold('retained trial requires all writers OFF')
-                if target.historical_off:
+                if origin == SIXTH_TRIAL_ORIGIN:
+                    chain = db.execute('''SELECT generation_id,slot,state,started_at,sealed_at,
+                        retired_at,to_regclass('raw.'||partition_name) IS NOT NULL AS present,
+                        EXISTS(SELECT FROM pg_inherits WHERE inhparent='raw.events'::regclass
+                            AND inhrelid=to_regclass('raw.'||partition_name)) AS attached
+                        FROM archive.generations WHERE origin_id=%s
+                        ORDER BY created_at,generation_id LIMIT 4''',(origin,)).fetchall()
+                    if (target.historical_off or len(chain) != 3
+                            or [row['slot'] for row in chain] != ['A','B','A']
+                            or [row['state'] for row in chain] != ['retired','verified','collecting']
+                            or [row['present'] for row in chain] != [False,True,True]
+                            or [row['attached'] for row in chain] != [False,True,True]
+                            or chain[0]['retired_at'] is None or chain[1]['retired_at'] is not None
+                            or str(chain[1]['generation_id']) != target.sealed
+                            or str(chain[2]['generation_id']) != target.collecting
+                            or chain[0]['sealed_at'] != chain[1]['started_at']
+                            or chain[1]['sealed_at'] != chain[2]['started_at']):
+                        raise LifecycleHold('retained trial06 chain or attachments changed')
+                    pending = db.execute('''SELECT EXISTS(SELECT FROM ops.outbox
+                        WHERE origin_id=%s AND acknowledged_at IS NULL) AS pending''',(origin,)).fetchone()
+                    if pending['pending']:
+                        raise LifecycleHold('retained trial06 outbox is not fully acknowledged')
+                elif target.historical_off:
                     other = db.execute("""SELECT generation_id FROM archive.generations
                         WHERE origin_id=%s AND slot='A' AND state='verified'
                             AND retired_at IS NULL AND sealed_at=%s""",
@@ -212,13 +235,13 @@ def audit(factory,transport,target, *, origin=None):
 def check_environment(environ, *, origin=ORIGIN):
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or
             environ.get('TRADEBOT_DATA_MODE') != 'pp_live' or
-            origin not in (ORIGIN, STOPPED_TRIAL) or
+            origin not in (ORIGIN, *SCOPED_RETAINED_TRIALS) or
             environ.get('TRADEBOT_ORIGIN_ID') != origin or
             environ.get('TRADEBOT_PP_RETAINED_ARCHIVE_AUDIT') != 'true' or
             environ.get('TRADEBOT_DATABASE_DSN_FILE') != LOCAL_DSN or
             environ.get('TRADEBOT_DATABASE_DSN') or
             any(environ.get(flag,'false') != 'false' for flag in OFF_FLAGS) or
-            (os.path.lexists if origin == STOPPED_TRIAL else os.path.exists)('/run/secrets/pp_retirement_ticket')):
+            (os.path.lexists if origin in SCOPED_RETAINED_TRIALS else os.path.exists)('/run/secrets/pp_retirement_ticket')):
         raise LifecycleHold('isolated read-only retained audit identity required; no retirement ticket')
 
 

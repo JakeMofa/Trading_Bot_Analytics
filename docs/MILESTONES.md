@@ -1,3 +1,19 @@
+## Retained B local query timing is ready for a reviewed diagnostic
+
+The local-only diagnostic records the reader, writer, attachment, manifest,
+outbox coverage, page-size and payload query phases separately. A canceled
+query retains its fixed phase and SQLSTATE without exposing database
+credentials, statement text or row payloads. Timing the original two page
+queries preserves their existing limits and selection behavior.
+
+Generated PostgreSQL 17 read 500 rows from 27,528 acknowledged records and
+validated 50 manifest entries in the same local diagnostic. A forced
+cancellation was correctly identified as the page-size statement with
+SQLSTATE `57014`. The 29 focused unit and lifecycle tests passed. The
+original PP cancellation still has no statement attribution. This change
+was qualified offline and did not run on PP or Supabase.
+[Isolated qualification](PLAN/evidence/pp30-retained-b-statement-diagnostic-isolated.json).
+
 ## November 23, 2026 CST — Trial06 completed both switches; B retirement held
 
 PP30 admitted trial06 at 3:44:09 p.m. CST. The live collector moved from A

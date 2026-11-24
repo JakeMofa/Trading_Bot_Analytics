@@ -578,9 +578,10 @@ class LifecycleRepository:
     @staticmethod
     def _pending(connection, generation_id, limit, *, include_acknowledged=False, max_bytes=4 * 1024 * 1024, after_id=0):
         condition = '' if include_acknowledged else 'AND acknowledged_at IS NULL'
-        sizes = connection.execute(f'''SELECT id,octet_length(row_to_json(o)::text) AS bytes
-            FROM ops.outbox o WHERE generation_id=%s AND id>%s {condition} ORDER BY id LIMIT %s''',
-                                   (generation_id, after_id, limit)).fetchall()
+        with phase('structured_page_size_query'):
+            sizes = connection.execute(f'''SELECT id,octet_length(row_to_json(o)::text) AS bytes
+                FROM ops.outbox o WHERE generation_id=%s AND id>%s {condition} ORDER BY id LIMIT %s''',
+                                       (generation_id, after_id, limit)).fetchall()
         chosen, total = [], 0
         for row in sizes:
             cost = row['bytes'] * 2 + 256
@@ -592,8 +593,9 @@ class LifecycleRepository:
             total += cost
         if not chosen:
             return []
-        return connection.execute(f'''SELECT * FROM ops.outbox WHERE generation_id=%s {condition}
-            AND id>%s AND id<=%s ORDER BY id LIMIT %s''', (generation_id, after_id, chosen[-1], limit)).fetchall()
+        with phase('structured_page_payload_query'):
+            return connection.execute(f'''SELECT * FROM ops.outbox WHERE generation_id=%s {condition}
+                AND id>%s AND id<=%s ORDER BY id LIMIT %s''', (generation_id, after_id, chosen[-1], limit)).fetchall()
 
     def outbox(self, generation_id, limit, max_bytes=4 * 1024 * 1024):
         with self.transaction() as connection:

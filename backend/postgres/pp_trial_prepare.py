@@ -5,6 +5,7 @@ retires a partition. No runtime service calls this module automatically.
 """
 import argparse
 from datetime import datetime
+import hashlib
 import json
 import os
 import re
@@ -132,6 +133,34 @@ def retained_fourth_fingerprint(db, writers):
                                     raw=raw,outbox=outbox))))
 
 
+def _retained_outbox_fingerprint(db, origin, generation, expected):
+    first = db.execute('SELECT min(id) AS id FROM ops.outbox WHERE generation_id=%s AND origin_id=%s',
+                       (generation, origin)).fetchone()['id']
+    count = pending = 0
+    digest = hashlib.sha256()
+    last = first
+    # Callers hold the stopped writer rows. Hash the same ordered UTF-8 bytes
+    # as the old aggregate, with an extra row allowed to detect overcounts.
+    while last is not None and count <= expected:
+        comparison = '>' if count else '>='
+        page = db.execute(f"""SELECT max(id) AS last, count(*) AS n,
+            count(*) FILTER (WHERE acknowledged_at IS NULL) AS pending,
+            string_agg(jsonb_build_array(id,content_hash,acknowledged_at)::text, chr(10) ORDER BY id) AS body
+            FROM (SELECT id,content_hash,acknowledged_at FROM ops.outbox
+                  WHERE generation_id=%s AND origin_id=%s AND id{comparison}%s
+                  ORDER BY id LIMIT %s) page""",
+            (generation, origin, last, min(1024, expected + 1 - count))).fetchone()
+        if not page['n']:
+            break
+        if count:
+            digest.update(b'\n')
+        digest.update(page['body'].encode('utf-8'))
+        count += page['n']
+        pending += page['pending']
+        last = page['last']
+    return dict(n=count, pending=pending, digest=digest.hexdigest() if count else None)
+
+
 def retained_fifth_fingerprint(db, writers):
     """Bind the exact retained trial05 pair without authorizing any removal."""
     rows = db.execute('SELECT * FROM archive.generations WHERE origin_id=%s '
@@ -188,14 +217,10 @@ def retained_fifth_fingerprint(db, writers):
             FROM (SELECT source,event_id,content_hash FROM raw.events
                 WHERE origin_id=%s AND generation_id=%s LIMIT %s) bounded""",
             (FIFTH_TRIAL_ORIGIN,generation,RETAINED_FIFTH_RAW[index]+1)).fetchone()
-        outbox=db.execute("""SELECT count(*) AS n, encode(sha256(convert_to(
-            string_agg(jsonb_build_array(id,content_hash,acknowledged_at)::text, E'\n'
-                       ORDER BY id),'UTF8')),'hex') AS digest
-            FROM (SELECT id,content_hash,acknowledged_at FROM ops.outbox
-                WHERE origin_id=%s AND generation_id=%s LIMIT %s) bounded""",
-            (FIFTH_TRIAL_ORIGIN,generation,RETAINED_FIFTH_ACK[index]+1)).fetchone()
-        if raw['n']!=RETAINED_FIFTH_RAW[index] or outbox['n']!=RETAINED_FIFTH_ACK[index]:
+        outbox=_retained_outbox_fingerprint(db,FIFTH_TRIAL_ORIGIN,generation,RETAINED_FIFTH_ACK[index])
+        if raw['n']!=RETAINED_FIFTH_RAW[index] or outbox['n']!=RETAINED_FIFTH_ACK[index] or outbox['pending']:
             raise LifecycleHold('retained fifth trial row or acknowledgement count changed')
+        del outbox['pending']  # Preserve the existing trial05 receipt shape.
         snapshots.append(dict(generation=row,manifests=catalog,raw=raw,outbox=outbox))
     return sha256(encoded(wire(dict(generations=snapshots,writer=writer,checkpoints=checkpoints))))
 
@@ -233,12 +258,7 @@ def retained_sixth_fingerprint(db, writers):
         FROM (SELECT source,event_id,content_hash FROM raw.events
               WHERE origin_id=%s AND generation_id=%s LIMIT %s) bounded""",
         (SIXTH_TRIAL_ORIGIN, generation, RETAINED_SIXTH_B_RAW + 1)).fetchone()
-    outbox = db.execute("""SELECT count(*) AS n, count(*) FILTER(WHERE acknowledged_at IS NULL) AS pending,
-        encode(sha256(convert_to(string_agg(jsonb_build_array(id,content_hash,acknowledged_at)::text,E'\n'
-                   ORDER BY id),'UTF8')),'hex') AS digest
-        FROM (SELECT id,content_hash,acknowledged_at FROM ops.outbox
-              WHERE origin_id=%s AND generation_id=%s LIMIT %s) bounded""",
-        (SIXTH_TRIAL_ORIGIN, generation, RETAINED_SIXTH_B_ACK + 1)).fetchone()
+    outbox = _retained_outbox_fingerprint(db, SIXTH_TRIAL_ORIGIN, generation, RETAINED_SIXTH_B_ACK)
     if raw['n'] != RETAINED_SIXTH_B_RAW or outbox['n'] != RETAINED_SIXTH_B_ACK or outbox['pending']:
         raise LifecycleHold('retained sixth trial B count or acknowledgement changed')
     return sha256(encoded(wire(dict(generations=generations, writer=writer, manifests=manifests,

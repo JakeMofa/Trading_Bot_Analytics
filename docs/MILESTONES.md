@@ -14,10 +14,21 @@ in **187.906 seconds**, leaving **52.094 seconds**. This clears the
 attached. No retirement authority came from this audit.
 [Indexed audit evidence](PLAN/evidence/pp31-indexed-trial06-b-read-only-2026-11-24.json).
 
-The first trial07 preparation stopped before collector activation and restored
-generated mode. A diagnostic reproduced a five-second PostgreSQL statement
-timeout, and the subsequent read-only fingerprint checks passed under that
-same limit. Record live results separately after preparation and admission.
+Both trial07 preparation attempts stopped before collector activation and
+restored generated mode. Neither 30-minute window ran. A rolled-back run of
+the deployed preparation pinpointed PostgreSQL's five-second statement timeout
+(SQLSTATE 57014) in the trial05 A outbox fingerprint query. No trial07 writer
+or generation was created.
+
+A read-only PP31 probe paged the retained outboxes by ID under the same
+20-second aggregate and five-second statement budgets. All three exact
+digests matched across 59,549 rows in 8.439 seconds including setup. Trial05
+A took 4.489 seconds overall, with a 3.104-second slowest page. The successor
+streams the same PostgreSQL serialization in pages of up to 1,024 rows.
+Native PostgreSQL regressions covered digest parity, missing and excess rows,
+and pending acknowledgements. The paged preparation is a source change.
+Qualify and release the successor before another live admission. PP31
+remains in generated mode with collection OFF.
 
 ## November 24, 2026 CST — PP31 published; deployment held on memory
 

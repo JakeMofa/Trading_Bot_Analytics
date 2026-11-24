@@ -225,6 +225,30 @@ class FourthNative(recovery.Native):
                         case._exercise_exact_pp_permits(origin)
                     finally:case.doCleanups()
 
+    def test_retained_outbox_pages_match_legacy_digest_and_detect_extra_rows(self):
+        from postgres.pp_trial_prepare import _retained_outbox_fingerprint
+
+        generation, other_generation = str(uuid.uuid4()), str(uuid.uuid4())
+        origin = 'generated-fingerprint-' + str(uuid.uuid4())
+        with self.admin() as db, db.transaction(force_rollback=True):
+            db.execute("""INSERT INTO ops.outbox(origin_id,generation_id,entity_type,entity_id,
+                content_hash,payload,created_at,acknowledged_at)
+                SELECT %s, CASE WHEN n %% 3 = 0 THEN %s ELSE %s END, 'fixture', n::text,
+                    repeat('b',64), '{}', now(), CASE WHEN n <> 3073 THEN now() END
+                FROM generate_series(1,3073) AS n""", (origin, other_generation, generation))
+            expected = db.execute("""SELECT count(*) AS n,
+                count(*) FILTER (WHERE acknowledged_at IS NULL) AS pending,
+                encode(sha256(convert_to(string_agg(
+                    jsonb_build_array(id,content_hash,acknowledged_at)::text, chr(10) ORDER BY id
+                ),'UTF8')),'hex') AS digest
+                FROM ops.outbox WHERE origin_id=%s AND generation_id=%s""", (origin, generation)).fetchone()
+            self.assertEqual((expected['n'], expected['pending']), (2049, 1))
+            self.assertEqual(_retained_outbox_fingerprint(db, origin, generation, 2049), expected)
+            self.assertEqual(_retained_outbox_fingerprint(db, origin, generation, 2048), expected)
+            self.assertEqual(_retained_outbox_fingerprint(db, origin, generation, 1024)['n'], 1025)
+            self.assertEqual(_retained_outbox_fingerprint(db, origin + '-absent', generation, 2049),
+                             dict(n=0, pending=0, digest=None))
+
     def test_sixth_preparation_pins_retained_fifth_a_b_and_refuses_fingerprint_drift(self):
         from psycopg import sql
         from psycopg.types.json import Jsonb

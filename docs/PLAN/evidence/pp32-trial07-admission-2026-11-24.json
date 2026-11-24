@@ -1,0 +1,204 @@
+{
+  "activation": {
+    "admitted_at_utc": "2026-11-24T16:45:10.787163+00:00",
+    "first_slot": "A",
+    "production_collector_fence_active": true,
+    "profile": "elapsed-30m-cycle",
+    "seconds_per_window": 1800
+  },
+  "audit": {
+    "elapsed_seconds": 195.076206,
+    "hard_limit_seconds": 240,
+    "index": {
+      "columns": [
+        "generation_id",
+        "id"
+      ],
+      "indislive": true,
+      "indisready": true,
+      "indisvalid": true,
+      "name": "ops.outbox_generation_id",
+      "retirement_authorized": false,
+      "status": "local_index_proven"
+    },
+    "launcher_preflight_hold": "archived trial06 transition journal after failed PP31 trial07 preparation; no archive reads",
+    "logical_bytes": 50184975,
+    "maximum_for_live_gate_seconds": 210,
+    "original_trial_satisfied": false,
+    "phase_accounting": {
+      "diagnostics_unavailable": false,
+      "elapsed_seconds": 195.076206,
+      "exhausted_limit": null,
+      "failed_phase": null,
+      "logical_bytes": 50184975,
+      "nested_phase_totals_overlap": true,
+      "phases": {
+        "history_checkout": {
+          "calls": 57,
+          "logical_bytes": 0,
+          "max_seconds": 0.313428,
+          "requests": 0,
+          "seconds": 0.720844
+        },
+        "history_connect": {
+          "calls": 2,
+          "logical_bytes": 0,
+          "max_seconds": 0.312252,
+          "requests": 0,
+          "seconds": 0.621056
+        },
+        "history_exact_revisions": {
+          "calls": 56,
+          "logical_bytes": 0,
+          "max_seconds": 1.644322,
+          "requests": 0,
+          "seconds": 43.312934
+        },
+        "history_identity_checkpoint": {
+          "calls": 56,
+          "logical_bytes": 0,
+          "max_seconds": 0.394383,
+          "requests": 0,
+          "seconds": 11.245369
+        },
+        "history_latest_receipts": {
+          "calls": 56,
+          "logical_bytes": 0,
+          "max_seconds": 0.12636,
+          "requests": 0,
+          "seconds": 3.087823
+        },
+        "history_newer_revisions": {
+          "calls": 56,
+          "logical_bytes": 0,
+          "max_seconds": 0.148313,
+          "requests": 0,
+          "seconds": 5.651352
+        },
+        "history_projections": {
+          "calls": 56,
+          "logical_bytes": 0,
+          "max_seconds": 0.302005,
+          "requests": 0,
+          "seconds": 7.72876
+        },
+        "history_release": {
+          "calls": 57,
+          "logical_bytes": 0,
+          "max_seconds": 5.3e-05,
+          "requests": 0,
+          "seconds": 0.001347
+        },
+        "history_transaction": {
+          "calls": 57,
+          "logical_bytes": 0,
+          "max_seconds": 2.246657,
+          "requests": 0,
+          "seconds": 76.975134
+        },
+        "inventory": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 15.069892,
+          "requests": 0,
+          "seconds": 15.069892
+        },
+        "local_finish": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.000447,
+          "requests": 0,
+          "seconds": 0.000447
+        },
+        "local_open": {
+          "calls": 1,
+          "logical_bytes": 0,
+          "max_seconds": 0.143488,
+          "requests": 0,
+          "seconds": 0.143488
+        },
+        "raw_auth_token": {
+          "calls": 50,
+          "logical_bytes": 0,
+          "max_seconds": 0.607238,
+          "requests": 1,
+          "seconds": 0.607668
+        },
+        "raw_local_compare": {
+          "calls": 50,
+          "logical_bytes": 0,
+          "max_seconds": 1.184996,
+          "requests": 0,
+          "seconds": 15.960788
+        },
+        "raw_read_decode": {
+          "calls": 50,
+          "logical_bytes": 3305836,
+          "max_seconds": 1.001826,
+          "requests": 51,
+          "seconds": 24.698312
+        },
+        "structured_compare": {
+          "calls": 56,
+          "logical_bytes": 0,
+          "max_seconds": 0.367458,
+          "requests": 0,
+          "seconds": 11.473584
+        },
+        "structured_local_page": {
+          "calls": 57,
+          "logical_bytes": 0,
+          "max_seconds": 1.104415,
+          "requests": 0,
+          "seconds": 16.364347
+        },
+        "structured_page_payload_query": {
+          "calls": 112,
+          "logical_bytes": 0,
+          "max_seconds": 0.183952,
+          "requests": 0,
+          "seconds": 6.801355
+        },
+        "structured_page_size_query": {
+          "calls": 113,
+          "logical_bytes": 0,
+          "max_seconds": 0.083763,
+          "requests": 0,
+          "seconds": 1.399873
+        },
+        "structured_readback": {
+          "calls": 56,
+          "logical_bytes": 46879139,
+          "max_seconds": 3.562645,
+          "requests": 56,
+          "seconds": 110.634313
+        }
+      },
+      "remaining_seconds": 44.923883,
+      "requests": 108,
+      "sqlstate": null
+    },
+    "raw_events": 24896,
+    "raw_objects": 50,
+    "read_only": true,
+    "remaining_seconds": 44.92379399999999,
+    "requests": 108,
+    "retained_b_unchanged": true,
+    "retirement_authorized": false,
+    "structured_pages": 56,
+    "structured_rows": 27528
+  },
+  "deployment_run": 45438977810,
+  "memory": {
+    "after_pause_kib": 1075544,
+    "before_kib": 1055796,
+    "guard_kib": 1048576,
+    "idled_host_units_restored": true
+  },
+  "publication_run": 45438732003,
+  "retained_trial05_06_five_fingerprints_exact": true,
+  "runtime_image_id": "sha256:41ac203b2ea5be00cd6e61c15aa5a78cc5b96ff9fb9f10bcc1c9e3433bee98a4",
+  "source_ci_run": 45437111470,
+  "source_sha": "41955cf1a67a18f030ef45785fbcf4834b263ea6",
+  "version": "v0.2.0-pp.32"
+}

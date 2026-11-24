@@ -1,3 +1,26 @@
+## November 24, 2026 CST — PP32 passed indexed readback and trial07 admitted
+
+PR #213's paged preparation shipped in PP32 (`41955cf`).
+[Exact push CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45437111470)
+and [generated CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45438977810)
+passed. The 1 GiB memory guard stayed in effect and the temporarily paused
+host units were restored. All five retained trial05 and trial06 fingerprints
+matched after deployment.
+
+An initial read-only launcher stopped before readback because trial06's
+transition journal had been archived when PP31 attempted trial07. Matching
+the root-owned historical journal and the current stopped trial07 journal
+allowed the exact read-only audit. It verified **56 structured pages and
+50 raw objects in 195.076 seconds**, leaving **44.924 seconds** of 240 and
+clearing the 210-second admission condition. Retained B remained attached.
+
+The same guarded preparation then passed and trial07 A started at
+**10:45:10 a.m. CST**. Production's collector fence passed. The two elapsed
+30-minute windows, both verified removals, and terminal fresh-A readback
+remain open as of this checkpoint.
+
+[Admission evidence](PLAN/evidence/pp32-trial07-admission-2026-11-24.json).
+
 ## November 24, 2026 CST — PP31 deployed and indexed retained B passed
 
 A bounded pause of the modem service and the multipath daemon and socket

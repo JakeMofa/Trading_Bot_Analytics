@@ -1,0 +1,220 @@
+{
+  "collectors_off": true,
+  "previous_trial07_dashboard_samples": {
+    "phase_resolution": "Sampled dashboard API visibility from a previous run. First usable receipt, canonical commit, early REST, WebSocket and concurrent pressure attribution are unmeasured.",
+    "windows": [
+      {
+        "boundary_utc": "2026-11-24T17:00:00+00:00",
+        "displayed_quote_receipt_to_first_fresh_sample_seconds": 0.120286,
+        "fresh_quote_first_dashboard_sample_seconds": 129.785527,
+        "market_id": "2875624",
+        "market_id_first_dashboard_sample_seconds": 19.636974
+      },
+      {
+        "boundary_utc": "2026-11-24T17:15:00+00:00",
+        "displayed_quote_receipt_to_first_fresh_sample_seconds": 5.133897,
+        "fresh_quote_first_dashboard_sample_seconds": 25.598915,
+        "market_id": "2875193",
+        "market_id_first_dashboard_sample_seconds": 20.597319
+      },
+      {
+        "boundary_utc": "2026-11-24T17:30:00+00:00",
+        "displayed_quote_receipt_to_first_fresh_sample_seconds": 4.516249,
+        "fresh_quote_first_dashboard_sample_seconds": 131.513506,
+        "market_id": "2876920",
+        "market_id_first_dashboard_sample_seconds": 26.414962
+      },
+      {
+        "boundary_utc": "2026-11-24T17:45:00+00:00",
+        "displayed_quote_receipt_to_first_fresh_sample_seconds": 0.685223,
+        "fresh_quote_first_dashboard_sample_seconds": 127.367957,
+        "market_id": "2876903",
+        "market_id_first_dashboard_sample_seconds": 22.290449
+      }
+    ]
+  },
+  "quiet_readback": {
+    "cold_definition": "first hosted physical session; disk caches uncontrolled",
+    "counters": "scoped history SQL only, comparable with exclusive quiet reader",
+    "generation": "e07e981a-2617-43ac-a050-fcf4455a12f1",
+    "origin": "pp-live-pp-trial-20261119-06",
+    "phase_timings_overlap": true,
+    "pin": {
+      "canonical_bytes": 828368,
+      "canonical_sha256": "9b2a25493f3ceb884525bf6cb6aefd6d7b02ebf17b7ec777ecc49364d6516353",
+      "first_id": 177478,
+      "last_id": 177978,
+      "ordered_ids_sha256": "2dde739e0b52e8f8f082b57f0f888ad2b18d9361ee716a0c4225750b924102b8",
+      "rows": 500
+    },
+    "pure_transfer_seconds": null,
+    "retirement_authorized": false,
+    "runs": [
+      {
+        "ended_at_utc": "2026-11-24T18:40:29.876319+00:00",
+        "history_sql_counters": null,
+        "mode": "cold_session",
+        "phase_seconds": {
+          "client_buffered_fetch_conversion": 0.011144,
+          "execute_receive_driver": 0.960246,
+          "final_byte_comparison": 0.079335,
+          "hosted_checkout": 0.343453,
+          "hosted_verified_read_wall": 2.321168,
+          "input_validate_encode": 0.220441,
+          "local_page_preparation": 0.241954,
+          "pipeline_drain_receive": 0.125413,
+          "pipeline_enqueue": 0.007139,
+          "revision_decode_integrity": 0.523058
+        },
+        "seconds": 2.64254,
+        "started_at_utc": "2026-11-24T18:40:27.233748+00:00",
+        "under_four_seconds": true
+      },
+      {
+        "ended_at_utc": "2026-11-24T18:40:33.073504+00:00",
+        "history_sql_counters": null,
+        "mode": "warm_session_1",
+        "phase_seconds": {
+          "client_buffered_fetch_conversion": 0.007353,
+          "execute_receive_driver": 0.740754,
+          "final_byte_comparison": 0.046337,
+          "hosted_checkout": 0.000337,
+          "hosted_verified_read_wall": 1.737896,
+          "input_validate_encode": 0.382701,
+          "local_page_preparation": 0.170011,
+          "pipeline_drain_receive": 0.102367,
+          "pipeline_enqueue": 0.002994,
+          "revision_decode_integrity": 0.374102
+        },
+        "seconds": 1.954335,
+        "started_at_utc": "2026-11-24T18:40:31.119142+00:00",
+        "under_four_seconds": true
+      },
+      {
+        "ended_at_utc": "2026-11-24T18:40:36.486628+00:00",
+        "history_sql_counters": null,
+        "mode": "warm_session_2",
+        "phase_seconds": {
+          "client_buffered_fetch_conversion": 0.009458,
+          "execute_receive_driver": 0.832897,
+          "final_byte_comparison": 0.055337,
+          "hosted_checkout": 0.000453,
+          "hosted_verified_read_wall": 1.854716,
+          "input_validate_encode": 0.406933,
+          "local_page_preparation": 0.326059,
+          "pipeline_drain_receive": 0.101969,
+          "pipeline_enqueue": 0.003382,
+          "revision_decode_integrity": 0.328697
+        },
+        "seconds": 2.236204,
+        "started_at_utc": "2026-11-24T18:40:34.250399+00:00",
+        "under_four_seconds": true
+      },
+      {
+        "ended_at_utc": "2026-11-24T18:40:39.572059+00:00",
+        "history_sql_counters": null,
+        "mode": "warm_session_3",
+        "phase_seconds": {
+          "client_buffered_fetch_conversion": 0.006261,
+          "execute_receive_driver": 0.74051,
+          "final_byte_comparison": 0.056522,
+          "hosted_checkout": 0.000338,
+          "hosted_verified_read_wall": 1.542128,
+          "input_validate_encode": 0.214261,
+          "local_page_preparation": 0.250988,
+          "pipeline_drain_receive": 0.102233,
+          "pipeline_enqueue": 0.003303,
+          "revision_decode_integrity": 0.348605
+        },
+        "seconds": 1.849719,
+        "started_at_utc": "2026-11-24T18:40:37.722315+00:00",
+        "under_four_seconds": true
+      }
+    ],
+    "status": "verified"
+  },
+  "resource_window": {
+    "counter_deltas": {
+      "cpu_busy": 2690,
+      "cpu_full_us": 0,
+      "cpu_iowait": 50,
+      "cpu_some_us": 10635985,
+      "cpu_total": 17939,
+      "disk_busy_ms": 655,
+      "disk_read_bytes": 10141696,
+      "disk_write_bytes": 10547200,
+      "io_full_us": 266610,
+      "io_some_us": 328753,
+      "memory_full_us": 768,
+      "memory_some_us": 957,
+      "oom_kill": 0,
+      "pgmajfault": 1,
+      "pswpin": 0,
+      "pswpout": 0
+    },
+    "deployment_guard_kib": 1048576,
+    "from_utc": "2026-11-24T18:40:21.301527+00:00",
+    "mem_available_kib_max": 1008852,
+    "mem_available_kib_min": 955580,
+    "samples": 19,
+    "through_utc": "2026-11-24T18:41:51.301596+00:00"
+  },
+  "retained_archive_unchanged": true,
+  "scope": "One quiet, indexed read-only page. No live boundary, frontend render, estimates of pure transfer or capacity claims.",
+  "separate_hosted_sql_replay": {
+    "generation": "e07e981a-2617-43ac-a050-fcf4455a12f1",
+    "measured_by": "EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON)",
+    "origin": "pp-live-pp-trial-20261119-06",
+    "original_run_server_seconds": null,
+    "pin": {
+      "canonical_bytes": 828368,
+      "canonical_sha256": "9b2a25493f3ceb884525bf6cb6aefd6d7b02ebf17b7ec777ecc49364d6516353",
+      "first_id": 177478,
+      "last_id": 177978,
+      "ordered_ids_sha256": "2dde739e0b52e8f8f082b57f0f888ad2b18d9361ee716a0c4225750b924102b8",
+      "rows": 500
+    },
+    "pure_transfer_seconds": null,
+    "reader_role": "tradebot_pp_trial_20261119_06_reader",
+    "result_bytes_sent_by_explain": false,
+    "retirement_authorized": false,
+    "statement_families": {
+      "checkpoints": {
+        "execution_ms": 0.492,
+        "planning_ms": 2.065,
+        "rows": 2,
+        "statements": 2
+      },
+      "exact_revisions": {
+        "execution_ms": 3.408,
+        "planning_ms": 0.784,
+        "rows": 500,
+        "statements": 1
+      },
+      "indexed_latest_receipts": {
+        "execution_ms": 0.616,
+        "planning_ms": 0.153,
+        "rows": 49,
+        "statements": 1
+      },
+      "newer_revisions": {
+        "execution_ms": 0.112,
+        "planning_ms": 0.3,
+        "rows": 1,
+        "statements": 1
+      },
+      "projections": {
+        "execution_ms": 1.1460000000000004,
+        "planning_ms": 2.0249999999999995,
+        "rows": 49,
+        "statements": 49
+      }
+    },
+    "status": "verified_separate_sql_replay",
+    "total_sql_execution_ms": 5.774,
+    "total_sql_planning_ms": 5.326999999999999
+  },
+  "source_sha": "41955cf1a67a18f030ef45785fbcf4834b263ea6",
+  "status": "PASS_QUIET_PINNED_RETAINED_B",
+  "version": "v0.2.0-pp.32"
+}

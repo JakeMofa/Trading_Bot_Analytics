@@ -14,10 +14,13 @@ allowed the exact read-only audit. It verified **56 structured pages and
 50 raw objects in 195.076 seconds**, leaving **44.924 seconds** of 240 and
 clearing the 210-second admission condition. Retained B remained attached.
 
-The same guarded preparation then passed and trial07 A started at
-**10:45:10 a.m. CST**. Production's collector fence passed. The two elapsed
-30-minute windows, both verified removals, and terminal fresh-A readback
-remain open as of this checkpoint.
+The same guarded preparation passed and trial07 A started at
+**10:45:10 a.m. CST**. Production's collector fence passed. A sealed after
+30 minutes and 24 seconds. Full readback verified 25,533 structured rows and
+48 raw objects in 230.812 seconds. A's physical removal was confirmed
+6 minutes and 48 seconds after sealing. B persisted 34 Polymarket quotes
+during the verification, and post-removal history and calculation parity
+passed. B's elapsed window and terminal fresh-A readback are still open.
 
 [Admission evidence](PLAN/evidence/pp32-trial07-admission-2026-11-24.json).
 

@@ -13,6 +13,9 @@ authorized PP operator records a separate freeze of at most 295 seconds,
 covering all administrators and privileged automation that can change that
 seal's Storage objects, structured history or access policy. Normal successor
 writes may continue. Trial06 authority cannot authorize trial07 removal.
+The user confirmed both future announced trial07 windows in item
+`01a20b1f-cafa-74b3-8f6c-3bfbb3692fff`. Each window still needs its own start
+and expiry recorded against the exact seal before permit issue.
 Fresh readback still has 240 seconds, and local retirement must finish within
 30 minutes of the original seal. A verification or permit failure preserves
 the partition.

@@ -1,3 +1,24 @@
+## November 24, 2026 CST — PP31 deployed and indexed retained B passed
+
+A bounded pause of the modem service and the multipath daemon and socket
+raised available RAM from 1,062,832 to 1,080,964 KiB. The modem service had
+no modem and the host had no multipath mappings. The existing 1 GiB deployment
+floor passed. All three units were restored after
+[CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45341880562)
+passed with collection OFF. The prior trial05/06 fingerprints matched.
+
+The read-only audit proved the exact installed full outbox index valid,
+ready and live. It verified all **56 structured pages and 50 raw objects**
+in **187.906 seconds**, leaving **52.094 seconds**. This clears the
+210-second gate for one trial07 live attempt. Retained trial06 B remained
+attached. No retirement authority came from this audit.
+[Indexed audit evidence](PLAN/evidence/pp31-indexed-trial06-b-read-only-2026-11-24.json).
+
+The first trial07 preparation stopped before collector activation and restored
+generated mode. A diagnostic reproduced a five-second PostgreSQL statement
+timeout, and the subsequent read-only fingerprint checks passed under that
+same limit. Record live results separately after preparation and admission.
+
 ## November 24, 2026 CST — PP31 published; deployment held on memory
 
 The read-only query gate passed at **192.321 seconds** for all 56 pages and

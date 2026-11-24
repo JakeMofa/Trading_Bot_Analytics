@@ -9,7 +9,7 @@ from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, en
 from .history_v2_envelope import validate_outbox_stream
 from .lifecycle import LifecycleHold
 
-from .cloud_origin_binding import TRIAL_ORIGINS
+from .cloud_origin_binding import STRUCTURED_ORIGINS
 
 PP_STRUCTURED_ORIGIN = 'pp-live-pp'
 
@@ -20,7 +20,7 @@ class ActiveStructuredWorker:
 
     def __init__(self, repository, transport, *, origin_id: str,
                  limits: ArchiveLimits = ArchiveLimits()):
-        if origin_id not in (PP_STRUCTURED_ORIGIN,*TRIAL_ORIGINS):
+        if origin_id not in (PP_STRUCTURED_ORIGIN,*STRUCTURED_ORIGINS):
             raise ValueError('active structured sync requires exact PP origin')
         self.repository, self.transport = repository, transport
         self.origin_id, self.limits = origin_id, limits

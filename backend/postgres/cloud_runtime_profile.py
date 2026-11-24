@@ -1,5 +1,5 @@
 """Exact cloud runtime credential targets; no inline secrets or path overrides."""
-from .cloud_origin_binding import cloud_binding,LEGACY_ORIGIN,TRIAL_ORIGINS
+from .cloud_origin_binding import BOUNDARY_ORIGIN, LEGACY_ORIGIN, STRUCTURED_ORIGINS, TRIAL_ORIGINS, cloud_binding
 from .rehearsal_profile import cycle_anchor
 
 
@@ -8,11 +8,24 @@ def selected_cloud_origin(environ):
     cloud_binding(origin)
     if origin in TRIAL_ORIGINS:
         cycle_anchor(environ)
+    if origin == BOUNDARY_ORIGIN and (
+            environ.get('TRADEBOT_PP_BOUNDARY_STRUCTURED') != 'true'
+            or environ.get('TRADEBOT_PP_STRUCTURED_RECURRING') != 'true'
+            or environ.get('TRADEBOT_PP_RETAIN_REVISIONS') != 'true'
+            or environ.get('TRADEBOT_PP_CYCLE_INITIAL_A') is not None
+            or environ.get('TRADEBOT_PP_WINDOW_POLICY') is not None):
+        raise ValueError('exact boundary structured-drain profile required')
     return origin
 
 
 def cloud_files(origin,*,reader=False):
     cloud_binding(origin).role(reader=reader)
+    if origin == BOUNDARY_ORIGIN:
+        return {
+            'TRADEBOT_DATABASE_DSN_FILE': '/run/secrets/lifecycle_dsn',
+            'TRADEBOT_PP_HISTORY_DSN_FILE': '/run/secrets/pp_boundary_history_' + ('reader' if reader else 'writer') + '_dsn',
+            'TRADEBOT_PP_HISTORY_CA_FILE': '/run/secrets/pp_history_ca',
+        }
     if origin==LEGACY_ORIGIN:
         return {
             'TRADEBOT_DATABASE_DSN_FILE':'/run/secrets/lifecycle_dsn',
@@ -37,7 +50,9 @@ def cloud_files(origin,*,reader=False):
 
 def require_trial_files(environ,origin,*,reader=False,structured=False,storage=False):
     """Legacy checks stay at their existing call sites. Trial paths are exact."""
-    if origin not in TRIAL_ORIGINS: return
+    if origin not in STRUCTURED_ORIGINS: return
+    if origin == BOUNDARY_ORIGIN and storage:
+        raise ValueError('boundary diagnostic does not authorize raw Storage access')
     files=cloud_files(origin,reader=reader)
     keys=[]
     if structured: keys+=['TRADEBOT_PP_HISTORY_DSN_FILE','TRADEBOT_PP_HISTORY_CA_FILE']

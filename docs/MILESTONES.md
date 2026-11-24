@@ -1,3 +1,121 @@
+## November 24, 2026 CST — Scoped four-boundary controller ready for CI
+
+The diagnostic runtime prepares one exact fresh PP origin and a separately
+owned structured worker. Its collector permit binds a **4,100-second**
+lease and an unused initial generation. Trace is enabled only for the
+diagnostic operator. No market-pair rotation, raw archive worker or
+retirement permission is included. The existing 10,000-pending-row
+limit remains in place. Hosted proof and the running scoped drain are
+required before the one-use ON permit can issue or be consumed.
+
+Normalized Docker Compose, disposable PostgreSQL 17 preparation and
+lease tests, and the host control suite passed locally. The disposable
+fixture proved that the prior writer was unchanged and re-preparation
+after admission was held. The production fence and previously sealed
+data were outside these tests. A read-only hosted inventory found zero
+of the new roles and zero matching policies in the shared history schema.
+
+Open gates are exact CI, controller installation and identity qualification,
+the source/image-bound PP release, and separately authorized provisioning
+and readback verification of the two new PP-only hosted history roles.
+No live comparison has started.
+
+## November 24, 2026 CST — PP WebSocket authenticated. Boundary deployment pending.
+
+A one-shot official Polymarket US markets handshake succeeded from PP32
+using only the key pair found in the developer checkout's private `.env`.
+The probe used temporary protected read-only mounts, then exited. It did
+not subscribe or place orders. The two file settings were not present in
+the deployed services. Offline tests cover the status-only handshake.
+
+The fresh PP boundary origin now has a local structured-only worker
+contract and a review-only hosted role template. Disposable PostgreSQL 17
+verified isolated writes and reads. The reader has no mutation privileges
+and the writer's scope excludes other origins and raw coverage. No hosted
+roles or credentials were created. The controlled live host profile,
+qualified successor release, and independent hosted drain proof remain
+prerequisites for admitting the collector. The prior origins remain
+sealed, and the normal 10,000-row pending limit still applies.
+
+## November 24, 2026 CST — Quiet retained-B history passed. Boundary trace pending.
+
+PP32 read and verified the exact first 500 retained trial06 B rows
+(828,368 canonical bytes) with both collectors off. The first hosted
+session took 2.643s end to end. Three fresh read-only transactions on the
+reused session took 1.954s, 2.236s and 1.850s. All four met the 4s page
+target. The separately replayed 54 hosted SELECTs took 5.327ms of planning
+and 5.774ms of execution under the same reader. The replay returned plans
+instead of result rows. It cannot measure pure transfer or attribute the
+exact server time of the original runs. The quiet page does not justify a
+new index or RPC.
+
+Over 19 quiet samples, available RAM ranged from about 933 to 985 MiB.
+There was no swap or OOM activity, and cumulative memory-some pressure
+rose by 957 microseconds over 90 seconds. Keep the 2 GB VM for the matched
+boundary test. The separate 1 GiB deployment guard had low headroom.
+Concurrent memory-pressure attribution remains open.
+
+Trial07's earlier dashboard samples found consecutive market IDs about
+20–26 seconds after the boundary. Fresh quote samples arrived about
+26–132 seconds after the boundary. Those observations cannot identify
+the first usable receipt, durable write acknowledgement, or the effect of
+pre-discovery and WebSocket on those same markets.
+
+The offline trace tools capture request, usable receipt, acknowledged
+canonical writes and API visibility, and independently sample CPU, memory
+pressure, I/O and backlog. PP has no configured Polymarket US WebSocket
+credential. Both its generic live origin and trial07 end in verified sealed
+partitions. Before a live comparison, qualify a dedicated PP diagnostic
+origin and release with opt-in trace, the existing sole-collector fencing
+and an independent structured drain scoped only to that new origin. Keep
+the normal 10,000 pending-row limit. Trial07 produced 50,432 structured
+rows across its two main windows, so a comparable run without the drain
+would run out of queue headroom. Keep retirement off for this diagnostic.
+
+[Quiet profile and previous dashboard observations](PLAN/evidence/pp32-retained-b-500-quote-diagnostics-2026-11-24.json).
+
+## November 24, 2026 CST — PP32 trial07 passed A → B → fresh A
+
+PR #213's paged preparation shipped in PP32 (`41955cf`).
+[Exact push CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45437111470)
+and [generated CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45438977810)
+passed. The 1 GiB memory guard stayed in effect and the temporarily paused
+host units were restored. All five retained trial05 and trial06 fingerprints
+matched after deployment.
+
+An initial read-only launcher stopped before readback because trial06's
+transition journal had been archived when PP31 attempted trial07. Matching
+the root-owned historical journal and the current stopped trial07 journal
+allowed the exact read-only audit. It verified **56 structured pages and
+50 raw objects in 195.076 seconds**, leaving **44.924 seconds** of 240 and
+clearing the 210-second admission condition. Retained B remained attached.
+
+Trial07 A started at **10:45:10 a.m. CST**. One collector session completed
+both elapsed windows and switched from A to B to a distinct fresh A.
+
+| Sealed slot | Collection window | Verified structured rows and raw objects | Full readback | Seal to local removal | New Polymarket quotes in successor during verification |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| A | 30m 24s | 25,533 / 48 | 230.812s | 6m 48s | 34 |
+| B | 30m 03s | 24,899 / 47 | 225.498s | 6m 46s | 33 |
+
+Both partitions were physically absent after verified readback, with exact
+dashboard history and calculation parity afterward. Terminal fresh A had
+**50 Polymarket quotes**, 5,030 raw events and 5,458 structured acknowledgements.
+Final readback verified all 11 objects and the structured rows. The terminal
+partition remains attached. PP collection and archive workers are OFF.
+Production's existing collector fence is still active. The final read-only
+comparison matched all five retained trial05 and trial06 fingerprints.
+
+The collector stayed enabled during market rollover gaps. At two sampled
+15-minute boundaries, the next market's quotes became fresh about two minutes
+after the boundary. The observer also recorded ten initial local tunnel
+connection errors before the tunnel was reopened. Among 799 successful PP
+samples, maximum health/state timings were 387/423 ms. These results close
+the trial07 elapsed-window test. I7 full freshness and 72-hour production
+qualification remain open.
+
+[Trial07 evidence](PLAN/evidence/pp32-trial07-admission-2026-11-24.json).
+
 ## November 24, 2026 CST — PP31 deployed and indexed retained B passed
 
 A bounded pause of the modem service and the multipath daemon and socket

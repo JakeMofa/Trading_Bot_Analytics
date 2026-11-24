@@ -85,6 +85,7 @@ except (DeploymentHold,OSError,ValueError) as error:
                       'invalid_pp_trial_origin', 'pp_trial_requires_anchor','invalid_pp_trial_origin','pp_trial_requires_anchor',
                       'pp_trial_archive_readiness_unqualified','trial_cloud_profile_not_yet_qualified',
                       'pp_trial_session_binding_mismatch','pp_trial_preparation_unproven',
+                      'boundary_hosted_drain_proof_required','boundary_raw_archive_disabled',
                       'pp_filesystem_sample_unavailable','stop_recurring_structured_sync_first','stop_recurring_archive_first',
                       'generated_runtime_check_failed','trial_authority_rebind_pending',
                       'generated_api_readiness_timeout',

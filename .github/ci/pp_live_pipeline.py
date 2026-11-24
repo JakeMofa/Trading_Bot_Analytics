@@ -75,7 +75,9 @@ def exact_deployed_ci(api, candidate, branch):
 
 ELAPSED_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-07'
 ELAPSED_TRIAL_BINDING = {'profile': 'elapsed-30m-cycle', 'window_seconds': 1800}
-STOP_ORIGINS = ('pp-live-pp', *(f'pp-live-pp-trial-20261119-{leg:02}' for leg in range(1, 8)))
+BOUNDARY_ORIGIN = 'pp-live-pp-boundary-20261124-01'
+BOUNDARY_BINDING = {'profile': 'boundary-diagnostic-v1'}
+STOP_ORIGINS = ('pp-live-pp', BOUNDARY_ORIGIN, *(f'pp-live-pp-trial-20261119-{leg:02}' for leg in range(1, 8)))
 
 
 def command_for(env, api, profile):
@@ -89,7 +91,7 @@ def command_for(env, api, profile):
     anchor = env.get('PP_CYCLE_INITIAL_A', '')
     trial_origin=env.get('PP_TRIAL_ORIGIN','')
     if trial_origin:
-        require(trial_origin==ELAPSED_TRIAL_ORIGIN and bool(anchor)
+        require(trial_origin in (ELAPSED_TRIAL_ORIGIN, BOUNDARY_ORIGIN) and bool(anchor)
                 and operation in ('enter','on'),'exact anchored PP trial origin required')
     if anchor:
         try:
@@ -102,8 +104,9 @@ def command_for(env, api, profile):
         if operation == 'off':
             return 'session-v1 off', {'operation': 'off'}
         seconds = env.get('PP_LIVE_SECONDS', '')
+        exact = 4100 if trial_origin == BOUNDARY_ORIGIN else 6600 if anchor else None
         require(re.fullmatch(r'[0-9]{1,4}', seconds) is not None
-                and (int(seconds) == 6600 if anchor else 1 <= int(seconds) <= 4560),
+                and (int(seconds) == exact if exact else 1 <= int(seconds) <= 4560),
                 'bounded session seconds required')
         binding = ({'initial_a': anchor} if anchor else {}) | ({'trial_origin':trial_origin} if trial_origin else {})
         return ('session-v1 on ' + str(int(seconds)) + (' ' + anchor if anchor else '') + (' '+trial_origin if trial_origin else ''),
@@ -162,9 +165,10 @@ def validated_result(operation, result, initial_a=None, trial_origin=None):
     require(result.get('gate') == expected and valid_origin
             and result.get('collector_enabled') is (operation == 'on')
             and result.get('initial_a') == initial_a, 'PP live result mismatch')
-    binding = ELAPSED_TRIAL_BINDING if trial_origin == ELAPSED_TRIAL_ORIGIN else {}
+    binding = ({ELAPSED_TRIAL_ORIGIN: ELAPSED_TRIAL_BINDING, BOUNDARY_ORIGIN: BOUNDARY_BINDING}
+               .get(trial_origin, {}))
     require(all(result.get(key) == binding.get(key) for key in ELAPSED_TRIAL_BINDING),
-            'PP live elapsed profile mismatch')
+            'PP live profile mismatch')
     return {'gate': expected, 'origin_id': result['origin_id'],
             'collector_enabled': result['collector_enabled']} | binding
 

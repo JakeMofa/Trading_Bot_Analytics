@@ -1,0 +1,60 @@
+# Explicit PP-only one-shot diagnostic overlay. Normal CD never loads this file.
+# The extra service is profile-gated and does not alter the persistent lifecycle.
+services:
+  structured_probe:
+    image: ${PP_APP_IMAGE:?supply qualified local image ID}
+    pull_policy: never
+    profiles: [trial_structured]
+    command: [python, -m, postgres.pp_structured_service]
+    user: '0:0' # read root-owned, single-file secrets in this one-shot container
+    restart: 'no'
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.25
+    pids_limit: 64
+    read_only: true
+    tmpfs: ['/tmp:size=16m,mode=1777']
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: /app/backend
+      TRADEBOT_ENVIRONMENT: preprod
+      TRADEBOT_DATA_MODE: pp_live
+      TRADEBOT_ORIGIN_ID: pp-live-pp-boundary-20261124-01
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
+      TRADEBOT_COLLECTOR_ENABLED: 'false'
+      TRADEBOT_CLOUD_ENABLED: 'false'
+      TRADEBOT_RETIREMENT_ENABLED: 'false'
+      ENABLE_SUPABASE_SYNC: 'false'
+      ENABLE_LOCAL_RETENTION: 'false'
+      ENABLE_OPENAI_ANALYST: 'false'
+      TRADEBOT_PP_HISTORY_DSN_FILE: /run/secrets/pp_boundary_history_writer_dsn
+      TRADEBOT_PP_HISTORY_CA_FILE: /run/secrets/pp_history_ca
+      TRADEBOT_PP_STRUCTURED_ONE_SHOT: 'false'
+      TRADEBOT_PP_STRUCTURED_RECURRING: 'true'
+      TRADEBOT_PP_BOUNDARY_STRUCTURED: 'true'
+      TRADEBOT_PP_RETAIN_REVISIONS: 'true'
+      TRADEBOT_PP_SYNC_BARRIERS: 'true'
+      TRADEBOT_PP_REUSE_HISTORY_SESSION: 'true'
+    secrets:
+      - {source: probe_local_dsn, target: /run/secrets/lifecycle_dsn}
+      - pp_boundary_history_writer_dsn
+      - pp_history_ca
+    networks: [database, structured_probe_egress]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options: {max-size: 5m, max-file: '2'}
+secrets:
+  probe_local_dsn:
+    file: /run/tradebot-pp-deploy/probe-local-dsn
+  pp_boundary_history_writer_dsn:
+    file: /etc/tradebot/cloud/boundary_20261124_01_history_writer_dsn
+  pp_history_ca:
+    file: /etc/tradebot/cloud/pp_history_ca
+networks:
+  structured_probe_egress:
+    driver: bridge

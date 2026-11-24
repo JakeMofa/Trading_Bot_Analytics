@@ -9,7 +9,8 @@ import signal
 import threading
 
 from .lifecycle import LifecycleRepository, RotationPolicy
-from .rehearsal_profile import cycle_anchor, elapsed_cycle_seconds, CYCLE_POLICY, CYCLE_ORIGINS, ELAPSED_CYCLE_POLICY
+from .rehearsal_profile import (BOUNDARY_POLICY, CYCLE_ORIGINS, CYCLE_POLICY, ELAPSED_CYCLE_POLICY,
+                                cycle_anchor, elapsed_cycle_seconds)
 
 
 def configuration(environ):
@@ -40,7 +41,7 @@ def configuration(environ):
     trial = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = cycle_anchor(environ)
     elapsed_cycle = elapsed_cycle_seconds(environ)
-    if trial is not None and (trial not in ('two-official-markets', CYCLE_POLICY, ELAPSED_CYCLE_POLICY) or mode != 'pp_live'
+    if trial is not None and trial != BOUNDARY_POLICY and (trial not in ('two-official-markets', CYCLE_POLICY, ELAPSED_CYCLE_POLICY) or mode != 'pp_live'
             or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin not in CYCLE_ORIGINS):
         raise ValueError('invalid PP market-window qualification profile')
     if mode == 'pp_live' and size is not None:
@@ -52,7 +53,7 @@ def configuration(environ):
     generated_storage=requested(environ,mode,origin)
     return {'origin_id': origin, 'mode': mode, 'generated_storage':generated_storage,
             'policy': RotationPolicy(int(size) if size else None),
-            'pending_outbox_limit': pending, 'market_pair_trial': trial is not None, 'rehearsal_anchor': anchor,
+            'pending_outbox_limit': pending, 'market_pair_trial': trial not in (None, BOUNDARY_POLICY), 'rehearsal_anchor': anchor,
             'rehearsal_window_seconds': elapsed_cycle}
 
 

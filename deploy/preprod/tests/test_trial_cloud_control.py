@@ -42,6 +42,32 @@ def child_config(base,live,archive):
     return cfg
 
 class ProfileTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('docker'),'Docker Compose unavailable')
+    def test_boundary_compose_uses_structured_only_authority(self):
+        folder=Path(__file__).resolve().parents[1]
+        env={**os.environ,'PP_APP_IMAGE':IMAGE,'PP_SECRET_DIR':str(a.SECRETS),
+             'PP_RUNTIME_SECRET_DIR':str(a.RUNTIME_SECRETS),
+             **a.cycle_environment(ANCHOR,a.BOUNDARY_ORIGIN)}
+
+        def render(files):
+            command=['docker','compose','--env-file','/dev/null','--profile','migration',
+                     '--profile','trial_structured','--project-directory',str(folder)]
+            for name in files:command+=['-f',str(folder/name)]
+            return render_config([*command,'config','--format','json'],env=env,timeout=10)
+
+        basefiles=['compose.yaml','runtime.compose.yaml']
+        livefiles=[*basefiles,'runtime.live.compose.yaml','runtime.live-boundary.compose.yaml']
+        base,live,child=(render(files) for files in
+                         (basefiles,livefiles,[*livefiles,'runtime.boundary-structured.compose.yaml']))
+        p.validate_profile(base,live,child,folder.parent.parent,IMAGE,ANCHOR,boundary=True)
+        self.assertEqual(live['services']['operator']['environment']['TRADEBOT_PP_BOUNDARY_TRACE'],'1')
+        self.assertNotIn('TRADEBOT_PP_CYCLE_INITIAL_A',live['services']['lifecycle']['environment'])
+        self.assertNotIn('sealed_archive',child['services'])
+        self.assertTrue(a.allowed_session_seconds(4100,scoped=True,origin=a.BOUNDARY_ORIGIN))
+        self.assertFalse(a.allowed_session_seconds(6600,scoped=True,origin=a.BOUNDARY_ORIGIN))
+        with self.assertRaises(DeploymentHold):
+            p.child_service(base,ANCHOR,boundary=True,archive=True)
+
     def test_measured_modes_are_exact_structured_trial_child_only(self):
         base=configuration(Path('/reviewed/source'));live=live_config(base)
         flags=('TRADEBOT_PP_SYNC_BARRIERS','TRADEBOT_PP_REUSE_HISTORY_SESSION')
@@ -222,14 +248,14 @@ class WorkerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'owner.json';ctx=SimpleNamespace(request=SimpleNamespace(source_sha=SOURCE),image=IMAGE)
             actions=MagicMock();actions.attempt_id='a'*32
-            with patch('structured_probe_control.SYNC_STATE',path),patch.object(c,'preflight',return_value=(ctx,actions,ANCHOR,'b'*64,self.base)), \
+            with patch('structured_probe_control.SYNC_STATE',path),patch.object(c,'preflight',return_value=(ctx,actions,ANCHOR,'b'*64,self.base,a.TRIAL_ORIGIN)), \
                  patch('structured_probe_control._stage_local_secret',return_value=nullcontext()),patch.object(c,'_compose') as compose, \
                  patch.object(c,'_inspect_worker',return_value=self.row()),patch.object(c.Budget,'run',return_value=b'{"status": "structured_worker_ready"}\n'):
                 self.assertEqual(c.start(Path('bundle'))['origin_id'],a.TRIAL_ORIGIN)
                 self.assertEqual(json.loads(path.read_text()),self.owner)
                 self.assertIn('--no-deps',compose.call_args.args[-1])
             path.unlink()
-            with patch('structured_probe_control.SYNC_STATE',path),patch.object(c,'preflight',return_value=(ctx,actions,ANCHOR,'b'*64,self.base)), \
+            with patch('structured_probe_control.SYNC_STATE',path),patch.object(c,'preflight',return_value=(ctx,actions,ANCHOR,'b'*64,self.base,a.TRIAL_ORIGIN)), \
                  patch('structured_probe_control._stage_local_secret',return_value=nullcontext()),patch.object(c,'_compose',side_effect=DeploymentHold('failed')), \
                  patch('structured_probe_control.recurring_control') as stop:
                 with self.assertRaises(DeploymentHold):c.start(Path('bundle'))

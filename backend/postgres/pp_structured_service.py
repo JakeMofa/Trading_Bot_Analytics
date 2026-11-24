@@ -5,7 +5,7 @@ import signal
 import threading
 import time
 
-from .cloud_origin_binding import TRIAL_ORIGIN, TRIAL_ORIGINS, cloud_binding
+from .cloud_origin_binding import TRIAL_ORIGIN, STRUCTURED_ORIGINS, cloud_binding
 from .cloud_runtime_profile import selected_cloud_origin,cloud_files,require_trial_files
 from .archive_codec import ArchiveIntegrityError, ArchiveLimit, ArchiveUnavailable
 from .connection import connect
@@ -25,7 +25,7 @@ RECURRING_LIMITS = DrainLimits(max_cycles=1, max_cycle_rows=50)
 def synchronized_batches_requested(environ, *, origin, retain_revisions):
     value = environ.get('TRADEBOT_PP_SYNC_BARRIERS', 'false')
     if (value not in ('true', 'false') or
-            value == 'true' and (origin not in TRIAL_ORIGINS or not retain_revisions)):
+            value == 'true' and (origin not in STRUCTURED_ORIGINS or not retain_revisions)):
         raise ArchiveIntegrityError('exact trial revision-retaining synchronization opt-in required')
     return value == 'true'
 

@@ -13,6 +13,37 @@ import postgres.pp_structured_service as service
 
 
 class StructuredServiceTests(unittest.TestCase):
+    def test_boundary_origin_can_drain_only_with_explicit_scoped_role_and_files(self):
+        from postgres.cloud_origin_binding import BOUNDARY_ORIGIN, BOUNDARY_READER, BOUNDARY_WRITER, TRIAL_ORIGINS
+        from postgres.cloud_runtime_profile import cloud_files, require_trial_files
+        from postgres.history_v2_transport import HistoryV2PostgresTransport
+
+        self.assertNotIn(BOUNDARY_ORIGIN, TRIAL_ORIGINS)
+        env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
+                   TRADEBOT_ORIGIN_ID=BOUNDARY_ORIGIN, TRADEBOT_PP_BOUNDARY_STRUCTURED='true',
+                   TRADEBOT_PP_STRUCTURED_RECURRING='true', TRADEBOT_PP_RETAIN_REVISIONS='true')
+        env.update(cloud_files(BOUNDARY_ORIGIN))
+        check_environment(env, recurring=True, origin_id=BOUNDARY_ORIGIN)
+        require_trial_files(env, BOUNDARY_ORIGIN, structured=True)
+        for key, value in [('TRADEBOT_PP_BOUNDARY_STRUCTURED', 'false'),
+                           ('TRADEBOT_PP_RETAIN_REVISIONS', 'false'),
+                           ('TRADEBOT_PP_CYCLE_INITIAL_A', 'some-anchor')]:
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                check_environment(env | {key: value}, recurring=True, origin_id=BOUNDARY_ORIGIN)
+        with self.assertRaises(ValueError):
+            require_trial_files(env, BOUNDARY_ORIGIN, storage=True)
+        with self.assertRaises(ValueError):
+            require_trial_files(env | cloud_files(service.TRIAL_ORIGIN), BOUNDARY_ORIGIN, structured=True)
+        factory = Mock()
+        transport_args = dict(origin_id=BOUNDARY_ORIGIN, generation_id='generation',
+                              expected_database='postgres')
+        for role, read_only in ((BOUNDARY_WRITER, False), (BOUNDARY_READER, True)):
+            scoped = HistoryV2PostgresTransport(factory, expected_role=role, **transport_args)
+            self.assertIs(scoped._read_only, read_only)
+        with self.assertRaises(ValueError):
+            HistoryV2PostgresTransport(factory, expected_role='tradebot_pp_history', **transport_args)
+        factory.assert_not_called()
+
     def test_opt_in_reuse_selects_single_session_and_closes_on_stop(self):
         with (patch.dict(service.os.environ, {'TRADEBOT_PP_REUSE_HISTORY_SESSION':'true'}),
               patch.object(service.signal, 'signal'),
@@ -135,7 +166,7 @@ class StructuredServiceTests(unittest.TestCase):
             row=dict(Id='e'*64,State=dict(Running=True))
             with (patch.object(legacy,'_require_stopped'),patch.object(legacy,'_write_sync_owner'),
                   patch.object(legacy,'_stage_local_secret',return_value=nullcontext()),
-                  patch.object(trial,'preflight',return_value=(ctx,actions,'generation','c'*64,{})),
+                  patch.object(trial,'preflight',return_value=(ctx,actions,'generation','c'*64,{},trial.TRIAL_ORIGIN)),
                   patch.object(trial,'_compose'),patch.object(trial,'_inspect_worker',return_value=row),
                   patch.object(trial.Budget,'run',return_value=raw),patch.object(trial.time,'sleep') as wait):
                 self.assertEqual(trial.start(Path('bundle'))['status'],'started')

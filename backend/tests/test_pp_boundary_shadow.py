@@ -158,6 +158,12 @@ class ShadowTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result[0]['displayed_within_5s'])
         self.assertIsNone(result[0]['ws_first_in_window_exchange_book_utc'])
         self.assertIsNone(result[1]['websocket_first_utc'])
+        partial = list(summary(START, canonical, early[:-1]))[0]
+        self.assertEqual(partial['observation_status'], 'partial_or_absent')
+        self.assertFalse(partial['three_reader_match'])
+        self.assertIsNone(partial['early_rest_minus_ws_ms'])
+        without_ws = [r for r in early if r['reader'] != 'websocket']
+        self.assertFalse(list(summary(START, canonical, without_ws))[0]['three_reader_match'])
         early[3]['received_at'] = shadow.utc(START + 4.2)
         self.assertIsNone(list(summary(START,canonical,early))[0]['displayed_within_5s'])
         early[1]['market_id'] = 'different'

@@ -1,4 +1,4 @@
-## November 24, 2026 CST — PP32 passed indexed readback and trial07 admitted
+## November 24, 2026 CST — PP32 trial07 passed A → B → fresh A
 
 PR #213's paged preparation shipped in PP32 (`41955cf`).
 [Exact push CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45437111470)
@@ -14,15 +14,31 @@ allowed the exact read-only audit. It verified **56 structured pages and
 50 raw objects in 195.076 seconds**, leaving **44.924 seconds** of 240 and
 clearing the 210-second admission condition. Retained B remained attached.
 
-The same guarded preparation passed and trial07 A started at
-**10:45:10 a.m. CST**. Production's collector fence passed. A sealed after
-30 minutes and 24 seconds. Full readback verified 25,533 structured rows and
-48 raw objects in 230.812 seconds. A's physical removal was confirmed
-6 minutes and 48 seconds after sealing. B persisted 34 Polymarket quotes
-during the verification, and post-removal history and calculation parity
-passed. B's elapsed window and terminal fresh-A readback are still open.
+Trial07 A started at **10:45:10 a.m. CST**. One collector session completed
+both elapsed windows and switched from A to B to a distinct fresh A.
 
-[Admission evidence](evidence/pp32-trial07-admission-2026-11-24.json).
+| Sealed slot | Collection window | Verified structured rows and raw objects | Full readback | Seal to local removal | New Polymarket quotes in successor during verification |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| A | 30m 24s | 25,533 / 48 | 230.812s | 6m 48s | 34 |
+| B | 30m 03s | 24,899 / 47 | 225.498s | 6m 46s | 33 |
+
+Both partitions were physically absent after verified readback, with exact
+dashboard history and calculation parity afterward. Terminal fresh A had
+**50 Polymarket quotes**, 5,030 raw events and 5,458 structured acknowledgements.
+Final readback verified all 11 objects and the structured rows. The terminal
+partition remains attached. PP collection and archive workers are OFF.
+Production's existing collector fence is still active. The final read-only
+comparison matched all five retained trial05 and trial06 fingerprints.
+
+The collector stayed enabled during market rollover gaps. At two sampled
+15-minute boundaries, the next market's quotes became fresh about two minutes
+after the boundary. The observer also recorded ten initial local tunnel
+connection errors before the tunnel was reopened. Among 799 successful PP
+samples, maximum health/state timings were 387/423 ms. These results close
+the trial07 elapsed-window test. I7 full freshness and 72-hour production
+qualification remain open.
+
+[Trial07 evidence](evidence/pp32-trial07-admission-2026-11-24.json).
 
 ## November 24, 2026 CST — PP31 deployed and indexed retained B passed
 

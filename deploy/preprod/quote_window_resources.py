@@ -123,16 +123,14 @@ def jsonl(path):
                 yield json.loads(line)
 
 
-def summarize_wait(window):
-    """Summarize intervals wholly inside the boundary-to-first-display wait."""
-    start = instant(window['window_start'])
-    end = instant(window['first_quote_utc']['dashboard_first_utc'])
-    if end is None or end < start or end >= start+900:
+def summarize_span(rows, start, end):
+    """Summarize intervals wholly inside a measured PP time span."""
+    if end is None or end < start:
         return None
-    points = [row for row in window['samples'] if instant(row['at_utc']) <= end]
+    points = [row for row in rows if start <= instant(row['at_utc']) <= end]
     intervals = [row['interval_ending_here'] for row in points
-                 if 0 < row['interval_ending_here'].get('seconds', 0) <= row['seconds_since_boundary']]
-    summary = {'wait_seconds': round(end-start, 3), 'samples_in_wait': len(points),
+                 if 0 < row['interval_ending_here'].get('seconds', 0) <= instant(row['at_utc'])-start]
+    summary = {'duration_seconds': round(end-start, 3), 'samples_in_span': len(points),
                'intervals_wholly_in_wait': len(intervals),
                'covered_seconds': round(sum(item['seconds'] for item in intervals), 3)}
     memory = [row['mem_available_kib'] for row in points if row['mem_available_kib'] is not None]
@@ -143,7 +141,7 @@ def summarize_wait(window):
     for key in ('memory_some_stall_pct','memory_full_stall_pct','io_full_stall_pct','cpu_busy_pct','cpu_iowait_pct'):
         rates = [item.get(key) for item in intervals]
         summary['peak_'+key] = max((v for v in rates if v is not None), default=None)
-    pending = [row['archive']['pending'] for row in points if row['archive'] is not None]
+    pending = [row['archive']['pending'] for row in points if row.get('archive') is not None]
     summary['max_observed_pending'] = max(pending, default=None)
     return summary
 
@@ -172,8 +170,21 @@ def build_report(samples, observations, boundaries, origin):
             'device': sample['device'], 'mem_available_kib': sample['mem_available_kib'], 'interval_ending_here': diff,
             'archive': backlog(observations[j] if j>=0 else None, ts, origin)})
     for window in windows:
-        window['during_wait_for_dashboard'] = summarize_wait(window)
+        start = instant(window['window_start'])
+        end = instant(window['first_quote_utc']['dashboard_first_utc'])
+        window['during_wait_for_dashboard'] = summarize_span(window['samples'], start, end) if end is not None and end < start+900 else None
     return {'origin_id': origin, 'windows': windows}
+
+
+def profile_report(samples, profile):
+    rows, previous = [], None
+    for sample in samples:
+        rows.append({'at_utc': sample['at_utc'], 'mem_available_kib': sample['mem_available_kib'],
+                     'interval_ending_here': interval(previous, sample)})
+        previous = sample
+    return [{'mode': run['mode'], 'started_at_utc': run['started_at_utc'], 'ended_at_utc': run['ended_at_utc'],
+             'resources': summarize_span(rows, instant(run['started_at_utc']), instant(run['ended_at_utc']))}
+            for run in profile['runs']]
 
 
 def sample_host(args):
@@ -202,9 +213,14 @@ def main():
     report.add_argument('--db-observations', type=Path)
     report.add_argument('--boundaries', type=Path, required=True, help='four-row first-quote CSV containing window_start')
     report.add_argument('--origin', required=True)
+    quiet = cmds.add_parser('quiet-report')
+    quiet.add_argument('--samples', type=Path, required=True)
+    quiet.add_argument('--profile', type=Path, required=True)
     args = parser.parse_args()
     if args.command == 'sample':
         sample_host(args)
+    elif args.command == 'quiet-report':
+        print(json.dumps(profile_report(jsonl(args.samples), json.loads(args.profile.read_text()))))
     else:
         with args.boundaries.open(newline='') as f:
             output = build_report(jsonl(args.samples), jsonl(args.db_observations) if args.db_observations else (),

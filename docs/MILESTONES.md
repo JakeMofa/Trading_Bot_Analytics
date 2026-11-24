@@ -23,8 +23,9 @@ It was never deployed. Its [exact check](https://github.com/JakeMofa/Trading_Bot
 failed because a new permit test skipped inside a phase that rejects skips.
 The elapsed candidate's permit test accepts the existing isolated Linux CI
 database and still exercises actual PostgreSQL on a disposable cluster locally.
-PP30 remains the latest recorded rollout. Trial05 and retained trial06 B
-remain outside the new scope. No production size or retirement policy changes.
+A fresh read-only PP check confirmed PP30 deployed with collection OFF.
+Trial05 A/B and trial06 verified B and terminal A remain attached with their
+writers OFF. Trial07 has no generation or writer yet. No production size or retirement policy changes.
 
 ## November 23, 2026 CST — Retained B timeout identified on PP
 

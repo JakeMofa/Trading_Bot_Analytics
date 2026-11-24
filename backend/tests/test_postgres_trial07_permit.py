@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -176,3 +176,55 @@ class Trial07TerminalControl(unittest.TestCase):
              patch('postgres.pp_final_trial_drain.private_dsn') as credential:
             self.assertEqual(main(args), 1)
             credential.assert_not_called()
+
+
+    def test_terminal_chain_requires_both_full_windows_and_scoped_quotes(self):
+        from postgres.lifecycle import LifecycleHold
+        from postgres.pp_final_trial_drain import SealTarget, completed_chain
+
+        generations = [str(uuid.uuid4()) for _ in range(3)]
+        target = SealTarget(generations[2], generations[0], 4, 1, 1, 'a' * 40,
+                            str(uuid.uuid4()), 'b' * 40)
+        admitted = datetime(2026, 11, 23, 20, tzinfo=timezone.utc)
+        cursor = dict(initial_a=target.initial_a, profile=ELAPSED_CYCLE_POLICY,
+                      window_seconds=ELAPSED_CYCLE_SECONDS)
+        prepared = cursor | dict(policy='trial:initial-a-prepare-v1', source_sha=target.trial_source)
+        admission = cursor | dict(lease_seconds=6600, session_id=str(uuid.uuid4()),
+                                  admitted_at=admitted.isoformat(),
+                                  lease_expires_at=(admitted + timedelta(seconds=6600)).isoformat())
+
+        def database(*, second_seconds=1800, handoff_quotes=1, terminal_quote=True):
+            first_seal = admitted + timedelta(seconds=1800)
+            second_seal = first_seal + timedelta(seconds=second_seconds)
+            times = [admitted, first_seal, second_seal]
+            rows = []
+            results = [Mock(fetchall=Mock(return_value=rows)),
+                       Mock(fetchone=Mock(return_value={'cursor': prepared})),
+                       Mock(fetchone=Mock(return_value={'cursor': admission}))]
+            for index, generation in enumerate(generations[:2]):
+                seal = times[index + 1]
+                row = dict(generation_id=generation, slot='AB'[index], state='retired',
+                           sealed_at=seal, started_at=times[index],
+                           verified_at=seal + timedelta(seconds=40),
+                           retired_at=seal + timedelta(seconds=80),
+                           seal_hash='c' * 64, seal_count=1,
+                           partition_name='events_g_' + uuid.UUID(generation).hex)
+                rows.append(row)
+                proof = dict(enabled=True, policy='pp-exact-retirement-v1',
+                             source=target.trial_source, seal_hash=row['seal_hash'], count=1,
+                             active=generations[index + 1], txid=index + 1, active_new_rows=1,
+                             active_new_polymarket_quotes=handoff_quotes,
+                             policy_epoch='d' * 64, history_reader_proof='e' * 64)
+                results.extend([Mock(fetchone=Mock(return_value={'cursor': proof})),
+                                Mock(fetchone=Mock(return_value={'child': None}))])
+            rows.append(dict(generation_id=generations[2], slot='A', started_at=second_seal))
+            results.append(Mock(fetchone=Mock(return_value={'exists': True} if terminal_quote else None)))
+            return Mock(execute=Mock(side_effect=results))
+
+        for change, expected in (({'second_seconds': 1799}, 'admission'),
+                                 ({'handoff_quotes': 0}, 'successor Polymarket'),
+                                 ({'terminal_quote': False}, 'terminal A')):
+            with self.subTest(change=change), self.assertRaisesRegex(LifecycleHold, expected):
+                completed_chain(database(**change), target, origin_id=SEVENTH_TRIAL_ORIGIN)
+        rows = completed_chain(database(), target, origin_id=SEVENTH_TRIAL_ORIGIN)
+        self.assertEqual([row['generation_id'] for row in rows], generations)

@@ -15,8 +15,7 @@ import uuid
 
 from . import pp_space
 from .rehearsal_profile import (canonical_anchor, lease_cap, require_cycle_alignment,
-                                CYCLE_ORIGINS, TRIAL_ORIGINS, GeneratedSizeCycle,
-                                SIZE_CYCLE_CHECKPOINT, TRIAL_PREPARATION_CHECKPOINT,
+                                CYCLE_ORIGINS, TRIAL_ORIGINS, TRIAL_PREPARATION_CHECKPOINT,
                                 elapsed_cycle_binding)
 from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
@@ -61,9 +60,6 @@ class RotationPolicy:
             raise ValueError('rotation times must be timezone-aware')
         if now - started_at >= timedelta(hours=72):
             return 'age_72h'
-        return self.size_due(allocated_bytes)
-
-    def size_due(self, allocated_bytes: int) -> str | None:
         if self.qualified_size_bytes is not None and allocated_bytes >= self.qualified_size_bytes:
             return 'qualified_size'
         return None
@@ -384,53 +380,9 @@ class LifecycleRepository:
             ORDER BY m.start_epoch,m.market_id LIMIT 3""",
             (start,origin,now,generation)).fetchall()
 
-    def _require_generated_size_scope(self, origin, profile):
-        if (self.environment != 'preprod' or not isinstance(profile, GeneratedSizeCycle)
-                or not isinstance(origin, str) or not origin.startswith('generated-')
-                or not len('generated-') < len(origin) <= 128):
-            raise LifecycleHold('size cycle is restricted to generated PP')
-
-    @staticmethod
-    def _generated_size_writer_off(writer):
-        if (writer['collector_enabled'] is not False or writer['collector_session_id'] is not None
-                or writer['collector_lease_expires_at'] is not None):
-            raise LifecycleHold('size cycle requires the generated writer OFF')
-
-    @staticmethod
-    def _size_cycle_binding(connection, origin, profile):
-        return connection.execute('''SELECT cursor FROM archive.checkpoints
-            WHERE origin_id=%s AND generation_id=%s AND consumer=%s''',
-            (origin, profile.initial_a, SIZE_CYCLE_CHECKPOINT)).fetchone()
-
-    def prepare_generated_size_cycle(self, origin, profile):
-        self._require_generated_size_scope(origin, profile)
-        with self.transaction() as connection:
-            writer = connection.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
-                                        (origin,)).fetchone()
-            if not writer or str(writer['generation_id']) != profile.initial_a:
-                raise LifecycleHold('size cycle requires its initial A writer')
-            self._generated_size_writer_off(writer)
-            rows = connection.execute('''SELECT generation_id,slot,state FROM archive.generations
-                WHERE origin_id=%s LIMIT 2''', (origin,)).fetchall()
-            if (len(rows) != 1 or str(rows[0]['generation_id']) != profile.initial_a
-                    or rows[0]['slot'] != 'A' or rows[0]['state'] != 'collecting'):
-                raise LifecycleHold('size cycle requires a fresh A-only origin')
-            binding = self._size_cycle_binding(connection, origin, profile)
-            if binding is None:
-                populated = connection.execute('''SELECT
-                    EXISTS(SELECT 1 FROM raw.events WHERE generation_id=%s)
-                    OR EXISTS(SELECT 1 FROM ops.outbox WHERE generation_id=%s) AS populated''',
-                    (profile.initial_a, profile.initial_a)).fetchone()
-                if populated['populated']:
-                    raise LifecycleHold('size cycle requires an empty initial A')
-                self._checkpoint(connection, {'origin_id': origin, 'generation_id': profile.initial_a},
-                                 SIZE_CYCLE_CHECKPOINT, profile.binding())
-            elif encoded(binding['cursor']) != encoded(profile.binding()):
-                raise LifecycleHold('generated size cycle binding changed')
-
     def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *,
                       require_live_lease=False, market_pair_trial=False, rehearsal_anchor=None,
-                      generated_size_cycle=None, rehearsal_window_seconds=None) -> dict:
+                      rehearsal_window_seconds=None) -> dict:
         try:
             profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
         except ValueError as error:
@@ -438,11 +390,6 @@ class LifecycleRepository:
         if profile and (rehearsal_anchor is None or not market_pair_trial or not require_live_lease
                         or policy != RotationPolicy() or self.environment != 'preprod' or now is not None):
             raise LifecycleHold('elapsed cycle requires the exact PP live rehearsal fence')
-        if generated_size_cycle is not None:
-            self._require_generated_size_scope(origin_id, generated_size_cycle)
-            if (require_live_lease or market_pair_trial or rehearsal_anchor is not None
-                    or policy != RotationPolicy()):
-                raise LifecycleHold('size cycle cannot be combined with another rotation policy')
         now = now or utcnow()
         with self.transaction() as connection:
             writer = connection.execute('SELECT * FROM ops.writer_state WHERE origin_id=%s FOR UPDATE',
@@ -458,11 +405,6 @@ class LifecycleRepository:
                 canonical_anchor(rehearsal_anchor)
                 if not market_pair_trial or self.environment != 'preprod' or origin_id not in CYCLE_ORIGINS:
                     raise LifecycleHold('invalid two-leg PP rehearsal scope')
-            if generated_size_cycle is not None:
-                self._generated_size_writer_off(writer)
-                binding = self._size_cycle_binding(connection, origin_id, generated_size_cycle)
-                if not binding or encoded(binding['cursor']) != encoded(generated_size_cycle.binding()):
-                    raise LifecycleHold('generated size cycle binding missing or changed')
             if require_live_lease:
                 # The writer row is locked. Use database time so ready/OFF,
                 # expired or stopped sessions cannot seal A during deployment.
@@ -478,7 +420,7 @@ class LifecycleRepository:
                                        (origin_id,)).fetchone()['count']
             if count > 2:
                 raise LifecycleHold('nonretired generation bound exceeded')
-            space = pp_space.sample() if market_pair_trial or generated_size_cycle is not None else {}
+            space = pp_space.sample() if market_pair_trial else {}
             if space.get('space_hold'):
                 reason = space['space_hold']
                 connection.execute("""UPDATE archive.generations SET hold_reason=%s
@@ -502,9 +444,7 @@ class LifecycleRepository:
             if allocation is None:
                 raise LifecycleHold('collecting partition missing')
             cycle = None
-            if generated_size_cycle is not None:
-                cycle = self._rehearsal_phase(connection, origin_id, generated_size_cycle.initial_a, current)
-            elif rehearsal_anchor is not None:
+            if rehearsal_anchor is not None:
                 admission = connection.execute('''SELECT cursor FROM archive.checkpoints
                     WHERE origin_id=%s AND generation_id=%s AND consumer='rehearsal:two-leg-session' ''',
                     (origin_id,rehearsal_anchor)).fetchone()
@@ -529,11 +469,8 @@ class LifecycleRepository:
                         'allocated_bytes':allocation,
                         'b_observation_elapsed': now-current['started_at'] >= timedelta(minutes=30), **space}
             pair = []
-            size_threshold = generated_size_cycle.threshold_bytes if generated_size_cycle is not None else None
             window = {}
-            if size_threshold is not None:
-                reason = RotationPolicy(size_threshold).size_due(allocation)
-            elif profile:
+            if profile:
                 start = writer['updated_at'] if cycle == 0 else current['started_at']
                 if (start is None or current['started_at'] is None or start > now or (cycle == 0 and
                         (proof.get('admitted_at') != start.isoformat() or start < current['started_at']))):
@@ -597,8 +534,6 @@ class LifecycleRepository:
                 WHERE origin_id=%s''', (new['generation_id'], now, origin_id))
             return {'status': 'switched', 'reason': reason, 'sealed_generation_id': current['generation_id'],
                     'generation_id': new['generation_id'], 'slot': slot, 'seal_count': count,
-                    **({'sealed_allocated_bytes': allocation, 'threshold_bytes': size_threshold, **space}
-                       if size_threshold is not None else {}),
                     **({**space, **window} if profile else {}),
                     **({**space, 'window_market_ids':[row['market_id'] for row in pair],
                         'window_start_epoch':str(pair[0]['start_epoch']),

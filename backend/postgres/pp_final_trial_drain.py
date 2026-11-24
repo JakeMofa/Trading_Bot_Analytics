@@ -123,6 +123,11 @@ def completed_chain(db, target, *, origin_id=ORIGIN):
         if (previous['partition_name']!=child or db.execute('SELECT to_regclass(%s) AS child',
                 ('raw.'+child,)).fetchone()['child'] is not None):
             raise LifecycleHold('retired predecessor partition must be absent')
+    if origin_id == SEVENTH_TRIAL_ORIGIN and not db.execute('''SELECT 1 FROM raw.events
+        WHERE origin_id=%s AND generation_id=%s AND source='polymarket_us' AND kind='quote'
+        AND received_at>=%s LIMIT 1''',
+        (origin_id, target.generation, rows[2]['started_at'])).fetchone():
+        raise LifecycleHold('trial07 terminal A has no persisted Polymarket quote')
     return rows
 
 def seal_final_a(repository, target: SealTarget, *, execute=False, origin_id=ORIGIN):

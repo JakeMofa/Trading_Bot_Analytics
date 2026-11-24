@@ -8,10 +8,32 @@ import uuid
 import test_postgres_trial07_permit as fixture
 from postgres.connection import connect
 from postgres.lifecycle import LifecycleHold, LifecycleRepository, RotationPolicy
+from postgres.lifecycle_worker import configuration
 from postgres.pp_retirement_report import active_sample
 from postgres.pp_trial_prepare import prepare
 from postgres.rehearsal_profile import (CYCLE_LEASE_CAP_SECONDS, ELAPSED_CYCLE_POLICY,
-                                        ELAPSED_CYCLE_SECONDS, SEVENTH_TRIAL_ORIGIN)
+                                        ELAPSED_CYCLE_SECONDS, SEVENTH_TRIAL_ORIGIN, cycle_anchor)
+
+
+class ElapsedScope(unittest.TestCase):
+    def test_live_elapsed_profile_requires_exact_scope_and_no_size_override(self):
+        anchor = str(uuid.uuid4())
+        env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
+                   TRADEBOT_ORIGIN_ID=SEVENTH_TRIAL_ORIGIN,
+                   TRADEBOT_PP_WINDOW_POLICY=ELAPSED_CYCLE_POLICY,
+                   TRADEBOT_PP_CYCLE_INITIAL_A=anchor, TRADEBOT_PP_LIVE_LIFECYCLE='true',
+                   TRADEBOT_PP_ELAPSED_CYCLE_SECONDS=str(ELAPSED_CYCLE_SECONDS))
+        self.assertEqual(cycle_anchor(env), anchor)
+        self.assertEqual(configuration(env)['rehearsal_window_seconds'], ELAPSED_CYCLE_SECONDS)
+        for change in (dict(TRADEBOT_ENVIRONMENT='production'),
+                       dict(TRADEBOT_PP_ELAPSED_CYCLE_SECONDS='01800'),
+                       dict(TRADEBOT_PP_SIZE_CYCLE_BYTES='33554432'),
+                       dict(TRADEBOT_ORIGIN_ID='pp-live-pp-trial-20261119-06'),
+                       dict(TRADEBOT_PP_WINDOW_POLICY='two-official-markets-cycle'),
+                       dict(TRADEBOT_PP_WINDOW_POLICY='bounded-size-cycle'),
+                       dict(TRADEBOT_QUALIFIED_GENERATION_BYTES='1')):
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                configuration(env | change)
 
 
 class ElapsedTrial07(unittest.TestCase):
@@ -65,7 +87,7 @@ class ElapsedTrial07(unittest.TestCase):
 
     def switch(self, at):
         with patch.object(LifecycleRepository, '_elapsed_cycle_clock', return_value=at), \
-                patch.object(RotationPolicy, 'size_due', side_effect=AssertionError('no size trigger')):
+                patch.object(RotationPolicy, 'due', side_effect=AssertionError('no size trigger')):
             result = self.repo.switch_if_due(self.origin, rehearsal_anchor=self.anchor, market_pair_trial=True,
                         require_live_lease=True, rehearsal_window_seconds=ELAPSED_CYCLE_SECONDS)
         if result['status'] == 'switched':

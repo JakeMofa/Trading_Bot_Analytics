@@ -239,6 +239,24 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         async def closed(_client, _now):
             return [candle]
         self.assertEqual(asyncio.run(coinbase_candle_cycle(live, None, asyncio.Event(), fetch=closed)), 1)
+        revised = coinbase_closed_candle([minute, '99999.1', '100001.1', '100000.1',
+                                          '100000.6', '0.1234567890123456789'], received)
+        older = coinbase_closed_candle([minute-60, '99999.1', '100001.1', '100000.1',
+                                         '100000.4', '0.1234567890123456789'], received)
+        async def overlap(_client, _now):
+            return [revised, older]
+        with self.assertLogs('postgres.live_ingest', level='WARNING') as logs:
+            self.assertEqual(asyncio.run(coinbase_candle_cycle(live, None, asyncio.Event(),
+                                                             fetch=overlap)), 1)
+        self.assertIn('pp_candle_revisions_rejected count=1', logs.output[0])
+        self.assertTrue(live.collector_enabled())
+        with live.connection(True) as db:
+            self.assertEqual(db.execute('''SELECT count(*) AS n FROM raw.events
+                WHERE origin_id=%s AND source='coinbase' AND event_id=%s''',
+                (live.origin, candle['event_id'])).fetchone()['n'], 1)
+            self.assertEqual(db.execute("""SELECT count(*) AS n FROM ops.outbox
+                WHERE origin_id=%s AND entity_type='core.candles'""",
+                (live.origin,)).fetchone()['n'], 2)
         query_now = datetime.now(timezone.utc)
         active = live.active_market(query_now)
         self.assertEqual(active['id'], market['market_id'])
@@ -281,7 +299,7 @@ class PostgreSQLLifecycleIntegration(unittest.TestCase):
         with live.connection(True) as connection:
             count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE origin_id=%s',
                                        (live.origin,)).fetchone()['count']
-        self.assertEqual(count, 5)
+        self.assertEqual(count, 6)
 
     def test_durable_stop_waits_for_writer_then_is_idempotent(self):
         # Generated isolated DB only: simulate a previously enabled PP writer.

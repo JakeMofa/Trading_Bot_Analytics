@@ -9,7 +9,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import httpx
 from postgres.live_diagnostics import LiveDiagnostic,SourceHTTPFailure
 from postgres.live_ingest import coinbase_candle_cycle
-from postgres.store import StorageHold
+from postgres.store import CandleRevisionConflict, IdentityConflict, StorageHold
 from postgres.live_supervisor import run_bounded
 
 class Store:
@@ -55,11 +55,27 @@ class CandleDegraded(unittest.IsolatedAsyncioTestCase):
    with self.subTest(category=category),self.assertRaises(LiveDiagnostic) as caught:await self.run_case(fetch)
    self.assertEqual(caught.exception.code,'coinbase_candles.'+category);self.assertEqual(self.store.stops,1);self.assertEqual(self.store.saved,[])
  async def test_write_timeout_and_write_rejection_are_fatal(self):
-  for error,category in [(TimeoutError('private'),'timeout'),(ValueError('private'),'invalid_or_unavailable'),(StorageHold('private'),'write_rejected')]:
+  for error,category in [(TimeoutError('private'),'timeout'),(IdentityConflict('private'),'invalid_or_unavailable'),(StorageHold('private'),'write_rejected')]:
    async def fetch(*args):return [{'kind':'candle'}]
    def write(event):raise error
    with self.subTest(category=category),self.assertRaises(LiveDiagnostic) as caught:await self.run_case(fetch,write=write)
    self.assertEqual(caught.exception.code,'coinbase_candle_write.'+category);self.assertEqual(self.store.stops,1)
+ async def test_candle_revision_preserves_polymarket_and_later_candle(self):
+  revised={'event_id':'revised'}
+  new={'event_id':'new'}
+  async def fetch(*args):return [revised,new]
+  def write(event):
+   if event==revised:raise CandleRevisionConflict('private revised body')
+   self.store.saved.append(event)
+  async def pause(stop,seconds):
+   if seconds==5 and self.store.saved:stop.set()
+   await asyncio.sleep(.001)
+  with self.assertLogs('postgres.live_ingest',level='WARNING') as logs:
+   self.assertEqual(await self.run_case(fetch,write=write,pause=pause),'stopped')
+  self.assertEqual(self.store.saved,[new])
+  self.assertGreaterEqual(self.pm,2)
+  self.assertIn('pp_candle_revisions_rejected count=1',logs.output[0])
+  self.assertNotIn('private',' '.join(logs.output))
  async def test_explicit_off_interrupts_normal_cadence_wait(self):
   async def fetch(*args):raise httpx.ConnectError('private')
   async def pause(stop,seconds):

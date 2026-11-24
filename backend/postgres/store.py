@@ -15,6 +15,10 @@ class IdentityConflict(ValueError):
     pass
 
 
+class CandleRevisionConflict(IdentityConflict):
+    """A Coinbase REST candle disagrees with its already accepted observation."""
+
+
 class PublicationRejected(ValueError):
     pass
 
@@ -156,6 +160,13 @@ class Store:
                                (self.origin, event['source'], event['event_id'])).fetchone()
             if prior:
                 if prior['content_hash'] != content_hash:
+                    data = event['payload']
+                    if (self.settings.data_mode == 'pp_live'
+                            and event['source'] == 'coinbase' and event['kind'] == 'candle'
+                            and event['provenance'].get('feed') == 'coinbase_exchange_rest_candles'
+                            and data.get('granularity') == 60 and data.get('time') == epoch
+                            and event['event_id'] == f"exchange-candle-60-{data.get('time')}"):
+                        raise CandleRevisionConflict('conflicting Coinbase candle revision')
                     raise IdentityConflict('conflicting source event identity')
                 acknowledgement = {'origin_id': self.origin, 'event_id': event['event_id'],
                                    'generation_id': prior['generation_id'], 'content_hash': content_hash, 'duplicate': True}

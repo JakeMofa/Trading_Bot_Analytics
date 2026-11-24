@@ -192,6 +192,27 @@ def headers(keypair):
     return {'X-PM-Access-Key': key_id, 'X-PM-Timestamp': ms, 'X-PM-Signature': signature}
 
 
+async def check_market_socket():
+    """Verify one authenticated market-data handshake using mounted secrets."""
+    if not all(os.environ.get(name + '_FILE') for name in
+               ('POLYMARKET_KEY_ID', 'POLYMARKET_SECRET_KEY')):
+        return {'status': 'pp_key_files_unbound'}
+    try:
+        keypair = signing_key()
+        auth = headers(keypair)
+    except (OSError, ValueError):
+        return {'status': 'pp_key_files_unusable'}
+    try:
+        async with connect(WS_URL, additional_headers=auth, proxy=None,
+                           open_timeout=5, close_timeout=2,
+                           max_size=MAX_RESPONSE_BYTES, max_queue=16):
+            return {'status': 'pp_market_socket_authenticated'}
+    except InvalidStatus as error:
+        return {'status': 'pp_market_socket_rejected', 'http_status': error.response.status_code}
+    except (OSError, TimeoutError, WebSocketException):
+        return {'status': 'pp_market_socket_unavailable'}
+
+
 async def websocket(trace, found, keypair):
     slugs = [m['payload']['slug'] for m in found.values()]
     wanted = trace.market['payload']['slug']
@@ -319,13 +340,24 @@ async def run(args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--first-boundary-utc', required=True)
-    parser.add_argument('--api-url', required=True, help='PP VM loopback /state/current')
-    parser.add_argument('--output', required=True, help='new private JSONL file')
+    parser.add_argument('--first-boundary-utc')
+    parser.add_argument('--api-url', help='PP VM loopback /state/current')
+    parser.add_argument('--output', help='new private JSONL file')
     parser.add_argument('--rest-only', action='store_true', help='incomplete comparison; does not measure WebSocket')
+    parser.add_argument('--check-auth', action='store_true', help='one signed market handshake using mounted files')
     args = parser.parse_args()
+    capture = (args.first_boundary_utc, args.api_url, args.output)
+    if args.check_auth:
+        if any(capture) or args.rest_only:
+            parser.error('--check-auth cannot be combined with scheduled capture')
+        result = asyncio.run(check_market_socket())
+        print(json.dumps(result))
+        return int(result['status'] != 'pp_market_socket_authenticated')
+    if not all(capture):
+        parser.error('--first-boundary-utc, --api-url and --output are required for capture')
     asyncio.run(run(args))
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

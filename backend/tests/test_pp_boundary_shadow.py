@@ -36,6 +36,26 @@ class ShadowTests(unittest.IsolatedAsyncioTestCase):
     def rows(self):
         return [json.loads(line) for line in self.output.getvalue().splitlines()]
 
+    async def test_socket_preflight_uses_mounted_credentials_and_reports_only_status(self):
+        with patch.dict(shadow.os.environ, {}, clear=True), patch.object(shadow, 'connect') as connect:
+            self.assertEqual(await shadow.check_market_socket(), {'status': 'pp_key_files_unbound'})
+            connect.assert_not_called()
+
+        files = {'POLYMARKET_KEY_ID_FILE': '/mounted/id',
+                 'POLYMARKET_SECRET_KEY_FILE': '/mounted/key'}
+        with patch.dict(shadow.os.environ, files, clear=True), \
+                patch.object(shadow, 'signing_key', side_effect=OSError('private failure')):
+            self.assertEqual(await shadow.check_market_socket(), {'status': 'pp_key_files_unusable'})
+        with patch.dict(shadow.os.environ, files, clear=True), \
+                patch.object(shadow, 'signing_key', return_value=object()), \
+                patch.object(shadow, 'headers', return_value={'X-PM-Access-Key': 'test-value'}), \
+                patch.object(shadow, 'connect') as connect:
+            self.assertEqual(await shadow.check_market_socket(),
+                             {'status': 'pp_market_socket_authenticated'})
+            self.assertEqual(connect.call_args.args, (shadow.WS_URL,))
+            self.assertIsNone(connect.call_args.kwargs['proxy'])
+            connect.return_value.__aenter__.return_value.send.assert_not_called()
+
     async def test_future_catalog_uses_typed_identity_without_assuming_listing(self):
         def route(request):
             self.assertNotIn('active', request.url.params)

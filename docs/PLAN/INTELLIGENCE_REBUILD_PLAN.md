@@ -1,4 +1,50 @@
-## November 24, 2026 CST — Quiet retained-B history passed. Boundary trace pending.
+## November 24, 2026 CST — PP33 first-quote comparison incomplete
+
+PP33 (`b7826e8`) observed four matching BTC 15-minute markets.
+The canonical REST collector was the sole writer. The early REST and
+authenticated Polymarket US WebSocket readers were observational.
+Times are seconds after market rollover.
+
+| Boundary (CST) | Early REST quote | WS quote | Canonical receipt | Dashboard API |
+| --- | ---: | ---: | ---: | ---: |
+| 2:00 p.m. | 21.990 | 22.435 | 31.667 | 32.839 |
+| 2:15 p.m. | 66.462 | 10.968 | — | — |
+| 2:30 p.m. | 123.919 | 19.942 | — | — |
+| 2:45 p.m. | 64.432 | 8.865 | — | — |
+
+The first boundary was the only complete matched trace. Canonical receipt
+to durable commit took 114 ms and receipt to API visibility took 1.172s.
+At 2:30 p.m., an authenticated WS book with an in-window exchange timestamp
+arrived 104 seconds sooner than the REST quote. That comparison held the
+market, host and clock constant while the collector was OFF.
+
+The collector stopped during the second boundary at 2:15:40 p.m. CST
+with `coinbase_candle_write.invalid_or_unavailable`. A subsequent read
+of the same candle range found changed OHLC values for 11 already
+accepted Coinbase minute buckets. The exact failing response was
+unavailable. PR #216 preserves the first committed candle, reports the
+rejected revision and lets Polymarket continue. Other identity errors,
+durable storage holds and lease failures remain fatal. Isolated PostgreSQL 17
+and exact merged preprod CI passed. The fix awaits PP deployment and live
+qualification.
+
+During live collection, the 2 GB VM had at least 852 MiB available, zero
+swap activity and zero OOM kills. It recorded 49.7 ms of cumulative full
+memory pressure. The sampled structured queue peaked at 38, then reached
+zero with 14,205 verified acknowledgements. Both collectors and the scoped
+worker are confirmed OFF. Five retained-generation fingerprints matched.
+The observer and its temporary credential mounts were removed.
+
+Keep the previous PP32 A → B → fresh A acceptance evidence. I7 remains
+open. A fresh isolated diagnostic bound to a qualified PP release must
+prove canonical and observer timing across four consecutive windows
+after the candle fix. Production and retirement remain held.
+
+[PP33 evidence](evidence/pp33-polymarket-boundaries-2026-11-24.json) ·
+[Exact deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45472981873) ·
+[Exact candle-fix CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45481679690)
+
+## November 24, 2026 CST — Quiet retained-B history passed before the PP33 comparison.
 
 PP32 read and verified the exact first 500 retained trial06 B rows
 (828,368 canonical bytes) with both collectors off. The first hosted

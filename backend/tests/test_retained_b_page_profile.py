@@ -5,8 +5,8 @@ from contextlib import contextmanager
 from pathlib import Path
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'deploy' / 'preprod'))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / 'backend'))
 
 import profile_retained_b_page as profile
 

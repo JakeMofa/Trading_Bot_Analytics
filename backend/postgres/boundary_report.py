@@ -91,7 +91,7 @@ def summary(start, canonical, shadow):
                 key += '.' + r['reason']
             counts[key] += 1
         # Missing legs stay blank; mixed identities can never support a pass.
-        comparable = bool(identity_ok and early and socket and canon)
+        comparable = bool(window_end and identity_ok and early and socket and canon)
         yield {
             'window_start': utc(boundary), 'market_ids': '|'.join(sorted(market_ids)),
             'observation_status': 'complete' if window_end else 'partial_or_absent',

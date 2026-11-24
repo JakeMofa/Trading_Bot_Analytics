@@ -1,3 +1,20 @@
+## November 24, 2026 CST — PP WebSocket authenticated. Boundary deployment pending.
+
+A one-shot official Polymarket US markets handshake succeeded from PP32
+using only the key pair found in the developer checkout's private `.env`.
+The probe used temporary protected read-only mounts, then exited. It did
+not subscribe or place orders. The two file settings were not present in
+the deployed services. Offline tests cover the status-only handshake.
+
+The fresh PP boundary origin now has a local structured-only worker
+contract and a review-only hosted role template. Disposable PostgreSQL 17
+verified isolated writes and reads. The reader has no mutation privileges
+and the writer's scope excludes other origins and raw coverage. No hosted
+roles or credentials were created. The controlled live host profile,
+qualified successor release, and independent hosted drain proof remain
+prerequisites for admitting the collector. The prior origins remain
+sealed, and the normal 10,000-row pending limit still applies.
+
 ## November 24, 2026 CST — Quiet retained-B history passed. Boundary trace pending.
 
 PP32 read and verified the exact first 500 retained trial06 B rows

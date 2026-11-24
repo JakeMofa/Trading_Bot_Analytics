@@ -166,7 +166,7 @@ class StructuredServiceTests(unittest.TestCase):
             row=dict(Id='e'*64,State=dict(Running=True))
             with (patch.object(legacy,'_require_stopped'),patch.object(legacy,'_write_sync_owner'),
                   patch.object(legacy,'_stage_local_secret',return_value=nullcontext()),
-                  patch.object(trial,'preflight',return_value=(ctx,actions,'generation','c'*64,{})),
+                  patch.object(trial,'preflight',return_value=(ctx,actions,'generation','c'*64,{},trial.TRIAL_ORIGIN)),
                   patch.object(trial,'_compose'),patch.object(trial,'_inspect_worker',return_value=row),
                   patch.object(trial.Budget,'run',return_value=raw),patch.object(trial.time,'sleep') as wait):
                 self.assertEqual(trial.start(Path('bundle'))['status'],'started')

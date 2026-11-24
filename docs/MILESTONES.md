@@ -1,3 +1,17 @@
+## November 23, 2026 CST — Retained B timeout identified on PP
+
+The bounded read-only check stopped in the local page-size query with SQLSTATE
+`25P04`. The outbox coverage query took 1.532 seconds, and PostgreSQL canceled
+the next query when their transaction reached the unchanged 3.5-second limit.
+Zero requests reached Supabase. The larger live verification holds separately
+at 54 of 56 pages under the unchanged 240-second gate.
+
+The deployed live controller uses official market windows and rejects a size
+override. The size-triggered live rehearsal needs a dedicated PP profile,
+a fresh isolated origin and its own verification and removal authority.
+Trial05 and trial06 B stay preserved. Both collectors were OFF after this
+diagnostic. [Diagnostic evidence](PLAN/evidence/pp30-retained-b-local-transaction-hold-2026-11-23.md).
+
 ## Retained B local query timing is ready for a reviewed diagnostic
 
 The local-only diagnostic records the reader, writer, attachment, manifest,

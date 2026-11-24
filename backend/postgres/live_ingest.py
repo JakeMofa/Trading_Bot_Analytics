@@ -11,6 +11,7 @@ from collections import deque
 from datetime import datetime, timezone
 import time
 
+from .boundary_trace import boundary_trace
 from .coinbase_timing import ACTIVE_TIMING, configured_timing
 from .contract import source_timestamp
 from .live_sources import (coinbase_once, discover_polymarket_15m,
@@ -197,15 +198,21 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     _live_store(store)
     if stop.is_set():
         return None
+    boundary_trace('discovery_start')
     try:
         market = await _step('polymarket_discovery',
                              discover(client, now or datetime.now(timezone.utc)))
     except LiveDiagnostic as error:
+        boundary_trace('discovery_error', reason=error.code)
         if error.code not in POLYMARKET_DISCOVERY_UNAVAILABLE:
             raise
         logging.getLogger(__name__).warning('pp_discovery_unavailable reason=%s', error.code)
         return None
-    if market is None or stop.is_set():
+    if market is None:
+        boundary_trace('discovery_empty')
+        return None
+    boundary_trace('market_identified', market)
+    if stop.is_set():
         return None
     await _step('polymarket_market_write', asyncio.to_thread(store.ingest, market))
     if stop.is_set():
@@ -213,16 +220,21 @@ async def polymarket_cycle(store, client, stop: asyncio.Event, *, now=None,
     try:
         quote = await _step('polymarket_bbo', fetch(client, market))
     except LiveDiagnostic as error:
+        boundary_trace('quote_unavailable', market, reason=error.code)
         if error.code not in POLYMARKET_QUOTE_UNAVAILABLE:
             raise
         logging.getLogger(__name__).warning('pp_quote_unavailable reason=%s', error.code)
         return None
     if quote is None:
+        boundary_trace('quote_unavailable', market, reason='matching_book_empty')
         logging.getLogger(__name__).warning('pp_quote_unavailable reason=matching_book_empty')
         return None
     if stop.is_set():
         return None
     if quote.get('market_id') != market['market_id']:
         raise LiveDiagnostic('polymarket_bbo', 'identity_mismatch')
-    await _step('polymarket_bbo_write', asyncio.to_thread(store.ingest, quote))
+    boundary_trace('bbo_received', market, quote=quote)
+    ack = await _step('polymarket_bbo_write', asyncio.to_thread(store.ingest, quote))
+    boundary_trace('commit_ack', market, quote=quote,
+                   duplicate=ack.get('duplicate') if isinstance(ack, dict) else None)
     return market['market_id']

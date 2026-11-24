@@ -30,16 +30,16 @@ on:
         required: false
         type: string
       max_seconds:
-        description: Session ON duration, up to 4560 seconds or exactly 6600 for a bound two-leg PP cycle
+        description: Session ON duration, up to 4560 seconds, 6600 for a two-leg cycle, or 4100 for the boundary diagnostic
         required: false
         type: string
 
       trial_origin:
-        description: Optional exact fresh trial07 origin pp-live-pp-trial-20261119-07 (requires anchor)
+        description: Exact PP trial07 or boundary diagnostic origin (requires anchor)
         required: false
         type: string
       cycle_initial_a:
-        description: Canonical initial A generation UUID for a separately bound two-leg cycle
+        description: Canonical initial generation UUID for a separately bound PP profile
         required: false
         type: string
 

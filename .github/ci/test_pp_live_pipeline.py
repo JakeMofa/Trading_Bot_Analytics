@@ -67,6 +67,23 @@ class PPLivePipelineTests(unittest.TestCase):
         self.assertEqual(module.validated_result('off',dict(gate='PP_LIVE_OFF',origin_id=trial,collector_enabled=False))['origin_id'],trial)
         with self.assertRaises(ValueError):module.validated_result('off',dict(gate='PP_LIVE_OFF',origin_id=trial+'-other',collector_enabled=False))
 
+    def test_boundary_on_binds_the_fixed_lease_and_profile(self):
+        class API:
+            def read(self,_path):return {'object':{'sha':'a'*40}}
+        anchor='b98ac4e9-b073-4df7-bc5b-90fa51c4f039'
+        origin=module.BOUNDARY_ORIGIN
+        env=dict(PP_LIVE_OPERATION='on',GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REF_NAME='preprod',
+                 GITHUB_SHA='a'*40,GITHUB_REPOSITORY=module.pipeline.REPO,PP_LIVE_SECONDS='4100',
+                 PP_CYCLE_INITIAL_A=anchor,PP_TRIAL_ORIGIN=origin)
+        self.assertEqual(module.command_for(env,API(),{})[0],f'session-v1 on 4100 {anchor} {origin}')
+        with self.assertRaises(ValueError):
+            module.command_for(env | {'PP_LIVE_SECONDS':'6600'},API(),{})
+        result=dict(gate='PP_LIVE_ON',origin_id=origin,collector_enabled=True,
+                    initial_a=anchor,profile='boundary-diagnostic-v1')
+        self.assertEqual(module.validated_result('on',result,anchor,origin)['profile'],'boundary-diagnostic-v1')
+        with self.assertRaises(ValueError):
+            module.validated_result('on',result | {'window_seconds':1800},anchor,origin)
+
     def test_cycle_needs_exact_anchor_and_finite_duration(self):
         class API:
             def read(self, _path):

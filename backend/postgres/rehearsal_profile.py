@@ -1,7 +1,7 @@
 """Explicit, finite PP two-leg rehearsal scope. No activation or lease renewal."""
 import uuid
 from datetime import datetime, timezone
-from .cloud_origin_binding import (TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
+from .cloud_origin_binding import (BOUNDARY_ORIGIN, TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
                                    FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN,
                                    SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS)
 
@@ -13,6 +13,8 @@ CYCLE_LEASE_CAP_SECONDS = 60 + 3600 + 900 + 1800 + 240
 CYCLE_POLICY = 'two-official-markets-cycle'
 ELAPSED_CYCLE_POLICY = 'elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS = 1800
+BOUNDARY_POLICY = 'boundary-diagnostic-v1'
+BOUNDARY_LEASE_SECONDS = 4100
 TRIAL_PREPARATION_CHECKPOINT = 'trial:initial-a-prepare-v1'
 # One reviewed trial namespace in the SAME environment database, not a wildcard.
 CYCLE_ORIGINS = frozenset({'pp-live-pp', *TRIAL_ORIGINS})
@@ -58,6 +60,9 @@ def elapsed_cycle_binding(origin, window_seconds):
 def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
+    if environ.get('TRADEBOT_ORIGIN_ID') == BOUNDARY_ORIGIN or policy == BOUNDARY_POLICY:
+        boundary_anchor(environ)
+        return None
     if elapsed_cycle_seconds(environ) is not None:
         return canonical_anchor(anchor)
     if policy != CYCLE_POLICY:
@@ -71,6 +76,18 @@ def cycle_anchor(environ):
             or environ.get('TRADEBOT_ORIGIN_ID') not in CYCLE_ORIGINS):
         raise ValueError('two-leg rehearsal requires isolated PP live scope')
     return canonical_anchor(anchor)
+
+
+def boundary_anchor(environ):
+    if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod'
+            or environ.get('TRADEBOT_DATA_MODE') != 'pp_live'
+            or environ.get('TRADEBOT_ORIGIN_ID') != BOUNDARY_ORIGIN
+            or environ.get('TRADEBOT_PP_WINDOW_POLICY') != BOUNDARY_POLICY
+            or environ.get('TRADEBOT_PP_CYCLE_INITIAL_A') is not None
+            or environ.get('TRADEBOT_PP_ELAPSED_CYCLE_SECONDS') is not None
+            or environ.get('TRADEBOT_PP_SIZE_CYCLE_BYTES') is not None):
+        raise ValueError('exact PP boundary profile required')
+    return canonical_anchor(environ.get('TRADEBOT_PP_BOUNDARY_INITIAL_A'))
 
 
 def lease_cap(anchor=None):

@@ -11,11 +11,27 @@ from postgres.lifecycle import LifecycleHold, LifecycleRepository, RotationPolic
 from postgres.lifecycle_worker import configuration
 from postgres.pp_retirement_report import active_sample
 from postgres.pp_trial_prepare import prepare
-from postgres.rehearsal_profile import (CYCLE_LEASE_CAP_SECONDS, ELAPSED_CYCLE_POLICY,
-                                        ELAPSED_CYCLE_SECONDS, SEVENTH_TRIAL_ORIGIN, cycle_anchor)
+from postgres.rehearsal_profile import (BOUNDARY_LEASE_SECONDS, BOUNDARY_ORIGIN, BOUNDARY_POLICY,
+                                        CYCLE_LEASE_CAP_SECONDS, ELAPSED_CYCLE_POLICY,
+                                        ELAPSED_CYCLE_SECONDS, SEVENTH_TRIAL_ORIGIN, boundary_anchor, cycle_anchor)
 
 
 class ElapsedScope(unittest.TestCase):
+    def test_boundary_profile_is_exact_and_uses_no_market_pair_rotation(self):
+        anchor=str(uuid.uuid4())
+        env=dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
+                 TRADEBOT_ORIGIN_ID=BOUNDARY_ORIGIN, TRADEBOT_PP_WINDOW_POLICY=BOUNDARY_POLICY,
+                 TRADEBOT_PP_BOUNDARY_INITIAL_A=anchor, TRADEBOT_PP_LIVE_LIFECYCLE='true')
+        self.assertEqual(boundary_anchor(env),anchor)
+        self.assertIsNone(cycle_anchor(env))
+        self.assertFalse(configuration(env)['market_pair_trial'])
+        self.assertEqual(configuration(env)['pending_outbox_limit'],10000)
+        for change in (dict(TRADEBOT_ORIGIN_ID=SEVENTH_TRIAL_ORIGIN),
+                       dict(TRADEBOT_PP_WINDOW_POLICY='two-official-markets'),
+                       dict(TRADEBOT_PP_CYCLE_INITIAL_A=anchor)):
+            with self.assertRaises(ValueError):
+                configuration(env | change)
+
     def test_live_elapsed_profile_requires_exact_scope_and_no_size_override(self):
         anchor = str(uuid.uuid4())
         env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
@@ -84,6 +100,28 @@ class ElapsedTrial07(unittest.TestCase):
                          (ELAPSED_CYCLE_POLICY, ELAPSED_CYCLE_SECONDS, self.session))
         self.admitted = datetime.fromisoformat(receipt['admitted_at'])
         return enable
+
+    def test_boundary_preparation_and_ordinary_lease_preserve_prior_origin(self):
+        self.admit()
+        self.repo.disable_collector(self.origin)
+        prior = self.repo.collector_state(self.origin)
+        boundary = str(uuid.uuid4())
+        with self.admin() as db:
+            self.assertIsNone(db.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s LIMIT 1',
+                                         (BOUNDARY_ORIGIN,)).fetchone())
+        self.addCleanup(self.cleanup_origin,BOUNDARY_ORIGIN,[boundary])
+        prepared = prepare(self.repo,boundary,'b'*40,execute=True,origin_id=BOUNDARY_ORIGIN)
+        self.assertEqual(prepared['profile'],BOUNDARY_POLICY)
+        self.assertFalse(prepared['retirement_authorized'])
+        self.assertFalse(prepared['collector_enabled'])
+        self.assertTrue(self.repo.enable_collector(BOUNDARY_ORIGIN,session_id=self.session,
+                        expected_generation_id=boundary,max_seconds=BOUNDARY_LEASE_SECONDS)['collector_enabled'])
+        result = self.repo.switch_if_due(BOUNDARY_ORIGIN,require_live_lease=True)
+        self.assertNotEqual(result['status'],'switched')
+        self.repo.disable_collector(BOUNDARY_ORIGIN)
+        self.assertEqual(self.repo.collector_state(self.origin),prior)
+        with self.assertRaises(LifecycleHold):
+            prepare(self.repo,boundary,'b'*40,execute=True,origin_id=BOUNDARY_ORIGIN)
 
     def switch(self, at):
         with patch.object(LifecycleRepository, '_elapsed_cycle_clock', return_value=at), \

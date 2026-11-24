@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 from controller import Budget, Context, DeploymentHold, HostBinding, Request, _secure_file, require
-from linux_actions import (LinuxActions, RUNTIME_SECRETS, CYCLE_SESSION_MAX_SECONDS,
+from linux_actions import (BOUNDARY_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
                            cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
                            RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
 
@@ -380,7 +380,7 @@ def session(command, controller_path):
         require(initial_a == active.get('initial_a'), 'pp_cycle_session_binding_mismatch')
         require(re.fullmatch(r'[0-9]{1,4}', parts[2]) is not None, 'invalid_session_command')
         seconds = int(parts[2])
-        require(seconds == CYCLE_SESSION_MAX_SECONDS if cycle else 1 <= seconds <= 4560,
+        require(allowed_session_seconds(seconds,scoped=bool(cycle),origin=trial_origin),
                 'invalid_session_command')
     require(active['state'] in ('ready_off', 'entering', 'leaving', 'recovery_unproven'),
             'no_live_transition_to_control')
@@ -411,7 +411,8 @@ def session(command, controller_path):
     require(active['state'] == 'ready_off', 'live_profile_not_ready')
     if active.get('trial_origin'):
         from trial_cloud_control import require_ready
-        require_ready(context,active['initial_a'],budget)
+        require_ready(context,active['initial_a'],budget,
+                      **({'boundary': True} if active['trial_origin']==BOUNDARY_ORIGIN else {}))
     actions._runtime(context, budget, live=True, **cycle)
     actions._host_operator(live=True,**({'trial_origin':active['trial_origin']} if active.get('trial_origin') else {}))
     actions._live_filesystem(context, budget)

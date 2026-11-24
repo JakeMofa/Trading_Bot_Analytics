@@ -1,3 +1,25 @@
+## November 24, 2026 CST — Scoped four-boundary controller ready for CI
+
+The diagnostic runtime prepares one exact fresh PP origin and a separately
+owned structured worker. Its collector permit binds a **4,100-second**
+lease and an unused initial generation. Trace is enabled only for the
+diagnostic operator. No market-pair rotation, raw archive worker or
+retirement permission is included. The existing 10,000-pending-row
+limit remains in place. Hosted proof and the running scoped drain are
+required before the one-use ON permit can issue or be consumed.
+
+Normalized Docker Compose, disposable PostgreSQL 17 preparation and
+lease tests, and the host control suite passed locally. The disposable
+fixture proved that the prior writer was unchanged and re-preparation
+after admission was held. The production fence and previously sealed
+data were outside these tests. A read-only hosted inventory found zero
+of the new roles and zero matching policies in the shared history schema.
+
+Open gates are exact CI, controller installation and identity qualification,
+the source/image-bound PP release, and separately authorized provisioning
+and readback verification of the two new PP-only hosted history roles.
+No live comparison has started.
+
 ## November 24, 2026 CST — PP WebSocket authenticated. Boundary deployment pending.
 
 A one-shot official Polymarket US markets handshake succeeded from PP32

@@ -22,14 +22,16 @@ from .operator_session import OperatorSession
 from .collector_session import run_session
 from .config import Settings
 from .store import Store
-from .rehearsal_profile import cycle_anchor, lease_cap, elapsed_cycle_seconds
+from .rehearsal_profile import (BOUNDARY_LEASE_SECONDS, BOUNDARY_ORIGIN, boundary_anchor, cycle_anchor,
+                                elapsed_cycle_seconds, lease_cap)
 
 
 def _owner_reader(app_dsn, connector=connect):
     return LifecycleRepository(lambda: connector(app_dsn, environment='preprod', readonly=True))
 
 
-def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, rehearsal_window_seconds=None):
+def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, rehearsal_window_seconds=None,
+                       diagnostic_anchor=None):
     """Prepare a PP-only, explicitly started source task with a finite lease."""
     store = Store(Settings(environment='preprod', data_mode='pp_live',
                            origin_id=origin, dsn=app_dsn))
@@ -37,8 +39,15 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
     owner_reader = _owner_reader(app_dsn)
 
     async def run(stop, max_seconds):
-        generation = await asyncio.to_thread(repository.bootstrap, origin)
-        generation_id = str(generation['generation_id'])
+        if origin == BOUNDARY_ORIGIN:
+            state = await asyncio.to_thread(repository.collector_state, origin)
+            if (not diagnostic_anchor or state['generation_id'] != diagnostic_anchor
+                    or state['epoch'] != 1 or state['stored_enabled'] or max_seconds != BOUNDARY_LEASE_SECONDS):
+                raise ValueError('exact unused diagnostic generation required')
+            generation_id = diagnostic_anchor
+        else:
+            generation = await asyncio.to_thread(repository.bootstrap, origin)
+            generation_id = str(generation['generation_id'])
         if rehearsal_anchor is not None and generation_id != rehearsal_anchor:
             raise ValueError('two-leg initial A differs from configured generation')
         session_id = str(uuid.uuid4())
@@ -121,6 +130,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         if environ.get(name, 'false').lower() not in ('false', '0', 'off'):
             raise ValueError('operator runtime requires disabled feature flags')
     anchor = cycle_anchor(environ)
+    diagnostic_anchor = boundary_anchor(environ) if origin == BOUNDARY_ORIGIN else None
     elapsed_cycle = elapsed_cycle_seconds(environ)
     if anchor is not None and environ.get('TRADEBOT_PP_LIVE_CONTROL') != 'true':
         raise ValueError('two-leg rehearsal requires explicit live control')
@@ -156,10 +166,13 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         status_repository = _owner_reader(app_dsn, connector)
         session = session_builder(repository, origin, app_dsn,
                     **({'rehearsal_anchor': anchor} if anchor else {}),
+                    **({'diagnostic_anchor': diagnostic_anchor} if diagnostic_anchor else {}),
                     **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
+    required_seconds = BOUNDARY_LEASE_SECONDS if diagnostic_anchor else lease_cap(anchor) if anchor else None
     return create_operator_app(repository, origin_id=origin, token=token,
-                               session=session, status_repository=status_repository, max_session_seconds=lease_cap(anchor),
-                               required_session_seconds=lease_cap(anchor) if anchor else None)
+                               session=session, status_repository=status_repository,
+                               max_session_seconds=required_seconds or lease_cap(anchor),
+                               required_session_seconds=required_seconds)
 
 
 def main():

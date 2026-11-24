@@ -1,3 +1,28 @@
+## November 24, 2026 CST — PP31 published; deployment held on memory
+
+The read-only query gate passed at **192.321 seconds** for all 56 pages and
+50 objects, with **47.679 seconds** remaining. Index migration 0012 passed
+CI and is packaged in [PP31](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.31).
+The installed controller passed its independent identity check, and trial07's
+separate hosted roles and policies passed one synthetic Storage and structured
+readback plus 20 permission checks. The previous Storage policy hash and
+trial05/06 receipt counts matched.
+
+[CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45340382676)
+stopped before build or migration at the existing 1 GiB available-memory
+floor. The bounded idle firmware-service pause did not clear that floor for
+the recovery attempt, so no second workflow dispatched. The service was
+restored, the unused permit revoked, and the idle runner removed. A read-only
+spot check after restoration measured 1,042,008 KiB available.
+
+The actual PP30 image still runs in generated mode. All five prior trial05/06
+generation fingerprints matched, the new index is absent, and trial07 has
+no generation or collector session. Production's collector was verified OFF.
+Continue only after PP can sustain the existing memory floor. Finish the
+collector-off deployment and complete the indexed retained-B audit before
+starting the two elapsed live windows.
+[Rollout evidence](evidence/pp31-trial07-deployment-headroom-hold-2026-11-24.json).
+
 ## Retained B verifier timing passed before the trial07 rollout
 
 The exact `65cfda8` query verified trial06 B in **192.321 seconds** with

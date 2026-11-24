@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from quote_window_resources import backlog, build_report, collect, instant, interval
+from quote_window_resources import backlog, build_report, collect, instant, interval, profile_report
 
 
 def utc(seconds):
@@ -59,10 +59,14 @@ class QuoteWindowResourcesTest(unittest.TestCase):
         self.assertEqual(result['windows'][3]['samples'],[])
         wait = result['windows'][0]['during_wait_for_dashboard']
         self.assertEqual(wait['covered_seconds'],3.)
-        self.assertEqual(wait['samples_in_wait'],2)
+        self.assertEqual(wait['samples_in_span'],2)
         self.assertIsNone(wait['pswpin'])
         self.assertIsNone(result['windows'][1]['during_wait_for_dashboard'])
         self.assertRaises(ValueError, build_report, samples,[obs],boundaries[:3],'example')
+        benchmark = {'runs':[{'mode':'cold','started_at_utc':utc(boundary+1),'ended_at_utc':utc(boundary+10)}]}
+        stats = profile_report(samples, benchmark)[0]['resources']
+        self.assertEqual(stats['covered_seconds'],3.)
+        self.assertIsNone(stats['max_observed_pending'])
         self.assertRaises(ValueError, instant, '2026-09-29T00:00:00')
 
     def test_missing_oldest_is_unknown_not_zero(self):

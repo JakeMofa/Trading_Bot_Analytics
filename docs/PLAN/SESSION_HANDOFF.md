@@ -1,4 +1,23 @@
-## November 24, 2026 CST — Quiet retained-B history passed. Boundary trace pending.
+## Resume here — PP33 boundary comparison, November 24, 2026 CST
+
+PP33 matched all four REST/WS observer windows. Canonical collection
+stopped in the second window after a Coinbase candle-write conflict.
+The first complete match measured 114 ms from receipt to commit and
+1.172s from receipt to API visibility. WS beat the REST observer by
+55–104 seconds in three windows. This leaves the four-window live gate open.
+
+PR #216 is merged and exact preprod CI passed at `82bda33`. The fix
+keeps the first accepted candle and allows Polymarket to continue after
+a conflicting Coinbase candle revision. The fix awaits PP deployment.
+Both collectors and the dedicated structured worker are OFF.
+All 14,205 structured items were acknowledged and all five retained
+fingerprints matched. Use a freshly authorized isolated PP origin
+for the next comparison. Preserve prior raw partitions.
+
+[Master roadmap](INTELLIGENCE_REBUILD_PLAN.md) ·
+[Sanitized PP33 evidence](evidence/pp33-polymarket-boundaries-2026-11-24.json)
+
+## November 24, 2026 CST — Quiet retained-B history passed before the PP33 comparison.
 
 PP32 read and verified the exact first 500 retained trial06 B rows
 (828,368 canonical bytes) with both collectors off. The first hosted

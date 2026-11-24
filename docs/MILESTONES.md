@@ -876,3 +876,9 @@ Stay on 15-minute markets. The read-only `data_quality.py` report groups the 20 
 ## Run and validate
 
 From the project root, run `.venv/bin/python -m unittest discover -s backend/tests -v`, then `.venv/bin/python backend/app/streaming.py --seconds 60` for a bounded live check. See [README.md](../README.md) for setup. Inspect SQLite `feed_health`, `runs`, `feature_snapshots`, and `predictions` before declaring a live feed healthy.
+
+## PP size-triggered rehearsal profile
+
+- The generated PostgreSQL profile binds the initial A and byte threshold before the first write. The fixture measures actual partition allocation, verifies and removes both sealed predecessors through the existing generated archive transport, follows the bound profile after a repository restart, and stops rotating at fresh A.
+- Run `python -m unittest discover -s backend/tests -p 'test_generated_size_cycle.py' -v`. The native cases launch a disposable socket-only PostgreSQL 17 cluster. The fixtures use small measured triggers. The 32 MiB generated-profile ceiling is a candidate test bound; neither that size nor a 72-hour production window has been qualified.
+- Live admission still rejects the size profile. The next release must bind a fresh trial07 origin, the exact threshold, the finite lease and terminal drain to the controller and permit, then verify the retained evidence, permissions, and per-window authorization before running PP. The existing trial06 and production settings were unchanged by this milestone.

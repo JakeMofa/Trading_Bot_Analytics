@@ -1,5 +1,6 @@
 """Explicit, finite PP two-leg rehearsal scope. No activation or lease renewal."""
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from .cloud_origin_binding import TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, TRIAL_ORIGINS
 
@@ -9,6 +10,9 @@ NORMAL_LEASE_CAP_SECONDS = 4560
 # outgoing pairs, B's original seal window and scheduling margin stay finite.
 CYCLE_LEASE_CAP_SECONDS = 60 + 3600 + 900 + 1800 + 240
 CYCLE_POLICY = 'two-official-markets-cycle'
+SIZE_CYCLE_POLICY = 'bounded-size-cycle'
+SIZE_CYCLE_MAX_BYTES = 32 * 1024 * 1024
+SIZE_CYCLE_CHECKPOINT = 'rehearsal:generated-size-cycle'
 # One reviewed trial namespace in the SAME environment database, not a wildcard.
 CYCLE_ORIGINS = frozenset({'pp-live-pp', *TRIAL_ORIGINS})
 
@@ -26,6 +30,8 @@ def canonical_anchor(value):
 def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
+    if policy == SIZE_CYCLE_POLICY:
+        raise ValueError('size cycle requires offline qualification')
     if policy != CYCLE_POLICY:
         if environ.get('TRADEBOT_ORIGIN_ID') in TRIAL_ORIGINS:
             raise ValueError('exact trial origin requires explicit two-leg cycle profile')
@@ -37,6 +43,22 @@ def cycle_anchor(environ):
             or environ.get('TRADEBOT_ORIGIN_ID') not in CYCLE_ORIGINS):
         raise ValueError('two-leg rehearsal requires isolated PP live scope')
     return canonical_anchor(anchor)
+
+
+@dataclass(frozen=True)
+class GeneratedSizeCycle:
+    """Explicit two-leg size test pinned to one disposable initial A."""
+    initial_a: str
+    threshold_bytes: int
+
+    def __post_init__(self):
+        canonical_anchor(self.initial_a)
+        if type(self.threshold_bytes) is not int or not 1 <= self.threshold_bytes <= SIZE_CYCLE_MAX_BYTES:
+            raise ValueError('generated size threshold exceeds qualification bounds')
+
+    def binding(self):
+        return {'profile': SIZE_CYCLE_POLICY, 'initial_a': self.initial_a,
+                'threshold_bytes': self.threshold_bytes}
 
 
 def lease_cap(anchor=None):

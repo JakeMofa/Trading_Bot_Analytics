@@ -1,3 +1,60 @@
+## November 24, 2026 CST — PP31 deployed and indexed retained B passed
+
+A bounded pause of the modem service and the multipath daemon and socket
+raised available RAM from 1,062,832 to 1,080,964 KiB. The modem service had
+no modem and the host had no multipath mappings. The existing 1 GiB deployment
+floor passed. All three units were restored after
+[CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45341880562)
+passed with collection OFF. The prior trial05/06 fingerprints matched.
+
+The read-only audit proved the exact installed full outbox index valid,
+ready and live. It verified all **56 structured pages and 50 raw objects**
+in **187.906 seconds**, leaving **52.094 seconds**. This clears the
+210-second gate for one trial07 live attempt. Retained trial06 B remained
+attached. No retirement authority came from this audit.
+[Indexed audit evidence](evidence/pp31-indexed-trial06-b-read-only-2026-11-24.json).
+
+Both trial07 preparation attempts stopped before collector activation and
+restored generated mode. Neither 30-minute window ran. A rolled-back run of
+the deployed preparation pinpointed PostgreSQL's five-second statement timeout
+(SQLSTATE 57014) in the trial05 A outbox fingerprint query. No trial07 writer
+or generation was created.
+
+A read-only PP31 probe paged the retained outboxes by ID under the same
+20-second aggregate and five-second statement budgets. All three exact
+digests matched across 59,549 rows in 8.439 seconds including setup. Trial05
+A took 4.489 seconds overall, with a 3.104-second slowest page. The successor
+streams the same PostgreSQL serialization in pages of up to 1,024 rows.
+Native PostgreSQL regressions covered digest parity, missing and excess rows,
+and pending acknowledgements. The paged preparation is a source change.
+Qualify and release the successor before another live admission. PP31
+remains in generated mode with collection OFF.
+
+## November 24, 2026 CST — PP31 published; deployment held on memory
+
+The read-only query gate passed at **192.321 seconds** for all 56 pages and
+50 objects, with **47.679 seconds** remaining. Index migration 0012 passed
+CI and is packaged in [PP31](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.31).
+The installed controller passed its independent identity check, and trial07's
+separate hosted roles and policies passed one synthetic Storage and structured
+readback plus 20 permission checks. The previous Storage policy hash and
+trial05/06 receipt counts matched.
+
+[CD Preprod](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45340382676)
+stopped before build or migration at the existing 1 GiB available-memory
+floor. The bounded idle firmware-service pause did not clear that floor for
+the recovery attempt, so no second workflow dispatched. The service was
+restored, the unused permit revoked, and the idle runner removed. A read-only
+spot check after restoration measured 1,042,008 KiB available.
+
+The actual PP30 image still runs in generated mode. All five prior trial05/06
+generation fingerprints matched, the new index is absent, and trial07 has
+no generation or collector session. Production's collector was verified OFF.
+Continue only after PP can sustain the existing memory floor. Finish the
+collector-off deployment and complete the indexed retained-B audit before
+starting the two elapsed live windows.
+[Rollout evidence](evidence/pp31-trial07-deployment-headroom-hold-2026-11-24.json).
+
 ## Retained B verifier timing passed before the trial07 rollout
 
 The exact `65cfda8` query verified trial06 B in **192.321 seconds** with

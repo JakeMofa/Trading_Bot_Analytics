@@ -1,0 +1,111 @@
+{
+  "after_restore_available_memory_kib": 1042008,
+  "cd_receipt": {
+    "controller": {
+      "gate": "BLOCKED",
+      "reason": "insufficient_host_headroom",
+      "stage": "preflight"
+    },
+    "environment": "preprod",
+    "gate": "BLOCKED",
+    "reason": "deployment controller failed; no automatic retry",
+    "scope": "deploy"
+  },
+  "cd_run": 45340382676,
+  "controller_identity_run": 45337600880,
+  "exact_source_ci": 45339292919,
+  "fingerprint_sha256": "dba808666fefcb318240566bbade143c7047d541229a754f8794e0847c9bb4f6",
+  "firmware_service_restored": true,
+  "hosted_synthetic_qualification": {
+    "actual_live_rows": 0,
+    "bucket_private": true,
+    "fences": {
+      "public_read_denied": true,
+      "reader_create_denied": true,
+      "reader_denied_pp-live-pp": true,
+      "reader_denied_pp-live-pp-trial-20261119-01": true,
+      "reader_denied_pp-live-pp-trial-20261119-02": true,
+      "reader_denied_pp-live-pp-trial-20261119-03": true,
+      "reader_denied_pp-live-pp-trial-20261119-04": true,
+      "reader_denied_pp-live-pp-trial-20261119-05": true,
+      "reader_denied_pp-live-pp-trial-20261119-06": true,
+      "reader_list_denied": true,
+      "reader_sign_denied": true,
+      "status": "PASS",
+      "writer_denied_pp-live-pp": true,
+      "writer_denied_pp-live-pp-trial-20261119-01": true,
+      "writer_denied_pp-live-pp-trial-20261119-02": true,
+      "writer_denied_pp-live-pp-trial-20261119-03": true,
+      "writer_denied_pp-live-pp-trial-20261119-04": true,
+      "writer_denied_pp-live-pp-trial-20261119-05": true,
+      "writer_denied_pp-live-pp-trial-20261119-06": true,
+      "writer_list_denied": true,
+      "writer_sign_denied": true
+    },
+    "host_stage": {
+      "authority_staged": false,
+      "collector_started": false,
+      "legacy_files_replaced": false,
+      "private_files_staged": 10,
+      "status": "PASS"
+    },
+    "new_storage_objects": 1,
+    "new_structured_receipts": 1,
+    "policy_counts": {
+      "new_history": 36,
+      "new_storage": 6,
+      "old_trial06": 42
+    },
+    "retained_receipts_before_after": {
+      "05": [
+        32022,
+        32022
+      ],
+      "06": [
+        53926,
+        53926
+      ]
+    },
+    "retained_storage_policy_hash_matched": true,
+    "retained_storage_policy_sha256": "5f2cd8689849e7aaebd2eff7ee194a4b6337a4dda7fd8020f34ecd22754bdbb5",
+    "rls_history_tables_reviewed": 11,
+    "scope": "trial07_scoped_synthetic_cloud_and_host_files",
+    "source_sha": "90a10bd3a00fdbed1f052dbdf349c236d1efc397",
+    "sql": {
+      "exact_readback": true,
+      "live_trial_data_rows": 0,
+      "observer_sql_wrong_origin_denied": true,
+      "sql_reader_insert_denied": true,
+      "status": "PASS",
+      "synthetic_receipts": 1,
+      "synthetic_revisions": 1
+    },
+    "storage": {
+      "actual_trial_data_rows": 0,
+      "bytes": 209,
+      "client_reader_and_origin_fences": true,
+      "independent_reader_readback": true,
+      "origin": "pp-live-pp-trial-20261119-07",
+      "status": "PASS",
+      "synthetic_objects": 1,
+      "writer_readback": true
+    },
+    "unexpected_browser_grants": 0
+  },
+  "min_available_memory_kib": 1048576,
+  "pp_activity": "generated_mode",
+  "pp_collector_enabled": false,
+  "pp_index_installed": false,
+  "production_changed": false,
+  "production_collector_off_verified": true,
+  "recoverable_preflight_attempt_dispatched": false,
+  "recovery_guard": "available_memory_below_1_gib_even_after_idle_service_pause",
+  "release": "v0.2.0-pp.31",
+  "released_source": "54a22f7f2f86d3235471e7ec267c92275d4a8a43",
+  "retained_generation_count": 5,
+  "retained_generation_fingerprints_matched": true,
+  "status": "held_before_migration",
+  "temporary_runner_registration_removed": true,
+  "trial07_generation_exists": false,
+  "unused_permit_revoked": true
+}

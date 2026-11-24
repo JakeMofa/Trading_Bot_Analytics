@@ -1,0 +1,15 @@
+{
+  "exact_readback": true,
+  "live_trial_data_rows": 0,
+  "observer_sql_wrong_origin_denied": true,
+  "origin": "pp-live-pp-boundary-20261124-01",
+  "previous_controller_restored_generated": true,
+  "production_changed": false,
+  "raw_archive_enabled": false,
+  "retained_trial05_06_five_fingerprints_exact": true,
+  "scope": "pp_structured_only",
+  "sql_reader_insert_denied": true,
+  "status": "PASS",
+  "synthetic_receipts": 1,
+  "synthetic_revisions": 1
+}

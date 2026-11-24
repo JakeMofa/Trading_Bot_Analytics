@@ -22,14 +22,14 @@ from .operator_session import OperatorSession
 from .collector_session import run_session
 from .config import Settings
 from .store import Store
-from .rehearsal_profile import cycle_anchor, lease_cap, size_cycle_bytes
+from .rehearsal_profile import cycle_anchor, lease_cap, elapsed_cycle_seconds
 
 
 def _owner_reader(app_dsn, connector=connect):
     return LifecycleRepository(lambda: connector(app_dsn, environment='preprod', readonly=True))
 
 
-def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, rehearsal_size_bytes=None):
+def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, rehearsal_window_seconds=None):
     """Prepare a PP-only, explicitly started source task with a finite lease."""
     store = Store(Settings(environment='preprod', data_mode='pp_live',
                            origin_id=origin, dsn=app_dsn))
@@ -53,8 +53,8 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
             result = repository.enable_collector(origin, session_id=session_id,
                          expected_generation_id=generation_id, max_seconds=max_seconds,
                          **({'rehearsal_anchor': rehearsal_anchor} if rehearsal_anchor else {}),
-                         **({'rehearsal_size_bytes': rehearsal_size_bytes}
-                            if rehearsal_size_bytes is not None else {}))
+                         **({'rehearsal_window_seconds': rehearsal_window_seconds}
+                            if rehearsal_window_seconds is not None else {}))
             enabled = True
             return result
 
@@ -121,7 +121,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         if environ.get(name, 'false').lower() not in ('false', '0', 'off'):
             raise ValueError('operator runtime requires disabled feature flags')
     anchor = cycle_anchor(environ)
-    size_cycle = size_cycle_bytes(environ)
+    elapsed_cycle = elapsed_cycle_seconds(environ)
     if anchor is not None and environ.get('TRADEBOT_PP_LIVE_CONTROL') != 'true':
         raise ValueError('two-leg rehearsal requires explicit live control')
     root = Path(secret_dir)
@@ -156,7 +156,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         status_repository = _owner_reader(app_dsn, connector)
         session = session_builder(repository, origin, app_dsn,
                     **({'rehearsal_anchor': anchor} if anchor else {}),
-                    **({'rehearsal_size_bytes': size_cycle} if size_cycle is not None else {}))
+                    **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
     return create_operator_app(repository, origin_id=origin, token=token,
                                session=session, status_repository=status_repository, max_session_seconds=lease_cap(anchor),
                                required_session_seconds=lease_cap(anchor) if anchor else None)

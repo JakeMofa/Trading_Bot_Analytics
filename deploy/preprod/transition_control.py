@@ -171,7 +171,7 @@ def _read_active():
             'invalid_active_transition_binding')
     cycle_environment(data.get('initial_a'),data.get('trial_origin'))
     expected_profile=cycle_profile_binding(data.get('trial_origin'))
-    require(all(data.get(key)==expected_profile.get(key) for key in ('profile','threshold_bytes')),
+    require(all(data.get(key)==expected_profile.get(key) for key in ('profile','window_seconds')),
             'invalid_active_cycle_profile')
     return data
 

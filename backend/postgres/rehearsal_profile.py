@@ -12,6 +12,8 @@ NORMAL_LEASE_CAP_SECONDS = 4560
 # outgoing pairs, B's original seal window and scheduling margin stay finite.
 CYCLE_LEASE_CAP_SECONDS = 60 + 3600 + 900 + 1800 + 240
 CYCLE_POLICY = 'two-official-markets-cycle'
+ELAPSED_CYCLE_POLICY = 'elapsed-30m-cycle'
+ELAPSED_CYCLE_SECONDS = 1800
 SIZE_CYCLE_POLICY = 'bounded-size-cycle'
 SIZE_CYCLE_MAX_BYTES = 32 * 1024 * 1024
 SIZE_CYCLE_CHECKPOINT = 'rehearsal:generated-size-cycle'
@@ -30,35 +32,37 @@ def canonical_anchor(value):
     return value
 
 
-def size_cycle_bytes(environ):
+def elapsed_cycle_seconds(environ):
     origin = environ.get('TRADEBOT_ORIGIN_ID')
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
-    raw = environ.get('TRADEBOT_PP_SIZE_CYCLE_BYTES')
+    raw = environ.get('TRADEBOT_PP_ELAPSED_CYCLE_SECONDS')
+    if policy == SIZE_CYCLE_POLICY or environ.get('TRADEBOT_PP_SIZE_CYCLE_BYTES') is not None:
+        raise ValueError('live size-cycle policy is not available')
     if origin != SEVENTH_TRIAL_ORIGIN:
-        if policy == SIZE_CYCLE_POLICY or raw is not None:
-            raise ValueError('size cycle requires the exact seventh PP trial')
+        if policy == ELAPSED_CYCLE_POLICY or raw is not None:
+            raise ValueError('elapsed cycle requires the exact seventh PP trial')
         return None
-    if (policy != SIZE_CYCLE_POLICY or raw != str(SIZE_CYCLE_MAX_BYTES)
+    if (policy != ELAPSED_CYCLE_POLICY or raw != str(ELAPSED_CYCLE_SECONDS)
             or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod'
             or environ.get('TRADEBOT_DATA_MODE') != 'pp_live'):
-        raise ValueError('seventh trial requires its exact size-cycle profile')
-    return SIZE_CYCLE_MAX_BYTES
+        raise ValueError('seventh trial requires its exact elapsed-cycle profile')
+    return ELAPSED_CYCLE_SECONDS
 
 
-def size_cycle_binding(origin, threshold_bytes):
+def elapsed_cycle_binding(origin, window_seconds):
     if origin == SEVENTH_TRIAL_ORIGIN:
-        if type(threshold_bytes) is not int or threshold_bytes != SIZE_CYCLE_MAX_BYTES:
-            raise ValueError('seventh trial size threshold mismatch')
-        return {'profile': SIZE_CYCLE_POLICY, 'threshold_bytes': threshold_bytes}
-    if threshold_bytes is not None:
-        raise ValueError('size cycle requires the exact seventh PP trial')
+        if type(window_seconds) is not int or window_seconds != ELAPSED_CYCLE_SECONDS:
+            raise ValueError('seventh trial elapsed window mismatch')
+        return {'profile': ELAPSED_CYCLE_POLICY, 'window_seconds': window_seconds}
+    if window_seconds is not None:
+        raise ValueError('elapsed cycle requires the exact seventh PP trial')
     return {}
 
 
 def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
-    if size_cycle_bytes(environ) is not None:
+    if elapsed_cycle_seconds(environ) is not None:
         return canonical_anchor(anchor)
     if policy != CYCLE_POLICY:
         if environ.get('TRADEBOT_ORIGIN_ID') in TRIAL_ORIGINS:

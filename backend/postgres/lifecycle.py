@@ -17,7 +17,7 @@ from . import pp_space
 from .rehearsal_profile import (canonical_anchor, lease_cap, require_cycle_alignment,
                                 CYCLE_ORIGINS, TRIAL_ORIGINS, GeneratedSizeCycle,
                                 SIZE_CYCLE_CHECKPOINT, TRIAL_PREPARATION_CHECKPOINT,
-                                size_cycle_binding)
+                                elapsed_cycle_binding)
 from .retirement_accounting import phase
 from .archive_codec import (ACTIVE_BUDGET, ArchiveError, ArchiveIntegrityError, ArchiveLimit,
                             ArchiveLimits, CycleBudget, encoded, manifest_set_hash,
@@ -146,7 +146,7 @@ class LifecycleRepository:
 
     def enable_collector(self, origin_id: str, *, session_id: str,
                          expected_generation_id: str, max_seconds: int, rehearsal_anchor=None,
-                         rehearsal_size_bytes=None) -> dict:
+                         rehearsal_window_seconds=None) -> dict:
         """Enable one finite PP writer lease after separate host admission.
 
         The operator runtime calls this only after its host control gate;
@@ -157,7 +157,7 @@ class LifecycleRepository:
             raise LifecycleHold('unsupported collector enable scope')
         try:
             cap = lease_cap(rehearsal_anchor)
-            profile = size_cycle_binding(origin_id, rehearsal_size_bytes)
+            profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
         except ValueError as error:
             raise LifecycleHold(str(error)) from None
         if origin_id in TRIAL_ORIGINS and rehearsal_anchor is None:
@@ -206,14 +206,14 @@ class LifecycleRepository:
                     if writer['epoch'] != 1 or connection.execute('''SELECT 1 FROM archive.checkpoints
                         WHERE origin_id=%s AND generation_id=%s AND consumer='rehearsal:two-leg-session' ''',
                         (origin_id, rehearsal_anchor)).fetchone():
-                        raise LifecycleHold('size cycle admission already used')
+                        raise LifecycleHold('elapsed cycle admission already used')
                     prepared = connection.execute('''SELECT cursor FROM archive.checkpoints
                         WHERE origin_id=%s AND generation_id=%s AND consumer=%s''',
                         (origin_id, rehearsal_anchor, TRIAL_PREPARATION_CHECKPOINT)).fetchone()
                     if (not prepared or not isinstance(prepared['cursor'], dict)
                             or prepared['cursor'].get('initial_a') != rehearsal_anchor
                             or any(prepared['cursor'].get(key) != value for key, value in profile.items())):
-                        raise LifecycleHold('size cycle preparation binding missing or changed')
+                        raise LifecycleHold('elapsed cycle preparation binding missing or changed')
             if generation['hold_reason'] == 'pp_window_relation_limit':
                 raise LifecycleHold('PP window allocation limit requires review')
             if generation['hold_reason'] == 'other_slot_not_retired':
@@ -352,6 +352,17 @@ class LifecycleRepository:
         return len(chain)-1
 
     @staticmethod
+    def _elapsed_cycle_clock(connection):
+        return connection.execute('SELECT clock_timestamp() AS at').fetchone()['at']
+
+    @staticmethod
+    def _elapsed_cycle_quote(connection, origin, generation, started, now):
+        return connection.execute('''SELECT EXISTS (SELECT 1 FROM raw.events
+            WHERE origin_id=%s AND generation_id=%s AND source='polymarket_us'
+            AND kind='quote' AND received_at>=%s AND received_at<=%s) AS seen''',
+            (origin, generation, started, now)).fetchone()['seen']
+
+    @staticmethod
     def _observed_market_pair(connection, origin, generation, start, now):
         # A session begun mid-market must wait for the next full official interval.
         # Use exact UTC quarters, then validate both venue IDs and their source
@@ -419,14 +430,14 @@ class LifecycleRepository:
 
     def switch_if_due(self, origin_id: str, policy=RotationPolicy(), now=None, *,
                       require_live_lease=False, market_pair_trial=False, rehearsal_anchor=None,
-                      generated_size_cycle=None, rehearsal_size_bytes=None) -> dict:
+                      generated_size_cycle=None, rehearsal_window_seconds=None) -> dict:
         try:
-            profile = size_cycle_binding(origin_id, rehearsal_size_bytes)
+            profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
         except ValueError as error:
             raise LifecycleHold(str(error)) from None
         if profile and (rehearsal_anchor is None or not market_pair_trial or not require_live_lease
-                        or policy != RotationPolicy() or self.environment != 'preprod'):
-            raise LifecycleHold('size cycle requires the exact PP live rehearsal fence')
+                        or policy != RotationPolicy() or self.environment != 'preprod' or now is not None):
+            raise LifecycleHold('elapsed cycle requires the exact PP live rehearsal fence')
         if generated_size_cycle is not None:
             self._require_generated_size_scope(origin_id, generated_size_cycle)
             if (require_live_lease or market_pair_trial or rehearsal_anchor is not None
@@ -438,6 +449,8 @@ class LifecycleRepository:
                                         (origin_id,)).fetchone()
             if not writer:
                 raise LifecycleHold('writer not bootstrapped')
+            if profile:
+                now = self._elapsed_cycle_clock(connection)
             if market_pair_trial and (not require_live_lease or self.environment!='preprod'
                                       or not origin_id.startswith('pp-live-')):
                 raise LifecycleHold('invalid PP market-window qualification')
@@ -496,7 +509,7 @@ class LifecycleRepository:
                     WHERE origin_id=%s AND generation_id=%s AND consumer='rehearsal:two-leg-session' ''',
                     (origin_id,rehearsal_anchor)).fetchone()
                 proof = admission['cursor'] if admission else {}
-                if (proof.get('initial_a') != rehearsal_anchor
+                if (not isinstance(proof, dict) or proof.get('initial_a') != rehearsal_anchor
                         or proof.get('session_id') != str(writer['collector_session_id'])
                         or proof.get('lease_expires_at') != writer['collector_lease_expires_at'].isoformat()
                         or proof.get('lease_seconds') != lease_cap(rehearsal_anchor)
@@ -504,8 +517,11 @@ class LifecycleRepository:
                     raise LifecycleHold('two-leg session admission changed or missing')
                 cycle = self._rehearsal_phase(connection, origin_id, rehearsal_anchor, current)
             if cycle == 2:
+                terminal = ({'terminal_polymarket_seen': self._elapsed_cycle_quote(
+                    connection, origin_id, current['generation_id'], current['started_at'], now)}
+                    if profile else {})
                 return {'status':'collecting','reason':'two_leg_rehearsal_complete',
-                        'generation_id':current['generation_id'],'allocated_bytes':allocation, **space}
+                        'generation_id':current['generation_id'],'allocated_bytes':allocation, **space, **terminal}
             if market_pair_trial and current['slot']=='B' and rehearsal_anchor is None:
                 # Report elapsed B observation using the actual switch time.
                 # Normal operator OFF / lease expiry owns orderly shutdown.
@@ -513,10 +529,19 @@ class LifecycleRepository:
                         'allocated_bytes':allocation,
                         'b_observation_elapsed': now-current['started_at'] >= timedelta(minutes=30), **space}
             pair = []
-            size_threshold = (generated_size_cycle.threshold_bytes if generated_size_cycle is not None
-                              else rehearsal_size_bytes)
+            size_threshold = generated_size_cycle.threshold_bytes if generated_size_cycle is not None else None
+            window = {}
             if size_threshold is not None:
                 reason = RotationPolicy(size_threshold).size_due(allocation)
+            elif profile:
+                start = writer['updated_at'] if cycle == 0 else current['started_at']
+                if (start is None or current['started_at'] is None or start > now or (cycle == 0 and
+                        (proof.get('admitted_at') != start.isoformat() or start < current['started_at']))):
+                    raise LifecycleHold('elapsed cycle start changed or unavailable')
+                due = start + timedelta(seconds=rehearsal_window_seconds)
+                reason = 'elapsed_30m' if now >= due else None
+                window = {'window_started_at': start.isoformat(), 'window_due_at': due.isoformat(),
+                          'window_seconds': rehearsal_window_seconds}
             elif market_pair_trial:
                 # writer.updated_at records actual lease enable or last rotation.
                 start = max(writer['updated_at'],current['started_at'])
@@ -527,7 +552,7 @@ class LifecycleRepository:
                 reason = policy.due(current['started_at'], now, allocation)
             if not reason:
                 return {'status': 'collecting', 'generation_id': current['generation_id'],
-                        'allocated_bytes': allocation, **space}
+                        'allocated_bytes': allocation, **space, **window}
             slot = 'B' if current['slot'] == 'A' else 'A'
             occupied = connection.execute('''SELECT 1 FROM archive.generations
                 WHERE origin_id=%s AND slot=%s AND state<>'retired' LIMIT 1''',
@@ -549,9 +574,21 @@ class LifecycleRepository:
                         (now, origin_id))
                     result['collector_enabled'] = False
                 return result
+            if profile and not self._elapsed_cycle_quote(connection, origin_id, current['generation_id'],
+                                                         start, now):
+                return {'status': 'collecting', 'reason': 'elapsed_window_waiting_for_polymarket',
+                        'generation_id': current['generation_id'], 'allocated_bytes': allocation,
+                        **space, **window}
             count = connection.execute('SELECT count(*) AS count FROM raw.events WHERE generation_id=%s',
                                        (current['generation_id'],)).fetchone()['count']
             new = self._create(connection, origin_id, slot, now)
+            if profile:
+                now = self._elapsed_cycle_clock(connection)
+                if now < due or now >= writer['collector_lease_expires_at']:
+                    raise LifecycleHold('elapsed switch is outside the active database window')
+                window.update(sealed_allocated_bytes=allocation,
+                              window_elapsed_seconds=(now - start).total_seconds(),
+                              next_generation_started_at=now.isoformat())
             connection.execute("""UPDATE archive.generations SET state='sealed',sealed_at=%s,
                 seal_count=%s,hold_reason=NULL WHERE generation_id=%s""", (now, count, current['generation_id']))
             connection.execute("UPDATE archive.generations SET state='collecting',started_at=%s WHERE generation_id=%s",
@@ -562,6 +599,7 @@ class LifecycleRepository:
                     'generation_id': new['generation_id'], 'slot': slot, 'seal_count': count,
                     **({'sealed_allocated_bytes': allocation, 'threshold_bytes': size_threshold, **space}
                        if size_threshold is not None else {}),
+                    **({**space, **window} if profile else {}),
                     **({**space, 'window_market_ids':[row['market_id'] for row in pair],
                         'window_start_epoch':str(pair[0]['start_epoch']),
                         'window_end_epoch':str(pair[-1]['end_epoch']),

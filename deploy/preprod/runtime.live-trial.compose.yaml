@@ -9,9 +9,9 @@ services:
   lifecycle:
     environment:
       TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-07
-      TRADEBOT_PP_SIZE_CYCLE_BYTES: ${TRADEBOT_PP_SIZE_CYCLE_BYTES:?reviewed size required}
+      TRADEBOT_PP_ELAPSED_CYCLE_SECONDS: ${TRADEBOT_PP_ELAPSED_CYCLE_SECONDS:?reviewed elapsed window required}
   operator:
     environment:
       TRADEBOT_ORIGIN_ID: pp-live-pp-trial-20261119-07
       TRADEBOT_PP_COINBASE_TIMING: 'true'
-      TRADEBOT_PP_SIZE_CYCLE_BYTES: ${TRADEBOT_PP_SIZE_CYCLE_BYTES:?reviewed size required}
+      TRADEBOT_PP_ELAPSED_CYCLE_SECONDS: ${TRADEBOT_PP_ELAPSED_CYCLE_SECONDS:?reviewed elapsed window required}

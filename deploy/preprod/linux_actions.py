@@ -60,8 +60,8 @@ OPTIONAL_DISABLED={'TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED'}
 OUTBOX_ORIGINS=('generated-pp','pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05','pp-live-pp-trial-20261119-06','pp-live-pp-trial-20261119-07')
 CYCLE_SESSION_MAX_SECONDS=6600
 CYCLE_POLICY='two-official-markets-cycle'
-SIZE_CYCLE_POLICY='bounded-size-cycle'
-SIZE_CYCLE_BYTES=32*1024*1024
+ELAPSED_CYCLE_POLICY='elapsed-30m-cycle'
+ELAPSED_CYCLE_SECONDS=1800
 TRIAL_ORIGIN='pp-live-pp-trial-20261119-07'
 RETAINED_TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
 RETAINED_TRIAL_ORIGINS=frozenset({RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05','pp-live-pp-trial-20261119-06'})
@@ -80,7 +80,7 @@ def live_origin(trial_origin=None):
 
 def cycle_profile_binding(trial_origin):
     if trial_origin == TRIAL_ORIGIN:
-        return {'profile': SIZE_CYCLE_POLICY, 'threshold_bytes': SIZE_CYCLE_BYTES}
+        return {'profile': ELAPSED_CYCLE_POLICY, 'window_seconds': ELAPSED_CYCLE_SECONDS}
     return {}
 
 
@@ -98,7 +98,7 @@ def cycle_environment(initial_a, trial_origin=None):
     return {'TRADEBOT_PP_WINDOW_POLICY': profile.get('profile', CYCLE_POLICY),
             'TRADEBOT_PP_CYCLE_INITIAL_A': initial_a} | (
                 {'TRADEBOT_ORIGIN_ID':origin} if trial_origin else {}) | (
-                {'TRADEBOT_PP_SIZE_CYCLE_BYTES': str(profile['threshold_bytes'])} if profile else {})
+                {'TRADEBOT_PP_ELAPSED_CYCLE_SECONDS': str(profile['window_seconds'])} if profile else {})
 
 
 def memory_bytes(value):

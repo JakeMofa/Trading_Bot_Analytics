@@ -69,7 +69,8 @@ BEGIN
            AND a.started_at=g.sealed_at AND a.slot<>g.slot)) THEN
     RAISE EXCEPTION 'PP trial requires the exact unexpired sealed-generation handoff';
   END IF;
-  IF g.origin_id='pp-live-pp-trial-20261119-07' AND NOT EXISTS(
+  IF g.origin_id='pp-live-pp-trial-20261119-07' AND (
+      COALESCE((evidence->>'active_new_polymarket_quotes')::bigint,0)<1 OR NOT EXISTS(
     SELECT FROM archive.checkpoints c
     JOIN archive.generations a USING(origin_id,generation_id)
     JOIN ops.writer_state w USING(origin_id)
@@ -77,9 +78,11 @@ BEGIN
       AND a.slot='A' AND (a.generation_id=p_sealed OR (g.slot='B' AND a.state='retired'))
       AND c.cursor->>'initial_a'=a.generation_id
       AND c.cursor->>'session_id'=w.collector_session_id::text
-      AND c.cursor->>'profile'='bounded-size-cycle'
-      AND c.cursor->'threshold_bytes'='33554432'::jsonb
-  ) THEN RAISE EXCEPTION 'PP trial07 requires its exact size cycle admission'; END IF;
+      AND c.cursor->>'profile'='elapsed-30m-cycle'
+      AND c.cursor->'window_seconds'='1800'::jsonb
+      AND g.sealed_at >= (CASE WHEN g.slot='A' THEN
+        (c.cursor->>'admitted_at')::timestamptz ELSE g.started_at END) + interval '30 minutes'
+  )) THEN RAISE EXCEPTION 'PP trial07 requires its elapsed window and successor Polymarket persistence'; END IF;
   EXECUTE format('DROP TABLE raw.%I',child);
   UPDATE archive.generations SET state='retired',retired_at=clock_timestamp()
     WHERE origin_id=g.origin_id AND generation_id=p_sealed;

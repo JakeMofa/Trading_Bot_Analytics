@@ -30,18 +30,18 @@ class TrialHostTests(unittest.TestCase):
             bad=deepcopy(live);bad['services'][name]['environment']['TRADEBOT_ORIGIN_ID']='pp-live-pp'
             with self.assertRaises(DeploymentHold):validate_live_profile(base,bad,source,IMAGE,initial_a=A,trial_origin=TRIAL)
         for name in ('lifecycle','operator'):
-            bad=deepcopy(live);bad['services'][name]['environment']['TRADEBOT_PP_SIZE_CYCLE_BYTES']='1'
+            bad=deepcopy(live);bad['services'][name]['environment']['TRADEBOT_PP_ELAPSED_CYCLE_SECONDS']='1'
             with self.assertRaises(DeploymentHold):validate_live_profile(base,bad,source,IMAGE,initial_a=A,trial_origin=TRIAL)
         for origin,anchor in ((TRIAL+'-other',A),(TRIAL,None)):
             with self.assertRaises(DeploymentHold):actions.cycle_environment(anchor,origin)
         with self.assertRaises(DeploymentHold):validate_live_profile(base,live,source,IMAGE,initial_a=A,trial_origin=TRIAL,reader=True)
         self.assertFalse(any('history' in secret['source'] for secret in live['services']['api']['secrets']))
 
-    def test_fresh_permits_bind_profile_and_threshold_and_retained_sixth_cannot_enter(self):
+    def test_fresh_permits_bind_profile_and_elapsed_window_and_retained_sixth_cannot_enter(self):
         request=gate.TransitionRequest('enter','a'*40,'b'*64,'c'*64,IMAGE,initial_a=A,trial_origin=TRIAL)
         request.validate()
-        self.assertEqual((request.bindings()['profile'],request.bindings()['threshold_bytes']),
-                         ('bounded-size-cycle',32*1024*1024))
+        self.assertEqual((request.bindings()['profile'],request.bindings()['window_seconds']),
+                         ('elapsed-30m-cycle',1800))
         old='pp-live-pp-trial-20261119-06'
         self.assertEqual(actions.cycle_environment(A,old)['TRADEBOT_PP_WINDOW_POLICY'],
                          'two-official-markets-cycle')

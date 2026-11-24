@@ -15,7 +15,7 @@ from .lifecycle import LifecycleHold, LifecycleRepository, validate_manifest_cha
 from .pp_retirement_report import bound_catalog
 from .rehearsal_profile import (TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
     FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS,
-    canonical_anchor, cycle_anchor, size_cycle_binding, size_cycle_bytes, TRIAL_PREPARATION_CHECKPOINT)
+    canonical_anchor, cycle_anchor, elapsed_cycle_binding, elapsed_cycle_seconds, TRIAL_PREPARATION_CHECKPOINT)
 
 CONSUMER=TRIAL_PREPARATION_CHECKPOINT
 RETAINED_SECOND_INITIAL_A='41c82044-0fb8-4900-bea0-7c43ba079ff0'
@@ -246,13 +246,13 @@ def retained_sixth_fingerprint(db, writers):
 
 
 def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN,
-            rehearsal_size_bytes=None):
+            rehearsal_window_seconds=None):
     canonical_anchor(initial_a)
     if (execute is not True or repository.environment!='preprod' or origin_id not in TRIAL_ORIGINS
             or not isinstance(source_sha,str) or not re.fullmatch('[0-9a-f]{40}',source_sha)):
         raise LifecycleHold('explicit exact trial preparation scope required')
     try:
-        profile = size_cycle_binding(origin_id, rehearsal_size_bytes)
+        profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
     except ValueError as error:
         raise LifecycleHold(str(error)) from None
     preserved = (RETAINED_THIRD_A,RETAINED_THIRD_B)
@@ -368,7 +368,7 @@ def main(argv=None):
     with factory() as db:validate_schema(db,'preprod')
     print(json.dumps(prepare(LifecycleRepository(factory),args.initial_a,args.source_sha,
                              execute=args.execute,origin_id=os.environ['TRADEBOT_ORIGIN_ID'],
-                             rehearsal_size_bytes=size_cycle_bytes(os.environ))),flush=True)
+                             rehearsal_window_seconds=elapsed_cycle_seconds(os.environ))),flush=True)
     return 0
 
 if __name__=='__main__':raise SystemExit(main())

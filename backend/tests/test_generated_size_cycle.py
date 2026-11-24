@@ -15,8 +15,8 @@ from postgres.archive_codec import ArchiveLimits
 from postgres.connection import connect
 from postgres.lifecycle import ArchiveWorker, LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.lifecycle_worker import configuration
-from postgres.rehearsal_profile import (CYCLE_LEASE_CAP_SECONDS, GeneratedSizeCycle, SEVENTH_TRIAL_ORIGIN,
-                                        SIZE_CYCLE_MAX_BYTES, SIZE_CYCLE_POLICY, cycle_anchor)
+from postgres.rehearsal_profile import (ELAPSED_CYCLE_POLICY, ELAPSED_CYCLE_SECONDS, GeneratedSizeCycle,
+                                        SEVENTH_TRIAL_ORIGIN, SIZE_CYCLE_MAX_BYTES, SIZE_CYCLE_POLICY, cycle_anchor)
 from postgres_lifecycle_fixtures import ImmutableMemoryTransport
 
 
@@ -37,17 +37,19 @@ class SizeCycleScope(unittest.TestCase):
                 with self.subTest(origin=origin, check=check.__name__), self.assertRaises(ValueError):
                     check(env)
 
-    def test_live_size_profile_requires_exact_scope_and_byte_literal(self):
+    def test_live_elapsed_profile_requires_exact_scope_and_no_size_override(self):
         anchor = str(uuid.uuid4())
         env = dict(TRADEBOT_ENVIRONMENT='preprod', TRADEBOT_DATA_MODE='pp_live',
                    TRADEBOT_ORIGIN_ID=SEVENTH_TRIAL_ORIGIN,
-                   TRADEBOT_PP_WINDOW_POLICY=SIZE_CYCLE_POLICY,
+                   TRADEBOT_PP_WINDOW_POLICY=ELAPSED_CYCLE_POLICY,
                    TRADEBOT_PP_CYCLE_INITIAL_A=anchor, TRADEBOT_PP_LIVE_LIFECYCLE='true',
-                   TRADEBOT_PP_SIZE_CYCLE_BYTES=str(SIZE_CYCLE_MAX_BYTES))
+                   TRADEBOT_PP_ELAPSED_CYCLE_SECONDS=str(ELAPSED_CYCLE_SECONDS))
         self.assertEqual(cycle_anchor(env), anchor)
-        self.assertEqual(configuration(env)['rehearsal_size_bytes'], SIZE_CYCLE_MAX_BYTES)
+        self.assertEqual(configuration(env)['rehearsal_window_seconds'], ELAPSED_CYCLE_SECONDS)
         for change in (dict(TRADEBOT_ENVIRONMENT='production'),
-                       dict(TRADEBOT_PP_SIZE_CYCLE_BYTES='033554432'),
+                       dict(TRADEBOT_PP_ELAPSED_CYCLE_SECONDS='01800'),
+                       dict(TRADEBOT_PP_SIZE_CYCLE_BYTES='33554432'),
+                       dict(TRADEBOT_ORIGIN_ID='pp-live-pp-trial-20261119-06'),
                        dict(TRADEBOT_PP_WINDOW_POLICY='two-official-markets-cycle'),
                        dict(TRADEBOT_QUALIFIED_GENERATION_BYTES='1')):
             with self.subTest(change=change), self.assertRaises(ValueError):
@@ -157,46 +159,3 @@ class GeneratedSizeNative(unittest.TestCase):
         self.insert(1)
         with self.assertRaisesRegex(LifecycleHold, 'empty initial A'):
             self.repo.prepare_generated_size_cycle(self.origin, self.profile)
-
-    def test_live_scope_prepares_exact_binding_and_admits_only_once(self):
-        from contextlib import ExitStack
-        from postgres.pp_trial_prepare import prepare
-
-        origin, anchor, session = SEVENTH_TRIAL_ORIGIN, str(uuid.uuid4()), str(uuid.uuid4())
-        with ExitStack() as patches:
-            for retained in ('third', 'fourth', 'fifth', 'sixth'):
-                patches.enter_context(patch(f'postgres.pp_trial_prepare.retained_{retained}_fingerprint',
-                                            return_value='c' * 64))
-            proof = prepare(self.repo, anchor, 'a' * 40, execute=True, origin_id=origin,
-                            rehearsal_size_bytes=SIZE_CYCLE_MAX_BYTES)
-        self.assertEqual((proof['profile'], proof['threshold_bytes'], proof['collector_enabled']),
-                         (SIZE_CYCLE_POLICY, SIZE_CYCLE_MAX_BYTES, False))
-        args = dict(session_id=session, expected_generation_id=anchor, rehearsal_anchor=anchor,
-                    max_seconds=CYCLE_LEASE_CAP_SECONDS)
-        with self.assertRaisesRegex(LifecycleHold, 'size threshold mismatch'):
-            self.repo.enable_collector(origin, **args)
-        with patch('postgres.lifecycle.require_cycle_alignment',
-                   side_effect=AssertionError('size cycle has no quarter alignment requirement')):
-            self.assertTrue(self.repo.enable_collector(
-                origin, **args, rehearsal_size_bytes=SIZE_CYCLE_MAX_BYTES)['collector_enabled'])
-        with self.factory() as db:
-            admitted = db.execute('''SELECT cursor FROM archive.checkpoints WHERE origin_id=%s
-                AND generation_id=%s AND consumer='rehearsal:two-leg-session' ''',
-                (origin, anchor)).fetchone()['cursor']
-        self.assertEqual((admitted['profile'], admitted['threshold_bytes'], admitted['session_id']),
-                         (SIZE_CYCLE_POLICY, SIZE_CYCLE_MAX_BYTES, session))
-        runtime = dict(rehearsal_anchor=anchor, market_pair_trial=True, require_live_lease=True,
-                       rehearsal_size_bytes=SIZE_CYCLE_MAX_BYTES)
-        self.assertEqual(self.repo.switch_if_due(origin, **runtime)['generation_id'], anchor)
-        # The small native fixture exercises the real partition switch without
-        # filling 32 MiB. The exact byte comparison is covered by the size test.
-        self.origin = origin
-        self.insert(1)
-        with patch.object(RotationPolicy, 'size_due', return_value='qualified_size'):
-            switched = self.repo.switch_if_due(origin, **runtime)
-        self.assertEqual((switched['slot'], switched['threshold_bytes']),
-                         ('B', SIZE_CYCLE_MAX_BYTES))
-        self.assertTrue(self.repo.owns_collector(origin, session))
-        self.repo.disable_collector(origin)
-        with self.assertRaises(LifecycleHold):
-            self.repo.enable_collector(origin, **args, rehearsal_size_bytes=SIZE_CYCLE_MAX_BYTES)

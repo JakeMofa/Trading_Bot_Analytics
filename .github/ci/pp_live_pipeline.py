@@ -73,8 +73,8 @@ def exact_deployed_ci(api, candidate, branch):
     return run_id
 
 
-SIZE_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-07'
-SIZE_TRIAL_BINDING = {'profile': 'bounded-size-cycle', 'threshold_bytes': 32 * 1024 * 1024}
+ELAPSED_TRIAL_ORIGIN = 'pp-live-pp-trial-20261119-07'
+ELAPSED_TRIAL_BINDING = {'profile': 'elapsed-30m-cycle', 'window_seconds': 1800}
 STOP_ORIGINS = ('pp-live-pp', *(f'pp-live-pp-trial-20261119-{leg:02}' for leg in range(1, 8)))
 
 
@@ -89,7 +89,7 @@ def command_for(env, api, profile):
     anchor = env.get('PP_CYCLE_INITIAL_A', '')
     trial_origin=env.get('PP_TRIAL_ORIGIN','')
     if trial_origin:
-        require(trial_origin==SIZE_TRIAL_ORIGIN and bool(anchor)
+        require(trial_origin==ELAPSED_TRIAL_ORIGIN and bool(anchor)
                 and operation in ('enter','on'),'exact anchored PP trial origin required')
     if anchor:
         try:
@@ -162,9 +162,9 @@ def validated_result(operation, result, initial_a=None, trial_origin=None):
     require(result.get('gate') == expected and valid_origin
             and result.get('collector_enabled') is (operation == 'on')
             and result.get('initial_a') == initial_a, 'PP live result mismatch')
-    binding = SIZE_TRIAL_BINDING if trial_origin == SIZE_TRIAL_ORIGIN else {}
-    require(all(result.get(key) == binding.get(key) for key in SIZE_TRIAL_BINDING),
-            'PP live size profile mismatch')
+    binding = ELAPSED_TRIAL_BINDING if trial_origin == ELAPSED_TRIAL_ORIGIN else {}
+    require(all(result.get(key) == binding.get(key) for key in ELAPSED_TRIAL_BINDING),
+            'PP live elapsed profile mismatch')
     return {'gate': expected, 'origin_id': result['origin_id'],
             'collector_enabled': result['collector_enabled']} | binding
 

@@ -1,3 +1,31 @@
+## November 23, 2026 CST — Trial07 uses two elapsed collection windows
+
+The user clarified that a size trigger would shorten the collection window
+as traffic varies. Trial07 therefore measures **30 minutes from durable A
+collector admission** and **30 minutes from the actual A-to-B switch**. The
+clock uses the persisted database timestamps. Log relation size, raw events,
+archive objects and structured pages and bytes at seal. Allocation is evidence
+for this trial. Existing disk, occupied-slot, and outbox safeguards still hold
+when their own conditions are met.
+
+A keeps its archive and exact protected history through verification while B
+collects. Repeat for B with fresh A. Each final verification still has 240
+seconds, and each seal-to-removal interval still has a 30-minute deadline.
+Each removal needs its own separately announced verification window of at
+most 295 seconds. The trial07 confirmation already covers both windows.
+Fresh A must persist a Polymarket quote before durable OFF. Then finish its
+structured drain, seal it, verify its archive and history, and keep its raw
+partition attached.
+
+The prior 32 MiB candidate is isolated in draft
+[PR #210](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/210).
+It was never deployed. Its [exact check](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45304028083)
+failed because a new permit test skipped inside a phase that rejects skips.
+The elapsed candidate's permit test accepts the existing isolated Linux CI
+database and still exercises actual PostgreSQL on a disposable cluster locally.
+PP30 remains the latest recorded rollout. Trial05 and retained trial06 B
+remain outside the new scope. No production size or retirement policy changes.
+
 ## November 23, 2026 CST — Retained B timeout identified on PP
 
 The bounded read-only check stopped in the local page-size query with SQLSTATE

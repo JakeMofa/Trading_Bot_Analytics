@@ -18,7 +18,7 @@ from .pp_raw_archive_probe import OFF_FLAGS
 from .cloud_origin_binding import SEVENTH_TRIAL_ORIGIN
 from .rehearsal_profile import (NEXT_TRIAL_ORIGIN as ORIGIN, THIRD_TRIAL_ORIGIN,
                                 FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN,
-                                SIZE_CYCLE_MAX_BYTES, SIZE_CYCLE_POLICY, canonical_anchor, cycle_anchor)
+                                ELAPSED_CYCLE_SECONDS, ELAPSED_CYCLE_POLICY, canonical_anchor, cycle_anchor)
 from .pp_trial_prepare import CONSUMER as PREPARE_CONSUMER
 from .pp_structured_probe import LOCAL_DSN, private_dsn
 
@@ -87,9 +87,12 @@ def completed_chain(db, target, *, origin_id=ORIGIN):
         admission_valid=False
     if origin_id == SEVENTH_TRIAL_ORIGIN:
         admission_valid = (admission_valid and all(
-            proof.get('profile') == SIZE_CYCLE_POLICY
-            and proof.get('threshold_bytes') == SIZE_CYCLE_MAX_BYTES
-            for proof in (prepared, admitted)))
+            proof.get('profile') == ELAPSED_CYCLE_POLICY
+            and proof.get('window_seconds') == ELAPSED_CYCLE_SECONDS
+            for proof in (prepared, admitted))
+            and rows[0]['sealed_at'] >= datetime.fromisoformat(admitted['admitted_at']) + timedelta(seconds=ELAPSED_CYCLE_SECONDS)
+            and rows[1]['started_at'] is not None and rows[1]['sealed_at'] is not None
+            and rows[1]['sealed_at'] >= rows[1]['started_at'] + timedelta(seconds=ELAPSED_CYCLE_SECONDS))
     if not admission_valid:
         raise LifecycleHold('original final trial admission changed or missing')
     for previous,successor in zip(rows,rows[1:]):
@@ -112,6 +115,10 @@ def completed_chain(db, target, *, origin_id=ORIGIN):
                 or not isinstance(proof.get('history_reader_proof'),str)
                 or not re.fullmatch('[0-9a-f]{64}',proof['history_reader_proof'])):
             raise LifecycleHold('two actual deadline-bound retirements required before final seal')
+        if origin_id == SEVENTH_TRIAL_ORIGIN and (
+                type(proof.get('active_new_polymarket_quotes')) is not int
+                or proof['active_new_polymarket_quotes'] < 1):
+            raise LifecycleHold('trial07 successor Polymarket persistence must be proven')
         child='events_g_'+previous['generation_id'].replace('-','')
         if (previous['partition_name']!=child or db.execute('SELECT to_regclass(%s) AS child',
                 ('raw.'+child,)).fetchone()['child'] is not None):

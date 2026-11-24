@@ -58,10 +58,10 @@ class PPLivePipelineTests(unittest.TestCase):
         self.assertEqual(command,'session-v1 on 6600 '+anchor+' '+trial)
         self.assertEqual(proof['trial_origin'],trial)
         live=dict(gate='PP_LIVE_ON',origin_id=trial,collector_enabled=True,initial_a=anchor,
-                  profile='bounded-size-cycle',threshold_bytes=32*1024*1024)
-        self.assertEqual(module.validated_result('on',live,anchor,trial)['threshold_bytes'],32*1024*1024)
+                  profile='elapsed-30m-cycle',window_seconds=1800)
+        self.assertEqual(module.validated_result('on',live,anchor,trial)['window_seconds'],1800)
         with self.assertRaises(ValueError):
-            module.validated_result('on',{**live,'threshold_bytes':1},anchor,trial)
+            module.validated_result('on',{**live,'window_seconds':1},anchor,trial)
         for change in ({'PP_TRIAL_ORIGIN':trial+'-other'},{'PP_CYCLE_INITIAL_A':''}):
             with self.assertRaises(ValueError):module.command_for({**env,**change},API(),{})
         self.assertEqual(module.validated_result('off',dict(gate='PP_LIVE_OFF',origin_id=trial,collector_enabled=False))['origin_id'],trial)

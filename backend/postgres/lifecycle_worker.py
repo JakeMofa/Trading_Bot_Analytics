@@ -9,7 +9,7 @@ import signal
 import threading
 
 from .lifecycle import LifecycleRepository, RotationPolicy
-from .rehearsal_profile import cycle_anchor, size_cycle_bytes, CYCLE_POLICY, CYCLE_ORIGINS, SIZE_CYCLE_POLICY
+from .rehearsal_profile import cycle_anchor, elapsed_cycle_seconds, CYCLE_POLICY, CYCLE_ORIGINS, ELAPSED_CYCLE_POLICY
 
 
 def configuration(environ):
@@ -39,8 +39,8 @@ def configuration(environ):
     size = environ.get('TRADEBOT_QUALIFIED_GENERATION_BYTES')
     trial = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = cycle_anchor(environ)
-    size_cycle = size_cycle_bytes(environ)
-    if trial is not None and (trial not in ('two-official-markets', CYCLE_POLICY, SIZE_CYCLE_POLICY) or mode != 'pp_live'
+    elapsed_cycle = elapsed_cycle_seconds(environ)
+    if trial is not None and (trial not in ('two-official-markets', CYCLE_POLICY, ELAPSED_CYCLE_POLICY) or mode != 'pp_live'
             or environ.get('TRADEBOT_ENVIRONMENT') != 'preprod' or origin not in CYCLE_ORIGINS):
         raise ValueError('invalid PP market-window qualification profile')
     if mode == 'pp_live' and size is not None:
@@ -53,7 +53,7 @@ def configuration(environ):
     return {'origin_id': origin, 'mode': mode, 'generated_storage':generated_storage,
             'policy': RotationPolicy(int(size) if size else None),
             'pending_outbox_limit': pending, 'market_pair_trial': trial is not None, 'rehearsal_anchor': anchor,
-            'rehearsal_size_bytes': size_cycle}
+            'rehearsal_window_seconds': elapsed_cycle}
 
 
 def read_dsn(environ):
@@ -121,8 +121,8 @@ def main(argv=None):
                                               require_live_lease=config['mode'] == 'pp_live',
                                               market_pair_trial=config['market_pair_trial'],
                                               rehearsal_anchor=config['rehearsal_anchor'],
-                                              **({'rehearsal_size_bytes': config['rehearsal_size_bytes']}
-                                                 if config['rehearsal_size_bytes'] is not None else {}))
+                                              **({'rehearsal_window_seconds': config['rehearsal_window_seconds']}
+                                                 if config['rehearsal_window_seconds'] is not None else {}))
             result.update(archive='held_no_qualified_transport', retirement='off')
             if generated is not None:result['generated_storage']=generated
             if config['mode'] == 'pp_live' and result.get('reason') in (

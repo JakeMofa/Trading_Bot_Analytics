@@ -178,11 +178,20 @@ async def coinbase_candle_cycle(store, client, stop: asyncio.Event, *, now=None,
         return 0
     events = await _step('coinbase_candles', fetch(client, now or datetime.now(timezone.utc)))
     acknowledged = 0
+    revisions = 0
     for event in events:
         if stop.is_set():
             break
-        await _step('coinbase_candle_write', asyncio.to_thread(store.ingest, event))
+        try:
+            await _step('coinbase_candle_write', asyncio.to_thread(store.ingest, event))
+        except LiveDiagnostic as error:
+            if error.code != 'coinbase_candle_write.candle_revision_conflict':
+                raise
+            revisions += 1
+            continue
         acknowledged += 1
+    if revisions:
+        logging.getLogger(__name__).warning('pp_candle_revisions_rejected count=%d', revisions)
     return acknowledged
 
 

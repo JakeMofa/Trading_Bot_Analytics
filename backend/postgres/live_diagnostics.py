@@ -9,7 +9,7 @@ from websockets.exceptions import (ConnectionClosed, ConnectionClosedOK,
                                    WebSocketException)
 
 from .live_contract import QuoteContractError
-from .store import StorageHold
+from .store import CandleRevisionConflict, StorageHold
 
 
 OPERATIONS = frozenset({
@@ -22,7 +22,7 @@ CATEGORIES = frozenset({
     'timeout', 'transport', 'http_404', 'http_429', 'http_4xx', 'http_5xx',
     'http_unexpected',
     'invalid_or_unavailable', 'identity_mismatch', 'invalid_quote', 'invalid_source_time',
-    'response_limit', 'invalid_json', 'write_rejected', 'unexpected', 'ended',
+    'response_limit', 'invalid_json', 'write_rejected', 'candle_revision_conflict', 'unexpected', 'ended',
     'lease_lost', 'database_unavailable', 'deadline_reached', 'durable_off_unproven',
     'ws_closed_ok', 'ws_closed_error', 'ws_handshake_invalid', 'ws_protocol',
 })
@@ -79,6 +79,8 @@ def diagnose(operation: str, error: Exception) -> LiveDiagnostic:
         category = 'ws_handshake_invalid'
     elif isinstance(error, WebSocketException):
         category = 'ws_protocol'
+    elif isinstance(error, CandleRevisionConflict):
+        category = 'candle_revision_conflict'
     elif isinstance(error, StorageHold):
         category = 'write_rejected'
     elif isinstance(error, (asyncio.TimeoutError, TimeoutError, httpx.TimeoutException)):

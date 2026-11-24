@@ -30,6 +30,15 @@ class RetainedPageProfileTests(unittest.TestCase):
         with self.assertRaises(profile.ArchiveIntegrityError):
             profile.page_pin(changed)
 
+    def test_explain_only_captures_deployed_history_selects_and_baseline_pin(self):
+        from postgres.history_v2_latest_receipts import INDEXED_SQL
+        self.assertEqual(profile.explain_family(INDEXED_SQL, None), 'indexed_latest_receipts')
+        self.assertIsNone(profile.explain_family('SET TRANSACTION READ ONLY', None))
+        with self.assertRaises(profile.ArchiveIntegrityError):
+            profile.explain_family('SELECT 1 FROM history_v2.unknown', None)
+        with self.assertRaises(profile.ArchiveIntegrityError):
+            profile.explain_history(None, None, self.pin)
+
     def test_snapshots_fail_closed_on_reset_or_eviction(self):
         old = (('reset',0),{1: dict(calls=5,rows=2,total_exec_time=2.0)})
         new = (('reset',0),{1: dict(calls=9,rows=502,total_exec_time=11.0)})

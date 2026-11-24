@@ -9,6 +9,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
+import math
 import os
 import time
 
@@ -207,9 +208,104 @@ def profile(local, remote, pin, sample_stats=None):
     return runs
 
 
+# Pin independently established by the quiet PP32 four-run baseline.
+QUIET_PIN = dict(rows=500, first_id=177478, last_id=177978, canonical_bytes=828368,
+                 ordered_ids_sha256='2dde739e0b52e8f8f082b57f0f888ad2b18d9361ee716a0c4225750b924102b8',
+                 canonical_sha256='9b2a25493f3ceb884525bf6cb6aefd6d7b02ebf17b7ec777ecc49364d6516353')
+
+
+def explain_family(statement, params):
+    from postgres.history_v2_latest_receipts import INDEXED_SQL
+    if statement == INDEXED_SQL:
+        return 'indexed_latest_receipts'
+    sql = ' '.join(statement.split())
+    if sql.startswith('SELECT cursor,content_hash') and 'history_v2.generation_checkpoints' in sql:
+        return 'checkpoints'
+    if sql.upper().startswith('WITH SELECTED AS MATERIALIZED') and 'history_v2.structured_revision_payloads' in sql:
+        return 'exact_revisions' if str(params[1]) == GENERATION else 'newer_revisions'
+    if sql.startswith('SELECT * FROM "history_v2".'):
+        return 'projections'
+    if 'history_v2' in sql:
+        raise ArchiveIntegrityError('unclassified hosted history query')
+    return None
+
+
+class StatementCapture:
+    """Keep trusted deployed SELECT templates and bound params in RAM only."""
+    def __init__(self, raw, statements):
+        self.raw, self.statements = raw, statements
+
+    def transaction(self):
+        return self.raw.transaction()
+
+    def pipeline(self):
+        return self.raw.pipeline()
+
+    def execute(self, query, params=None):
+        statement = query if isinstance(query, str) else query.as_string(self.raw)
+        family = explain_family(statement, params)
+        result = self.raw.execute(query, params)
+        if family:
+            check(len(self.statements) < PAGE_SIZE * 3 + 8, 'statement capture exceeded page bound')
+            self.statements.append((family, statement, params, result))
+        return result
+
+
+def explain_history(local, remote, pin):
+    check(pin == QUIET_PIN, 'page differs from original four-run pin')
+    records = local_page(local)
+    current, canonical = page_pin(records)
+    check(current == pin, 'page changed before statement capture')
+    statements = []
+
+    @contextmanager
+    def capture(*, timeout_seconds):
+        with remote(timeout_seconds=timeout_seconds) as db:
+            yield StatementCapture(db, statements)
+
+    reader = HistoryV2PostgresTransport(capture, origin_id=ORIGIN, generation_id=GENERATION,
+                                        expected_database='postgres', expected_role=ROLE, indexed_latest=True)
+    archived, _ = reader.read_retirement_revisions(records, max_bytes=BYTE_CAP, timeout_seconds=PAGE_SECONDS)
+    check(encoded(archived) == canonical, 'capture bytes differ from baseline')
+    families = {x[0] for x in statements}
+    check({'exact_revisions','checkpoints','indexed_latest_receipts','projections'} <= families,
+          'incomplete statement capture')
+
+    # A fresh transaction on the same reader session. Pipeline only the EXPLAINs
+    # to avoid adding one RTT per projection. Neither result payloads nor plan
+    # trees go into the exported evidence. Actual Rows must match the verified SELECT.
+    totals = {}
+    with remote(timeout_seconds=PAGE_SECONDS) as db, db.transaction():
+        db.execute('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY')
+        reader._limit(db, PAGE_SECONDS, catalog_search_path=True)
+        reader._identity(db)
+        with db.pipeline():
+            plans = [db.execute('EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON) ' + statement, params)
+                     for _, statement, params, _ in statements]
+        for (family, _, _, original), cursor in zip(statements, plans):
+            report = cursor.fetchone()['QUERY PLAN'][0]
+            planning, execution = float(report['Planning Time']), float(report['Execution Time'])
+            rows = report['Plan']['Actual Rows']
+            check(all(math.isfinite(x) and x >= 0 for x in (planning, execution)), 'invalid plan times')
+            check(rows == original.rowcount, 'EXPLAIN result count disagrees with verified query')
+            item = totals.setdefault(family, dict(statements=0, rows=0, planning_ms=0.0, execution_ms=0.0))
+            item['statements'] += 1
+            item['rows'] += rows
+            item['planning_ms'] += planning
+            item['execution_ms'] += execution
+    return dict(status='verified_separate_sql_replay', pin=pin, origin=ORIGIN, generation=GENERATION,
+                measured_by='EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON)', reader_role=ROLE,
+                statement_families=totals, total_sql_execution_ms=sum(v['execution_ms'] for v in totals.values()),
+                total_sql_planning_ms=sum(v['planning_ms'] for v in totals.values()),
+                result_bytes_sent_by_explain=False, original_run_server_seconds=None, pure_transfer_seconds=None,
+                retirement_authorized=False)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--without-server-stats', action='store_true')
+    parser.add_argument('--server-explain-only', action='store_true',
+                        help='replay captured read-only history SELECTs under the actual reader')
     args = parser.parse_args()
     from postgres.connection import connect
     from postgres.pp_structured_probe import private_dsn
@@ -228,6 +324,9 @@ def main():
     remote = ReusablePPHistoryConnectionFactory(*params, origin_id=ORIGIN, reader=True)
     observer = PPHistoryConnectionFactory(*params, origin_id=ORIGIN, reader=True)
     try:
+        if args.server_explain_only:
+            print(json.dumps(explain_history(local, remote, pin)))
+            return
         sample = None if args.without_server_stats else lambda: stats_snapshot(observer)
         runs = profile(local, remote, pin, sample)
         print(json.dumps(dict(status='verified', origin=ORIGIN, generation=GENERATION,

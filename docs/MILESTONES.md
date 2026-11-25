@@ -1,3 +1,27 @@
+## November 25, 2026 CST — 4 GB Benchmark single rollover passed
+
+The 3:45 p.m. CST BTC 15-minute rollover passed on
+`v0.2.0-pp.benchmark.1` (`93558b2`). Matched evidence for market 2915937
+showed first quote at 9.746s on WebSocket, 14.785s on early REST, and
+18.848s on canonical REST. The canonical commit took 160ms from receipt.
+The dashboard API returned that quote 946ms after receipt, at 19.794s
+from rollover. REST remained the only writer.
+
+Ten conflicting Coinbase candle revisions were rejected while Polymarket
+continued writing, with the collector ON in all 35 live database samples.
+The 4 GB VM had at least 2,755 MiB available, zero swap activity and zero
+OOM kills. Full memory pressure accumulated 17.2ms during capture. These
+are measurements for one matched window.
+
+The collector is durably OFF. All five retained generation fingerprints
+matched. The isolated smoke's 5,356 outbox records remain on Benchmark.
+Cloud writes, storage rotation and retirement stayed off. Production was
+unchanged and the old 2 GB PP host remained frozen. Institutional gRPC is
+pending access.
+
+[Exact CD acceptance](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568) ·
+[Sanitized rollover evidence](PLAN/evidence/pp-benchmark-single-rollover-2026-11-25.json)
+
 ## November 25, 2026 CST — Single-rollover smoke profile
 
 The PP smoke profile uses a fresh, exact local origin, one generation and a

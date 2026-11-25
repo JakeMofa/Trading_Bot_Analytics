@@ -1,0 +1,74 @@
+{
+  "candle_rejections": [
+    {
+      "at_utc": "2026-11-25T21:46:12.629656054Z",
+      "count": 7
+    },
+    {
+      "at_utc": "2026-11-25T21:47:13.837585895Z",
+      "count": 1
+    },
+    {
+      "at_utc": "2026-11-25T21:48:14.918278094Z",
+      "count": 1
+    },
+    {
+      "at_utc": "2026-11-25T21:49:17.613339096Z",
+      "count": 1
+    }
+  ],
+  "collector_off": true,
+  "collector_stops": [],
+  "controller_sha256": "a4370c4a3cf193e3e3601e574e16a1eb5e666e90fd37aeb330cbabcc89fe29db",
+  "db_live_samples": 35,
+  "deployment": 45704911568,
+  "first_market_window": {
+    "boundary_to_canonical_receive_ms": "18847.556",
+    "canonical_discovered_utc": "2026-11-25T21:45:18.706005+00:00",
+    "canonical_first_two_sided_utc": "2026-11-25T21:45:18.896953+00:00",
+    "canonical_first_utc": "2026-11-25T21:45:18.847556+00:00",
+    "canonical_minus_early_rest_ms": "4062.956",
+    "canonical_request_utc": "2026-11-25T21:45:18.829441+00:00",
+    "dashboard_first_utc": "2026-11-25T21:45:19.793743+00:00",
+    "displayed_quote_commit_utc": "2026-11-25T21:45:19.007312+00:00",
+    "displayed_quote_receipt_utc": "2026-11-25T21:45:18.847556+00:00",
+    "displayed_receive_to_api_ms": "946.187",
+    "displayed_within_5s": true,
+    "early_discovered_utc": "2026-11-25T21:45:09.259586+00:00",
+    "early_rest_first_two_sided_utc": "2026-11-25T21:45:14.784600+00:00",
+    "early_rest_first_utc": "2026-11-25T21:45:14.784600+00:00",
+    "early_rest_minus_ws_ms": "5038.784",
+    "early_rest_request_utc": "2026-11-25T21:45:09.259787+00:00",
+    "event_counts": "{\"canonical_rest.bbo_received\":44,\"canonical_rest.bbo_request\":44,\"canonical_rest.bbo_response\":44,\"canonical_rest.commit_ack\":44,\"canonical_rest.market_identified\":44,\"dashboard_api.other_or_missing_market\":137,\"dashboard_api.quote\":276,\"dashboard_api.request\":413,\"dashboard_api.response\":413,\"early_discovery.market_identified\":1,\"early_discovery.not_listed\":12,\"early_discovery.request\":169,\"early_discovery.response\":169,\"early_rest.quote\":57,\"early_rest.request\":59,\"early_rest.response\":57,\"early_rest.response.404\":2,\"observer.window_begin\":1,\"websocket.connect\":1,\"websocket.quote\":58,\"websocket.subscribe\":1}",
+    "first_canonical_commit_utc": "2026-11-25T21:45:19.007312+00:00",
+    "identity_status": "matched",
+    "market_ids": "2915937",
+    "observation_status": "complete",
+    "three_reader_match": true,
+    "websocket_first_utc": "2026-11-25T21:45:09.745816+00:00",
+    "window_start": "2026-11-25T21:45:00+00:00",
+    "ws_first_in_window_exchange_book_utc": "2026-11-25T21:45:09.745816+00:00",
+    "ws_first_two_sided_utc": "2026-11-25T21:45:09.745816+00:00",
+    "ws_subscribe_utc": "2026-11-25T21:45:09.726350+00:00"
+  },
+  "local_pending_retained": 5356,
+  "memory_io_counter_deltas": {
+    "io_full_us": 1762816,
+    "memory_full_us": 17192,
+    "memory_some_us": 24043,
+    "oom_kill": 0,
+    "pswpin": 0,
+    "pswpout": 0
+  },
+  "min_available_mib": 2755.49,
+  "no_cloud_writes": true,
+  "no_retirement": true,
+  "origin": "pp-live-pp-smoke-20261125-01",
+  "production_fenced_at_admission": true,
+  "release": "v0.2.0-pp.benchmark.1",
+  "retained_matches": 5,
+  "single_generation": true,
+  "source": "93558b260a1ee94f2eddc02b2e7593835614830f",
+  "source_ci": 45702976267,
+  "status": "PASS"
+}

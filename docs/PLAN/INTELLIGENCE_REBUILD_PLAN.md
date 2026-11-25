@@ -35,10 +35,15 @@ zero with 14,205 verified acknowledgements. Both collectors and the scoped
 worker are confirmed OFF. Five retained-generation fingerprints matched.
 The observer and its temporary credential mounts were removed.
 
-Keep the previous PP32 A → B → fresh A acceptance evidence. I7 remains
-open. A fresh isolated diagnostic bound to a qualified PP release must
-prove canonical and observer timing across four consecutive windows
-after the candle fix. Production and retirement remain held.
+Keep the previous PP32 A → B → fresh A acceptance evidence. The November 25
+decision accepts the existing PP33 REST/WebSocket observations for the
+transport comparison and removes the repeat four-boundary requirement.
+I7 remains open. The pending test for the merged candle fix is a focused
+PP smoke across one market boundary. Confirm Polymarket writes advance
+and the dashboard shows the new market and a fresh quote. Use the existing
+injected-conflict regression to prove continuity during the exact candle
+revision failure. An ordinary live rollover does not establish broader
+Coinbase fault isolation. Production and retirement remain held.
 
 [PP33 evidence](evidence/pp33-polymarket-boundaries-2026-11-24.json) ·
 [Exact deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45472981873) ·

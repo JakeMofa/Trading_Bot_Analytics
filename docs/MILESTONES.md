@@ -1,3 +1,16 @@
+## November 25, 2026 CST — Reuse PP33 quote timing evidence
+
+- **Transport comparison recorded.** PP33 captured four same-market REST
+  and WebSocket windows, with one complete collector-to-dashboard trace.
+  The four-window comparison does not need to run again.
+- **Candle revision regression passed.** PR #216 merged into preprod after
+  exact-commit CI and isolated PostgreSQL tests. Deployed behavior remains pending.
+- **Next PP check.** Verify advancing Polymarket writes and a fresh dashboard
+  quote across one rollover on the fixed release. Broader Coinbase fault
+  isolation and I7 acceptance remain open.
+
+[Master roadmap and PP33 evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md)
+
 ## November 24, 2026 CST — Scoped four-boundary controller ready for CI
 
 The diagnostic runtime prepares one exact fresh PP origin and a separately

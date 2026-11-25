@@ -109,8 +109,15 @@ collector status, A/B slot, quote count and age, oldest pending row,
 pending rows and verified ACK rate now select `host="pp-benchmark"`.
 The existing feed timings and host-resource panels already have recorded
 Benchmark samples. The PP operational panels still need fresh samples.
-Grafana rejected the attempted historical collector and outbox import
-with HTTP 400. The archived local-only smoke recorded 5,356 pending rows
+Grafana rejected the historical collector and outbox import with HTTP 400.
+A controlled write with the existing token and endpoint accepted a current
+diagnostic sample (HTTP 204) and rejected the same sample format at the
+rollover timestamp (HTTP 400). The endpoint returned an empty error body.
+The test isolates timestamp age and confirms the write path accepts fresh
+metrics. The Benchmark observer still needs to send operational samples
+as it collects them. [Grafana timestamp rejection guidance](https://grafana.com/docs/mimir/latest/manage/mimir-runbooks/#err-mimir-too-far-in-past)
+
+The archived local-only smoke recorded 5,356 pending rows
 and ran with archive sync off, so it supplies no verified ACK throughput
 baseline. Before evaluating archive load, connect the Benchmark observer
 to the existing metrics destination and verify fresh status, slot and

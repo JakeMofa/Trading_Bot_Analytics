@@ -22,7 +22,7 @@ from .operator_session import OperatorSession
 from .collector_session import run_session
 from .config import Settings
 from .store import Store
-from .rehearsal_profile import (BOUNDARY_LEASE_SECONDS, BOUNDARY_ORIGIN, boundary_anchor, cycle_anchor,
+from .rehearsal_profile import (BOUNDARY_ORIGINS, boundary_anchor, boundary_lease_seconds, cycle_anchor,
                                 elapsed_cycle_seconds, lease_cap)
 
 
@@ -39,10 +39,10 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
     owner_reader = _owner_reader(app_dsn)
 
     async def run(stop, max_seconds):
-        if origin == BOUNDARY_ORIGIN:
+        if origin in BOUNDARY_ORIGINS:
             state = await asyncio.to_thread(repository.collector_state, origin)
             if (not diagnostic_anchor or state['generation_id'] != diagnostic_anchor
-                    or state['epoch'] != 1 or state['stored_enabled'] or max_seconds != BOUNDARY_LEASE_SECONDS):
+                    or state['epoch'] != 1 or state['stored_enabled'] or max_seconds != boundary_lease_seconds(origin)):
                 raise ValueError('exact unused diagnostic generation required')
             generation_id = diagnostic_anchor
         else:
@@ -130,7 +130,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         if environ.get(name, 'false').lower() not in ('false', '0', 'off'):
             raise ValueError('operator runtime requires disabled feature flags')
     anchor = cycle_anchor(environ)
-    diagnostic_anchor = boundary_anchor(environ) if origin == BOUNDARY_ORIGIN else None
+    diagnostic_anchor = boundary_anchor(environ) if origin in BOUNDARY_ORIGINS else None
     elapsed_cycle = elapsed_cycle_seconds(environ)
     if anchor is not None and environ.get('TRADEBOT_PP_LIVE_CONTROL') != 'true':
         raise ValueError('two-leg rehearsal requires explicit live control')
@@ -168,7 +168,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
                     **({'rehearsal_anchor': anchor} if anchor else {}),
                     **({'diagnostic_anchor': diagnostic_anchor} if diagnostic_anchor else {}),
                     **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
-    required_seconds = BOUNDARY_LEASE_SECONDS if diagnostic_anchor else lease_cap(anchor) if anchor else None
+    required_seconds = boundary_lease_seconds(origin) if diagnostic_anchor else lease_cap(anchor) if anchor else None
     return create_operator_app(repository, origin_id=origin, token=token,
                                session=session, status_repository=status_repository,
                                max_session_seconds=required_seconds or lease_cap(anchor),

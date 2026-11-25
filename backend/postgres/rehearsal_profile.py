@@ -15,6 +15,14 @@ ELAPSED_CYCLE_POLICY = 'elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS = 1800
 BOUNDARY_POLICY = 'boundary-diagnostic-v1'
 BOUNDARY_LEASE_SECONDS = 4100
+BOUNDARY_SMOKE_ORIGIN = 'pp-live-pp-smoke-20261125-01'
+BOUNDARY_SMOKE_LEASE_SECONDS = 540
+BOUNDARY_ORIGINS = frozenset({BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN})
+
+
+def boundary_lease_seconds(origin):
+    return BOUNDARY_SMOKE_LEASE_SECONDS if origin == BOUNDARY_SMOKE_ORIGIN else BOUNDARY_LEASE_SECONDS
+
 TRIAL_PREPARATION_CHECKPOINT = 'trial:initial-a-prepare-v1'
 # One reviewed trial namespace in the SAME environment database, not a wildcard.
 CYCLE_ORIGINS = frozenset({'pp-live-pp', *TRIAL_ORIGINS})
@@ -60,7 +68,7 @@ def elapsed_cycle_binding(origin, window_seconds):
 def cycle_anchor(environ):
     policy = environ.get('TRADEBOT_PP_WINDOW_POLICY')
     anchor = environ.get('TRADEBOT_PP_CYCLE_INITIAL_A')
-    if environ.get('TRADEBOT_ORIGIN_ID') == BOUNDARY_ORIGIN or policy == BOUNDARY_POLICY:
+    if environ.get('TRADEBOT_ORIGIN_ID') in BOUNDARY_ORIGINS or policy == BOUNDARY_POLICY:
         boundary_anchor(environ)
         return None
     if elapsed_cycle_seconds(environ) is not None:
@@ -81,7 +89,7 @@ def cycle_anchor(environ):
 def boundary_anchor(environ):
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod'
             or environ.get('TRADEBOT_DATA_MODE') != 'pp_live'
-            or environ.get('TRADEBOT_ORIGIN_ID') != BOUNDARY_ORIGIN
+            or environ.get('TRADEBOT_ORIGIN_ID') not in BOUNDARY_ORIGINS
             or environ.get('TRADEBOT_PP_WINDOW_POLICY') != BOUNDARY_POLICY
             or environ.get('TRADEBOT_PP_CYCLE_INITIAL_A') is not None
             or environ.get('TRADEBOT_PP_ELAPSED_CYCLE_SECONDS') is not None

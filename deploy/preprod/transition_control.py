@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 from controller import Budget, Context, DeploymentHold, HostBinding, Request, _secure_file, require
-from linux_actions import (BOUNDARY_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
+from linux_actions import (BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
                            cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
                            RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
 
@@ -409,7 +409,10 @@ def session(command, controller_path):
         _prove_off(LiveTransition(actions, context, budget, **cycle), request.source_sha, budget)
         return {'gate': 'PP_LIVE_OFF', 'origin_id': live_origin(active.get('trial_origin')), 'collector_enabled': False}
     require(active['state'] == 'ready_off', 'live_profile_not_ready')
-    if active.get('trial_origin'):
+    if active.get('trial_origin') == BOUNDARY_SMOKE_ORIGIN:
+        from structured_probe_control import fence_recurring_sync
+        fence_recurring_sync()
+    elif active.get('trial_origin'):
         from trial_cloud_control import require_ready
         require_ready(context,active['initial_a'],budget,
                       **({'boundary': True} if active['trial_origin']==BOUNDARY_ORIGIN else {}))

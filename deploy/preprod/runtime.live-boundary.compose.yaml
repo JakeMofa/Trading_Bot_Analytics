@@ -2,18 +2,18 @@
 services:
   api:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-boundary-20261124-01
+      TRADEBOT_ORIGIN_ID: ${TRADEBOT_ORIGIN_ID:?reviewed boundary origin required}
   calculation:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-boundary-20261124-01
+      TRADEBOT_ORIGIN_ID: ${TRADEBOT_ORIGIN_ID:?reviewed boundary origin required}
   lifecycle:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-boundary-20261124-01
+      TRADEBOT_ORIGIN_ID: ${TRADEBOT_ORIGIN_ID:?reviewed boundary origin required}
       TRADEBOT_PP_WINDOW_POLICY: boundary-diagnostic-v1
       TRADEBOT_PP_BOUNDARY_INITIAL_A: ${TRADEBOT_PP_BOUNDARY_INITIAL_A:?reviewed boundary anchor required}
   operator:
     environment:
-      TRADEBOT_ORIGIN_ID: pp-live-pp-boundary-20261124-01
+      TRADEBOT_ORIGIN_ID: ${TRADEBOT_ORIGIN_ID:?reviewed boundary origin required}
       TRADEBOT_PP_WINDOW_POLICY: boundary-diagnostic-v1
       TRADEBOT_PP_BOUNDARY_INITIAL_A: ${TRADEBOT_PP_BOUNDARY_INITIAL_A:?reviewed boundary anchor required}
       TRADEBOT_PP_BOUNDARY_TRACE: '1'

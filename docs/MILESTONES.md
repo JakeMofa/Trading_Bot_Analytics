@@ -1,3 +1,13 @@
+## November 25, 2026 CST — Single-rollover smoke profile
+
+The PP smoke profile uses a fresh, exact local origin, one generation and a
+540-second collector lease. The existing pending-outbox cap remains in
+force. The smoke preserves its local rows and does not run cloud sync,
+rotation or retirement. The original four-window profile remains unchanged
+for its own scope. Normalized Compose, isolated PostgreSQL preparation and
+operator control tests passed locally. Exact CI, the installed controller
+identity, deployment and the live Polymarket rollover remain evidence gates.
+
 ## November 25, 2026 CST — Reuse PP33 quote timing evidence
 
 - **Transport comparison recorded.** PP33 captured four same-market REST

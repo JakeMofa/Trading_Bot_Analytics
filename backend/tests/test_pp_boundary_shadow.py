@@ -152,6 +152,7 @@ class ShadowTests(unittest.IsolatedAsyncioTestCase):
                  row('dashboard_api','quote',5, **prices), row('observer','window_end',300)]
         result = list(summary(START,canonical,early))
         self.assertEqual(len(result),4)
+        self.assertEqual(list(summary(START, canonical, early, boundaries=1)), result[:1])
         self.assertTrue(result[0]['three_reader_match'])
         self.assertEqual(result[0]['canonical_minus_early_rest_ms'],2000)
         self.assertEqual(result[0]['displayed_receive_to_api_ms'],1000)

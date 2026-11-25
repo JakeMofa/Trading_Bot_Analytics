@@ -151,8 +151,8 @@ def build_report(samples, observations, boundaries, origin):
                           key=lambda o: instant(o['at_utc']))
     observed_times = [instant(o['at_utc']) for o in observations]
     starts = [instant(row['window_start']) for row in boundaries]
-    if len(starts) != 4 or any(t % 900 for t in starts) or any(b-a != 900 for a,b in zip(starts,starts[1:])):
-        raise ValueError('four consecutive exact quarter-hour UTC boundaries required')
+    if len(starts) not in (1, 4) or any(t % 900 for t in starts) or any(b-a != 900 for a,b in zip(starts,starts[1:])):
+        raise ValueError('one or four consecutive exact quarter-hour UTC boundaries required')
     windows = [dict(window_start=row['window_start'],
                     first_quote_utc={k: row.get(k) or None for k in
                     ('early_rest_first_utc','websocket_first_utc','canonical_first_utc','dashboard_first_utc')},
@@ -211,7 +211,7 @@ def main():
     report = cmds.add_parser('report')
     report.add_argument('--samples', type=Path, required=True)
     report.add_argument('--db-observations', type=Path)
-    report.add_argument('--boundaries', type=Path, required=True, help='four-row first-quote CSV containing window_start')
+    report.add_argument('--boundaries', type=Path, required=True, help='first-quote CSV containing one or four window_start rows')
     report.add_argument('--origin', required=True)
     quiet = cmds.add_parser('quiet-report')
     quiet.add_argument('--samples', type=Path, required=True)

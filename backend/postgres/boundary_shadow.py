@@ -321,7 +321,7 @@ async def run(args):
     keypair = None if args.rest_only else signing_key()
     with evidence_file(args.output) as stream:
         async with httpx.AsyncClient(timeout=4, follow_redirects=False, trust_env=False) as client:
-            for epoch in range(first, first + 3600, 900):
+            for epoch in range(first, first + args.boundaries * 900, 900):
                 await asyncio.sleep(max(0, epoch - LEAD_SECONDS - time.time()))
                 trace = Boundary(epoch, stream)
                 trace.emit('observer', 'window_begin', websocket_enabled=bool(keypair))
@@ -341,6 +341,7 @@ async def run(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--first-boundary-utc')
+    parser.add_argument('--boundaries', type=int, choices=(1, 4), default=4)
     parser.add_argument('--api-url', help='PP VM loopback /state/current')
     parser.add_argument('--output', help='new private JSONL file')
     parser.add_argument('--rest-only', action='store_true', help='incomplete comparison; does not measure WebSocket')

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import (BOUNDARY_ORIGIN, HISTORY_READER_FILES, RUNTIME_SECRETS, TRIAL_ORIGIN,
+from linux_actions import (BOUNDARY_ORIGINS, HISTORY_READER_FILES, RUNTIME_SECRETS, TRIAL_ORIGIN,
                            cycle_environment, live_origin, validate_config)
 from controller import require
 
@@ -21,7 +21,7 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
     validate_config(base, source, image)
     origin=live_origin(trial_origin)
     require(not (trial_origin and reader),'trial_reader_requires_independent_profile')
-    require(not trial_reader or (trial_origin not in (None,BOUNDARY_ORIGIN) and not reader),'trial_reader_requires_exact_scope')
+    require(not trial_reader or (trial_origin not in (None,*BOUNDARY_ORIGINS) and not reader),'trial_reader_requires_exact_scope')
     expected = deepcopy(base)
     for name in ('api', 'calculation', 'lifecycle'):
         expected['services'][name]['environment'].update(
@@ -36,7 +36,7 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
         operator['environment']['TRADEBOT_ORIGIN_ID']=origin
         if trial_origin==TRIAL_ORIGIN:
             operator['environment']['TRADEBOT_PP_COINBASE_TIMING']='true'
-        if trial_origin==BOUNDARY_ORIGIN:
+        if trial_origin in BOUNDARY_ORIGINS:
             operator['environment']['TRADEBOT_PP_BOUNDARY_TRACE']='1'
     for service in ('lifecycle', 'operator'):
         expected['services'][service]['environment'].update(cycle_environment(initial_a,trial_origin))

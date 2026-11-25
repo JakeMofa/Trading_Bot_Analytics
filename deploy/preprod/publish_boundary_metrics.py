@@ -4,6 +4,8 @@ import argparse
 import base64
 import csv
 from datetime import datetime
+import json
+import math
 from pathlib import Path
 import re
 from urllib.error import HTTPError
@@ -45,6 +47,28 @@ def metric_lines(rows, host):
                     yield f"tradebot_pp_quote_pipeline,host={host},stage={stage} seconds={seconds:.6f} {point}"
 
 
+def resource_metric_lines(report, host, boundaries):
+    for window in report["windows"]:
+        boundary = timestamp(window["window_start"])
+        if boundary not in boundaries:
+            raise ValueError("Resource report contains a different rollover")
+        for sample in window["samples"]:
+            point = int(timestamp(sample["at_utc"]) * 1000) * 10**6
+            fields = [("memory_available_kib", sample.get("mem_available_kib"))]
+            interval = sample["interval_ending_here"]
+            fields.extend((key, interval.get(key)) for key in (
+                "memory_full_stall_pct", "memory_some_stall_pct", "pswpin",
+                "pswpout", "oom_kill", "cpu_busy_pct", "cpu_iowait_pct",
+            ))
+            values = ",".join(
+                f"{key}={value}"
+                for key, value in fields
+                if type(value) in (int, float) and math.isfinite(value) and value >= 0
+            )
+            if values:
+                yield f"tradebot_pp_rollover_host,host={host} {values} {point}"
+
+
 class RejectRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         return None
@@ -53,15 +77,21 @@ class RejectRedirect(HTTPRedirectHandler):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("report", type=Path)
+    parser.add_argument("--resources", type=Path, help="Aligned quote_window_resources report JSON")
     parser.add_argument("--host", required=True, choices=("pp", "pp-benchmark"))
     parser.add_argument("--endpoint")
     parser.add_argument("--tenant")
     parser.add_argument("--token-file", type=Path)
     args = parser.parse_args()
     with args.report.open(newline="") as source:
-        lines = list(metric_lines(csv.DictReader(source), args.host))
+        rows = list(csv.DictReader(source))
+    lines = list(metric_lines(rows, args.host))
     if not lines:
         parser.exit(1, "No complete, matched observations to publish\n")
+    if args.resources:
+        reports = json.loads(args.resources.read_text())
+        boundaries = {timestamp(row["window_start"]) for row in rows}
+        lines.extend(resource_metric_lines(reports, args.host, boundaries))
     payload = "\n".join(lines) + "\n"
     if not (args.endpoint or args.tenant or args.token_file):
         print(payload, end="")
@@ -79,7 +109,7 @@ def main():
     })
     try:
         with build_opener(RejectRedirect).open(request, timeout=10) as response:
-            print(f"Grafana accepted {len(lines)} samples (HTTP {response.status})")
+            print(f"Grafana accepted {len(lines)} metric records (HTTP {response.status})")
     except HTTPError as error:
         parser.exit(1, f"Grafana rejected the samples (HTTP {error.code})\n")
 

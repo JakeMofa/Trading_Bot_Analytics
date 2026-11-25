@@ -382,7 +382,7 @@ def main(argv=None):
     parser.add_argument('--execute',action='store_true')
     args=parser.parse_args(argv)
     origin=os.environ.get('TRADEBOT_ORIGIN_ID')
-    if not args.execute or origin not in (*TRIAL_ORIGINS, BOUNDARY_ORIGIN):
+    if not args.execute or origin not in (*TRIAL_ORIGINS, *BOUNDARY_ORIGINS):
         raise LifecycleHold('exact disabled trial preparation environment required')
     anchor=boundary_anchor(os.environ) if origin in BOUNDARY_ORIGINS else cycle_anchor(os.environ)
     if (anchor!=args.initial_a

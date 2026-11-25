@@ -1,6 +1,9 @@
 """Exact elapsed trial07 clock and quote checks on disposable PostgreSQL."""
-from contextlib import ExitStack
+from contextlib import ExitStack, redirect_stdout
 from datetime import datetime, timedelta
+from io import StringIO
+import json
+import os
 import unittest
 from unittest.mock import patch
 import uuid
@@ -10,7 +13,7 @@ from postgres.connection import connect
 from postgres.lifecycle import LifecycleHold, LifecycleRepository, RotationPolicy
 from postgres.lifecycle_worker import configuration
 from postgres.pp_retirement_report import active_sample
-from postgres.pp_trial_prepare import prepare
+from postgres.pp_trial_prepare import main as prepare_cli, prepare
 from postgres.rehearsal_profile import (BOUNDARY_LEASE_SECONDS, BOUNDARY_ORIGIN, BOUNDARY_POLICY,
                                         BOUNDARY_SMOKE_LEASE_SECONDS, BOUNDARY_SMOKE_ORIGIN, boundary_lease_seconds,
                                         CYCLE_LEASE_CAP_SECONDS, ELAPSED_CYCLE_POLICY,
@@ -119,7 +122,23 @@ class ElapsedTrial07(unittest.TestCase):
                     self.assertIsNone(db.execute('SELECT 1 FROM archive.generations WHERE origin_id=%s LIMIT 1',
                                                  (origin,)).fetchone())
                 self.addCleanup(self.cleanup_origin,origin,[boundary])
-                prepared = prepare(self.repo,boundary,'b'*40,execute=True,origin_id=origin)
+                env = {
+                    'TRADEBOT_ENVIRONMENT': 'preprod',
+                    'TRADEBOT_DATA_MODE': 'pp_live',
+                    'TRADEBOT_ORIGIN_ID': origin,
+                    'TRADEBOT_PP_WINDOW_POLICY': BOUNDARY_POLICY,
+                    'TRADEBOT_PP_BOUNDARY_INITIAL_A': boundary,
+                }
+                output = StringIO()
+                # This fixture installs the application SQL without the migrator ledger.
+                with patch.dict(os.environ, env, clear=True), patch(
+                        'postgres.lifecycle_worker.read_dsn', return_value=self.lifecycle_dsn
+                ), patch('postgres.migrate.validate_schema') as validate, redirect_stdout(output):
+                    self.assertEqual(prepare_cli(['--initial-a', boundary, '--source-sha',
+                                                  'b' * 40, '--execute']), 0)
+                validate.assert_called_once()
+                self.assertEqual(validate.call_args.args[1], 'preprod')
+                prepared = json.loads(output.getvalue())
                 self.assertEqual(prepared['profile'],BOUNDARY_POLICY)
                 self.assertFalse(prepared['retirement_authorized'])
                 self.assertFalse(prepared['collector_enabled'])

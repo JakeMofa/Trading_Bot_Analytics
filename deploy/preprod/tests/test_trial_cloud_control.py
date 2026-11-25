@@ -67,6 +67,15 @@ class ProfileTests(unittest.TestCase):
         self.assertFalse(a.allowed_session_seconds(6600,scoped=True,origin=a.BOUNDARY_ORIGIN))
         with self.assertRaises(DeploymentHold):
             p.child_service(base,ANCHOR,boundary=True,archive=True)
+        env.update(a.cycle_environment(ANCHOR, a.BOUNDARY_SMOKE_ORIGIN))
+        smoke = render(livefiles)
+        from live_profile import validate_live_profile
+        validate_live_profile(base, smoke, folder.parent.parent, IMAGE, initial_a=ANCHOR,
+                              trial_origin=a.BOUNDARY_SMOKE_ORIGIN)
+        self.assertNotIn('structured_sync', smoke['services'])
+        self.assertNotIn('sealed_archive', smoke['services'])
+        self.assertTrue(a.allowed_session_seconds(540, scoped=True, origin=a.BOUNDARY_SMOKE_ORIGIN))
+        self.assertFalse(a.allowed_session_seconds(4100, scoped=True, origin=a.BOUNDARY_SMOKE_ORIGIN))
 
     def test_measured_modes_are_exact_structured_trial_child_only(self):
         base=configuration(Path('/reviewed/source'));live=live_config(base)

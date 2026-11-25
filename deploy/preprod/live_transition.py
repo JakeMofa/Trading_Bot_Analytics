@@ -10,7 +10,7 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import (BOUNDARY_ORIGIN, wait_generated_host_routes, LinuxActions, SERVICES, PROJECT,
+from linux_actions import (BOUNDARY_ORIGINS, wait_generated_host_routes, LinuxActions, SERVICES, PROJECT,
                            history_reader_enabled, cycle_environment, cycle_profile_binding,
                            live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS,
                            RETAINED_TRIAL_OVERLAYS)
@@ -35,13 +35,13 @@ class LiveTransition:
         env = self.actions._environment(image)
         if self.cycle:
             env.update(self.cycle)
-            if self.trial_origin != BOUNDARY_ORIGIN:
+            if self.trial_origin not in BOUNDARY_ORIGINS:
                 overlay.extend(['-f', str(self.folder/'runtime.live-cycle.compose.yaml')])
-        if self.trial_origin == BOUNDARY_ORIGIN:
+        if self.trial_origin in BOUNDARY_ORIGINS:
             overlay.extend(['-f', str(self.folder/'runtime.live-boundary.compose.yaml')])
         elif self.trial_origin:
             overlay.extend(['-f',str(self.folder/(RETAINED_TRIAL_OVERLAYS.get(self.trial_origin,'runtime.live-trial.compose.yaml')))])
-        if self.trial_origin and self.trial_origin != BOUNDARY_ORIGIN and include_reader:
+        if self.trial_origin and self.trial_origin not in BOUNDARY_ORIGINS and include_reader:
             from trial_history_reader import trial_history_reader_enabled,TRIAL_HISTORY_READER_OVERLAY
             if trial_history_reader_enabled(self.context,self.initial_a):
                 overlay.extend(['-f',str(self.folder/TRIAL_HISTORY_READER_OVERLAY)])
@@ -62,7 +62,7 @@ class LiveTransition:
                               trial_reader=(include_reader and self._trial_reader()))
 
     def _trial_reader(self):
-        if self.trial_origin in (None,BOUNDARY_ORIGIN):return False
+        if self.trial_origin in (None,*BOUNDARY_ORIGINS):return False
         from trial_history_reader import trial_history_reader_enabled
         return trial_history_reader_enabled(self.context,self.initial_a)
 

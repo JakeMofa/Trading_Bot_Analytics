@@ -14,7 +14,7 @@ import uuid
 from .archive_codec import ArchiveLimits, CycleBudget, encoded, sha256, wire
 from .lifecycle import LifecycleHold, LifecycleRepository, validate_manifest_chain
 from .pp_retirement_report import bound_catalog
-from .rehearsal_profile import (BOUNDARY_ORIGIN, BOUNDARY_POLICY, TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
+from .rehearsal_profile import (BOUNDARY_ORIGINS, BOUNDARY_POLICY, TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
     FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS,
     boundary_anchor, canonical_anchor, cycle_anchor, elapsed_cycle_binding, elapsed_cycle_seconds,
     TRIAL_PREPARATION_CHECKPOINT)
@@ -269,14 +269,14 @@ def retained_sixth_fingerprint(db, writers):
 def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN,
             rehearsal_window_seconds=None):
     canonical_anchor(initial_a)
-    if (execute is not True or repository.environment!='preprod' or origin_id not in (*TRIAL_ORIGINS,BOUNDARY_ORIGIN)
+    if (execute is not True or repository.environment!='preprod' or origin_id not in (*TRIAL_ORIGINS,*BOUNDARY_ORIGINS)
             or not isinstance(source_sha,str) or not re.fullmatch('[0-9a-f]{40}',source_sha)):
         raise LifecycleHold('explicit exact trial preparation scope required')
     try:
         profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
     except ValueError as error:
         raise LifecycleHold(str(error)) from None
-    boundary = origin_id == BOUNDARY_ORIGIN
+    boundary = origin_id in BOUNDARY_ORIGINS
     if boundary:
         profile = {'profile': BOUNDARY_POLICY}
         if uuid.UUID(initial_a).int == 0:
@@ -384,7 +384,7 @@ def main(argv=None):
     origin=os.environ.get('TRADEBOT_ORIGIN_ID')
     if not args.execute or origin not in (*TRIAL_ORIGINS, BOUNDARY_ORIGIN):
         raise LifecycleHold('exact disabled trial preparation environment required')
-    anchor=boundary_anchor(os.environ) if origin==BOUNDARY_ORIGIN else cycle_anchor(os.environ)
+    anchor=boundary_anchor(os.environ) if origin in BOUNDARY_ORIGINS else cycle_anchor(os.environ)
     if (anchor!=args.initial_a
             or any(os.environ.get(flag,'false').lower() not in ('false','0','off') for flag in
                    ('TRADEBOT_COLLECTOR_ENABLED','TRADEBOT_CLOUD_ENABLED','TRADEBOT_RETIREMENT_ENABLED',

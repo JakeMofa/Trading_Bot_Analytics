@@ -66,7 +66,10 @@ TRIAL_ORIGIN='pp-live-pp-trial-20261119-07'
 BOUNDARY_ORIGIN='pp-live-pp-boundary-20261124-01'
 BOUNDARY_POLICY='boundary-diagnostic-v1'
 BOUNDARY_LEASE_SECONDS=4100
-OUTBOX_ORIGINS += (BOUNDARY_ORIGIN,)
+BOUNDARY_SMOKE_ORIGIN='pp-live-pp-smoke-20261125-01'
+BOUNDARY_SMOKE_LEASE_SECONDS=540
+BOUNDARY_ORIGINS=frozenset((BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN))
+OUTBOX_ORIGINS += (BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN)
 RETAINED_TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
 RETAINED_TRIAL_ORIGINS=frozenset({RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05','pp-live-pp-trial-20261119-06'})
 RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compose.yaml',
@@ -78,12 +81,12 @@ RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compos
 
 
 def live_origin(trial_origin=None):
-    require(trial_origin in (None,TRIAL_ORIGIN,BOUNDARY_ORIGIN,*RETAINED_TRIAL_ORIGINS),'invalid_pp_trial_origin')
+    require(trial_origin in (None,TRIAL_ORIGIN,*BOUNDARY_ORIGINS,*RETAINED_TRIAL_ORIGINS),'invalid_pp_trial_origin')
     return trial_origin or 'pp-live-pp'
 
 
 def cycle_profile_binding(trial_origin):
-    if trial_origin == BOUNDARY_ORIGIN:
+    if trial_origin in BOUNDARY_ORIGINS:
         return {'profile': BOUNDARY_POLICY}
     if trial_origin == TRIAL_ORIGIN:
         return {'profile': ELAPSED_CYCLE_POLICY, 'window_seconds': ELAPSED_CYCLE_SECONDS}
@@ -100,7 +103,7 @@ def cycle_environment(initial_a, trial_origin=None):
     except ValueError:
         valid = False
     require(valid, 'invalid_pp_cycle_anchor')
-    if trial_origin == BOUNDARY_ORIGIN:
+    if trial_origin in BOUNDARY_ORIGINS:
         return {'TRADEBOT_ORIGIN_ID': origin, 'TRADEBOT_PP_WINDOW_POLICY': BOUNDARY_POLICY,
                 'TRADEBOT_PP_BOUNDARY_INITIAL_A': initial_a}
     profile=cycle_profile_binding(trial_origin)
@@ -113,6 +116,8 @@ def cycle_environment(initial_a, trial_origin=None):
 def allowed_session_seconds(seconds, *, scoped, origin):
     if type(seconds) is not int:
         return False
+    if origin == BOUNDARY_SMOKE_ORIGIN:
+        return seconds == BOUNDARY_SMOKE_LEASE_SECONDS
     if origin == BOUNDARY_ORIGIN:
         return seconds == BOUNDARY_LEASE_SECONDS
     return seconds == CYCLE_SESSION_MAX_SECONDS if scoped else 1 <= seconds <= 4560
@@ -142,7 +147,7 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
                        TRADEBOT_APP_DSN_FILE='/run/secrets/app_dsn')
             if trial_origin==TRIAL_ORIGIN:
                 env['TRADEBOT_PP_COINBASE_TIMING']='true'
-            if trial_origin==BOUNDARY_ORIGIN:
+            if trial_origin in BOUNDARY_ORIGINS:
                 env['TRADEBOT_PP_BOUNDARY_TRACE']='1'
         if service in ('lifecycle','operator'):
             env.update(cycle_environment(initial_a,trial_origin))
@@ -833,7 +838,7 @@ class LinuxActions:
             wanted=set(service_secrets(service,live=live))
             reader = bool(live and not trial_origin and service=='api' and history_reader_enabled(context))
             trial_reader=False
-            if live and trial_origin and trial_origin!=BOUNDARY_ORIGIN and service=='api':
+            if live and trial_origin and trial_origin not in BOUNDARY_ORIGINS and service=='api':
                 from trial_history_reader import trial_history_reader_enabled
                 trial_reader=trial_history_reader_enabled(context,initial_a)
             require(env.get('TRADEBOT_PP_ARCHIVE_HISTORY','false') == ('true' if reader or trial_reader else 'false'),

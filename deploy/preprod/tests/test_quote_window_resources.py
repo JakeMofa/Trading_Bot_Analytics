@@ -62,6 +62,9 @@ class QuoteWindowResourcesTest(unittest.TestCase):
         self.assertEqual(wait['samples_in_span'],2)
         self.assertIsNone(wait['pswpin'])
         self.assertIsNone(result['windows'][1]['during_wait_for_dashboard'])
+        one = build_report(samples, [obs], boundaries[:1], 'example')
+        self.assertEqual(len(one['windows']), 1)
+        self.assertEqual(one['windows'][0]['during_wait_for_dashboard'], wait)
         self.assertRaises(ValueError, build_report, samples,[obs],boundaries[:3],'example')
         benchmark = {'runs':[{'mode':'cold','started_at_utc':utc(boundary+1),'ended_at_utc':utc(boundary+10)}]}
         stats = profile_report(samples, benchmark)[0]['resources']

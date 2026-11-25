@@ -50,8 +50,8 @@ def sides(row):
     return row.get('best_bid') is not None and row.get('best_ask') is not None
 
 
-def summary(start, canonical, shadow):
-    for index in range(4):
+def summary(start, canonical, shadow, *, boundaries=4):
+    for index in range(boundaries):
         boundary = start + index * 900
         rows = sorted((r for r in [*canonical, *shadow]
                        if r.get('window_start') and epoch(r['window_start']) == boundary
@@ -121,11 +121,12 @@ def summary(start, canonical, shadow):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--first-boundary-utc', required=True)
+    parser.add_argument('--boundaries', type=int, choices=(1, 4), default=4)
     parser.add_argument('--canonical-log', required=True, help='log capture containing pp_boundary_trace lines')
     parser.add_argument('--shadow-jsonl', required=True)
     args = parser.parse_args()
     rows = list(summary(boundary_epoch(args.first_boundary_utc), list(records(args.canonical_log, True)),
-                        list(records(args.shadow_jsonl))))
+                        list(records(args.shadow_jsonl)), boundaries=args.boundaries))
     writer = csv.DictWriter(sys.stdout, fieldnames=rows[0].keys())
     writer.writeheader()
     writer.writerows(rows)

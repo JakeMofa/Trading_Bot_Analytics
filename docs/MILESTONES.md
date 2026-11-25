@@ -1,3 +1,20 @@
+## November 25, 2026 CST — Hold the 2 GB PP host
+
+The PP35 single-window entry failed before collector admission because the
+generation-preparation CLI used an outdated origin constant. PR #221 fixed
+the reference and exercised the CLI against disposable PostgreSQL. PP36
+passed exact CI. Its deployment was canceled during migration after the
+operator switched testing to the separate 4 GB benchmark lane.
+
+The controller stopped the candidate and preserved the existing database.
+Read-only postflight matched all five retained generation fingerprints and
+all 12 schema versions. The collector is durably OFF. All four temporarily
+paused host services were restored. The 2 GB application and dashboard
+remain stopped under the recovery policy. No rollover measurements were
+produced. The benchmark host needs its own qualification and CI/CD.
+
+[2 GB halt postflight](PLAN/evidence/pp36-2gb-halt-2026-11-25.json)
+
 ## November 25, 2026 CST — Single-rollover smoke profile
 
 The PP smoke profile uses a fresh, exact local origin, one generation and a

@@ -34,7 +34,7 @@ class RebindGuardTests(unittest.TestCase):
  def test_enter_and_on_hold_before_authority_journal_or_runtime(self):
   self.marker.write_bytes(b'{interrupted transaction')
   request=gate.TransitionRequest('enter','a'*40,'b'*64,'c'*64,'sha256:'+'d'*64)
-  with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(validate=lambda:None)),patch.object(gate,'_secure_file') as secure,patch.object(gate,'_candidate') as candidate,patch.object(gate,'_consume') as consume,patch.object(gate,'_read_active') as read,patch.object(gate,'_atomic_json') as write:
+  with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(hostname='tradebot-preprod-01', validate=lambda:None)),patch.object(gate,'_secure_file') as secure,patch.object(gate,'_candidate') as candidate,patch.object(gate,'_consume') as consume,patch.object(gate,'_read_active') as read,patch.object(gate,'_atomic_json') as write:
    with self.assertRaisesRegex(DeploymentHold,'trial_authority_rebind_pending'):gate.transition(request,Path('/trusted/controller.pyz'))
    with self.assertRaisesRegex(DeploymentHold,'trial_authority_rebind_pending'):gate.session('session-v1 on 60',Path('/trusted/controller.pyz'))
    for mocked in (secure,candidate,consume,read,write):mocked.assert_not_called()
@@ -45,7 +45,7 @@ class RebindGuardTests(unittest.TestCase):
   active={**request.bindings(), 'state':'ready_off','nonce':str(uuid.uuid4()),'version':1}
   context=SimpleNamespace(source=Path('/reviewed/source'),image=request.image_id)
   actions=SimpleNamespace(_runtime=lambda *a:None,_host_api=lambda:None,_host_operator=lambda:None)
-  with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(validate=lambda:None)),patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate',return_value=context),patch.object(gate,'_image_binding',return_value=actions),patch.object(gate,'_owned_runtime'),patch.object(gate,'_read_active',side_effect=lambda:dict(active)),patch.object(gate,'RUNTIME_SECRETS',Path(self.tmp.name)/'no-secrets'),patch.object(gate,'_prove_off') as off,patch.object(gate,'_consume') as consume:
+  with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(hostname='tradebot-preprod-01', validate=lambda:None)),patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate',return_value=context),patch.object(gate,'_image_binding',return_value=actions),patch.object(gate,'_owned_runtime'),patch.object(gate,'_read_active',side_effect=lambda:dict(active)),patch.object(gate,'RUNTIME_SECRETS',Path(self.tmp.name)/'no-secrets'),patch.object(gate,'_prove_off') as off,patch.object(gate,'_consume') as consume:
    self.assertEqual(gate.session('session-v1 off',Path('/trusted/controller.pyz'))['gate'],'PP_LIVE_OFF');off.assert_called_once()
    active['state']='generated_restored'
    self.assertEqual(gate.transition(request,Path('/trusted/controller.pyz'))['gate'],'PP_GENERATED_RESTORED')

@@ -145,10 +145,29 @@ class EnvironmentTests(unittest.TestCase):
             for profile in targets.values():profile['runtime_qualified']=False
             path.write_text(json.dumps(targets))
             with patch.object(p, 'archive') as bundle, patch.object(p, 'transport') as transport:
-                for role in p.TARGETS:
+                for role in ('preprod', 'production'):
                     with self.assertRaisesRegex(p.PipelineHold, 'NOT QUALIFIED'):
                         p.deploy(API(), role, SHA, str(path), self.env())
                 bundle.assert_not_called();transport.assert_not_called()
+
+    def test_benchmark_qualifies_exact_preprod_with_separate_host_and_credentials(self):
+        branch = 'preprod'
+        result = p.qualify_ci(API(branch), p.BENCHMARK, SHA, self.env(branch))
+        self.assertEqual(result['environment'], 'pp-benchmark')
+        with self.assertRaisesRegex(p.PipelineHold, 'branch'):
+            p.qualify_ci(API(), p.BENCHMARK, SHA, self.env())
+        path = '.github/deploy/targets.json'
+        env = {'PP_BENCHMARK_HOST': '192.0.2.7', 'PP_BENCHMARK_CONTROLLER_SHA256': DIGEST}
+        profile = p.target_profile(p.BENCHMARK, path, env)
+        self.assertEqual(profile['instance'], 'tradebot-preprod-benchmark-4gb')
+        old_host = json.loads(Path(path).read_text())['preprod']['host']
+        with self.assertRaisesRegex(p.PipelineHold, 'must differ'):
+            p.target_profile(p.BENCHMARK, path, {**env, 'PP_BENCHMARK_HOST': old_host})
+        with self.assertRaisesRegex(p.PipelineHold, 'environment-specific'):
+            p.transport(profile, p.BENCHMARK, SHA, DIGEST, Path('unused'),
+                        {'PP_DEPLOY_KEY': 'old', 'PP_DEPLOY_KNOWN_HOSTS': 'old'})
+        with self.assertRaisesRegex(p.PipelineHold, 'controller result mismatch'):
+            p.validate_result(accepted(), p.BENCHMARK, SHA, DIGEST)
 
     def test_qualified_pp_profile_matches_installed_controller_and_actual_host_evidence(self):
         targets=json.loads(Path('.github/deploy/targets.json').read_text())

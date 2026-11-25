@@ -20,7 +20,7 @@ import urllib.error
 import urllib.request
 import uuid
 
-from controller import Budget, Context, DeploymentHold, HostBinding, Request, _secure_file, require
+from controller import Budget, Context, DeploymentHold, HostBinding, PP_INSTANCES, Request, _secure_file, require
 from linux_actions import (BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
                            cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
                            RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
@@ -109,8 +109,8 @@ class TransitionRequest:
 
     def validate(self):
         require(self.operation in ('enter', 'leave') and self.environment == 'preprod'
-                and self.instance == 'tradebot-preprod-01', 'wrong_transition_scope')
-        Request(self.source_sha, self.artifact_sha256, self.controller_sha256).validate()
+                and self.instance in PP_INSTANCES, 'wrong_transition_scope')
+        Request(self.source_sha, self.artifact_sha256, self.controller_sha256, instance=self.instance).validate()
         require(IMAGE.fullmatch(self.image_id) is not None, 'invalid_transition_image')
         require(self.initial_a is None or self.operation == 'enter', 'invalid_pp_cycle_transition')
         if self.operation=='enter':
@@ -160,7 +160,7 @@ def _read_active():
     content, _ = _secure_file(ACTIVE)
     data = json.loads(content)
     require(data.get('version') == 1 and data.get('environment') == 'preprod'
-            and data.get('instance') == 'tradebot-preprod-01'
+            and data.get('instance') in PP_INSTANCES
             and data.get('state') in ('entering', 'ready_off', 'leaving', 'generated_restored', 'recovery_unproven'),
             'invalid_active_transition')
     require(isinstance(data.get('nonce'), str) and str(uuid.UUID(data['nonce'])) == data['nonce']
@@ -253,8 +253,9 @@ def _transition_failure(component,error):
 
 def transition(request, controller_path):
     from live_transition import LiveTransition
-    HostBinding.from_marker().validate()
+    binding = HostBinding.from_marker()
     request.validate()
+    require(request.instance == binding.hostname, 'wrong_transition_scope')
     if request.operation=='enter':
         require_no_trial_authority_rebind()
     raw, _ = _secure_file(controller_path, private=False)
@@ -364,13 +365,14 @@ def _cycle_args(active):
 def session(command, controller_path):
     """ON is one-use; OFF remains available when HTTP control has failed."""
     from live_transition import LiveTransition
-    HostBinding.from_marker().validate()
+    binding = HostBinding.from_marker()
     parts = command.split(' ')
     require(parts[:2] == ['session-v1', 'on'] and len(parts) in (3, 4, 5)
             or parts == ['session-v1', 'off'], 'invalid_session_command')
     if parts[1]=='on':
         require_no_trial_authority_rebind()
     active = _read_active()
+    require(active['instance'] == binding.hostname, 'wrong_transition_scope')
     cycle = _cycle_args(active)
     if parts[1] == 'on':
         require(active.get('trial_origin') not in RETAINED_TRIAL_ORIGINS,'retained_trial_is_read_only')
@@ -385,7 +387,7 @@ def session(command, controller_path):
     require(active['state'] in ('ready_off', 'entering', 'leaving', 'recovery_unproven'),
             'no_live_transition_to_control')
     request = TransitionRequest('leave', active['source_sha'], active['artifact_sha256'],
-        active['controller_sha256'], active['image_id'])
+        active['controller_sha256'], active['image_id'], instance=active['instance'])
     request.validate()
     raw, _ = _secure_file(controller_path, private=False)
     require(hashlib.sha256(raw).hexdigest() == request.controller_sha256, 'controller_digest_mismatch')

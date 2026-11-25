@@ -23,7 +23,10 @@ REPO = 'JakeMofa/Trading_Bot_Analytics'
 SHA = re.compile(r'[0-9a-f]{40}')
 DIGEST = re.compile(r'[0-9a-f]{64}')
 TARGETS = {'preprod': 'tradebot-preprod-01', 'production': 'tradebot-analytics-01'}
+BENCHMARK = 'pp-benchmark'
+TARGETS[BENCHMARK] = 'tradebot-preprod-benchmark-4gb'
 WORKFLOWS = {'preprod': 'cd-pp.yml', 'production': 'cd-prod.yml'}
+DEPLOY_KEYS = {'preprod': 'PP', 'production': 'PROD', BENCHMARK: 'PP_BENCHMARK'}
 REQUIRED_CHECKS = {'api', 'sse', 'schema', 'migration', 'data_correctness',
                    'collector_ownership', 'disabled_flags', 'recovery',
                    'freshness', 'market_identity'}
@@ -144,7 +147,11 @@ ENTRYPOINT_REASONS = frozenset({
 
 
 def required_checks(role):
-    return PREPROD_REQUIRED_CHECKS if role == 'preprod' else REQUIRED_CHECKS
+    return REQUIRED_CHECKS if role == 'production' else PREPROD_REQUIRED_CHECKS
+
+
+def runtime_environment(role):
+    return 'preprod' if role == BENCHMARK else role
 
 
 class PipelineHold(ValueError):
@@ -198,6 +205,8 @@ class GitHub:
 
 
 def branch_allowed(role, branch):
+    if role == BENCHMARK:
+        return branch == 'preprod'
     return branch == 'main' if role == 'production' else (
         branch in {'main', 'preprod'} or bool(re.fullmatch(r'codex/[A-Za-z0-9._/-]+', branch)))
 
@@ -216,7 +225,7 @@ def qualify_ci(api, role, sha, env):
         branch = env.get('SOURCE_BRANCH', env.get('GITHUB_REF_NAME', ''))
         if env.get('SOURCE_BRANCH'):
             control_branch=env.get('GITHUB_REF_NAME')
-            require(control_branch=='main' or (role=='preprod' and control_branch=='preprod' and branch=='preprod'),
+            require(control_branch=='main' or (role in ('preprod', BENCHMARK) and control_branch=='preprod' and branch=='preprod'),
                     'controls must come from main or exact preprod for PP only')
             controls = api.read('/git/ref/heads/'+control_branch)
             require(controls['object']['sha'] == env.get('GITHUB_SHA'), 'control branch moved')
@@ -240,7 +249,18 @@ def qualify_ci(api, role, sha, env):
             'gate': 'PASS', 'scope': 'source CI only; deployment/acceptance NOT PERFORMED'}
 
 
-def target_profile(role, path):
+def target_profile(role, path, env=None):
+    if role == BENCHMARK:
+        env = os.environ if env is None else env
+        host = env.get('PP_BENCHMARK_HOST', '')
+        digest = env.get('PP_BENCHMARK_CONTROLLER_SHA256', '')
+        require(re.fullmatch(r'[A-Za-z0-9.-]+', host) and DIGEST.fullmatch(digest),
+                'benchmark host and exact controller digest required')
+        old_targets = json.loads(Path(path).read_text())
+        require(host not in {target.get('host') for target in old_targets.values()},
+                'benchmark host must differ from existing deployment hosts')
+        return dict(instance=TARGETS[role], user='tradebot-preprod-deploy',
+                    host=host, timeout_seconds=810, controller_sha256=digest)
     profile = json.loads(Path(path).read_text())[role]
     require(profile.get('instance') == TARGETS[role] and profile.get('region') == 'us-east-2',
             'target identity mismatch')
@@ -323,13 +343,13 @@ def preprod_proof(api, run_id, sha, artifact_digest, policy_digest):
 
 
 def validate_result(result, role, sha, digest):
-    require(result.get('gate') == 'PASS' and result.get('environment') == role
+    require(result.get('gate') == 'PASS' and result.get('environment') == runtime_environment(role)
             and result.get('instance') == TARGETS[role] and result.get('source_sha') == sha
             and result.get('artifact_sha256') == digest, 'controller result mismatch')
     require(result.get('checks') == dict.fromkeys(required_checks(role), 'PASS'), 'controller acceptance incomplete')
     require(result.get('paid_ai_enabled') is False and result.get('retention_enabled') is False,
             'paid AI and retention must stay OFF for this release route')
-    if role == 'preprod':
+    if role != 'production':
         require(result.get('live_collector_enabled') is False and result.get('production_data_mounted') is False,
                 'PP must not collect live markets or mount production data')
         require(result.get('acceptance_scope') in ('generated_only','production_candidate'),
@@ -339,9 +359,9 @@ def validate_result(result, role, sha, digest):
     # Never persist arbitrary controller stdout fields (logs or credentials).
     safe = {'gate', 'environment', 'instance', 'source_sha', 'artifact_sha256',
             'checks', 'paid_ai_enabled', 'retention_enabled'}
-    if role == 'preprod':
+    if role != 'production':
         safe.update({'live_collector_enabled', 'production_data_mounted', 'acceptance_scope', 'runtime_image_id'})
-    return {key: result[key] for key in safe}
+    return {**{key: result[key] for key in safe}, 'environment': role}
 
 
 def blocked_controller_diagnostic(raw, role, sha, digest):
@@ -365,7 +385,7 @@ def blocked_controller_diagnostic(raw, role, sha, digest):
     except (UnicodeError, ValueError, RecursionError):
         return generic
     if (not isinstance(report, dict) or report.get('gate') != 'BLOCKED'
-            or report.get('environment') != role
+            or report.get('environment') != runtime_environment(role)
             or report.get('instance', TARGETS[role]) != TARGETS[role]):
         return generic
     bound = 'source_sha' in report or 'artifact_sha256' in report
@@ -394,7 +414,7 @@ def blocked_controller_diagnostic(raw, role, sha, digest):
 
 def transport(profile, role, sha, digest, bundle, env):
     # No fallback to repository production credentials or the operator's human key.
-    prefix = 'PP' if role == 'preprod' else 'PROD'
+    prefix = DEPLOY_KEYS[role]
     key = env.get(prefix + '_DEPLOY_KEY', '')
     known = env.get(prefix + '_DEPLOY_KNOWN_HOSTS', '')
     require(key and known, 'environment-specific key and host pin required')
@@ -408,8 +428,20 @@ def transport(profile, role, sha, digest, bundle, env):
                    '-o', 'StrictHostKeyChecking=yes', '-o', 'ConnectTimeout=10',
                    '-o', 'ConnectionAttempts=1', '-o', 'ServerAliveInterval=15',
                    '-o', 'ServerAliveCountMax=2', '-o', 'UserKnownHostsFile=' + str(root/'known_hosts'),
-                   '-i', str(root/'key'), profile['user'] + '@' + profile['host'],
-                   'deploy-v1 ' + role + ' ' + profile['instance'] + ' ' + sha + ' ' + digest + ' ' + profile['controller_sha256']]
+                   '-i', str(root/'key'), profile['user'] + '@' + profile['host']]
+        remote = runtime_environment(role) + ' ' + profile['instance']
+        if role == BENCHMARK:
+            proof = subprocess.run(
+                [*command, 'identity-v1 ' + remote + ' ' + profile['controller_sha256']],
+                input=b'', capture_output=True, timeout=20, check=False,
+            )
+            require(proof.returncode == 0 and len(proof.stdout) <= 4096, 'benchmark identity check failed')
+            require(json.loads(proof.stdout) == {
+                'gate': 'IDENTITY_PASS', 'environment': 'preprod',
+                'instance': profile['instance'], 'controller_sha256': profile['controller_sha256'],
+                'runtime_qualified': False, 'database_changed': False,
+            }, 'benchmark identity response mismatch')
+        command.append('deploy-v1 ' + remote + ' ' + sha + ' ' + digest + ' ' + profile['controller_sha256'])
         with bundle.open('rb') as source:
             completed = bounded_process(command, source, profile['timeout_seconds'])
         if completed.returncode != 0:
@@ -458,10 +490,10 @@ def bounded_process(command, source, timeout):
 def deploy(api, role, sha, profile_path, env, pp_run_id=''):
     require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'manual deployment required')
     control_branch=env.get('GITHUB_REF_NAME')
-    require(control_branch=='main' or (role=='preprod' and control_branch=='preprod' and env.get('SOURCE_BRANCH')=='preprod'),
+    require(control_branch=='main' or (role in ('preprod', BENCHMARK) and control_branch=='preprod' and env.get('SOURCE_BRANCH')=='preprod'),
             'deployment controls require main or exact preprod for PP only')
     qualified = qualify_ci(api, role, sha, env)
-    profile = target_profile(role, profile_path)  # Before any SSH or bundle creation.
+    profile = target_profile(role, profile_path, env)  # Before any SSH or bundle creation.
     from release_package import load_candidate
     candidate, published = load_candidate(api, env.get('RELEASE_VERSION', ''), sha)
     policy_digest = hashlib.sha256(Path(profile_path).read_bytes()).hexdigest()
@@ -500,7 +532,8 @@ def main():
         elif args.mode == 'preflight':
             require(env.get('GITHUB_EVENT_NAME') == 'workflow_dispatch', 'manual deployment required')
             report = qualify_ci(api, role, sha, env)
-            target_profile(role, '.github/deploy/targets.json')
+            if role != BENCHMARK:
+                target_profile(role, '.github/deploy/targets.json', env)
             from release_package import load_candidate
             candidate, _published = load_candidate(api, env.get('RELEASE_VERSION', ''), sha)
             if role == 'production':

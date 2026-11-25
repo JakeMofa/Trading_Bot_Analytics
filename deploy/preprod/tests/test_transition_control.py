@@ -31,7 +31,7 @@ class TransitionGateTests(unittest.TestCase):
                 return {'gate':'PP_GENERATED_RESTORED','collector_enabled':False}
         def write(_path,data,**_):
             active.clear();active.update(data)
-        with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(validate=lambda:None)), \
+        with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(hostname='tradebot-preprod-01', validate=lambda:None)), \
              patch.object(gate,'_secure_file',return_value=(b'controller',None)), \
              patch.object(gate,'_candidate',return_value=SimpleNamespace(image=request.image_id)), \
              patch.object(gate,'_image_binding',return_value=object()), \
@@ -68,7 +68,7 @@ class TransitionGateTests(unittest.TestCase):
             active.clear()
             active.update(data)
         context = SimpleNamespace(request=SimpleNamespace(source_sha='a'*40), image='sha256:'+'c'*64)
-        with patch.object(gate.HostBinding, 'from_marker', return_value=SimpleNamespace(validate=lambda:None)), \
+        with patch.object(gate.HostBinding, 'from_marker', return_value=SimpleNamespace(hostname='tradebot-preprod-01', validate=lambda:None)), \
              patch.object(gate, '_secure_file', return_value=(b'controller', None)), \
              patch.object(gate, '_candidate', return_value=context), \
              patch.object(gate, '_image_binding', return_value=object()), \
@@ -108,8 +108,8 @@ class TransitionGateTests(unittest.TestCase):
             gate.TransitionRequest.parse(f'{command.replace(" enter ", " leave ")} {anchor}')
         with self.assertRaises(DeploymentHold):
             gate.TransitionRequest.parse(f'{command} {anchor.upper()}')
-        with patch.object(gate.HostBinding, 'from_marker'), \
-             patch.object(gate, '_read_active', return_value={'initial_a': anchor}), \
+        with patch.object(gate.HostBinding,'from_marker',return_value=gate.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)), \
+             patch.object(gate, '_read_active', return_value={'instance': 'tradebot-preprod-01', 'initial_a': anchor}), \
              patch.object(gate, '_secure_file') as controller:
             for invalid in ('session-v1 on 6600', f'session-v1 on 4560 {anchor}',
                             f'session-v1 on 6601 {anchor}',

@@ -83,11 +83,14 @@ class InstallationControls(unittest.TestCase):
             root=Path(folder);lib=root/'lib';lib.mkdir();authority=root/'authority';authority.mkdir()
             info=builder.build(lib/'controller.pyz')
             with patch.object(installer,'LIB',lib),patch.object(installer,'AUTHORITY',authority), \
-                 patch.object(installer.HostBinding,'from_marker'),patch.object(installer,'directory'):
+                 patch.object(installer.HostBinding,'from_marker',return_value=installer.HostBinding(
+                     'tradebot-preprod-benchmark-4gb','preprod','Tradebot',False,False,False)), \
+                 patch.object(installer,'directory'):
                 result=installer.authorize('a'*40,'b'*64,info['sha256'])
                 self.assertFalse(result['deployment_dispatched'])
                 permit=json.loads((authority/'authorization.json').read_text())
                 self.assertEqual(permit['source_sha'],'a'*40)
+                self.assertEqual(permit['instance'],'tradebot-preprod-benchmark-4gb')
                 self.assertEqual(permit['data_mode'],'generated')
                 self.assertFalse(permit['live_collector_enabled'])
                 original=(authority/'authorization.json').read_bytes()

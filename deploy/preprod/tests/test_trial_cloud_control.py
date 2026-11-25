@@ -144,7 +144,7 @@ class DispatchOrderTests(unittest.TestCase):
             if path==gate.RUNTIME_SECRETS/'operator_token':
                 return SimpleNamespace(st_mode=stat.S_IFREG|0o400,st_uid=10001)
             raise FileNotFoundError
-        with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active), \
+        with patch.object(gate.HostBinding,'from_marker',return_value=gate.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)),patch.object(gate,'_read_active',return_value=active), \
              patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate',return_value=context), \
              patch.object(gate,'_image_binding'),patch.object(gate,'_owned_runtime'), \
              patch.object(gate,'_consume',side_effect=lambda *_:calls.append('consume')) as consume, \

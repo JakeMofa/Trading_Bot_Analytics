@@ -31,6 +31,8 @@ from typing import Protocol
 import uuid
 
 INSTANCE = 'tradebot-preprod-01'
+BENCHMARK_INSTANCE = 'tradebot-preprod-benchmark-4gb'
+PP_INSTANCES = (INSTANCE, BENCHMARK_INSTANCE)
 CHECKS = frozenset({'api','sse','schema','migration','data_correctness','collector_ownership',
                     'disabled_flags','recovery','freshness','market_identity','operator_control'})
 COMPRESSED_LIMIT = 16 * 1024**2
@@ -67,7 +69,7 @@ class Request:
     instance: str = INSTANCE
 
     def validate(self):
-        require(self.environment == 'preprod' and self.instance == INSTANCE, 'wrong_target')
+        require(self.environment == 'preprod' and self.instance in PP_INSTANCES, 'wrong_target')
         require(bool(re.fullmatch('[0-9a-f]{40}', self.source_sha)), 'invalid_source_sha')
         require(all(re.fullmatch('[0-9a-f]{64}', value) for value in
                     (self.artifact_sha256, self.controller_sha256)), 'invalid_digest')
@@ -114,7 +116,7 @@ class HostBinding:
     production_data_copied: bool
 
     def validate(self):
-        require(self.hostname==INSTANCE and self.environment=='preprod' and self.project=='Tradebot', 'wrong_host_binding')
+        require(self.hostname in PP_INSTANCES and self.environment=='preprod' and self.project=='Tradebot', 'wrong_host_binding')
         require(self.live_collector_authorized is False and self.paid_ai_authorized is False
                 and self.production_data_copied is False, 'unsafe_host_binding')
 
@@ -123,7 +125,10 @@ class HostBinding:
         require(os.geteuid()==0, 'root_entrypoint_required')
         content,_=_secure_file(path,private=False)
         marker=json.loads(content)
-        result=cls(socket.gethostname(),**{key:marker.get(key) for key in
+        hostname = socket.gethostname()
+        if hostname == BENCHMARK_INSTANCE:
+            require(marker.get('instance') == hostname, 'wrong_host_binding')
+        result=cls(hostname,**{key:marker.get(key) for key in
             ('environment','project','live_collector_authorized','paid_ai_authorized','production_data_copied')})
         result.validate()
         return result
@@ -403,6 +408,7 @@ class Controller:
         try:
             request.validate()
             self.binding.validate()
+            require(request.instance == self.binding.hostname, 'wrong_host_binding')
             content,_=_secure_file(self.controller_path,self.expected_uid,private=False)
             require(hashlib.sha256(content).hexdigest()==request.controller_sha256,'controller_digest_mismatch')
             self.authority.validate(request,self.wall_clock())

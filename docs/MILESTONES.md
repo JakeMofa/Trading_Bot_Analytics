@@ -1,3 +1,13 @@
+## November 25, 2026 CST — 4 GB PP quote comparison passed
+
+CD Benchmark passed. In one matched live rollover, WebSocket received the
+first usable quote at 9.746 s, early REST at 14.785 s, and the existing REST
+collector at 18.848 s. The dashboard API returned the saved REST quote
+0.946 s after receipt. Polymarket continued through 10 Coinbase candle
+revision rejections. All five retained-generation fingerprints matched.
+Next, route WebSocket quotes through the actual collector and repeat the
+receipt-to-API measurement. [Current PP handoff](PLAN/PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
+
 ## November 25, 2026 CST — Single-rollover smoke profile
 
 The PP smoke profile uses a fresh, exact local origin, one generation and a

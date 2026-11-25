@@ -127,8 +127,8 @@ def install(bundle,digest,public_key_file):
 
 
 def authorize(source,artifact,controller):
-    HostBinding.from_marker().validate()
-    request=Request(source,artifact,controller);request.validate()
+    binding = HostBinding.from_marker()
+    request=Request(source,artifact,controller,instance=binding.hostname);request.validate()
     checked_bundle(LIB/'controller.pyz',controller)
     directory(AUTHORITY,0o700)
     now=datetime.now(timezone.utc)
@@ -157,8 +157,9 @@ def _scope_permit(path,fields):
 
 
 def authorize_live_enter(source,artifact,controller,image,initial_a=None,trial_origin=None):
-    HostBinding.from_marker().validate()
-    request=TransitionRequest('enter',source,artifact,controller,image,initial_a=initial_a,trial_origin=trial_origin)
+    binding = HostBinding.from_marker()
+    request=TransitionRequest('enter',source,artifact,controller,image,instance=binding.hostname,
+                              initial_a=initial_a,trial_origin=trial_origin)
     request.validate()
     checked_bundle(LIB/'controller.pyz',controller)
     _candidate(request)
@@ -168,8 +169,9 @@ def authorize_live_enter(source,artifact,controller,image,initial_a=None,trial_o
 
 
 def authorize_live_on(seconds):
-    HostBinding.from_marker().validate()
+    binding = HostBinding.from_marker()
     active=_read_active()
+    require(active['instance'] == binding.hostname, 'wrong_transition_scope')
     require(active.get('trial_origin') not in RETAINED_TRIAL_ORIGINS,'retained_trial_is_read_only')
     cycle=_cycle_args(active)
     if active.get('trial_origin') == BOUNDARY_SMOKE_ORIGIN:
@@ -179,7 +181,7 @@ def authorize_live_on(seconds):
         from controller import Budget
         from trial_cloud_control import require_ready
         request=TransitionRequest('leave',active['source_sha'],active['artifact_sha256'],
-                                  active['controller_sha256'],active['image_id'])
+                                  active['controller_sha256'],active['image_id'],instance=binding.hostname)
         require_ready(_candidate(request),active['initial_a'],Budget(60),
                       **({'boundary': True} if active['trial_origin']==BOUNDARY_ORIGIN else {}))
     require(allowed_session_seconds(seconds,scoped=bool(cycle),origin=active.get('trial_origin')),

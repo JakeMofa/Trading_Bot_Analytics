@@ -23,11 +23,11 @@ def main():
     binding=HostBinding.from_marker()
     parts=sys.argv[1].split(' ')
     if parts[0]=='identity-v1':
-        require(len(parts)==4 and parts[1:3]==['preprod','tradebot-preprod-01'],'invalid_identity_command')
+        require(len(parts)==4 and parts[1:3]==['preprod',binding.hostname],'invalid_identity_command')
         content,_=_secure_file(Path(sys.argv[0]).resolve(),private=False)
         digest=hashlib.sha256(content).hexdigest()
         require(parts[3]==digest,'controller_digest_mismatch')
-        print(json.dumps({'gate':'IDENTITY_PASS','environment':'preprod','instance':'tradebot-preprod-01',
+        print(json.dumps({'gate':'IDENTITY_PASS','environment':'preprod','instance':binding.hostname,
                           'controller_sha256':digest,'runtime_qualified':False,'database_changed':False}),flush=True)
         return 0
     command=sys.argv[1]

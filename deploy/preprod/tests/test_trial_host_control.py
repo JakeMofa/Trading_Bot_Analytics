@@ -72,12 +72,12 @@ class TrialHostTests(unittest.TestCase):
         self.assertEqual(request.bindings()['trial_origin'],TRIAL)
         for origin in ('pp-live-pp','pp-live-pp-trial-20261119-01','pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03',TRIAL+'-other'):
             with self.assertRaises(DeploymentHold):gate.TransitionRequest.parse(base+' '+A+' '+origin)
-        active={'initial_a':A,'trial_origin':TRIAL}
-        with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active),patch.object(gate,'_secure_file') as secret:
+        active={'instance':'tradebot-preprod-01','initial_a':A,'trial_origin':TRIAL}
+        with patch.object(gate.HostBinding,'from_marker',return_value=gate.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)),patch.object(gate,'_read_active',return_value=active),patch.object(gate,'_secure_file') as secret:
             for command in ('session-v1 on 6600 '+A,'session-v1 on 6600 '+A+' '+TRIAL+'-other'):
                 with self.assertRaises(DeploymentHold):gate.session(command,Path('/trusted/controller'))
             secret.assert_not_called()
-        self.assertEqual(gate._cycle_args(active),active)
+        self.assertEqual(gate._cycle_args(active),{'initial_a':A,'trial_origin':TRIAL})
 
     def test_retained_first_trial_journal_remains_valid_for_off_but_never_new_enter(self):
         retained='pp-live-pp-trial-20261119-01'
@@ -138,16 +138,16 @@ class TrialHostTests(unittest.TestCase):
 
     def test_retained_fifth_on_rejects_before_secrets_authority_or_network(self):
         retained='pp-live-pp-trial-20261119-05'
-        with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value={
-                'state':'ready_off','initial_a':A,'trial_origin':retained}), \
+        with patch.object(gate.HostBinding,'from_marker',return_value=gate.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)),patch.object(gate,'_read_active',return_value={
+            'instance':'tradebot-preprod-01',                'state':'ready_off','initial_a':A,'trial_origin':retained}), \
              patch.object(gate,'_secure_file') as secret,patch.object(gate,'_consume') as consume, \
              patch.object(gate,'_operator') as operator:
             with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):
                 gate.session('session-v1 on 6600 '+A+' '+retained,Path('/trusted/controller'))
             secret.assert_not_called();consume.assert_not_called();operator.assert_not_called()
         import install_controller as install
-        with patch.object(install.HostBinding,'from_marker'),patch.object(install,'_read_active',return_value={
-                'state':'ready_off','initial_a':A,'trial_origin':retained}), \
+        with patch.object(install.HostBinding,'from_marker',return_value=install.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)),patch.object(install,'_read_active',return_value={
+            'instance':'tradebot-preprod-01',                'state':'ready_off','initial_a':A,'trial_origin':retained}), \
              patch.object(install,'_scope_permit') as permit,patch('trial_cloud_control.require_ready') as ready:
             with self.assertRaisesRegex(DeploymentHold,'retained_trial_is_read_only'):
                 install.authorize_live_on(6600)
@@ -155,9 +155,9 @@ class TrialHostTests(unittest.TestCase):
 
     def test_trial_on_is_held_before_consuming_authority_until_cloud_readiness(self):
         digest=hashlib.sha256(b'controller').hexdigest()
-        active=dict(state='ready_off',initial_a=A,trial_origin=TRIAL,source_sha='a'*40,
+        active=dict(instance='tradebot-preprod-01',state='ready_off',initial_a=A,trial_origin=TRIAL,source_sha='a'*40,
             artifact_sha256='b'*64,controller_sha256=digest,image_id=IMAGE)
-        with patch.object(gate.HostBinding,'from_marker'),patch.object(gate,'_read_active',return_value=active), \
+        with patch.object(gate.HostBinding,'from_marker',return_value=gate.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)),patch.object(gate,'_read_active',return_value=active), \
              patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate'), \
              patch.object(gate,'_image_binding'),patch.object(gate,'_owned_runtime'),patch.object(gate,'_consume') as consume, \
              patch('trial_cloud_control.require_ready',side_effect=DeploymentHold('archive_readiness_unqualified')):
@@ -165,7 +165,7 @@ class TrialHostTests(unittest.TestCase):
                 gate.session('session-v1 on 6600 '+A+' '+TRIAL,Path('/trusted/controller'))
             consume.assert_not_called()
         import install_controller as install
-        with patch.object(install.HostBinding,'from_marker'),patch.object(install,'_read_active',return_value=active), \
+        with patch.object(install.HostBinding,'from_marker',return_value=install.HostBinding('tradebot-preprod-01','preprod','Tradebot',False,False,False)),patch.object(install,'_read_active',return_value=active), \
              patch.object(install,'_scope_permit') as scope,patch.object(install,'_candidate'), \
              patch('trial_cloud_control.require_ready',side_effect=DeploymentHold('archive_readiness_unqualified')):
             with self.assertRaisesRegex(DeploymentHold,'archive_readiness_unqualified'):

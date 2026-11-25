@@ -15,6 +15,7 @@ import sys
 import subprocess
 import tempfile
 import time
+from controller import BENCHMARK_INSTANCE, PP_INSTANCES
 
 HERE = Path(__file__).resolve().parent
 SECRET_DIR = Path('/etc/tradebot/pp-postgres')
@@ -50,7 +51,9 @@ def run(args, *, input=None, timeout=30, env=None):
 
 def validate_host(hostname, marker, disk_free, available_memory, os_id, version,
                   *, allow_existing_application=False):
-    if hostname != 'tradebot-preprod-01' or marker.get('environment') != 'preprod' or marker.get('project') != 'Tradebot':
+    if (hostname not in PP_INSTANCES or marker.get('environment') != 'preprod'
+            or marker.get('project') != 'Tradebot'
+            or (hostname == BENCHMARK_INSTANCE and marker.get('instance') != hostname)):
         raise RuntimeError('refusing non-PP host')
     for key in ('live_collector_authorized', 'paid_ai_authorized', 'production_data_copied'):
         if marker.get(key) is not False:

@@ -1,0 +1,92 @@
+name: CD Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published candidate version (vX.Y.Z or prerelease); binds source and registry digest
+        required: true
+        type: string
+      revision:
+        description: Full approved branch HEAD SHA with exact push CI
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: tradebot-pp-benchmark
+  cancel-in-progress: false
+
+jobs:
+  preflight:
+    if: github.ref == 'refs/heads/preprod'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      SOURCE_BRANCH: preprod
+      RELEASE_VERSION: ${{ inputs.version }}
+      APPROVED_REVISION: ${{ inputs.revision }}
+      GH_TOKEN: ${{ github.token }}
+      PIPELINE_REPORT: ci-evidence/pp-benchmark-preflight/environment.json
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.12"
+      - name: Verify exact source CI and published artifact
+        run: python .github/ci/environment_pipeline.py preflight pp-benchmark
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: pp-benchmark-preflight-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 90
+
+  deploy:
+    needs: preflight
+    environment: pp-benchmark
+    # Reuse an approved private operator runner; never expose SSH publicly.
+    runs-on: [self-hosted, tradebot-private]
+    timeout-minutes: 15
+    env:
+      SOURCE_BRANCH: preprod
+      RELEASE_VERSION: ${{ inputs.version }}
+      APPROVED_REVISION: ${{ inputs.revision }}
+      GH_TOKEN: ${{ github.token }}
+      PP_BENCHMARK_HOST: ${{ vars.PP_BENCHMARK_HOST }}
+      PP_BENCHMARK_CONTROLLER_SHA256: ${{ vars.PP_BENCHMARK_CONTROLLER_SHA256 }}
+      PP_BENCHMARK_DEPLOY_KEY: ${{ secrets.PP_BENCHMARK_DEPLOY_KEY }}
+      PP_BENCHMARK_DEPLOY_KNOWN_HOSTS: ${{ secrets.PP_BENCHMARK_DEPLOY_KNOWN_HOSTS }}
+      PIPELINE_REPORT: ci-evidence/pp-benchmark-deployment/deployment.json
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate existing operator Python 3.12
+        timeout-minutes: 1
+        run: |
+          /opt/homebrew/bin/python3.12 -I - <<'PY'
+          import sys
+          if sys.version_info[:2] != (3, 12):
+              raise SystemExit('Existing operator Python 3.12 is required')
+          print('Operator Python ' + '.'.join(map(str, sys.version_info[:3])))
+          PY
+      - name: One bounded pinned-controller deployment with acceptance checks
+        run: /opt/homebrew/bin/python3.12 .github/ci/environment_pipeline.py deploy pp-benchmark
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        if: always()
+        with:
+          name: pp-benchmark-deployment-evidence-${{ github.run_id }}
+          path: ${{ env.PIPELINE_REPORT }}
+          if-no-files-found: error
+          retention-days: 90

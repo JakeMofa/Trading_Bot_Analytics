@@ -85,7 +85,7 @@ class MemorySequencingTests(unittest.TestCase):
    actions._compose=compose
   def budget(seconds):budgets.append(seconds);return Budget(actions)
   def write(_path,value,**_):active.clear();active.update(value)
-  with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(validate=lambda:None)),patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate',return_value=context),patch.object(gate,'_image_binding',return_value=actions),patch.object(gate,'_consume',return_value=str(uuid.uuid4())) as consume,patch.object(gate,'_atomic_json',side_effect=write),patch.object(gate,'ACTIVE',Path('/nonexistent-transition-memory-test')),patch.object(gate,'Budget',side_effect=budget),patch('live_transition.validate_live_profile'):
+  with patch.object(gate.HostBinding,'from_marker',return_value=SimpleNamespace(hostname='tradebot-preprod-01', validate=lambda:None)),patch.object(gate,'_secure_file',return_value=(b'controller',None)),patch.object(gate,'_candidate',return_value=context),patch.object(gate,'_image_binding',return_value=actions),patch.object(gate,'_consume',return_value=str(uuid.uuid4())) as consume,patch.object(gate,'_atomic_json',side_effect=write),patch.object(gate,'ACTIVE',Path('/nonexistent-transition-memory-test')),patch.object(gate,'Budget',side_effect=budget),patch('live_transition.validate_live_profile'):
    result=gate.transition(request,Path('/trusted/controller.pyz'))
   return result,active,actions,budgets,headroom_calls,consume
  def test_interrupt_uses_exactly_one_fresh_180_second_recovery(self):

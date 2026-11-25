@@ -101,6 +101,48 @@ check whether backlog age grows or recovers.
   [Unindexed foreign keys](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys) ·
   [Unused indexes](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)
 
+### Benchmark monitoring and tuning order
+
+Use **4 GB PP Benchmark** as the active preprod target. Treat 2 GB PP as
+legacy and retain its archive and telemetry history. TokenBot Grafana's
+collector status, A/B slot, quote count and age, oldest pending row,
+pending rows and verified ACK rate now select `host="pp-benchmark"`.
+The existing feed timings and host-resource panels already have recorded
+Benchmark samples. The PP operational panels still need fresh samples.
+Grafana rejected the attempted historical collector and outbox import
+with HTTP 400. The archived local-only smoke recorded 5,356 pending rows
+and ran with archive sync off, so it supplies no verified ACK throughput
+baseline. Before evaluating archive load, connect the Benchmark observer
+to the existing metrics destination and verify fresh status, slot and
+outbox samples, then verify ACK rate during an archive workload.
+
+1. **Collector and dashboard latency.** Use Polymarket WebSocket for
+   primary live quotes, REST for metadata and recovery, and the VM-local
+   PostgreSQL write and dashboard path. Measure boundary to first quote
+   separately from receipt to commit and API exposure. Keep the 5-second
+   receipt-to-API target.
+2. **VM query load.** Profile the actual deterministic and history
+   dashboard requests during collection. Use bounded time ranges and
+   indexed cursor pagination, return only needed fields, and use the
+   latest saved quote for live views. Use PostgreSQL plans and buffer
+   counts to identify scans, sorts or lock waits before adding indexes.
+   Track query p95, CPU, I/O wait, available memory and memory pressure.
+   [Reading PostgreSQL plans](https://www.postgresql.org/docs/current/using-explain.html)
+3. **Archive throughput.** Keep the indexed page reads and use scoped
+   session reuse with bounded transactions where qualified. Compare
+   incoming rows/s, verified ACKs/s, oldest pending age, retries and
+   connection waits together. If sustained ACKs lag arrivals, time the
+   write, verify and ACK phases before changing batch size. Keep row and
+   byte caps and exact verification in the comparison.
+   [Supabase connection options](https://supabase.com/docs/guides/database/connecting-to-postgres)
+4. **Hosted SQL and capacity.** Start with the current structured-history
+   reader and existing 500-row baseline. Test an RPC only if profiling
+   finds sequential network trips that can be combined. Test a matching
+   index if a real plan shows avoidable I/O or sort work. Use hosted
+   connection waits, disk I/O and SQL time during the run to decide if
+   capacity is the constraint.
+   [Supabase query optimization](https://supabase.com/docs/guides/database/query-optimization)
+
 ## Plan map by workstream
 
 Each smaller plan has a direct link here. When adding a plan or handoff under

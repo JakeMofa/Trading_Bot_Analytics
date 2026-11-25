@@ -1,3 +1,31 @@
+## November 25, 2026 CST — CP7 WebSocket and REST handoff
+
+The 4 GB Benchmark passed its single Polymarket BTC 15-minute rollover.
+WebSocket received the first usable quote at 9.746s, the REST observer at
+14.785s and the dashboard API showed the canonical quote at 19.794s.
+Polymarket kept writing through ten rejected Coinbase candle revisions.
+REST was the sole writer. Carry forward this result and the earlier
+A → B → fresh A rehearsal.
+
+- [x] Verify the 4 GB Benchmark rollover and retained data. Both comparison
+  readers observed the same market. All five retained fingerprints matched
+  and the Benchmark collector was durably stopped.
+- [ ] Add a default-off live WebSocket quote source. At market rollover or
+  recovery from a disconnect, run REST and WebSocket concurrently for the
+  same market and admit the first fresh, usable quote through one writer.
+- [ ] Use WebSocket for live updates while healthy. Keep REST for discovery
+  and recovery. Reject stale, duplicate or mismatched quote events, and
+  prevent late REST responses from replacing newer quotes.
+- [ ] Qualify first-quote delivery to the dashboard, reconnect and REST
+  fallback through generated tests and a focused 4 GB Benchmark smoke.
+  Record discovery, receipt, commit and API timing, along with resource use.
+
+Institutional gRPC remains pending access. The 2 GB PP host remains frozen.
+Production cutover and sustained Phase 1.75 acceptance remain separate gates.
+
+[Benchmark deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568) ·
+[Sanitized Benchmark evidence](evidence/pp-benchmark-single-rollover-2026-11-25.json)
+
 ## November 24, 2026 CST — PP33 first-quote comparison incomplete
 
 PP33 (`b7826e8`) observed four matching BTC 15-minute markets.

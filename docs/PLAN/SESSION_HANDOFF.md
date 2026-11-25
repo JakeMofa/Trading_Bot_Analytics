@@ -1,4 +1,14 @@
-## Resume here — PP33 boundary comparison, November 24, 2026 CST
+## Resume here — CP7 WebSocket and REST handoff
+
+The 4 GB Benchmark single rollover passed and its collector is durably OFF.
+Carry forward the passed A → B → fresh A rehearsal. The next task is the
+default-off live quote source and fallback qualification in the master
+roadmap. Keep the 2 GB host frozen and production unchanged.
+
+[Master roadmap and CP7 checklist](INTELLIGENCE_REBUILD_PLAN.md) ·
+[Latest milestone and evidence](../MILESTONES.md)
+
+## Historical checkpoint — PP33 boundary comparison, November 24, 2026 CST
 
 PP33 matched all four REST/WS observer windows. Canonical collection
 stopped in the second window after a Coinbase candle-write conflict.

@@ -1,3 +1,16 @@
+# BTC Intelligence master plan
+
+Use this page as the entry point for a new chat or worktree. Start with the
+latest checkpoint below, then open the linked plan for the workstream.
+The newest dated checkpoint sets the current order of work. Earlier notes
+preserve their original scope, results, and decisions. Check the release and
+environment named in each note before applying its operational steps.
+
+- [Current PP checkpoint](#november-25-2026-cst--4-gb-pp-rollover-passed-and-websocket-is-next)
+- [Plan map by workstream](#plan-map-by-workstream)
+- [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
+- [Long-term product phases](#master-roadmap)
+
 ## November 25, 2026 CST — 4 GB PP rollover passed and WebSocket is next
 
 The 4 GB PP Benchmark rollout qualified the Coinbase candle revision fix
@@ -37,6 +50,101 @@ Supabase history.
 [Detailed PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md) ·
 [Session handoff](SESSION_HANDOFF.md) ·
 [Milestone checklist](../MILESTONES.md)
+
+## Plan map by workstream
+
+Each smaller plan has a direct link here. When adding a plan or handoff under
+`docs/PLAN/`, add its link to the corresponding workstream and record any
+change to the active checkpoint above.
+
+### Project direction and original plans
+
+- [Current direction](../CURRENT_DIRECTION.md) · [Strategic plan](../STRATEGIC_PLAN.md) · [Planning copy of the strategic plan](STRATEGIC_PLAN.md)
+- [Original implementation plan](../BTC_Intelligence_Implementation_Plan.md) · [Original project summary](../BTC_Intelligence_Project_Summary.md) · [Original plan crosswalk](../PLAN_CROSSWALK.md)
+- [Data access findings](../DATA_ACCESS_FINDINGS.md) · [Progress summary](../PROGRESS_SUMMARY.md) · [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
+
+### Live feeds, rollover and observability
+
+- [PP WebSocket collector and archive handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
+- [CP7 generated market-boundary smoke — November 17 CST](CP7_BOUNDARY_SMOKE_2026-11-17.md)
+- [CP7 Coinbase reconnect candidate — November 17, 2026](CP7_COINBASE_RECONNECT_CANDIDATE_2026-11-17.md)
+- [Coinbase source-age incident and opt-in diagnostics](PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md)
+- [Independent dashboard evidence audit](PP_DASHBOARD_EVIDENCE_2026-11-19.md)
+- [PP saved forecast hydration consistency](PP_HYDRATION_CONSISTENCY_2026-11-19.md)
+- [First PP live PostgreSQL trial — November 17 CST / November 18 UTC](PP_LIVE_FIRST_TRIAL_2026-11-17.md)
+- [PP live diagnostic trial — November 17 CST / November 18 UTC](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md)
+- [PP18 combined observation and retained-A outcome](PP18_COMBINED_OBSERVATION_2026-11-19.md)
+- [PP23 reconnect repair and failed initial-A recovery](PP23_RECONNECT_AND_FAILED_A_RECOVERY_2026-11-20.md)
+
+### PP release, CI, CD and trial admission
+
+- [Independent pipeline checkpoint — November 12, 2026](INDEPENDENT_PIPELINES_2026-11-12.md)
+- [Preprod merge CI smoke failure — November 15, 2026](PP_CI_BOUNDARY_FAILURE_2026-11-15.md)
+- [PP21 fenced forward bootstrap](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md)
+- [PP23 deployment and OFF readiness — November 20, 2026 UTC](PP23_DEPLOYMENT_READY_OFF_2026-11-20.md)
+- [Exact second-trial cloud scope](PP23_SECOND_TRIAL_CLOUD_SCOPE_2026-11-19.md)
+- [Exact third PP trial scope — offline candidate](PP_THIRD_TRIAL_SCOPE_2026-11-20.md)
+- [PP generated-profile leave readiness review — November 17, 2026 CST](PP_LEAVE_READINESS_REVIEW_2026-11-17.md)
+- [Durable generated smoke capacity](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md)
+- [Exact local PP trial-origin source slice](PP_EXACT_TRIAL_ORIGIN_SOURCE_2026-11-19.md)
+- [Offline PP A → B → fresh A admission evidence](PP_REHEARSAL_ADMISSION_2026-11-19.md)
+- [Exact trial host preparation, source only](PP_TRIAL_HOST_PREPARATION_2026-11-19.md)
+- [Exact trial cloud child profiles and readiness](PP_TRIAL_CLOUD_HOST_2026-11-19.md)
+- [Exact fresh PP trial cloud scope — source-only review](PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md)
+- [Exact trial cloud application wiring — source only](PP_TRIAL_CLOUD_RUNTIME_2026-11-19.md)
+- [Exact trial archived-history reader attestation — source only](PP_TRIAL_READER_ATTESTATION_2026-11-19.md)
+- [PP cloud binding preflight — November 17, 2026](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md)
+
+### Rolling windows, archive and retirement
+
+- [PP archive and retirement flow — November 17, 2026](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md)
+- [CP6 active structured sync preparation — November 17 CST / November 18 UTC](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md)
+- [CP6 bounded structured drain: first offline slice](CP6_BOUNDED_STRUCTURED_DRAIN_REVIEW_2026-11-18.md)
+- [CP6 PP structured one-shot mount review — 2026-11-18](CP6_PP_STRUCTURED_ONE_SHOT_MOUNT_REVIEW_2026-11-18.md)
+- [CP6 sealed structured drainage — November 17 CST / November 18 UTC](CP6_STRUCTURED_DRAIN_2026-11-17.md)
+- [CP6 structured import preparation — November 17, 2026](CP6_STRUCTURED_IMPORT_PREPARATION_2026-11-17.md)
+- [CP6 PP raw archive host control — review](CP6_PP_RAW_ARCHIVE_HOST_REVIEW_2026-11-18.md)
+- [CP6 PP raw archive one-shot entry point — review](CP6_PP_RAW_ARCHIVE_ONE_SHOT_REVIEW_2026-11-18.md)
+- [Historic PP B seal and bounded archive candidate](PP_HISTORICAL_DRAIN_SOURCE_2026-11-19.md)
+- [Source qualification: continuous PP A → B → fresh A](PP_SEAMLESS_CYCLE_SOURCE_2026-11-19.md)
+- [PP retirement phase accounting and opt-in session reuse](PP_RETIREMENT_PHASE_REUSE_2026-11-19.md)
+- [Verify a separate copy of one PP raw archive](PP_RAW_RECOVERY_DRILL_2026-11-19.md)
+- [Finite read-only retained A audit candidate](PP_RETAINED_ARCHIVE_AUDIT_2026-11-19.md)
+- [PP21 complete retained-A read-only verification](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md)
+
+### History reads, query performance and research
+
+- [Cold readback performance: binary result-format investigation](COLD_READBACK_PERFORMANCE_2026-11-19.md)
+- [Structured cold-history source and API composition candidate](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md)
+- [Hosted history integration research and offline prototype](HOSTED_HISTORY_INTEGRATION_2026-11-19.md)
+- [Source-only PP HTTP history capture](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md)
+- [PP local archive page lookup study](PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)
+- [Point-in-time research parity prototype](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md)
+- [PP readback: measured recommendation and bounded next probe](PP_READBACK_BENCHMARK_HANDOFF_2026-11-19.md)
+- [Structured exact readback: reuse already verified canonical bytes](PP_READBACK_CANONICAL_BYTE_REUSE_2026-11-19.md)
+- [PP latest receipt lookup: guarded source candidate](PP_RECEIPT_LATEST_INDEX_2026-11-19.md)
+- [Two-generation history evidence — source qualification only](PP_TWO_GENERATION_HISTORY_EVIDENCE_2026-11-19.md)
+
+### Supabase dashboard, capability tests and access
+
+- [Supabase browser capability review — November 19, 2026](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md)
+- [Supabase deep navigation and integration review](SUPABASE_DEEP_NAVIGATION_2026-11-19.md)
+- [Supabase integrations for PP and production history](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md)
+- [Supabase capability tests for PP and research](SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
+- [Supabase followups after the deep dashboard review](SUPABASE_NEXT_STEPS_2026-11-19.md)
+- [Hosted Supabase investigation](HOSTED_SUPABASE_INVESTIGATION_2026-11-19.md)
+- [CP6 Supabase contract review — November 15, 2026](CP6_SUPABASE_CONTRACT_REVIEW_2026-11-15.md)
+- [CP6 PP private-history SQL role review — November 17, 2026](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md)
+- [CP6 PP Storage permission review — November 17, 2026](CP6_PP_STORAGE_POLICY_REVIEW_2026-11-17.md)
+- [CP6 PP Storage Auth delivery — review, not executed](CP6_PP_STORAGE_AUTH_INSTALL_REVIEW_2026-11-18.md)
+- [PP market-raw Storage binding and qualification](PP_STORAGE_BINDING_REVIEW_2026-11-17.md)
+- [PP Storage authenticated-readback operation amendment](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md)
+
+### Deployment references and evidence
+
+- [Runtime review](../../deploy/preprod/RUNTIME_REVIEW.md) · [Controller transfer](../../deploy/preprod/CONTROLLER_TRANSFER_REVIEW.md) · [Live observation](../../deploy/preprod/LIVE_OBSERVATION.md) · [Archive identity provisioning](../../deploy/preprod/PP_ARCHIVE_IDENTITY_PROVISION.md)
+- [CI PP Benchmark](../../.github/workflows/ci-pp-benchmark.yml) · [CD Benchmark](../../.github/workflows/cd-pp-benchmark.yml)
+- [Evidence directory](evidence/) · [Schema qualification](evidence/cp2-schema-local-2026-11-12.md) · [PostgreSQL lifecycle proof](evidence/pg-lifecycle-2026-11-12.md) · [Retained-B transaction diagnostic](evidence/pp30-retained-b-local-transaction-hold-2026-11-23.md)
 
 ## November 24, 2026 CST — PP33 first-quote comparison incomplete
 

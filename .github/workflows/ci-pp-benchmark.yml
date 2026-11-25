@@ -22,7 +22,11 @@ concurrency:
 
 jobs:
   qualify:
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.event == 'push'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/preprod') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 3
     env:
@@ -30,9 +34,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       PIPELINE_REPORT: ci-evidence/pp-benchmark-ci/environment.json
     steps:
-      # workflow_run uses the trusted default-branch control code, not PR code.
+      # Use only the exact successful push to our preprod branch.
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:

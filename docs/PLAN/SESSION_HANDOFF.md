@@ -3,7 +3,9 @@
 The 4 GB rollover passed with the Coinbase candle fix. WebSocket led early
 REST by 5.039 s. The next collector change will route socket quotes through
 PostgreSQL and the dashboard API, with REST market lookup and quote fallback.
-[Current PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
+[Current PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md) ·
+[Master roadmap](INTELLIGENCE_REBUILD_PLAN.md) ·
+[Milestone checklist](../MILESTONES.md)
 
 ## Resume here — PP33 boundary comparison, November 24, 2026 CST
 

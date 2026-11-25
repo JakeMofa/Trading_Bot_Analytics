@@ -1,3 +1,43 @@
+## November 25, 2026 CST — 4 GB PP rollover passed and WebSocket is next
+
+The 4 GB PP Benchmark rollout qualified the Coinbase candle revision fix
+for the observed rollover. Polymarket continued collecting through 10
+rejected revisions, all five retained-generation fingerprints matched, and
+the collector was off after the run. That closes the focused candle-fix
+smoke described in the PP33 entry below. Broader I7 acceptance remains open.
+
+On the same live BTC 15-minute market, WebSocket received the first usable
+quote **9.746 s** after rollover, early REST **14.785 s**, and the canonical
+REST collector **18.848 s**. The dashboard API showed the saved REST quote
+**0.946 s** after receipt. WebSocket ran as an observer and still needs
+its own receipt-to-dashboard measurement through the canonical writer.
+The 4 GB host had at least **2,755 MiB** available with zero swap I/O or
+OOM events. The run established headroom for that workload.
+[Successful CD Benchmark](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568)
+
+1. **Make WebSocket the primary live quote feed.** Subscribe automatically
+   to the upcoming market when its slug is available. Use REST market
+   lookup for the slug, window, and official BTC price to beat. Keep
+   REST book snapshots for recovery when the socket is unhealthy.
+2. **Verify the canonical write and dashboard path on 4 GB PP.** Use the
+   dedicated Benchmark CI and CD, preserve retained A and B, and measure
+   subscription, first usable receipt, PostgreSQL commit, and API visibility.
+   Keep the **5 s receipt-to-API target** and report pre-receipt wait
+   separately. Check reconnect, quote deduplication, and Coinbase isolation.
+3. **Keep the two BTC/USD inputs identifiable.** Track Polymarket reference
+   price buckets separately from Coinbase spot and candles. Show source
+   freshness and keep live contract quotes available when Coinbase is stale.
+
+Keep the completed trial07 A → B → fresh A evidence. The 72-hour rollout
+and dashboard redesign remain deferred during this milestone. The
+verified 500-row history baseline remains the starting point for measuring
+real deterministic dashboard reads against local PostgreSQL and structured
+Supabase history.
+
+[Detailed PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md) ·
+[Session handoff](SESSION_HANDOFF.md) ·
+[Milestone checklist](../MILESTONES.md)
+
 ## November 24, 2026 CST — PP33 first-quote comparison incomplete
 
 PP33 (`b7826e8`) observed four matching BTC 15-minute markets.

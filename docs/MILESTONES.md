@@ -6,7 +6,9 @@ collector at 18.848 s. The dashboard API returned the saved REST quote
 0.946 s after receipt. Polymarket continued through 10 Coinbase candle
 revision rejections. All five retained-generation fingerprints matched.
 Next, route WebSocket quotes through the actual collector and repeat the
-receipt-to-API measurement. [Current PP handoff](PLAN/PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
+receipt-to-API measurement.
+[Master roadmap](PLAN/INTELLIGENCE_REBUILD_PLAN.md) ·
+[Current PP handoff](PLAN/PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
 
 ## November 25, 2026 CST — Single-rollover smoke profile
 

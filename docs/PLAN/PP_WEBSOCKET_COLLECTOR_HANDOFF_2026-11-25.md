@@ -2,6 +2,8 @@
 
 November 25, 2026, Central time. Use the 4 GB PP Benchmark environment for the next live quote test. Make the Polymarket US Markets WebSocket the primary source for saved contract quotes and dashboard updates. Keep REST market lookup for discovery and official BTC terms, and use REST book snapshots for quote recovery when the socket is unhealthy. The switch is pending in the PostgreSQL collector.
 
+[Master roadmap](INTELLIGENCE_REBUILD_PLAN.md) · [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
+
 ## Evidence from the live PP comparison
 
 The 4 GB rollout ran release `v0.2.0-pp.benchmark.1` at `93558b2`. The 3:45 p.m. CST market rollover was a single local-only generation. The three readers matched market ID `2915937`. [Successful CD Benchmark](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568)

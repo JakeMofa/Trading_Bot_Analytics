@@ -7,6 +7,7 @@ preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
 - [Current PP checkpoint](#november-25-2026-cst--4-gb-pp-rollover-passed-and-websocket-is-next)
+- [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
@@ -50,6 +51,55 @@ Supabase history.
 [Detailed PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md) ·
 [Session handoff](SESSION_HANDOFF.md) ·
 [Milestone checklist](../MILESTONES.md)
+
+## Supabase and PP performance baseline
+
+November 25, 2026 CST, 5:43–5:46 p.m. The existing TokenBot observability
+dashboard now includes Supabase disk read and write operations combined per
+second, alongside hosted SQL, connections, scrape health, PP collector
+status, archive lag and ACK panels. The disk panel uses five-minute rates
+from the project's existing Prometheus source. It returned data after save
+and reload. [TokenBot observability](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability)
+
+| Dashboard signal | Observed baseline |
+| --- | --- |
+| Supabase scrape health | 1 at 5:43 p.m. and at the prior four displayed minute marks |
+| PgBouncer database connections | 1 at 5:43 p.m. |
+| Hosted SQL statement rate | 0.00833 statements/s at 5:43 p.m. The execution-time panel also returned samples. |
+| Hosted disk I/O | 2.56 completed operations/s at 5:46 p.m. |
+| PP collector status, oldest pending record and verified ACK rate | Status Unknown. Archive lag and ACK panels had no samples in the last-hour view. Missing observations cannot establish zero backlog or a stopped collector. |
+
+This is an idle hosted baseline. The last 4 GB feed comparison used a
+local-only outbox, so it does not provide a concurrent hosted archive
+throughput baseline. For the next archive workload, capture fresh PP
+status, age of the oldest pending row and verified rows/s over the same
+window as the hosted panels. Compare ACKs with actual incoming rows/s and
+check whether backlog age grows or recovers.
+
+### Performance work by database
+
+- **PP VM PostgreSQL.** Keep the indexed archive cursor and paged
+  fingerprint query. On the retained B read-only audit, the released path
+  verified **56 pages and 50 objects in 195.076 s**. For the actual
+  dashboard and deterministic queries, use the local PostgreSQL plan and
+  write-to-API timings under concurrent ingestion. Measure buffer reads,
+  sort work, locks and query latency before changing indexes. Supabase's
+  hosted reports show its own workload.
+- **Hosted archive.** Keep the pipelined read path and reuse scoped sessions
+  with a fresh read-only transaction per verified page where that mode is
+  qualified. The pinned 500-row read took **2.643 s cold** and **1.850–2.236 s
+  warm**. Independent planning and execution totaled **11.101 ms** without
+  returned rows. Profile connection setup, fetch/decode and integrity work
+  on a slow hosted read before testing RPC or another index. Query Performance
+  and connection metrics help distinguish SQL execution and pool contention
+  from application-side time. [Supabase Reports](https://supabase.com/docs/guides/observability/reports)
+- **Hosted Performance Advisor.** The live check returned four uncovered
+  foreign keys in `history_v2`, eight unused-index notices and one Auth
+  connection-strategy notice, all informational. Review foreign-key index
+  candidates against actual history query plans and parent update/delete
+  workloads. Review index use over a representative workload before removal.
+  [Unindexed foreign keys](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys) ·
+  [Unused indexes](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)
 
 ## Plan map by workstream
 

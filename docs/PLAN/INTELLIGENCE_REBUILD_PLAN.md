@@ -30,6 +30,13 @@ OOM events. The run established headroom for that workload.
 [Successful CD Benchmark](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568) ·
 [Sanitized Benchmark evidence](evidence/pp-benchmark-single-rollover-2026-11-25.json)
 
+The 15-minute WebSocket client comparison is complete. The direct client
+and official Python and JavaScript SDKs subscribed to the same BTC market
+from one host. Across 2,747 matched updates, median delivery differed from
+the direct client by less than 1 ms for each SDK. Keep the existing direct
+Python client for the next PP smoke. Neither SDK showed a speed advantage
+that warrants a collector change. [SDK benchmark results](../MILESTONES.md#november-25-2026-cst--websocket-client-comparison-complete)
+
 1. **Add WebSocket as the primary live quote feed behind a default-off
    setting.** Subscribe to the upcoming market when its slug is available.
    Use REST market lookup for the slug, window, and official BTC price to

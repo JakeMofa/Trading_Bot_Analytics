@@ -1,0 +1,99 @@
+{
+  "readers": {
+    "direct": {
+      "start": "2026-11-26T00:31:28.731190+00:00",
+      "last_event": "2026-11-26T00:46:29.837535+00:00",
+      "counts": {
+        "start": 1,
+        "quote": 7458,
+        "end": 1
+      },
+      "first_usable_ms": 619.2,
+      "valid_messages": 7455,
+      "unique_matched_keys": 7454,
+      "last_quote": "2026-11-26T00:45:00.066141+00:00",
+      "elapsed_seconds": 901.11
+    },
+    "python": {
+      "start": "2026-11-26T00:31:29.112730+00:00",
+      "last_event": "2026-11-26T00:46:29.838397+00:00",
+      "counts": {
+        "start": 1,
+        "quote": 7476,
+        "end": 1
+      },
+      "first_usable_ms": 214.52,
+      "valid_messages": 7473,
+      "unique_matched_keys": 7472,
+      "last_quote": "2026-11-26T00:44:59.755658+00:00",
+      "elapsed_seconds": 900.73
+    },
+    "js": {
+      "start": "2026-11-26T00:31:29.286000+00:00",
+      "last_event": "2026-11-26T00:46:29.838499+00:00",
+      "counts": {
+        "start": 1,
+        "quote": 7468,
+        "end": 1
+      },
+      "first_usable_ms": 302,
+      "valid_messages": 7465,
+      "unique_matched_keys": 7464,
+      "last_quote": "2026-11-26T00:44:59.766000+00:00",
+      "elapsed_seconds": 900.55
+    }
+  },
+  "all_three_matches": 2747,
+  "all_three_deltas": {
+    "python": {
+      "p50_ms": -0.26,
+      "p95_ms": 56.55,
+      "p99_ms": 94.89
+    },
+    "js": {
+      "p50_ms": 0.84,
+      "p95_ms": 56.62,
+      "p99_ms": 96.25
+    }
+  },
+  "pairwise": {
+    "python": {
+      "common": 3163,
+      "delta_sdk_minus_direct": {
+        "p50_ms": -0.23,
+        "p95_ms": 54.13,
+        "p99_ms": 92.52
+      },
+      "sdk_first": 1738,
+      "direct_first": 1425
+    },
+    "js": {
+      "common": 3808,
+      "delta_sdk_minus_direct": {
+        "p50_ms": 0.98,
+        "p95_ms": 50.19,
+        "p99_ms": 88.44
+      },
+      "sdk_first": 1680,
+      "direct_first": 2128
+    }
+  },
+  "market_slug": "cpc-btc-updown-15m-2026-11-26-0030z",
+  "scheduled_market_close_utc": "2026-11-26T00:45:00Z",
+  "capture_target_seconds": 900,
+  "environment": "local operator Mac, read-only",
+  "subscription": "SUBSCRIPTION_TYPE_MARKET_DATA",
+  "versions": {
+    "python_polymarket_us": "2.4.1",
+    "direct_websockets": "16.1.1",
+    "js_polymarket_us": "0.1.1",
+    "node": "22.21.1"
+  },
+  "match_key": [
+    "marketSlug",
+    "transactTime",
+    "best_bid",
+    "best_ask"
+  ],
+  "delta_definition": "SDK receipt minus direct receipt on the same host; negative means the SDK arrived first"
+}

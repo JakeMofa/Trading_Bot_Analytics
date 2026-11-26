@@ -6,6 +6,7 @@ default-off live quote source and fallback qualification in the master
 roadmap. Keep the 2 GB host frozen and production unchanged.
 
 [Master roadmap and CP7 checklist](INTELLIGENCE_REBUILD_PLAN.md) ·
+[Detailed PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md) ·
 [Latest milestone and evidence](../MILESTONES.md)
 
 ## Historical checkpoint — PP33 boundary comparison, November 24, 2026 CST

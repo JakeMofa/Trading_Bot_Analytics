@@ -20,7 +20,9 @@ unchanged and the old 2 GB PP host remained frozen. Institutional gRPC is
 pending access.
 
 [Exact CD acceptance](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568) ·
-[Sanitized rollover evidence](PLAN/evidence/pp-benchmark-single-rollover-2026-11-25.json)
+[Sanitized rollover evidence](PLAN/evidence/pp-benchmark-single-rollover-2026-11-25.json) ·
+[Master roadmap](PLAN/INTELLIGENCE_REBUILD_PLAN.md) ·
+[Detailed PP handoff](PLAN/PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
 
 ## November 25, 2026 CST — Single-rollover smoke profile
 

@@ -1,3 +1,254 @@
+# BTC Intelligence master plan
+
+Use this page as the entry point for a new chat or worktree. Start with the
+latest checkpoint below, then open the linked plan for the workstream.
+The newest dated checkpoint sets the current order of work. Earlier notes
+preserve their original scope, results, and decisions. Check the release and
+environment named in each note before applying its operational steps.
+
+- [Current PP checkpoint](#november-25-2026-cst--4-gb-pp-rollover-passed-and-websocket-is-next)
+- [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
+- [Plan map by workstream](#plan-map-by-workstream)
+- [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
+- [Long-term product phases](#master-roadmap)
+
+## November 25, 2026 CST — 4 GB PP rollover passed and WebSocket is next
+
+The 4 GB PP Benchmark rollout qualified the Coinbase candle revision fix
+for the observed rollover. Polymarket continued collecting through 10
+rejected revisions, all five retained-generation fingerprints matched, and
+the collector was off after the run. That closes the focused candle-fix
+smoke described in the PP33 entry below. Broader I7 acceptance remains open.
+
+On the same live BTC 15-minute market, WebSocket received the first usable
+quote **9.746 s** after rollover, early REST **14.785 s**, and the canonical
+REST collector **18.848 s**. The dashboard API showed the saved REST quote
+**0.946 s** after receipt. WebSocket ran as an observer and still needs
+its own receipt-to-dashboard measurement through the canonical writer.
+The 4 GB host had at least **2,755 MiB** available with zero swap I/O or
+OOM events. The run established headroom for that workload.
+[Successful CD Benchmark](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/45704911568) ·
+[Sanitized Benchmark evidence](evidence/pp-benchmark-single-rollover-2026-11-25.json)
+
+1. **Add WebSocket as the primary live quote feed behind a default-off
+   setting.** Subscribe to the upcoming market when its slug is available.
+   Use REST market lookup for the slug, window, and official BTC price to
+   beat. At rollover or reconnect, admit the first fresh, usable WebSocket
+   or REST book quote for the same market through the single writer. Use
+   WebSocket during healthy steady-state collection. Reject stale, duplicate
+   and mismatched quotes, including late REST responses.
+2. **Verify the canonical write and dashboard path on 4 GB PP.** Use the
+   dedicated Benchmark CI and CD, preserve retained A and B, and measure
+   subscription, first usable receipt, PostgreSQL commit, and API visibility.
+   Keep the **5 s receipt-to-API target** and report pre-receipt wait
+   separately. Check reconnect, quote deduplication, and Coinbase isolation.
+3. **Keep the two BTC/USD inputs identifiable.** Track Polymarket reference
+   price buckets separately from Coinbase spot and candles. Show source
+   freshness and keep live contract quotes available when Coinbase is stale.
+
+Keep the completed trial07 A → B → fresh A evidence. The 72-hour rollout
+and dashboard redesign remain deferred during this milestone. The
+verified 500-row history baseline remains the starting point for measuring
+real deterministic dashboard reads against local PostgreSQL and structured
+Supabase history.
+
+[Detailed PP handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md) ·
+[Session handoff](SESSION_HANDOFF.md) ·
+[Milestone checklist](../MILESTONES.md)
+
+## Supabase and PP performance baseline
+
+November 25, 2026 CST, 5:43–5:46 p.m. The existing TokenBot observability
+dashboard now includes Supabase disk read and write operations combined per
+second, alongside hosted SQL, connections, scrape health, PP collector
+status, archive lag and ACK panels. The disk panel uses five-minute rates
+from the project's existing Prometheus source. It returned data after save
+and reload. [TokenBot observability](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability)
+
+| Dashboard signal | Observed baseline |
+| --- | --- |
+| Supabase scrape health | 1 at 5:43 p.m. and at the prior four displayed minute marks |
+| PgBouncer database connections | 1 at 5:43 p.m. |
+| Hosted SQL statement rate | 0.00833 statements/s at 5:43 p.m. The execution-time panel also returned samples. |
+| Hosted disk I/O | 2.56 completed operations/s at 5:46 p.m. |
+| PP collector status, oldest pending record and verified ACK rate | Status Unknown. Archive lag and ACK panels had no samples in the last-hour view. Missing observations cannot establish zero backlog or a stopped collector. |
+
+This is an idle hosted baseline. The last 4 GB feed comparison used a
+local-only outbox, so it does not provide a concurrent hosted archive
+throughput baseline. For the next archive workload, capture fresh PP
+status, age of the oldest pending row and verified rows/s over the same
+window as the hosted panels. Compare ACKs with actual incoming rows/s and
+check whether backlog age grows or recovers.
+
+### Performance work by database
+
+- **PP VM PostgreSQL.** Keep the indexed archive cursor and paged
+  fingerprint query. On the retained B read-only audit, the released path
+  verified **56 pages and 50 objects in 195.076 s**. For the actual
+  dashboard and deterministic queries, use the local PostgreSQL plan and
+  write-to-API timings under concurrent ingestion. Measure buffer reads,
+  sort work, locks and query latency before changing indexes. Supabase's
+  hosted reports show its own workload.
+- **Hosted archive.** Keep the pipelined read path and reuse scoped sessions
+  with a fresh read-only transaction per verified page where that mode is
+  qualified. The pinned 500-row read took **2.643 s cold** and **1.850–2.236 s
+  warm**. Independent planning and execution totaled **11.101 ms** without
+  returned rows. Profile connection setup, fetch/decode and integrity work
+  on a slow hosted read before testing RPC or another index. Query Performance
+  and connection metrics help distinguish SQL execution and pool contention
+  from application-side time. [Supabase Reports](https://supabase.com/docs/guides/observability/reports)
+- **Hosted Performance Advisor.** The live check returned four uncovered
+  foreign keys in `history_v2`, eight unused-index notices and one Auth
+  connection-strategy notice, all informational. Review foreign-key index
+  candidates against actual history query plans and parent update/delete
+  workloads. Review index use over a representative workload before removal.
+  [Unindexed foreign keys](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys) ·
+  [Unused indexes](https://supabase.com/docs/guides/database/database-linter?lint=0005_unused_index)
+
+### Benchmark monitoring and tuning order
+
+Use **4 GB PP Benchmark** as the active preprod target. Treat 2 GB PP as
+legacy and retain its archive and telemetry history. TokenBot Grafana's
+collector status, A/B slot, quote count and age, oldest pending row,
+pending rows and verified ACK rate now select `host="pp-benchmark"`.
+The existing feed timings and host-resource panels already have recorded
+Benchmark samples. The PP operational panels still need fresh samples.
+Grafana rejected the historical collector and outbox import with HTTP 400.
+A controlled write with the existing token and endpoint accepted a current
+diagnostic sample (HTTP 204) and rejected the same sample format at the
+rollover timestamp (HTTP 400). The endpoint returned an empty error body.
+The test isolates timestamp age and confirms the write path accepts fresh
+metrics. The Benchmark observer still needs to send operational samples
+as it collects them. [Grafana timestamp rejection guidance](https://grafana.com/docs/mimir/latest/manage/mimir-runbooks/#err-mimir-too-far-in-past)
+
+The archived local-only smoke recorded 5,356 pending rows
+and ran with archive sync off, so it supplies no verified ACK throughput
+baseline. Before evaluating archive load, connect the Benchmark observer
+to the existing metrics destination and verify fresh status, slot and
+outbox samples, then verify ACK rate during an archive workload.
+
+1. **Collector and dashboard latency.** Use Polymarket WebSocket for
+   primary live quotes, REST for metadata and recovery, and the VM-local
+   PostgreSQL write and dashboard path. Measure boundary to first quote
+   separately from receipt to commit and API exposure. Keep the 5-second
+   receipt-to-API target.
+2. **VM query load.** Profile the actual deterministic and history
+   dashboard requests during collection. Use bounded time ranges and
+   indexed cursor pagination, return only needed fields, and use the
+   latest saved quote for live views. Use PostgreSQL plans and buffer
+   counts to identify scans, sorts or lock waits before adding indexes.
+   Track query p95, CPU, I/O wait, available memory and memory pressure.
+   [Reading PostgreSQL plans](https://www.postgresql.org/docs/current/using-explain.html)
+3. **Archive throughput.** Keep the indexed page reads and use scoped
+   session reuse with bounded transactions where qualified. Compare
+   incoming rows/s, verified ACKs/s, oldest pending age, retries and
+   connection waits together. If sustained ACKs lag arrivals, time the
+   write, verify and ACK phases before changing batch size. Keep row and
+   byte caps and exact verification in the comparison.
+   [Supabase connection options](https://supabase.com/docs/guides/database/connecting-to-postgres)
+4. **Hosted SQL and capacity.** Start with the current structured-history
+   reader and existing 500-row baseline. Test an RPC only if profiling
+   finds sequential network trips that can be combined. Test a matching
+   index if a real plan shows avoidable I/O or sort work. Use hosted
+   connection waits, disk I/O and SQL time during the run to decide if
+   capacity is the constraint.
+   [Supabase query optimization](https://supabase.com/docs/guides/database/query-optimization)
+
+## Plan map by workstream
+
+Each smaller plan has a direct link here. When adding a plan or handoff under
+`docs/PLAN/`, add its link to the corresponding workstream and record any
+change to the active checkpoint above.
+
+### Project direction and original plans
+
+- [Current direction](../CURRENT_DIRECTION.md) · [Strategic plan](../STRATEGIC_PLAN.md) · [Planning copy of the strategic plan](STRATEGIC_PLAN.md)
+- [Original implementation plan](../BTC_Intelligence_Implementation_Plan.md) · [Original project summary](../BTC_Intelligence_Project_Summary.md) · [Original plan crosswalk](../PLAN_CROSSWALK.md)
+- [Data access findings](../DATA_ACCESS_FINDINGS.md) · [Progress summary](../PROGRESS_SUMMARY.md) · [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
+
+### Live feeds, rollover and observability
+
+- [PP WebSocket collector and archive handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
+- [CP7 generated market-boundary smoke — November 17 CST](CP7_BOUNDARY_SMOKE_2026-11-17.md)
+- [CP7 Coinbase reconnect candidate — November 17, 2026](CP7_COINBASE_RECONNECT_CANDIDATE_2026-11-17.md)
+- [Coinbase source-age incident and opt-in diagnostics](PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md)
+- [Independent dashboard evidence audit](PP_DASHBOARD_EVIDENCE_2026-11-19.md)
+- [PP saved forecast hydration consistency](PP_HYDRATION_CONSISTENCY_2026-11-19.md)
+- [First PP live PostgreSQL trial — November 17 CST / November 18 UTC](PP_LIVE_FIRST_TRIAL_2026-11-17.md)
+- [PP live diagnostic trial — November 17 CST / November 18 UTC](PP_LIVE_DIAGNOSTIC_TRIAL_2026-11-17.md)
+- [PP18 combined observation and retained-A outcome](PP18_COMBINED_OBSERVATION_2026-11-19.md)
+- [PP23 reconnect repair and failed initial-A recovery](PP23_RECONNECT_AND_FAILED_A_RECOVERY_2026-11-20.md)
+
+### PP release, CI, CD and trial admission
+
+- [Independent pipeline checkpoint — November 12, 2026](INDEPENDENT_PIPELINES_2026-11-12.md)
+- [Preprod merge CI smoke failure — November 15, 2026](PP_CI_BOUNDARY_FAILURE_2026-11-15.md)
+- [PP21 fenced forward bootstrap](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md)
+- [PP23 deployment and OFF readiness — November 20, 2026 UTC](PP23_DEPLOYMENT_READY_OFF_2026-11-20.md)
+- [Exact second-trial cloud scope](PP23_SECOND_TRIAL_CLOUD_SCOPE_2026-11-19.md)
+- [Exact third PP trial scope — offline candidate](PP_THIRD_TRIAL_SCOPE_2026-11-20.md)
+- [PP generated-profile leave readiness review — November 17, 2026 CST](PP_LEAVE_READINESS_REVIEW_2026-11-17.md)
+- [Durable generated smoke capacity](PP_GENERATED_STORAGE_CAPACITY_2026-11-19.md)
+- [Exact local PP trial-origin source slice](PP_EXACT_TRIAL_ORIGIN_SOURCE_2026-11-19.md)
+- [Offline PP A → B → fresh A admission evidence](PP_REHEARSAL_ADMISSION_2026-11-19.md)
+- [Exact trial host preparation, source only](PP_TRIAL_HOST_PREPARATION_2026-11-19.md)
+- [Exact trial cloud child profiles and readiness](PP_TRIAL_CLOUD_HOST_2026-11-19.md)
+- [Exact fresh PP trial cloud scope — source-only review](PP_TRIAL_CLOUD_ORIGIN_2026-11-19.md)
+- [Exact trial cloud application wiring — source only](PP_TRIAL_CLOUD_RUNTIME_2026-11-19.md)
+- [Exact trial archived-history reader attestation — source only](PP_TRIAL_READER_ATTESTATION_2026-11-19.md)
+- [PP cloud binding preflight — November 17, 2026](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md)
+
+### Rolling windows, archive and retirement
+
+- [PP archive and retirement flow — November 17, 2026](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md)
+- [CP6 active structured sync preparation — November 17 CST / November 18 UTC](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md)
+- [CP6 bounded structured drain: first offline slice](CP6_BOUNDED_STRUCTURED_DRAIN_REVIEW_2026-11-18.md)
+- [CP6 PP structured one-shot mount review — 2026-11-18](CP6_PP_STRUCTURED_ONE_SHOT_MOUNT_REVIEW_2026-11-18.md)
+- [CP6 sealed structured drainage — November 17 CST / November 18 UTC](CP6_STRUCTURED_DRAIN_2026-11-17.md)
+- [CP6 structured import preparation — November 17, 2026](CP6_STRUCTURED_IMPORT_PREPARATION_2026-11-17.md)
+- [CP6 PP raw archive host control — review](CP6_PP_RAW_ARCHIVE_HOST_REVIEW_2026-11-18.md)
+- [CP6 PP raw archive one-shot entry point — review](CP6_PP_RAW_ARCHIVE_ONE_SHOT_REVIEW_2026-11-18.md)
+- [Historic PP B seal and bounded archive candidate](PP_HISTORICAL_DRAIN_SOURCE_2026-11-19.md)
+- [Source qualification: continuous PP A → B → fresh A](PP_SEAMLESS_CYCLE_SOURCE_2026-11-19.md)
+- [PP retirement phase accounting and opt-in session reuse](PP_RETIREMENT_PHASE_REUSE_2026-11-19.md)
+- [Verify a separate copy of one PP raw archive](PP_RAW_RECOVERY_DRILL_2026-11-19.md)
+- [Finite read-only retained A audit candidate](PP_RETAINED_ARCHIVE_AUDIT_2026-11-19.md)
+- [PP21 complete retained-A read-only verification](PP21_CANONICAL_RETAINED_AUDIT_2026-11-19.md)
+
+### History reads, query performance and research
+
+- [Cold readback performance: binary result-format investigation](COLD_READBACK_PERFORMANCE_2026-11-19.md)
+- [Structured cold-history source and API composition candidate](COLD_STRUCTURED_HISTORY_CANDIDATE_2026-11-19.md)
+- [Hosted history integration research and offline prototype](HOSTED_HISTORY_INTEGRATION_2026-11-19.md)
+- [Source-only PP HTTP history capture](PP_HTTP_HISTORY_CAPTURE_2026-11-19.md)
+- [PP local archive page lookup study](PP_LOCAL_RETENTION_QUERY_STUDY_2026-11-19.md)
+- [Point-in-time research parity prototype](PP_POINT_IN_TIME_RESEARCH_PROTOTYPE_2026-11-19.md)
+- [PP readback: measured recommendation and bounded next probe](PP_READBACK_BENCHMARK_HANDOFF_2026-11-19.md)
+- [Structured exact readback: reuse already verified canonical bytes](PP_READBACK_CANONICAL_BYTE_REUSE_2026-11-19.md)
+- [PP latest receipt lookup: guarded source candidate](PP_RECEIPT_LATEST_INDEX_2026-11-19.md)
+- [Two-generation history evidence — source qualification only](PP_TWO_GENERATION_HISTORY_EVIDENCE_2026-11-19.md)
+
+### Supabase dashboard, capability tests and access
+
+- [Supabase browser capability review — November 19, 2026](SUPABASE_BROWSER_CAPABILITIES_2026-11-19.md)
+- [Supabase deep navigation and integration review](SUPABASE_DEEP_NAVIGATION_2026-11-19.md)
+- [Supabase integrations for PP and production history](SUPABASE_INTEGRATION_MATRIX_2026-11-19.md)
+- [Supabase capability tests for PP and research](SUPABASE_ISOLATED_CAPABILITY_LAB_2026-11-19.md)
+- [Supabase followups after the deep dashboard review](SUPABASE_NEXT_STEPS_2026-11-19.md)
+- [Hosted Supabase investigation](HOSTED_SUPABASE_INVESTIGATION_2026-11-19.md)
+- [CP6 Supabase contract review — November 15, 2026](CP6_SUPABASE_CONTRACT_REVIEW_2026-11-15.md)
+- [CP6 PP private-history SQL role review — November 17, 2026](CP6_PP_HISTORY_ROLE_REVIEW_2026-11-17.md)
+- [CP6 PP Storage permission review — November 17, 2026](CP6_PP_STORAGE_POLICY_REVIEW_2026-11-17.md)
+- [CP6 PP Storage Auth delivery — review, not executed](CP6_PP_STORAGE_AUTH_INSTALL_REVIEW_2026-11-18.md)
+- [PP market-raw Storage binding and qualification](PP_STORAGE_BINDING_REVIEW_2026-11-17.md)
+- [PP Storage authenticated-readback operation amendment](PP_STORAGE_LEGACY_READBACK_REVIEW_2026-11-17.md)
+
+### Deployment references and evidence
+
+- [Runtime review](../../deploy/preprod/RUNTIME_REVIEW.md) · [Controller transfer](../../deploy/preprod/CONTROLLER_TRANSFER_REVIEW.md) · [Live observation](../../deploy/preprod/LIVE_OBSERVATION.md) · [Archive identity provisioning](../../deploy/preprod/PP_ARCHIVE_IDENTITY_PROVISION.md)
+- [CI PP Benchmark](../../.github/workflows/ci-pp-benchmark.yml) · [CD Benchmark](../../.github/workflows/cd-pp-benchmark.yml)
+- [Evidence directory](evidence/) · [Schema qualification](evidence/cp2-schema-local-2026-11-12.md) · [PostgreSQL lifecycle proof](evidence/pg-lifecycle-2026-11-12.md) · [Retained-B transaction diagnostic](evidence/pp30-retained-b-local-transaction-hold-2026-11-23.md)
+
 ## November 24, 2026 CST — PP33 first-quote comparison incomplete
 
 PP33 (`b7826e8`) observed four matching BTC 15-minute markets.

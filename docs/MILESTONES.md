@@ -1,3 +1,25 @@
+## November 27, 2026 CST — Same-socket BTC rollover observed on 4 GB PP Benchmark
+
+At the 3:45 p.m. rollover, one direct WebSocket was already streaming the
+current BTC 15-minute market. The observer added the next market on that
+connection once the REST catalog returned its slug.
+
+| Event | Seconds after rollover |
+| --- | ---: |
+| Last complete REST catalog pass without the next market | 8.552 |
+| First next-market slug and official price to beat of $59,761.70 | 13.450 |
+| Next-market subscription sent on the existing socket | 13.459 |
+| First usable WebSocket quote for the next market | 13.473 |
+| First usable REST book quote for the same market | 65.503 |
+
+The catalog ran every five seconds and the REST book every two seconds.
+The book returned 26 HTTP 404s before its first usable response. The socket
+quote arrived 23 ms after discovery and 52.030 s before the matched REST
+book response in this run. The polling intervals bound when we could
+observe availability. This measured one observer rollover, with no
+collector, database or application deployment changes. Canonical commit
+and dashboard delivery remain open. [Timing evidence](PLAN/evidence/pp-benchmark-held-socket-rollover-2026-11-27.json)
+
 ## November 25, 2026 CST — WebSocket client comparison complete
 
 The local observer ran from 6:31 to 6:46 p.m. CST on the same BTC

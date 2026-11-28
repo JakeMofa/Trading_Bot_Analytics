@@ -42,7 +42,7 @@ class NativeSavedForecasts(unittest.TestCase):
             for table in ('predictions','structured_receipts','structured_revision_payloads'):
                 db.execute('GRANT SELECT ON history_v2.'+table+' TO '+DISPLAY_READER)
                 db.execute('CREATE POLICY test_reader ON history_v2.'+table+' FOR SELECT TO '+DISPLAY_READER+
-                           " USING(origin_id='pp-live-pp-display-20261127-01')")
+                           " USING(origin_id="+psycopg.sql.Literal(DISPLAY_ORIGIN).as_string(db)+")")
         settings = Settings(data_mode="pp_live",origin_id=DISPLAY_ORIGIN,dsn=self.app_dsn)
         store = Store(settings)
         def login(*, timeout_seconds):

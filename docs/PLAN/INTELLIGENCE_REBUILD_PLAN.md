@@ -6,11 +6,55 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--add-robinhood-btcusd-to-the-benchmark-checkpoint)
+- [Current PP checkpoint](#november-27-2026--freshness-and-prediction-history-acceptance-measured)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Freshness and prediction-history acceptance measured
+
+Release .4 completed the 9:00–9:15 p.m. Central BTC market 2980113 on the
+4 GB Benchmark. The same first WebSocket quote reached FastAPI in 6.96 ms,
+PostgreSQL commit in 21.82 ms, visible Chromium in 113–157 ms and verified
+Supabase ACK in 887.86 ms. The independent hosted reader matched its payload.
+[Same-event trace](evidence/pp-benchmark-freshness-same-event-2026-11-27.json).
+
+All 860 observed Polymarket BTC-reference events matched the DOM. Median
+source-bucket-start to PP receipt was 1.621 s, then receipt to browser was
+0.188–0.231 s. The completed one-second bucket and REST delivery explain
+much of this age. Coinbase's live estimate still hydrates through PostgreSQL.
+For 130 uniquely matched model ticks, median source to sampled SSE was
+546 ms; commit-to-first-display cannot be isolated from the available stamps.
+[Feed and prediction methods](evidence/pp-benchmark-prediction-history-and-feed-split-2026-11-27.json).
+
+The live prediction page displayed 86 forecasts in 467 ms. After drain, all
+170 saved forecasts matched hosted projections. Actual hosted records tested
+in a disposable local A/B assignment returned identical fields and order
+across local, overlapping, mixed and hosted-only cases. The mixed case took
+1.799 s and hosted-only 1.776 s. Retained PP A/B were preserved.
+[Prediction matrix](evidence/pp-benchmark-prediction-history-and-feed-split-2026-11-27.json).
+
+All 18,842 structured records received verified ACKs after collection stopped.
+During the observed quarter, arrivals averaged 18.37 rows/s and verified ACKs
+17.08 rows/s. Backlog peaked at 1,358 with sampled oldest age 74.26 s.
+This run identifies a sustained archive capacity gap. In 739 of 763 batches,
+the next row would exceed the 256 KiB estimated-byte budget; median batch
+size was 19 and only one reached the 50-row limit. Profile actual envelope
+bytes and round trips before a bounded batching change.
+[Batch budget](evidence/pp-benchmark-page-budget-2026-11-27.json).
+Across 20 uniformly sampled batches, actual canonical payload median was
+120,788 bytes against median estimated admission of 255,078 bytes. Exact-byte
+packing under the existing decoded ceiling is the next offline experiment.
+[Actual encoded bytes](evidence/pp-benchmark-actual-page-bytes-2026-11-27.json).
+[Live archive rates](evidence/pp-benchmark-freshness-archive-rates-2026-11-27.json).
+
+The follow-up Robinhood release remains pending live acceptance. It includes
+one-second v1 price polling, a separate BTC/USD card, equal baseline UP/DOWN
+prominence and per-poll price movement. Verify its exact displayed event in
+PostgreSQL and Supabase before marking that checkpoint complete. The US
+market uses CF Benchmarks BRTI while the user's international comparison
+uses Chainlink BTC/USD TWAP. Preserve those source distinctions.
 
 ## November 27, 2026 — Add Robinhood BTC/USD to the Benchmark checkpoint
 

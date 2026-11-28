@@ -94,9 +94,12 @@ def collect(snapshot, at, previous, elapsed):
                            ('pp_archive_oldest_pending_age_seconds','oldest_age')]:
             emit(metric,w[key],tags,stamp)
         prev = previous.get(w['generation'])
-        if prev and stamp > prev[0] and w['acknowledged'] >= prev[1]:
+        if prev and w['acknowledged'] is not None and stamp > prev[0] and w['acknowledged'] >= prev[1]:
             emit('pp_archive_ack_rate',(w['acknowledged']-prev[1])/(stamp-prev[0]),tags,stamp)
-        previous[w['generation']] = (stamp,w['acknowledged'])
+        if w['acknowledged'] is not None:
+            previous[w['generation']] = (stamp,w['acknowledged'])
+        else:
+            previous.pop(w['generation'],None)
         if not w['current']:
             continue
         emit('pp_collector_enabled',w['enabled'],tags,stamp)
@@ -107,6 +110,9 @@ def collect(snapshot, at, previous, elapsed):
         counts = snapshot.get('quote_counts') or {}
         emit('pp_benchmark_session_saved_quotes',counts.get('saved'),tags)
         for source in SOURCES:
+            desired = snapshot.get('feed_enabled',{}).get(source)
+            if type(desired) is bool:
+                emit('pp_benchmark_feed_expected',int(desired),dict(tags,source=source))
             for basis in ('provider','pp_receipt'):
                 age = snapshot['reference_age'].get(source,{}).get(basis)
                 if age is not None and age >= 0:
@@ -114,10 +120,10 @@ def collect(snapshot, at, previous, elapsed):
         health = snapshot.get('source_health')
         if health and 0 <= at-health['observed_at'] <= 60:
             emit('pp_benchmark_source_monitor_up',1,tags)
-            for key,value in health['counts'].items():
-                feed,reason = key.split('/')
-                if feed in FEEDS and reason in REASONS:
-                    emit('pp_benchmark_source_events_total',value,dict(tags,feed=feed,reason=reason))
+            for feed in FEEDS:
+                for reason in REASONS:
+                    emit('pp_benchmark_source_events_total',health['counts'].get(feed+'/'+reason,0),
+                         dict(tags,feed=feed,reason=reason))
     # Keep only the active and still-attached generations between rounds.
     if refreshed is not None:
         observed = {w['generation'] for w in refreshed}

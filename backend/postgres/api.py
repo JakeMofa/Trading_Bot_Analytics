@@ -121,6 +121,12 @@ def create_app(settings=None, store=None, state=None, *, history=None,
             tasks = [asyncio.create_task(discover()),asyncio.create_task(hydrate())]
             if settings.data_mode == 'pp_live':
                 tasks.append(asyncio.create_task(monitor_collector()))
+                if settings.origin_id == MONITORED_ORIGIN:
+                    async def monitor_window():
+                        while True:
+                            await telemetry.snapshot()
+                            await asyncio.sleep(15)
+                    tasks.append(asyncio.create_task(monitor_window()))
                 from . import quote_display
                 if quote_display.enabled(settings):
                     tasks.append(asyncio.create_task(quote_display.receive(state)))

@@ -20,7 +20,7 @@ of tenant requires review of the pinned remote-write host.
 
 Local proof includes the target origin, current A/B generation, attached
 draining window, durable collector lease, verified ACK deltas, pending count
-and oldest age. The aggregate read uses one read-only transaction with a
+and oldest age. The query counts only pending rows via the partial outbox index. It reads cumulative ACKs from the generation checkpoint maintained in the ACK transaction. A missing checkpoint leaves cumulative ACKs unknown. The read uses one read-only transaction with a
 1.2-second statement timeout and a 15-second shared cache. A timeout leaves
 the database status unknown. Compare this query on future 72-hour volumes.
 The API sampling round trip is a private local request. Feed age measures

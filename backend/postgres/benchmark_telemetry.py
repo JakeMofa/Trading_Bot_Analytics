@@ -63,15 +63,17 @@ def archive_status(store):
             SELECT g.slot, g.generation_id::text AS generation, g.state,
                    g.generation_id=w.generation_id AS current,
                    COALESCE(w.collector_enabled AND w.collector_lease_expires_at>statement_timestamp(),false) AS enabled,
-                   totals.pending, totals.acknowledged, totals.oldest_age,
+                   totals.pending, (ack.cursor->>'rows')::bigint AS acknowledged, totals.oldest_age,
                    extract(epoch FROM statement_timestamp())::float8 AS observed_at
             FROM ops.writer_state w JOIN archive.generations g ON g.origin_id=w.origin_id
+            LEFT JOIN archive.checkpoints ack ON ack.origin_id=g.origin_id AND ack.generation_id=g.generation_id
+                AND ack.consumer='structured:verified-acks-v1'
             CROSS JOIN LATERAL (
-                SELECT count(*) FILTER (WHERE acknowledged_at IS NULL) AS pending,
-                       count(acknowledged_at) AS acknowledged,
+                SELECT count(*) AS pending,
                        COALESCE(extract(epoch FROM statement_timestamp() -
-                         min(created_at) FILTER (WHERE acknowledged_at IS NULL)),0)::float8 AS oldest_age
+                         min(created_at)),0)::float8 AS oldest_age
                 FROM ops.outbox WHERE origin_id=g.origin_id AND generation_id=g.generation_id
+                    AND acknowledged_at IS NULL
             ) totals WHERE w.origin_id=%s AND g.state IN ('collecting','sealed','verified','prepared')
             ORDER BY g.slot""", (store.origin,)).fetchall()
     return list(rows)
@@ -92,6 +94,9 @@ class BenchmarkTelemetry:
                 except Exception:
                     self.windows = None
                 self.sampled = time.monotonic()
+        active = next((w for w in (self.windows or ()) if w['current']),None)
+        self.state.benchmark_window = ({k:active[k] for k in ('slot','generation','state','observed_at')}
+                                       if active else None)
         state = self.state.snapshot()
         now = datetime.now(timezone.utc)
         refs = {}
@@ -102,5 +107,6 @@ class BenchmarkTelemetry:
                             for basis, field in (('provider','source_time'), ('pp_receipt','received_at'))
                             if observation.get(field)}
         return {'origin': self.store.origin, 'observed_at': now.timestamp(), 'windows': self.windows,
-                'reference_age': refs, 'source_health': self.state.source_health,
+                'reference_age': refs, 'feed_enabled': {f:v['enabled'] for f,v in (state.get('feed_controls') or {}).items()},
+                'source_health': self.state.source_health,
                 'quote_counts': state['quote_counts'], 'database_quote_received_at': self.state.durable_quote_received_at}

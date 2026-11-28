@@ -1,0 +1,78 @@
+{
+  "pg_version": "17",
+  "acknowledged_fixture": 2000000,
+  "pending_fixture": 9,
+  "restriction": "actual Benchmark application read-only role",
+  "execution_ms": 0.647,
+  "planning_ms": 2.027,
+  "scan": [
+    {
+      "node": "Nested Loop",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 5,
+      "shared_read": 4
+    },
+    {
+      "node": "Nested Loop",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 3,
+      "shared_read": 4
+    },
+    {
+      "node": "Nested Loop",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 1,
+      "shared_read": 4
+    },
+    {
+      "node": "Index Scan",
+      "index": "generations_live_slot",
+      "relation": "generations",
+      "rows": 1,
+      "shared_hit": 1,
+      "shared_read": 2
+    },
+    {
+      "node": "Index Scan",
+      "index": "writer_state_pkey",
+      "relation": "writer_state",
+      "rows": 1,
+      "shared_hit": 0,
+      "shared_read": 2
+    },
+    {
+      "node": "Index Scan",
+      "index": "checkpoints_pkey",
+      "relation": "checkpoints",
+      "rows": 0,
+      "shared_hit": 2,
+      "shared_read": 0
+    },
+    {
+      "node": "Aggregate",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 2,
+      "shared_read": 0
+    },
+    {
+      "node": "Index Scan",
+      "index": "outbox_pending",
+      "relation": "outbox",
+      "rows": 9,
+      "shared_hit": 2,
+      "shared_read": 0
+    }
+  ],
+  "eight_idempotent_pause_requests": true,
+  "parallel_clients": 2,
+  "stale_revision_denied": true,
+  "other_sources_enabled": true
+}

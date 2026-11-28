@@ -13,6 +13,7 @@ class LiveState:
         self.settings, self.clock = settings, clock
         self._lock = RLock()
         self.source_health = None
+        self.benchmark_window = None
         self._market = None
         self._price = None
         self.first_quote_signal = asyncio.Event()
@@ -261,7 +262,7 @@ class LiveState:
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
                     'robinhood_reference': deepcopy(self._robinhood),
-                    'polymarket_reference': reference, 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
+                    'polymarket_reference': reference, 'rolling_window': deepcopy(self.benchmark_window), 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'feature_snapshot': feature, 'forecast': saved,

@@ -1,0 +1,137 @@
+{
+  "benchmark_release": ".11",
+  "date_utc": "2026-11-28",
+  "watch_origin": "pp-live-pp-benchmark-watch",
+  "runtime_context": "Acceptance independently identified a status HTTP 503, followed by a latched watch hold and skipped renewal checks. This browser/Grafana capture measures the visible consequences, not the trigger.",
+  "last_book": {
+    "id": "ws-b1f8af4911f42e5e44a2720fc18d12b7760e43897cc97c2c0dd9e9d8760e78e0",
+    "market": "2985609",
+    "provider_utc": "2026-11-28T06:43:15.167368716Z",
+    "pp_receipt_utc": "2026-11-28T06:43:15.200094+00:00",
+    "sse_generated_utc": "2026-11-28T06:43:15.319393+00:00",
+    "browser_sse_utc": "2026-11-28T06:43:15.258000+00:00",
+    "browser_two_frame_dom_utc": "2026-11-28T06:43:15.270000+00:00",
+    "rendered": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 12\u00a2 \u00d7 1.2300 / ask 13\u00a2 \u00d7 83.0000 \u00b7 venue update 0s ago \u00b7 not used in forecast"
+  },
+  "first_off": {
+    "pp_sse_generated_utc": "2026-11-28T06:43:16.379592+00:00",
+    "browser_sse_utc": "2026-11-28T06:43:16.355000+00:00",
+    "browser_dom_utc": "2026-11-28T06:43:16.371000+00:00",
+    "last_sources": {
+      "cb": {
+        "id": "exchange-trade-1150238920",
+        "source": "2026-11-28T06:43:14.517626Z",
+        "receipt": "2026-11-28T06:43:14.530958+00:00",
+        "price": "59787.74"
+      },
+      "pm": {
+        "id": "btc-index-0d80a45c48c93dda9d77d6cab73ea9269b6513ba56da27c1d292a35ba9a5f0ff",
+        "source": "2026-11-28T06:43:13+00:00",
+        "receipt": "2026-11-28T06:43:14.669548+00:00",
+        "price": "59780.13"
+      },
+      "rh": {
+        "id": "rh-v1-5887abd10295ca4226d345147b60f9d4e781c921f1a2adf74eea6dc4def7d00e",
+        "source": "2026-11-28T06:43:15.34614482Z",
+        "receipt": "2026-11-28T06:43:15.359066+00:00",
+        "price": "59804.864340315"
+      }
+    }
+  },
+  "native_browser_errors_from_recovered_on_to_off": 0,
+  "06_45_market_acceptance": {
+    "passed": false,
+    "reason": "Collector already OFF, no new canonical market quote at the boundary",
+    "off_frames_after_boundary": 220,
+    "enabled_frames_after_boundary": 0,
+    "last_observed_server_utc": "2026-11-28T06:45:57.101335+00:00"
+  },
+  "grafana_raw_range_start_utc": "06:40:00",
+  "grafana_raw_range_end_utc": "06:44:10",
+  "samples_per_series": 17,
+  "enabled": [
+    1,
+    0
+  ],
+  "watch_requested": "all1",
+  "heartbeat_api_and_db_cache": "all1",
+  "cpu_busy_pct_min_max": [
+    19.785,
+    53.258
+  ],
+  "cpu_iowait_pct_min_max": [
+    0.066,
+    1.57
+  ],
+  "memavailable_kib_min_max": [
+    2793224,
+    2828160
+  ],
+  "memory_full_stall_pct_min_max": [
+    0,
+    0.0664
+  ],
+  "memory_some_stall_pct_min_max": [
+    0,
+    0.2183
+  ],
+  "swappages_oom_deltas": "all 0",
+  "ack_first_last": [
+    93926,
+    98058
+  ],
+  "max_pending": 109,
+  "max_oldest_s": 7.483344,
+  "near_last_quote": {
+    "host_utc": [
+      "06:43:03.081",
+      "06:43:18.078"
+    ],
+    "cpu_busy_pct": [
+      48.023,
+      38.614
+    ],
+    "iowait_pct": [
+      0.771,
+      0.875
+    ],
+    "memavailable_kib": [
+      2810492,
+      2822552
+    ],
+    "full_stall_pct": [
+      0.0142,
+      0.0059
+    ],
+    "some_stall_pct": [
+      0.0147,
+      0.0059
+    ],
+    "sql_utc": [
+      "06:43:08.922",
+      "06:43:23.948"
+    ],
+    "collector_enabled": [
+      1,
+      0
+    ],
+    "pending": [
+      19,
+      0
+    ],
+    "acknowledged": [
+      97931,
+      98058
+    ],
+    "oldest_s": [
+      1.292636,
+      0
+    ],
+    "pp_receipt_ages_at_06_43_33_077": {
+      "coinbase": 18.545794,
+      "polymarket": 18.407204,
+      "robinhood": 17.717686
+    }
+  },
+  "scope": "Host aggregate CPU/PSI and 15-second metrics samples; transient API statuses between samples may be missed. Per-container cgroup and reader-role counts are separate release-lane evidence."
+}

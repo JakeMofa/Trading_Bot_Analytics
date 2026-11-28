@@ -1,0 +1,879 @@
+{
+  "release": "v0.2.0-pp.benchmark.11",
+  "source": "1b232c2eaa37c119f64dd6841f549cef8e4ea119",
+  "source_ci": 46115913377,
+  "publication": 46116368334,
+  "controller": "81b41e64b2b9899310dcbfa4ba2aaa98adc047b6f5d39e1249caf14262f5ab2c",
+  "cd": 46116573223,
+  "image": "sha256:bab281c1c79d73d1da177c6f31f9ee3fa39e7af8caadb892ea124472e940c880",
+  "artifact": "517287992d6b15f4c733bdf4999a2978c8fa7eada66a9606926f1e61f39a4825",
+  "non_docs_release_entries_equal_to_approved_10": 449,
+  "maintained_current_A": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+  "raw_retirement": false,
+  "previous_state": {
+    "source": "7bff42a3797da917eb1929e28afccb729ccafd3a",
+    "old_operator_supported_reason": {
+      "collector_enabled": false,
+      "process_running": false,
+      "session_failure_code": "ownership.timeout",
+      "watch_explicit_off": false,
+      "origin_id": "pp-live-pp-benchmark-watch",
+      "lease_expired": false
+    },
+    "journal": {
+      "watch_messages": [
+        {
+          "time": "2026-11-28T06:25:11.912193+00:00",
+          "marker": "watch_collector_failure"
+        },
+        {
+          "time": "2026-11-28T06:25:11.966611+00:00",
+          "marker": "Failed"
+        },
+        {
+          "time": "2026-11-28T06:25:11.967740+00:00",
+          "marker": "Failed"
+        },
+        {
+          "time": "2026-11-28T06:25:27.757357+00:00",
+          "marker": "watch_collector_failure"
+        },
+        {
+          "time": "2026-11-28T06:25:27.757357+00:00",
+          "marker": "held"
+        },
+        {
+          "time": "2026-11-28T06:25:43.781352+00:00",
+          "marker": "watch_collector_failure"
+        },
+        {
+          "time": "2026-11-28T06:25:43.781352+00:00",
+          "marker": "held"
+        }
+      ],
+      "kernel_oom_messages": 0
+    },
+    "last_confirmed_on": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "epoch": 4,
+      "utc": "2026-11-28T06:21:35.843182+00:00",
+      "lease": "2026-11-28T06:23:20.063098+00:00",
+      "pending": 18,
+      "hi": 409890,
+      "acks": 84713
+    },
+    "observed_before_explicit_OFF": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": false,
+      "session": null,
+      "epoch": 5,
+      "utc": "2026-11-28T06:26:49.250121+00:00",
+      "lease": null,
+      "pending": 0,
+      "hi": 413743,
+      "acks": 88579
+    },
+    "explicit_disarm": {
+      "gate": "PP_LIVE_OFF",
+      "origin_id": "pp-live-pp-benchmark-watch",
+      "collector_enabled": false
+    },
+    "drained": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": false,
+      "session": null,
+      "epoch": 5,
+      "utc": "2026-11-28T06:27:33.042616+00:00",
+      "lease": null,
+      "pending": 0,
+      "hi": 413743,
+      "acks": 88579
+    },
+    "frozen_current_A": {
+      "raw": {
+        "n": 83781,
+        "digest": "8dfc9aba433789c9eba815440b9271d9e88c8f3fd2de7eb2cf381717c2adb182"
+      },
+      "outbox": {
+        "n": 88579,
+        "acks": 88579,
+        "hi": 413743,
+        "digest": "389933366736abbce881a1a10574439878158ac169b1556e0c124e7ce85916d4"
+      }
+    }
+  },
+  "retained_fingerprints": [
+    {
+      "id": "2f5ab434-14c0-4a61-8b8e-145c9a05f0e6",
+      "origin": "pp-live-pp",
+      "slot": "A",
+      "state": "verified",
+      "catalog": "2435ffce17da1cb6a65ff3f52ec0adebfa9f2aec1b7943015f36a18e9045210a",
+      "raw": {
+        "n": 28411,
+        "digest": "fa8162f3ae0b9943bba6594b91baa697185f7c64eceb8c37b578ad5044c7e4bf"
+      },
+      "outbox": {
+        "n": 31162,
+        "ack": 31162,
+        "digest": "1d81a67ed10bfa786baa76bfa20308fca12e7b9d3203464f4da2997b4ea8b586"
+      }
+    },
+    {
+      "id": "23f4ccb8-c243-4eae-bbd2-8c75aae9816a",
+      "origin": "pp-live-pp",
+      "slot": "B",
+      "state": "verified",
+      "catalog": "b6dc1385fad56d18932532845dfbb7ef872ef347d05a956d15b591b5bcba0625",
+      "raw": {
+        "n": 9784,
+        "digest": "419836648de37b3b92ec0d45467ccfa71a8d3ddedfda40bb80feac72855d5543"
+      },
+      "outbox": {
+        "n": 10971,
+        "ack": 10971,
+        "digest": "bdbdca5940e45cce331fccace39694d8154c10a2615e424a87dc681a683e1180"
+      }
+    },
+    {
+      "id": "0c94ceac-c645-4684-b10d-7af0a0c3c533",
+      "origin": "pp-live-pp-boundary-20261124-01",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "a5c27e25ef0e94fdad592e9594b9d9b1aa52f169580b4803f8317c1d41c17cd5",
+      "raw": {
+        "n": 13151,
+        "digest": "b11799bf3ac76793b935f1b5706b2ba54adcac8a0f54a04f249aedd499dd62b4"
+      },
+      "outbox": {
+        "n": 14205,
+        "ack": 14205,
+        "digest": "fe1e72732bcf2e8a758d475f23253f6a0e48ebe8fb3ce5fc8c1b2f31b610e157"
+      }
+    },
+    {
+      "id": "23bab05a-9137-46c7-9f13-a2e701a30572",
+      "origin": "pp-live-pp-display-20261127-01",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "c1f61e01e32e3c28989b99f750746c3ed9998862e2dc920519cb94b22d877995",
+      "raw": {
+        "n": 11203,
+        "digest": "2f3263c85e31ef1f87bf0e0dfb3db7f723ac3fb48381c32b3fd895f07f3726e8"
+      },
+      "outbox": {
+        "n": 12365,
+        "ack": 12365,
+        "digest": "79ab62a97ab269debcc99e32fa552a284cfb2c739ebf9a45a8790fe1cfd6a5c9"
+      }
+    },
+    {
+      "id": "e11000be-bcb0-4b45-9c13-dd8f65a99b67",
+      "origin": "pp-live-pp-display-20261127-02",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "50fdb5ee25e0f0f5ae476c38f2a23bcf66a9f6462a5c614a6b7e8ef7af5878f0",
+      "raw": {
+        "n": 17667,
+        "digest": "1c73fe7ac7a34f67f6b6b4a623637866f5100d1739703b394f3edf687fe1f476"
+      },
+      "outbox": {
+        "n": 18842,
+        "ack": 18842,
+        "digest": "0f28ad2599cb4b56c302d9deb5a54cd46fdc9bc81eab328ffc9183bccba3309b"
+      }
+    },
+    {
+      "id": "62b2331c-f44e-4396-b1af-0607a8957fcb",
+      "origin": "pp-live-pp-display-20261127-03",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "2fc985537ae22a0cada9c50a13e980dfd859db7a366034dffca383241f78b7ef",
+      "raw": {
+        "n": 2742,
+        "digest": "172d989f6e5fb1e805a6b2074e99fcf167af22389a55bd4d06480fd0f784c492"
+      },
+      "outbox": {
+        "n": 2915,
+        "ack": 2915,
+        "digest": "e865bc901c4a7689a374fe61b5bab4ba84ff13ca7ea6ddcd15a33abfeb6b5d3e"
+      }
+    },
+    {
+      "id": "94d20c1f-2bd7-4270-bb59-e216070e5202",
+      "origin": "pp-live-pp-smoke-20261125-01",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "422877b5add3cd9b933992383a50ad7c6c120848eba219dcd635386aff5556b7",
+      "raw": {
+        "n": 4890,
+        "digest": "5ad936bf779b585ad6e1a2bf03fbb85dc917c98038a8d4bf8e2b20183c9447fa"
+      },
+      "outbox": {
+        "n": 5356,
+        "ack": 0,
+        "digest": "6dd920ca47a4f463724f33626ad040751a759abca16b658663f0ffc3b1bf66e7"
+      }
+    },
+    {
+      "id": "94107d29-626f-480a-b61a-ce6a10f44301",
+      "origin": "pp-live-pp-trial-20261119-01",
+      "slot": "A",
+      "state": "verified",
+      "catalog": "d8dbf55d41e0bbcb720b393cd3e29fc596058ec977bcdcc5f2eaded715c84ece",
+      "raw": {
+        "n": 5241,
+        "digest": "d9c7da7d83783bced2cf5c6238ad40eb932fff352cc3b4624ec03094cdb6b0da"
+      },
+      "outbox": {
+        "n": 5651,
+        "ack": 5651,
+        "digest": "aad5b2a9741b84a2d7fa5be6fe93b202f42b58bb5eaef38d1557830e334f8fb5"
+      }
+    },
+    {
+      "id": "41c82044-0fb8-4900-bea0-7c43ba079ff0",
+      "origin": "pp-live-pp-trial-20261119-02",
+      "slot": "A",
+      "state": "verified",
+      "catalog": "c82ddb287361159c8a656e74a41618a80a9dc278510e0848130332b0ec873958",
+      "raw": {
+        "n": 18930,
+        "digest": "068cc52e91f31d85332724caf0a7509d59d9edc0a2cf9c592bba849aa3eed50e"
+      },
+      "outbox": {
+        "n": 20362,
+        "ack": 20362,
+        "digest": "7bea28acedf1179aaa8049d346430dd54e0ae5d22461d5f1c12660d0e8f3b6d6"
+      }
+    },
+    {
+      "id": "15a239c9-2f9b-4bdc-bd89-7cd1e2812f45",
+      "origin": "pp-live-pp-trial-20261119-03",
+      "slot": "A",
+      "state": "verified",
+      "catalog": "22965b6d56dce0e5736a7c214cce62394389af610f5c55093bd04e205248926b",
+      "raw": {
+        "n": 24649,
+        "digest": "0433660cb6fad94b07578850a637fed61fe1899fa763dd13cbfb0d8d77f23530"
+      },
+      "outbox": {
+        "n": 26480,
+        "ack": 26480,
+        "digest": "012069becf0f7f4262ebd951850f1f604f85c232032199953c9763f01267a33f"
+      }
+    },
+    {
+      "id": "381070ac-3624-4826-8dc6-7ea5a272f97e",
+      "origin": "pp-live-pp-trial-20261119-03",
+      "slot": "B",
+      "state": "verified",
+      "catalog": "0ed20722d75a1cce620ecf87320e269790119579485b74f86da7585452b6f400",
+      "raw": {
+        "n": 12301,
+        "digest": "88481e8187cd8180e08c556d269ada8f2397e7b0c0f0c67fbdc0945063fb4700"
+      },
+      "outbox": {
+        "n": 13210,
+        "ack": 13210,
+        "digest": "fb7694200bb593ec9eb1c4d8f2185ef71576256d9096ab040b42b23012875d47"
+      }
+    },
+    {
+      "id": "53505b6c-f9b2-4b4b-be55-e45f94a6841c",
+      "origin": "pp-live-pp-trial-20261119-04",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "98b9d688fe6b0787cb983cf62f225abca8d85ab8827d39850ec1e1de5b633daf",
+      "raw": {
+        "n": 659,
+        "digest": "2a629f19d01e09242c6bc3489bae9e812d135b51a93d00661e63142d28671608"
+      },
+      "outbox": {
+        "n": 705,
+        "ack": 705,
+        "digest": "a922ee7b83ce04c9893c6b011e1f8719dc3ddad3af5032f6a9e496dc7a3748fd"
+      }
+    },
+    {
+      "id": "c7fbfa88-f3b8-40a3-83fa-c01912220570",
+      "origin": "pp-live-pp-trial-20261119-05",
+      "slot": "A",
+      "state": "verified",
+      "catalog": "d9938c37fa28ceb1f72b3d3c58c69d12478385717ceca5f14306998e848291a6",
+      "raw": {
+        "n": 24044,
+        "digest": "bb8215b21437519cd576986a3d29000d0f1362228a7244cfda3cc2f57fa7acd0"
+      },
+      "outbox": {
+        "n": 25872,
+        "ack": 25872,
+        "digest": "f1a624f5b90f39733e88e9af1af15740fe8d415aad6af5144744d3d10cf55867"
+      }
+    },
+    {
+      "id": "7eb27e2f-f53b-4b50-98db-00a318853b0b",
+      "origin": "pp-live-pp-trial-20261119-05",
+      "slot": "B",
+      "state": "collecting",
+      "catalog": "b2181f6e06e480dc7ab9f72a655cc17b32ce9c32d5e1c19012c2da9b3c9db6e8",
+      "raw": {
+        "n": 5690,
+        "digest": "76eaf6161f2dd623529db4e5965f06625169c4e30f60564af0a7125a5b32402b"
+      },
+      "outbox": {
+        "n": 6149,
+        "ack": 6149,
+        "digest": "3e46f3e83d59a2e7e3d17d529cb627ac903e7eb4bde2b6fcfd7d1d2d76e9b801"
+      }
+    },
+    {
+      "id": "bf43a58d-4171-435a-b657-79c335b2eea3",
+      "origin": "pp-live-pp-trial-20261119-06",
+      "slot": "A",
+      "state": "retired",
+      "catalog": "47f91f7f06d9c57c52072a50e725e8e4b4710ed6661c7f96f5c5834bac369041",
+      "raw": {
+        "n": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "outbox": {
+        "n": 20874,
+        "ack": 20874,
+        "digest": "3bc56f1ee0bd9f2324c32d81e7fd0863a1e58077cca9bf0514b44cc90f8344d5"
+      }
+    },
+    {
+      "id": "e07e981a-2617-43ac-a050-fcf4455a12f1",
+      "origin": "pp-live-pp-trial-20261119-06",
+      "slot": "B",
+      "state": "verified",
+      "catalog": "5cbb29a544c6a5185801f9d3a19222e288c161d1c6b60bf19bcb3d3a5c3e4bd6",
+      "raw": {
+        "n": 24896,
+        "digest": "980d9745f03caa36e4af339a64e1965d8caa249ec82ec2a87afbb1396882a17e"
+      },
+      "outbox": {
+        "n": 27528,
+        "ack": 27528,
+        "digest": "abc76a2a7dffcb341e1253ca753651c9a1e0862232125c462e479522ca35856a"
+      }
+    },
+    {
+      "id": "77ee5f30-7c3d-4285-8807-7d5543cf4bde",
+      "origin": "pp-live-pp-trial-20261119-06",
+      "slot": "A",
+      "state": "collecting",
+      "catalog": "eec0a4d60c5691fb8dbefd2296d9059d181829e783848b77fb4d4d087c23e6d7",
+      "raw": {
+        "n": 5084,
+        "digest": "fc7100230ca4569780ec85a56b306229de2d315342df91dcbec9b3d042816ab6"
+      },
+      "outbox": {
+        "n": 5523,
+        "ack": 5523,
+        "digest": "d22ed0ef66feaa1604736c45b82341bb07934b61d33b0bdd33e7bbf58d2b14e1"
+      }
+    },
+    {
+      "id": "f5b727ee-8316-4411-8485-8dd0161d2fe3",
+      "origin": "pp-live-pp-trial-20261119-07",
+      "slot": "A",
+      "state": "retired",
+      "catalog": "af6ee4bbb028eb7d9386d0bd1dbf5d7ad8eb1b747156ab3a3f893ee9fa45211e",
+      "raw": {
+        "n": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "outbox": {
+        "n": 25533,
+        "ack": 25533,
+        "digest": "de209773e8c176081b35c64c97314be65c01a98c2bc7f308abda8d00c6716d37"
+      }
+    },
+    {
+      "id": "0f7474e1-19f3-443b-8ad6-84752b908d92",
+      "origin": "pp-live-pp-trial-20261119-07",
+      "slot": "B",
+      "state": "retired",
+      "catalog": "57773598fbac78ee507ee879a87bbaa72f37a173376e1a4c3e389058fac8c7c4",
+      "raw": {
+        "n": 0,
+        "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "outbox": {
+        "n": 24899,
+        "ack": 24899,
+        "digest": "071387197499016cf0f96dbe8b419ee11e7005ebb96b7da2a3e1e4899809fe76"
+      }
+    },
+    {
+      "id": "65dae5e2-8574-45b6-8395-3794c1afe1b3",
+      "origin": "pp-live-pp-trial-20261119-07",
+      "slot": "A",
+      "state": "verified",
+      "catalog": "ff198489f7bca78397679ba9369d33665319945e96f87c7e5385ad396f97c613",
+      "raw": {
+        "n": 5030,
+        "digest": "bfae891acda840ddb1797eaff594db0b5b88e2ae05b0079eebb139a7a73c45d2"
+      },
+      "outbox": {
+        "n": 5458,
+        "ack": 5458,
+        "digest": "bccddba0cd03e6d562cd27ed159eb837b055356f9e9eaedf0854b404a928a723"
+      }
+    }
+  ],
+  "retained_all_equal": true,
+  "reviewed_db_modes": {
+    "fences": {
+      "diagnostic_role": "tradebot_reader",
+      "readonly": "on",
+      "max_connections": "20",
+      "reserved": "3",
+      "roles": {
+        "tradebot_app": 8,
+        "tradebot_reader": 4,
+        "tradebot_lifecycle": 3
+      }
+    },
+    "api_workers": 1,
+    "public_reader_max": 2,
+    "private_operator_reader_max": 1,
+    "host_diagnostic_max": 1,
+    "operator_app_max": 6,
+    "calculation_app_max": 2
+  },
+  "restarted": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": true,
+    "session": "b0f6c372-d939-42a1-b29d-5bf31ad0a096",
+    "epoch": 6,
+    "utc": "2026-11-28T06:35:30.120664+00:00",
+    "lease": "2026-11-28T06:37:27.900014+00:00",
+    "pending": 1,
+    "hi": 413902,
+    "acks": 88579
+  },
+  "first_three_hosted": [
+    {
+      "feed": "coinbase",
+      "id": 413902,
+      "event_id": "exchange-trade-1150235437",
+      "received": "2026-11-28T06:35:29.502946+00:00",
+      "content_hash": "90d8b6916c6092f323b25a964f8ef011f661c4cdfe4cc6722fe09accd64275ef",
+      "entity_type": "core.current_prices",
+      "verified_ack": "2026-11-28T06:35:33.669685+00:00",
+      "immutable_revision_matches": true
+    },
+    {
+      "feed": "polymarket_us",
+      "id": 413904,
+      "event_id": "btc-index-6bde5d920b42797e877f935d637befcfdfcd22244ff6502435891959aa03a13b",
+      "received": "2026-11-28T06:35:29.797891+00:00",
+      "content_hash": "c6e2c0e6fc3ea846b937b5dcdeb016f268d78b4d6d9eb4066c2050ca8dd95c1c",
+      "entity_type": "core.protected_evidence",
+      "verified_ack": "2026-11-28T06:35:33.687582+00:00",
+      "immutable_revision_matches": true
+    },
+    {
+      "feed": "robinhood_crypto",
+      "id": 413906,
+      "event_id": "rh-v1-ae5e7868129f70f21d593b2aa1a0038aaef73aa83c97c710b1a185ee37ddcada",
+      "received": "2026-11-28T06:35:29.990357+00:00",
+      "content_hash": "8cf02e97cd2d3ee00d301ee1108789bb8e6a205c62c476828d4f8b8667f830c7",
+      "entity_type": "core.protected_evidence",
+      "verified_ack": "2026-11-28T06:35:33.703926+00:00",
+      "immutable_revision_matches": true
+    }
+  ],
+  "source_gaps": [
+    {
+      "feed": "coinbase",
+      "old_event": "exchange-trade-1150231488",
+      "old_received": "2026-11-28T06:25:03.900669+00:00",
+      "new_event": "exchange-trade-1150235437",
+      "new_received": "2026-11-28T06:35:29.502946+00:00",
+      "gap_seconds": 625.602277
+    },
+    {
+      "feed": "polymarket_us",
+      "old_event": "btc-index-26c5f8669bfd5e21deacd3255b0759de5619cfe12da5d66c8c5774000e246966",
+      "old_received": "2026-11-28T06:25:04.429861+00:00",
+      "new_event": "btc-index-6bde5d920b42797e877f935d637befcfdfcd22244ff6502435891959aa03a13b",
+      "new_received": "2026-11-28T06:35:29.797891+00:00",
+      "gap_seconds": 625.36803
+    },
+    {
+      "feed": "robinhood_crypto",
+      "old_event": "rh-v1-3b7abb1b6c2b6babb42732d9a69eeea03db50ea4917c4442f7834d088ab30682",
+      "old_received": "2026-11-28T06:25:04.105848+00:00",
+      "new_event": "rh-v1-ae5e7868129f70f21d593b2aa1a0038aaef73aa83c97c710b1a185ee37ddcada",
+      "new_received": "2026-11-28T06:35:29.990357+00:00",
+      "gap_seconds": 625.884509
+    }
+  ],
+  "canonical_book_gap": {
+    "old": {
+      "outbox": 413743,
+      "event": "ws-dc128d33074262ba6e9cd571c4bbebc1e226c70c9d0e62aaca66b64e93ab7510",
+      "received": "2026-11-28T06:25:04.108768+00:00",
+      "market": "2983999",
+      "sha256": "d43dea884a46d8c122887053378979d10c0650031366d6365ecd5fcaa78886e4",
+      "kind": "core.protected_evidence",
+      "verified_ack": "2026-11-28T06:25:07.820876+00:00"
+    },
+    "new": {
+      "outbox": 413919,
+      "event": "ws-649fc82e742110820ebd4b7a0a9dc89a217cc7285fb8cf41314d0d7c21c80a74",
+      "received": "2026-11-28T06:35:31.464408+00:00",
+      "market": "2985609",
+      "sha256": "182cfacfb2f05a786fc6d190ec572e4062d35d7a3f0613ee3535ba75483df672",
+      "kind": "core.protected_evidence",
+      "verified_ack": "2026-11-28T06:35:33.787776+00:00"
+    },
+    "seconds": 627.35564,
+    "hosted_revision_match": true
+  },
+  "renewal_span": {
+    "samples": 8,
+    "first": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "b0f6c372-d939-42a1-b29d-5bf31ad0a096",
+      "epoch": 6,
+      "utc": "2026-11-28T06:35:33.884926+00:00",
+      "lease": "2026-11-28T06:37:27.900014+00:00",
+      "pending": 47,
+      "hi": 413976,
+      "acks": 88607
+    },
+    "last": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "b0f6c372-d939-42a1-b29d-5bf31ad0a096",
+      "epoch": 6,
+      "utc": "2026-11-28T06:36:59.707437+00:00",
+      "lease": "2026-11-28T06:38:53.892052+00:00",
+      "pending": 23,
+      "hi": 415621,
+      "acks": 90273
+    }
+  },
+  "cgroup_deltas_before_THROUGH_after_public_http": {
+    "seconds": 100.39816546440125,
+    "coverage": "includes admission, normal collection, single real history request and observer activity",
+    "components": {
+      "operator": {
+        "cpu_max": "25000 100000",
+        "memory_max": 100663296,
+        "oom_kill": 0,
+        "workerCPU_us": 10542575,
+        "throttled_us": 17467395,
+        "memory_full_us": 0,
+        "memory_current": 58314752,
+        "memory_breakdown": {
+          "file": 0,
+          "anon": 55599104,
+          "slab": 1963912,
+          "shmem": 0
+        }
+      },
+      "postgres": {
+        "cpu_max": "100000 100000",
+        "memory_max": 536870912,
+        "oom_kill": 0,
+        "workerCPU_us": 27859362,
+        "throttled_us": 256747,
+        "memory_full_us": 68534,
+        "memory_current": 528461824,
+        "memory_breakdown": {
+          "file": 496730112,
+          "anon": 18034688,
+          "slab": 9702832,
+          "shmem": 145055744
+        }
+      },
+      "api": {
+        "cpu_max": "50000 100000",
+        "memory_max": 201326592,
+        "oom_kill": 0,
+        "workerCPU_us": 20461806,
+        "throttled_us": 15077983,
+        "memory_full_us": 0,
+        "memory_current": 67907584,
+        "memory_breakdown": {
+          "file": 0,
+          "anon": 65064960,
+          "slab": 1889992,
+          "shmem": 0
+        }
+      }
+    }
+  },
+  "telemetry_rates": {
+    "elapsed_seconds": 451.55891609191895,
+    "sql_samples": 31,
+    "missing_samples": 0,
+    "verified_ack_per_second": 20.1191908214933,
+    "arrivals_per_second": 20.048325207152324,
+    "start_pending": 32,
+    "end_pending": 0,
+    "peak_pending": 109,
+    "peak_oldest_seconds": 7.483344,
+    "intervals_below_14": [
+      {
+        "end_utc": "2026-11-28T06:40:08.285235+00:00",
+        "ack_rate": 13.629,
+        "backlog_change": 76,
+        "ending_backlog": 104
+      },
+      {
+        "end_utc": "2026-11-28T06:43:23.947590+00:00",
+        "ack_rate": 8.452,
+        "backlog_change": -19,
+        "ending_backlog": 0
+      }
+    ]
+  },
+  "ownership_diagnosis": {
+    "old_operator_failure": "ownership.timeout",
+    "historical_separate_earlier_failure": "database connection limit",
+    "old_ownership_timeout_specific_cause": "unknown",
+    "diagnostic_placement": "read-only psql inside PostgreSQL cgroup, max 2500 latest envelopes, close in time to old stop; no isolated cause established",
+    "post_cutover_cgroup_measurement": "CPU throttling totals are cgroup counters across startup/normal work/observations and the request. They cannot establish causation or per-query stall times.",
+    "permanent_72h_retirement_qualified": false
+  },
+  "sustained_acceptance": {
+    "passed": false,
+    "first_next_market": "not observed, writer stopped before 06:45 UTC",
+    "durable_state": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": false,
+      "session": null,
+      "epoch": 7,
+      "utc": "2026-11-28T06:43:47.948761+00:00",
+      "lease": null,
+      "pending": 0,
+      "hi": 423394,
+      "acks": 98058
+    },
+    "durable_session_failure": {
+      "collector_enabled": false,
+      "process_running": false,
+      "session_failure_code": "ownership.lease_lost",
+      "watch_explicit_off": false,
+      "lease_expired": false,
+      "failure_acknowledged": null,
+      "origin_id": "pp-live-pp-benchmark-watch"
+    },
+    "root_watch_intent": {
+      "state": "held",
+      "reason": "HTTPError"
+    },
+    "last_renewal_receipt": {
+      "state": "running",
+      "origin_id": "pp-live-pp-benchmark-watch",
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "epoch": 6,
+      "lease_expires_at": "2026-11-28T06:43:15.166854+00:00"
+    },
+    "first_failed_poll_utc": "2026-11-28T06:41:31.369854+00:00",
+    "endpoint": "authenticated GET /collector/status",
+    "http_status": 503,
+    "subsequent_renewal_attempts": 0,
+    "watch_service_busy_during_measured_session": 0,
+    "failures": [
+      "File \"<string>\", line 1, in <module>",
+      "File \"<frozen runpy>\", line 229, in run_module",
+      "File \"<frozen runpy>\", line 88, in _run_code",
+      "File \"/usr/local/lib/tradebot-pp/controller.pyz/watch_service.py\", line 243, in <module>",
+      "File \"/usr/local/lib/tradebot-pp/controller.pyz/watch_service.py\", line 239, in main",
+      "File \"/usr/local/lib/tradebot-pp/controller.pyz/watch_service.py\", line 211, in run",
+      "File \"/usr/local/lib/tradebot-pp/controller.pyz/watch_service.py\", line 130, in tick",
+      "File \"/usr/local/lib/tradebot-pp/controller.pyz/transition_control.py\", line 341, in _operator",
+      "File \"/usr/lib/python3.12/urllib/request.py\", line 521, in open",
+      "File \"/usr/lib/python3.12/urllib/request.py\", line 630, in http_response",
+      "File \"/usr/lib/python3.12/urllib/request.py\", line 559, in error",
+      "File \"/usr/lib/python3.12/urllib/request.py\", line 492, in _call_chain",
+      "File \"/usr/lib/python3.12/urllib/request.py\", line 639, in http_error_default",
+      "raise HTTPError(req.full_url, code, msg, hdrs, fp)",
+      "urllib.error.HTTPError: HTTP Error 503: Service Unavailable"
+    ],
+    "root_cause": "One GET status 503 latched whole supervisor intent HELD. Subsequent ticks made no renewal; the exact 120s database-clock lease expired. 503 underlying DB acquisition/read exception was masked.",
+    "archive_pending": 0,
+    "acknowledged_at_end": 98058,
+    "post_cutover_new_acks": 9479,
+    "reactivation_performed": false
+  },
+  "cgroups_through_verified_hold": {
+    "seconds": 565.3663551807404,
+    "coverage": "includes admission, normal collection, single real history request and observer activity",
+    "components": {
+      "operator": {
+        "cpu_max": "25000 100000",
+        "memory_max": 100663296,
+        "oom_kill": 0,
+        "workerCPU_us": 84462698,
+        "throttled_us": 159866244,
+        "memory_full_us": 0,
+        "memory_current": 59969536,
+        "memory_breakdown": {
+          "file": 0,
+          "anon": 57597952,
+          "slab": 1891280,
+          "shmem": 0
+        }
+      },
+      "postgres": {
+        "cpu_max": "100000 100000",
+        "memory_max": 536870912,
+        "oom_kill": 0,
+        "workerCPU_us": 158921394,
+        "throttled_us": 1586935,
+        "memory_full_us": 139893,
+        "memory_current": 524918784,
+        "memory_breakdown": {
+          "file": 506626048,
+          "anon": 4923392,
+          "slab": 10881240,
+          "shmem": 145055744
+        }
+      },
+      "api": {
+        "cpu_max": "50000 100000",
+        "memory_max": 201326592,
+        "oom_kill": 0,
+        "workerCPU_us": 117778045,
+        "throttled_us": 95472414,
+        "memory_full_us": 0,
+        "memory_current": 57810944,
+        "memory_breakdown": {
+          "file": 0,
+          "anon": 55230464,
+          "slab": 1848856,
+          "shmem": 0
+        }
+      }
+    }
+  },
+  "post_hold_preservation": {
+    "verified_at": "2026-11-28T06:46:38.789992+00:00",
+    "retained_generations_verified": 20,
+    "all_retained_match": true,
+    "active_A": {
+      "raw": {
+        "n": 92738,
+        "digest": "11ab50709eabe6b75ccc52b689c12697577f24bd8e7ad1485afd4dec0215da9f"
+      },
+      "outbox": {
+        "n": 98058,
+        "acks": 98058,
+        "hi": 423394,
+        "digest": "4d29917931f9400259dc0d0861b484fc477e4bc27dcd118b00489d9733ff86d7"
+      }
+    },
+    "writer": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": false,
+      "session": null,
+      "epoch": 7,
+      "utc": "2026-11-28T06:45:43.589319+00:00",
+      "lease": null,
+      "pending": 0,
+      "hi": 423394,
+      "acks": 98058
+    }
+  },
+  "status503_window": {
+    "unit": [
+      [
+        "2026-11-28T06:41:14.547527+00:00",
+        "Starting"
+      ],
+      [
+        "2026-11-28T06:41:15.197477+00:00",
+        "Deactivated successfully"
+      ],
+      [
+        "2026-11-28T06:41:15.197817+00:00",
+        "Finished"
+      ],
+      [
+        "2026-11-28T06:41:30.551581+00:00",
+        "Starting"
+      ],
+      [
+        "2026-11-28T06:41:31.371984+00:00",
+        "HTTP Error 503"
+      ],
+      [
+        "2026-11-28T06:41:31.413839+00:00",
+        "Failed with result"
+      ]
+    ],
+    "log_categories": {
+      "operator": {
+        "lines": 3,
+        "counts": {
+          "too many connections": 0,
+          "statement timeout": 0,
+          "lock timeout": 0,
+          "localadmissionbusy": 0,
+          "out of memory": 0,
+          "could not connect": 0,
+          "connection refused": 0,
+          "server closed": 0,
+          "operationalerror": 0,
+          "canceling statement": 0,
+          "traceback": 0,
+          "ownership": 0
+        }
+      },
+      "postgres": {
+        "lines": 0,
+        "counts": {
+          "too many connections": 0,
+          "statement timeout": 0,
+          "lock timeout": 0,
+          "localadmissionbusy": 0,
+          "out of memory": 0,
+          "could not connect": 0,
+          "connection refused": 0,
+          "server closed": 0,
+          "operationalerror": 0,
+          "canceling statement": 0,
+          "traceback": 0,
+          "ownership": 0
+        }
+      },
+      "api": {
+        "lines": 2,
+        "counts": {
+          "too many connections": 0,
+          "statement timeout": 0,
+          "lock timeout": 0,
+          "localadmissionbusy": 0,
+          "out of memory": 0,
+          "could not connect": 0,
+          "connection refused": 0,
+          "server closed": 0,
+          "operationalerror": 0,
+          "canceling statement": 0,
+          "traceback": 0,
+          "ownership": 0
+        }
+      }
+    }
+  }
+}

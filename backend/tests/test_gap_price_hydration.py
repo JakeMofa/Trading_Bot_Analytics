@@ -109,7 +109,7 @@ class GapPriceHTTPTests(unittest.TestCase):
             def active_market(self):return deepcopy(self.selected_market)
             def collector_enabled(self):return True
             def current_price(self):self.gap_reads+=1;return deepcopy(self.tick)
-            def hydrate(self,market_id):
+            def hydrate(self,market_id,*,with_latest_saved=False):
                 self.active_reads+=1
                 return deepcopy(self.tick),None,None,None
         store=StoreFixture();clock=[NOW];state=LiveState(SETTINGS,clock=lambda:clock[0])
@@ -166,7 +166,7 @@ const set=(key,value)=>out[key]=value;
 const byId=()=>({className:'',dataset:{}});
 const serverNowMs=()=>serverEpochMs;
 const ageOf=value=>value ? Math.max(0,(serverEpochMs-Date.parse(value))/1000) : null;
-const render=()=>{},cancelRequest=()=>{},refreshView=()=>{},refreshChart=()=>{},mergeLatestTick=()=>{},scheduleChartDraw=()=>{},updateChartSummary=()=>{};
+const clearCountdown=()=>{}, render=()=>{},cancelRequest=()=>{},refreshView=()=>{},refreshChart=()=>{},mergeLatestTick=()=>{},scheduleChartDraw=()=>{},updateChartSummary=()=>{};
 ''' +formatters+'\n'+tick+'\n'+accept+'\nacceptState('+json.dumps(state)+');process.stdout.write(JSON.stringify({out,latest}));'
         result=json.loads(subprocess.run([shutil.which('node'),'-e',script],check=True,capture_output=True,text=True,timeout=10).stdout)
         self.assertEqual(result['latest']['latest_coinbase_tick']['event_id'],'second')

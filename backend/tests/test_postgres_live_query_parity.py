@@ -143,6 +143,9 @@ class LiveQueryParityTests(unittest.TestCase):
                 if time.monotonic() >= deadline:
                     self.fail('PP live API did not hydrate acknowledged SQL rows')
                 time.sleep(.05)
+            self.assertEqual(state['saved_prediction']['prediction_id'], history[0]['id'])
+            self.assertEqual(state['saved_prediction']['snapshot_id'], saved_ids[-1])
+            self.assertEqual(state['saved_prediction']['origin_id'], origin)
             self.assertEqual(state['coinbase']['price_usd'], latest['price'])
             self.assertEqual(state['feature_snapshot']['quality']['price']['input_id'], latest['event_id'])
             self.assertEqual(state['feeds']['polymarket_rest']['freshness_basis'], 'received_at')
@@ -165,11 +168,12 @@ class LiveQueryParityTests(unittest.TestCase):
         clock = [now + timedelta(seconds=31)]
         view = LiveState(settings, clock=lambda: clock[0])
         view.discover(active)
-        view.publish(market_id, *store.hydrate(market_id, clock[0]))
+        view.publish(market_id, *store.hydrate(market_id, clock[0], with_latest_saved=True))
         stale = view.snapshot()
         self.assertEqual(stale['feeds']['coinbase_stream']['status'], 'stale')
         self.assertEqual(stale['feeds']['polymarket_rest']['status'], 'stale')
         self.assertIsNone(stale['feature_snapshot'])
+        self.assertEqual(stale['saved_prediction']['as_of'], history[0]['as_of'])
         next_raw = {**raw_market, 'id': 'next-' + uuid.uuid4().hex,
                     'slug': 'btc-up-down-next-fixture',
                     'assetPriceTerms': {**raw_market['assetPriceTerms'],

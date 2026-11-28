@@ -21,12 +21,15 @@ def validate_environment(connection, environment='preprod'):
 
 
 def _connect(dsn, environment, readonly, migration, factory=None):
+    from .ownership_probe import phase
     import psycopg
     from psycopg.rows import dict_row
     open_connection = factory or psycopg.connect
+    phase('connect')
     connection = open_connection(dsn, row_factory=dict_row, connect_timeout=5,
                                 options='-c timezone=UTC -c statement_timeout=10000 -c lock_timeout=3000')
     try:
+        phase('environment')
         if migration:
             login = connection.execute('SELECT session_user AS login').fetchone()['login']
             if login != 'tradebot_migrator':

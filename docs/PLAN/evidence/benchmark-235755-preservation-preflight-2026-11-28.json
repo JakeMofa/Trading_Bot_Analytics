@@ -1,0 +1,83 @@
+{
+  "read_only": true,
+  "source": "4741ce097555648dbc903b1c8dae0c87152263bc",
+  "controller": "4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a",
+  "before": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": false,
+    "session": null,
+    "epoch": 9,
+    "utc": "2026-11-28T10:48:07.428814+00:00",
+    "lease": null,
+    "pending": 0,
+    "hi": 561373,
+    "acks": 235755
+  },
+  "complete": false,
+  "queries": [
+    {
+      "label": "settings",
+      "query_sha256": "105852064ceea3011fc58ac9dd72a4d1c1ee014452c837a07d2387fdc4d38338",
+      "wall_s": 0.879974333991413,
+      "rc": 0,
+      "sqlstate": null,
+      "local_psql_elapsed_ms": 0.388,
+      "docker_process_elapsed_s": 0.1584930670214817,
+      "result": {
+        "role": "tradebot_reader",
+        "readonly": "on",
+        "statement": "19s",
+        "temp": "64MB",
+        "work_mem": "2MB"
+      }
+    },
+    {
+      "label": "catalog",
+      "query_sha256": "4ac70c190f88f1885c194db72374b74d8ea7ea48d5a0fdac22c6f8091c765190",
+      "wall_s": 4.00755237499834,
+      "rc": 0,
+      "sqlstate": null,
+      "local_psql_elapsed_ms": 3033.158,
+      "docker_process_elapsed_s": 3.195111194974743,
+      "result": [
+        "generated-pp",
+        "pp-live-pp",
+        "pp-live-pp-benchmark-watch",
+        "pp-live-pp-boundary-20261124-01",
+        "pp-live-pp-display-20261127-01",
+        "pp-live-pp-display-20261127-02",
+        "pp-live-pp-display-20261127-03",
+        "pp-live-pp-smoke-20261125-01",
+        "pp-live-pp-trial-20261119-01",
+        "pp-live-pp-trial-20261119-02",
+        "pp-live-pp-trial-20261119-03",
+        "pp-live-pp-trial-20261119-04",
+        "pp-live-pp-trial-20261119-05",
+        "pp-live-pp-trial-20261119-06",
+        "pp-live-pp-trial-20261119-07"
+      ]
+    },
+    {
+      "label": "pp-live-pp-benchmark-watch",
+      "query_sha256": "fb8541459ec6350760a55be88787d8ba1480a1b9e3141313761f463c00020520",
+      "wall_s": 19.91889820799406,
+      "rc": 3,
+      "sqlstate": "57014",
+      "local_psql_elapsed_ms": 19000.576,
+      "docker_process_elapsed_s": 19.159255804028362
+    }
+  ],
+  "after": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": false,
+    "session": null,
+    "epoch": 9,
+    "utc": "2026-11-28T10:48:33.12805+00:00",
+    "lease": null,
+    "pending": 0,
+    "hi": 561373,
+    "acks": 235755
+  }
+}

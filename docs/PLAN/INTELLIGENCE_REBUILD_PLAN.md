@@ -6,11 +6,74 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-28-2026--heartbeat-recovery-qualification)
+- [Current PP checkpoint](#november-28-2026--later-ownership-deadline-failure-benchmark-off)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 28, 2026 — Later ownership deadline failure; Benchmark OFF
+
+The `.13` short-market acceptance below passed, but unattended collection
+subsequently stopped at 09:51:04.539628 UTC with `ownership.timeout`.
+At 10:17:52 UTC, the same A remained epoch 9/OFF with no writer session or
+lease, 235,755 verified archive ACKs and zero pending. The dashboard at
+10:15 showed all three feeds stale and no active market. No current-release
+database A/B swap has run.
+
+The last successful host renewal was 09:51:03.612437, granting expiry at
+09:53:03.485334. The fatal ownership check occurred about 0.93 seconds after
+that renewal while more than 118 seconds of lease authority remained. This
+is not the status503-latched expiry fixed by #260. The watch subsequently
+held with `watch_collector_failure`; explicit operator OFF was false.
+API/operator/calculation/PostgreSQL container identities and starts matched
+admission. The narrow 09:49–09:52 PostgreSQL log contained checkpoints but
+no recorded SQL cancellation, connection-limit refusal or statement error.
+A numeric WebSocket identifier containing `53300` was not a capacity error.
+
+`ownership.timeout` currently represents either the global two-second async
+check deadline or native SQLSTATE57014. Its elapsed path includes shared
+executor scheduling, a private reader-slot wait, fresh connection/environment
+validation, the ownership SELECT and physical close, with capacity backoff.
+The recorded code does not identify which phase exceeded its allowance.
+CPU scheduling, reader contention or query delay are hypotheses; no cause
+is established. Do not lengthen the fence or trust cached ownership.
+
+- [x] Verify the fresh browser OFF/stale state and bounded private status.
+- [x] Capture actual runtime identity, valid preceding lease and safe backlog.
+- [x] Independently review the ownership path and its diagnostic ambiguity.
+- [ ] Add and qualify phase-specific deadline diagnostics/reproduction before
+  selecting a runtime fix; account for retained-connection/read-budget options.
+- [ ] Qualify recovery and a fresh sustained run on the same VM.
+- [ ] Then test the current three-feed release's actual A/B dashboard/query
+  continuity; old live PP32 and disposable A/B tests are separate evidence.
+
+The [ownership timeout repair and acceptance plan](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md)
+sets the next order: timing diagnostics and native reproductions, a bounded
+private-read repair selected from that evidence, qualified adoption, then a
+four-hour and 24-hour observation before current-release A/B continuity.
+Live adoption, sustained acceptance and the current-release A/B test remain
+unperformed.
+
+Implementation follow-up: the first offline candidate now isolates the
+ownership worker and records timing phases while preserving fresh checks,
+the two-second deadline and physical connection budgets. Tests reproduce
+default-executor starvation, late native completion and delayed event-loop
+delivery; none proves the exact 09:51 cause. It is not deployed. The bounded
+read-only 10:48 UTC preservation preflight also hit SQLSTATE57014 at
+19,000.576 ms on A's 235,755-row full digest. A's OFF epoch/count/pending/last-ID
+were unchanged. No CD was dispatched; complete-origin digest pagination is
+now a separate adoption prerequisite. [Preflight evidence](evidence/benchmark-235755-preservation-preflight-2026-11-28.json).
+See the linked repair plan for scope.
+
+No deployment, re-arm, deletion, permission change or production action was
+performed for this incident check. Existing archive records remain intact;
+this does not prove all source receipts during a failure were persisted.
+The [local connection and scheduling plan](LOCAL_DATABASE_CONNECTION_BUDGET.md#residual-scheduling-diagnostic)
+remains the active diagnostic lane. Preservation and long-window gates remain
+as recorded below.
+[Private status and renewal timeline](evidence/benchmark-0951-ownership-status-2026-11-28.json) ·
+[Runtime and bounded log evidence](evidence/benchmark-0951-runtime-incident-2026-11-28.json).
 
 ## November 28, 2026 — Heartbeat recovery qualification
 
@@ -991,6 +1054,8 @@ change to the active checkpoint above.
 - [Data access findings](../DATA_ACCESS_FINDINGS.md) · [Progress summary](../PROGRESS_SUMMARY.md) · [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 
 ### Live feeds, rollover and observability
+
+- [Ownership timeout repair and sustained acceptance](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md)
 
 - [Quiet Polymarket quote recovery](../MILESTONES.md#november-27--recover-quiet-polymarket-quote-sessions)
 

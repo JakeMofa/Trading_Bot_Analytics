@@ -21,6 +21,8 @@ class _AdmittedConnection(Connection):
         self._close_lock = Lock()
 
     def close(self):
+        from .ownership_probe import phase
+        phase('close')
         with self._close_lock:
             super().close()
             if self._return_slot is not None:
@@ -42,6 +44,8 @@ class SessionBudget:
         self._slots = BoundedSemaphore(limit)
 
     def open(self, *, readonly, wait=1.0):
+        from .ownership_probe import phase
+        phase('admission')
         if not self._slots.acquire(timeout=wait):
             raise LocalAdmissionBusy('bounded local database admission busy')
         db = None

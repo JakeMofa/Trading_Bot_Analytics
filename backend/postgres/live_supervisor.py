@@ -17,6 +17,7 @@ from datetime import datetime, timezone
 from .cloud_origin_binding import DISPLAY_ORIGIN
 from .rehearsal_profile import WATCH_LEASE_SECONDS
 from . import benchmark_telemetry as metrics
+from .ownership_probe import OwnershipProbe, submit_ownership
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
 from .live_diagnostics import (CollectorHold, LiveDiagnostic, OwnershipConnectionLimit,
@@ -55,31 +56,51 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     if not 1 <= market_interval <= 10 or not 60 <= candle_interval <= 300:
         raise ValueError('source cadence outside qualified bounds')
 
-    async def read_ownership():
+    async def read_ownership(probe):
         for delay in READ_CAPACITY_BACKOFF:
             try:
-                return await asyncio.to_thread(owner_check)
+                return await submit_ownership(owner_check, probe)
             except OwnershipConnectionLimit:
                 if delay is None:
                     raise
+                probe.mark('retry_wait')
                 await asyncio.sleep(delay)
 
     async def assert_fence():
         # The operator callback checks the session ID, durable enable flag,
         # and lease expiry together in one database read.
+        probe = OwnershipProbe()
+        loop = asyncio.get_running_loop()
+        deadline_at = loop.time() + 2
+        deadline = asyncio.timeout_at(deadline_at)
         try:
-            owned = await asyncio.wait_for(read_ownership(), timeout=2)
+            async with deadline:
+                owned = await read_ownership(probe)
+                # A stalled loop can deliver a ready result before processing
+                # an overdue timeout callback. Late proof is never authority.
+                if loop.time() >= deadline_at:
+                    raise TimeoutError
         except TimeoutError:
+            probe.report('async_deadline' if deadline.expired() or loop.time() >= deadline_at
+                         else 'worker_timeout')
             raise LiveDiagnostic('ownership', 'timeout') from None
         except OwnershipConnectionLimit:
+            probe.report('capacity')
             raise LiveDiagnostic('ownership', 'database_connection_limit') from None
         except PostgresError as error:
+            probe.report('sql_cancelled' if error.sqlstate == '57014' else 'database_error')
             category = 'timeout' if error.sqlstate == '57014' else 'database_unavailable'
             raise LiveDiagnostic('ownership', category) from None
         except Exception as error:
+            probe.report('error')
             raise diagnose('ownership', error) from None
+        except asyncio.CancelledError:
+            probe.report('cancelled')
+            raise
         if owned is not True:
+            probe.report('false_owner')
             raise LiveDiagnostic('ownership', 'lease_lost')
+        probe.report('success')
 
     async def watch_fence():
         with metrics.monitor_session(store.settings.origin_id, getattr(store, 'producer_session_id', None)) as pulse:

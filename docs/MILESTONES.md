@@ -13,8 +13,12 @@ separates merged implementation from live acceptance. Exact `.7` source
 exact readback checks. It became OFF at 11:34:54 p.m. after the local app role
 hit its eight-connection limit; diagnostics and connection admission are being
 corrected before unattended readiness. All 20 retained generations matched
-before admission. API-only PR #253 and layout PR #255 merged; live API
-replacement remains pending. See the current checkpoint for evidence and limits.
+before admission. The collector recovered at 11:39:48 p.m. Central. API-only
+PR #253 and layout PR #255 passed live `.9` replacement at 11:43:27 without
+changing that collector session or process. Browser reconnection caused a
+6.37-second display gap. Local capacity correction #256 and API-reader
+separation remain under qualification; unattended readiness remains open.
+See the current checkpoint for evidence and limits.
 
 ### Dashboard-only delivery
 

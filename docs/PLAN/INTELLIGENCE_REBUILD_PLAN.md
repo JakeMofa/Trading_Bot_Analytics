@@ -33,6 +33,11 @@ full-market measurement covered 11:15–11:30 p.m. Central; results and sampling
 limits are recorded below.
 [Admission and independent live readback](evidence/benchmark-continuous-watch-admission-2026-11-27.json).
 
+Current deployed state is the recovered `.7` collector with `.9` API/UI, ON
+in epoch 4 on the same A. The API-only exchange preserved that running session.
+The local role-capacity fault below remains a readiness blocker while the
+typed retry/diagnostics and reader-budget successor are qualified.
+
 **Subsequent incident:** collection became durably OFF at 11:34:54 p.m.
 Central, epoch 3, before any API build or exchange. PostgreSQL logged
 `too many connections for role tradebot_app` immediately beforehand. The
@@ -81,15 +86,18 @@ rotation and raw retirement remain separate acceptance gates.
 - [x] Verify .7 metrics arrive in the combined Grafana dashboard and confirm
   the independent Supabase scrape. Sender-health alert is Normal; full-market
   source/backlog alert behavior remains under observation.
-- [ ] Accept the merged compatible API-only update (#253), showing
+- [x] Accept the merged compatible API-only update (#253), showing
   collector identity and progress survive an actual API container replacement.
-- [ ] Remove A/B slot and generation details from the product dashboard and
+- [x] Remove A/B slot and generation details from the product dashboard and
   fix the extra narrow grid column introduced by the rolling-window banner.
   Keep those operational signals in Grafana/private controls. Qualify the UI
   successor through the API-only deployment after the uninterrupted market.
-- [ ] Clarify the tick-responsive live estimate versus the periodic saved
+- [x] Clarify the tick-responsive live estimate versus the periodic saved
   model snapshot. Trace actual publication timing without changing the model
   probabilities to mimic Polymarket prices or increasing persistence load blindly.
+- [ ] Qualify and deploy local database admission/reader separation and the
+  typed capacity/explicit-OFF diagnostic corrections. Reprove actual HTTP
+  history reads alongside collection without starving writer/control slots.
 - [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
   including hosted version guarantees and history after local payload removal.
 
@@ -110,6 +118,78 @@ still had the earlier layout. The matching official Polymarket US page for
 countdown, BTC reference and UP/DOWN prices changed between observations.
 These unsynchronized browser checks establish live matching-market behavior,
 not exact feed latency. The UI agent owns removal and responsive verification.
+
+### Deployed UI and API-only acceptance
+
+The `.9` API component, source `9a1c2dd`, passed exact CI and publication and
+was accepted at 11:43:27 p.m. Central. A genuinely new API image/container/PID
+replaced the old one while operator/collector, PostgreSQL, calculation and
+lifecycle IDs, PIDs and start times remained identical. Writer session and
+epoch 4 stayed unchanged. During the 22.061-second observed exchange interval,
+the latest outbox ID advanced 531 and verified ACKs increased 502.
+[API-only receipt](evidence/benchmark-api-only-deployment-2026-11-27.json).
+
+The browser recorded one reconnect episode with two failed attempts; old
+event to first new SSE took 6.365 seconds and to a matching new DOM opportunity
+6.370 seconds. Those are different events across an API interruption, not
+same-quote receipt-to-paint latency. Collection continued. Main-agent IAB
+verification after reload confirmed aligned cards, no A/B banner, all three
+live reference prices, current market metadata and the separate saved snapshot.
+Desktop 1280px and phone 390px browser checks passed with zero horizontal
+overflow at the phone width. [UI, telemetry, source-control and alert evidence](evidence/benchmark-monitoring-ui-acceptance-2026-11-27.json).
+
+The real earlier collector interruption exercised Grafana: Pending at
+05:35:30 UTC, Alerting at 05:36:30, provider-reported successful email delivery
+at 05:37:06 and Normal (missingseries) at 05:40:30. Independent SQL proved
+recovery; the Normal state alone is not proof of health. Inbox receipt is
+unverified. The brief sender-only drill proved its missing-heartbeat query and
+automatic restoration, not an actual sender-alert state transition.
+
+The recovered collector resumed at 11:39:48.704 p.m. Central on the same
+generation with epoch 4 after a 294.096-second interruption. No connection cap,
+permission or data change was used for recovery. The unchanged `.7` collector
+remains vulnerable to the identified capacity fault; UI acceptance is separate
+from that unresolved runtime readiness requirement.
+
+All 60 same-quarter host samples retained at least 2,793,584 KiB available RAM,
+with zero swap and OOM increments. Estimated systemwide full-memory stalls
+totaled 138.39 ms across the sampled intervals. The slowest two quote
+publications coincided with roughly 2.69 GiB available and only 0.0076% full
+memory pressure in their host interval. No sustained RAM exhaustion was
+observed; these samples cannot establish per-event causation.
+
+Independent authenticated readbacks after the API exchange again matched
+all three source revisions/receipts. Eight SQL samples over 99.7 seconds
+kept epoch 4 and the original recovered session.
+[Post-API storage and session proof](evidence/benchmark-post-api-three-source-readback-2026-11-27.json).
+
+### Reference-field comparison with the official website
+
+The official US 05:30 market page showed the same $59,777.02 target as the
+new UI and the same one-sided state (UP ask 1 cent, other side unavailable).
+In its final minute the website labeled the BTC display `60s avg`. This is
+new observed UI behavior for a rule already recorded in the repository:
+opening and closing official values average 60 BRTI publications in the
+preceding minute and round to cents.
+[Official crypto rules](https://docs.polymarket.us/faqs/crypto-faqs.md).
+
+Our displayed reference selects the latest positive-tick one-second OHLC
+`close` from asset-price history. The documented history schema exposes OHLC
+and tick count, with zero-tick carry-forward buckets; it does not expose a
+rolling mean or each publication inside a multi-tick bucket. Market terms
+provide the official price to beat and, after resolution, settlement price.
+No verified live rolling-average field was found. These differences are
+data semantics, not automatically delivery delay.
+[Asset-price schema](https://docs.polymarket.us/api-reference/oapi-schemas/asset-prices-schema.json)
+and [market schema](https://docs.polymarket.us/api-reference/oapi-schemas/markets-schema.json).
+
+A future separately labeled estimate must preserve exact decimals, receipt
+cutoffs, gaps and revisions; require unambiguous genuine observations for all
+60 source seconds; and compare both opening and closing results against
+official resolved anchors before claiming method parity. Do not carry missing
+prices forward or silently change deterministic inputs. No model/schema change
+was made by this audit.
+[Field provenance and qualification gates](evidence/benchmark-venue-reference-semantics-2026-11-27.json).
 
 The saved calculation worker runs serially and sleeps five seconds after each
 cycle (`backend/postgres/worker.py`); feature snapshots and predictions share

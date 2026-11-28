@@ -45,6 +45,17 @@ the earlier short-market success below remains valid within its scope.
   adoption path and restart four-hour acceptance from its new admission.
 - [ ] Complete sustained and current-release A/B continuity before 72-hour work.
 
+The [persistent private reader candidate](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md#persistent-private-reader-candidate--november-28)
+is now implemented and under exact-source qualification. It shares one open
+physical connection across ownership/status/preferences while taking a fresh
+read-only transaction each time, prioritizes ownership, bounds optional reads,
+and preserves physical-close accounting and the two-second guard. Native
+PostgreSQL tests cover fresh OFF/UUID/expiry, contention, reconnect, failures,
+cancellation and shutdown. Local callback median improved from 2.739 to 0.163 ms;
+that excludes VM scheduling and is not a live result. Runtime deployment,
+retained-data adoption and sustained acceptance remain pending. CPU limits
+are unchanged to keep the connection comparison separate.
+
 [AWS capacity check](evidence/benchmark-aws-capacity-2026-11-28.json) subsequently
 confirmed 2 vCPUs, 4 GB RAM and an 80 GB disk in the existing Lightsail VM.
 AWS status checks stayed healthy; burst capacity was 73.85% at 14:30 UTC.

@@ -15,6 +15,18 @@
   status checks and 73.85% burst capacity at the stop. Pre-stop five-minute
   CPU averaged 42.48%. Container CPU remains separately capped at 0.25 core;
   compare scheduling headroom before attributing the failure or buying capacity.
+- [x] Implement and independently review one shared persistent private reader
+  with fresh read-only transactions, ownership priority, bounded optional
+  readers, physical-close accounting and safe pre-statement reconnect.
+- [x] Pass native PG17 freshness, concurrency, cancellation, timeout, reconnect
+  and actual operator startup/shutdown tests. Preference-read retries see fresh
+  OFF/settings and remain finite; late ownership results remain rejected.
+- [x] Run final local backend discovery: 754 tests, 67 expected skips, no
+  failures; all 14 new native shared-reader/control/runtime cases ran without
+  skips. Native Linux qualification remains tracked in CI.
+- [x] Benchmark the actual implementation offline: 80 identical callbacks each,
+  fresh login median 2.739 ms/p95 5.374 ms; shared 0.163 ms/p95 0.244 ms.
+  One retained backend PID observed fresh OFF; this is not VM latency evidence.
 - [ ] Qualify an evidence-selected fix while preserving fresh authority and
   the two-second bound; no blind restart or deadline increase.
 - [ ] Repeat four-hour and 24-hour stability on a qualified successor, then

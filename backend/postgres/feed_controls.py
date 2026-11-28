@@ -4,7 +4,7 @@ import hmac
 import secrets
 import time
 
-from psycopg import OperationalError
+from psycopg import Error
 from psycopg.types.json import Jsonb
 
 from .live_diagnostics import READ_CAPACITY_BACKOFF, connection_capacity
@@ -63,18 +63,21 @@ def read_controls(store):
 
 def desired_feeds(store):
     check_store(store)
-    # Other readers and state-changing controls retain their own failure
-    # semantics. Only retry opening this side-effect-free preferences read.
     for delay in READ_CAPACITY_BACKOFF:
+        connection = None
         try:
             connection = store.connection(True)
-            break
-        except OperationalError as error:
-            if delay is None or not connection_capacity(error, login=getattr(store,'read_login','tradebot_app')):
+            with connection as db:
+                return {k:v['enabled'] for k,v in _state(_rows(db)).items()}
+        except Error as error:
+            # A retry borrows a fresh transaction. Admission pressure is
+            # retryable only before the borrow succeeds; statement and
+            # transaction timeouts may also surface on read-only commit.
+            retryable = error.sqlstate in ('57014', '25P04') or (
+                connection is None and connection_capacity(error, login=getattr(store, 'read_login', 'tradebot_app')))
+            if delay is None or not retryable:
                 raise
             time.sleep(delay)
-    with connection as db:
-        return {k:v['enabled'] for k,v in _state(_rows(db)).items()}
 
 
 def set_desired(store, feed, enabled, expected_revision):

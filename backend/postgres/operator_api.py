@@ -14,11 +14,13 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from .operator_session import SessionBusy, SessionStopUnproven
 
 
-def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None, feed_store=None, max_session_seconds=4560, required_session_seconds=None):
+def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None, feed_store=None, max_session_seconds=4560, required_session_seconds=None, reader_cleanup=None):
     if not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
         raise ValueError('operator origin must be a distinct PP live origin')
     if not isinstance(token, str) or len(token) < 32 or len(token) > 256 or not token.isascii():
         raise ValueError('operator token must be bounded ASCII secret')
+    if reader_cleanup is not None and not callable(reader_cleanup):
+        raise ValueError('private reader cleanup must be callable')
     secret = ('Bearer ' + token).encode('ascii')
     status_repository = repository if status_repository is None else status_repository
     @asynccontextmanager
@@ -26,8 +28,14 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
         try:
             yield
         finally:
-            if session is not None:
-                await session.stop()
+            try:
+                if session is not None:
+                    await session.stop()
+            finally:
+                if reader_cleanup is not None:
+                    # This is process shutdown, not ordinary collector OFF:
+                    # status and a later explicit ON still need the reader.
+                    await asyncio.to_thread(reader_cleanup)
 
     app = FastAPI(title='Private PP collector control', docs_url=None,
                   redoc_url=None, openapi_url=None, lifespan=lifespan)

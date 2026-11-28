@@ -1,0 +1,13 @@
+{
+  "scope": "bounded PostgreSQL error classification only",
+  "from_utc": "2026-11-28T11:25:20Z",
+  "to_utc": "2026-11-28T11:25:42Z",
+  "line_count": 10,
+  "categories": {
+    "temp_file_limit": 1,
+    "statement_timeout": 0,
+    "role_capacity": 0,
+    "permission": 0,
+    "oom": 0
+  }
+}

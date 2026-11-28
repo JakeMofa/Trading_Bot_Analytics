@@ -1,0 +1,51 @@
+{
+  "scope": "isolated native macOS PG17.2; generated raw event identities, no Benchmark or Docker timing",
+  "same_identity_SQL_original": {
+    "sqlstate": "53400",
+    "wall_s": 3.5937404580035945
+  },
+  "proof": {
+    "count": 437064,
+    "digest": "e2e03a3900c4073e454382853a185055af3e811885628b6590687c595efcc6af"
+  },
+  "independent_native_sorted_oracle_equal": true,
+  "wall_s": 2.7327173340017907,
+  "statements": {
+    "BEGIN": {
+      "calls": 1,
+      "wall_s": 8.483300916850567e-05,
+      "max_response_ms": 0.08483300916850567
+    },
+    "SELECT": {
+      "calls": 1,
+      "wall_s": 0.011825499997939914,
+      "max_response_ms": 11.825499997939914
+    },
+    "DECLARE": {
+      "calls": 1,
+      "wall_s": 0.00013041700003668666,
+      "max_response_ms": 0.13041700003668666
+    },
+    "FETCH": {
+      "calls": 855,
+      "wall_s": 1.2466400668781716,
+      "max_response_ms": 3.818042008788325
+    },
+    "CLOSE": {
+      "calls": 1,
+      "wall_s": 7.38749949960038e-05,
+      "max_response_ms": 0.0738749949960038
+    },
+    "actual_adjacent_pairs": {
+      "calls": 9300,
+      "wall_s": 0.8532984972262057,
+      "max_response_ms": 0.4090839938726276
+    }
+  },
+  "anonymous_spool_bytes": 13986048,
+  "runs": 54,
+  "work_mem_mib": 2,
+  "temp_file_limit_mib": 64,
+  "sql_timeout_s": 19,
+  "collation": "en_US.UTF-8"
+}

@@ -24,6 +24,17 @@ The same containers remained installed; no recovery or A/B swap was performed.
   native 235,755-row parity passed, controller 338 cases/12 skips and CI
   controls 58 cases passed. Linux-container cancellation and actual VM full
   inventory are still required before adoption.
+- [x] Merge #264 (`641a052`) after exact head and merged-source CI. All three
+  pinned Linux-container role/cancellation tests actually ran and passed.
+- [ ] Repair generic metadata sorting: real full inventory at 11:25 stopped
+  on `raw.events`' 64 MiB temp-sort guard before entering the outbox cursor.
+  A stayed OFF/epoch 9/235,755 ACKs/zero pending; no CD. The 437,064-row raw
+  table now drives the bounded host-hash merge and exact collation proof tests.
+- [x] Implement bounded generic identity-hash runs with per-run integrity
+  checks; reproduce old temp spill and match native oracle on 437,064 generated
+  rows. Independent ordering/storage tests passed; local controller 356/18
+  skips and CI controls 58 passed. Linux CI and real full-inventory retry on
+  the corrected source remain open; no deployment or re-arm yet.
 - [ ] Review a bounded fix, qualify recovery and sustained collection.
 - [ ] Prove the current three-feed A/B swap with dashboard/history reads.
 

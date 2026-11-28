@@ -607,6 +607,7 @@ def main():
             env['TRADEBOT_TEST_INVENTORY_CONTAINER']=cid
             command([sys.executable,'-m','unittest','backend.tests.test_history_v2_transport_pg',
                      'deploy.preprod.tests.test_lifetime_inventory_pg',
+                     'deploy.preprod.tests.test_metadata_fingerprint_order',
                      'deploy.preprod.tests.test_pp20_forward_bootstrap_pg','-v'],
                     env,timeout=90)
             PHASE='runtime_image'

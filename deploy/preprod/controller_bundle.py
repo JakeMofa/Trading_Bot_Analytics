@@ -105,7 +105,7 @@ except (DeploymentHold,OSError,ValueError) as error:
 def build(destination):
     target=Path(destination)
     files={'__main__.py':ENTRY.encode()}
-    for name in ('controller.py','linux_actions.py','outbox_inventory.py','live_profile.py','live_transition.py',
+    for name in ('controller.py','linux_actions.py','outbox_inventory.py','metadata_inventory.py','live_profile.py','live_transition.py',
                  'transition_control.py','structured_probe_profile.py','structured_probe_control.py',
                  'raw_archive_probe_profile.py','raw_archive_probe_control.py',
                  'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py',

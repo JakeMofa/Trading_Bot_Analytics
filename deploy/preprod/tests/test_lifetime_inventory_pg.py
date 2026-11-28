@@ -42,6 +42,23 @@ class LifetimeInventoryTests(unittest.TestCase):
                 def _origin_digest(self, budget, origin):
                     return fixture_digest(db,'pg_temp.inventory_fixture',origin,[])
 
+                def _metadata_digest(self,budget,table,identity,staging):
+                    from controller import Budget
+                    from metadata_inventory import metadata_digest
+                    scoped=table=='archive.generated_outbox_storage'
+                    connection=(psycopg.connect(os.environ['TRADEBOT_TEST_READER_DSN'],autocommit=True)
+                                if scoped else db)
+                    def exchange(statement):
+                        if not scoped:
+                            if statement.startswith('BEGIN '):return []
+                            if statement=='CLOSE metadata_hashes; COMMIT;':statement='CLOSE metadata_hashes;'
+                            statement=statement.replace('raw.events','pg_temp.inventory_fixture')
+                        cursor=connection.execute(statement)
+                        return [row[0] for row in cursor.fetchall()] if cursor.description else []
+                    try:return metadata_digest(exchange,table,identity,Budget(30),directory)
+                    finally:
+                        if scoped:connection.close()
+
                 def _sql(self, budget, query):
                     value = db.execute(query.replace('ops.outbox', 'pg_temp.inventory_fixture').replace('raw.events','pg_temp.inventory_fixture')).fetchone()[0]
                     if isinstance(value, bool):
@@ -57,6 +74,8 @@ class LifetimeInventoryTests(unittest.TestCase):
                             raise AssertionError('inventory fixture reader identity/read-only mismatch')
                         value=reader.execute(query).fetchone()[0]
                     return ('t' if value else 'f') if isinstance(value,bool) else json.dumps(value)
+            from tempfile import TemporaryDirectory
+            directory=self.enterContext(TemporaryDirectory())
             actions = FixtureActions()
             actions._outbox_release_preflight(None)
             initial_inventory = actions._inventory(None)
@@ -307,6 +326,35 @@ class ContainerOutboxChannelTests(unittest.TestCase):
                 with actions._outbox_channel(Budget(50)) as exchange:
                     result=origin_digest(lambda q:exchange(q.replace('ops.outbox',schema+'.fixture')),'pp-live-pp')
                 self.assertEqual(result,expected)
+            finally:
+                admin.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')
+
+    def test_normal_controller_hashes_with_the_original_restricted_roles(self):
+        from tempfile import TemporaryDirectory
+        import psycopg
+        import uuid
+        from controller import Budget
+        from metadata_inventory import metadata_digest
+        actions=LinuxActions()
+        actions.pg_id=os.environ['TRADEBOT_TEST_INVENTORY_CONTAINER']
+        schema='metadata_cursor_'+uuid.uuid4().hex
+        dsn=os.environ['TRADEBOT_TEST_HISTORY_V2_DSN']
+        with psycopg.connect(dsn,autocommit=True) as admin, TemporaryDirectory() as directory:
+            try:
+                admin.execute(f'CREATE SCHEMA {schema}')
+                admin.execute(f'GRANT USAGE ON SCHEMA {schema} TO tradebot_reader,tradebot_app')
+                for force,role in ((False,'tradebot_app'),(True,'tradebot_reader')):
+                    table=f'{schema}.{role}'
+                    admin.execute(f'CREATE TABLE {table} AS SELECT n AS id FROM generate_series(1,1100)n')
+                    admin.execute(f'REVOKE ALL ON TABLE {table} FROM PUBLIC,tradebot_reader,tradebot_app')
+                    admin.execute(f'GRANT SELECT ON TABLE {table} TO {role}')
+                    budget=Budget(50)
+                    with actions._outbox_channel(budget,require_reader=force) as exchange:
+                        self.assertEqual(exchange("SELECT json_build_array(session_user,current_setting('transaction_read_only'));"),[[role,'on']])
+                        digest=metadata_digest(exchange,table,'id',budget,directory)
+                    self.assertEqual(digest['count'],1100)
+                    if not force:original=digest
+                    else:self.assertEqual(digest,original)
             finally:
                 admin.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')
 

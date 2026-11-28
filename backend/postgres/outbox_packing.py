@@ -92,13 +92,12 @@ def pending_page(db, generation, limit, max_bytes):
     if type(max_bytes) is not int or max_bytes < 2:
         raise ArchiveLimit('structured page requires space for JSON array brackets')
     with phase('structured_page_size_query'):
-        first = db.execute("""SELECT min(id) AS id FROM ops.outbox
-            WHERE generation_id=%s AND acknowledged_at IS NULL AND id>0""",(generation,)).fetchone()['id']
-        if first is None:
-            return []
-        sizes = db.execute("""SELECT id,octet_length(row_to_json(o)::text) AS bytes
-            FROM ops.outbox o WHERE generation_id=%s AND id>=%s AND acknowledged_at IS NULL
-            ORDER BY id LIMIT %s""",(generation,first,limit)).fetchall()
+        # Bind the trusted catalog origin so the partial pending index can seek
+        # straight to the unacknowledged tail, even after days of collection.
+        sizes = db.execute("""SELECT o.id,octet_length(row_to_json(o)::text) AS bytes
+            FROM ops.outbox o WHERE o.origin_id=(SELECT g.origin_id FROM archive.generations g
+                WHERE g.generation_id=%s) AND o.generation_id=%s AND o.acknowledged_at IS NULL
+            ORDER BY o.id LIMIT %s""",(generation,generation,limit)).fetchall()
     selected = []
     remaining = max_bytes-2  # the canonical JSON array brackets
     pos = 0

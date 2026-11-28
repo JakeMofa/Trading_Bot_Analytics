@@ -52,6 +52,22 @@ class ExactOutboxPage(unittest.TestCase):
                 "acknowledged_at IS NULL",(self.generation,)).fetchone()['n'],2)
         self.assertEqual(self.repo.outbox(self.generation,50,262144),[row,later])
 
+    def test_production_ceiling_counts_array_bytes(self):
+        limit=256*1024
+        row=self.put('exact-256k',{'pad':''})
+        fit=limit-len(encoded([envelope(row)]))
+        from psycopg.types.json import Jsonb
+        with self.admin() as db:
+            db.execute('UPDATE ops.outbox SET payload=%s WHERE id=%s',(Jsonb({'pad':'x'*fit}),row['id']))
+        self.assertEqual(len(encoded([envelope(r) for r in self.repo.outbox(self.generation,50,limit)])),limit)
+        with self.admin() as db:
+            db.execute('UPDATE ops.outbox SET payload=%s WHERE id=%s',(Jsonb({'pad':'x'*(fit+1)}),row['id']))
+        with self.assertRaisesRegex(ArchiveLimit,'single structured envelope'):
+            self.repo.outbox(self.generation,50,limit)
+        with self.admin() as db:
+            self.assertIsNone(db.execute('SELECT acknowledged_at FROM ops.outbox WHERE id=%s',
+                                         (row['id'],)).fetchone()['acknowledged_at'])
+
     def test_sql_json_spelling_expansion_does_not_charge_transport(self):
         first=self.put(1,{'before':'Ω'})
         second=self.put(2,{'tiny':[1e-300]*250,'quote':'x'*8100+'🐍\\ " ,: \t'})

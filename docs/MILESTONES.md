@@ -1,3 +1,14 @@
+## November 27 — Combined dashboard release on the 4 GB Benchmark
+
+The [Benchmark deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46091017341)
+passed API, SSE, PostgreSQL and recovery checks on `446d81d`. The collector
+was off. Over a full 15-second refresh, the Market tab fetched state and its
+Coinbase chart and held its SSE connection. Opening History fetched saved
+forecasts and context, opening Models fetched the current model, and opening
+System fetched service status and history. [Deployed Chromium request trace](PLAN/evidence/pp-benchmark-deployed-dashboard-2026-11-27.json).
+The full quote-to-hosted-readback measurement and the 500-event page under
+collection remain open in the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence).
+
 ### November 27 — History in the browser and the next Benchmark run
 
 Four Chromium reads of the same 500 events produced identical ordered IDs,

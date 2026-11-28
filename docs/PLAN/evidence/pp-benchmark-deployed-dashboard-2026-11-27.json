@@ -1,0 +1,29 @@
+{
+  "source_sha": "446d81df02cd1920042cc73e08ebe8a05a6b7802",
+  "release": "v0.2.0-pp.benchmark.2",
+  "collector_enabled": false,
+  "origin": "generated-pp",
+  "market_15s_requests": [
+    "/dashboard",
+    "/events",
+    "/history/coinbase-chart",
+    "/state/current"
+  ],
+  "views": {
+    "History": [
+      "/history/context",
+      "/history/predictions"
+    ],
+    "Models": [
+      "/models/current"
+    ],
+    "System": [
+      "/system/history",
+      "/system/status"
+    ],
+    "Market": [
+      "/history/coinbase-chart"
+    ]
+  },
+  "browser_errors": []
+}

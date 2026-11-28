@@ -59,14 +59,32 @@ class ProfileTests(unittest.TestCase):
         livefiles=[*basefiles,'runtime.live.compose.yaml','runtime.live-boundary.compose.yaml']
         base,live,child=(render(files) for files in
                          (basefiles,livefiles,[*livefiles,'runtime.boundary-structured.compose.yaml']))
-        p.validate_profile(base,live,child,folder.parent.parent,IMAGE,ANCHOR,boundary=True)
+        p.validate_profile(base,live,child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=p.BOUNDARY_ORIGIN)
         self.assertEqual(live['services']['operator']['environment']['TRADEBOT_PP_BOUNDARY_TRACE'],'1')
         self.assertNotIn('TRADEBOT_PP_CYCLE_INITIAL_A',live['services']['lifecycle']['environment'])
         self.assertNotIn('sealed_archive',child['services'])
         self.assertTrue(a.allowed_session_seconds(4100,scoped=True,origin=a.BOUNDARY_ORIGIN))
         self.assertFalse(a.allowed_session_seconds(6600,scoped=True,origin=a.BOUNDARY_ORIGIN))
         with self.assertRaises(DeploymentHold):
-            p.child_service(base,ANCHOR,boundary=True,archive=True)
+            p.child_service(base,ANCHOR,boundary_origin=p.BOUNDARY_ORIGIN,archive=True)
+        env.update(a.cycle_environment(ANCHOR, a.DISPLAY_ORIGIN))
+        display_files=[*livefiles, 'runtime.quote-display.compose.yaml']
+        display=render(display_files)
+        display_child=render([*display_files, 'runtime.display-structured.compose.yaml'])
+        p.validate_profile(base,display,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
+        self.assertTrue(a.allowed_session_seconds(1320,scoped=True,origin=a.DISPLAY_ORIGIN))
+        self.assertFalse(a.allowed_session_seconds(540,scoped=True,origin=a.DISPLAY_ORIGIN))
+        self.assertFalse(display['services']['api']['environment'].get('POLYMARKET_SECRET_KEY_FILE'))
+        for service in ('operator','api'):
+            bad=deepcopy(display)
+            bad['services'][service]['volumes'][0]['source']='/etc'
+            with self.assertRaises(DeploymentHold):
+                p.validate_profile(base,bad,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
+        self.assertEqual(display_child['secrets']['pp_boundary_history_writer_dsn']['file'],
+                         '/etc/tradebot/cloud/display_20261127_01_history_writer_dsn')
+        self.assertNotIn('sealed_archive',display_child['services'])
+        with self.assertRaises(DeploymentHold):
+            p.child_service(base,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN,archive=True)
         env.update(a.cycle_environment(ANCHOR, a.BOUNDARY_SMOKE_ORIGIN))
         smoke = render(livefiles)
         from live_profile import validate_live_profile

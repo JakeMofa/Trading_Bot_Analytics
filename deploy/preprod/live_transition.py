@@ -10,7 +10,7 @@ import json
 import time
 
 from controller import DeploymentHold, require
-from linux_actions import (BOUNDARY_ORIGINS, wait_generated_host_routes, LinuxActions, SERVICES, PROJECT,
+from linux_actions import (BOUNDARY_ORIGINS, DISPLAY_ORIGIN, display_filesystem, wait_generated_host_routes, LinuxActions, SERVICES, PROJECT,
                            history_reader_enabled, cycle_environment, cycle_profile_binding,
                            live_origin, RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS,
                            RETAINED_TRIAL_OVERLAYS)
@@ -39,6 +39,8 @@ class LiveTransition:
                 overlay.extend(['-f', str(self.folder/'runtime.live-cycle.compose.yaml')])
         if self.trial_origin in BOUNDARY_ORIGINS:
             overlay.extend(['-f', str(self.folder/'runtime.live-boundary.compose.yaml')])
+            if self.trial_origin == DISPLAY_ORIGIN:
+                overlay.extend(['-f', str(self.folder/'runtime.quote-display.compose.yaml')])
         elif self.trial_origin:
             overlay.extend(['-f',str(self.folder/(RETAINED_TRIAL_OVERLAYS.get(self.trial_origin,'runtime.live-trial.compose.yaml')))])
         if self.trial_origin and self.trial_origin not in BOUNDARY_ORIGINS and include_reader:
@@ -149,6 +151,8 @@ class LiveTransition:
         self.phase='host_identity'
         self.actions._transition_host()
         self.phase='profile'
+        if self.trial_origin==DISPLAY_ORIGIN:
+            display_filesystem()
         self._profile()
         self.phase='postgres'
         self.actions._postgres(self.context,self.budget)

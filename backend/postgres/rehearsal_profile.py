@@ -1,7 +1,7 @@
 """Explicit, finite PP two-leg rehearsal scope. No activation or lease renewal."""
 import uuid
 from datetime import datetime, timezone
-from .cloud_origin_binding import (BOUNDARY_ORIGIN, TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
+from .cloud_origin_binding import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN,
                                    FOURTH_TRIAL_ORIGIN, FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN,
                                    SEVENTH_TRIAL_ORIGIN, TRIAL_ORIGINS)
 
@@ -17,10 +17,12 @@ BOUNDARY_POLICY = 'boundary-diagnostic-v1'
 BOUNDARY_LEASE_SECONDS = 4100
 BOUNDARY_SMOKE_ORIGIN = 'pp-live-pp-smoke-20261125-01'
 BOUNDARY_SMOKE_LEASE_SECONDS = 540
-BOUNDARY_ORIGINS = frozenset({BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN})
+BOUNDARY_ORIGINS = frozenset({BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, DISPLAY_ORIGIN})
 
 
 def boundary_lease_seconds(origin):
+    if origin == DISPLAY_ORIGIN:
+        return 1320
     return BOUNDARY_SMOKE_LEASE_SECONDS if origin == BOUNDARY_SMOKE_ORIGIN else BOUNDARY_LEASE_SECONDS
 
 TRIAL_PREPARATION_CHECKPOINT = 'trial:initial-a-prepare-v1'

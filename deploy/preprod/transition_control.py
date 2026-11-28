@@ -20,8 +20,8 @@ import urllib.error
 import urllib.request
 import uuid
 
-from controller import Budget, Context, DeploymentHold, HostBinding, PP_INSTANCES, Request, _secure_file, require
-from linux_actions import (BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
+from controller import BENCHMARK_INSTANCE, Budget, Context, DeploymentHold, HostBinding, PP_INSTANCES, Request, _secure_file, require
+from linux_actions import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
                            cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
                            RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
 
@@ -113,6 +113,8 @@ class TransitionRequest:
         Request(self.source_sha, self.artifact_sha256, self.controller_sha256, instance=self.instance).validate()
         require(IMAGE.fullmatch(self.image_id) is not None, 'invalid_transition_image')
         require(self.initial_a is None or self.operation == 'enter', 'invalid_pp_cycle_transition')
+        if self.trial_origin==DISPLAY_ORIGIN:
+            require(self.instance==BENCHMARK_INSTANCE,'quote_display_requires_benchmark_host')
         if self.operation=='enter':
             require(self.trial_origin not in RETAINED_TRIAL_ORIGINS,'retained_trial_is_read_only')
         cycle_environment(self.initial_a,self.trial_origin)
@@ -417,7 +419,7 @@ def session(command, controller_path):
     elif active.get('trial_origin'):
         from trial_cloud_control import require_ready
         require_ready(context,active['initial_a'],budget,
-                      **({'boundary': True} if active['trial_origin']==BOUNDARY_ORIGIN else {}))
+                      **({'boundary_origin': active['trial_origin']} if active['trial_origin'] in (BOUNDARY_ORIGIN,DISPLAY_ORIGIN) else {}))
     actions._runtime(context, budget, live=True, **cycle)
     actions._host_operator(live=True,**({'trial_origin':active['trial_origin']} if active.get('trial_origin') else {}))
     actions._live_filesystem(context, budget)

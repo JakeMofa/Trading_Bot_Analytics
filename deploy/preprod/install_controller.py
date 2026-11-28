@@ -14,7 +14,7 @@ import zipfile
 
 from controller import HostBinding,Request,require
 from transition_control import ACTIVE, ENTER_AUTHORITY, ON_AUTHORITY, TransitionRequest, _candidate, _cycle_args, _read_active
-from linux_actions import (BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, RETAINED_TRIAL_ORIGINS, allowed_session_seconds,
+from linux_actions import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, RETAINED_TRIAL_ORIGINS, allowed_session_seconds,
                            cycle_profile_binding)
 
 PROBE_AUTHORITY=Path('/run/tradebot-pp-deploy/structured-probe.json')
@@ -183,7 +183,7 @@ def authorize_live_on(seconds):
         request=TransitionRequest('leave',active['source_sha'],active['artifact_sha256'],
                                   active['controller_sha256'],active['image_id'],instance=binding.hostname)
         require_ready(_candidate(request),active['initial_a'],Budget(60),
-                      **({'boundary': True} if active['trial_origin']==BOUNDARY_ORIGIN else {}))
+                      **({'boundary_origin': active['trial_origin']} if active['trial_origin'] in (BOUNDARY_ORIGIN,DISPLAY_ORIGIN) else {}))
     require(allowed_session_seconds(seconds,scoped=bool(cycle),origin=active.get('trial_origin')),
             'invalid_live_session_duration')
     require(active['state']=='ready_off','live_profile_not_ready')

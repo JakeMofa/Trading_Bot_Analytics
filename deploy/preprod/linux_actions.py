@@ -63,13 +63,16 @@ CYCLE_POLICY='two-official-markets-cycle'
 ELAPSED_CYCLE_POLICY='elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS=1800
 TRIAL_ORIGIN='pp-live-pp-trial-20261119-07'
+DISPLAY_ORIGIN='pp-live-pp-display-20261127-01'
+DISPLAY_DIR=Path('/run/tradebot-pp-deploy/quote-display')
+DISPLAY_KEYS=('market_key_id', 'market_secret')
 BOUNDARY_ORIGIN='pp-live-pp-boundary-20261124-01'
 BOUNDARY_POLICY='boundary-diagnostic-v1'
 BOUNDARY_LEASE_SECONDS=4100
 BOUNDARY_SMOKE_ORIGIN='pp-live-pp-smoke-20261125-01'
 BOUNDARY_SMOKE_LEASE_SECONDS=540
-BOUNDARY_ORIGINS=frozenset((BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN))
-OUTBOX_ORIGINS += (BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN)
+BOUNDARY_ORIGINS=frozenset((BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN,DISPLAY_ORIGIN))
+OUTBOX_ORIGINS += (BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN,DISPLAY_ORIGIN)
 RETAINED_TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
 RETAINED_TRIAL_ORIGINS=frozenset({RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05','pp-live-pp-trial-20261119-06'})
 RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compose.yaml',
@@ -78,6 +81,18 @@ RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compos
                          'pp-live-pp-trial-20261119-04':'runtime.retained-trial-04.compose.yaml',
                          'pp-live-pp-trial-20261119-05':'runtime.retained-trial-05.compose.yaml',
                          'pp-live-pp-trial-20261119-06':'runtime.retained-trial-06.compose.yaml'}
+
+
+def display_filesystem():
+    from controller import BENCHMARK_INSTANCE
+    require(HostBinding.from_marker().hostname==BENCHMARK_INSTANCE, 'quote_display_requires_benchmark_host')
+    info=DISPLAY_DIR.lstat()
+    require(stat.S_ISDIR(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o700,
+            'unsafe_display_directory')
+    for name in DISPLAY_KEYS:
+        info=(RUNTIME_SECRETS/name).lstat()
+        require(stat.S_ISREG(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o400
+                and info.st_nlink==1 and 0<info.st_size<=4096, 'unsafe_display_key_file')
 
 
 def live_origin(trial_origin=None):
@@ -116,6 +131,8 @@ def cycle_environment(initial_a, trial_origin=None):
 def allowed_session_seconds(seconds, *, scoped, origin):
     if type(seconds) is not int:
         return False
+    if origin == DISPLAY_ORIGIN:
+        return seconds == 1320
     if origin == BOUNDARY_SMOKE_ORIGIN:
         return seconds == BOUNDARY_SMOKE_LEASE_SECONDS
     if origin == BOUNDARY_ORIGIN:
@@ -149,6 +166,12 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
                 env['TRADEBOT_PP_COINBASE_TIMING']='true'
             if trial_origin in BOUNDARY_ORIGINS:
                 env['TRADEBOT_PP_BOUNDARY_TRACE']='1'
+        if trial_origin == DISPLAY_ORIGIN and service in ('api','operator'):
+            env['TRADEBOT_PP_QUOTE_DISPLAY']='1'
+            env['TRADEBOT_PP_BOUNDARY_TRACE']='1'
+            if service == 'operator':
+                env.update(POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
+                           POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
         if service in ('lifecycle','operator'):
             env.update(cycle_environment(initial_a,trial_origin))
     return env
@@ -835,7 +858,18 @@ class LinuxActions:
             require(set(network_settings['Networks'])==({NETWORK,API_NETWORK} if service in ('api','operator') else {NETWORK}),
                     'runtime_network_mismatch')
             mounts=row.get('Mounts',[])
+            display = live and trial_origin == DISPLAY_ORIGIN and service in ('api','operator')
+            require(env.get('TRADEBOT_PP_QUOTE_DISPLAY')==expected_env.get('TRADEBOT_PP_QUOTE_DISPLAY'),
+                    'unexpected_live_quote_display_mode')
             wanted=set(service_secrets(service,live=live))
+            if display:
+                sockets=[item for item in mounts if item.get('Destination')=='/run/quote-display']
+                require(len(sockets)==1 and sockets[0].get('Type')=='bind'
+                        and sockets[0].get('Source')==str(DISPLAY_DIR)
+                        and sockets[0].get('RW')==(service=='api'),'wrong_quote_display_mount')
+                mounts=[item for item in mounts if item is not sockets[0]]
+                if service=='operator':
+                    wanted.update(DISPLAY_KEYS)
             reader = bool(live and not trial_origin and service=='api' and history_reader_enabled(context))
             trial_reader=False
             if live and trial_origin and trial_origin not in BOUNDARY_ORIGINS and service=='api':

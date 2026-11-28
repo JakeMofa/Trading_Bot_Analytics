@@ -224,11 +224,11 @@ def _image_binding(context, budget):
 
 def _owned_runtime(actions, context, budget):
     """Refuse to recover over a foreign image or unexpected service container."""
-    from linux_actions import PROJECT, SERVICES
+    from linux_actions import PROJECT, SERVICES, compatible_api_image
     ids = actions._ids(context, budget, SERVICES, all=True)
     if ids:
         rows = actions._inspect(budget, ids)
-        require(all(row.get('Image') == context.image
+        require(all(compatible_api_image(context,row)
                 and row.get('Config', {}).get('Labels', {}).get('com.docker.compose.project') == PROJECT
                 and row['Config']['Labels'].get('com.docker.compose.service') in SERVICES
                 and row['Config']['Labels'].get('com.docker.compose.oneoff', 'False') == 'False'

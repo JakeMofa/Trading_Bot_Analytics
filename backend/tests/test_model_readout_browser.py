@@ -73,6 +73,7 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                     expect(page.locator('#ai-decision-buy')).to_have_text('Disabled')
 
                     expect(page.locator('#live-reference')).to_contain_text('$')
+                    expect(page.locator('#live-reference')).to_have_attribute('data-event-id', price['event_id'])
                     expect(page.locator('#venue-price')).to_have_text('$67,900.50')
                     expect(page.locator('#robinhood-price')).to_have_text('$68,123.40')
                     expect(page.locator('#robinhood-price')).to_have_attribute('data-event-id', 'rh-v1-fixture')

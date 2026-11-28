@@ -137,7 +137,7 @@ class LiveState:
             if packet:
                 live = packet['market']
                 archive = self._archived
-                counters = {key: packet[key] for key in ('received', 'saved', 'started_at', 'last_commit')}
+                counters = {key: packet[key] for key in ('received', 'saved', 'duplicates', 'started_at', 'last_commit')}
                 counters['archived'] = archive[1] if archive and archive[0] == packet['started_at'] else None
                 if timestamp(live['start']) <= now < timestamp(live['end']):
                     if (market or {}).get('id') != live['id']:

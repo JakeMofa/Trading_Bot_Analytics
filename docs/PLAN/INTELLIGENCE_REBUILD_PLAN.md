@@ -38,8 +38,8 @@ a test transport. Hosted readback and Benchmark browser latency are pending.
 
 The last Benchmark smoke was local-only with a 540-second lease. A full
 window needs a new controller-bound profile with independent structured drain.
-Account for protected-evidence and outbox growth before using this bounded
-experiment as a retention strategy. [Application and transport](../../backend/postgres/APPLICATION.md)
+Measure outbox growth and archive throughput before extending the collection
+window. Raw local quotes stay generation-scoped. [Application and transport](../../backend/postgres/APPLICATION.md)
 
 ## November 25, 2026 CST — 4 GB PP rollover passed and WebSocket is next
 

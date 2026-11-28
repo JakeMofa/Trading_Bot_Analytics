@@ -30,7 +30,7 @@ class QuotePipeline:
         self.queue = asyncio.Queue(maxsize=32)
         self.current = self.upcoming = None
         self.quote = None
-        self.received = self.saved = 0
+        self.received = self.saved = self.duplicates = 0
         self.started = utc()
         self.last_commit = None
         self.first_event_id = None
@@ -42,7 +42,7 @@ class QuotePipeline:
             self.display.send({'market': {'id': market['market_id'], 'origin': self.store.settings.origin_id,
                                 **{k: terms[k] for k in ('slug', 'start', 'end', 'target_usd', 'status')}},
                                'quote': self.quote, 'received': self.received, 'saved': self.saved,
-                               'started_at': self.started, 'last_commit': self.last_commit})
+                               'duplicates': self.duplicates, 'started_at': self.started, 'last_commit': self.last_commit})
 
     async def market(self, event):
         if self.current and self.current['event_id'] == event['event_id']:
@@ -79,14 +79,16 @@ class QuotePipeline:
             quote['event_id'] = 'ws-' + content_hash([event['market_id'], data])
             if self.quote and self.quote['source_time'] and source_timestamp(quote['source_time'])[1] < source_timestamp(self.quote['source_time'])[1]:
                 return
+        self.received += 1
         if self.quote and quote['event_id'] == self.quote['event_id']:
+            self.duplicates += 1
+            self.broadcast()
             return
         self.quote = {**quote['payload'], **{k: quote[k] for k in
                       ('market_id', 'event_id', 'source_time', 'received_at', 'provenance')}}
         if self.first_event_id is None:
             self.first_event_id = quote['event_id']
             boundary_trace('usable_receipt', event, quote=quote, reader='canonical_ws')
-        self.received += 1
         self.broadcast()
         await self.queue.put(quote)
 
@@ -97,6 +99,8 @@ class QuotePipeline:
             if event['kind'] == 'quote':
                 if not ack['duplicate']:
                     self.saved += 1
+                else:
+                    self.duplicates += 1
                 self.last_commit = {'event_id': event['event_id'], 'at': utc()}
                 if event['event_id'] == self.first_event_id:
                     boundary_trace('write_complete', quote=event, reader='canonical_ws',

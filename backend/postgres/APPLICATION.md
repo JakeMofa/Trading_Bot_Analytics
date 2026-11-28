@@ -69,8 +69,8 @@ when full, and rechecks the database writer lease at commit. A crash can
 interrupt queued, uncommitted observations. The display is observational.
 
 The existing structured worker authenticates archive readback before ACK.
-WebSocket quotes use the existing protected evidence projection and its
-outbox envelope. Received and newly saved quote counters are per collector
+Each WebSocket quote enqueues the structured evidence envelope inside its raw
+write transaction. This does not create a second permanent local core row. Received and newly saved quote counters are per collector
 session. The API samples acknowledged WebSocket quote envelopes every 15s.
 A missing sample displays as unknown. Realtime and browser credentials are
 unnecessary for this path.

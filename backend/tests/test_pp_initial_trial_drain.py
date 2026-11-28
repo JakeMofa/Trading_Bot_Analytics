@@ -245,7 +245,7 @@ class InitialSealNative(unittest.TestCase):
                     self.assertIsNone(displayed['market']['target_usd'])
                     self.assertEqual(displayed['quote_counts']['saved'], 0)
                     await pipe.book(data)
-                    self.assertEqual(pipe.received, 1)
+                    self.assertEqual((pipe.received, pipe.duplicates), (2, 1))
                     release.set()
                     await asyncio.wait_for(pipe.queue.join(), 4)
                     self.assertEqual(pipe.saved, 1)

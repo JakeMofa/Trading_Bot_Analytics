@@ -626,7 +626,9 @@
       const counts = state.quote_counts;
       set('quote-progress', counts ? 'This collector session · Quotes received ' + counts.received
         + ' · Saved ' + counts.saved + ' · Archived ' + (counts.archived ?? 'unknown')
-        + (counts.received > counts.saved ? ' · awaiting persistence or deduplication' : '') : '');
+        + (counts.duplicates ? ' · Repeated ' + counts.duplicates : '')
+        + (counts.received > counts.saved + counts.duplicates ? ' · awaiting local commit' : '')
+        + (counts.last_commit ? ' · last commit ' + localTime(counts.last_commit.at) : '') : '');
       const collector = state.collector || {};
       const collectorLabel = collector.enabled === true ? 'collector lease ON' :
         collector.enabled === false ? 'collector OFF' : 'collector state unavailable';

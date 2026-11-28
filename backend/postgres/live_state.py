@@ -12,6 +12,7 @@ class LiveState:
     def __init__(self, settings, clock=utcnow):
         self.settings, self.clock = settings, clock
         self._lock = RLock()
+        self.health_session = None
         self.source_health = None
         self.benchmark_window = None
         self._market = None
@@ -33,6 +34,9 @@ class LiveState:
     def display(self, packet):
         with self._lock:
             old = self._display
+            if old and packet.get('started_at') and old.get('started_at'):
+                if timestamp(packet['started_at']) < timestamp(old['started_at']):
+                    return
             first = packet['quote'] and (not old or not old['quote']
                                          or old['market']['id'] != packet['market']['id'])
             self._display = deepcopy(packet)

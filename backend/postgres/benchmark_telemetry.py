@@ -12,6 +12,7 @@ FEEDS = ('coinbase_stream', 'coinbase_candles', 'polymarket_catalog', 'polymarke
 ISSUES = ('auth', 'rate_limit', 'http_4xx', 'http_5xx', 'transport', 'invalid', 'retry', 'write')
 _counts = {}
 _sender = None
+_session = None
 
 
 def classify_status(status):
@@ -22,9 +23,10 @@ def classify_status(status):
     return 'http_5xx' if status >= 500 else 'http_4xx'
 
 
-def source_monitor(sender):
+def source_monitor(sender, session=None):
     """One collector process owns a bounded session and these cumulative counters."""
-    global _sender
+    global _sender, _session
+    _session = session
     _counts.clear()
     _sender = sender if sender is not None and sender.origin == ORIGIN else None
     heartbeat()
@@ -32,15 +34,15 @@ def source_monitor(sender):
 
 def heartbeat():
     if _sender is not None:
-        _sender.send({'type': 'source_health', 'counts': dict(_counts)})
+        _sender.send({'type': 'source_health', 'session': _session, 'counts': dict(_counts)})
 
 
 @contextmanager
-def monitor_session(origin):
+def monitor_session(origin, session):
     """One fenced collector session owns source metrics even if a feed is paused."""
     from .quote_display import DisplaySender
 
-    if origin != ORIGIN:
+    if origin != ORIGIN or not session:
         yield lambda: None
         return
     try:
@@ -49,7 +51,7 @@ def monitor_session(origin):
         # A telemetry socket failure must not take down collection.
         yield lambda: None
         return
-    source_monitor(sender)
+    source_monitor(sender, session)
     next_heartbeat = time.monotonic() + 10
     def pulse():
         nonlocal next_heartbeat
@@ -91,13 +93,18 @@ def archive_status(store):
         db.execute("SET LOCAL lock_timeout='100ms'")
         rows = db.execute("""
             SELECT g.slot, g.generation_id::text AS generation, g.state,
-                   g.generation_id=w.generation_id AS current,
+                   g.generation_id=w.generation_id AS current, w.collector_session_id::text AS session,
+                   (intent.cursor->>'stopped')::boolean IS FALSE AND intent.cursor IS NOT NULL AS watch_requested,
                    COALESCE(w.collector_enabled AND w.collector_lease_expires_at>statement_timestamp(),false) AS enabled,
                    totals.pending, (ack.cursor->>'rows')::bigint AS acknowledged, totals.oldest_age,
                    extract(epoch FROM statement_timestamp())::float8 AS observed_at
             FROM ops.writer_state w JOIN archive.generations g ON g.origin_id=w.origin_id
             LEFT JOIN archive.checkpoints ack ON ack.origin_id=g.origin_id AND ack.generation_id=g.generation_id
                 AND ack.consumer='structured:verified-acks-v1'
+            LEFT JOIN archive.checkpoints intent ON intent.origin_id=w.origin_id
+                AND intent.consumer='watch:operator-off'
+                AND intent.generation_id=(SELECT initial.generation_id FROM archive.generations initial
+                    WHERE initial.origin_id=w.origin_id AND initial.slot='A' ORDER BY initial.created_at LIMIT 1)
             CROSS JOIN LATERAL (
                 SELECT count(*) AS pending,
                        COALESCE(extract(epoch FROM statement_timestamp() -
@@ -125,6 +132,7 @@ class BenchmarkTelemetry:
                     self.windows = None
                 self.sampled = time.monotonic()
         active = next((w for w in (self.windows or ()) if w['current']),None)
+        self.state.health_session = active.get('session') if active and active['enabled'] else None
         self.state.benchmark_window = ({k:active[k] for k in ('slot','generation','state','observed_at')}
                                        if active else None)
         state = self.state.snapshot()
@@ -136,7 +144,14 @@ class BenchmarkTelemetry:
             refs[source] = {basis: (now - timestamp(observation[field])).total_seconds()
                             for basis, field in (('provider','source_time'), ('pp_receipt','received_at'))
                             if observation.get(field)}
-        return {'origin': self.store.origin, 'observed_at': now.timestamp(), 'windows': self.windows,
+        health = self.state.source_health
+        if not health or not self.state.health_session or health.get('session') != self.state.health_session:
+            health = None
+        else:
+            health = {k:health[k] for k in ('counts','observed_at')}
+        # Session IDs fence IPC internally. The public monitoring response contains no session ID.
+        windows = None if self.windows is None else [{k:v for k,v in w.items() if k!='session'} for w in self.windows]
+        return {'origin': self.store.origin, 'observed_at': now.timestamp(), 'windows': windows,
                 'reference_age': refs, 'feed_enabled': {f:v['enabled'] for f,v in (state.get('feed_controls') or {}).items()},
-                'source_health': self.state.source_health,
+                'source_health': health,
                 'quote_counts': state['quote_counts'], 'database_quote_received_at': self.state.durable_quote_received_at}

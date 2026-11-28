@@ -32,7 +32,7 @@ class TelemetryTests(unittest.IsolatedAsyncioTestCase):
         with patch('postgres.quote_display.DisplaySender', return_value=display), patch(
             'postgres.benchmark_telemetry.time.monotonic', side_effect=[10, 12, 21]
         ):
-            with monitor_session(ORIGIN) as pulse:
+            with monitor_session(ORIGIN, 'session-a') as pulse:
                 issue('robinhood_reference', 'auth')
                 pulse()
                 self.assertEqual(display.send.call_count, 2)
@@ -52,6 +52,22 @@ class TelemetryTests(unittest.IsolatedAsyncioTestCase):
             results = await asyncio.gather(monitor.snapshot(),monitor.snapshot())
             self.assertEqual(read.call_count,1)
         self.assertTrue(all(r['windows'] is None for r in results))
+
+    async def test_old_heartbeat_cannot_replace_successor_or_leak_its_identity(self):
+        store = MagicMock(origin=ORIGIN)
+        state = MagicMock(durable_quote_received_at=None)
+        state.snapshot.return_value = {'quote_counts': None}
+        state.source_health={'session':'prior','counts':{},'observed_at':100}
+        monitor=BenchmarkTelemetry(store,state)
+        active={'slot':'A','generation':'g','state':'collecting','observed_at':100,'current':True,
+                'enabled':True,'session':'successor','watch_requested':True}
+        with patch('postgres.benchmark_telemetry.archive_status', return_value=[active]):
+            result=await monitor.snapshot()
+            self.assertIsNone(result['source_health'])
+            self.assertNotIn('session',result['windows'][0])
+            self.assertEqual(state.health_session,'successor')
+            state.source_health={'session':'successor','counts':{},'observed_at':101}
+            self.assertEqual((await monitor.snapshot())['source_health'], {'counts':{},'observed_at':101})
 
     def test_missing_host_pressure_stays_unknown_at_startup(self):
         first=sender.host_measurements({'mem_available_kib':100}, 7, {})

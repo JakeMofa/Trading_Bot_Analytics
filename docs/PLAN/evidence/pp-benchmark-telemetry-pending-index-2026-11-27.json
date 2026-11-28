@@ -3,32 +3,32 @@
   "acknowledged_fixture": 2000000,
   "pending_fixture": 9,
   "restriction": "actual Benchmark application read-only role",
-  "execution_ms": 0.647,
-  "planning_ms": 2.027,
+  "execution_ms": 1.015,
+  "planning_ms": 3.125,
   "scan": [
     {
       "node": "Nested Loop",
       "index": null,
       "relation": null,
       "rows": 1,
-      "shared_hit": 5,
-      "shared_read": 4
+      "shared_hit": 12,
+      "shared_read": 5
     },
     {
       "node": "Nested Loop",
       "index": null,
       "relation": null,
       "rows": 1,
-      "shared_hit": 3,
-      "shared_read": 4
+      "shared_hit": 10,
+      "shared_read": 5
     },
     {
       "node": "Nested Loop",
       "index": null,
       "relation": null,
       "rows": 1,
-      "shared_hit": 1,
-      "shared_read": 4
+      "shared_hit": 8,
+      "shared_read": 5
     },
     {
       "node": "Index Scan",
@@ -39,12 +39,60 @@
       "shared_read": 2
     },
     {
+      "node": "Hash Join",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 7,
+      "shared_read": 3
+    },
+    {
+      "node": "Index Scan",
+      "index": "checkpoints_pkey",
+      "relation": "checkpoints",
+      "rows": 0,
+      "shared_hit": 2,
+      "shared_read": 0
+    },
+    {
+      "node": "Hash",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 5,
+      "shared_read": 3
+    },
+    {
       "node": "Index Scan",
       "index": "writer_state_pkey",
       "relation": "writer_state",
       "rows": 1,
       "shared_hit": 0,
       "shared_read": 2
+    },
+    {
+      "node": "Limit",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 5,
+      "shared_read": 1
+    },
+    {
+      "node": "Sort",
+      "index": null,
+      "relation": null,
+      "rows": 1,
+      "shared_hit": 5,
+      "shared_read": 1
+    },
+    {
+      "node": "Index Scan",
+      "index": "generations_pkey",
+      "relation": "generations",
+      "rows": 1,
+      "shared_hit": 2,
+      "shared_read": 1
     },
     {
       "node": "Index Scan",

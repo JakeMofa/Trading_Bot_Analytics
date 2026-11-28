@@ -68,7 +68,7 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             raise LiveDiagnostic('ownership', 'lease_lost')
 
     async def watch_fence():
-        with metrics.monitor_session(store.settings.origin_id) as pulse:
+        with metrics.monitor_session(store.settings.origin_id, getattr(store, 'producer_session_id', None)) as pulse:
             while not stop.is_set():
                 await assert_fence()
                 pulse()

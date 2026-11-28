@@ -1404,10 +1404,10 @@ samples only that origin, reports A and B separately, and treats an unavailable
 sample as unknown. Sustained sender operation and alert recovery require
 the qualified continuous release. [Benchmark observability and installation](../deploy/preprod/BENCHMARK_MONITORING.md).
 
-The actual PG17 application-role query took 0.647 ms execution and 2.027 ms
+The actual PG17 application-role query took 1.015 ms execution and 3.125 ms
 planning on a disposable table with 2,000,000 acknowledged rows and nine
 pending rows. It visited nine outbox index entries and looked up one generation
-ACK checkpoint by its primary key. The missing historical counter returned
+ACK checkpoint and explicit operator intent by their primary keys. The missing historical counter returned
 unknown. [Query plan](PLAN/evidence/pp-benchmark-telemetry-pending-index-2026-11-27.json).
 
 ### Independent Benchmark feed controls

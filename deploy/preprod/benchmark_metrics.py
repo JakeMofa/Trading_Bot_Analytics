@@ -103,6 +103,7 @@ def collect(snapshot, at, previous, elapsed):
         if not w['current']:
             continue
         emit('pp_collector_enabled',w['enabled'],tags,stamp)
+        emit('pp_benchmark_watch_requested',w.get('watch_requested'),tags,stamp)
         emit('pp_benchmark_active_window',1,tags,stamp)
         saved_at = snapshot.get('database_quote_received_at')
         if saved_at:

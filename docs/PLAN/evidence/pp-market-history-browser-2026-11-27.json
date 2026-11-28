@@ -1,0 +1,61 @@
+{
+  "visible_columns_sha256": "1296a041a92d2eef347889a863e891a723486a02d2cd2d2e3f5eae0443192959",
+  "ordered_event_hash_payload_sha256": "63dbd0b8a268cd6b88a482b1340acf22ef73d96c443899885c6995390eb00620",
+  "scope": "Local Chrome, FastAPI and isolated PostgreSQL 17; verified in-memory object fixture; collector off; no hosted request. Two-frame figure approximates browser presentation.",
+  "window": {
+    "start": "2026-11-12T13:04:59+00:00",
+    "end": "2026-11-12T13:05:01+00:00",
+    "as_of": "2026-11-12T13:05:01+00:00"
+  },
+  "results": [
+    {
+      "phase": "attached_A_B",
+      "visible_rows": 500,
+      "tier_counts": {
+        "Local PostgreSQL": 500
+      },
+      "fastapi_ms": 47.821,
+      "from_submit_ms": 79.60000000149012,
+      "response_to_two_frames_ms": 29.600000001490116,
+      "request_to_response_end_ms": 49,
+      "decoded_body_bytes": 399420
+    },
+    {
+      "phase": "A_archived_still_attached",
+      "visible_rows": 500,
+      "tier_counts": {
+        "Local PostgreSQL": 500
+      },
+      "fastapi_ms": 46.26,
+      "from_submit_ms": 77.40000000223517,
+      "response_to_two_frames_ms": 23.900000002235174,
+      "request_to_response_end_ms": 48.69999999925494,
+      "decoded_body_bytes": 399420
+    },
+    {
+      "phase": "A_archive_B_local",
+      "visible_rows": 500,
+      "tier_counts": {
+        "Verified archive": 250,
+        "Local PostgreSQL": 250
+      },
+      "fastapi_ms": 67.949,
+      "from_submit_ms": 96,
+      "response_to_two_frames_ms": 24.300000000745058,
+      "request_to_response_end_ms": 69.30000000074506,
+      "decoded_body_bytes": 401194
+    },
+    {
+      "phase": "A_B_archive_only",
+      "visible_rows": 500,
+      "tier_counts": {
+        "Verified archive": 500
+      },
+      "fastapi_ms": 44.019,
+      "from_submit_ms": 83.80000000074506,
+      "response_to_two_frames_ms": 35.69999999925494,
+      "request_to_response_end_ms": 45.30000000074506,
+      "decoded_body_bytes": 402927
+    }
+  ]
+}

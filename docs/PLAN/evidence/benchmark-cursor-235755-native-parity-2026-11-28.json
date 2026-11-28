@@ -1,0 +1,16 @@
+{
+  "source": "fd5adf299c6c50eb465ad0ab74f2b9d5d9de4b89",
+  "scope": "local isolated macOS native PG17.2, generated four-column warm fixture; no VM latency or raw feed data",
+  "work_mem_mib": 2,
+  "temp_limit_mib": 64,
+  "sql_timeout_s": 19,
+  "total_snapshot_s": 1.4738187920011114,
+  "sql_pages": 231,
+  "max_local_page_query_response_ms": 10.48149999405723,
+  "original_streaming_oracle_equals_cursor": true,
+  "proof": {
+    "count": 235755,
+    "pending": 2357,
+    "digest": "2329aef3c2d02a6785b61cd8a015779bdef2949a9a82531ca7032919ed9f07ea"
+  }
+}

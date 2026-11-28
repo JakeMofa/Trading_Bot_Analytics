@@ -47,6 +47,32 @@ class RobinhoodReferenceTests(unittest.IsolatedAsyncioTestCase):
         self.assertNotEqual(event['event_id'], fixture_event(requested='2026-11-27T23:02:00.202000Z')['event_id'])
         self.assertEqual(event, fixture_event())
 
+    def test_movement_uses_consecutive_polls_preserving_subcent_changes(self):
+        from types import SimpleNamespace
+        from unittest.mock import Mock
+        from postgres.quote_session import QuotePipeline
+        sender = Mock()
+        pipe = QuotePipeline(SimpleNamespace(), sender)
+        first = fixture_event()
+        pipe.publish_robinhood(first)
+        self.assertIsNone(sender.send.call_args.args[0]['reference']['movement'])
+        second = fixture_event(requested='2026-11-27T23:02:01.200000Z', received='2026-11-27T23:02:01.230000Z',
+                               price='68000.00000000002')
+        pipe.publish_robinhood(second)
+        movement = sender.send.call_args.args[0]['reference']['movement']
+        self.assertEqual(movement['delta_usd'], '0.00000000001')
+        self.assertEqual(movement['previous_event_id'], first['event_id'])
+        pipe.publish_robinhood(second)
+        self.assertEqual(sender.send.call_count, 2)
+        previous = pipe.previous_robinhood
+        now = {**previous, 'source_time':'2026-11-27T23:02:02Z','received_at':'2026-11-27T23:02:02.1Z'}
+        self.assertEqual(history.quote_movement(previous, now)['delta_usd'], '0.00000000000')
+        self.assertTrue(history.quote_movement(previous, {**now, 'price_usd':'67000'})['delta_usd'].startswith('-'))
+        for invalid in ({'price_usd':None}, {'source_time':None}, {'book_status':'crossed'},
+                        {'source_time':'2026-11-27T23:01:59Z'}, {'received_at':'2026-11-27T23:02:20Z'}):
+            with self.subTest(change=invalid):
+                self.assertIsNone(history.quote_movement(previous, {**now, **invalid}))
+
     async def test_reuses_client_verifies_v1_signature_obeys_retry_after_and_stops_on_denial(self):
         private = Ed25519PrivateKey.generate()
         key = ('fixture-key', private)

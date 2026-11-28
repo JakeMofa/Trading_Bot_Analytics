@@ -44,6 +44,8 @@
     .feeds, .evaluation, .news { grid-column:span 4; }
     .outcomes, .evidence { grid-column:span 6; }
     .hero { font-size:clamp(2rem,4vw,3.4rem); font-variant-numeric:tabular-nums; font-weight:750; letter-spacing:-.055em; line-height:1.08; margin:8px 0; }
+    .baseline-values { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .baseline-values .hero { font-size:clamp(1.35rem,2.4vw,2.3rem); }
     .row { display:flex; gap:18px; flex-wrap:wrap; align-items:baseline; }
     .metric { flex:1; min-width:130px; }
     .metric strong { display:block; font-size:1.3rem; margin-top:6px; font-variant-numeric:tabular-nums; }
@@ -102,7 +104,7 @@
         <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
         <div class="metric"><span class="label">Polymarket BTC/USD reference</span><strong id="venue-price">—</strong><div id="venue-distance" class="small muted"></div></div>
         <div class="metric"><span class="label">Latest Coinbase tick</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
-        <div class="metric"><span class="label">Robinhood BTC/USD · v1 midpoint</span><strong id="robinhood-price">—</strong><div id="robinhood-age" class="small muted">Awaiting Robinhood.</div></div>
+        <div class="metric"><span class="label">Robinhood BTC/USD · v1 midpoint</span><strong id="robinhood-price">—</strong><div id="robinhood-movement" class="small muted">Awaiting consecutive polls.</div><div id="robinhood-age" class="small muted">Awaiting Robinhood.</div></div>
         <div class="metric"><span class="label">Saved forecast input</span><strong id="reference">—</strong></div>
         <div class="metric"><span class="label">Forecast input distance</span><strong id="distance">—</strong></div>
       </div>
@@ -120,12 +122,11 @@
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
       <h2 id="forecast-heading">Live baseline estimate · follows BTC ticks</h2>
-      <div id="forecast-up" class="hero up">—</div>
-      <div id="forecast-state" class="small muted">Waiting for baseline inputs.</div>
-      <div class="row">
-        <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
-        <div class="metric"><span class="label">DOWN probability</span><strong id="down-small">—</strong></div>
+      <div class="baseline-values">
+        <div><span class="label">UP probability</span><div id="forecast-up" class="hero">—</div></div>
+        <div><span class="label">DOWN probability</span><div id="forecast-down" class="hero">—</div></div>
       </div>
+      <div id="forecast-state" class="small muted">Waiting for baseline inputs.</div>
       <div class="line"></div>
       <h3>Latest saved prediction for this market</h3>
       <strong id="saved-forecast-result">—</strong>
@@ -473,6 +474,16 @@
         (rhFresh ? 'Recent' : 'Stale') + ' · PP receipt ' + age(rhAge)
         + (rhSourceAge == null ? ' · provider time unavailable' : ' · Robinhood retrieval ' + age(rhSourceAge))
         + (rh.book_status === 'crossed' ? ' · crossed book' : rh.price_usd == null ? ' · midpoint unavailable' : ''));
+      const delta = rhFresh && rh?.price_usd != null ? rh.movement?.delta_usd : null;
+      let direction = '', movementText = rh && !rhFresh ? 'Price change stale.' : 'Awaiting consecutive usable polls.';
+      if (delta != null) {
+        const amount = String(delta).replace(/^-/, '').replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '');
+        direction = /^0(?:\.0*)?$/.test(amount) ? 'flat' : String(delta).startsWith('-') ? 'down' : 'up';
+        movementText = direction === 'flat' ? 'Unchanged since previous poll'
+          : (direction === 'up' ? 'Up' : 'Down') + ' $' + amount + ' since previous poll';
+      }
+      set('robinhood-movement', movementText);
+      byId('robinhood-movement').className = 'small ' + ({up:'up',down:'bad'}[direction] || 'muted');
       const venue = latest.venue_reference;
       set('venue-price', money(venue?.price_usd));
       const venueElement = byId('venue-price');
@@ -518,8 +529,7 @@
         ageOf(e.snapshot_as_of) <= 30);
       const liveProbability = estimateFresh ? e.probability_up : null;
       set('forecast-up', liveProbability == null ? '—' : pct(liveProbability) + ' UP');
-      set('up-small', pct(liveProbability));
-      set('down-small', liveProbability == null ? '—' : pct(1 - Number(liveProbability)));
+      set('forecast-down', liveProbability == null ? '—' : pct(1 - Number(liveProbability)) + ' DOWN');
       // Decision action and confidence from ensemble (if any)
       const decisionAction = f?.decision_action || null;
       const decisionSummary = f?.decision_summary || null;

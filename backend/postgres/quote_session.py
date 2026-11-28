@@ -37,6 +37,7 @@ class QuotePipeline:
         self.received = self.saved = self.duplicates = 0
         self.started = utc()
         self.reference = None
+        self.previous_robinhood = None
         self.last_commit = None
         self.first_event_id = None
 
@@ -57,9 +58,15 @@ class QuotePipeline:
         self.broadcast()
 
     def publish_robinhood(self, event):
-        self.display.send({'type': 'robinhood_reference', 'reference': {
-            'event_id': event['event_id'], 'price_usd': event['price'], 'received_at': event['received_at'],
-            'source_time': event['source_time'], 'book_status': event['payload']['book_status']}})
+        from .robinhood_history import quote_movement
+        current = {'event_id': event['event_id'], 'price_usd': event['price'],
+                   'received_at': event['received_at'], 'source_time': event['source_time'],
+                   'book_status': event['payload']['book_status']}
+        if self.previous_robinhood and current['event_id'] == self.previous_robinhood['event_id']:
+            return
+        movement = quote_movement(self.previous_robinhood, current)
+        self.previous_robinhood = current
+        self.display.send({'type': 'robinhood_reference', 'reference': {**current, 'movement': movement}})
 
     async def market(self, event):
         if self.current and self.current['event_id'] == event['event_id']:

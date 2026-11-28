@@ -14,6 +14,7 @@ from psycopg import OperationalError
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import test_postgres_trial07_permit as fixture
 from postgres.cloud_origin_binding import DISPLAY_ORIGIN
+from postgres.connection import connect
 from postgres.operator_api import create_operator_app
 from postgres.operator_runtime import create_runtime
 from postgres.shared_read_connection import SharedReadConnection
@@ -74,7 +75,10 @@ class SharedOperatorRuntime(unittest.TestCase):
                 self.assertEqual(response.status_code, 200, response.text)
                 self.assertFalse(response.json()['collector_enabled'])
                 self.assertEqual(backend_pid(), pid)
-            with self.admin() as db:
+            # CI's migrator/owner is deliberately not a stats superuser.
+            # Inspect our retained backend as its own restricted reader role;
+            # unrelated sessions' detailed state is masked by PostgreSQL.
+            with connect(reader, readonly=True) as db:
                 active = db.execute('SELECT state, xact_start FROM pg_stat_activity '
                                     'WHERE pid=%s', (pid,)).fetchone()
             self.assertEqual(active['state'], 'idle')

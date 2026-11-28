@@ -7,7 +7,7 @@ import time
 from psycopg import OperationalError
 from psycopg.types.json import Jsonb
 
-from .live_diagnostics import connection_capacity
+from .live_diagnostics import READ_CAPACITY_BACKOFF, connection_capacity
 
 ORIGIN = 'pp-live-pp-benchmark-watch'
 FEEDS = ('polymarket','coinbase','robinhood')
@@ -65,7 +65,7 @@ def desired_feeds(store):
     check_store(store)
     # Other readers and state-changing controls retain their own failure
     # semantics. Only retry opening this side-effect-free preferences read.
-    for delay in (0.1, 0.3, None):
+    for delay in READ_CAPACITY_BACKOFF:
         try:
             connection = store.connection(True)
             break

@@ -40,6 +40,13 @@ def _http_category(status):
             'http_4xx' if 400 <= status <= 499 else 'http_unexpected')
 
 
+READ_CAPACITY_BACKOFF = (0.1, 0.3, None)
+
+
+class OwnershipConnectionLimit(RuntimeError):
+    """Opening a read-only watch ownership connection failed before its SELECT."""
+
+
 def connection_capacity(error):
     if error.sqlstate is not None:
         return error.sqlstate == '53300'

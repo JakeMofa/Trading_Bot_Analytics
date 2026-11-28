@@ -68,6 +68,10 @@
     nav { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
     nav button { padding:10px 20px; border:1px solid #40546b; border-radius:8px; background:#172535; color:#e7f1fc; }
     nav button[aria-pressed="true"] { background:#264a69; border-color:#65b3ff; }
+    #market-history-form { display:flex;gap:12px;align-items:end;flex-wrap:wrap; }
+    #market-history-form label { display:grid;gap:4px; }
+    #market-history-form input,#market-history-form button,#history-next { padding:7px;background:#172535;color:#e7f1fc;border:1px solid #40546b;border-radius:6px; }
+    #history-next:disabled { opacity:.5; }
     #system-charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px; margin-top:20px; }
     #system-charts svg { display:block;width:100%; }
     table { width:100%;border-collapse:collapse;text-align:left;font-size:.85rem; }
@@ -95,6 +99,7 @@
       <div id="market-timer" class="hero">—</div>
       <div class="row">
         <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
+        <div class="metric"><span class="label">Polymarket BTC/USD reference</span><strong id="venue-price">—</strong><div id="venue-distance" class="small muted"></div></div>
         <div class="metric"><span class="label">Latest Coinbase tick</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
         <div class="metric"><span class="label">Saved forecast input</span><strong id="reference">—</strong></div>
         <div class="metric"><span class="label">Forecast input distance</span><strong id="distance">—</strong></div>
@@ -109,7 +114,7 @@
       <div id="quote-progress" class="small muted"></div>
       <div id="market-quote" class="small muted" style="margin-top:8px"></div>
       <div class="small muted" style="margin-top:5px">Bid and ask are observed market prices, not our forecast or guaranteed execution prices.</div>
-      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms and the observed bid/ask come from Polymarket US public REST. This page does not scrape your browser or account.</p>
+      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Polymarket US REST supplies the market terms. Each bid and ask is labeled with its quote feed. This page does not scrape your browser or account.</p>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
       <h2 id="forecast-heading">Live baseline estimate · follows BTC ticks</h2>
@@ -145,7 +150,19 @@
     </section>
   </main>
   <section data-page="models" hidden class="card"><h2>Models &amp; decisions</h2><p class="small muted">Baseline from RAM; ensemble migration is unavailable in this milestone. Experimental outputs are unvalidated. No orders are placed.</p><div id="models-list">Waiting for models…</div></section>
-  <section data-page="history" hidden><div class="card" style="overflow:auto;margin-bottom:16px"><h2>Prediction history</h2><p id="history-status">Loading…</p><table><thead><tr><th>Forecast time</th><th>Market</th><th>Model</th><th>UP</th><th>Abstention</th></tr></thead><tbody id="prediction-rows"></tbody></table></div><div class="grid">    <section class="card evaluation" aria-labelledby="evaluation-heading">
+  <section data-page="history" hidden>
+    <div class="card" style="overflow:auto;margin-bottom:16px">
+      <h2>Market history</h2>
+      <form id="market-history-form">
+        <label>Market ID<input id="history-market" list="history-markets" required></label><datalist id="history-markets"></datalist>
+        <label>From (UTC)<input id="history-from" type="datetime-local" required step="1"></label>
+        <label>Until (UTC)<input id="history-until" type="datetime-local" required step="1"></label>
+        <button type="submit">Load events</button>
+      </form>
+      <p id="events-status" role="status">Choose a market and time range.</p>
+      <table><thead><tr><th>Source time</th><th>Received</th><th>Source</th><th>Event</th><th>Bid</th><th>Ask</th></tr></thead><tbody id="event-rows"></tbody></table>
+      <button type="button" id="history-next" disabled>Next page</button>
+    </div><div class="card" style="overflow:auto;margin-bottom:16px"><h2>Prediction history</h2><p id="history-status">Loading…</p><table><thead><tr><th>Forecast time</th><th>Market</th><th>Model</th><th>UP</th><th>Abstention</th></tr></thead><tbody id="prediction-rows"></tbody></table></div><div class="grid">    <section class="card evaluation" aria-labelledby="evaluation-heading">
       <h2 id="evaluation-heading">Confirmed-market evaluation</h2>
       <div id="checkpoint-list"></div>
       <p class="small muted">Distinct resolved markets at each forecast time. Comparisons remain preliminary until 30 per checkpoint.</p>
@@ -281,7 +298,7 @@
     byId('plan-dialog').addEventListener('click', event => {
       if (event.target === byId('plan-dialog')) byId('plan-dialog').close();
     });
-    let chartData = null, chartInFlight = false;
+    let chartData = null;
     function mergeLatestTick(data) {
       if (!chartData?.market || chartData.market.id !== data?.market?.id || !data.latest_coinbase_tick) return;
       const t = data.latest_coinbase_tick, m = chartData.market;
@@ -368,24 +385,23 @@
       }
     }
     async function refreshChart() {
-      if (chartInFlight) return;
-      chartInFlight=true;
+      const request = beginRequest('chart', 'market');
+      if (!request) return;
       try {
-        const response=await fetch('/history/coinbase-chart',{cache:'no-store'});
-        if (!response.ok) throw new Error('Status '+response.status);
-        const saved = await response.json();
+        const saved = await getJSON('/history/coinbase-chart', request.signal);
+        if (request.signal.aborted) return;
         if (saved.market?.id === latest?.market?.id && saved.market) chartData = saved;
         else if (!chartData || chartData.market?.id !== latest?.market?.id) chartData = {market:latest?.market, points:[]};
         mergeLatestTick(latest);
         updateChartSummary();
         drawChart();
-      } catch (error) { set('chart-summary','Chart unavailable · '+error.message); }
-      finally { chartInFlight=false; }
+      } catch (error) { if (!request.signal.aborted) set('chart-summary','Chart unavailable · '+error.message); }
+      finally { endRequest('chart', request); }
     }
     let latest = null, serverEpochMs = null, syncAt = null, requestInFlight = false, lastError = null;
     let chartDrawPending = false;
     function scheduleChartDraw() {
-      if (chartDrawPending) return;
+      if (chartDrawPending || document.hidden || currentPage !== 'market') return;
       chartDrawPending = true;
       requestAnimationFrame(() => { chartDrawPending = false; drawChart(); });
     }
@@ -395,7 +411,7 @@
       if (!latest || serverNowMs() == null) return;
       const now = serverNowMs();
       set('server-clock', 'UTC ' + new Date(now).toLocaleTimeString('en-GB', {timeZone:'UTC',hour12:false}));
-      const candidate = savedModels.ensemble_v1;
+      const candidate = latest.forecast?.model_version === 'ensemble_v1' ? latest.forecast : savedModels.ensemble_v1;
       const f = candidate && candidate.market_id === latest.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : latest.baseline_forecast;
       const m = latest.market, s = latest.snapshot, q = latest.market_quote, t = latest.latest_coinbase_tick, e = latest.live_estimate;
       const remaining = m ? Math.max(0, Math.ceil((Date.parse(m.end) - now) / 1000)) : null;
@@ -410,20 +426,31 @@
       const storageFeed = latest.feeds?.find(feed => feed.source === 'storage_guard');
       const storageLimited = storageFeed?.effective_status === 'limit_reached';
       const collectionState = btcFeed?.effective_status;
+      const marketQuoteFresh = latest.collector?.enabled === true && m?.active && remaining > 0
+        && q?.received_at && ageOf(q.received_at) <= 10;
       const collectionText = storageLimited ? 'Collection paused · storage cap reached'
         : collectionState === 'stopped' ? 'Collection finished · saved data only'
-        : collectionState === 'stale' ? 'Collection delayed · BTC feed is stale'
+        : marketQuoteFresh && !tickFresh ? 'Polymarket quotes live · Coinbase reference delayed'
+        : collectionState === 'stale' ? 'Coinbase reference feed is stale'
         : tickFresh ? 'Collecting live Coinbase reference ticks'
         : 'Waiting for fresh Coinbase reference data';
       set('collection-state', collectionText);
       byId('collection-state').className = 'small ' + (tickFresh ? 'muted' : 'warn');
       set('chart-stream-state', storageLimited || collectionState === 'stopped' || collectionState === 'stale'
-        ? collectionText + (t ? ' · last tick ' + age(tickAge) : '')
+        ? (storageLimited ? collectionText : 'Coinbase chart feed ' + collectionState) + (t ? ' · last tick ' + age(tickAge) : '')
         : tickFresh ? 'Coinbase stream live · latest tick ' + age(tickAge)
         : 'Waiting for a fresh Coinbase stream tick');
       set('live-reference', t ? money(t.price_usd) : '—');
       set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
+      const venue = latest.venue_reference;
+      set('venue-price', money(venue?.price_usd));
+      const venueAge = venue ? (now - Date.parse(venue.source_time)) / 1000 : null;
+      const usable = venue?.status === 'fresh' && venueAge >= 0 && venueAge <= 10;
+      const distance = usable && m?.active && m.target_usd != null && venue.price_usd != null
+        ? Number(venue.price_usd) - Number(m.target_usd) : null;
+      set('venue-distance', !venue ? 'Reference unavailable' : (usable ? 'Updated ' : 'Stale · ') + age(venueAge)
+        + (distance == null ? '' : ' · ' + money(Math.abs(distance)) + (distance < 0 ? ' below target' : distance > 0 ? ' above target' : ' from target')));
       const quoteAge = q ? ageOf(q.received_at) : null;
       const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
       set('market-up', cents(q?.best_bid));
@@ -431,8 +458,9 @@
       let quoteText = 'No Polymarket quote saved for this market yet.';
       if (q?.kind === 'stream_book' || q?.kind === 'live_ws' || q?.kind === 'rest_bbo') {
         const sampleAge = ageOf(q.sample_time);
-        quoteText = (quoteDelayed ? 'DELAYED' : 'Recent') + (q.kind === 'rest_bbo' ? ' Polymarket US REST BBO' : ' Polymarket book') + ' · observed ' + age(quoteAge)
-          + ' · bid ' + cents(q.best_bid) + ' / ask ' + cents(q.best_ask);
+        quoteText = (quoteDelayed ? 'DELAYED' : 'Recent') + ({rest_bbo:' Polymarket US REST BBO',live_ws:' Polymarket US WebSocket book',stream_book:' Polymarket US REST book'}[q.kind]) + ' · observed ' + age(quoteAge)
+          + ' · bid ' + cents(q.best_bid) + (q.best_bid_qty == null ? '' : ' × ' + q.best_bid_qty)
+          + ' / ask ' + cents(q.best_ask) + (q.best_ask_qty == null ? '' : ' × ' + q.best_ask_qty);
         if (q.kind === 'rest_bbo') quoteText += ' · last price sample ' + age(sampleAge) + ' (not book update time)';
         if (q.up_quote != null || q.down_quote != null)
           quoteText += ' · last price sample UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote)
@@ -551,6 +579,8 @@
         div.append(sub); feeds.append(div);
       }
       if (!data.feeds.length) feeds.textContent = 'No feed health stored yet.';
+    }
+    function renderHistoryContext(data) {
       const evalList = byId('checkpoint-list'); evalList.replaceChildren();
       for (const [name,count] of Object.entries(data.evaluation.distinct_confirmed_markets_by_checkpoint)) {
         const line = document.createElement('div'); line.className = 'pair';
@@ -613,11 +643,38 @@
     let savedModels = {};
     let currentPage = 'market';
     let lastStreamAt = 0;
+    const viewRequests = new Map();
+    function beginRequest(key, page) {
+      if (document.hidden || currentPage !== page || viewRequests.has(key)) return null;
+      const request = new AbortController();
+      viewRequests.set(key, request);
+      return request;
+    }
+    function endRequest(key, request) {
+      if (viewRequests.get(key) === request) viewRequests.delete(key);
+    }
+    function cancelRequest(key) {
+      viewRequests.get(key)?.abort();
+      viewRequests.delete(key);
+      if (key === 'events' && byId('events-status').textContent === 'Loading events…') {
+        set('events-status', 'Load events to resume.');
+        byId('history-next').disabled = !eventCursor;
+      }
+    }
+    function refreshView() {
+      if (document.hidden) return;
+      if (currentPage === 'market') refreshChart();
+      if (currentPage === 'system') refreshSystem();
+      if (currentPage === 'history' || currentPage === 'models') refreshDetails();
+    }
     function showPage(page) {
+      if (page === currentPage) return;
+      for (const key of viewRequests.keys()) cancelRequest(key);
       currentPage = page;
       for (const node of document.querySelectorAll('[data-page]')) node.hidden = node.dataset.page !== page;
       for (const button of document.querySelectorAll('nav button')) button.setAttribute('aria-pressed', String(button.dataset.target === page));
-      if (page === 'system') refreshSystem();
+      if (page === 'history') prepareHistoryForm();
+      refreshView();
       if (page === 'market') drawChart();
     }
     for (const button of document.querySelectorAll('nav button')) button.onclick = () => showPage(button.dataset.target);
@@ -637,14 +694,14 @@
       const marketChanged = latest?.market?.id !== state.market?.id;
       const feature = state.feature_snapshot;
       const quote = state.polymarket;
-      const candidate = savedModels.ensemble_v1;
+      const candidate = state.models?.ensemble_v1 || savedModels.ensemble_v1;
       const ensemble = candidate && candidate.market_id === state.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : null;
       latest = {...savedContext, market:state.market, generated_at:state.generated_at,
         data_mode:state.data_mode, collector:state.collector,
         snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status, candle_age_seconds:feature.quality?.candle_age_seconds, reference_source:feature.quality?.price?.source} : null,
         forecast:ensemble || state.forecast, baseline_forecast:state.forecast, live_estimate:state.live_estimate,
-        latest_coinbase_tick:state.coinbase,
-        market_quote:quote ? {...quote, kind:quote.provenance?.feed === 'polymarket_us_websocket' ? 'live_ws' : 'rest_bbo', sample_time:quote.source_time,
+        latest_coinbase_tick:state.coinbase, venue_reference:state.polymarket_reference,
+        market_quote:quote ? {...quote, kind:({polymarket_us_websocket:'live_ws',polymarket_us_book:'stream_book'}[quote.provenance?.feed] || 'rest_bbo'), sample_time:quote.source_time,
           up_quote:quote.up_probability, down_quote:quote.down_probability} : null,
         feeds:Object.entries(state.feeds || {}).map(([source, feed]) => {
           const seconds = ageOf(feed.last_data_at || feed.updated_at);
@@ -654,17 +711,19 @@
       render(latest);
       if (marketChanged || !chartData) {
         chartData = {market:state.market, points:[]};
-        refreshChart();
+        cancelRequest('chart');
+        cancelRequest('details');
+        refreshView();
       }
       mergeLatestTick(latest); scheduleChartDraw(); tick();
     }
-    async function getJSON(path) {
-      const response = await fetch(path, {cache:'no-store'});
+    async function getJSON(path, signal) {
+      const response = await fetch(path, {cache:'no-store', signal});
       if (!response.ok) throw new Error('Request failed: ' + response.status);
       return response.json();
     }
     async function refresh() {
-      if (requestInFlight || Date.now() - lastStreamAt < 5000) return;
+      if (document.hidden || requestInFlight || Date.now() - lastStreamAt < 5000) return;
       requestInFlight = true;
       try { acceptState(await getJSON('/state/current')); }
       catch (error) { lastError = error; set('refresh', 'Live data unavailable'); }
@@ -677,40 +736,123 @@
       row.append(left, right); parent.append(row);
     }
     async function refreshDetails() {
-      const results = await Promise.allSettled(['/models/current','/history/predictions?limit=100','/history/context'].map(getJSON));
-      if (results[0].status === 'fulfilled') {
-        savedModels = results[0].value.models;
-        const view = byId('models-list'); view.replaceChildren();
-        for (const [name, model] of Object.entries(savedModels)) {
-          const card = document.createElement('div'); card.className = 'feed';
-          pair(card, name, pct(model.probability_up) + ' UP');
-          pair(card, 'Forecast time', localTime(model.as_of));
-          if (model.market_id) pair(card, 'Market', model.market_id);
-          pair(card, 'Status', model.experimental ? 'Experimental · unvalidated' : model.abstain_reason || 'Baseline');
-          if (model.current_market === false) pair(card, 'Market match', 'Previous market · excluded from live decisions');
-          for (const key of ['decision_action','decision_summary','decision_label','decision_hold_direction','decision_confidence','suggested_action','suggested_confidence']) {
-            if (model[key] != null) pair(card, key.replaceAll('_',' '), model[key]);
-          }
-          view.append(card);
+      const page = currentPage;
+      if ((page !== 'history' && page !== 'models') || viewRequests.has('events')) return;
+      const request = beginRequest('details', page);
+      if (!request) return;
+      try {
+        if (page === 'models') {
+          const result = await getJSON('/models/current', request.signal);
+          if (request.signal.aborted) return;
+          renderModels(result.models);
+        } else {
+          const predictions = await getJSON('/history/predictions?limit=100', request.signal);
+          if (request.signal.aborted) return;
+          renderPredictions(predictions.items);
+          const context = await getJSON('/history/context', request.signal);
+          if (request.signal.aborted) return;
+          savedContext = {...savedContext, ...context};
+          renderHistoryContext(savedContext);
         }
-        if (!Object.keys(savedModels).length) view.textContent = 'No model result available yet.';
+      } catch (error) {
+        if (!request.signal.aborted) set(page === 'models' ? 'models-list' : 'history-status', 'Saved details unavailable.');
+      } finally { endRequest('details', request); }
+    }
+    function renderModels(models) {
+      savedModels = models;
+      const view = byId('models-list'); view.replaceChildren();
+      for (const [name, model] of Object.entries(savedModels)) {
+        const card = document.createElement('div'); card.className = 'feed';
+        pair(card, name, pct(model.probability_up) + ' UP');
+        pair(card, 'Forecast time', localTime(model.as_of));
+        if (model.market_id) pair(card, 'Market', model.market_id);
+        pair(card, 'Status', model.experimental ? 'Experimental · unvalidated' : model.abstain_reason || 'Baseline');
+        if (model.current_market === false) pair(card, 'Market match', 'Previous market · excluded from live decisions');
+        for (const key of ['decision_action','decision_summary','decision_label','decision_hold_direction','decision_confidence','suggested_action','suggested_confidence']) {
+          if (model[key] != null) pair(card, key.replaceAll('_',' '), model[key]);
+        }
+        view.append(card);
       }
-      if (results[1].status === 'fulfilled') {
-        const tbody = byId('prediction-rows'); tbody.replaceChildren();
-        for (const item of results[1].value.items) {
-          const tr = document.createElement('tr');
-          for (const value of [localTime(item.as_of),item.market_id,item.model_version,pct(item.probability_up),item.abstain_reason || '—']) {
-            const td = document.createElement('td'); td.textContent = value; tr.append(td);
-          }
-          tbody.append(tr);
+      if (!Object.keys(savedModels).length) view.textContent = 'No model result available yet.';
+    }
+    function renderPredictions(predictions) {
+      const markets = new Set([latest?.market?.id, ...predictions.map(item => item.market_id)].filter(Boolean));
+      byId('history-markets').replaceChildren(...Array.from(markets, id => {
+        const option = document.createElement('option'); option.value = id; return option;
+      }));
+      const tbody = byId('prediction-rows'); tbody.replaceChildren();
+      for (const item of predictions) {
+        const tr = document.createElement('tr');
+        for (const value of [localTime(item.as_of),item.market_id,item.model_version,pct(item.probability_up),item.abstain_reason || '—']) {
+          const td = document.createElement('td'); td.textContent = value; tr.append(td);
         }
-        set('history-status', tbody.children.length ? 'Latest 100 persisted forecasts' : 'No saved forecasts available.');
-      } else set('history-status', 'Prediction history unavailable.');
-      if (results[2].status === 'fulfilled') {
-        savedContext = {...savedContext, ...results[2].value};
-        if (latest) { latest = {...latest, ...savedContext}; render(latest); }
+        tbody.append(tr);
+      }
+      set('history-status', tbody.children.length ? 'Latest 100 persisted forecasts' : 'No saved forecasts available.');
+    }
+    let eventQuery = null, eventCursor = null;
+    function prepareHistoryForm() {
+      if (byId('history-market').value || !latest?.market) return;
+      const market = latest.market;
+      byId('history-market').value = market.id;
+      byId('history-from').value = new Date(market.start).toISOString().slice(0,19);
+      byId('history-until').value = new Date(Math.min(Date.parse(market.end), serverNowMs())).toISOString().slice(0,19);
+    }
+    function clearEventPage() {
+      cancelRequest('events');
+      eventQuery = eventCursor = null;
+      byId('event-rows').replaceChildren();
+      byId('history-next').disabled = true;
+      set('events-status', 'Choose a market and time range.');
+    }
+    async function loadEventPage(next) {
+      if (next && (!eventQuery || !eventCursor)) return;
+      if (!next) clearEventPage();
+      cancelRequest('details');
+      const request = beginRequest('events', 'history');
+      if (!request) return;
+      try {
+        if (!next) {
+          const start = new Date(byId('history-from').value + 'Z').toISOString();
+          const end = new Date(byId('history-until').value + 'Z').toISOString();
+          const market = byId('history-market').value.trim();
+          if (!market || start >= end) throw new Error('Enter a market and an end time after the start.');
+          eventQuery = new URLSearchParams({market_id:market, start, end, limit:'500',
+            as_of:new Date(serverNowMs() ?? Date.now()).toISOString()});
+        }
+        const params = new URLSearchParams(eventQuery);
+        if (next) params.set('cursor', eventCursor);
+        byId('history-next').disabled = true;
+        set('events-status', 'Loading events…');
+        const page = await getJSON('/history/market-events?' + params, request.signal);
+        if (request.signal.aborted) return;
+        const fragment = document.createDocumentFragment();
+        for (const row of page.items) {
+          const tr = document.createElement('tr');
+          tr.dataset.eventId = row.event_id;
+          const data = row.payload?.data || {};
+          for (const field of [localTime(row.source_time),localTime(row.received_at),row.source,row.kind,
+                               data.best_bid ?? '—',data.best_ask ?? '—']) {
+            const td = document.createElement('td'); td.textContent = field; tr.append(td);
+          }
+          fragment.append(tr);
+        }
+        byId('event-rows').replaceChildren(fragment);
+        eventCursor = page.next_cursor;
+        const coverage = page.coverage;
+        const gap = coverage?.complete === true ? '' :
+          ' · Incomplete coverage' + (coverage?.missing_generations?.length ? ' · missing ' + coverage.missing_generations.join(', ') : '');
+        set('events-status', page.items.length + ' events on this page' + gap);
+      } catch (error) {
+        if (!request.signal.aborted) set('events-status', 'History unavailable · ' + error.message);
+      } finally {
+        if (!request.signal.aborted) byId('history-next').disabled = !eventCursor;
+        endRequest('events', request);
       }
     }
+    byId('market-history-form').oninput = clearEventPage;
+    byId('market-history-form').onsubmit = event => { event.preventDefault(); loadEventPage(false); };
+    byId('history-next').onclick = () => loadEventPage(true);
     const bytes = value => value == null ? 'Unavailable' : (value / 1048576).toLocaleString(undefined,{maximumFractionDigits:1}) + ' MB';
     const seconds = value => value == null ? 'Unavailable' : Number(value).toFixed(2) + ' sec';
     function graph(parent, samples, key, label) {
@@ -741,12 +883,13 @@
       caption.textContent='Range '+low.toLocaleString()+' – '+high.toLocaleString()+' · '+localTime(valid[0].captured_at)+' → '+localTime(valid.at(-1).captured_at);
       card.append(caption);parent.append(card);
     }
-    let systemInFlight = false;
+
     async function refreshSystem() {
-      if (systemInFlight || currentPage !== 'system') return;
-      systemInFlight = true;
+      const request = beginRequest('system', 'system');
+      if (!request) return;
       try {
-        const [status, history] = await Promise.all([getJSON('/system/status'),getJSON('/system/history')]);
+        const [status, history] = await Promise.all([getJSON('/system/status', request.signal),getJSON('/system/history', request.signal)]);
+        if (request.signal.aborted) return;
         const view = byId('system-status');view.replaceChildren();
         const host = status.host;
         pair(view, 'API', status.api);
@@ -775,14 +918,18 @@
         const charts=byId('system-charts');charts.replaceChildren();
         set('system-history-status', history.items.length ? history.items.length+' recorded samples · gaps remain gaps; reconnects are cumulative' : 'Monitoring history unavailable. The five-minute monitor has no readable samples yet.');
         for (const [key,label] of Object.entries({cpu_percent:'CPU (%)',ram_used_bytes:'RAM used (bytes)',disk_used_bytes:'Disk used (bytes)',sqlite_bytes:'SQLite (bytes)',wal_bytes:'WAL (bytes)',coinbase_age_seconds:'Coinbase age (seconds)',polymarket_age_seconds:'Polymarket age (seconds)',coinbase_reconnects_cumulative:'Coinbase reconnects (cumulative)',polymarket_reconnects_cumulative:'Polymarket reconnects (cumulative)',predictions:'Predictions (cumulative rows)',cloud_rows_synced:'Cloud rows synced (cumulative)',observations_archive_checkpoint:'Observations archive checkpoint',stream_events_archive_checkpoint:'Stream archive checkpoint'})) graph(charts,history.items,key,label);
-      } catch (_) { set('system-history-status','System monitoring unavailable. Live market collection continues independently.'); }
-      finally { systemInFlight=false; }
+      } catch (_) { if (!request.signal.aborted) set('system-history-status','System monitoring unavailable. Live market collection continues independently.'); }
+      finally { endRequest('system', request); }
     }
     if (location.protocol === 'file:') {
       byId('offline-hint').style.display='block';
       set('refresh','Open live dashboard URL');
     } else {
-      refresh(); refreshDetails();
+      refresh();
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) { for (const key of viewRequests.keys()) cancelRequest(key); }
+        else { refresh(); refreshView(); }
+      });
       setInterval(refresh, 5000); setInterval(refreshDetails, 15000); setInterval(refreshSystem, 30000); setInterval(tick, 250);
       if ('EventSource' in window) {
         const stream = new EventSource('/events');

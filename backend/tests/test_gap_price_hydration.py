@@ -166,7 +166,7 @@ const set=(key,value)=>out[key]=value;
 const byId=()=>({className:'',dataset:{}});
 const serverNowMs=()=>serverEpochMs;
 const ageOf=value=>value ? Math.max(0,(serverEpochMs-Date.parse(value))/1000) : null;
-const render=()=>{},refreshChart=()=>{},mergeLatestTick=()=>{},scheduleChartDraw=()=>{},updateChartSummary=()=>{};
+const render=()=>{},cancelRequest=()=>{},refreshView=()=>{},refreshChart=()=>{},mergeLatestTick=()=>{},scheduleChartDraw=()=>{},updateChartSummary=()=>{};
 ''' +formatters+'\n'+tick+'\n'+accept+'\nacceptState('+json.dumps(state)+');process.stdout.write(JSON.stringify({out,latest}));'
         result=json.loads(subprocess.run([shutil.which('node'),'-e',script],check=True,capture_output=True,text=True,timeout=10).stdout)
         self.assertEqual(result['latest']['latest_coinbase_tick']['event_id'],'second')

@@ -30,9 +30,10 @@ and [archive operations](evidence/pp-robinhood-scope-operations-2026-11-27.json)
 All 151 sampled Robinhood screen updates matched values, identity and
 timestamps. All three source cards were correct and fresh in those samples.
 Robinhood provider-retrieval age had median 182 ms and p95 359 ms at the
-sampled updates. This is distinct from the first event's 5.809 s verified
-archive ACK. Equal baseline UP/DOWN values rendered for all 148 sampled
-valid estimates; the initial three unavailable estimates showed their reason.
+sampled updates. The first matched screen event took 5.809 s from PP receipt
+to verified archive ACK. Both baseline probabilities rendered at the same
+font size for all 148 valid samples. The three unavailable samples showed
+the reason.
 [Browser summary](evidence/pp-robinhood-three-btc-summary-2026-11-27.json)
 and [same event](evidence/pp-robinhood-same-event-report-2026-11-27.json).
 
@@ -68,24 +69,26 @@ All 860 observed Polymarket BTC-reference events matched the DOM. Median
 source-bucket-start to PP receipt was 1.621 s, then receipt to browser was
 0.188–0.231 s. The completed one-second bucket and REST delivery explain
 much of this age. Coinbase's live estimate still hydrates through PostgreSQL.
-For 130 uniquely matched model ticks, median source to sampled SSE was
-546 ms; commit-to-first-display cannot be isolated from the available stamps.
+Of 167 sampled ready Coinbase tick timestamps, 130 matched a unique local
+outbox row. Median source to sampled SSE was 546 ms. The samples bound first
+visibility from above. The database recorded outbox creation before commit.
 [Feed and prediction methods](evidence/pp-benchmark-prediction-history-and-feed-split-2026-11-27.json).
 
-The live prediction page displayed 86 forecasts in 467 ms. After drain, all
-170 saved forecasts matched hosted projections. Actual hosted records tested
+The live prediction page displayed 86 forecasts in 467 ms. Requesting the
+same page with archive verification took 1.881 s and reported pending ACKs.
+All 86 matched after drain, as did all 170 forecasts for the full market. Actual hosted records tested
 in a disposable local A/B assignment returned identical fields and order
 across local, overlapping, mixed and hosted-only cases. The mixed case took
 1.799 s and hosted-only 1.776 s. Retained PP A/B were preserved.
 [Prediction matrix](evidence/pp-benchmark-prediction-history-and-feed-split-2026-11-27.json).
 
-All 18,842 structured records received verified ACKs after collection stopped.
+By the end of the post-stop drain, all 18,842 structured records had verified ACKs.
 During the observed quarter, arrivals averaged 18.37 rows/s and verified ACKs
 17.08 rows/s. Backlog peaked at 1,358 with sampled oldest age 74.26 s.
 This run identifies a sustained archive capacity gap. In 739 of 763 batches,
-the next row would exceed the 256 KiB estimated-byte budget; median batch
-size was 19 and only one reached the 50-row limit. Profile actual envelope
-bytes and round trips before a bounded batching change.
+adding the next ordered row would have exceeded the 256 KiB estimate. That row
+may have arrived after batch selection. Median batch size was 19 and only one
+reached the 50-row limit.
 [Batch budget](evidence/pp-benchmark-page-budget-2026-11-27.json).
 Across 20 uniformly sampled batches, actual canonical payload median was
 120,788 bytes against median estimated admission of 255,078 bytes. Exact-byte
@@ -95,8 +98,8 @@ packing under the existing decoded ceiling is the next offline experiment.
 
 The follow-up Robinhood release completed the acceptance above. It includes
 one-second v1 price polling, a separate BTC/USD card, equal baseline UP/DOWN
-prominence and per-poll price movement. Verify its exact displayed event in
-PostgreSQL and Supabase before marking that checkpoint complete. The US
+prominence and per-poll price movement. The linked .6 readback verifies an
+exact displayed event against PostgreSQL and Supabase. The US
 market uses CF Benchmarks BRTI while the user's international comparison
 uses Chainlink BTC/USD TWAP. Preserve those source distinctions.
 

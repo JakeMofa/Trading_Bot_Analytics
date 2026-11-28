@@ -5,6 +5,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+
 from controller import BENCHMARK_INSTANCE
 from linux_actions import DISPLAY_ORIGIN, PROJECT, compatible_api_image
 

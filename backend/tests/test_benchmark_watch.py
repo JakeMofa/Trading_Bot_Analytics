@@ -1,9 +1,13 @@
 """PostgreSQL lease ownership and independent source supervision for the sustained watch."""
 
 import asyncio
+from pathlib import Path
 import unittest
 import uuid
 from unittest.mock import patch
+
+import sys
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 
 import test_postgres_trial07_permit as fixture
 from postgres.cloud_origin_binding import DISPLAY_ORIGIN

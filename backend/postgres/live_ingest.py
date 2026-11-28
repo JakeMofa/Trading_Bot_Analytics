@@ -15,6 +15,7 @@ import time
 from .feed_writer import feed_writer
 from .boundary_trace import boundary_trace
 from .coinbase_timing import ACTIVE_TIMING, configured_timing
+from . import benchmark_telemetry as metrics
 from .contract import source_timestamp
 from .live_sources import (coinbase_once, discover_polymarket_15m,
                            fetch_coinbase_closed_candles, fetch_polymarket_bbo)
@@ -201,6 +202,9 @@ async def _coinbase_session(store, stop, *, source, pause, clock, timing, wall_c
             return
         except Exception as error:
             diagnostic = error if isinstance(error, LiveDiagnostic) else diagnose('coinbase_stream', error)
+            if diagnostic.code.startswith('coinbase_stream.'):
+                status = getattr(getattr(error, 'response', None), 'status_code', None)
+                metrics.issue('coinbase_stream', metrics.classify_status(status) if isinstance(status, int) else 'transport')
             if diagnostic.code not in COINBASE_RETRYABLE or stop.is_set():
                 raise diagnostic from None
             delay = COINBASE_RECONNECT_DELAYS[min(failures_without_fresh_progress,
@@ -226,6 +230,7 @@ async def _coinbase_session(store, stop, *, source, pause, clock, timing, wall_c
             # Count actual reconnect starts, not failure timestamps or a
             # cancelled pause. The supervisor's finite deadline and database
             # lease continue to bound this same session; no ON is issued here.
+            metrics.issue('coinbase_stream', 'retry')
             reconnect_starts.append(clock())
             reconnects += 1
             if timing is not None:

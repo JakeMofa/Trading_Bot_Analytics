@@ -46,7 +46,14 @@ async def receive(state, path=SOCKET_PATH):
                     try:
                         packet = json.loads(data)
                         if packet['origin'] == state.settings.origin_id:
-                            if packet.get('type') == 'robinhood_reference':
+                            if packet.get('type') == 'source_health':
+                                from .benchmark_telemetry import ORIGIN, valid_counts
+                                if (packet['origin'] == ORIGIN and state.health_session
+                                        and packet.get('session') == state.health_session
+                                        and valid_counts(packet.get('counts'))):
+                                    state.source_health = {'session': state.health_session, 'observed_at': state.clock().timestamp(),
+                                                           'counts': packet['counts']}
+                            elif packet.get('type') == 'robinhood_reference':
                                 state.publish_robinhood(packet['reference'])
                             else:
                                 state.display(packet)

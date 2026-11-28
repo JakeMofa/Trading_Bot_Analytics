@@ -96,6 +96,7 @@
     <button data-target="market" aria-pressed="true">Market</button><button data-target="models" aria-pressed="false">Models</button><button data-target="history" aria-pressed="false">History</button><button data-target="system" aria-pressed="false">System</button>
   </nav>
   <main class="grid" data-page="market">
+    <div class="card" id="rolling-window" hidden></div>
     <section class="card market" aria-labelledby="market-heading">
       <h2 id="market-heading">Current market</h2>
       <div id="market-state" class="eyebrow">Waiting for data</div>
@@ -824,6 +825,14 @@
       const quote = state.polymarket;
       const candidate = state.models?.ensemble_v1 || savedModels.ensemble_v1;
       const ensemble = candidate && candidate.market_id === state.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : null;
+      const windowBadge=byId('rolling-window');
+      windowBadge.hidden=state.origin_id!=='pp-live-pp-benchmark-watch';
+      if (!windowBadge.hidden) {
+        const w=state.rolling_window;
+        const recent=w && Date.parse(state.generated_at)/1000-w.observed_at<45;
+        windowBadge.textContent=recent ? 'Rolling window '+w.slot+' · '+w.state+' · '+w.generation
+          : 'Rolling window unknown · waiting for a current database sample';
+      }
       latest = {...savedContext, market:state.market, generated_at:state.generated_at,
         data_mode:state.data_mode, collector:state.collector, origin_id:state.origin_id, feed_controls:state.feed_controls,
         live_estimate_status:state.live_estimate_status, saved_prediction:state.saved_prediction,

@@ -49,6 +49,19 @@ identity rules for any future combined PP/production research reader. The
 Robinhood addition uses existing raw/protected-evidence tables and the existing
 history archive. It does not activate new model inputs.
 
+The user also authorized individual source pause/resume controls and deployments
+that preserve collection. Source desired state must survive process restarts;
+a source pause must affect only that source. Source failures need bounded
+retry/recovery and stale-input reporting, with shared database/storage safety
+handled explicitly. Alert freshness must distinguish a user-paused feed.
+
+The current full CD implementation calls a writer fence and migrations.
+Implement and test an independent compatible API/dashboard deployment path
+that leaves collector ownership and processes intact. Collector-code changes
+need a separately qualified staged handoff with duplicate protection and
+continuity evidence. Report external feed outages or disk/database failures
+honestly; these prevent an absolute availability guarantee.
+
 Run the live observer and capture PostgreSQL commit and independent hosted
 readback throughout collection. Report any source stalls, queue growth,
 rotation failures and alert delivery gaps. Preserve each source's timestamp

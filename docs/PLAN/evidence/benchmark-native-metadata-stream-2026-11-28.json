@@ -1,0 +1,173 @@
+{
+  "scope": "independent isolated generated native macOS PG17, not Docker/Benchmark timing",
+  "rows": 437064,
+  "work_mem": "2MB",
+  "temp_file_limit": "64MB",
+  "statement_timeout": "19s",
+  "fetch_rows": 512,
+  "fingerprint_page_rows": 1024,
+  "experiments": [
+    {
+      "result": {
+        "count": 437064,
+        "digest": "67d4d932e34189da85b824139df2b44fd055f7624fb6a3de9804a9cd607aeb37"
+      },
+      "wall_s": 4.3630428750038845,
+      "statement_count": 859,
+      "fetch_count": 855,
+      "first_fetch_ms": 3029.041000001598,
+      "max_response_ms": 3029.041000001598,
+      "max_reply_bytes": 34304,
+      "mode": "first"
+    },
+    {
+      "result": {
+        "count": 437064,
+        "digest": "67d4d932e34189da85b824139df2b44fd055f7624fb6a3de9804a9cd607aeb37"
+      },
+      "wall_s": 4.290550374993472,
+      "statement_count": 859,
+      "fetch_count": 855,
+      "first_fetch_ms": 2974.0863329934655,
+      "max_response_ms": 2974.0863329934655,
+      "max_reply_bytes": 34304,
+      "mode": "warm"
+    }
+  ],
+  "version": "PostgreSQL 17.2 (Homebrew) on aarch64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit",
+  "collation": "en_US.UTF-8",
+  "original_under_limits": {
+    "sqlstate": "53400",
+    "wall_s": 4.017729250001139
+  },
+  "original_reference_only_256MB": {
+    "wall_s": 3.9915767919883365,
+    "result": {
+      "count": 437064,
+      "digest": "67d4d932e34189da85b824139df2b44fd055f7624fb6a3de9804a9cd607aeb37"
+    }
+  },
+  "same_original_oracle": true,
+  "plan": [
+    {
+      "Plan": {
+        "Node Type": "Subquery Scan",
+        "Parallel Aware": false,
+        "Async Capable": false,
+        "Alias": "ordered_hashes",
+        "Startup Cost": 83337.0,
+        "Total Cost": 85522.32,
+        "Plan Rows": 437064,
+        "Plan Width": 32,
+        "Actual Rows": 437064,
+        "Actual Loops": 1,
+        "Shared Hit Blocks": 10547,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 3852,
+        "Temp Written Blocks": 3857,
+        "Plans": [
+          {
+            "Node Type": "Sort",
+            "Parent Relationship": "Subquery",
+            "Parallel Aware": false,
+            "Async Capable": false,
+            "Startup Cost": 83337.0,
+            "Total Cost": 84429.66,
+            "Plan Rows": 437064,
+            "Plan Width": 32,
+            "Actual Rows": 437064,
+            "Actual Loops": 1,
+            "Sort Key": [
+              "(encode(sha256(convert_to((jsonb_build_array(events.generation_id, events.origin_id, events.source, events.event_id, events.content_hash))::text, 'UTF8'::name)), 'hex'::text))"
+            ],
+            "Sort Method": "external merge",
+            "Sort Space Used": 30816,
+            "Sort Space Type": "Disk",
+            "Shared Hit Blocks": 10547,
+            "Shared Read Blocks": 0,
+            "Shared Dirtied Blocks": 0,
+            "Shared Written Blocks": 0,
+            "Local Hit Blocks": 0,
+            "Local Read Blocks": 0,
+            "Local Dirtied Blocks": 0,
+            "Local Written Blocks": 0,
+            "Temp Read Blocks": 3852,
+            "Temp Written Blocks": 3857,
+            "Plans": [
+              {
+                "Node Type": "Seq Scan",
+                "Parent Relationship": "Outer",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Relation Name": "events",
+                "Alias": "events",
+                "Startup Cost": 0.0,
+                "Total Cost": 21473.6,
+                "Plan Rows": 437064,
+                "Plan Width": 32,
+                "Actual Rows": 437064,
+                "Actual Loops": 1,
+                "Shared Hit Blocks": 10547,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0
+              }
+            ]
+          }
+        ]
+      },
+      "Planning": {
+        "Shared Hit Blocks": 0,
+        "Shared Read Blocks": 0,
+        "Shared Dirtied Blocks": 0,
+        "Shared Written Blocks": 0,
+        "Local Hit Blocks": 0,
+        "Local Read Blocks": 0,
+        "Local Dirtied Blocks": 0,
+        "Local Written Blocks": 0,
+        "Temp Read Blocks": 0,
+        "Temp Written Blocks": 0
+      },
+      "Planning Time": 0.042,
+      "Triggers": [],
+      "Execution Time": 3690.453
+    }
+  ],
+  "duplicate_1025": {
+    "result": {
+      "count": 1025,
+      "digest": "6b4db4bb83b15b605278f45296803df1d2f07add4ee174ea2eb8bb83d801bb2c"
+    },
+    "wall_s": 0.0038721660093870014,
+    "statement_count": 8,
+    "fetch_count": 4,
+    "first_fetch_ms": 2.1852079953532666,
+    "max_response_ms": 2.1852079953532666,
+    "max_reply_bytes": 34304
+  },
+  "repeatable_read_excludes_later_insert": true,
+  "empty": {
+    "result": {
+      "count": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "wall_s": 0.00022775000252295285,
+    "statement_count": 5,
+    "fetch_count": 1,
+    "first_fetch_ms": 0.024125009076669812,
+    "max_response_ms": 0.07366698991972953,
+    "max_reply_bytes": 0
+  }
+}

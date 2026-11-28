@@ -1,0 +1,261 @@
+{
+  "after": {
+    "acks": 235755,
+    "enabled": false,
+    "epoch": 9,
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "hi": 561373,
+    "lease": null,
+    "origin": "pp-live-pp-benchmark-watch",
+    "pending": 0,
+    "session": null,
+    "utc": "2026-11-28T12:09:36.474462+00:00"
+  },
+  "all_inventory_completed": true,
+  "all_origins_including_catalog_wall_s": 90.554088,
+  "before": {
+    "acks": 235755,
+    "enabled": false,
+    "epoch": 9,
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "hi": 561373,
+    "lease": null,
+    "origin": "pp-live-pp-benchmark-watch",
+    "pending": 0,
+    "session": null,
+    "utc": "2026-11-28T12:05:04.657538+00:00"
+  },
+  "candidate_controller_sha256": "9c7c19ee8504ed8d027f3f356fb6e8bb07c9795b0cb5e2a66d288f15dc67b00c",
+  "full_inventory_wall_s": 271.274675,
+  "immutable_prior_origins_matched": 13,
+  "installed_controller_sha256": "4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a",
+  "metadata": {
+    "archive.generated_outbox_storage": {
+      "digest": "fe1d61bacfd0e495cc4cd4d37d36105947b33a2bcfee51ca7bf3304efbc271e1",
+      "native_order_calls": 440,
+      "native_order_wall_s": 6.184989,
+      "rows": 20657,
+      "wall_s": 7.644351
+    },
+    "core.candles": {
+      "digest": "53f497db43a2630ee2d09befc8019c2ce4bb416c567df7311b8d8e0dbfa2abb0",
+      "native_order_calls": 33,
+      "native_order_wall_s": 0.755625,
+      "rows": 1518,
+      "wall_s": 1.403521
+    },
+    "core.current_prices": {
+      "digest": "cd434b1d30b29d1b53a69cbbffe21221cb28d5f58d8775d2eca78b927cb29f6f",
+      "native_order_calls": 1,
+      "native_order_wall_s": 0.012942,
+      "rows": 19,
+      "wall_s": 0.542928
+    },
+    "core.feature_snapshots": {
+      "digest": "ff02d5ebfc8427d3a5bf44228304088b3df68ab7c66803f8b1fb101ce5f4a8b3",
+      "native_order_calls": 233,
+      "native_order_wall_s": 3.409606,
+      "rows": 10932,
+      "wall_s": 4.093881
+    },
+    "core.markets": {
+      "digest": "5ba01bf49103aab155d337c764bf05b3b9253113e4dbbf6de182bd3293a08377",
+      "native_order_calls": 3,
+      "native_order_wall_s": 0.061688,
+      "rows": 138,
+      "wall_s": 0.706941
+    },
+    "core.outcomes": {
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native_order_calls": 0,
+      "native_order_wall_s": 0,
+      "rows": 0,
+      "wall_s": 0.371111
+    },
+    "core.predictions": {
+      "digest": "bac3097347d3c3817f6c41369a989481fd7be21340a0cef8c90d7789f1d0639c",
+      "native_order_calls": 233,
+      "native_order_wall_s": 3.050912,
+      "rows": 10932,
+      "wall_s": 3.695582
+    },
+    "core.protected_evidence": {
+      "digest": "20b71fb2b4398057d5363b36a6633dc71daf8d6aa13b02e4602fd96077ec809e",
+      "native_order_calls": 382,
+      "native_order_wall_s": 5.407806,
+      "rows": 17909,
+      "wall_s": 6.406966
+    },
+    "core.snapshot_evidence": {
+      "digest": "2d85ec80a8b7041a87f8d11ae1b9bfd831555b47d87fa71d8626ee23abb766b5",
+      "native_order_calls": 465,
+      "native_order_wall_s": 6.654259,
+      "rows": 21813,
+      "wall_s": 7.457778
+    },
+    "raw.events": {
+      "digest": "624b5e306c6bccb1466f7713ea6d1a0358a73ca0e8fc7646951eea10fa8eea74",
+      "native_order_calls": 9300,
+      "native_order_wall_s": 135.420272,
+      "rows": 437064,
+      "wall_s": 145.8303
+    }
+  },
+  "normal_cd_projection": {
+    "cursor_cleanup_reservation_s": 23,
+    "extra_outbox_passes": 1,
+    "full_inventories": 3,
+    "measured_base_projection_s": 904.378,
+    "prior_13_entire_deploy_job_s_including_old_inventory": 394,
+    "recovery_limit_s": 180,
+    "recovery_two_full_readbacks_alone_s": 542.549,
+    "remaining_for_all_other_stages_s": -304.378,
+    "remaining_if_inventory_twenty_percent_slower_s": -485.254,
+    "separate_enter_limit_s": 600,
+    "separate_leave_and_enter_outside_cd_budget": true,
+    "separate_leave_limit_s": 180,
+    "source": "Single current-scale restricted-reader pass; other-stage costs unmeasured. Prior job includes its old inventory. Scaling arithmetic is an estimate.",
+    "twenty_percent_slower_inventory_s": 1085.254
+  },
+  "origins": {
+    "generated-pp": {
+      "count": 20677,
+      "descriptor_wall_s": 3.161571,
+      "digest": "71e5bd64168337058694e2a3eebfea6aa02fb15de75a92aa701cd51ed90048e1",
+      "hash_wall_s": 1.720359,
+      "pages": 39,
+      "pending": 20,
+      "wall_s": 5.333592
+    },
+    "pp-live-pp": {
+      "count": 42133,
+      "descriptor_wall_s": 1.473433,
+      "digest": "bf4570c091ff8ce02e01cdb40094e840681bc85600e7bb55272012c182d95a66",
+      "hash_wall_s": 1.544815,
+      "pages": 43,
+      "pending": 0,
+      "wall_s": 3.499388
+    },
+    "pp-live-pp-benchmark-watch": {
+      "count": 235755,
+      "descriptor_wall_s": 3.56953,
+      "digest": "27a6a73d7769e8e44df210c8022478d34934a4384f808831f7338a8a87367f10",
+      "hash_wall_s": 26.367879,
+      "pages": 232,
+      "pending": 0,
+      "wall_s": 30.402819
+    },
+    "pp-live-pp-boundary-20261124-01": {
+      "count": 14205,
+      "descriptor_wall_s": 2.990751,
+      "digest": "21d7d9cbb9bdd9ade390546050324e9268a4d15d294204582b734d27d8b19f13",
+      "hash_wall_s": 0.767051,
+      "pages": 15,
+      "pending": 0,
+      "wall_s": 4.209092
+    },
+    "pp-live-pp-display-20261127-01": {
+      "count": 12365,
+      "descriptor_wall_s": 2.512635,
+      "digest": "eaa61be87f00ecbbd9324a57a28b67c57bc5963ca808e1930b0311f1f67c19ed",
+      "hash_wall_s": 0.849321,
+      "pages": 13,
+      "pending": 0,
+      "wall_s": 3.832353
+    },
+    "pp-live-pp-display-20261127-02": {
+      "count": 18842,
+      "descriptor_wall_s": 1.855807,
+      "digest": "4dfc2a6cfad974f3117f4654ac976a1a0c9738413876fbf0c6eb7b7f2d5da302",
+      "hash_wall_s": 1.921512,
+      "pages": 20,
+      "pending": 0,
+      "wall_s": 4.251095
+    },
+    "pp-live-pp-display-20261127-03": {
+      "count": 2915,
+      "descriptor_wall_s": 0.304875,
+      "digest": "7fad9434e8571e328c291026de5b1f6f690cc2bcbac2513f6af8c919ec8745ab",
+      "hash_wall_s": 0.242021,
+      "pages": 4,
+      "pending": 0,
+      "wall_s": 0.977666
+    },
+    "pp-live-pp-smoke-20261125-01": {
+      "count": 5356,
+      "descriptor_wall_s": 0.736931,
+      "digest": "e57f0cdf1738caa2afdd4405c02f10e2aaee771f13e47b5156e032263c03fe1b",
+      "hash_wall_s": 0.183764,
+      "pages": 6,
+      "pending": 5356,
+      "wall_s": 1.31369
+    },
+    "pp-live-pp-trial-20261119-01": {
+      "count": 5651,
+      "descriptor_wall_s": 0.631148,
+      "digest": "a775e4b69962c1029aad029a54ce2a0d3ff288be7517366982b2bf48048ae38b",
+      "hash_wall_s": 0.266472,
+      "pages": 7,
+      "pending": 0,
+      "wall_s": 1.32549
+    },
+    "pp-live-pp-trial-20261119-02": {
+      "count": 20362,
+      "descriptor_wall_s": 1.838573,
+      "digest": "e93cf9ad51a1ce866f90fc7629bf3b05d0602e065a0e0088a502b2899a3ef9e2",
+      "hash_wall_s": 0.779553,
+      "pages": 21,
+      "pending": 0,
+      "wall_s": 3.055489
+    },
+    "pp-live-pp-trial-20261119-03": {
+      "count": 39690,
+      "descriptor_wall_s": 3.237756,
+      "digest": "98492d93ee53e35944e5339f971267e2874a28847e47e22d95a4f66042d8d324",
+      "hash_wall_s": 2.169903,
+      "pages": 40,
+      "pending": 0,
+      "wall_s": 5.85752
+    },
+    "pp-live-pp-trial-20261119-04": {
+      "count": 705,
+      "descriptor_wall_s": 0.057401,
+      "digest": "9c69f96ce64cd880b8b4d01ad916646399aef503362e5c1aafe34f2345ddd15f",
+      "hash_wall_s": 0.027246,
+      "pages": 2,
+      "pending": 0,
+      "wall_s": 0.518462
+    },
+    "pp-live-pp-trial-20261119-05": {
+      "count": 32021,
+      "descriptor_wall_s": 2.352128,
+      "digest": "e9702f655d2155db62ee82ac7e00d0af290d57e9a5c9d8153b6d1e1d43f386c3",
+      "hash_wall_s": 1.228829,
+      "pages": 32,
+      "pending": 0,
+      "wall_s": 4.01632
+    },
+    "pp-live-pp-trial-20261119-06": {
+      "count": 53925,
+      "descriptor_wall_s": 5.910575,
+      "digest": "2642bd3b6581b9a6108d004568c43537c853e539a71625a97271f4be0acdf230",
+      "hash_wall_s": 3.540946,
+      "pages": 54,
+      "pending": 0,
+      "wall_s": 9.938135
+    },
+    "pp-live-pp-trial-20261119-07": {
+      "count": 55890,
+      "descriptor_wall_s": 4.367558,
+      "digest": "57a548afba065545fb844e63d438edbb18f553fe336cdbbef997ac25f53ba09f",
+      "hash_wall_s": 4.279736,
+      "pages": 55,
+      "pending": 0,
+      "wall_s": 9.115593
+    }
+  },
+  "postgres_container_id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+  "scope": "One actual read-only complete inventory while Benchmark .13 remains OFF. Preservation passes; adoption cost does not fit unchanged limits. No install, CD or re-arm.",
+  "source": "6a24faaa82bb0b909c0e6ac0843e16bb46b66888",
+  "success": true
+}

@@ -35,6 +35,25 @@ The same containers remained installed; no recovery or A/B swap was performed.
   rows. Independent ordering/storage tests passed; local controller 356/18
   skips and CI controls 58 passed. Linux CI and real full-inventory retry on
   the corrected source remain open; no deployment or re-arm yet.
+- [x] Merge #265 (`6a24faa`) after actual Linux/native CI passed. Its complete
+  read-only VM inventory at 12:05–12:09 UTC matched prior immutable outbox
+  proofs and preserved current A, but took 271.275 seconds. This supersedes
+  the pending Linux/full-pass notes above without qualifying deployment.
+- [ ] Reduce measured full-inventory cost: native-order exchanges consumed
+  160.958 seconds, separate origin-descriptor scans 35.001 seconds and full-row
+  hashing 45.889 seconds. Qualify native ordered metadata streaming and one
+  complete all-origin descriptor snapshot, then repeat the full read-only pass.
+  Current projected normal/recovery costs exceed their unchanged limits;
+  collector remains OFF and no CD has been dispatched.
+- [x] Qualify smaller native metadata streaming offline: five real PostgreSQL
+  ordering/snapshot cases and twelve cursor/resource cases passed. Generated
+  437,064-row parity took 4.363 seconds with one 30,816 KiB native sort; this
+  is not a Benchmark timing or 72-hour capacity result.
+- [x] Measure #266 head's actual full native-stream pass: 78.867 seconds,
+  exactly matching all 11 tables/15 origins, with current A unchanged.
+- [ ] Qualify recovery headroom before deployment: two measured passes plus
+  23 seconds of cleanup reserve total 180.734 seconds before other recovery
+  work. Keep collection OFF; reduce session/transfer cost and test again.
 - [ ] Review a bounded fix, qualify recovery and sustained collection.
 - [ ] Prove the current three-feed A/B swap with dashboard/history reads.
 

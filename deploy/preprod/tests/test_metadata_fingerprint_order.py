@@ -74,22 +74,17 @@ class MetadataOrderTests(unittest.TestCase):
                 self.assertFalse(any(len(group) > 1 for group in self.comparisons))
                 self.assertEqual(list(self.directory.iterdir()), [])
 
-    def test_checks_every_native_adjacent_pair_including_page_carry(self):
+    def test_native_sorted_cursor_matches_distinct_and_duplicate_page_carry(self):
         fill_fixture(self.db, self.relation, 2173, 113)
         expected = self.db.execute(ORIGINAL_SQL.format(relation=self.relation)).fetchone()[0]
         hashes = [r[0] for r in self.db.execute(
             f'SELECT DISTINCT {FINGERPRINT} AS fingerprint FROM {self.relation} ORDER BY fingerprint')]
         self.assertEqual(len(hashes), 114)
         self.assertEqual(self.digest(), expected)
-        checked = []
-        for group in self.comparisons:
-            self.assertLessEqual(len(group), 48)
-            self.assertGreaterEqual(len(group), 2)
-            checked.extend(zip(group, group[1:]))
-        self.assertEqual(checked, list(zip(hashes, hashes[1:])))
+        self.assertEqual(self.comparisons, [], 'native cursor needs no adjacent-pair round trips')
         self.assertEqual(list(self.directory.iterdir()), [])
 
-    def test_interleaved_duplicates_across_three_external_sort_runs(self):
+    def test_interleaved_duplicates_across_many_fetches(self):
         self.db.execute(f"""INSERT INTO {self.relation}
             SELECT 'g','o','s',(n%311)::text,'digest'
             FROM generate_series(1,16453) AS n""")
@@ -120,7 +115,7 @@ class MetadataOrderTests(unittest.TestCase):
         self.assertEqual(self.digest(relation=relation), after)
         self.assertEqual(list(self.directory.iterdir()), [])
 
-    def test_actual_icu_numeric_database_rejects_byte_order_and_cleans_scratch(self):
+    def test_actual_icu_numeric_database_uses_native_order_without_byte_assumption(self):
         import psycopg
         from psycopg.conninfo import make_conninfo
         from psycopg.sql import Identifier, SQL
@@ -136,19 +131,7 @@ class MetadataOrderTests(unittest.TestCase):
             rows = [r[0] for r in numeric.execute(
                 f'SELECT {FINGERPRINT} AS fingerprint FROM {self.relation} ORDER BY fingerprint')]
             self.assertNotEqual(rows, sorted(rows), 'fixture must exercise real numeric collation')
-            opened = []
-            temporary_file = tempfile.TemporaryFile
-
-            def capture_file(*args, **kwargs):
-                handle = temporary_file(*args, **kwargs)
-                opened.append(handle)
-                self.assertEqual(os.fstat(handle.fileno()).st_nlink, 0)
-                return handle
-
-            with patch('metadata_inventory.tempfile.TemporaryFile', side_effect=capture_file):
-                with self.assertRaisesRegex(DeploymentHold, 'metadata_native_order_unproven'):
-                    self.digest(db=numeric)
-            self.assertTrue(self.comparisons)
-            self.assertEqual(len(opened), 1)
-            self.assertTrue(opened[0].closed)
+            expected = numeric.execute(ORIGINAL_SQL.format(relation=self.relation)).fetchone()[0]
+            self.assertEqual(self.digest(db=numeric), expected)
+            self.assertEqual(self.comparisons, [])
             self.assertEqual(list(self.directory.iterdir()), [])

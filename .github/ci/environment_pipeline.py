@@ -65,7 +65,7 @@ CONTROLLER_REASONS = frozenset({
     'invalid_pp_trial_origin', 'pp_trial_requires_anchor',
     'insufficient_host_headroom', 'invalid_inventory_evidence',
     'outbox_inventory_exceeds_release_bound','outbox_inventory_invalid', 'unexpected_outbox_origin',
-    'metadata_invalid_hash','metadata_native_order_unproven','metadata_scratch_directory',
+    'metadata_invalid_hash','metadata_inventory_limit','metadata_native_order_unproven','metadata_scratch_directory',
     'metadata_scratch_hash_mismatch','metadata_scratch_limit','metadata_scratch_not_anonymous',
     'metadata_scratch_reserve','metadata_scratch_short_read','metadata_scratch_short_write',
     'metadata_snapshot_invalid',

@@ -231,53 +231,90 @@ def _page(number):
     return number // 1024 if number >= 0 else -((-number) // 1024)
 
 
-def origin_digest(exchange, origin):
-    require(re.fullmatch('[a-z][a-z0-9-]{0,100}',origin), 'unexpected_outbox_origin')
+def _descriptors(exchange):
+    while True:
+        rows = exchange('FETCH FORWARD 4 FROM outbox_pages;')
+        require(isinstance(rows,list) and len(rows)<=4,'outbox_inventory_invalid')
+        if not rows:
+            return
+        yield from rows
+
+
+def outbox_digests(exchange, allowed_origins):
     require(exchange("BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SET LOCAL statement_timeout='19s';") == [],
             'outbox_snapshot_invalid')
-    # The same MVCC snapshot covers descriptor discovery, every full-row hash,
-    # and cursor exhaustion. No archive records or unbounded lists leave SQL.
+    # Compute narrow (origin, signed ID bucket) descriptors once for the
+    # whole table. The bounded manifest is delivered and validated before any
+    # full composite is hashed. Both describe the same physical RR snapshot.
+    # Keep scalar full-row hashes ABOVE the sorted OFFSET0 boundary: FETCH1
+    # then evaluates only the manifest; later FETCH4 hashes at most four pages.
     declare = f"""DECLARE outbox_pages NO SCROLL CURSOR FOR
-        SELECT json_build_array(page,lo,hi,n,count(*) OVER (),sum(n) OVER ())
-        FROM (SELECT id/1024 AS page,min(id) AS lo,max(id) AS hi,count(*) AS n
-              FROM ops.outbox WHERE origin_id='{origin}' GROUP BY id/1024) ranges
-        ORDER BY page;"""
-    require(exchange(declare) == [], 'outbox_snapshot_invalid')
-    count = pending = pages = 0
-    manifest = None
-    previous = None
-    digest = hashlib.sha256()
-    while True:
-        descriptors = exchange('FETCH FORWARD 16 FROM outbox_pages;')
-        require(isinstance(descriptors,list) and len(descriptors)<=16, 'outbox_inventory_invalid')
-        if not descriptors:
-            break
-        for desc in descriptors:
-            require(isinstance(desc,list) and len(desc)==6 and all(type(x) is int for x in desc),
-                    'outbox_inventory_invalid')
-            page, lo, hi, expected, page_total, row_total = desc
-            if manifest is None:
-                manifest = (page_total,row_total)
-            require(manifest == (page_total,row_total) and pages < page_total <= row_total,
-                    'outbox_inventory_invalid')
-            require((previous is None or previous<page) and -(2**63)<=lo<=hi<2**63
-                    and _page(lo)==_page(hi)==page and 0<expected<=hi-lo+1, 'outbox_inventory_invalid')
-            result = exchange(f"""WITH hashes AS MATERIALIZED (
-                SELECT o.id, o.acknowledged_at IS NULL AS pending,
+        WITH ranges AS MATERIALIZED (
+            SELECT origin_id,id/1024 AS page,min(id) AS lo,max(id) AS hi,count(*) AS n
+            FROM ops.outbox GROUP BY origin_id,id/1024
+        )
+        SELECT CASE WHEN kind=0 THEN manifest ELSE (
+            WITH hashes AS MATERIALIZED (
+                SELECT o.id,o.acknowledged_at IS NULL AS pending,
                     encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex') AS hash
-                FROM ops.outbox o WHERE o.origin_id='{origin}' AND o.id BETWEEN {lo} AND {hi})
-                SELECT json_build_array(count(*),count(*) FILTER (WHERE pending),
-                    encode(sha256(convert_to(string_agg(hash,'' ORDER BY id),'UTF8')),'hex'))
-                FROM hashes;""")
-            require(isinstance(result,list) and len(result)==1 and isinstance(result[0],list)
-                    and len(result[0])==3, 'outbox_inventory_invalid')
-            n, waiting, page_hash = result[0]
-            require(type(n) is int and n==expected and type(waiting) is int and 0<=waiting<=n
-                    and isinstance(page_hash,str) and re.fullmatch('[0-9a-f]{64}',page_hash), 'outbox_inventory_invalid')
+                FROM ops.outbox o WHERE o.origin_id=d.origin_id AND o.id BETWEEN d.lo AND d.hi
+            )
+            SELECT json_build_array(d.origin_id,d.page,d.lo,d.hi,d.n,count(*),
+                count(*) FILTER (WHERE pending),
+                encode(sha256(convert_to(string_agg(hash,'' ORDER BY id),'UTF8')),'hex'))
+            FROM hashes
+        ) END AS item
+        FROM (SELECT * FROM (
+            SELECT 0 AS kind,NULL::text AS origin_id,NULL::bigint AS page,
+                  NULL::bigint AS lo,NULL::bigint AS hi,NULL::bigint AS n,
+                  (SELECT coalesce(json_agg(json_build_array(origin_id,pages,rows)
+                                        ORDER BY origin_id COLLATE "C" NULLS FIRST),'[]'::json)
+                   FROM (SELECT origin_id,count(*) AS pages,sum(n) AS rows FROM ranges
+                         GROUP BY origin_id ORDER BY origin_id COLLATE "C" NULLS FIRST
+                         LIMIT {len(allowed_origins)+1}) manifest) AS manifest
+            UNION ALL
+            SELECT 1,origin_id,page,lo,hi,n,NULL::json FROM ranges
+        ) catalog ORDER BY kind,origin_id COLLATE "C" NULLS FIRST,page OFFSET 0) d;"""
+    require(exchange(declare)==[], 'outbox_snapshot_invalid')
+    header=exchange('FETCH FORWARD 1 FROM outbox_pages;')
+    require(isinstance(header,list) and len(header)==1 and isinstance(header[0],list),
+            'outbox_inventory_invalid')
+    manifest=header[0]
+    require(len(manifest)<=len(allowed_origins),'unexpected_outbox_origin')
+    names=[]
+    for spec in manifest:
+        require(isinstance(spec,list) and len(spec)==3,'outbox_inventory_invalid')
+        origin,pages,rows=spec
+        require(type(origin) is str and origin in allowed_origins and re.fullmatch('[a-z][a-z0-9-]{0,100}',origin)
+                and (not names or names[-1]<origin),'unexpected_outbox_origin')
+        require(type(pages) is int and type(rows) is int and 0<pages<=rows<2**63,'outbox_inventory_invalid')
+        names.append(origin)
+
+    descriptors=_descriptors(exchange)
+    groups={}
+    for origin,pages,rows in manifest:
+        count=pending=0
+        previous=None
+        digest=hashlib.sha256()
+        for _ in range(pages):
+            desc=next(descriptors,None)
+            require(isinstance(desc,list) and len(desc)==8 and desc[0]==origin
+                    and all(type(x) is int for x in desc[1:7]),'outbox_inventory_invalid')
+            _,page,lo,hi,expected,n,waiting,page_hash=desc
+            require((previous is None or previous<page) and -(2**63)<=lo<=hi<2**63
+                    and _page(lo)==_page(hi)==page and 0<expected<=min(hi-lo+1,rows-count),
+                    'outbox_inventory_invalid')
+            require(n==expected and 0<=waiting<=n
+                    and isinstance(page_hash,str) and re.fullmatch('[0-9a-f]{64}',page_hash),
+                    'outbox_inventory_invalid')
+            count+=n
+            pending+=waiting
+            require(pending<=10000,'outbox_inventory_invalid')
             digest.update(page_hash.encode('ascii'))
-            count += n
-            pending += waiting
-            previous = page
-            pages += 1
-    require(count>0 and manifest==(pages,count) and pending<=10000 and exchange('CLOSE outbox_pages; COMMIT;')==[], 'outbox_inventory_invalid')
-    return {'count':count, 'pending':pending, 'digest':digest.hexdigest()}
+            previous=page
+        require(count==rows,'outbox_inventory_invalid')
+        groups[origin]={'count':count,'pending':pending,'digest':digest.hexdigest()}
+    end=object()
+    require(next(descriptors,end) is end and exchange('CLOSE outbox_pages; COMMIT;')==[],
+            'outbox_inventory_invalid')
+    return groups

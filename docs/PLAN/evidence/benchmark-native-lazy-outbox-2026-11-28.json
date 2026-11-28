@@ -1,0 +1,310 @@
+{
+  "batched": {
+    "16": {
+      "calls": 42,
+      "fetches": 39,
+      "first_fetch_ms": 57.85795899282675,
+      "max_fetch_ms": 57.85795899282675,
+      "max_reply_bytes": 1904,
+      "max_response_ms": 57.85795899282675,
+      "result": {
+        "generated-pp": {
+          "count": 117855,
+          "digest": "c80d231dbec67016bb8b19bf146533d7a75952ad9f8a3df1cfd92a35c98fcf09",
+          "pending": 1178
+        },
+        "pp-live-pp": {
+          "count": 117900,
+          "digest": "58074dec02a680da80a5ecaf4994ed6aa0e8b3aa4638b99ca401c8d643e871d6",
+          "pending": 1179
+        }
+      },
+      "wall_s": 1.257368917009444
+    },
+    "4": {
+      "calls": 151,
+      "fetches": 148,
+      "first_fetch_ms": 54.51349999930244,
+      "max_fetch_ms": 54.51349999930244,
+      "max_reply_bytes": 476,
+      "max_response_ms": 54.51349999930244,
+      "result": {
+        "generated-pp": {
+          "count": 117855,
+          "digest": "c80d231dbec67016bb8b19bf146533d7a75952ad9f8a3df1cfd92a35c98fcf09",
+          "pending": 1178
+        },
+        "pp-live-pp": {
+          "count": 117900,
+          "digest": "58074dec02a680da80a5ecaf4994ed6aa0e8b3aa4638b99ca401c8d643e871d6",
+          "pending": 1179
+        }
+      },
+      "wall_s": 1.1612636250065407
+    },
+    "8": {
+      "calls": 78,
+      "fetches": 75,
+      "first_fetch_ms": 55.29183300677687,
+      "max_fetch_ms": 55.29183300677687,
+      "max_reply_bytes": 952,
+      "max_response_ms": 55.29183300677687,
+      "result": {
+        "generated-pp": {
+          "count": 117855,
+          "digest": "c80d231dbec67016bb8b19bf146533d7a75952ad9f8a3df1cfd92a35c98fcf09",
+          "pending": 1178
+        },
+        "pp-live-pp": {
+          "count": 117900,
+          "digest": "58074dec02a680da80a5ecaf4994ed6aa0e8b3aa4638b99ca401c8d643e871d6",
+          "pending": 1179
+        }
+      },
+      "wall_s": 1.2040102089958964
+    }
+  },
+  "current": {
+    "calls": 625,
+    "fetches": 39,
+    "first_fetch_ms": 55.826166993938386,
+    "max_fetch_ms": 55.826166993938386,
+    "max_reply_bytes": 688,
+    "max_response_ms": 55.826166993938386,
+    "result": {
+      "generated-pp": {
+        "count": 117855,
+        "digest": "c80d231dbec67016bb8b19bf146533d7a75952ad9f8a3df1cfd92a35c98fcf09",
+        "pending": 1178
+      },
+      "pp-live-pp": {
+        "count": 117900,
+        "digest": "58074dec02a680da80a5ecaf4994ed6aa0e8b3aa4638b99ca401c8d643e871d6",
+        "pending": 1179
+      }
+    },
+    "wall_s": 1.3822382080106763
+  },
+  "lazy_calls": {
+    "after_fetch8": 3240,
+    "header": 0,
+    "pages8_rows": 3240
+  },
+  "n": 235755,
+  "original_reference_only_512MB": {
+    "generated-pp": {
+      "count": 117855,
+      "digest": "c80d231dbec67016bb8b19bf146533d7a75952ad9f8a3df1cfd92a35c98fcf09",
+      "pending": 1178
+    },
+    "pp-live-pp": {
+      "count": 117900,
+      "digest": "58074dec02a680da80a5ecaf4994ed6aa0e8b3aa4638b99ca401c8d643e871d6",
+      "pending": 1179
+    }
+  },
+  "original_under_limits": {
+    "generated-pp": {
+      "sqlstate": "53400"
+    },
+    "pp-live-pp": {
+      "sqlstate": "53400"
+    }
+  },
+  "page_count": 583,
+  "plan_nodes": {
+    "batch8_plan": [
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 9,
+        "Node Type": "Limit"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 583,
+        "Node Type": "Aggregate",
+        "Subplan Name": "CTE ranges"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 235755,
+        "Node Type": "Seq Scan",
+        "Relation Name": "outbox"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 9,
+        "Node Type": "Subquery Scan"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 9,
+        "Node Type": "Sort",
+        "Sort Space Type": "Memory",
+        "Sort Space Used": 27
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 3"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 2,
+        "Node Type": "Limit"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 2,
+        "Node Type": "Sort",
+        "Sort Space Type": "Memory",
+        "Sort Space Used": 25
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 2,
+        "Node Type": "Aggregate"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 583,
+        "Node Type": "CTE Scan"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 584,
+        "Node Type": "Result"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 584,
+        "Node Type": "Append"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Result"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 583,
+        "Node Type": "CTE Scan"
+      },
+      {
+        "Actual Loops": 8,
+        "Actual Rows": 1,
+        "Node Type": "Aggregate",
+        "Subplan Name": "SubPlan 2"
+      },
+      {
+        "Actual Loops": 8,
+        "Actual Rows": 405,
+        "Index Cond": "((id >= d.lo) AND (id <= d.hi))",
+        "Node Type": "Index Scan",
+        "Relation Name": "outbox"
+      }
+    ],
+    "header_plan": [
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Limit"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 583,
+        "Node Type": "Aggregate",
+        "Subplan Name": "CTE ranges"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 235755,
+        "Node Type": "Seq Scan",
+        "Relation Name": "outbox"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Subquery Scan"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Sort",
+        "Sort Space Type": "Memory",
+        "Sort Space Used": 25
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Aggregate",
+        "Subplan Name": "InitPlan 3"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 2,
+        "Node Type": "Limit"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 2,
+        "Node Type": "Sort",
+        "Sort Space Type": "Memory",
+        "Sort Space Used": 25
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 2,
+        "Node Type": "Aggregate"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 583,
+        "Node Type": "CTE Scan"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 584,
+        "Node Type": "Result"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 584,
+        "Node Type": "Append"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 1,
+        "Node Type": "Result"
+      },
+      {
+        "Actual Loops": 1,
+        "Actual Rows": 583,
+        "Node Type": "CTE Scan"
+      },
+      {
+        "Actual Loops": 0,
+        "Actual Rows": 0,
+        "Node Type": "Aggregate",
+        "Subplan Name": "SubPlan 2"
+      },
+      {
+        "Actual Loops": 0,
+        "Actual Rows": 0,
+        "Index Cond": "((id >= d.lo) AND (id <= d.hi))",
+        "Node Type": "Index Scan",
+        "Relation Name": "outbox"
+      }
+    ]
+  },
+  "qualification_note": "Generated native fixture only. One ordered run per batch size is not a speed ranking. Candidate chooses4 for bounded work. Native tests separately prove exact FETCH4 laziness and signedzero2047-ID bucket.",
+  "same_as_current": true,
+  "same_as_original_reference": true,
+  "scope": "offline generated disposable macOS native PG17, not Benchmark/Docker timing",
+  "statement_timeout": "19s",
+  "temp_file_limit": "64MB",
+  "unknown_catalog_before_hash": true,
+  "unknown_catalog_hash_call_delta": 0,
+  "work_mem": "2MB"
+}

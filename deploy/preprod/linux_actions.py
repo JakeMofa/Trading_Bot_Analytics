@@ -25,7 +25,7 @@ import urllib.request
 import uuid
 
 from controller import CHECKS, DeploymentHold, HostBinding, require
-from outbox_inventory import RELAY, origin_digest, psql_channel
+from outbox_inventory import RELAY, outbox_digests, psql_channel
 from metadata_inventory import metadata_digest
 
 PROJECT='tradebot-pp-foundation'
@@ -779,39 +779,67 @@ class LinuxActions:
             require(all(not row['State'].get('Running') and row['HostConfig']['RestartPolicy']['Name']=='no'
                         for row in self._inspect(budget,ids)),'candidate_writer_fence_failed')
 
+    def _inventory_catalog(self, budget, tables):
+        pairs = ','.join(f"'{name}',to_regclass('{name}') IS NOT NULL" for name in tables)
+        # Use the same backend-lifetime diagnostic lock in generated and watch mode.
+        # This channel closes before either metadata or outbox acquires that lock.
+        with self._outbox_channel(budget, require_reader=True) as exchange:
+            rows = exchange(f'SELECT json_build_object({pairs});')
+        require(isinstance(rows, list) and len(rows) == 1 and isinstance(rows[0], dict),
+                'invalid_inventory_evidence')
+        present = rows[0]
+        require(present.keys() == set(tables) and all(type(value) is bool for value in present.values()),
+                'invalid_inventory_evidence')
+        return present
+
     def _inventory(self,budget,directory=None):
         # Standalone read-only diagnostics have no staged deployment request.
         if directory is None:
             directory=Path('/var/lib/tradebot-pp/deployments')
-        # Compare the same complete set of release identities on both sides of migration.
-        result={}
-        identities={'core.markets':'origin_id,market_id,content_hash','core.candles':'origin_id,source,symbol,granularity,time,content_hash',
-                    'core.current_prices':'origin_id,source,symbol,content_hash','core.protected_evidence':'origin_id,evidence_id,content_hash',
-                    'core.feature_snapshots':'origin_id,snapshot_id,content_hash','core.predictions':'origin_id,prediction_id,content_hash',
-                    'core.outcomes':'origin_id,outcome_id,content_hash','raw.events':'generation_id,origin_id,source,event_id,content_hash',
-                    'core.snapshot_evidence':'origin_id,snapshot_id,evidence_id',
-                    'ops.outbox':'id,origin_id,entity_type,entity_id,content_hash',
-                    'archive.generated_outbox_storage':"origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at"}
-        for table,identity in identities.items():
-            read=self._reader_sql if table=='archive.generated_outbox_storage' else self._sql
-            exists=read(budget,"SELECT to_regclass('"+table+"') IS NOT NULL")
-            if exists=='f':result[table]=None;continue
-            require(exists=='t','invalid_inventory_evidence')
-            if table=='ops.outbox':
-                result[table]=self._outbox_evidence(budget)
-                continue
-            result[table]=self._metadata_digest(budget,table,identity,directory)
+        # The fixed key set includes optional tables that do not yet exist before
+        # a first migration. Never infer coverage from a filtered catalogue.
+        identities = {
+            'core.markets': 'origin_id,market_id,content_hash',
+            'core.candles': 'origin_id,source,symbol,granularity,time,content_hash',
+            'core.current_prices': 'origin_id,source,symbol,content_hash',
+            'core.protected_evidence': 'origin_id,evidence_id,content_hash',
+            'core.feature_snapshots': 'origin_id,snapshot_id,content_hash',
+            'core.predictions': 'origin_id,prediction_id,content_hash',
+            'core.outcomes': 'origin_id,outcome_id,content_hash',
+            'raw.events': 'generation_id,origin_id,source,event_id,content_hash',
+            'core.snapshot_evidence': 'origin_id,snapshot_id,evidence_id',
+        }
+        archive = 'archive.generated_outbox_storage'
+        tables = [*identities, 'ops.outbox', archive]
+        present = self._inventory_catalog(budget, tables)
+
+        result = dict.fromkeys(tables)
+        ordinary = [name for name in identities if present[name]]
+        if ordinary:
+            with self._outbox_channel(budget) as exchange:
+                for name in ordinary:
+                    # Each digest starts and commits its own read-only snapshot.
+                    result[name] = self._metadata_digest(budget, name, identities[name], directory, exchange=exchange)
+        if present['ops.outbox']:
+            result['ops.outbox'] = self._outbox_evidence(budget)
+        if present[archive]:
+            identity = "origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at"
+            result[archive] = self._metadata_digest(budget, archive, identity, directory)
         return result
 
-    def _metadata_digest(self,budget,table,identity,directory):
+    def _metadata_digest(self,budget,table,identity,directory,*,exchange=None):
         try:
             info=directory.lstat()
         except OSError as error:
             raise DeploymentHold('metadata_scratch_directory') from error
         require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700
                 and info.st_dev==Path('/').stat().st_dev,'metadata_scratch_directory')
-        with self._outbox_channel(budget, require_reader=table=='archive.generated_outbox_storage') as exchange:
+        archive = table == 'archive.generated_outbox_storage'
+        if exchange is not None:
+            require(not archive, 'invalid_inventory_evidence')
             return metadata_digest(exchange,table,identity,budget,directory)
+        with self._outbox_channel(budget, require_reader=archive) as opened:
+            return metadata_digest(opened,table,identity,budget,directory)
 
     def _schema_ledger(self,budget):
         """Bounded identity check; the prior runtime needs the same schema."""
@@ -836,21 +864,9 @@ class LinuxActions:
                         WATCH_DIAGNOSTIC_LOCK,'true'],env=env,timeout=22)
         return psql_channel(args,budget,env,verify_cleanup)
 
-    def _origin_digest(self, budget, origin):
-        with self._outbox_channel(budget) as exchange:
-            return origin_digest(exchange, origin)
-
     def _outbox_evidence(self,budget):
-        groups={}
-        for origin in self._approved_outbox_origins(budget):
-            row=self._origin_digest(budget,origin)
-            require(isinstance(row,dict) and type(row.get('count')) is int
-                    and row['count']>0 and type(row.get('pending')) is int
-                    and 0<=row['pending']<=min(row['count'],10000)
-                    and bool(re.fullmatch('[0-9a-f]{64}',row.get('digest',''))),
-                    'outbox_inventory_invalid')
-            groups[origin]=row
-        return groups
+        with self._outbox_channel(budget) as exchange:
+            return outbox_digests(exchange,OUTBOX_ORIGINS)
 
     def _capture_prior_runtime(self,context,budget):
         """Only the already-running generated/off containers may be restored."""

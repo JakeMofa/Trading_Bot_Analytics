@@ -731,7 +731,7 @@ class LinuxActions:
 
     def _approved_outbox_origins(self,budget):
         origins=self._json(self._sql(budget,"SELECT coalesce(json_agg(origin_id ORDER BY origin_id),'[]'::json) "
-            "FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT 5) bounded"))
+            f"FROM (SELECT DISTINCT origin_id FROM ops.outbox ORDER BY origin_id NULLS FIRST LIMIT {len(OUTBOX_ORIGINS)+1}) bounded"))
         require(isinstance(origins,list) and len(origins)<=len(OUTBOX_ORIGINS)
                 and all(type(origin) is str and origin in OUTBOX_ORIGINS for origin in origins)
                 and len(origins)==len(set(origins)),'unexpected_outbox_origin')
@@ -824,20 +824,27 @@ class LinuxActions:
         return self._outbox_evidence(budget)
 
     def _outbox_evidence(self,budget):
-        # One statement snapshot per origin. Fold groups of at most 1024 row
-        # hashes so the database never aggregates the original payload bodies.
+        # Derive occupied ID ranges from narrow columns. Each range is hashed
+        # in the same snapshot, before any ordering of the full composite rows.
         groups={}
         for origin in self._approved_outbox_origins(budget):
-            row=self._json(self._sql(budget,"""SELECT json_build_object(
-                'count',sum(n),'pending',sum(pending),'digest',
-                encode(sha256(convert_to(string_agg(page_hash,'' ORDER BY page),'UTF8')),'hex'))
-                FROM (SELECT id / 1024 AS page, count(*) AS n,
-                    count(*) FILTER (WHERE acknowledged_at IS NULL) AS pending,
-                    encode(sha256(convert_to(string_agg(
-                        encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex'),
-                        '' ORDER BY id),'UTF8')),'hex') AS page_hash
-                    FROM ops.outbox o WHERE origin_id='"""+origin+"""'
-                    GROUP BY id / 1024) pages"""))
+            row=self._json(self._sql(budget,"""WITH ranges AS MATERIALIZED (
+                    SELECT id / 1024 AS page, min(id) AS lo, max(id) AS hi
+                    FROM ops.outbox WHERE origin_id='"""+origin+"""' GROUP BY id / 1024
+                )
+                SELECT json_build_object('count',sum(n),'pending',sum(pending),'digest',
+                    encode(sha256(convert_to(string_agg(page_hash,'' ORDER BY page),'UTF8')),'hex'))
+                FROM ranges CROSS JOIN LATERAL (
+                    WITH hashes AS MATERIALIZED (
+                        SELECT o.id, o.acknowledged_at IS NULL AS pending,
+                            encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex') AS hash
+                        FROM ops.outbox o
+                        WHERE o.origin_id='"""+origin+"""' AND o.id BETWEEN ranges.lo AND ranges.hi
+                    )
+                    SELECT count(*) AS n, count(*) FILTER (WHERE pending) AS pending,
+                        encode(sha256(convert_to(string_agg(hash,'' ORDER BY id),'UTF8')),'hex') AS page_hash
+                    FROM hashes
+                ) AS hashed_range"""))
             require(isinstance(row,dict) and type(row.get('count')) is int
                     and row['count']>0 and type(row.get('pending')) is int
                     and 0<=row['pending']<=min(row['count'],10000)

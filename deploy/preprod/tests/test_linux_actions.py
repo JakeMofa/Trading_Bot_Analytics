@@ -443,7 +443,9 @@ class ActionTests(unittest.TestCase):
         self.assertEqual(sum("WHERE origin_id='pp-live-pp'" in q for q in calls),3)
         self.assertTrue(all('GROUP BY id / 1024' in q for q in calls if 'WHERE origin_id=' in q))
         self.assertFalse(any('FROM ops.outbox LIMIT 10001' in q for q in calls))
-        self.assertTrue(all(q.startswith('SELECT ') for q in calls))
+        for query in calls:
+            self.assertTrue(query.startswith(('SELECT ', 'WITH ranges AS MATERIALIZED')))
+            self.assertNotRegex(query.upper(), r'\b(INSERT|UPDATE|DELETE|ALTER|TRUNCATE|DROP|CREATE)\b')
 
     def test_overbound_outbox_holds_in_read_only_preflight_before_fence(self):
         def sql(_,query):

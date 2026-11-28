@@ -1,3 +1,19 @@
+## November 28 — Benchmark deployment inventory
+
+- [x] Locate the `.12` deployment failure in the preservation check before the
+  schema migrator ran. PostgreSQL reached its 64 MiB temporary-file limit
+  hashing the active origin's 98,058 archived outbox envelopes.
+- [x] Enumerate all stored origins against the allowlist and hash each
+  occupied ID range in one statement snapshot per origin. Sparse IDs, changes
+  to envelope contents and changes to ACK timestamps retain their original
+  checksum semantics.
+- [x] Reproduce the spill on isolated PostgreSQL 17 at 2 MiB work memory.
+  The bounded query matched a streaming oracle for all 98,058 synthetic rows
+  in 539 ms with zero temporary blocks in the measured plan. The existing
+  Benchmark origin passed a read-only run in 16.059 s including SSH overhead.
+- [ ] Complete successor CI, guarded deployment and a full live market on
+  the same A. Retained generations and verified archive data stay protected.
+
 ## November 28 — Connection-capacity profile adopted on Benchmark
 
 - [x] Merge and independently qualify #256/#257 with unchanged server/role caps.

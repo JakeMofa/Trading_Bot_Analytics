@@ -62,11 +62,11 @@ def checked_bundle(path,expected):
     raw=path.read_bytes()
     require(hashlib.sha256(raw).hexdigest()==expected,'bundle_digest_mismatch')
     with zipfile.ZipFile(path) as archive:
-        require(set(archive.namelist())=={'__main__.py','controller.py','linux_actions.py',
+        require(set(archive.namelist())=={'__main__.py','controller.py','linux_actions.py','outbox_inventory.py',
             'live_profile.py','live_transition.py','transition_control.py',
             'structured_probe_profile.py','structured_probe_control.py',
             'raw_archive_probe_profile.py','raw_archive_probe_control.py',
-            'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py','watch_service.py','install_controller.py'} and len(archive.namelist())==15,
+            'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py','watch_service.py','install_controller.py'} and len(archive.namelist())==16,
             'unexpected_bundle_members')
         require(sum(i.file_size for i in archive.infolist())<=256*1024,'bundle_expanded_bound')
     return raw

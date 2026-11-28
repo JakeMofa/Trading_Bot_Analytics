@@ -42,8 +42,9 @@ is established. Do not lengthen the fence or trust cached ownership.
 - [x] Verify the fresh browser OFF/stale state and bounded private status.
 - [x] Capture actual runtime identity, valid preceding lease and safe backlog.
 - [x] Independently review the ownership path and its diagnostic ambiguity.
-- [ ] Add and qualify phase-specific deadline diagnostics/reproduction before
-  selecting a runtime fix; account for retained-connection/read-budget options.
+- [x] Qualify offline phase diagnostics, failure reproductions and the first
+  bounded worker-isolation repair in #263; retained-connection work remains
+  conditional on real phase evidence.
 - [ ] Qualify recovery and a fresh sustained run on the same VM.
 - [ ] Then test the current three-feed release's actual A/B dashboard/query
   continuity; old live PP32 and disposable A/B tests are separate evidence.
@@ -65,6 +66,17 @@ read-only 10:48 UTC preservation preflight also hit SQLSTATE57014 at
 were unchanged. No CD was dispatched; complete-origin digest pagination is
 now a separate adoption prerequisite. [Preflight evidence](evidence/benchmark-235755-preservation-preflight-2026-11-28.json).
 See the linked repair plan for scope.
+
+PR [#263](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/263) merged
+as `ca2e082fcb805895ffdec27115ad95cdade9677c` after head-source CI
+46137125719 and PR CI 46137142740 passed. Local backend discovery passed
+735 cases (67 environment skips); ten focused ownership tests include native
+PostgreSQL, default-pool saturation, late native completion and delayed-loop
+proof rejection. Continuous ownership checks are isolated; session activation
+and durable OFF still use their existing executor paths. This is code/CI
+acceptance, not a new live-run result. Complete-origin preservation at the
+larger size remains the deployment prerequisite described in the
+[local database plan](LOCAL_DATABASE_CONNECTION_BUDGET.md#complete-origin-preservation-at-larger-size).
 
 No deployment, re-arm, deletion, permission change or production action was
 performed for this incident check. Existing archive records remain intact;

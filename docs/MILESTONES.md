@@ -15,8 +15,15 @@ The same containers remained installed; no recovery or A/B swap was performed.
   remains unknown because the deployed release lacks these timings.
 - [ ] Qualify the implemented isolated-worker/monotonic-deadline candidate;
   no live adoption yet and actual incident cause remains unproved.
+- [x] Merge ownership repair #263 (`ca2e082`) after exact head push/PR CI;
+  local backend 735 cases/67 skips, ten focused ownership regressions,
+  controller 332 cases/nine skips and CI controls 58 cases passed.
 - [ ] Repair complete-origin preservation scans: the actual 235,755-row A
   digest hit the unchanged 19-second statement limit before any CD dispatch.
+- [x] Implement and independently review bounded snapshot cursor hashing;
+  native 235,755-row parity passed, controller 338 cases/12 skips and CI
+  controls 58 cases passed. Linux-container cancellation and actual VM full
+  inventory are still required before adoption.
 - [ ] Review a bounded fix, qualify recovery and sustained collection.
 - [ ] Prove the current three-feed A/B swap with dashboard/history reads.
 

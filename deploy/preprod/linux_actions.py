@@ -25,6 +25,7 @@ import urllib.request
 import uuid
 
 from controller import CHECKS, DeploymentHold, HostBinding, require
+from outbox_inventory import RELAY, origin_digest, psql_channel
 
 PROJECT='tradebot-pp-foundation'
 PG_VOLUME='tradebot_pp_pgdata'
@@ -823,28 +824,27 @@ class LinuxActions:
     def _ack_state(self,budget):
         return self._outbox_evidence(budget)
 
+    def _outbox_channel(self, budget):
+        require(self.pg_id is not None, 'postgres_identity_not_verified')
+        role, secret = ('tradebot_reader','reader') if self.watch_diagnostics else ('tradebot_app','application')
+        gate = ['flock','-n','-E','75','-F',WATCH_DIAGNOSTIC_LOCK]
+        shell = f'export PGPASSWORD="$(cat /run/secrets/{secret})"; ' + RELAY
+        args = ['docker','exec','-i',self.pg_id,*gate,'/bin/bash','-c',shell,'outbox-inventory',
+                'psql','-X','-qAt','-v','ON_ERROR_STOP=1','-h','127.0.0.1','-U',role,'-d','tradebot_pp']
+        env = self._environment('unused')
+        def verify_cleanup():
+            budget.run(['docker','exec',self.pg_id,'flock','-w','21','-F',
+                        WATCH_DIAGNOSTIC_LOCK,'true'],env=env,timeout=22)
+        return psql_channel(args,budget,env,verify_cleanup)
+
+    def _origin_digest(self, budget, origin):
+        with self._outbox_channel(budget) as exchange:
+            return origin_digest(exchange, origin)
+
     def _outbox_evidence(self,budget):
-        # Derive occupied ID ranges from narrow columns. Each range is hashed
-        # in the same snapshot, before any ordering of the full composite rows.
         groups={}
         for origin in self._approved_outbox_origins(budget):
-            row=self._json(self._sql(budget,"""WITH ranges AS MATERIALIZED (
-                    SELECT id / 1024 AS page, min(id) AS lo, max(id) AS hi
-                    FROM ops.outbox WHERE origin_id='"""+origin+"""' GROUP BY id / 1024
-                )
-                SELECT json_build_object('count',sum(n),'pending',sum(pending),'digest',
-                    encode(sha256(convert_to(string_agg(page_hash,'' ORDER BY page),'UTF8')),'hex'))
-                FROM ranges CROSS JOIN LATERAL (
-                    WITH hashes AS MATERIALIZED (
-                        SELECT o.id, o.acknowledged_at IS NULL AS pending,
-                            encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex') AS hash
-                        FROM ops.outbox o
-                        WHERE o.origin_id='"""+origin+"""' AND o.id BETWEEN ranges.lo AND ranges.hi
-                    )
-                    SELECT count(*) AS n, count(*) FILTER (WHERE pending) AS pending,
-                        encode(sha256(convert_to(string_agg(hash,'' ORDER BY id),'UTF8')),'hex') AS page_hash
-                    FROM hashes
-                ) AS hashed_range"""))
+            row=self._origin_digest(budget,origin)
             require(isinstance(row,dict) and type(row.get('count')) is int
                     and row['count']>0 and type(row.get('pending')) is int
                     and 0<=row['pending']<=min(row['count'],10000)

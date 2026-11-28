@@ -8,6 +8,24 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from controller import DeploymentHold
 from linux_actions import LinuxActions
+from outbox_inventory import origin_digest
+
+
+def fixture_digest(db, relation, origin, queries):
+    def exchange(statement):
+        query = statement.replace('ops.outbox', relation)
+        queries.append(query)
+        if not db.autocommit:
+            # Keep the connection-private temp fixture and the test's enclosing
+            # transaction alive. The two-connection test uses real BEGIN/COMMIT.
+            if query.startswith('BEGIN '):
+                return []
+            if query == 'CLOSE outbox_pages; COMMIT;':
+                query = 'CLOSE outbox_pages'
+        cursor = db.execute(query)
+        return [row[0] for row in cursor.fetchall()] if cursor.description else []
+    return origin_digest(exchange, origin)
+
 
 
 @unittest.skipUnless(all(os.getenv(key) for key in ('TRADEBOT_TEST_HISTORY_V2_DSN',
@@ -21,6 +39,9 @@ class LifetimeInventoryTests(unittest.TestCase):
                        n::text AS payload, n::text AS event_id, 'feed' AS source, 'gen' AS generation_id, 'hash' AS content_hash, CASE WHEN n<=10100 THEN now() END AS acknowledged_at
                        FROM generate_series(1,10103) n""")
             class FixtureActions(LinuxActions):
+                def _origin_digest(self, budget, origin):
+                    return fixture_digest(db,'pg_temp.inventory_fixture',origin,[])
+
                 def _sql(self, budget, query):
                     value = db.execute(query.replace('ops.outbox', 'pg_temp.inventory_fixture').replace('raw.events','pg_temp.inventory_fixture')).fetchone()[0]
                     if isinstance(value, bool):
@@ -68,6 +89,9 @@ ORIGINAL_DIGEST = """SELECT json_build_object('count',sum(n),'pending',sum(pendi
 
 
 class OutboxFixture(LinuxActions):
+    def _origin_digest(self, budget, origin):
+        return fixture_digest(self.db,self.relation,origin,self.queries)
+
     def __init__(self, connection, relation='inventory_fixture'):
         super().__init__()
         self.db = connection
@@ -129,7 +153,7 @@ class BoundedOutboxTests(unittest.TestCase):
             db.execute("""INSERT INTO inventory_fixture
                 SELECT n,'pp-live-pp',jsonb_build_object('body',repeat(md5(n::text),36)),
                        CASE WHEN n%100<>0 THEN timestamptz '2026-11-28 00:00:00Z' END
-                FROM generate_series(1,98058) n""")
+                FROM generate_series(1,235755) n""")
             db.execute('ANALYZE inventory_fixture')
             with self.assertRaises(psycopg.errors.ConfigurationLimitExceeded), db.transaction():
                 db.execute(ORIGINAL_DIGEST, ('pp-live-pp',)).fetchone()
@@ -150,8 +174,10 @@ class BoundedOutboxTests(unittest.TestCase):
                         inner.update(row_hash.encode('ascii'))
                     outer.update(inner.hexdigest().encode('ascii'))
             self.assertEqual(proof, dict(count=rows, pending=pending, digest=outer.hexdigest()))
-            self.assertEqual(rows, 98058)
-            plan = db.execute('EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON) '+actions.queries[-1]).fetchone()[0][0]
+            self.assertEqual(rows, 235755)
+            pages = [q for q in actions.queries if 'WITH hashes AS MATERIALIZED' in q]
+            self.assertEqual(len(pages),231)
+            plan = db.execute('EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON) '+pages[-1]).fetchone()[0][0]
             nodes = []
             def collect(node):
                 nodes.append(node)
@@ -159,11 +185,11 @@ class BoundedOutboxTests(unittest.TestCase):
                     collect(child)
             collect(plan['Plan'])
             self.assertTrue(any('Index Cond' in n and 'id >=' in n['Index Cond'] and
-                                'id <=' in n['Index Cond'] and n['Actual Loops'] > 90 for n in nodes))
+                                'id <=' in n['Index Cond'] and n['Actual Loops'] == 1 for n in nodes))
             self.assertFalse(any(n['Node Type']=='Seq Scan' and n['Actual Loops']>1 and
                                  n.get('Relation Name')=='inventory_fixture' for n in nodes))
 
-    def test_one_statement_snapshot_across_id_ranges(self):
+    def test_one_repeatable_read_snapshot_across_page_statements(self):
         import concurrent.futures
         import time
         import uuid
@@ -205,7 +231,164 @@ class BoundedOutboxTests(unittest.TestCase):
                     finally:
                         writer.execute("SELECT pg_advisory_unlock(%s)",(key,))
                     self.assertEqual(future.result(timeout=5),expected)
-                    self.assertEqual(len(actions.queries), 1)
+                    self.assertEqual(sum('WITH hashes AS MATERIALIZED' in q for q in actions.queries),2)
                 self.assertNotEqual(OutboxFixture(writer,schema+'.entries')._ack_state(None),expected)
             finally:
                 writer.execute(f'DROP SCHEMA {schema} CASCADE')
+
+
+@unittest.skipUnless(os.getenv('TRADEBOT_TEST_INVENTORY_CONTAINER'),
+                     'isolated Linux qualification container required')
+class ContainerOutboxChannelTests(unittest.TestCase):
+    def test_abrupt_docker_attach_loss_cannot_release_the_flock_over_a_live_backend(self):
+        import concurrent.futures
+        import subprocess
+        import time
+        from unittest.mock import patch
+        import psycopg
+        from controller import Budget
+        from linux_actions import WATCH_DIAGNOSTIC_LOCK
+
+        container = os.environ['TRADEBOT_TEST_INVENTORY_CONTAINER']
+        self.assertRegex(container,r'^[a-f0-9]{12,64}$')
+        actions = LinuxActions(watch_diagnostics=True)
+        actions.pg_id = container
+        popen = subprocess.Popen
+        children = []
+        def capture(*args,**kwargs):
+            proc = popen(*args,**kwargs)
+            children.append(proc)
+            return proc
+        dsn = os.environ['TRADEBOT_TEST_HISTORY_V2_DSN']
+        with psycopg.connect(dsn, autocommit=True) as admin:
+            try:
+                with patch('outbox_inventory.subprocess.Popen', side_effect=capture), \
+                     actions._outbox_channel(Budget(65)) as exchange:
+                    pid,role,ro=exchange("SELECT json_build_array(pg_backend_pid(),session_user,current_setting('transaction_read_only'));")[0]
+                    self.assertEqual((role,ro),('tradebot_reader','on'))
+                    # Launch exactly one slow, read-only query, and require it to
+                    # be active in the server before killing the Docker client.
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                        pending=pool.submit(exchange,'SELECT json_build_array(1) FROM pg_sleep(8);')
+                        deadline = time.monotonic()+4
+                        while not admin.execute("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE pid=%s AND wait_event='PgSleep')",(pid,)).fetchone()[0]:
+                            self.assertLess(time.monotonic(),deadline)
+                            time.sleep(.02)
+                        children[0].kill()
+                        with self.assertRaises((DeploymentHold,BrokenPipeError)):
+                            pending.result(timeout=4)
+                    raise RuntimeError('deliberate test unwind')
+            except RuntimeError as exc:
+                self.assertEqual(str(exc),'deliberate test unwind')
+            # An independent ordinary holder acquires the same gate; its first
+            # action runs inside the PG namespace and checks the original PID.
+            reap=subprocess.run(['docker','exec',container,'flock','-w','25','-F',
+                                 WATCH_DIAGNOSTIC_LOCK,'sh','-ec',
+                                 'test ! -e "/proc/$1"','check-released',str(pid)],
+                                capture_output=True,timeout=28)
+            self.assertEqual(reap.returncode,0)
+            self.assertIsNone(admin.execute("SELECT pid FROM pg_stat_activity WHERE pid=%s",(pid,)).fetchone())
+
+    def test_real_container_reader_reports_the_expected_page_identity(self):
+        import psycopg
+        import uuid
+        from controller import Budget
+        actions=LinuxActions(watch_diagnostics=True)
+        actions.pg_id=os.environ['TRADEBOT_TEST_INVENTORY_CONTAINER']
+        schema='outbox_cursor_'+uuid.uuid4().hex
+        with psycopg.connect(os.environ['TRADEBOT_TEST_HISTORY_V2_DSN'],autocommit=True) as admin:
+            try:
+                admin.execute(f'CREATE SCHEMA {schema}')
+                admin.execute(f'CREATE TABLE {schema}.fixture(id bigint PRIMARY KEY,origin_id text,payload jsonb,acknowledged_at timestamptz)')
+                admin.execute(f"INSERT INTO {schema}.fixture SELECT n,'pp-live-pp',jsonb_build_object('value',n),NULL FROM generate_series(1,2200) n")
+                admin.execute(f'GRANT USAGE ON SCHEMA {schema} TO tradebot_reader')
+                admin.execute(f'GRANT SELECT ON {schema}.fixture TO tradebot_reader')
+                expected=admin.execute(ORIGINAL_DIGEST.replace('inventory_fixture',schema+'.fixture'),('pp-live-pp',)).fetchone()[0]
+                with actions._outbox_channel(Budget(50)) as exchange:
+                    result=origin_digest(lambda q:exchange(q.replace('ops.outbox',schema+'.fixture')),'pp-live-pp')
+                self.assertEqual(result,expected)
+            finally:
+                admin.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')
+
+    def test_signal_before_pid_registration_keeps_gate_until_login_exits(self):
+        import concurrent.futures
+        import subprocess
+        import time
+        import uuid
+        from unittest.mock import patch
+        import psycopg
+        from controller import Budget
+        from linux_actions import WATCH_DIAGNOSTIC_LOCK
+        from outbox_inventory import RELAY
+
+        container = os.environ['TRADEBOT_TEST_INVENTORY_CONTAINER']
+        actions = LinuxActions(watch_diagnostics=True)
+        actions.pg_id = container
+        key=uuid.uuid4().int % (2**62)
+        relay_pid_file=f'/tmp/generated-inventory-relay-{key}.pid'
+        sql=f'SELECT pg_advisory_lock({key}) /* generated-startup-{key} */'
+        real_popen=subprocess.Popen
+        def delay_handshake(args, **kwargs):
+            # Prepend a login-only barrier in the disposable PG. The production
+            # relay is otherwise identical, including its pre-registration trap.
+            argv=list(args)
+            code=next(i for i,x in enumerate(argv) if RELAY in x)
+            argv[code]=f'echo $$ > {relay_pid_file}; '+argv[code].replace('child=$!',f'child=$!; echo "$child" > {relay_pid_file}.frontend')
+            return real_popen([*argv,'-c',sql,'-f','-'],**kwargs)
+        def blocked():
+            # Only replace the initial Docker launch, not the independent
+            # serialized cleanup command that uses the same module.
+            with patch('outbox_inventory.subprocess.Popen',side_effect=lambda argv,**kw:
+                       delay_handshake(argv,**kw) if 'outbox-inventory' in argv else real_popen(argv,**kw)):
+                with actions._outbox_channel(Budget(65)) as exchange:
+                    exchange('SELECT 1;')
+
+        with psycopg.connect(os.environ['TRADEBOT_TEST_HISTORY_V2_DSN'],autocommit=True) as admin:
+            admin.execute('SELECT pg_advisory_lock(%s)',(key,))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+                pending=pool.submit(blocked)
+                try:
+                    deadline=time.monotonic()+6
+                    while True:
+                        row=admin.execute("""SELECT pid FROM pg_stat_activity WHERE query=%s
+                                           AND state='active' AND wait_event='advisory'""",(sql,)).fetchone()
+                        if row:break
+                        self.assertLess(time.monotonic(),deadline)
+                        time.sleep(.025)
+                    pid=row[0]
+                    # Churn unrelated sibling backends while the unregistered
+                    # login stays alive. The Linux task/children traversal is
+                    # specifically unreliable during concurrent child exits.
+                    def churn_siblings():
+                        n=0
+                        until=time.monotonic()+2
+                        while time.monotonic()<until:
+                            with psycopg.connect(os.environ['TRADEBOT_TEST_HISTORY_V2_DSN']):
+                                n+=1
+                        return n
+                    churn=pool.submit(churn_siblings)
+                    # Deliberately suspend the disposable login's server process
+                    # and remove psql before checking exclusion. A lock merely
+                    # inherited by the frontend would reopen here.
+                    subprocess.run(['docker','exec',container,'sh','-ec',
+                                    f'kill -STOP "$1"; kill -TERM "$(cat {relay_pid_file})"; '
+                                    f'front=$(cat {relay_pid_file}.frontend); kill -TERM "$front"; '
+                                    'for n in 1 2 3 4 5 6 7 8 9 10; do '
+                                    '[ ! -e "/proc/$front" ] && exit 0; sleep .1; done; exit 1',
+                                    'pause-private-login',str(pid)],check=True,timeout=4)
+                    conflict=subprocess.run(['docker','exec',container,'flock','-n','-E','75','-F',
+                                              WATCH_DIAGNOSTIC_LOCK,'true'],timeout=3)
+                    self.assertEqual(conflict.returncode,75)
+                    self.assertGreater(churn.result(timeout=4),1)
+                finally:
+                    if 'pid' in locals():
+                        subprocess.run(['docker','exec',container,'sh','-ec',
+                                        'kill -CONT "$1" 2>/dev/null || true','resume-fixture',str(pid)],
+                                       check=True,timeout=4)
+                    admin.execute('SELECT pg_advisory_unlock(%s)',(key,))
+                with self.assertRaises(DeploymentHold):
+                    pending.result(timeout=25)
+            probe=subprocess.run(['docker','exec',container,'flock','-w','5','-F',WATCH_DIAGNOSTIC_LOCK,
+                                  'sh','-ec','test ! -e "/proc/$1"; rm -f "$2" "$2.frontend"','check-registration',str(pid),relay_pid_file],
+                                 timeout=7)
+            self.assertEqual(probe.returncode,0)

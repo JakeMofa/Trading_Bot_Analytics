@@ -62,8 +62,11 @@ All ten focused scheduling/phase/deadline/import tests passed locally using
 native disposable PostgreSQL 17 where required. Independent review found and
 verified fixes for late event-loop delivery and migration-only import isolation.
 The pre-existing controller suite passed 332 cases (nine skips), and CI-control
-tests passed 58 cases. These are offline results; exact source CI and live
-acceptance are still required.
+tests passed 58 cases. Full backend discovery passed 735 cases (67 environment
+skips). PR #263 merged as `ca2e082` after its exact head source and PR CI passed.
+The final combined release still needs exact-source CI and live acceptance.
+The isolated executor applies to continuous ownership checks; activation and
+durable-OFF callbacks retain their existing default-executor paths.
 
 Retained-reader alternative, only if phase evidence justifies it: replace repeated physical
 connection setup with one serialized private read service using the existing

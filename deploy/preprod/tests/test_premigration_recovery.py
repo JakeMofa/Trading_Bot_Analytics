@@ -157,30 +157,12 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(self.budget.calls,[])
 
     def test_ack_proof_is_bounded_and_includes_ack_timestamp(self):
-        def sql(_,query):
-            if 'SELECT coalesce(json_agg(origin_id' in query:
-                return '["generated-pp","pp-live-pp"]'
-            if "WHERE origin_id='generated-pp'" in query:
-                return json.dumps(ACK_STATE['generated-pp'])
-            if "WHERE origin_id='pp-live-pp'" in query:
-                return json.dumps(ACK_STATE['pp-live-pp'])
-            raise AssertionError('unexpected ACK proof query')
-        with patch.object(self.actions,'_sql',side_effect=sql) as query:
+        with patch.object(self.actions,'_sql',return_value='["generated-pp","pp-live-pp"]'), \
+             patch.object(self.actions,'_origin_digest',side_effect=lambda _,origin: ACK_STATE[origin]) as digests:
             self.assertEqual(self.actions._ack_state(self.budget),ACK_STATE)
-        queries=[call.args[1] for call in query.call_args_list]
-        self.assertEqual(len(queries),3)
-        self.assertTrue(all('acknowledged_at' in text and 'GROUP BY id / 1024' in text
-                            for text in queries[1:]))
-        self.assertTrue(queries[0].startswith('SELECT '))
-        for text in queries[1:]:
-            self.assertTrue(text.startswith('WITH ranges AS MATERIALIZED'))
-            self.assertIn('o.id BETWEEN ranges.lo AND ranges.hi', text)
-            self.assertIn('to_jsonb(o)::text', text)
-            self.assertIn('ORDER BY page', text)
-        def overbound(_,query):
-            if 'SELECT coalesce(json_agg(origin_id' in query:return '["generated-pp"]'
-            return json.dumps({'count':10001,'digest':'a'*32})
-        with patch.object(self.actions,'_sql',side_effect=overbound):
+            self.assertEqual([x.args[1] for x in digests.call_args_list],list(ACK_STATE))
+        with patch.object(self.actions,'_sql',return_value='["generated-pp"]'), \
+             patch.object(self.actions,'_origin_digest',return_value={'count':10001,'digest':'a'*32}):
             with self.assertRaisesRegex(c.DeploymentHold,'outbox_inventory_invalid'):
                 self.actions._ack_state(self.budget)
         with patch.object(self.actions,'_sql',return_value='["third-origin"]'):

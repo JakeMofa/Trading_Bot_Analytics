@@ -421,13 +421,12 @@ class ActionTests(unittest.TestCase):
                 return 't' if "'ops.outbox'" in query else 'f'
             if 'SELECT coalesce(json_agg(origin_id' in query:
                 return '["generated-pp","pp-live-pp"]'
-            if "WHERE origin_id='generated-pp'" in query:
-                return json.dumps({'count':17511,'pending':7511,'digest':'a'*64})
-            if "WHERE origin_id='pp-live-pp'" in query:
-                return json.dumps({'count':5268,'pending':5268,'digest':'b'*64})
             raise AssertionError('unexpected inventory query')
+        proofs={'generated-pp':{'count':17511,'pending':7511,'digest':'a'*64},
+                'pp-live-pp':{'count':5268,'pending':5268,'digest':'b'*64}}
         with patch.object(self.actions,'_sql',side_effect=sql), \
-             patch.object(self.actions,'_reader_sql',side_effect=sql):
+             patch.object(self.actions,'_reader_sql',side_effect=sql), \
+             patch.object(self.actions,'_origin_digest',side_effect=lambda _,origin: proofs[origin]) as digests:
             original=self.actions._inventory(self.budget)
             self.actions.before_migration=original
             self.actions.fence_started=True
@@ -439,9 +438,7 @@ class ActionTests(unittest.TestCase):
             'pp-live-pp':{'count':5268,'pending':5268,'digest':'b'*64}})
         self.assertEqual(recovery['strategy'],'stop_candidate_keep_database')
         self.assertTrue(recovery['new_acknowledgements_preserved'])
-        self.assertEqual(sum("WHERE origin_id='generated-pp'" in q for q in calls),3)
-        self.assertEqual(sum("WHERE origin_id='pp-live-pp'" in q for q in calls),3)
-        self.assertTrue(all('GROUP BY id / 1024' in q for q in calls if 'WHERE origin_id=' in q))
+        self.assertEqual([call.args[1] for call in digests.call_args_list], list(proofs)*3)
         self.assertFalse(any('FROM ops.outbox LIMIT 10001' in q for q in calls))
         for query in calls:
             self.assertTrue(query.startswith(('SELECT ', 'WITH ranges AS MATERIALIZED')))
@@ -492,7 +489,8 @@ class ActionTests(unittest.TestCase):
                     if "WHERE origin_id='generated-pp'" in query:
                         return json.dumps({'count':count,'pending':count,'digest':'a'*64})
                     raise AssertionError('unexpected inventory query')
-                with patch.object(self.actions,'_sql',side_effect=sql):
+                with patch.object(self.actions,'_sql',side_effect=sql), \
+                     patch.object(self.actions,'_origin_digest',return_value={'count':count,'pending':count,'digest':'a'*64}):
                     with self.assertRaisesRegex(c.DeploymentHold,
                                                 'outbox_inventory_invalid|unexpected_outbox_origin'):
                         self.actions._inventory(self.budget)

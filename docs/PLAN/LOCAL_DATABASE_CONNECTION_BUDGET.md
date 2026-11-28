@@ -135,3 +135,52 @@ the same writer session. The identical 500-row local HTTP page passed in
 0.671619 seconds including decode. The watch was left ON. Full evidence,
 timestamped preservation scope and still-open long-window/handoff gates are
 in the [master checkpoint](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--heartbeat-recovery-qualification).
+
+## Complete-origin preservation at larger size
+
+The later `.13` ownership stop is recorded in the
+[active repair plan](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md). Its first
+runtime repair merged in #263. Adoption remains blocked by a distinct bounded
+read-only preflight: the same full-row origin digest that qualified at 98,058
+rows reached 19,000.576 ms/SQLSTATE57014 at 235,755 rows on the actual stopped
+Benchmark. The captured epoch, generation, high-water ID, ACK count and zero
+pending count were unchanged afterward. No new CD was dispatched.
+
+The separate controller candidate enumerates narrow occupied ID-page ranges
+and hashes one bounded range per statement using one physical read-only
+REPEATABLE READ session per origin. It must reproduce the previous full-row
+SHA256 page/outer digest exactly, cover every approved origin and preserve
+counts and pending state. Statement19s, response20s, temp64MiB, work_mem2MiB,
+role ceilings and the controller's 600-second total remain the bounds. Total
+origin work can span multiple responses; it is not another long statement.
+
+Qualification must include sparse/negative/extreme IDs, content and ACK
+mutation, committed concurrent changes across a pinned snapshot, failed SQL,
+frontend cancellation and real backend/diagnostic-lock lifetime. Do not claim
+cleanup from a successful local client exit alone. The complete controller
+inventory and all normal before/after-migration checks remain required.
+
+This repairs statement granularity, not linear total cost. The descriptor
+cursor's initial narrow grouping and all complete-origin hashes must still fit
+their respective bounds at the actual data size; neither a synthetic small-row
+fixture nor the current-size test qualifies arbitrary 72-hour inventories.
+
+The first candidate passed 338 local controller cases (12 skips, including
+three Linux-container cases) and 58 CI-control cases. Its native PostgreSQL
+17.2 oracle test matched all 235,755 synthetic full rows, including 2,357
+pending rows, across 231 page statements; the 1.474-second local time does
+not represent the real Benchmark payload or disk workload.
+[Native digest parity evidence](evidence/benchmark-cursor-235755-native-parity-2026-11-28.json).
+Independent macOS PostgreSQL cancellation tests also exposed and verified
+repairs to inherited lock-FD lifetime and interrupted pre-PID registration.
+Exact pinned Linux/Docker tests and the real read-only full inventory remain
+release gates; no current-size VM pass or deployment is claimed here.
+
+Final review also replaced the interrupted-login fallback's child-list lookup
+with numeric procfs PID inspection and exact parent/start identity. Linux's
+[child-list documentation](https://man7.org/linux/man-pages/man5/proc_tid_children.5.html)
+warns that exiting siblings can hide surviving children. The
+[process-stat format](https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html)
+defines the parent PID and start ticks used for identity; unreadable surviving
+processes retain exclusion. This path is covered by the Linux sibling-churn
+fixture, not inferred from the successful macOS SQL test.

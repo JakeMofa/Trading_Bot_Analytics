@@ -42,14 +42,22 @@ full-market measurement is scheduled for 11:15–11:30 p.m. Central.
   sustained three-feed watch.
 - [ ] Measure one uninterrupted full market: source progress, exact saved and
   hosted identities, arrivals versus ACKs and oldest pending age.
-- [ ] Verify combined Grafana panels, scrape/sender health and alert coverage.
-- [ ] Merge and accept the separate compatible API-only update (#253), showing
+- [x] Verify .7 metrics arrive in the combined Grafana dashboard and confirm
+  the independent Supabase scrape. Sender-health alert is Normal; full-market
+  source/backlog alert behavior remains under observation.
+- [ ] Accept the merged compatible API-only update (#253), showing
   collector identity and progress survive an actual API container replacement.
 - [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
   including hosted version guarantees and history after local payload removal.
 
 Collector-code deployment handoff and production promotion remain later gates.
 The short A/B tests and offline proof do not grant long-window deletion authority.
+
+The [combined Grafana dashboard](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability)
+returned actual .7 host-sender data at 05:09 UTC, including heartbeat,
+collector diagnostics, source preferences and BTC source ages. The separate
+hosted Supabase scrape returned healthy. The new persisted infrastructure
+alert was Normal; email-provider acceptance does not establish inbox delivery.
 
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |

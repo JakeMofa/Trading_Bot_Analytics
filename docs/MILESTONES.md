@@ -11,7 +11,16 @@ separates merged implementation from live acceptance. Exact `.7` source
 `7bff42a` passed CI and Benchmark CD 46110209884. The sustained watch is ON
 from 11:08:18 p.m. Central on slot A. All 20 retained generations matched
 before admission; the clean full-market capture and live throughput proof
-are pending. API-only deployment PR #253 is separate.
+are pending. API-only deployment PR #253 merged; its live acceptance is separate.
+
+### Dashboard-only delivery
+
+The qualified operator entrypoint builds a separate release image, checks
+migration, host and writer identity, and replaces only the API service.
+Disposable tests passed migration/build drift rejection and isolated API
+rollback both before and after HTTP readiness. Live replacement, collector
+continuity and browser reconnection remain to be measured on Benchmark.
+[Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md#dashboard-only-replacement-while-collecting).
 
 ## November 27 — Ignore local environment file copies
 

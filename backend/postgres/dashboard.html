@@ -70,7 +70,8 @@
     nav button[aria-pressed="true"] { background:#264a69; border-color:#65b3ff; }
     #market-history-form { display:flex;gap:12px;align-items:end;flex-wrap:wrap; }
     #market-history-form label { display:grid;gap:4px; }
-    #market-history-form input,#market-history-form button,#history-next { padding:7px;background:#172535;color:#e7f1fc;border:1px solid #40546b;border-radius:6px; }
+    #market-history-form input,#market-history-form select,#market-history-form button,#history-next { padding:7px;background:#172535;color:#e7f1fc;border:1px solid #40546b;border-radius:6px; }
+    #saved-forecast-source { overflow-wrap:anywhere; }
     #history-next:disabled { opacity:.5; }
     #system-charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px; margin-top:20px; }
     #system-charts svg { display:block;width:100%; }
@@ -119,9 +120,19 @@
     <section class="card forecast" aria-labelledby="forecast-heading">
       <h2 id="forecast-heading">Live baseline estimate · follows BTC ticks</h2>
       <div id="forecast-up" class="hero up">—</div>
+      <div id="forecast-state" class="small muted">Waiting for baseline inputs.</div>
       <div class="row">
         <div class="metric"><span class="label">UP probability</span><strong id="up-small">—</strong></div>
         <div class="metric"><span class="label">DOWN probability</span><strong id="down-small">—</strong></div>
+      </div>
+      <div class="line"></div>
+      <h3>Latest saved prediction for this market</h3>
+      <strong id="saved-forecast-result">—</strong>
+      <div id="saved-forecast-state" class="small muted">Waiting for saved data.</div>
+      <div id="saved-forecast-source" class="small muted"></div>
+      <div class="line"></div>
+      <h3>Ensemble and AI</h3>
+      <div class="row">
         <div class="metric"><span class="label">Decision</span><strong id="decision-summary">—</strong><div id="decision-label" class="small muted">—</div></div>
         <div class="metric"><span class="label">Decision to buy</span><strong id="decision-buy">—</strong><div id="decision-confidence" class="small muted">—</div></div>
         <div class="metric"><span class="label">Suggested lean</span><strong id="suggested-action">—</strong><div id="suggested-confidence" class="small muted">—</div></div>
@@ -133,10 +144,6 @@
         <div class="metric"><span class="label">AI decision to buy</span><strong id="ai-decision-buy">—</strong><div id="ai-explanation" class="small muted"></div><div id="ai-hold-duration" class="small muted"></div><div id="ai-hold-countdown" class="small muted" aria-live="polite"></div></div>
       </div>
       <div id="decision-reasons" class="small muted" style="margin-top:8px">—</div>
-      <div class="line"></div>
-      <div id="forecast-state" class="small muted">Waiting for a live BTC tick and recent volatility.</div>
-      <div id="saved-forecast-state" class="small muted" style="margin-top:6px">Saved forecast: waiting for data.</div>
-      <p class="small muted">Experimental, untrained price-and-volatility estimate using the same BTC tick as the orange graph. Its volatility input comes from the latest saved feature snapshot. It is separate from live Polymarket market prices and is not saved on every tick; saved forecasts remain the evaluation record.</p>
     </section>
     <section class="card chart" aria-labelledby="chart-heading">
       <div class="chart-meta"><h2 id="chart-heading">BTC price · current 15-minute market</h2><div id="chart-summary" class="small muted">Waiting for saved stream ticks.</div></div>
@@ -157,12 +164,13 @@
         <label>Market ID<input id="history-market" list="history-markets" required></label><datalist id="history-markets"></datalist>
         <label>From (UTC)<input id="history-from" type="datetime-local" required step="1"></label>
         <label>Until (UTC)<input id="history-until" type="datetime-local" required step="1"></label>
-        <button type="submit">Load events</button>
+        <label>Records<select id="history-records"><option value="events">Market events</option><option value="predictions">Saved predictions</option></select></label>
+        <button type="submit" id="history-load">Load events</button>
       </form>
       <p id="events-status" role="status">Choose a market and time range.</p>
-      <table><thead><tr><th>Source time</th><th>Received</th><th>Source</th><th>Event</th><th>Bid</th><th>Ask</th><th>Price or close</th><th>Storage</th></tr></thead><tbody id="event-rows"></tbody></table>
+      <table><thead><tr id="history-columns"><th>Source time</th><th>Received</th><th>Source</th><th>Event</th><th>Bid</th><th>Ask</th><th>Price or close</th><th>Storage</th></tr></thead><tbody id="event-rows"></tbody></table>
       <button type="button" id="history-next" disabled>Next page</button>
-    </div><div class="card" style="overflow:auto;margin-bottom:16px"><h2>Prediction history</h2><p id="history-status">Loading…</p><table><thead><tr><th>Forecast time</th><th>Market</th><th>Model</th><th>UP</th><th>Abstention</th></tr></thead><tbody id="prediction-rows"></tbody></table></div><div class="grid">    <section class="card evaluation" aria-labelledby="evaluation-heading">
+    </div><div class="card" style="overflow:auto;margin-bottom:16px"><h2>Recent local predictions across markets</h2><p id="history-status">Loading…</p><table><thead><tr><th>Forecast time</th><th>Market</th><th>Model</th><th>UP</th><th>Abstention</th></tr></thead><tbody id="prediction-rows"></tbody></table></div><div class="grid">    <section class="card evaluation" aria-labelledby="evaluation-heading">
       <h2 id="evaluation-heading">Confirmed-market evaluation</h2>
       <div id="checkpoint-list"></div>
       <p class="small muted">Distinct resolved markets at each forecast time. Comparisons remain preliminary until 30 per checkpoint.</p>
@@ -476,7 +484,10 @@
         quoteElement.dataset.eventId = q?.event_id || '';
       }
       byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
-      const estimateFresh = !!(e && m && e.market_id === m.id && ageOf(e.as_of) <= 10 && remaining > 0);
+      const tickAgeSeconds = (now - Date.parse(e?.as_of)) / 1000;
+      const estimateFresh = !!(e && m && e.market_id === m.id && remaining > 0 &&
+        latest.live_estimate_status === 'ready' && tickAgeSeconds >= 0 && tickAgeSeconds <= 10 &&
+        ageOf(e.snapshot_as_of) <= 30);
       const liveProbability = estimateFresh ? e.probability_up : null;
       set('forecast-up', liveProbability == null ? '—' : pct(liveProbability) + ' UP');
       set('up-small', pct(liveProbability));
@@ -515,7 +526,7 @@
       if (f?.forecast_15m) {
         set('forecast-15m', f.forecast_15m.action || '—');
         set('forecast-15m-confidence', f.forecast_15m.confidence != null ? ('Conf: ' + (Math.round(f.forecast_15m.confidence*1000)/10) + '%') : '');
-      } else { set('forecast-15m', '—'); set('forecast-15m-confidence', ''); }
+      } else { set('forecast-15m', 'Unavailable'); set('forecast-15m-confidence', 'Ensemble output unavailable for this market.'); }
       // AI-supplied suggested lean and decision-to-buy
       if (f?.ai_suggestion) {
         set('suggested-lean-ai', f.ai_suggestion.action || '—');
@@ -545,14 +556,30 @@
           clearCountdown();
           byId('ai-hold-countdown').textContent = '';
         }
-      } else { set('suggested-lean-ai', '—'); set('suggested-lean-ai-confidence', ''); set('ai-explanation', ''); set('ai-decision-buy', '—'); set('ai-hold-duration', ''); }
+      } else {
+        set('suggested-lean-ai', 'Disabled'); set('suggested-lean-ai-confidence', '');
+        set('ai-explanation', 'Paid AI disabled in this release.'); set('ai-decision-buy', 'Disabled');
+        set('ai-hold-duration', ''); set('ai-hold-countdown', ''); clearCountdown();
+      }
+      const status = !m || remaining === 0 ? 'no_active_market' : latest.live_estimate_status;
+      let reason = status;
+      if (status === 'ready' && !estimateFresh) {
+        reason = e && ageOf(e.snapshot_as_of) > 30 ? 'feature_snapshot_stale' : 'reference_price_not_fresh';
+      }
       set('forecast-state', estimateFresh
-        ? liveProbability == null ? 'Live estimate unavailable · ' + e.abstain_reason
-          : 'Live estimate from BTC tick ' + age(ageOf(e.as_of)) + ' · volatility snapshot ' + age(ageOf(e.snapshot_as_of))
-        : 'Waiting for a fresh BTC tick and recent volatility.');
-      set('saved-forecast-state', f?.probability_up != null
-        ? 'Saved 30-second forecast: ' + pct(f.probability_up) + ' UP · ' + age(ageOf(f.created_at || f.as_of))
-        : f?.abstain_reason ? 'Saved forecast abstained: ' + f.abstain_reason : 'Saved forecast: waiting for data.');
+        ? e.model_version + ' · Experimental, untrained · In-memory estimate at ' + latest.generated_at
+          + ' · Coinbase tick ' + age(tickAgeSeconds) + ' · volatility snapshot ' + age(ageOf(e.snapshot_as_of))
+        : 'Live estimate unavailable · ' + (reason || 'waiting for inputs').replaceAll('_', ' '));
+      const saved = latest.saved_prediction;
+      const sameMarket = !!saved && saved.market_id === m?.id && saved.origin_id === latest.origin_id;
+      set('saved-forecast-result', !sameMarket ? '—' : saved.abstain_reason
+        ? 'Abstained · ' + saved.abstain_reason.replaceAll('_', ' ')
+        : pct(saved.probability_up) + ' UP · ' + pct(saved.probability_down) + ' DOWN');
+      set('saved-forecast-state', sameMarket
+        ? 'Decision ' + saved.as_of + ' (' + age(ageOf(saved.as_of)) + ') · Saved ' + saved.created_at
+        : m ? 'No saved prediction observed for this market.' : 'Waiting for a market.');
+      set('saved-forecast-source', sameMarket ? 'PostgreSQL · ' + saved.model_version + ' · origin '
+        + saved.origin_id + ' · snapshot ' + saved.snapshot_id : '');
       const checkedAge = ageOf(latest.generated_at);
       set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge)
         : storageLimited ? 'Storage cap reached · LiveState checked ' + age(checkedAge)
@@ -697,7 +724,8 @@
       const candidate = state.models?.ensemble_v1 || savedModels.ensemble_v1;
       const ensemble = candidate && candidate.market_id === state.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : null;
       latest = {...savedContext, market:state.market, generated_at:state.generated_at,
-        data_mode:state.data_mode, collector:state.collector,
+        data_mode:state.data_mode, collector:state.collector, origin_id:state.origin_id,
+        live_estimate_status:state.live_estimate_status, saved_prediction:state.saved_prediction,
         snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status, candle_age_seconds:feature.quality?.candle_age_seconds, reference_source:feature.quality?.price?.source} : null,
         forecast:ensemble || state.forecast, baseline_forecast:state.forecast, live_estimate:state.live_estimate,
         latest_coinbase_tick:state.coinbase, venue_reference:state.polymarket_reference,
@@ -803,6 +831,14 @@
       eventQuery = eventCursor = null;
       byId('event-rows').replaceChildren();
       byId('history-next').disabled = true;
+      const predictions = byId('history-records').value === 'predictions';
+      set('history-load', predictions ? 'Load predictions' : 'Load events');
+      const headers = predictions
+        ? ['Decision time','Saved at','Market','Model','UP','DOWN','Abstention','Storage']
+        : ['Source time','Received','Source','Event','Bid','Ask','Price or close','Storage'];
+      byId('history-columns').replaceChildren(...headers.map(label => {
+        const cell = document.createElement('th'); cell.textContent = label; return cell;
+      }));
       set('events-status', 'Choose a market and time range.');
     }
     async function loadEventPage(next) {
@@ -823,17 +859,23 @@
         const params = new URLSearchParams(eventQuery);
         if (next) params.set('cursor', eventCursor);
         byId('history-next').disabled = true;
-        set('events-status', 'Loading events…');
-        const page = await getJSON('/history/market-events?' + params, request.signal);
+        const records = byId('history-records').value === 'predictions' ? 'predictions' : 'events';
+        set('events-status', 'Loading ' + records + '…');
+        const page = await getJSON('/history/market-' + records + '?' + params, request.signal);
         if (request.signal.aborted) return;
         const fragment = document.createDocumentFragment();
         for (const row of page.items) {
           const tr = document.createElement('tr');
-          tr.dataset.eventId = row.event_id;
           const data = row.payload?.data || {};
-          for (const field of [localTime(row.source_time),localTime(row.received_at),row.source,row.kind,
-                               data.best_bid ?? '—',data.best_ask ?? '—',row.price ?? data.close ?? '—',
-                               {local_postgres:'Local PostgreSQL',authenticated_archive:'Verified archive'}[row.tier] ?? 'Unknown']) {
+          const storage = {local_postgres:'Local PostgreSQL',authenticated_archive:'Verified archive'}[row.tier] ?? 'Unknown';
+          const values = records === 'predictions'
+            ? [localTime(row.as_of),localTime(row.created_at),row.market_id,row.model_version,
+               pct(row.probability_up),pct(row.probability_down),row.abstain_reason || '—',storage]
+            : [localTime(row.source_time),localTime(row.received_at),row.source,row.kind,
+               data.best_bid ?? '—',data.best_ask ?? '—',row.price ?? data.close ?? '—',storage];
+          if (records === 'predictions') tr.dataset.predictionId = row.id;
+          else tr.dataset.eventId = row.event_id;
+          for (const field of values) {
             const td = document.createElement('td'); td.textContent = field; tr.append(td);
           }
           fragment.append(tr);
@@ -841,13 +883,17 @@
         byId('event-rows').replaceChildren(fragment);
         eventCursor = page.next_cursor;
         const coverage = page.coverage;
-        const status = [page.items.length + ' events on this page'];
+        const status = [page.items.length + ' ' + records + ' on this page'];
         if (coverage?.complete !== true) {
           status.push('Incomplete coverage');
           const labels = {
             generation_time_gap:'Part of this time range has no known generation',
             later_generations_not_checked_for_late_arrivals:'Later generations may contain delayed events',
-            missing_generations:'One or more required generations are unavailable'
+            missing_generations:'One or more required generations are unavailable',
+            archive_unavailable:'Verified archive history is unavailable',
+            saved_prediction_missing:'A saved prediction is missing',
+            archive_revision_missing:'An expected archive revision is missing',
+            archive_sync_pending:'Archive verification is still pending'
           };
           for (const reason of coverage?.reasons || []) status.push(labels[reason] ?? reason.replaceAll('_', ' '));
           if (coverage?.missing_generations?.length) status.push('missing ' + coverage.missing_generations.join(', '));

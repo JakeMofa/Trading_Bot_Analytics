@@ -428,7 +428,7 @@ class Store:
                     raise PublicationRejected('PP live collector lease expired before calculation acknowledgement')
         return snapshot_id
 
-    def hydrate(self, market_id, now=None):
+    def hydrate(self, market_id, now=None, *, with_latest_saved=False):
         now = timestamp(now or utcnow())
         price,_ = self.inputs(market_id,now)
         with self.connection(True) as db:
@@ -448,6 +448,14 @@ class Store:
             quote = db.execute('''SELECT * FROM raw.events WHERE origin_id=%s AND market_id=%s AND source='polymarket_us'
                 AND kind='quote' AND available_at<=%s AND received_at<=%s ORDER BY received_at DESC,event_id DESC LIMIT 1''',
                 (self.origin,market_id,now,now)).fetchone()
+            if with_latest_saved:
+                # The Market view also shows the last recorded decision after its
+                # live inputs expire. Use predictions_market_time on this shared
+                # hydrate connection; each browser reads the resulting RAM state.
+                latest_saved = db.execute('''SELECT prediction_id,origin_id,market_id,snapshot_id,model_version,
+                    as_of,created_at,probability_up,probability_down,abstain_reason FROM core.predictions
+                    WHERE origin_id=%s AND market_id=%s AND as_of<=%s AND created_at<=%s
+                    ORDER BY as_of DESC,prediction_id DESC LIMIT 1''',(self.origin,market_id,now,now)).fetchone()
         feature = json_value({'snapshot_id':pair['feature_snapshot_id'],'market_id':market_id,'as_of':pair['feature_as_of'],
                               'values':pair['values_json'],'quality':pair['quality_json']}) if pair else None
         quote = json_value({**quote['payload']['data'],'event_id':quote['event_id'],'market_id':market_id,'source_time':quote['source_time'],
@@ -456,7 +464,8 @@ class Store:
         if pair and pair['prediction_id'] is not None:
             prediction = json_value({key:value for key,value in pair.items()
                                      if key not in ('feature_snapshot_id','feature_as_of','values_json','quality_json')})
-        return price,quote,feature,prediction
+        bundle = price,quote,feature,prediction
+        return (*bundle,json_value(latest_saved)) if with_latest_saved else bundle
 
     def predictions(self, limit=100):
         with self.connection(True) as db:

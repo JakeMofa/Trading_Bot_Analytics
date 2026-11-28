@@ -127,6 +127,26 @@ class NumericAndStateTests(unittest.TestCase):
         self.assertFalse(state.publish('next',price,None,None,None))
         self.assertIn('active_market',state.snapshot()['missing_data'])
 
+    def test_saved_decision_keeps_its_own_clock_and_market(self):
+        state, current, (market, price, quote, feature, forecast) = state_fixture()
+        mid = market['id']
+        at = (NOW - timedelta(minutes=2)).isoformat()
+        saved = dict(forecast, market_id=mid, as_of=at, created_at=at,
+                     origin_id=state.settings.origin_id, prediction_id='p2', snapshot_id='s2')
+        state.publish(mid, price, quote, feature, forecast, saved)
+        for changes in [dict(prediction_id='p1'), dict(market_id='other'), dict(origin_id='other'),
+                        dict(created_at=(NOW + timedelta(seconds=1)).isoformat())]:
+            state.publish(mid, None, None, None, None, saved | changes)
+            self.assertEqual(state.snapshot()['saved_prediction'], saved)
+        self.assertEqual(state.snapshot()['live_estimate_status'], 'ready')
+        current[0] += timedelta(seconds=31)
+        self.assertIsNone(state.snapshot()['forecast'])
+        self.assertIsNone(state.snapshot()['live_estimate'])
+        self.assertEqual(state.snapshot()['live_estimate_status'], 'reference_price_not_fresh')
+        self.assertEqual(state.snapshot()['saved_prediction']['as_of'], at)
+        state.discover(dict(market, id='new'))
+        self.assertIsNone(state.snapshot()['saved_prediction'])
+
     def test_future_and_reordered_price_do_not_replace_latest(self):
         state,current,records = state_fixture()
         market,price,quote,snapshot,prediction = records
@@ -243,6 +263,10 @@ class ApiTests(unittest.TestCase):
                 result=client.get('/health').json()
                 self.assertEqual(result['status'],expected)
                 self.assertIs(result['collector']['enabled'],enabled)
+                forecast = client.get('/forecast/current').json()
+                if enabled is not True:
+                    self.assertIsNone(forecast['live_estimate']['probability_up'])
+                    self.assertIn(forecast['live_estimate_status'], ('collector_off', 'collector_state_unknown'))
                 self.assertIsNone(result['collector']['running'])
                 self.assertIs(client.get('/system/status').json()['collector']['enabled'],enabled)
                 self.assertIs(client.get('/state/current').json()['collector']['enabled'],enabled)

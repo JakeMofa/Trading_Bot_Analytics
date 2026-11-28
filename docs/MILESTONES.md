@@ -20,6 +20,17 @@ BTC-USD v2 route, decimal midpoint, missing/crossed quotes, 401/403 stop and
 source time unavailable. A live account response and synchronized comparison
 are separate acceptance checks. [Observer contract](../backend/postgres/APPLICATION.md#robinhood-btcusd-quote-observer).
 
+### Dashboard model readouts
+
+The Market view now keeps the latest local decision for the same market alongside
+the live Gaussian estimate. An expired input suppresses the live probability;
+the saved decision retains its original time, model and snapshot. Native
+PostgreSQL 17 passed the indexed lookup through API hydration. Chrome verified
+a saved abstention remained visible when the live estimate expired and cleared
+on market change. The History form also offers saved predictions for a selected
+market and time range. Its browser test uses an archive response fixture.
+Benchmark acceptance remains in the [current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-measured-on-benchmark).
+
 ## November 27 — Combined dashboard release on the 4 GB Benchmark
 
 The [Benchmark deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46091017341)

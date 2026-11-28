@@ -1,0 +1,291 @@
+{
+  "off_reference_utc": "2026-11-28T06:25:06.731Z",
+  "on_utc": "2026-11-28T06:35:27.900014Z",
+  "off_reference_to_observed_on_seconds": 621.169,
+  "eventsource": [
+    {
+      "type": "open",
+      "observed_utc": "2026-11-28T06:19:58.164000+00:00",
+      "ready": null
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:28:28.387000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:28:31.467000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "open",
+      "observed_utc": "2026-11-28T06:28:34.563000+00:00",
+      "ready": null
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:35.556000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:38.647000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:41.757000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:44.902000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:47.943000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:50.983000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:54.024000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:30:57.070000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:00.144000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:03.251000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:06.289000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:09.330000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:12.370000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:15.423000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:18.493000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:21.604000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:24.642000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:27.682000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:30.721000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:33.769000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:36.842000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:39.954000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:42.994000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:46.034000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:31:49.093000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "open",
+      "observed_utc": "2026-11-28T06:31:52.196000+00:00",
+      "ready": null
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:32:19.802000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:32:22.946000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "open",
+      "observed_utc": "2026-11-28T06:32:26.092000+00:00",
+      "ready": null
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:34:11.213000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:34:14.253000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:34:17.294000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "error",
+      "observed_utc": "2026-11-28T06:34:20.413000+00:00",
+      "ready": 0
+    },
+    {
+      "type": "open",
+      "observed_utc": "2026-11-28T06:34:23.562000+00:00",
+      "ready": null
+    }
+  ],
+  "old_quote_last_visible": {
+    "observed_utc": "2026-11-28T06:25:06.461000+00:00",
+    "event_id": "ws-dc128d33074262ba6e9cd571c4bbebc1e226c70c9d0e62aaca66b64e93ab7510",
+    "receipt": null,
+    "market": "2983999"
+  },
+  "old_real_event_first_sse": {
+    "observed_utc": "2026-11-28T06:25:04.207000+00:00",
+    "event_id": "ws-dc128d33074262ba6e9cd571c4bbebc1e226c70c9d0e62aaca66b64e93ab7510",
+    "receipt": "2026-11-28T06:25:04.108768+00:00",
+    "market": "2983999"
+  },
+  "old_real_event_first_dom": {
+    "observed_utc": "2026-11-28T06:25:04.212000+00:00",
+    "event_id": "ws-dc128d33074262ba6e9cd571c4bbebc1e226c70c9d0e62aaca66b64e93ab7510",
+    "receipt": null,
+    "market": "2983999"
+  },
+  "new_quote": {
+    "observed_utc": "2026-11-28T06:35:31.440000+00:00",
+    "event_id": "ws-649fc82e742110820ebd4b7a0a9dc89a217cc7285fb8cf41314d0d7c21c80a74",
+    "receipt": "2026-11-28T06:35:31.464408+00:00",
+    "market": "2985609"
+  },
+  "new_quote_dom": {
+    "observed_utc": "2026-11-28T06:35:31.455000+00:00",
+    "event_id": "ws-649fc82e742110820ebd4b7a0a9dc89a217cc7285fb8cf41314d0d7c21c80a74",
+    "receipt": null,
+    "market": "2985609"
+  },
+  "last_distinct_real_to_first_distinct_real_sse_ms": 627266.5,
+  "last_distinct_real_to_first_distinct_real_dom_ms": 627276.0,
+  "last_old_to_first_new_dom_ms": 625026.6,
+  "first_sse_and_first_shown_id_match": true,
+  "new_sse_to_dom_ms": 14.4,
+  "new_quote_receipt_to_sse_generation_ms": 33.338,
+  "first_new_per_source": {
+    "cb": {
+      "event_id": "exchange-trade-1150235437",
+      "source_utc": "2026-11-28T06:35:29.346862Z",
+      "receipt_utc": "2026-11-28T06:35:29.502946+00:00",
+      "sse_utc": "2026-11-28T06:35:30.078000+00:00",
+      "dom_utc": "2026-11-28T06:35:30.088000+00:00",
+      "provider_price": "59809.29",
+      "displayed_price": "$59,809.29",
+      "first_matching_dom_status": "Stream tick 0s ago",
+      "sse_to_dom_ms": 9.7
+    },
+    "pm": {
+      "event_id": "btc-index-de3f582cf6ec62c02a138e90da9be080083c3e70b1c1b791f262fea41afa01d6",
+      "source_utc": "2026-11-28T06:35:29+00:00",
+      "receipt_utc": "2026-11-28T06:35:31.003021+00:00",
+      "sse_utc": "2026-11-28T06:35:31.360000+00:00",
+      "dom_utc": "2026-11-28T06:35:31.371000+00:00",
+      "provider_price": "59806.58",
+      "displayed_price": "$59,806.58",
+      "first_matching_dom_status": "Updated 2s ago \u00b7 $7.02 below target",
+      "sse_to_dom_ms": 11.6
+    },
+    "rh": {
+      "event_id": "rh-v1-ae5e7868129f70f21d593b2aa1a0038aaef73aa83c97c710b1a185ee37ddcada",
+      "source_utc": "2026-11-28T06:35:29.840361082Z",
+      "receipt_utc": "2026-11-28T06:35:29.990357+00:00",
+      "sse_utc": "2026-11-28T06:35:30.078000+00:00",
+      "dom_utc": "2026-11-28T06:35:30.088000+00:00",
+      "provider_price": "59827.532804945",
+      "displayed_price": "$59,827.53",
+      "first_matching_dom_status": "Recent \u00b7 PP receipt 0s ago \u00b7 Robinhood retrieval 0s ago",
+      "sse_to_dom_ms": 9.7
+    }
+  },
+  "served_origins": [
+    "pp-live-pp-benchmark-watch",
+    "generated-pp"
+  ],
+  "served_modes": [
+    "preprod \u00b7 pp_live data \u00b7 collector lease ON",
+    "preprod \u00b7 pp_live data \u00b7 collector state unavailable",
+    "preprod \u00b7 pp_live data \u00b7 collector OFF",
+    "preprod \u00b7 generated data \u00b7 collector OFF"
+  ],
+  "first_sse_observed_collector_off": "2026-11-28T06:25:06.731000+00:00",
+  "note": "One public Market browser. A new event requires a new PP receipt on or after session start. Exchange source times are reported separately. OFF is the first display observation, not an independently timestamped durable mutation. Browser paint is a two-frame matched-DOM bound; cross-machine wall time is approximate.",
+  "independent_visible_dashboard": {
+    "owner": "root",
+    "observed_utc": "2026-11-28T06:40:44Z through 06:40:47Z",
+    "market_utc": "06:30",
+    "target_usd": "59813.60",
+    "collector_on": true,
+    "three_reference_cards_and_ws_book_fresh": true,
+    "live_estimate_separate_from_saved_cadence": true,
+    "rolling_a_b_operational_label_absent": true,
+    "two_column_layout_verified": true
+  }
+}

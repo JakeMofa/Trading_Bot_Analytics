@@ -6,11 +6,106 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--sustained-benchmark-collection-and-archive-capacity)
+- [Current PP checkpoint](#november-28-2026--local-connection-budget-adoption)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 28, 2026 — Local connection-budget adoption
+
+The user approved one Benchmark maintenance cutover for the reviewed
+connection-budget fix. Current A and all 20 retained generations must remain
+intact; production, the old 2 GB PP and raw retirement remain outside scope.
+
+Release `.11` pins source `1b232c2`, exact CI 46115913377 and publication
+46116368334. Its 449 non-document files and controller digest match reviewed
+`.10` byte-for-byte. Merging the master-plan documentation had advanced the
+branch, and the existing CD source-head guard refused `.10` before any stop
+or deployment. Publishing the docs-inclusive immutable successor preserved
+that guard and the same approved functional change.
+
+The old `.7` writer then stopped independently before the maintenance OFF
+command: its error was `ownership.timeout`, distinct from the earlier native
+connection-cap refusal. Last source receipts were around 06:25:04 UTC, and
+the browser observed OFF at 06:25:06.731. Explicit maintenance disarm/OFF
+followed at 06:27:20.452. All 88,579 old outbox envelopes were independently
+ACKed, zero pending, with 83,781 raw events frozen on the same current A.
+
+Exact [CD 46116573223](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46116573223)
+passed. The same A resumed at 06:35:27.900 UTC in epoch 6; all three sources
+produced fresh records around 06:35:29. Independent readback matched their
+local identities, canonical payload hashes and authenticated hosted immutable
+revisions. The first new canonical WebSocket book was received at
+06:35:31.464408 and archived at 06:35:33.787776. The old-to-new book receipt
+gap was 627.356 seconds, including the independent old-writer stop before
+maintenance. The browser's separately measured display gap was 627.276 seconds.
+
+A genuine host-loopback `/history/market-events` HTTP request returned its
+first page of 500 unique ordered
+Coinbase reference events (candles and trades), 547,007 response bytes, in
+0.683 seconds through body transfer and 0.689 seconds including JSON decode.
+The same writer session stayed enabled before and after, with all three feeds
+running. This is a local-A dashboard API page, not 500 Polymarket quotes or
+a Supabase-only read; browser rendering is outside this timing. The earlier
+pinned archive verifier remains a separate 3.852/2.715-second measurement.
+[Live HTTP evidence](evidence/benchmark-budget-http-history500-2026-11-28.json).
+
+- [x] Accept exact `.11` generated CD and unchanged retained fingerprints.
+- [x] Re-enter the same current A and prove all three sources collecting.
+- [x] Verify local/hosted immutable identities and sustained ACK/backlog.
+- [x] Run a genuine 500-row dashboard HTTP read while collection continues.
+- [x] Verify the reader login, role ceilings, secret mounts and repeated lease
+  renewals; inspect the live browser layout and live-versus-saved labels.
+- [ ] Finish the next market-boundary source/backlog and Grafana observation.
+  **Blocked by a new stop:** the browser first observed OFF at 06:43:16.371 UTC.
+  Durable inspection at 06:43:47.949 found epoch 7, no session/lease, zero
+  pending and 98,058 verified ACKs. The `.11` failure is
+  `ownership.lease_lost`, with explicit OFF false. This is distinct from the
+  old `ownership.timeout` and native role-cap refusal. Read-only renewal
+  diagnosis is in progress; no re-arm, second deployment or deletion occurred.
+
+Final `.11` sampled throughput averaged 20.12 verified ACKs/s. Pending work
+peaked at 109 records and 7.48 seconds age. All 9,479 newly produced envelopes
+were verified and ACKed; the same A now contains 98,058 acknowledged envelopes,
+zero pending. These successful writes do not make sustained acceptance pass.
+
+The renewal journal explains this stop: the last renewal at 06:41:15.166854
+set expiry to 06:43:15.166854. At 06:41:31.369854 a private authenticated
+`GET /collector/status` returned HTTP 503. The host watch permanently latched
+`held: HTTPError`; seven subsequent ticks returned held without attempting
+renewal. The collector then stopped at the original database-clock expiry.
+There were no observed controller-busy skips or replacement owners. The
+underlying status-read exception is not typed in the deployed response, so
+its cause remains unknown. This sequence is distinct from the earlier
+connection refusal and old ownership timeout.
+
+Over a separate 565.37-second cgroup interval, the operator's 0.25-CPU quota
+accumulated 159.866 seconds throttled, with zero memory-full pressure/OOM.
+PostgreSQL accumulated 1.587 seconds throttled and 0.140 seconds memory-full
+pressure, zero OOM, with substantial file cache. These interval totals cannot
+attribute a particular 503. Ample VM RAM does not exclude container CPU limits.
+[Release, preservation, archive and failed sustained acceptance](evidence/benchmark-budget-release-acceptance-2026-11-28.json).
+
+Independent browser/Grafana evidence confirms the stop was visible without
+an SSE disconnect. The 15-second API/cache health sampler remained successful
+and missed the transient private 503. Host available memory stayed above
+2,793,224 KiB during 06:40–06:44:10, with no swap/OOM increments. Freshness
+ages then grew after OFF; no next-market canonical capture was observed.
+[Browser cutover](evidence/benchmark-budget-browser-cutover-2026-11-28.json) ·
+[Stop and observability limits](evidence/benchmark-budget-stop-observability-2026-11-28.json).
+
+The next scoped fix allows only the pre-renew authenticated status HTTP 503
+to be checked again on a fresh timer tick, while the original UUID/lease and
+all ownership gates remain authoritative. It must not retry renew HTTP 409,
+ignore auth/profile/worker drift, renew an expired lease or silently re-arm.
+Offline regressions, review and successor acceptance are still required.
+
+The [complete connection budget](LOCAL_DATABASE_CONNECTION_BUDGET.md) and
+[future collection-preserving handoff](CONTINUOUS_COLLECTOR_HANDOFF.md) are
+separate mapped plans. The latter is an offline design, not an available
+upgrade capability. The 72-hour retirement and physical reclamation gates
+below remain open.
 
 ## November 27, 2026 — Sustained Benchmark collection and archive capacity
 
@@ -33,10 +128,10 @@ full-market measurement covered 11:15–11:30 p.m. Central; results and sampling
 limits are recorded below.
 [Admission and independent live readback](evidence/benchmark-continuous-watch-admission-2026-11-27.json).
 
-Current deployed state is the recovered `.7` collector with `.9` API/UI, ON
-in epoch 4 on the same A. The API-only exchange preserved that running session.
-The local role-capacity fault below remains a readiness blocker while the
-typed retry/diagnostics and reader-budget successor are qualified.
+State at the earlier checkpoint was the recovered `.7` collector with `.9`
+API/UI, ON in epoch 4 on the same A; the November 28 checkpoint supersedes it. The API-only exchange preserved that running session.
+The local role-capacity fault below was a readiness blocker while the
+typed retry/diagnostics and reader-budget successor were qualified.
 
 **Subsequent incident:** collection became durably OFF at 11:34:54 p.m.
 Central, epoch 3, before any API build or exchange. PostgreSQL logged
@@ -95,7 +190,7 @@ rotation and raw retirement remain separate acceptance gates.
 - [x] Clarify the tick-responsive live estimate versus the periodic saved
   model snapshot. Trace actual publication timing without changing the model
   probabilities to mimic Polymarket prices or increasing persistence load blindly.
-- [ ] Qualify and deploy local database admission/reader separation and the
+- [x] Qualify and deploy local database admission/reader separation and the
   typed capacity/explicit-OFF diagnostic corrections. Reprove actual HTTP
   history reads alongside collection without starving writer/control slots.
 - [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
@@ -799,6 +894,7 @@ change to the active checkpoint above.
 
 - [Long-window checkpoint and local data retention qualification](LONG_WINDOW_QUALIFICATION.md)
 - [Local connection admission, reader isolation and safe adoption](LOCAL_DATABASE_CONNECTION_BUDGET.md)
+- [Future collection-preserving collector upgrade protocol](CONTINUOUS_COLLECTOR_HANDOFF.md)
 
 - [PP archive and retirement flow — November 17, 2026](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md)
 - [CP6 active structured sync preparation — November 17 CST / November 18 UTC](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md)

@@ -1,3 +1,29 @@
+## November 28 — Connection-capacity profile adopted on Benchmark
+
+- [x] Merge and independently qualify #256/#257 with unchanged server/role caps.
+- [x] Adopt exact `.11` source `1b232c2` through CI, publication and CD 46116573223.
+- [x] Preserve current A and all 20 older retained-generation fingerprints.
+- [x] Resume all three feeds; match local events and authenticated Supabase revisions.
+- [x] Prove actual 500-row dashboard HTTP read in 0.689 seconds while the same
+  writer remains enabled. These are local Coinbase reference events, not the
+  separate pinned 500-row archive verifier.
+- [x] Verify reader separation, budget/mounts, renewals and uncluttered live UI.
+- [ ] Finish the next market-boundary/backlog observation. `.11` stopped
+  before that boundary with `ownership.lease_lost`; epoch 7 is OFF, 98,058
+  verified ACKs and zero pending. Read-only renewal diagnosis is in progress.
+- [ ] Qualify collection-preserving collector upgrades and long-window retirement.
+
+The canonical WebSocket old-to-new receipt gap was 627.356 seconds, including
+an independent old `.7` ownership timeout before maintenance. The first older
+failure had a proven app-role connection-cap refusal; the second timeout's
+cause remains unresolved. Final `.11` sampled throughput was about 20.12 verified ACKs/s, with all
+9,479 new envelopes ACKed. The stop was traced to a private status HTTP503
+permanently latching the host watch held, skipping renewals until lease expiry.
+A narrow transient-status fix is being qualified offline.
+CPU throttling is present inside the operator cgroup despite host RAM headroom;
+no blanket availability claim follows. The future handoff design adds no live
+authority. [Current checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--local-connection-budget-adoption).
+
 ## November 27 — Sustained collection and archive capacity in progress
 
 The next authorized checkpoint enables sustained three-source Benchmark
@@ -17,7 +43,7 @@ before admission. The collector recovered at 11:39:48 p.m. Central. API-only
 PR #253 and layout PR #255 passed live `.9` replacement at 11:43:27 without
 changing that collector session or process. Browser reconnection caused a
 6.37-second display gap. Capacity corrections #256 and #257 merged with
-qualification tests; live adoption remains pending and unattended readiness open.
+qualification tests; live adoption subsequently passed in `.11` above; unattended readiness remains open.
 See the current checkpoint for evidence and limits.
 
 ### Public dashboard database connections
@@ -28,7 +54,7 @@ and limits its single API process to two local sessions. Disposable PostgreSQL
 slots exhausted. A third simultaneous public page got HTTP 429, and live
 state remained available. Local credentials, role limits and deploy status on
 the running watch are tracked in the [Benchmark procedure](../deploy/preprod/BENCHMARK_WATCH.md#local-database-budget-for-the-public-dashboard).
-The operator shares six physical app sessions across its feed and control writes; calculations use two. Ownership/status reserve a separate reader. Cancellation, failed commits and reacquired slots passed against disposable PG17. Live adoption still requires a collection-preserving handoff or an authorized maintenance window.
+The operator shares six physical app sessions across its feed and control writes; calculations use two. Ownership/status reserve a separate reader. Cancellation, failed commits and reacquired slots passed against disposable PG17. Live adoption used the explicitly authorized `.11` maintenance window; collection-preserving collector handoff remains future work.
 
 ### Dashboard-only delivery
 

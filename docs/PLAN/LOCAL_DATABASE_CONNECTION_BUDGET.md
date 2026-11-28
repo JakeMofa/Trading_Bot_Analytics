@@ -1,8 +1,11 @@
 # Benchmark local database admission
 
-This is the next capacity checkpoint linked from the master plan. The `.7`
-collector and `.9` API/UI are live after recovery. The candidate changes below
-are being qualified; this document is not evidence of their deployment.
+The reviewed capacity profile is deployed in Benchmark `.11`, source
+`1b232c2`, through CD 46116573223. The user approved one maintenance cutover;
+current A and all 20 retained generations were preserved. Actual role/mount
+checks, three-source immutable Supabase readbacks, repeated writer renewals
+and a 500-row HTTP read passed after adoption. See the [master checkpoint](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--local-connection-budget-adoption)
+for measured interruption, boundary status and evidence limits.
 
 ## Observed failure
 
@@ -22,7 +25,7 @@ Host memory remained available, without swap or OOM increments. Most reported
 PostgreSQL cgroup usage was file cache. This incident does not establish a
 need for more VM RAM.
 
-## Enforced candidate budget
+## Enforced deployed budget
 
 Keep server and role ceilings unchanged. PostgreSQL permits 20 sessions with
 three reserved; normal role maxima sum to the remaining 17.
@@ -87,3 +90,38 @@ cannot. Per-ingest origin, generation, producer UUID and lease checks remain.
 The API-only `.9` deployment already preserved collection but did not apply
 this capacity profile. No unconditional availability or 72-hour retirement
 claim follows from the isolated qualification.
+
+## Residual scheduling diagnostic
+
+A later old `.7` stop at 06:25 UTC reported `ownership.timeout`; it is not
+proved to be the same native role-cap fault. A nearby bounded diagnostic
+aggregation ran inside PostgreSQL, but no evidence establishes that it caused
+the timeout. The `.11` operator still has a 0.25-CPU quota. Its first
+100.4-second measured interval accumulated 17.467 seconds of CPU throttling
+without operator memory-full pressure or OOM; this is an interval total, not
+a duration attributable to one request. Host spare RAM cannot rule out
+container scheduling limits.
+
+If the ownership timeout recurs, separately measure monotonic time waiting
+for the worker thread, admission ticket, libpq connection and exact ownership
+SELECT/validation. Correlate these with per-container CPU throttling and
+memory/IO pressure while preserving the aggregate two-second ownership fence.
+Keep measurements bounded and sanitized. Do not retry a false owner, extend
+an expired lease or relax that deadline to mask the cause. A CPU quota change
+would require its own controlled comparison, not an inference from host RAM.
+
+## New adoption failure: status availability latched renewal OFF
+
+The `.11` capacity-profile acceptance is partial, not sustained. The private
+status route returned HTTP503 at 06:41:31.369854 UTC. `watch_service.run()`
+classified that HTTPError as a permanent hold. Seven further timer ticks
+skipped renewal; the last valid lease expired at 06:43:15.166854, producing
+`ownership.lease_lost`. All 98,058 envelopes were ultimately ACKed and zero
+were pending. The route masked the underlying read exception; role-cap,
+CPU-pressure or semaphore-wait causality is not established.
+
+A narrowly scoped status503 retry can preserve existing authority by checking
+fresh status and all normal worker/identity gates on the next tick. Persistent
+unavailability must still expire the existing lease; renew409, false owner,
+expired authority, auth or binding failures must remain holds. This successor
+requires its own offline regressions and live acceptance.

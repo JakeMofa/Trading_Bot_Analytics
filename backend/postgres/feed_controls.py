@@ -87,7 +87,7 @@ def set_desired(store, feed, enabled, expected_revision):
 
 def record_effective(store, component, state, session_id=None):
     check_store(store)
-    if component not in {part for values in COMPONENTS.values() for part in values} or state not in ('running','paused','held'):
+    if component not in {part for values in COMPONENTS.values() for part in values} or state not in ('running','retrying','paused','held'):
         raise ValueError('invalid feed status')
     with store.connection() as db:
         db.execute("SET LOCAL statement_timeout='1500ms'")

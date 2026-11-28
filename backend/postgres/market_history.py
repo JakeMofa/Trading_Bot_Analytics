@@ -5,6 +5,7 @@ from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import json
+import uuid
 from threading import BoundedSemaphore
 
 from .archive_codec import (ArchiveIntegrityError, ArchiveLimit, ArchiveLimits, ArchiveUnavailable,
@@ -74,11 +75,15 @@ def decode(cursor, scope):
 def local_page(db, origin, generation, window, after, limit):
     # Project normalized fields. Exclude the large raw feed document from both
     # transport and rendering. Check an oversized payload before fetching it.
+    from psycopg import sql
+    # The generation comes from the database catalog. Derive the partition's
+    # canonical identifier independently, then quote it as an SQL identifier.
+    child = 'events_g_' + uuid.UUID(generation).hex
     fields = ','.join(k for k in KEYS if k != 'payload')
     # PostgreSQL sizes one bounded keyset page before sending JSON over the
     # connection. Up to eight candidate generations can coexist in one result.
-    rows = db.execute(f"""WITH candidates AS MATERIALIZED (SELECT {fields},
-        payload FROM raw.events
+    rows = db.execute(sql.SQL(f"""WITH candidates AS MATERIALIZED (SELECT {fields},
+        payload FROM raw.{{}}
         WHERE origin_id=%s AND generation_id=%s AND received_at>=%s AND received_at<%s
         AND received_at<=%s AND available_at<=%s AND (source_epoch IS NULL OR source_epoch<=%s)
         AND ((market_id=%s AND source='polymarket_us') OR
@@ -89,7 +94,7 @@ def local_page(db, origin, generation, window, after, limit):
         sized AS (SELECT *,sum(octet_length(payload::text)+512) OVER
             (ORDER BY source COLLATE "C",event_id COLLATE "C") AS bytes FROM candidates)
         SELECT {fields},CASE WHEN bytes<=%s THEN payload END AS payload
-        FROM sized ORDER BY source COLLATE "C",event_id COLLATE "C" """,
+        FROM sized ORDER BY source COLLATE "C",event_id COLLATE "C" """).format(sql.Identifier(child)),
         (origin, generation, window.start, window.end, window.as_of, window.as_of,
          source_timestamp(window.as_of.isoformat())[1], window.market_id, *after, limit+1, MAX_PAGE_BYTES)).fetchall()
     page = [dict(row, tier='local_postgres') for row in rows[:limit] if row['payload'] is not None]
@@ -179,13 +184,23 @@ class MarketHistory:
             db.execute("SET LOCAL lock_timeout='250ms'")
             # Partition retirement must wait until the catalog and local pages
             # have been read. Release the DB connection before any remote I/O.
-            db.execute('LOCK TABLE raw.events IN ACCESS SHARE MODE')
-            generations = db.execute("""SELECT * FROM archive.generations WHERE origin_id=%s
+            db.execute('LOCK TABLE ONLY raw.events IN ACCESS SHARE MODE')
+            generations = db.execute("""SELECT g.*,
+                EXISTS (SELECT FROM pg_inherits i JOIN pg_class c ON c.oid=i.inhrelid
+                    WHERE i.inhparent='raw.events'::regclass AND c.relnamespace='raw'::regnamespace
+                    AND c.relname=g.partition_name AND pg_get_expr(c.relpartbound,c.oid)
+                        =format('FOR VALUES IN (%%L)',g.generation_id)) AS attached
+                FROM archive.generations g WHERE origin_id=%s
                 AND started_at<=%s AND (sealed_at IS NULL OR sealed_at>=%s)
                 AND state<>'prepared' ORDER BY started_at,generation_id LIMIT %s""",
-                (origin, window.as_of, window.start, MAX_GENERATIONS+1)).fetchall()
+                (origin, min(window.as_of, window.end), window.start, MAX_GENERATIONS+1)).fetchall()
             if len(generations) > MAX_GENERATIONS:
                 raise ArchiveLimit('too many candidate generations; narrow the decision time')
+            late_generations = False
+            if window.as_of > window.end:
+                late_generations = db.execute("""SELECT EXISTS (SELECT FROM archive.generations
+                    WHERE origin_id=%s AND started_at>%s AND started_at<=%s AND state<>'prepared') AS present""",
+                    (origin, window.end, window.as_of)).fetchone()['present']
             ids = [g['generation_id'] for g in generations]
             scope = sha256(encoded([origin, window.market_id, window.start, window.end, window.as_of, ids]))
             after = decode(cursor, scope)
@@ -197,6 +212,8 @@ class MarketHistory:
                         cold.append((gen, LifecycleRepository._manifests(db, gid)))
                     else:
                         missing.append(gid)
+                elif not gen['attached']:
+                    missing.append(gid)
                 else:
                     rows, bound = local_page(db, origin, gid, window, after, limit)
                     pages.append((rows, bound))
@@ -220,9 +237,16 @@ class MarketHistory:
             if gen['started_at'] > covered_to:
                 break
             covered_to = max(covered_to, gen.get('sealed_at') or window.as_of)
-        covered = bool(ids) and not missing and covered_to >= min(window.end, window.as_of)
+        reasons = []
+        if not ids or covered_to < min(window.end, window.as_of):
+            reasons.append('generation_time_gap')
+        if late_generations:
+            reasons.append('later_generations_not_checked_for_late_arrivals')
+        if missing:
+            reasons.append('missing_generations')
+        covered = not reasons
         return {'items':items, 'next_cursor':next_cursor if not missing else None,
-                'coverage':{'complete':covered, 'generation_ids':ids, 'missing_generations':missing,
-                            'meaning':'cataloged captured records by receipt time',
+                'coverage':{'complete':covered, 'reasons':reasons, 'generation_ids':ids, 'missing_generations':missing,
+                            'meaning':'captured records in generations intersecting the requested receipt-time window',
                             'includes_btc_usd_references':True, 'tiers':sorted(tiers)},
                 'origin_id':origin, 'as_of':window.as_of.isoformat()}

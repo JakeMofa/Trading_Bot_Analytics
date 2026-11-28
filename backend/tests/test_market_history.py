@@ -103,6 +103,47 @@ class MarketHistoryNative(unittest.TestCase):
         with self.assertRaises(ArchiveIntegrityError):
             reader.read(window,None,500)
 
+    def test_lock_scope_retirement_contention_and_late_generation_coverage(self):
+        from psycopg import sql
+        from psycopg.errors import LockNotAvailable
+        now = datetime(2026,11,12,12,5,tzinfo=timezone.utc)
+        origin = 'generated-market-lock-'+uuid.uuid4().hex
+        repo = LifecycleRepository(lambda:connect(self.lifecycle_dsn))
+        gid = repo.bootstrap(origin, now=now-timedelta(minutes=1))['generation_id']
+        # A different writer's partition must remain completely independent.
+        unrelated = repo.bootstrap(origin+'-other', now=now)['generation_id']
+        store = Store(Settings(origin_id=origin,dsn=self.app_dsn))
+        market = generated_events(now)[0]
+        store.ingest(market)
+        window = Window(market['market_id'],now-timedelta(seconds=1),now+timedelta(seconds=1),now)
+        reader = MarketHistory(store)
+        with self.admin() as db:
+            with db.transaction():
+                db.execute(sql.SQL('LOCK TABLE ONLY raw.{} IN ACCESS EXCLUSIVE MODE').format(
+                    sql.Identifier('events_g_'+uuid.UUID(unrelated).hex)))
+                self.assertEqual(len(reader.read(window,None,500)['items']),1)
+            # The actual DROP is held open, then rolled back in the fixture.
+            # The reader must fail fast rather than reporting an empty page.
+            with db.transaction(force_rollback=True):
+                db.execute(sql.SQL('DROP TABLE raw.{}').format(sql.Identifier('events_g_'+uuid.UUID(gid).hex)))
+                begin = time.perf_counter()
+                with self.assertRaises(LockNotAvailable):
+                    reader.read(window,None,500)
+                self.assertLess(time.perf_counter()-begin,2)
+            for i in range(12):
+                future_id = uuid.uuid4()
+                at = now+timedelta(hours=i+1)
+                db.execute("""INSERT INTO archive.generations(origin_id,generation_id,slot,state,
+                    partition_name,created_at,started_at,sealed_at,verified_at,retired_at,seal_count,seal_hash)
+                    VALUES (%s,%s,'A','retired',%s,%s,%s,%s,%s,%s,0,%s)""",
+                    (origin,str(future_id),'events_g_'+future_id.hex,at,at,at,at,at,'0'*64))
+        retrospective = Window(window.market_id,window.start,window.end,now+timedelta(days=1))
+        observed = reader.read(retrospective,None,500)
+        self.assertEqual(len(observed['items']),1)
+        self.assertEqual(observed['coverage']['generation_ids'],[gid])
+        self.assertFalse(observed['coverage']['complete'])
+        self.assertIn('later_generations_not_checked_for_late_arrivals',observed['coverage']['reasons'])
+
     def test_five_hundred_rows_before_and_after_both_retire(self):
         now = datetime(2026,11,12,13,5,tzinfo=timezone.utc)
         origin = 'generated-market-page-'+uuid.uuid4().hex

@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 from controller import BENCHMARK_INSTANCE, Budget, Context, DeploymentHold, HostBinding, PP_INSTANCES, Request, _secure_file, require
-from linux_actions import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
+from linux_actions import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
                            cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
                            RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
 
@@ -171,8 +171,15 @@ def _read_active():
             and HEX64.fullmatch(data.get('controller_sha256', ''))
             and IMAGE.fullmatch(data.get('image_id', '')),
             'invalid_active_transition_binding')
-    cycle_environment(data.get('initial_a'),data.get('trial_origin'))
-    expected_profile=cycle_profile_binding(data.get('trial_origin'))
+    profile_origin=data.get('trial_origin')
+    if profile_origin == PREVIOUS_DISPLAY_ORIGIN:
+        # The previous release left a terminal journal with the same display
+        # profile shape. Preserve its real identity in the returned record.
+        require(data['state']=='generated_restored' and data['instance']==BENCHMARK_INSTANCE
+                and data.get('initial_a') is not None,'invalid_active_transition_binding')
+        profile_origin=DISPLAY_ORIGIN
+    cycle_environment(data.get('initial_a'),profile_origin)
+    expected_profile=cycle_profile_binding(profile_origin)
     require(all(data.get(key)==expected_profile.get(key) for key in ('profile','window_seconds')),
             'invalid_active_cycle_profile')
     return data

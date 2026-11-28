@@ -12,6 +12,76 @@ was observed, with no swap/OOM or container restart. Do not increase the
 ownership deadline or restart blindly. Retained A/B and production remain
 unchanged; qualification resumes from this incident.
 
+## Persistent private reader candidate — November 28
+
+The implemented candidate keeps **one physical reader connection open** inside
+the operator. Ownership, status and feed-preference reads borrow it one at a
+time, each in a fresh read-only transaction. Waiting ownership checks get
+priority over at most two waiting ordinary reads. The existing two-second
+ownership deadline, native worker admission ticket and physical reader budget
+remain unchanged; lifecycle/writer credentials and write paths stay separate.
+
+The runtime performs full schema checks with its original reader budget while
+OFF, before opening the retained connection. Producer stores and the private
+status repository then share the same broker. Each borrow commits or closes
+before release and ends idle. A failed transaction is discarded. A failed
+physical close quarantines the broker; cancellation cannot free a connection
+still owned by a native worker. Process/thread checks reject escaped handles.
+Process shutdown closes the retained reader after requesting collector stop;
+ordinary collector OFF leaves status available for a later explicit ON.
+
+There is one reconnect attempt for a broken reused socket, only during internal
+transaction setup before any caller SQL has been sent. The replacement gets
+fresh role/environment checks. Caller SQL is never replayed after failure.
+Ordinary reads use local 200 ms statement / 75 ms lock / 500 ms transaction
+bounds. These bound server work, not arbitrary Python code holding a borrow;
+only the short fixed operator callbacks belong here, not history or audits.
+Ownership has its own bounded transaction within the unchanged async deadline.
+
+The desired-feed SELECT alone retries exact SQLSTATE 57014 or 25P04 with the
+existing finite three-attempt/backoff policy, using a fresh transaction each
+time. Native tests prove a preference and OFF changed during backoff are seen.
+It never returns cached preferences. Persistent failures, permission/identity
+errors and other failures retain their previous refusal behavior. This retry
+does not apply to ownership, status endpoints or state-changing commands.
+
+Diagnostics now retain each native attempt's true/false/capacity/error category,
+native duration and worker-to-loop resume delay. This avoids treating the old
+cumulative `worker_complete` phase as proof of the final callback's outcome.
+Late results still cannot authorize collection, even when the native result
+was true. Records include neither exception text nor credential values.
+
+- [x] Implement shared reader, startup/shutdown wiring and bounded diagnostics.
+- [x] Pass native PostgreSQL 17 tests for fresh UUID/expiry/OFF, priority across
+  real status/preferences, reconnect-before-caller-SQL, SQL failure without
+  replay, transaction timeout, cancellation, close failure and handle affinity.
+- [x] Pass actual runtime native wiring: one reader backend across status and
+  producer reads, IDLE between transactions, closed on process shutdown.
+- [x] Independently review physical accounting and the preference retry boundary.
+- [x] Run final backend discovery: 754 tests / 67 expected skips / no failures;
+  all 14 new native shared-reader/preferences/runtime cases ran without skips.
+- [ ] Qualify exact merged source, current retained-data recovery/adoption and
+  fresh Benchmark observation. This candidate has not been deployed.
+- [ ] Repeat four hours and 24 hours; if delivery latency remains problematic,
+  compare the operator CPU allowance separately on the same VM.
+
+[Actual implementation benchmark](evidence/benchmark-shared-private-reader-local-2026-11-28.json):
+80 identical synchronous callbacks per reader on disposable PG17 / local Unix
+socket. Fresh login median **2.739 ms**, p95 **5.374 ms**; shared reader median
+**0.163 ms**, p95 **0.244 ms** (one backend PID; fresh OFF observed). The first
+shared call includes initialization. This excludes VM/network/CPU-quota/executor
+and event-loop contention; it is not a predicted Benchmark latency or long-run
+acceptance. No container CPU allowance or live data was changed for this test.
+
+Official guidance checked for this design:
+[psycopg concurrent operations](https://www.psycopg.org/psycopg3/docs/advanced/async.html),
+[transaction management](https://www.psycopg.org/psycopg3/docs/basic/transactions.html),
+[PostgreSQL 17 transaction isolation](https://www.postgresql.org/docs/17/transaction-iso.html),
+and [transaction/statement timeout semantics](https://www.postgresql.org/docs/17/runtime-config-client.html).
+Connection reuse is compatible with fresh reads; serialization must cover the
+whole transaction because cursors on one psycopg connection share transaction
+and error state. No long-lived read transaction is kept between borrows.
+
 ## Evidence and objective
 
 Benchmark `.13` stopped at 09:51:04.539628 UTC with `ownership.timeout`,

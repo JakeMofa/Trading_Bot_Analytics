@@ -61,6 +61,39 @@ class OperatorApiTests(unittest.TestCase):
             self.assertEqual(self.client.post(path, headers=self.headers).status_code, 404)
         self.assertEqual(self.repository.calls, [])
 
+    def test_reader_shutdown_follows_stop_and_also_runs_after_stop_failure(self):
+        for fail in (False, True):
+            with self.subTest(stop_fails=fail):
+                calls = []
+
+                class Session:
+                    async def stop(self):
+                        calls.append('stop')
+                        if fail:
+                            raise RuntimeError('fixture durable stop unavailable')
+
+                app = create_operator_app(self.repository, origin_id='pp-live-fixture',
+                                          token=TOKEN, session=Session(),
+                                          reader_cleanup=lambda: calls.append('reader-close'))
+                if fail:
+                    with self.assertRaisesRegex(RuntimeError, 'fixture durable stop'):
+                        with TestClient(app):
+                            pass
+                else:
+                    with TestClient(app):
+                        pass
+                self.assertEqual(calls, ['stop', 'reader-close'])
+
+    def test_explicit_off_keeps_reader_available_for_status_and_later_on(self):
+        calls = []
+        app = create_operator_app(self.repository, origin_id='pp-live-fixture', token=TOKEN,
+                                  reader_cleanup=lambda: calls.append('reader-close'))
+        with TestClient(app) as client:
+            self.assertEqual(client.post('/collector/off', headers=self.headers).status_code, 200)
+            self.assertEqual(client.get('/collector/status', headers=self.headers).status_code, 200)
+            self.assertEqual(calls, [])
+        self.assertEqual(calls, ['reader-close'])
+
     def test_bounded_diagnostic_only_on_authenticated_private_status(self):
         class FailedSession:
             def state(self):

@@ -32,6 +32,22 @@ class OwnershipProbe:
         self.lock = Lock()
         self.finished = False
         self.timed_out = False
+        self.attempts = []
+
+    def submitted(self):
+        with self.lock:
+            # The supervisor has three bounded attempts. Never log an
+            # unbounded retry history or callback/exception contents.
+            if len(self.attempts) >= 3:
+                raise ValueError('ownership attempt bound exceeded')
+            attempt = {'started': None, 'finished': None, 'resumed': None,
+                       'result': 'not_started'}
+            self.attempts.append(attempt)
+            return attempt
+
+    def resumed(self, attempt):
+        with self.lock:
+            attempt['resumed'] = self.clock()
 
     def mark(self, phase):
         if phase not in PHASES:
@@ -56,6 +72,14 @@ class OwnershipProbe:
                       'elapsed_ms':round(elapsed*1000, 3),
                       'worker_finished':self.phase == 'worker_complete',
                       'phase_ms':{key:round(value*1000, 3) for key,value in times.items()}}
+            record['attempts'] = [
+                {'result': a['result'],
+                 'native_ms': (round((a['finished']-a['started'])*1000, 3)
+                               if a['finished'] is not None else None),
+                 'resume_ms': (round((a['resumed']-a['finished'])*1000, 3)
+                               if a['resumed'] is not None and a['finished'] is not None
+                               and a['resumed'] >= a['finished'] else None)}
+                for a in self.attempts]
         # Fast successes do not generate per-second logs. Fixed keys/categories
         # and a finite phase set cannot reveal DSNs, SQL, UUIDs or payloads.
         if outcome != 'success' or elapsed >= .25 or late:
@@ -65,15 +89,28 @@ class OwnershipProbe:
             except Exception:
                 pass  # Diagnostics cannot change ownership or ingestion.
 
-    def worker(self, callback):
+    def worker(self, callback, attempt):
         token = _current.set(self)
+        with self.lock:
+            attempt['started'] = self.clock()
+            attempt['result'] = 'running'
+        result = 'raised'
         try:
             self.mark('admission')
-            return callback()
+            value = callback()
+            result = 'true' if value is True else 'false' if value is False else 'other'
+            return value
+        except Exception as error:
+            from .live_diagnostics import OwnershipConnectionLimit
+            if isinstance(error, OwnershipConnectionLimit):
+                result = 'capacity'
+            raise
         finally:
             self.mark('worker_complete')
             _current.reset(token)
             with self.lock:
+                attempt['result'] = result
+                attempt['finished'] = self.clock()
                 late = self.finished and self.timed_out
             if late:
                 # This says nothing about whether SQL succeeded or failed:
@@ -85,6 +122,11 @@ def phase(name):
     probe = _current.get()
     if probe is not None:
         probe.mark(name)
+
+
+def is_ownership_check():
+    """Scheduling priority only; never a cached ownership decision."""
+    return _current.get() is not None
 
 
 async def submit_ownership(callback, probe):
@@ -101,10 +143,14 @@ async def submit_ownership(callback, probe):
             _executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix='pp-ownership')
         context = copy_context()
         probe.mark('executor_wait')
-        future = _executor.submit(context.run, probe.worker, callback)
+        attempt = probe.submitted()
+        future = _executor.submit(context.run, probe.worker, callback, attempt)
     except BaseException:
         _outstanding.release()
         raise
     # concurrent-future completion (not asyncio cancellation) owns admission.
     future.add_done_callback(lambda _future: _outstanding.release())
-    return await asyncio.wrap_future(future)
+    try:
+        return await asyncio.wrap_future(future)
+    finally:
+        probe.resumed(attempt)

@@ -191,6 +191,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
     session = None
     status_repository = repository
     feed_store = None
+    shared_reads = None
     if live_control == 'true':
         if environ.get('TRADEBOT_APP_DSN_FILE') != '/run/secrets/app_dsn':
             raise ValueError('PP live app credential path required')
@@ -201,6 +202,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
             validate_schema(connection, 'preprod')
         if origin == DISPLAY_ORIGIN:
             from .watch_connections import SessionBudget, WatchOperatorStore
+            from .shared_read_connection import SharedReadConnection
             reader_dsn = _secret(root, 'watch_api_reader_dsn', expected_uid=expected_uid)
             reads = SessionBudget(reader_dsn, 'tradebot_reader', 1)
             writes = SessionBudget(app_dsn, 'tradebot_app', 6)
@@ -208,20 +210,39 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
             feed_store = WatchOperatorStore(settings, writes, reads)
             with reads.open(readonly=True) as connection:
                 validate_schema(connection, 'preprod')
-            status_repository = _owner_reader(None, watch_ownership=True, reader=reads)
+            shared_reads = SharedReadConnection(reads)
+            status_repository = _owner_reader(None, watch_ownership=True, reader=shared_reads)
         else:
             status_repository = _owner_reader(app_dsn, connector)
-        fence_live_startup(repository, origin)
-        session = session_builder(repository, origin, app_dsn,
-                    **({'rehearsal_anchor': anchor} if anchor else {}),
-                    **({'diagnostic_anchor': diagnostic_anchor} if diagnostic_anchor else {}),
-                    **({'watch_store':feed_store, 'owner_reader':status_repository} if feed_store else {}),
-                    **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
+        try:
+            fence_live_startup(repository, origin)
+            session = session_builder(repository, origin, app_dsn,
+                        **({'rehearsal_anchor': anchor} if anchor else {}),
+                        **({'diagnostic_anchor': diagnostic_anchor} if diagnostic_anchor else {}),
+                        **({'watch_store':feed_store, 'owner_reader':status_repository} if feed_store else {}),
+                        **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
+            if shared_reads is not None:
+                # Builder verification still uses the original budget before
+                # any retained socket opens. Schema audits are not subjected
+                # to the short ordinary runtime-read transaction limits.
+                feed_store.reads = shared_reads
+                with shared_reads.open(readonly=True) as connection:
+                    connection.execute('SELECT 1').fetchone()
+        except BaseException:
+            if shared_reads is not None:
+                shared_reads.close()
+            raise
     required_seconds = boundary_lease_seconds(origin) if diagnostic_anchor else lease_cap(anchor) if anchor else None
-    return create_operator_app(repository, origin_id=origin, token=token, feed_store=feed_store,
-                               session=session, status_repository=status_repository,
-                               max_session_seconds=required_seconds or lease_cap(anchor),
-                               required_session_seconds=required_seconds)
+    try:
+        return create_operator_app(repository, origin_id=origin, token=token, feed_store=feed_store,
+                                   session=session, status_repository=status_repository,
+                                   max_session_seconds=required_seconds or lease_cap(anchor),
+                                   required_session_seconds=required_seconds,
+                                   reader_cleanup=shared_reads.close if shared_reads is not None else None)
+    except BaseException:
+        if shared_reads is not None:
+            shared_reads.close()
+        raise
 
 
 def main():

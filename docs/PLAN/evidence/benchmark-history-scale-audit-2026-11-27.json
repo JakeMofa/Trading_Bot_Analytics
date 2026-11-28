@@ -1,0 +1,61 @@
+{
+  "scale": {
+    "rows": 2000000,
+    "markets": 288,
+    "period_seconds": 259200,
+    "source": "generated in receipt order; small same-sized payloads, no WAN, not real volume",
+    "brin_index_bytes": 90112
+  },
+  "actual_history_route_sql_generated": {
+    "existing_0": {
+      "sql_ms": 1033.869,
+      "planning_ms": 2.711,
+      "rows": 501,
+      "shared_hit": 1939,
+      "shared_read": 64744
+    },
+    "existing_1": {
+      "sql_ms": 1960.713,
+      "planning_ms": 0.206,
+      "rows": 501,
+      "shared_hit": 2035,
+      "shared_read": 64648
+    },
+    "brin32_0": {
+      "sql_ms": 8.591,
+      "planning_ms": 0.678,
+      "rows": 501,
+      "shared_hit": 253,
+      "shared_read": 0
+    },
+    "brin32_1": {
+      "sql_ms": 8.555,
+      "planning_ms": 0.376,
+      "rows": 501,
+      "shared_hit": 247,
+      "shared_read": 0
+    }
+  },
+  "physical_outbox_1000": {
+    "before": {
+      "heap": 0,
+      "indexes": 32768,
+      "total": 40960,
+      "heap_toast_vm_fsm": 8192
+    },
+    "after_insert": {
+      "heap": 835584,
+      "indexes": 614400,
+      "total": 3104768,
+      "heap_toast_vm_fsm": 2490368
+    },
+    "after_ack": {
+      "heap": 1597440,
+      "indexes": 688128,
+      "total": 3940352,
+      "heap_toast_vm_fsm": 3252224
+    }
+  },
+  "physical_note": "PostgreSQL 17 disposable .4 actual exported row mix. Sizes include indexes and TOAST, after all inserts then all acknowledgements/ordinary VACUUM, one sample; not an on-host growth measurement. Pinned input SHA256 45abec643063a9e16528863dfcdc696e7fb600c1e6e0152654cf15038eea374a.",
+  "limits": "BRIN figures are generated in receipt order. The baseline and candidate ran on the same rows; existing queries need qualify real arrival skew, record insert overhead, partition index creation and concurrency with a collector before rollout."
+}

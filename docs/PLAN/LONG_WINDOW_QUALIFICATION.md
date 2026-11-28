@@ -55,3 +55,20 @@ PYTHONPATH=backend python -m unittest discover -s backend/tests -p test_long_win
    coverage. Qualify compact immutable coverage and conflict detection before
    pruning records with foreign-key dependencies. The 30-day dedup expiry
    needs an executor and an explicit policy for older replays.
+
+## Query and storage scale evidence
+
+A disposable PostgreSQL 17 audit exercised the current history-route SQL on
+2,000,000 generated rows spanning 288 markets. The existing query returned
+501 rows in 1.034 and 1.961 seconds. A 90,112-byte BRIN index with 32-page
+ranges reduced those runs to 8.59 and 8.56 ms. These rows were generated in
+receipt order with small payloads; the figures exclude network and browser
+time. Qualify delayed/out-of-order arrivals, write overhead and real collector
+concurrency before proposing an index migration. No index was deployed.
+
+A separate physical-size fixture used 1,000 captured Benchmark .4 outbox
+records. Total relation size was 40,960 bytes empty, 3,104,768 bytes after
+insertion and 3,940,352 bytes after ACK updates and ordinary vacuum. This
+includes indexes and TOAST. It demonstrates why raw-partition size alone
+cannot budget a 72-hour slot; it is one disposable measurement, not an
+on-host growth rate. [Audit evidence](evidence/benchmark-history-scale-audit-2026-11-27.json).

@@ -1,0 +1,292 @@
+{
+  "benchmark_origin": "pp-live-pp-benchmark-watch",
+  "collector_release": ".7",
+  "dashboard_url": "https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability",
+  "collection_during_clean_market": {
+    "market": "2982855",
+    "requested_window_utc": [
+      "05:15:00",
+      "05:30:00"
+    ],
+    "last_captured": "2026-11-28T05:43:38.426000+00:00",
+    "complete": true,
+    "native_events": {
+      "sse": 3427,
+      "dom": 3427
+    },
+    "distinct_observed_event_ids": 3278,
+    "api_receipt_to_sse_generated_ms": {
+      "n": 3278,
+      "min": 3.529,
+      "median": 62.097,
+      "p95": 146.903,
+      "max": 493.054
+    },
+    "browser_receive_to_matching_paint_opportunity_ms": {
+      "n": 3276,
+      "min": 2.3,
+      "median": 11.1,
+      "p95": 25.0,
+      "max": 128.2
+    },
+    "note": "SSE snapshots can coalesce updates. Count and latency refer only to events observed by this browser. Two animation frames give an upper bound on a browser paint opportunity."
+  },
+  "full_market_first_quote": {
+    "market": "2982855",
+    "id": "ws-fab929099b282af4785ad78498ee25658d7c74c3cce3202ed7dc792401c657fb",
+    "sse_at_utc": "2026-11-28T05:15:28.057000+00:00",
+    "source_at_utc": "2026-11-28T05:15:27.982607053Z",
+    "receipt_at_utc": "2026-11-28T05:15:28.071474+00:00",
+    "server_snapshot_utc": "2026-11-28T05:15:28.079798+00:00",
+    "display_at_upper_utc": "2026-11-28T05:15:28.068000+00:00",
+    "sse_to_double_raf_ms": 11.1
+  },
+  "grafana": {
+    "sensors": {
+      "supabase": "hosted Grafana integration scrape",
+      "pp": "host-local Prometheus remote write over TLS using metrics-only identity"
+    },
+    "new_panels": {
+      "111": "Benchmark API, PostgreSQL and telemetry health",
+      "112": "Benchmark source errors and retries",
+      "113": "Benchmark source collection preferences",
+      "114": "Benchmark telemetry API response time"
+    },
+    "detail_logs": "sanitized collector container logs; no hosted Loki sender",
+    "notification_test": "Grafana UI: Test notification sent successfully",
+    "inbox_confirmed": false,
+    "feed_archive_alert_uid": "bg5mmzb2nturkb",
+    "infrastructure_alert_uid": "dg5mszhzlz400d",
+    "pending_period_seconds": 60,
+    "health_series_confirmed": [
+      "Host metrics sender",
+      "Local telemetry HTTP API",
+      "PostgreSQL telemetry read",
+      "Collector diagnostics heartbeat"
+    ],
+    "clean_quarter_panel_inspector": {
+      "at_utc": "2026-11-28T05:24:00Z",
+      "source": "Grafana Inspector, latest simultaneous live values, allocation scope as specified in inspected_queries",
+      "supabase_scrape_health": 1,
+      "sql_statements_per_second": 65.1,
+      "aggregate_sql_execution_ms_per_second": 13.9,
+      "pgbouncer_current_database_connections": 1,
+      "disk_operations_per_second": 8.45,
+      "verified_ack_rows_per_second": 22.2,
+      "oldest_pending_seconds": 1.46,
+      "pending_rows": 23
+    },
+    "early_sender_drill": {
+      "stop_utc": "2026-11-28T05:10:52Z",
+      "actual_systemd_restart_utc": "2026-11-28T05:13:17Z",
+      "absent_over_2m_at_utc": "2026-11-28T05:13:05Z",
+      "grafana_queried_absent_during": 1,
+      "grafana_queried_heartbeat_after": 1,
+      "unit": "active/running",
+      "remote_write_errors_during_8m": 0,
+      "grafana_rule_history": "No state transitions have occurred in the last 30 days",
+      "second_email_sent": false,
+      "separate_long_sender_drill": "Skipped after the real collector outage confirmed alert evaluation, notification and return to normal. The short sender outage verified the missing-heartbeat query only."
+    },
+    "same_quarter_host": {
+      "window_utc": "2026-11-28 05:15:00\u201305:30:00",
+      "host": "pp-benchmark",
+      "samples": 60,
+      "interval_approx_seconds": 15,
+      "measured_available_ram_kib_range": [
+        2793584,
+        2831400
+      ],
+      "cpu_busy_pct_range": [
+        32.128,
+        59.307
+      ],
+      "cpu_iowait_pct_range": [
+        0.499,
+        2.031
+      ],
+      "swap_in_pages": 0,
+      "swap_out_pages": 0,
+      "oom_kills": 0,
+      "memory_full_psi_max_interval_pct": 0.1934,
+      "memory_some_psi_max_interval_pct": 0.2011,
+      "estimated_cumulative_memory_full_stall_ms": 138.39,
+      "estimated_cumulative_memory_some_stall_ms": 157.736,
+      "method": "Interval-weighted host percentages from original Grafana remote-write sample timestamps for interval endings in this quarter. The first/last 15s buckets straddle clock boundaries. These are machine-wide pressure observations."
+    },
+    "slow_quotes_context": [
+      {
+        "pp_receipt_to_publication_ms": 493.054,
+        "published_epoch": 1795843022.077784,
+        "host_interval_end_epoch": 1795843022.932,
+        "memory_full_stall_pct": 0.0076,
+        "available_ram_kib": 2816996,
+        "cpu_busy_pct": 46.731,
+        "cpu_iowait_pct": 0.697
+      },
+      {
+        "pp_receipt_to_publication_ms": 400.426,
+        "published_epoch": 1795843022.872027,
+        "host_interval_end_epoch": 1795843022.932,
+        "memory_full_stall_pct": 0.0076,
+        "available_ram_kib": 2816996,
+        "cpu_busy_pct": 46.731,
+        "cpu_iowait_pct": 0.697
+      },
+      {
+        "pp_receipt_to_publication_ms": 344.048,
+        "published_epoch": 1795843682.296916,
+        "host_interval_end_epoch": 1795843682.918,
+        "memory_full_stall_pct": 0,
+        "available_ram_kib": 2809640,
+        "cpu_busy_pct": 45.306,
+        "cpu_iowait_pct": 0.735
+      },
+      {
+        "pp_receipt_to_publication_ms": 313.025,
+        "published_epoch": 1795843756.783148,
+        "host_interval_end_epoch": 1795843757.91,
+        "memory_full_stall_pct": 0.0236,
+        "available_ram_kib": 2810580,
+        "cpu_busy_pct": 48.991,
+        "cpu_iowait_pct": 1.178
+      },
+      {
+        "pp_receipt_to_publication_ms": 311.999,
+        "published_epoch": 1795843502.467579,
+        "host_interval_end_epoch": 1795843502.913,
+        "memory_full_stall_pct": 0.0904,
+        "available_ram_kib": 2800972,
+        "cpu_busy_pct": 46.21,
+        "cpu_iowait_pct": 0.731
+      }
+    ],
+    "actual_unplanned_collector_stop": {
+      "at_utc": "2026-11-28T05:34:54Z",
+      "pre_stop_sample_at_utc": "2026-11-28T05:34:47.934Z",
+      "available_ram_kib": 2820052,
+      "cpu_busy_pct": 42.017,
+      "cpu_iowait_pct": 1.076,
+      "psi_full_pct": 0.0078,
+      "psi_some_pct": 0.0078,
+      "swap_in_pages": 0,
+      "swap_out_pages": 0,
+      "oom_kills": 0,
+      "external_watch_requested": true,
+      "at_053511_pending": 0,
+      "at_053511_acknowledged": 33426,
+      "signal": "collector_stopped_while_requested",
+      "grafana_transitions_utc": [
+        [
+          "05:35:30",
+          "Pending"
+        ],
+        [
+          "05:36:30",
+          "Alerting"
+        ],
+        [
+          "05:40:30",
+          "Normal (missingseries)"
+        ]
+      ],
+      "notification_utc": "05:37:06",
+      "contact_point": "PP Benchmark email",
+      "provider_delivery_status": "Delivered successfully",
+      "reported_duration_ms": 139,
+      "retry": true,
+      "inbox_seen": false,
+      "grafana_notification_id": "77781ea0-6847-4073-bd45-1256ca400340"
+    }
+  },
+  "single_feed_control": {
+    "requested_feed": "robinhood",
+    "observed_interval": [
+      "2026-11-28T05:31:18.638304+00:00",
+      "2026-11-28T05:31:46.693584+00:00"
+    ],
+    "same_collector_session": true,
+    "requested_feed_rows_in_interval": 0,
+    "other_source_acks_verified": [
+      {
+        "source": "coinbase",
+        "outbox_id": 353546,
+        "acknowledged_at": "2026-11-28 05:31:23.200195+00:00"
+      },
+      {
+        "source": "polymarket_us",
+        "outbox_id": 353489,
+        "acknowledged_at": "2026-11-28 05:31:19.617584+00:00"
+      }
+    ],
+    "effective_running_after_resume": true
+  },
+  "native_eventsource_disconnects": [
+    {
+      "error": "2026-11-28T05:43:15.669000+00:00",
+      "previous": {
+        "observed": "2026-11-28T05:43:15.473000+00:00",
+        "event_id": "ws-3f3749d48ce1c68375b6e25388cc6a510eb5e990c9990c20faaf5524b214c70b",
+        "market": "2984038",
+        "received": "2026-11-28T05:43:15.397380+00:00"
+      },
+      "reopened": "2026-11-28T05:43:21.810000+00:00",
+      "first_new": {
+        "observed": "2026-11-28T05:43:21.837000+00:00",
+        "event_id": "ws-02cf988a262d3058d45ce77d14a7cd622bb3edbb9769e5dda070c5e5ae42763a",
+        "market": "2984038",
+        "received": "2026-11-28T05:43:21.743650+00:00"
+      },
+      "visible": "2026-11-28T05:43:21.843000+00:00",
+      "error_to_reopen_ms": 6141.6,
+      "last_receipt_to_new_sse_ms": 6364.5,
+      "last_receipt_to_new_dom_ms": 6370.2
+    },
+    {
+      "error": "2026-11-28T05:43:18.726000+00:00",
+      "previous": {
+        "observed": "2026-11-28T05:43:15.473000+00:00",
+        "event_id": "ws-3f3749d48ce1c68375b6e25388cc6a510eb5e990c9990c20faaf5524b214c70b",
+        "market": "2984038",
+        "received": "2026-11-28T05:43:15.397380+00:00"
+      },
+      "reopened": "2026-11-28T05:43:21.810000+00:00",
+      "first_new": {
+        "observed": "2026-11-28T05:43:21.837000+00:00",
+        "event_id": "ws-02cf988a262d3058d45ce77d14a7cd622bb3edbb9769e5dda070c5e5ae42763a",
+        "market": "2984038",
+        "received": "2026-11-28T05:43:21.743650+00:00"
+      },
+      "visible": "2026-11-28T05:43:21.843000+00:00",
+      "error_to_reopen_ms": 3084.3,
+      "last_receipt_to_new_sse_ms": 6364.5,
+      "last_receipt_to_new_dom_ms": 6370.2
+    }
+  ],
+  "deployed_dashboard": {
+    "observed_at": "2026-11-28T05:43:40.757399+00:00",
+    "market": "cpc-btc-updown-15m-2026-11-28-0530z",
+    "feed_labels": [
+      {
+        "name": "coinbase stream",
+        "status": "fresh",
+        "detail": "Last update 0s ago \u00b7 reconnects (cumulative) null"
+      },
+      {
+        "name": "polymarket stream",
+        "status": "fresh",
+        "detail": "Last update 0s ago \u00b7 reconnects (cumulative) null"
+      }
+    ],
+    "market_card_width_desktop": 604,
+    "mobile_scroll_width": 390,
+    "source_prices_at_sample": {
+      "target": "$59,777.02",
+      "market-up": "\u2014",
+      "market-down": "1\u00a2",
+      "venue-price": "$59,692.96",
+      "live-reference": "$59,659.66",
+      "robinhood-price": "$59,680.51"
+    }
+  }
+}

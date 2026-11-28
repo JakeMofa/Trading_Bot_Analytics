@@ -1,0 +1,102 @@
+{
+  "origin": "pp-live-pp-benchmark-watch",
+  "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+  "source_sha": "7bff42a3797da917eb1929e28afccb729ccafd3a",
+  "samples": [
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:44:38.519987+00:00",
+      "sampled_at": "2026-11-28 05:42:54.590525+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:45:43.013520+00:00",
+      "sampled_at": "2026-11-28 05:43:48.143452+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:45:59.039952+00:00",
+      "sampled_at": "2026-11-28 05:44:04.935959+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:46:15.098349+00:00",
+      "sampled_at": "2026-11-28 05:44:19.316433+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:46:31.101479+00:00",
+      "sampled_at": "2026-11-28 05:44:33.067156+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:46:31.101479+00:00",
+      "sampled_at": "2026-11-28 05:44:46.726563+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:46:47.129217+00:00",
+      "sampled_at": "2026-11-28 05:45:04.051410+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 4,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "2a0867f5-2b41-4402-91fc-8576010a427d",
+      "collector_lease_expires_at": "2026-11-28 05:47:04.949896+00:00",
+      "sampled_at": "2026-11-28 05:45:19.119756+00:00"
+    }
+  ],
+  "ssh_sampling_gaps": [],
+  "readbacks": [
+    {
+      "entity_id": "[\"pp-live-pp-benchmark-watch\",\"6fc11f7a2d44574e33765ffcce166cb7a06691310dee91c08e6eee483cee6dde\"]",
+      "source": "robinhood_crypto",
+      "entity_type": "core.protected_evidence",
+      "content_hash": "7d93ba97df87332c836fa64dd857274e32ff659b0ef283a73b3129d19f14fc83",
+      "acknowledged_at": "2026-11-28 05:45:18.885219+00:00",
+      "outbox_id": 364451,
+      "readback": "immutable revision, envelope hash, receipt and projection"
+    },
+    {
+      "entity_id": "[\"pp-live-pp-benchmark-watch\",\"coinbase\",\"BTC-USD\"]",
+      "source": "coinbase",
+      "entity_type": "core.current_prices",
+      "content_hash": "bc675cbad8fdb719c53564953600fad1323f3b98d1c7b27f73f3fba09173f99e",
+      "acknowledged_at": "2026-11-28 05:45:18.883623+00:00",
+      "outbox_id": 364450,
+      "readback": "immutable revision, envelope hash, receipt"
+    },
+    {
+      "entity_id": "[\"pp-live-pp-benchmark-watch\",\"64e710236769372d7fd4ed0bb93084a40dce18d41a799707004dfb6c20da4410\"]",
+      "source": "polymarket_us",
+      "entity_type": "core.protected_evidence",
+      "content_hash": "b22ae746dd0e0cb653fc3c1f31c382c9df437e38bdc240dc54b39525b31443f7",
+      "acknowledged_at": "2026-11-28 05:45:18.882038+00:00",
+      "outbox_id": 364449,
+      "readback": "immutable revision, envelope hash, receipt and projection"
+    }
+  ],
+  "checked_at_utc": "2026-11-28T05:45:23.006907+00:00"
+}

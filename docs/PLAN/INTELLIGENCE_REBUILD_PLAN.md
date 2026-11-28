@@ -19,6 +19,251 @@ PostgreSQL/Supabase verification, the archive batching fix and preparation
 for 72-hour A/B rotation. The previous .6 run is OFF, fully archived and
 preserved. Start from its measured results below.
 
+### Delivery checklist
+
+Checked implementation items mean the scoped code and tests merged. Live
+acceptance remains separate. At source `7bff42a`, exact CI passed and
+[Benchmark .7 CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46110209884)
+passed. PostgreSQL confirmed continuous collection ON at 11:08:18 p.m.
+Central (05:08:18 UTC November 28), slot A, generation
+`8b7c3058-c10c-4900-89c9-2d7569fca67d`. The archive worker is running and two
+independent hosted reader slots passed while the writer was active. All 20
+prior retained-generation fingerprints matched before admission. The clean
+full-market measurement covered 11:15–11:30 p.m. Central; results and sampling
+limits are recorded below.
+[Admission and independent live readback](evidence/benchmark-continuous-watch-admission-2026-11-27.json).
+
+Current deployed state is the recovered `.7` collector with `.9` API/UI, ON
+in epoch 4 on the same A. The API-only exchange preserved that running session.
+The local role-capacity fault below remains a readiness blocker while the
+typed retry/diagnostics and reader-budget successor are qualified.
+
+**Subsequent incident:** collection became durably OFF at 11:34:54 p.m.
+Central, epoch 3, before any API build or exchange. PostgreSQL logged
+`too many connections for role tradebot_app` immediately beforehand. The
+supervisor reported `session.unclassified`; its grouped `selected_feeds`
+task was absent from the diagnostic operation allowlist. API read-only
+transactions use the same `tradebot_app` login as writers; setting READ ONLY
+does not select the separate reader role. Local limits are app 8, reader 4,
+lifecycle 3, migrator 2 and 20 total connections, three reserved. The exact
+requester that reached the cap is unproved. Bounded connection admission,
+reader separation and accurate failure diagnostics require qualification.
+The successful quarter does not establish unattended readiness.
+
+The incident resource sample had approximately 2.8 GiB host available RAM,
+zero OOM kills and zero recent cgroup memory-pressure averages. Most of the
+roughly 526 MB PostgreSQL cgroup usage was file cache, including 350 MB
+inactive file pages. Usage near its 512 MiB cap alone does not prove a RAM
+stall. The observed native failure concerns connection admission.
+
+The live probe authenticated immutable revisions, envelope hashes and receipts
+for all three sources. Mutable Coinbase `current_price` projections continue
+advancing, so a historical revision must not be compared to the newest value.
+Concurrent dashboard reads returned 50 local events in 171 ms and seven
+predictions across local plus authenticated archive in 1,166 ms. Recent
+unacknowledged predictions correctly reported archive-sync pending.
+
+The watch uses two origin-scoped, non-superuser, non-bypass-RLS logins with
+two connections each and no login expiry, supporting the authorized sustained
+run. Credential rotation remains an operator procedure. Per-page structured
+drain reselects pending generations by origin and prioritizes sealed A before
+active B; admission alone binds the initial A. Actual multi-generation watch
+rotation and raw retirement remain separate acceptance gates.
+
+- [x] Three-source display, PostgreSQL persistence and authenticated Supabase
+  readback passed in the bounded .6 run below.
+- [x] Exact-byte archive packing and durable ACK counters merged (#245).
+- [x] Feed controls, independent recovery and renewable watch supervision
+  merged (#247, #248, #251).
+- [x] Bounded telemetry queries and host-resource sender merged (#246).
+- [x] Offline resumable long-window proof tests merged (#252).
+- [x] Complete .7 deployment, preserve retained generations and admit the
+  sustained three-feed watch.
+- [x] Observe one full market: source progress, exact saved and
+  hosted identities, arrivals versus ACKs and oldest pending age.
+  Two telemetry gaps limit continuous-status claims; independent writer and
+  browser evidence accompany the valid sampled interval below.
+- [x] Verify .7 metrics arrive in the combined Grafana dashboard and confirm
+  the independent Supabase scrape. Sender-health alert is Normal; full-market
+  source/backlog alert behavior remains under observation.
+- [x] Accept the merged compatible API-only update (#253), showing
+  collector identity and progress survive an actual API container replacement.
+- [x] Remove A/B slot and generation details from the product dashboard and
+  fix the extra narrow grid column introduced by the rolling-window banner.
+  Keep those operational signals in Grafana/private controls. Qualify the UI
+  successor through the API-only deployment after the uninterrupted market.
+- [x] Clarify the tick-responsive live estimate versus the periodic saved
+  model snapshot. Trace actual publication timing without changing the model
+  probabilities to mimic Polymarket prices or increasing persistence load blindly.
+- [ ] Qualify and deploy local database admission/reader separation and the
+  typed capacity/explicit-OFF diagnostic corrections. Reprove actual HTTP
+  history reads alongside collection without starving writer/control slots.
+- [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
+  including hosted version guarantees and history after local payload removal.
+
+Collector-code deployment handoff and production promotion remain later gates.
+The short A/B tests and offline proof do not grant long-window deletion authority.
+
+The [combined Grafana dashboard](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability)
+returned actual .7 host-sender data at 05:09 UTC, including heartbeat,
+collector diagnostics, source preferences and BTC source ages. The separate
+hosted Supabase scrape returned healthy. The new persisted infrastructure
+alert was Normal; email-provider acceptance does not establish inbox delivery.
+
+At approximately 11:20 p.m. Central the main agent independently reproduced
+the crowded layout on fresh deployed HTML: the rolling-window banner occupied
+a narrow extra grid column beside the market card. An older already-open page
+still had the earlier layout. The matching official Polymarket US page for
+`btc-updown-15m-2026-11-28-0515z` showed the same $59,730.66 target; its
+countdown, BTC reference and UP/DOWN prices changed between observations.
+These unsynchronized browser checks establish live matching-market behavior,
+not exact feed latency. The UI agent owns removal and responsive verification.
+
+### Deployed UI and API-only acceptance
+
+The `.9` API component, source `9a1c2dd`, passed exact CI and publication and
+was accepted at 11:43:27 p.m. Central. A genuinely new API image/container/PID
+replaced the old one while operator/collector, PostgreSQL, calculation and
+lifecycle IDs, PIDs and start times remained identical. Writer session and
+epoch 4 stayed unchanged. During the 22.061-second observed exchange interval,
+the latest outbox ID advanced 531 and verified ACKs increased 502.
+[API-only receipt](evidence/benchmark-api-only-deployment-2026-11-27.json).
+
+The browser recorded one reconnect episode with two failed attempts; old
+event to first new SSE took 6.365 seconds and to a matching new DOM opportunity
+6.370 seconds. Those are different events across an API interruption, not
+same-quote receipt-to-paint latency. Collection continued. Main-agent IAB
+verification after reload confirmed aligned cards, no A/B banner, all three
+live reference prices, current market metadata and the separate saved snapshot.
+Desktop 1280px and phone 390px browser checks passed with zero horizontal
+overflow at the phone width. [UI, telemetry, source-control and alert evidence](evidence/benchmark-monitoring-ui-acceptance-2026-11-27.json).
+
+The real earlier collector interruption exercised Grafana: Pending at
+05:35:30 UTC, Alerting at 05:36:30, provider-reported successful email delivery
+at 05:37:06 and Normal (missingseries) at 05:40:30. Independent SQL proved
+recovery; the Normal state alone is not proof of health. Inbox receipt is
+unverified. The brief sender-only drill proved its missing-heartbeat query and
+automatic restoration, not an actual sender-alert state transition.
+
+The recovered collector resumed at 11:39:48.704 p.m. Central on the same
+generation with epoch 4 after a 294.096-second interruption. No connection cap,
+permission or data change was used for recovery. The unchanged `.7` collector
+remains vulnerable to the identified capacity fault; UI acceptance is separate
+from that unresolved runtime readiness requirement.
+
+All 60 same-quarter host samples retained at least 2,793,584 KiB available RAM,
+with zero swap and OOM increments. Estimated systemwide full-memory stalls
+totaled 138.39 ms across the sampled intervals. The slowest two quote
+publications coincided with roughly 2.69 GiB available and only 0.0076% full
+memory pressure in their host interval. No sustained RAM exhaustion was
+observed; these samples cannot establish per-event causation.
+
+Independent authenticated readbacks after the API exchange again matched
+all three source revisions/receipts. Eight SQL samples over 99.7 seconds
+kept epoch 4 and the original recovered session.
+[Post-API storage and session proof](evidence/benchmark-post-api-three-source-readback-2026-11-27.json).
+
+### Reference-field comparison with the official website
+
+The official US 05:30 market page showed the same $59,777.02 target as the
+new UI and the same one-sided state (UP ask 1 cent, other side unavailable).
+In its final minute the website labeled the BTC display `60s avg`. This is
+new observed UI behavior for a rule already recorded in the repository:
+opening and closing official values average 60 BRTI publications in the
+preceding minute and round to cents.
+[Official crypto rules](https://docs.polymarket.us/faqs/crypto-faqs.md).
+
+Our displayed reference selects the latest positive-tick one-second OHLC
+`close` from asset-price history. The documented history schema exposes OHLC
+and tick count, with zero-tick carry-forward buckets; it does not expose a
+rolling mean or each publication inside a multi-tick bucket. Market terms
+provide the official price to beat and, after resolution, settlement price.
+No verified live rolling-average field was found. These differences are
+data semantics, not automatically delivery delay.
+[Asset-price schema](https://docs.polymarket.us/api-reference/oapi-schemas/asset-prices-schema.json)
+and [market schema](https://docs.polymarket.us/api-reference/oapi-schemas/markets-schema.json).
+
+A future separately labeled estimate must preserve exact decimals, receipt
+cutoffs, gaps and revisions; require unambiguous genuine observations for all
+60 source seconds; and compare both opening and closing results against
+official resolved anchors before claiming method parity. Do not carry missing
+prices forward or silently change deterministic inputs. No model/schema change
+was made by this audit.
+[Field provenance and qualification gates](evidence/benchmark-venue-reference-semantics-2026-11-27.json).
+
+The saved calculation worker runs serially and sleeps five seconds after each
+cycle (`backend/postgres/worker.py`); feature snapshots and predictions share
+that cycle. FastAPI hydrates committed state every 0.5 seconds plus SQL time
+and schedules RAM-stream publication every 0.25 seconds. A saved decision age
+of three seconds can occur normally between cycles. The separate RAM live
+estimate recomputes from the current reference price and latest valid feature
+snapshot. Its values are model estimates, distinct from venue bid/ask prices.
+The cited prediction timestamps `05:19:45.196364` and `05:19:45.225303` differ
+by 28.939 ms, but `created_at` is assigned before the transaction commits;
+that subtraction must not be reported as measured commit latency.
+
+### Sustained market measurement
+
+During market 2982855, 11:15–11:30 p.m. Central, 58 valid interior SQL samples
+spanned 873.712 seconds. They measured 18,639 verified records and 18,627
+arrivals: 21.333 versus 21.319 rows/s. Pending fell from 27 to 15, peaked
+at 120 and reached a maximum oldest age of 3.132 seconds. One of two short
+sub-14/s intervals grew backlog and recovered within 15.192 seconds. All 54
+overlapping roughly minute-long samples exceeded 14/s; the lowest was
+17.655/s. These are observed service rates, not maximum capacity.
+
+There was one empty feed-preference snapshot at 05:24:02 UTC and one missing
+SQL-window snapshot at 05:30:07. No OFF was observed, but the gaps preclude a
+claim of complete status coverage. Valid boundary brackets put exact-900s
+verified throughput between 20.710 and 21.423/s. The post-quarter independent
+SQL check confirmed the original writer session, epoch 2 and renewed lease.
+[Full sampled throughput and limits](evidence/benchmark-continuous-market-throughput-2026-11-27.json).
+
+The first quote `ws-fab929…` matched the local raw hash, immutable hosted
+revision, authenticated receipt and protected projection. Receipt to server
+SSE snapshot was 8.324 ms; receipt to the post-commit observation was 12.312 ms;
+the verified local archive ACK timestamp was 1,980.896 ms after receipt.
+[Identical saved event](evidence/benchmark-continuous-first-quote-2026-11-27.json).
+Across the browser capture, receipt to generated SSE had median 62.10 ms,
+p95 146.90 ms and maximum 493.05 ms. Browser wall-clock skew prevents direct
+receipt-to-paint subtraction. Its separately measured stream-receipt to
+matching two-frame DOM opportunity was median 11.1 ms and p95 25.0 ms.
+
+The subsequent guarded probe first hit a two-second local SQL timeout during
+benchmark preparation. The captured exception did not identify the exact
+statement; no production dashboard HTTP failure was observed. Nonexecuting
+EXPLAIN showed the candidate selection query using bitmap scans and a sort.
+An explicit inclusive generation/ID range used the existing
+`outbox_generation_id` index. The revised probe completed twice without DDL.
+[Local query plans](evidence/benchmark-history500-local-plans-2026-11-27.json).
+
+Both genuine archived readbacks authenticated the same 500 records, IDs
+325065–325564, 1,574,209 canonical bytes and SHA-256
+`4d153ba286b950cb90ebc2521a5c2ac37655a4744e6d7ec81508447e805c37f1`.
+The writer remained ON under the same session and epoch before/after each
+fresh authenticated read-only session. Cache state was unmeasured.
+
+| Timed component | First session | Repeat session |
+| --- | ---: | ---: |
+| Local preparation | 0.681 s | 0.195 s |
+| Fresh hosted connection | 0.592 s | 0.324 s |
+| Input validation | 0.692 s | 0.335 s |
+| Client revision decode and integrity | 0.440 s | 0.406 s |
+| Remaining SQL, transfer, driver and projection checks together | 1.417 s | 1.386 s |
+| Final byte equality | 0.030 s | 0.070 s |
+| End to end | **3.852 s** | **2.715 s** |
+
+Both met four seconds; the first had only 148 ms headroom. These two samples
+do not establish a latency percentile. Pure hosted SQL time was not measured
+in this live probe, so do not invent a SQL/network split or subtract timings
+from the older independent EXPLAIN. No RPC change is justified yet.
+[Same-record timing evidence](evidence/benchmark-live-history500-2026-11-27.json).
+
+The completed market contained 170 saved decisions, median spacing 5.093 s,
+p95 5.252 s and maximum 5.898 s. Decision to application-created timestamp
+had median 24.65 ms and p95 51.91 ms; transaction commit and first prediction
+paint were unmeasured. [Cadence evidence](evidence/benchmark-saved-prediction-cadence-2026-11-27.json).
+
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |
 | Benchmark runtime | Acceptance agent | Qualify a continuous profile, enable the three feeds, preserve retained generations and show actual ON state |
@@ -553,6 +798,7 @@ change to the active checkpoint above.
 ### Rolling windows, archive and retirement
 
 - [Long-window checkpoint and local data retention qualification](LONG_WINDOW_QUALIFICATION.md)
+- [Local connection admission, reader isolation and safe adoption](LOCAL_DATABASE_CONNECTION_BUDGET.md)
 
 - [PP archive and retirement flow — November 17, 2026](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md)
 - [CP6 active structured sync preparation — November 17 CST / November 18 UTC](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md)

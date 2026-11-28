@@ -1,0 +1,31 @@
+{
+  "incident": "2026-11-28 Benchmark .11 writer lease loss",
+  "origin": "pp-live-pp-benchmark-watch",
+  "slot": "A",
+  "browser_reported_off_utc": "2026-11-28T06:43:16.355Z",
+  "rule_uid": "dg5mszhzlz400d",
+  "signal": "collector_stopped_while_requested",
+  "pending_utc": "2026-11-28T06:43:30Z",
+  "firing_utc": "2026-11-28T06:44:30Z",
+  "notification_utc": "2026-11-28T06:44:37.111Z",
+  "rule_remaining_firing_when_checked": true,
+  "transport": "email #1",
+  "contact_point": "PP Benchmark email",
+  "provider_outcome": "Delivered successfully",
+  "attempt": "retry",
+  "duration_ms": 154.5,
+  "inbox_delivery_verified": false,
+  "grouped_notification": {
+    "firing": "collector_stopped_while_requested",
+    "previously_resolved": "watch_api_down"
+  },
+  "notification_url": "https://heftychameleon632.grafana.net/alerting/notifications-history/view/123a37d7-4d79-4243-ba00-b0e3e5c0e24f?ts=1795848277111",
+  "feed_rule": {
+    "uid": "bg5mmzb2nturkb",
+    "transition_during_this_stop": false,
+    "viewed_state": "Normal",
+    "last_transition_utc": "2026-11-28T06:34:30Z",
+    "interpretation": "Individual feed/backlog rules apply while collection is enabled. The durable stop signal escalated this incident."
+  },
+  "sampling": "PP telemetry uses 15-second remote writes. A missing-series normalization for the earlier stop at 06:28:30Z and generated-CD null-data gap at 06:33:30Z are distinct from the 06:43 collector stop. The private instantaneous status 503 was absent from the sampled API-down signal during the later incident."
+}

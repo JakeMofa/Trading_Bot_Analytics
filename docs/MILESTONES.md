@@ -1,3 +1,35 @@
+## November 28 — Benchmark .13 full-market recovery passed
+
+Current checkpoint: three-source collection remains ON after acceptance.
+The SQL bracket verified 18.50 ACKs/s against 18.53 arrivals/s, pending 22→43,
+peak 106 and oldest ≤2.791s. Its 61 samples had a 30.07s largest gap; the browser
+recorded no OFF indication or stream disconnect. Two naturally
+occurring status 503 ticks renewed the same lease on their next successful
+checks. This is short-workload acceptance, with long-window gates below open.
+
+- [x] Merge heartbeat recovery #260 and bounded complete-origin inventory #261.
+- [x] Pass exact source CI 46121217434, publication 46121710046 and
+  generated CD 46121823426 on source `4741ce0`.
+- [x] Preserve the same A and all 20 older generations; resume all three feeds
+  at 07:43:41.286164 UTC in epoch 8 with authenticated hosted matches.
+- [x] Repeat the identical 500-row local history HTTP page: 0.671619 seconds
+  including JSON decode, unchanged 547,007-byte body and full response SHA.
+  Same writer stayed enabled before and after; all three feeds ran.
+- [x] Match a 07:45 rollover quote through API publication (11.080 ms),
+  post-commit observation (33.427 ms) and verified hosted ACK (1.137974 s).
+- [x] Finish the entire 07:45–08:00 market and successor/tail to 08:01:40.
+  Same epoch/session continued; two real status 503 ticks recovered before
+  expiry. No post-ON OFF or SSE disconnect was observed.
+- [x] Live quote publication p95 170 ms/max 473 ms, with zero over five seconds.
+  Browser arrival-to-matching-DOM p95 26.2 ms; one coalesced display update.
+- [x] Verify combined Grafana scrape, source progress, bounded archive lag and
+  the earlier real collector-stop email-provider alert. Inbox unverified.
+- [ ] Qualify durable capture/handoff and 72-hour rotation/retirement separately.
+
+The healthy renewable watch was left ON after this diagnostic. A first rollover
+and local HTTP page do not prove lossless shutdown, indefinite rotation or
+72-hour retirement. [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--heartbeat-recovery-qualification).
+
 ## November 28 — Benchmark deployment inventory
 
 - [x] Locate the `.12` deployment failure in the preservation check before the
@@ -11,8 +43,8 @@
   The bounded query matched a streaming oracle for all 98,058 synthetic rows
   in 539 ms with zero temporary blocks in the measured plan. The existing
   Benchmark origin passed a read-only run in 16.059 s including SSH overhead.
-- [ ] Complete successor CI, guarded deployment and a full live market on
-  the same A. Retained generations and verified archive data stay protected.
+- [x] Complete successor `.13` CI, guarded deployment and a full live market
+  on the same A; see acceptance above. Retained data stayed protected.
 
 ## November 28 — Connection-capacity profile adopted on Benchmark
 
@@ -24,9 +56,9 @@
   writer remains enabled. These are local Coinbase reference events, not the
   separate pinned 500-row archive verifier.
 - [x] Verify reader separation, budget/mounts, renewals and uncluttered live UI.
-- [ ] Finish the next market-boundary/backlog observation. `.11` stopped
-  before that boundary with `ownership.lease_lost`; epoch 7 is OFF, 98,058
-  verified ACKs and zero pending. The renewal failure is diagnosed; successor acceptance is pending.
+- [x] Complete the successor market-boundary/backlog observation in `.13` above.
+  The `.11` attempt had stopped with `ownership.lease_lost`, epoch 7/OFF,
+  98,058 verified ACKs and zero pending; that failed result is preserved.
 - [ ] Qualify collection-preserving collector upgrades and long-window retirement.
 
 The canonical WebSocket old-to-new receipt gap was 627.356 seconds, including
@@ -49,7 +81,8 @@ authority. [Current checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#n
 - [x] Offline controller tests cover recovery, persistent unavailability and
   expiry, explicit OFF, owner transfer and binding/worker/origin drift.
 - [x] Independent review and exact-head CI passed; #260 merged.
-- [ ] Successor publication, Benchmark recovery and full-market live acceptance.
+- [x] Successor `.13` publication and Benchmark recovery.
+- [x] Full-market live acceptance above.
 
 ## November 27 — Sustained collection and archive capacity in progress
 

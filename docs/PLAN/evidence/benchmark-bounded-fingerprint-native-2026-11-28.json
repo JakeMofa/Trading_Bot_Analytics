@@ -1,0 +1,47 @@
+{
+  "source": "73110cb2e2b9ed08e253fd6477c7de754f2a559e",
+  "suite": "test_lifetime_inventory_pg.BoundedOutboxTests.test_large_full_envelopes_under_temp_limit",
+  "scope": "disposable PostgreSQL 17 isolated synthetic fixture",
+  "native_pg": "PostgreSQL 17.2 (Homebrew) on aarch64-apple-darwin23.6.0, compiled by Apple clang version 16.0.0 (clang-1600.0.26.4), 64-bit",
+  "limits": {
+    "work_mem": "2MB",
+    "temp_file_limit": "64MB",
+    "statement_timeout": "19s",
+    "max_parallel_workers_per_gather": 0
+  },
+  "reproduced_original": {
+    "exception": "psycopg.errors.ConfigurationLimitExceeded",
+    "sqlstate": "53400",
+    "reason": "temporary file size exceeds temp_file_limit (65536kB)"
+  },
+  "reference": "PK-ordered native cursor supplies full composite JSONB row SHA-256; Python independently streams page and outer SHA-256s",
+  "all_results_equal": true,
+  "proof": {
+    "count": 98058,
+    "pending": 980,
+    "digest": "1ea399fe68a9991ea79329ea3257095d1b082eba2a12bae8f8b6c6725e9ce75d"
+  },
+  "actual_plan": {
+    "execution_ms": 538.709,
+    "temp_read_blocks": 0,
+    "temp_written_blocks": 0,
+    "base_relation_scans": [
+      {
+        "Node Type": "Seq Scan",
+        "Relation Name": "inventory_fixture",
+        "Index Cond": null,
+        "Actual Rows": 98058,
+        "Actual Loops": 1,
+        "Index Name": null
+      },
+      {
+        "Node Type": "Index Scan",
+        "Relation Name": "inventory_fixture",
+        "Index Cond": "((id >= ranges.lo) AND (id <= ranges.hi))",
+        "Actual Rows": 1021,
+        "Actual Loops": 96,
+        "Index Name": "inventory_fixture_pkey"
+      }
+    ]
+  }
+}

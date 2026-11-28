@@ -1,0 +1,642 @@
+{
+  "release": "v0.2.0-pp.benchmark.13",
+  "source": "4741ce097555648dbc903b1c8dae0c87152263bc",
+  "cd": 46121823426,
+  "artifact": "9de7843b68954e78139f78700ef4eaeb309cc597e8f7035f2ac09334fe03b536",
+  "image": "sha256:a1103ec3ec091e834ea2345504bbd49617c7b3f3af17b87fff596cbe8347da8f",
+  "controller": "4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a",
+  "previous_release": "1b232c2eaa37c119f64dd6841f549cef8e4ea119",
+  "prior_status": "durable OFF and held after pre-renew status 503",
+  "same_A": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+  "preserved_count": 20,
+  "raw_retirement_enabled": false,
+  "retained_match_before_on": true,
+  "frozen_previous_A": {
+    "raw": {
+      "n": 92738,
+      "digest": "11ab50709eabe6b75ccc52b689c12697577f24bd8e7ad1485afd4dec0215da9f"
+    },
+    "outbox": {
+      "n": 98058,
+      "acks": 98058,
+      "hi": 423394,
+      "digest": "4d29917931f9400259dc0d0861b484fc477e4bc27dcd118b00489d9733ff86d7"
+    }
+  },
+  "on": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": true,
+    "session": "43688842-ca98-42f0-9294-8d32f6008687",
+    "epoch": 8,
+    "utc": "2026-11-28T07:43:41.286164+00:00",
+    "lease": "2026-11-28T07:45:39.689083+00:00",
+    "pending": 0,
+    "hi": 423394,
+    "acks": 98058
+  },
+  "hosted_revisions": [
+    {
+      "feed": "coinbase",
+      "id": 423502,
+      "event_id": "exchange-trade-1150285617",
+      "received": "2026-11-28T07:43:41.568357+00:00",
+      "content_hash": "bfb87ab264aa18e0de0e4fabfb7492c7a519e7f2fb21bbf8e3aa42a19f76d111",
+      "entity_type": "core.current_prices",
+      "verified_ack": "2026-11-28T07:43:44.231421+00:00",
+      "immutable_revision_matches": true
+    },
+    {
+      "feed": "polymarket_us",
+      "id": 423501,
+      "event_id": "btc-index-11fc0919dfbda028f32055c09db17cd4935f435612f1183bb51a01262cfd8a83",
+      "received": "2026-11-28T07:43:41.571547+00:00",
+      "content_hash": "9405ef0a0758c0454f919b3cddc1a34de23a7e7e1b557a68ae6f953a2e196a27",
+      "entity_type": "core.protected_evidence",
+      "verified_ack": "2026-11-28T07:43:44.229846+00:00",
+      "immutable_revision_matches": true
+    },
+    {
+      "feed": "robinhood_crypto",
+      "id": 423500,
+      "event_id": "rh-v1-4139a117c32b75aad400410677e2c782a3ecf7fdaadcac3bdd61c76db2589551",
+      "received": "2026-11-28T07:43:41.574077+00:00",
+      "content_hash": "54dce32b5b7898676846a03f6cc4e8330c59eaa6ccfff3582bb3eb24c6bc3fdc",
+      "entity_type": "core.protected_evidence",
+      "verified_ack": "2026-11-28T07:43:44.227825+00:00",
+      "immutable_revision_matches": true
+    }
+  ],
+  "receipt_gaps_since_previous_unexpected_stop": [
+    {
+      "feed": "coinbase",
+      "old_event": "exchange-trade-1150238920",
+      "old_received": "2026-11-28T06:43:14.530958+00:00",
+      "new_event": "exchange-trade-1150285617",
+      "new_received": "2026-11-28T07:43:41.568357+00:00",
+      "gap_seconds": 3627.037399
+    },
+    {
+      "feed": "polymarket_us",
+      "old_event": "ws-62e1cb74d54405e1a5a053109e920a61e55e50a79b808902d5b0788620483611",
+      "old_received": "2026-11-28T06:43:15.098181+00:00",
+      "new_event": "btc-index-11fc0919dfbda028f32055c09db17cd4935f435612f1183bb51a01262cfd8a83",
+      "new_received": "2026-11-28T07:43:41.571547+00:00",
+      "gap_seconds": 3626.473366
+    },
+    {
+      "feed": "robinhood_crypto",
+      "old_event": "rh-v1-f2080a8c8ca77496fe6cc91a8e8c0b75c7749856bc62a25512d84457b4703a86",
+      "old_received": "2026-11-28T06:43:14.329894+00:00",
+      "new_event": "rh-v1-4139a117c32b75aad400410677e2c782a3ecf7fdaadcac3bdd61c76db2589551",
+      "new_received": "2026-11-28T07:43:41.574077+00:00",
+      "gap_seconds": 3627.244183
+    }
+  ],
+  "reader_budget": {
+    "diagnostic_role": "tradebot_reader",
+    "readonly": "on",
+    "max_connections": "20",
+    "reserved": "3",
+    "roles": {
+      "tradebot_app": 8,
+      "tradebot_reader": 4,
+      "tradebot_lifecycle": 3
+    }
+  },
+  "endpoint_and_connection_budget_checked": true,
+  "smoke_renewals": [
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:43:45.340867+00:00",
+      "lease": "2026-11-28T07:45:39.689083+00:00",
+      "pending": 63,
+      "hi": 423572,
+      "acks": 98069
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:43:49.438313+00:00",
+      "lease": "2026-11-28T07:45:39.689083+00:00",
+      "pending": 36,
+      "hi": 423660,
+      "acks": 98184
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:44:08.548517+00:00",
+      "lease": "2026-11-28T07:45:56.211493+00:00",
+      "pending": 51,
+      "hi": 423995,
+      "acks": 98504
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:44:19.550815+00:00",
+      "lease": "2026-11-28T07:46:12.097457+00:00",
+      "pending": 12,
+      "hi": 424117,
+      "acks": 98665
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:44:30.553517+00:00",
+      "lease": "2026-11-28T07:46:28.291285+00:00",
+      "pending": 24,
+      "hi": 424286,
+      "acks": 98822
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:44:41.463027+00:00",
+      "lease": "2026-11-28T07:46:28.291285+00:00",
+      "pending": 12,
+      "hi": 424417,
+      "acks": 98965
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:44:52.399539+00:00",
+      "lease": "2026-11-28T07:46:44.503227+00:00",
+      "pending": 14,
+      "hi": 424536,
+      "acks": 99082
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:45:04.068519+00:00",
+      "lease": "2026-11-28T07:47:00.078561+00:00",
+      "pending": 11,
+      "hi": 424676,
+      "acks": 99225
+    }
+  ],
+  "whole_market": {
+    "boundary_utc": "2026-11-28T07:45:00+00:00",
+    "end": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T08:01:36.626106+00:00",
+      "lease": "2026-11-28T08:03:29.780796+00:00",
+      "pending": 30,
+      "hi": 443111,
+      "acks": 117619
+    },
+    "first": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T07:43:41.286164+00:00",
+      "lease": "2026-11-28T07:45:39.689083+00:00",
+      "pending": 0,
+      "hi": 423394,
+      "acks": 98058
+    },
+    "samples": 69,
+    "with_window": 69,
+    "peak_pending": 106,
+    "last_window": {
+      "slot": "A",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "state": "collecting",
+      "current": true,
+      "watch_requested": true,
+      "enabled": true,
+      "pending": 19,
+      "acknowledged": 117459,
+      "oldest_age": 1.039927,
+      "observed_at": 1795852886.603838
+    },
+    "feed_enabled": {
+      "polymarket": true,
+      "coinbase": true,
+      "robinhood": true
+    },
+    "latest_age": {
+      "coinbase": {
+        "provider": 1.699523,
+        "pp_receipt": 1.294836
+      },
+      "polymarket": {
+        "provider": 1.45765,
+        "pp_receipt": 0.329055
+      },
+      "robinhood": {
+        "provider": 0.627186,
+        "pp_receipt": 0.590386
+      }
+    }
+  },
+  "startup_ws_book": {
+    "event": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5",
+    "market": "2986339",
+    "outbox_id": 423516,
+    "received": "2026-11-28T07:43:42.993246+00:00",
+    "ack": "2026-11-28T07:43:45.767407+00:00",
+    "hash": "de09845d65ffc564bdbabaf65abd2cdddb5b57ef07e3de5e91318744de3f577a",
+    "source": "polymarket_us",
+    "authenticated_immutable_revision_and_projection": true,
+    "collector_trace": [
+      {
+        "stage": "usable_receipt",
+        "ts_utc": "2026-11-28T07:43:43.000451+00:00",
+        "received_at": "2026-11-28T07:43:42.993246+00:00",
+        "event_id": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5"
+      },
+      {
+        "stage": "writer_sample",
+        "ts_utc": "2026-11-28T07:43:43.305549+00:00",
+        "committed_at": "2026-11-28T07:43:43.305506+00:00",
+        "received_at": "2026-11-28T07:43:42.993246+00:00",
+        "event_id": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5"
+      },
+      {
+        "stage": "write_complete",
+        "ts_utc": "2026-11-28T07:43:43.305830+00:00",
+        "received_at": "2026-11-28T07:43:42.993246+00:00",
+        "event_id": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5"
+      }
+    ],
+    "observed_commit_kind": "writer_sample",
+    "observed_commit_utc": "2026-11-28T07:43:43.305506+00:00",
+    "receipt_to_commit_observation_ms": 312.26,
+    "receipt_to_verified_ack_ms": 2774.161,
+    "saved_and_archived_bid": "0.9800",
+    "saved_and_archived_ask": "0.9900"
+  },
+  "first_market_book": {
+    "event": "ws-73a6b81be77e363e7be53bec96850ae5069be5be374b5bf2c2fc04ddca3b42fe",
+    "market": "2986322",
+    "outbox_id": 424734,
+    "received": "2026-11-28T07:45:09.740798+00:00",
+    "ack": "2026-11-28T07:45:10.878772+00:00",
+    "hash": "af51ef9e19d7f1bc81294f620b2bb402dcf6a1086557535b070907fa8956d989",
+    "source": "polymarket_us",
+    "authenticated_immutable_revision_and_projection": true,
+    "collector_trace": [
+      {
+        "stage": "usable_receipt",
+        "ts_utc": "2026-11-28T07:45:09.745788+00:00",
+        "received_at": "2026-11-28T07:45:09.740798+00:00",
+        "event_id": "ws-73a6b81be77e363e7be53bec96850ae5069be5be374b5bf2c2fc04ddca3b42fe"
+      },
+      {
+        "stage": "writer_sample",
+        "ts_utc": "2026-11-28T07:45:09.774263+00:00",
+        "committed_at": "2026-11-28T07:45:09.774225+00:00",
+        "received_at": "2026-11-28T07:45:09.740798+00:00",
+        "event_id": "ws-73a6b81be77e363e7be53bec96850ae5069be5be374b5bf2c2fc04ddca3b42fe"
+      },
+      {
+        "stage": "write_complete",
+        "ts_utc": "2026-11-28T07:45:09.774449+00:00",
+        "received_at": "2026-11-28T07:45:09.740798+00:00",
+        "event_id": "ws-73a6b81be77e363e7be53bec96850ae5069be5be374b5bf2c2fc04ddca3b42fe"
+      }
+    ],
+    "observed_commit_kind": "writer_sample",
+    "observed_commit_utc": "2026-11-28T07:45:09.774225+00:00",
+    "receipt_to_commit_observation_ms": 33.427,
+    "receipt_to_verified_ack_ms": 1137.974,
+    "saved_and_archived_bid": "0.5200",
+    "saved_and_archived_ask": "0.5300"
+  },
+  "successor_market_book": {
+    "event": "ws-4ad104b2bcbc630533fc1a137c6757333480a546851895d83aba44419b798073",
+    "market": "2988028",
+    "outbox_id": 441703,
+    "received": "2026-11-28T08:00:24.362118+00:00",
+    "ack": "2026-11-28T08:00:26.159434+00:00",
+    "hash": "d205525843798ce83c6e61944814ca6d21a28a17b74b611a4790e5dc5534ee30",
+    "source": "polymarket_us",
+    "authenticated_immutable_revision_and_projection": true,
+    "collector_trace": [
+      {
+        "stage": "usable_receipt",
+        "ts_utc": "2026-11-28T08:00:24.366521+00:00",
+        "received_at": "2026-11-28T08:00:24.362118+00:00",
+        "event_id": "ws-4ad104b2bcbc630533fc1a137c6757333480a546851895d83aba44419b798073"
+      },
+      {
+        "stage": "writer_sample",
+        "ts_utc": "2026-11-28T08:00:24.384944+00:00",
+        "committed_at": "2026-11-28T08:00:24.384915+00:00",
+        "received_at": "2026-11-28T08:00:24.362118+00:00",
+        "event_id": "ws-4ad104b2bcbc630533fc1a137c6757333480a546851895d83aba44419b798073"
+      },
+      {
+        "stage": "write_complete",
+        "ts_utc": "2026-11-28T08:00:24.385086+00:00",
+        "received_at": "2026-11-28T08:00:24.362118+00:00",
+        "event_id": "ws-4ad104b2bcbc630533fc1a137c6757333480a546851895d83aba44419b798073"
+      }
+    ],
+    "observed_commit_kind": "writer_sample",
+    "observed_commit_utc": "2026-11-28T08:00:24.384915+00:00",
+    "receipt_to_commit_observation_ms": 22.797,
+    "receipt_to_verified_ack_ms": 1797.316,
+    "saved_and_archived_bid": "0.4000",
+    "saved_and_archived_ask": "0.4100"
+  },
+  "cgroups_spanning_http": {
+    "elapsed": 144.73242449760437,
+    "components": {
+      "operator": {
+        "usage_usec": 13896468,
+        "throttled_usec": 21883717,
+        "nr_throttled": 320,
+        "cpu_limit": "25000 100000",
+        "memory_max": "100663296",
+        "memory_oom": 0,
+        "mem_full_us": 0
+      },
+      "api": {
+        "usage_usec": 27458283,
+        "throttled_usec": 22402473,
+        "nr_throttled": 320,
+        "cpu_limit": "50000 100000",
+        "memory_max": "201326592",
+        "memory_oom": 0,
+        "mem_full_us": 0
+      },
+      "postgres": {
+        "usage_usec": 37205415,
+        "throttled_usec": 339304,
+        "nr_throttled": 21,
+        "cpu_limit": "100000 100000",
+        "memory_max": "536870912",
+        "memory_oom": 0,
+        "mem_full_us": 181081
+      }
+    }
+  },
+  "cgroups_spanning_entire_market": {
+    "elapsed": 1130.9610395431519,
+    "components": {
+      "operator": {
+        "usage_usec": 182545872,
+        "throttled_usec": 334227908,
+        "nr_throttled": 4439,
+        "cpu_limit": "25000 100000",
+        "memory_max": "100663296",
+        "memory_oom": 0,
+        "mem_full_us": 0
+      },
+      "api": {
+        "usage_usec": 220379784,
+        "throttled_usec": 175994674,
+        "nr_throttled": 2530,
+        "cpu_limit": "50000 100000",
+        "memory_max": "201326592",
+        "memory_oom": 0,
+        "mem_full_us": 0
+      },
+      "postgres": {
+        "usage_usec": 316040376,
+        "throttled_usec": 2581476,
+        "nr_throttled": 143,
+        "cpu_limit": "100000 100000",
+        "memory_max": "536870912",
+        "memory_oom": 0,
+        "mem_full_us": 448545
+      }
+    }
+  },
+  "watch_timer": {
+    "intent": "armed",
+    "reason": null,
+    "timer": "active",
+    "time": "2026-11-28T08:01:39.058453+00:00",
+    "renewals": 60,
+    "natural_status_503": [
+      {
+        "previous": {
+          "utc": "2026-11-28T07:55:46.094176+00:00",
+          "state": "running",
+          "epoch": 8,
+          "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "lease_expires_at": "2026-11-28T07:57:45.982957+00:00"
+        },
+        "unavailable": {
+          "utc": "2026-11-28T07:56:02.884628+00:00",
+          "state": "unavailable",
+          "reason": "watch_status_unavailable"
+        },
+        "subsequent": {
+          "utc": "2026-11-28T07:56:19.867166+00:00",
+          "state": "running",
+          "epoch": 8,
+          "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "lease_expires_at": "2026-11-28T07:58:19.665283+00:00"
+        }
+      },
+      {
+        "previous": {
+          "utc": "2026-11-28T07:58:45.967227+00:00",
+          "state": "running",
+          "epoch": 8,
+          "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "lease_expires_at": "2026-11-28T08:00:45.961310+00:00"
+        },
+        "unavailable": {
+          "utc": "2026-11-28T07:59:02.983406+00:00",
+          "state": "unavailable",
+          "reason": "watch_status_unavailable"
+        },
+        "subsequent": {
+          "utc": "2026-11-28T07:59:18.802297+00:00",
+          "state": "running",
+          "epoch": 8,
+          "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "lease_expires_at": "2026-11-28T08:01:18.797898+00:00"
+        }
+      }
+    ],
+    "held": 0,
+    "busy": 0,
+    "last_renewal": {
+      "utc": "2026-11-28T08:01:30.106239+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T08:03:29.780796+00:00"
+    },
+    "writer": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": true,
+      "session": "43688842-ca98-42f0-9294-8d32f6008687",
+      "epoch": 8,
+      "utc": "2026-11-28T08:01:40.604075+00:00",
+      "lease": "2026-11-28T08:03:29.780796+00:00",
+      "pending": 39,
+      "hi": 443206,
+      "acks": 117705
+    },
+    "same_live_session": true
+  },
+  "sampled_archive": {
+    "seconds": 1038.2001559734344,
+    "samples": 69,
+    "missing": 0,
+    "every_writer_check_on": true,
+    "mean_verified_ack_per_s": 18.257558420637555,
+    "mean_arrivals_per_s": 18.227699053133477,
+    "max_pending": 106,
+    "max_oldest_s": 2.790465,
+    "first_pending": 50,
+    "last_pending": 19,
+    "below_14": [
+      {
+        "at": 1795851863.440464,
+        "ack_rate": 13.833,
+        "backlog_delta": -30,
+        "end_pending": 20
+      },
+      {
+        "at": 1795851893.509257,
+        "ack_rate": 10.981,
+        "backlog_delta": 3,
+        "end_pending": 22
+      },
+      {
+        "at": 1795851908.537305,
+        "ack_rate": 12.044,
+        "backlog_delta": -13,
+        "end_pending": 9
+      },
+      {
+        "at": 1795852510.530937,
+        "ack_rate": 12.315,
+        "backlog_delta": 47,
+        "end_pending": 60
+      },
+      {
+        "at": 1795852751.166386,
+        "ack_rate": 13.709,
+        "backlog_delta": -3,
+        "end_pending": 22
+      },
+      {
+        "at": 1795852796.288898,
+        "ack_rate": 12.175,
+        "backlog_delta": 39,
+        "end_pending": 49
+      },
+      {
+        "at": 1795852826.371758,
+        "ack_rate": 12.033,
+        "backlog_delta": -19,
+        "end_pending": 24
+      }
+    ]
+  },
+  "saved_ws_gap": {
+    "prior_event": "ws-62e1cb74d54405e1a5a053109e920a61e55e50a79b808902d5b0788620483611",
+    "new_event": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5",
+    "old_received": "2026-11-28T06:43:15.098181+00:00",
+    "new_received": "2026-11-28T07:43:42.993246+00:00",
+    "seconds": 3627.8950650691986,
+    "previous_last_rendered_ws_event_pp_receipt_utc": "2026-11-28T06:43:15.200094+00:00",
+    "durability_scope": "All old queued envelopes were ACKed. Display-only receipts beyond the expiry cannot be assumed saved."
+  },
+  "full_market_archive": {
+    "first_sql_utc": "2026-11-28T07:44:53.509257+00:00",
+    "last_sql_utc": "2026-11-28T08:00:11.329984+00:00",
+    "sampling_scope": "Last SQL sample at or before market open through first sample at or after market close. Between-sample state is unobserved.",
+    "market_open_utc": "2026-11-28T07:45:00+00:00",
+    "market_close_utc": "2026-11-28T08:00:00+00:00",
+    "observed_seconds": 917.8207268714905,
+    "samples": 61,
+    "all_enabled": true,
+    "mean_ack_per_s": 18.502523970977776,
+    "mean_arrival_per_s": 18.525404256185087,
+    "ack_delta": 16982,
+    "first_pending": 22,
+    "last_pending": 43,
+    "peak_pending": 106,
+    "max_oldest_pending_s": 2.790465,
+    "max_sql_sample_gap_s": 30.069071054458618,
+    "sub14_intervals": [
+      {
+        "utc": "2026-11-28T07:45:08.537305+00:00",
+        "ack_per_s": 12.04,
+        "interval_s": 15.03,
+        "pending_change": -13,
+        "ending_pending": 9,
+        "seconds_to_prior_or_lower_pending": null
+      },
+      {
+        "utc": "2026-11-28T07:55:10.530937+00:00",
+        "ack_per_s": 12.31,
+        "interval_s": 15.02,
+        "pending_change": 47,
+        "ending_pending": 60,
+        "seconds_to_prior_or_lower_pending": 105.31
+      },
+      {
+        "utc": "2026-11-28T07:59:11.166386+00:00",
+        "ack_per_s": 13.71,
+        "interval_s": 15.03,
+        "pending_change": -3,
+        "ending_pending": 22,
+        "seconds_to_prior_or_lower_pending": null
+      },
+      {
+        "utc": "2026-11-28T07:59:56.288898+00:00",
+        "ack_per_s": 12.17,
+        "interval_s": 15.03,
+        "pending_change": 39,
+        "ending_pending": 49,
+        "seconds_to_prior_or_lower_pending": null
+      }
+    ]
+  },
+  "preservation_scope": {
+    "read_only_before_on": true,
+    "previously_saved_raw_prefix_rows": 92738,
+    "previously_acknowledged_outbox_prefix_rows": 98058,
+    "retained_generations_compared": 20,
+    "postgres_recreated_at_prepare": false,
+    "old_raw_retirement_enabled": false
+  },
+  "concurrent_history_evidence_file": "history500.summary.json",
+  "ordinary_dashboard_evidence_directory": "dashboard-evidence"
+}

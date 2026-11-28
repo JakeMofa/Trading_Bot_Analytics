@@ -80,3 +80,18 @@ This plan adds no live permit, SQL grant, deletion authority or production
 change. Unbounded failures or unavailable upstream history prevent an absolute
 no-loss guarantee. Qualify one bounded same-VM handoff before exposing it as
 the default collector deployment path.
+
+## Observed receipt-versus-persistence gap
+
+During the November 28 `.11` lease expiry, the browser showed a Polymarket
+book receipt at 06:43:15.200094 UTC after the database-clock lease expired at
+06:43:15.166854. The last archived book receipt was 06:43:15.098181. A later
+Robinhood display receipt also lacked matching final archived coverage. All
+98,058 persisted envelopes were ACKed; this does not prove every received
+quote was saved. A volatile writer queue cannot supply lossless abort or
+handoff. Any future durable spool must recover exact identities/timestamps
+under a fresh valid owner and show persistence status accurately.
+
+[Observed stop and display evidence](evidence/benchmark-budget-stop-observability-2026-11-28.json)
+records the incident separately from the `.13` recovery checkpoint in the
+[master plan](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--heartbeat-recovery-qualification).

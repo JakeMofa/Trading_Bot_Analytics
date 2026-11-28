@@ -125,3 +125,13 @@ fresh status and all normal worker/identity gates on the next tick. Persistent
 unavailability must still expire the existing lease; renew409, false owner,
 expired authority, auth or binding failures must remain holds. This successor
 requires its own offline regressions and live acceptance.
+
+## Qualified recovery successor
+
+Benchmark `.13` source `4741ce0` passed exact CI, normal CD and the full
+07:45–08:00 UTC market plus its successor. The two actual private status503
+failures recovered on the next checks before expiry, retaining epoch 8 and
+the same writer session. The identical 500-row local HTTP page passed in
+0.671619 seconds including decode. The watch was left ON. Full evidence,
+timestamped preservation scope and still-open long-window/handoff gates are
+in the [master checkpoint](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--heartbeat-recovery-qualification).

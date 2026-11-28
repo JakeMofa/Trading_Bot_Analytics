@@ -6,11 +6,139 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-28-2026--local-connection-budget-adoption)
+- [Current PP checkpoint](#november-28-2026--heartbeat-recovery-qualification)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 28, 2026 — Heartbeat recovery qualification
+
+PR #260's narrow transient-status correction, the independent hydration
+optimization (#258), adoption evidence (#259) and bounded fingerprint
+correction (#261) are merged. Recovery successor `.13` passed from source
+`4741ce097555648dbc903b1c8dae0c87152263bc`. It addresses the `.12`
+pre-migration failure below. The source freeze was held through exact CD and
+admission and is now released; running code remains pinned to the immutable
+release. Reviewed controller:
+`4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a`.
+
+- [x] Nine focused heartbeat regressions and independent review passed;
+  controller suite ran 329 cases with 14 fixture/environment skips and no failures.
+- [x] All scoped implementation and incident-evidence PRs merged.
+- [x] Exact `.13` merged push CI 46121217434 and publication 46121710046.
+  Verified source artifact SHA256:
+  `9de7843b68954e78139f78700ef4eaeb309cc597e8f7035f2ac09334fe03b536`.
+  The earlier `.12` CI 46119120905 and publication 46119634405 describe the
+  failed precursor, not `.13` acceptance.
+- [x] Normal `.13` Benchmark CD 46121823426 and generated acceptance passed.
+  Same-A READY_OFF was independently verified at 07:42:31.789 UTC, epoch 7,
+  98,058 verified ACKs and zero pending.
+  Earlier `.12` CD
+  46119749349 failed before the schema migrator or writer fence: preservation
+  `_capture_prior_runtime` → `_ack_state` → `_outbox_evidence` exceeded the
+  existing 64 MiB temporary-file limit while hashing 98,058 full watch-origin
+  envelopes. Recovery left the prior generated runtime and database unchanged.
+  The bounded correction is now supplied by #261 in `.13`; the limit was not raised.
+- [x] Recover the same A with all 20 retained generations unchanged.
+  Durable ON at 07:43:41.286164 UTC, epoch 8, same initial A.
+  Resuming the same generation does not reset its creation-based 72-hour age;
+  this continuous-uptime observation starts at the new admission.
+- [x] Verify all three sources and authenticated archive revisions/ACKs.
+- [x] Repeat the identical 500-row HTTP page during collection: 0.671619s including JSON decode,
+  HTTP200, 500 local Coinbase reference rows, 547,007 bytes, same ordered IDs
+  and value hashes as the `.11` pin. Writer epoch/session stayed enabled
+  before/after and all three feeds ran. Browser rendering is outside this time.
+  [Pinned HTTP proof](evidence/benchmark-recovery-history500-2026-11-28.json).
+- [x] Observe the complete 07:45–08:00 market, its successor and tail to
+  08:01:40 UTC. Same A/session/epoch 8 remained enabled. The watch stays ON.
+  Two natural status503 ticks recovered on the next authenticated checks
+  before the prior lease expired, with no new UUID/epoch or persistent hold.
+
+The 07:45 first book arrived 9.741 seconds after market open; API publication
+followed in 11.080 ms, PostgreSQL commit was observed at +33.427 ms and verified
+Supabase ACK at +1.137974 s. The 08:00 successor first book arrived at +24.362 s;
+API publication followed in 10.146 ms, commit observation at +22.797 ms and
+verified ACK at +1.797316 s. Both matched browser/SQL/hosted values. Market
+availability/discovery wait is separate from receipt-to-publication latency.
+
+Across 3,340 distinct published canonical books in the full market, receipt
+to API-state publication median was 66.544 ms, p95 169.777 ms and max 473.069 ms;
+none exceeded five seconds. Browser arrival to matching two-frame DOM had
+median 11.6 ms and p95 26.2 ms. One book was superseded before a same-ID render,
+so 3,339 matched renders are not a count of every vendor message or saved row.
+Cross-machine wall clocks are not a receipt-to-paint measurement.
+[Browser and official-market observations](evidence/benchmark-recovery-browser-2026-11-28.json).
+
+Natural status503 ticks at 07:56:02.884628 and 07:59:02.983406 recovered with
+successful same-epoch renewals 16.983 and 15.819 seconds later, both before
+previous expiry. Sixty renewals and zero held/controller-busy ticks were
+observed. The temporary read error's underlying cause is still unknown;
+this demonstrates resilience to that observed error, not its elimination.
+
+The saved SQL bracket 07:44:53.509–08:00:11.330 covers the full market:
+61 enabled samples over 917.821 seconds, 16,982 verified ACKs (18.50/s) versus
+17,003 arrivals (18.53/s), pending 22→43 and peak 106. The longest sample gap
+was 30.07 seconds; no continuous SQL observation or interpolation is claimed.
+Final guarded state at 08:01:40 UTC remained epoch 8/original session, 117,705
+verified ACKs and 39 pending. The dated lease timestamp is a historical check,
+not future admission authority; verify current guarded state before acting.
+[Release, ownership, archive and renewal evidence](evidence/benchmark-recovery-acceptance-2026-11-28.json).
+
+Grafana's independently timed window observed archive rates about 18.67/s
+against 18.71/s estimated arrivals, pending peak 106 and oldest age below
+2.791 seconds. A backlog increase recovered to its prior level in 105 seconds;
+the final dip fell to 19 pending by 08:01:26 but had not revisited its prior
+10-record level. This is bounded observed lag, not proof of unlimited drain
+capacity. At least 2,775,772 KiB host memory remained available, with zero
+swap/OOM increments. A brief I/O/pressure peak still had visible updates and
+max receipt-to-state latency 263 ms in that slice. CPU quota throttling remains
+present; no RAM-stall cause is established by these samples.
+[Combined Grafana evidence](evidence/benchmark-recovery-grafana-2026-11-28.json).
+
+The earlier `.11` stop alert entered Pending at 06:43:30, Firing 06:44:30 and
+email-provider delivery success at 06:44:37.111; inbox receipt is unverified.
+The 15-second API/cache health sampler missed the transient private503.
+[Actual stop alert receipt](evidence/benchmark-stop-alert-2026-11-28.json).
+
+No large fingerprints or forced failures were run during collection.
+Preservation evidence is timestamped at CD/admission, with current A's old
+92,738 raw and 98,058 acknowledged outbox prefix and all 20 old generations
+unchanged. No raw retirement, old 2 GB PP or production mutation occurred.
+
+The preservation-query correction merged as PR #261 after exact checks and
+independent review. Its one-statement per-origin
+snapshot derives narrow ID-only min/max ranges, hashes complete rows inside
+each range, then folds the same ordered page digests. It also replaces the
+legacy five-origin truncation with an allowlist-length-plus-one denial sentinel.
+The native 98,058-row fixture reproduced the old 64 MiB spill failure; the
+replacement matched an independent streaming oracle and executed in 538.709 ms,
+with zero temporary blocks and 96 indexed range loops.
+[Native parity, resource and plan proof](evidence/benchmark-bounded-fingerprint-native-2026-11-28.json).
+Production-sized rows
+and SSH overhead make the stopped-host measurement a separate result.
+
+The actual stopped Benchmark checked all 15 origins under 2 MiB work memory,
+64 MiB temp limit and 19-second statement deadlines. All passed in 82.969
+seconds including 16 separate SSH/psql calls. The slowest watch-origin call
+was 16.059 seconds including SSH. Before and after, A remained epoch 7/OFF,
+98,058 ACKed and zero pending. These times are not pure SQL execution, and
+hashing remains linear in retained payload volume; no unlimited/72-hour
+scalability claim follows. The exact `.13` controller/CD passed at this volume. Future retained growth
+remains constrained by the unchanged statement and total deployment deadlines.
+[All-origin read-only evidence](evidence/benchmark-bounded-all-origin-fingerprints-2026-11-28.json).
+
+The existing native blocked-writer test displays the quote while the writer
+is deliberately held, keeps the saved counter at zero, then commits exactly
+one quote despite a duplicate and verifies its archive ACK. This is isolated
+fault injection, not a failure deliberately introduced into the live watch.
+[Native delayed-writer and ACK test](../../backend/tests/test_pp_initial_trial_drain.py).
+
+The original `.11` failure below remains a failed sustained run. Offline
+503 injection proved the correction's control flow; the two actual `.13`
+503/recovered-renewal sequences above now additionally prove those observed
+live recoveries. Their underlying status-read cause remains undiagnosed.
+No raw retirement, 72-hour readiness or gap-free collector upgrade is implied.
 
 ## November 28, 2026 — Local connection-budget adoption
 
@@ -69,6 +197,13 @@ Final `.11` sampled throughput averaged 20.12 verified ACKs/s. Pending work
 peaked at 109 records and 7.48 seconds age. All 9,479 newly produced envelopes
 were verified and ACKed; the same A now contains 98,058 acknowledged envelopes,
 zero pending. These successful writes do not make sustained acceptance pass.
+
+The ACK count covers persisted outbox envelopes, not every live-display receipt.
+The last archived WebSocket book was received at 06:43:15.098181; a different
+book displayed at 06:43:15.200094 arrived after lease expiry. Robinhood likewise
+had a later display receipt than its last archived event. These observations
+do not establish lossless shutdown. Display and saving are deliberately
+separate states; durable capture buffering remains an open handoff requirement.
 
 The renewal journal explains this stop: the last renewal at 06:41:15.166854
 set expiry to 06:43:15.166854. At 06:41:31.369854 a private authenticated

@@ -30,6 +30,7 @@ class LiveState:
         self._revision = 0
         self._updated_at = None
         self._storage_status = 'starting'
+        self._storage_checks = {'discovery': 'starting', 'hydration': 'starting'}
         self._collector = deepcopy(settings.public()['collector'])
 
     def display(self, packet):
@@ -99,9 +100,16 @@ class LiveState:
         self._revision += 1
         self._updated_at = self.clock().isoformat()
 
-    def storage_status(self, value):
+    def storage_status(self, value, *, component=None):
         with self._lock:
-            if value != self._storage_status:
+            if component is not None:
+                if self._storage_checks[component] == value:
+                    return
+                self._storage_checks[component] = value
+                statuses = self._storage_checks.values()
+                value = ('unavailable' if 'unavailable' in statuses else
+                         'starting' if 'starting' in statuses else 'ok')
+            if value != self._storage_status or component is not None:
                 self._storage_status = value
                 self._touch()
 
@@ -289,6 +297,7 @@ class LiveState:
                     'robinhood_reference': deepcopy(self._robinhood),
                     'polymarket_reference': reference, 'rolling_window': deepcopy(self.benchmark_window), 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
+                    'storage_checks': self._storage_checks.copy(),
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'polymarket_empty_book_at': confirmed_empty_at,
                     'feature_snapshot': feature, 'forecast': saved,

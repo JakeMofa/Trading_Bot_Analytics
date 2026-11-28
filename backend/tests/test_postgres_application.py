@@ -13,7 +13,7 @@ import time
 from types import SimpleNamespace
 import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 
@@ -59,6 +59,34 @@ def state_fixture(now=NOW):
 
 
 class NumericAndStateTests(unittest.TestCase):
+    def test_storage_checks_recover_independently(self):
+        state = LiveState(Settings())
+        state.storage_status('ok', component='discovery')
+        self.assertEqual(state.snapshot()['storage_status'], 'starting')
+        state.storage_status('unavailable', component='hydration')
+        state.storage_status('ok', component='discovery')
+        self.assertEqual(state.snapshot()['storage_status'], 'unavailable')
+        state.storage_status('ok', component='hydration')
+        self.assertEqual(state.snapshot()['storage_status'], 'ok')
+        state.storage_status('unavailable', component='discovery')
+        state.storage_status('ok', component='hydration')
+        self.assertEqual(state.snapshot()['storage_checks'],
+                         {'discovery': 'unavailable', 'hydration': 'ok'})
+        self.assertEqual(state.snapshot()['storage_status'], 'unavailable')
+
+    def test_dashboard_hydration_uses_one_read_connection_without_candles(self):
+        store = Store(Settings())
+        connection = MagicMock()
+        db = connection.__enter__.return_value
+        db.execute.return_value.fetchone.return_value = None
+        with patch.object(store, 'connection', return_value=connection) as connect:
+            self.assertEqual(store.hydrate('fixture', NOW, with_latest_saved=True), (None,) * 5)
+        connect.assert_called_once_with(True)
+        statements = [call.args[0] for call in db.execute.call_args_list]
+        self.assertEqual(len(statements), 4)
+        self.assertNotIn('core.candles', '\n'.join(statements))
+        self.assertIn('SELECT payload,event_id,market_id,source_time,received_at', statements[2])
+
     def test_generated_overlapping_seeds_have_identical_immutable_events(self):
         first={row['event_id']:row for row in generated_events(NOW)}
         second={row['event_id']:row for row in generated_events(NOW+timedelta(minutes=1))}

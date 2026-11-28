@@ -33,6 +33,24 @@ full-market measurement covered 11:15–11:30 p.m. Central; results and sampling
 limits are recorded below.
 [Admission and independent live readback](evidence/benchmark-continuous-watch-admission-2026-11-27.json).
 
+**Subsequent incident:** collection became durably OFF at 11:34:54 p.m.
+Central, epoch 3, before any API build or exchange. PostgreSQL logged
+`too many connections for role tradebot_app` immediately beforehand. The
+supervisor reported `session.unclassified`; its grouped `selected_feeds`
+task was absent from the diagnostic operation allowlist. API read-only
+transactions use the same `tradebot_app` login as writers; setting READ ONLY
+does not select the separate reader role. Local limits are app 8, reader 4,
+lifecycle 3, migrator 2 and 20 total connections, three reserved. The exact
+requester that reached the cap is unproved. Bounded connection admission,
+reader separation and accurate failure diagnostics require qualification.
+The successful quarter does not establish unattended readiness.
+
+The incident resource sample had approximately 2.8 GiB host available RAM,
+zero OOM kills and zero recent cgroup memory-pressure averages. Most of the
+roughly 526 MB PostgreSQL cgroup usage was file cache, including 350 MB
+inactive file pages. Usage near its 512 MiB cap alone does not prove a RAM
+stall. The observed native failure concerns connection admission.
+
 The live probe authenticated immutable revisions, envelope hashes and receipts
 for all three sources. Mutable Coinbase `current_price` projections continue
 advancing, so a historical revision must not be compared to the newest value.

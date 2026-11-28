@@ -8,10 +8,13 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 
 The [delivery checklist](PLAN/INTELLIGENCE_REBUILD_PLAN.md#delivery-checklist)
 separates merged implementation from live acceptance. Exact `.7` source
-`7bff42a` passed CI and Benchmark CD 46110209884. The sustained watch is ON
-from 11:08:18 p.m. Central on slot A. All 20 retained generations matched
-before admission; the clean full-market capture and live throughput proof
-are pending. API-only deployment PR #253 merged; its live acceptance is separate.
+`7bff42a` passed CI and Benchmark CD 46110209884. The watch ran from
+11:08:18 p.m. Central and completed the full-market sampled throughput and
+exact readback checks. It became OFF at 11:34:54 p.m. after the local app role
+hit its eight-connection limit; diagnostics and connection admission are being
+corrected before unattended readiness. All 20 retained generations matched
+before admission. API-only PR #253 and layout PR #255 merged; live API
+replacement remains pending. See the current checkpoint for evidence and limits.
 
 ### Dashboard-only delivery
 

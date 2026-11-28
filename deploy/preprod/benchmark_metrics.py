@@ -132,7 +132,22 @@ def collect(snapshot, at, previous, elapsed):
     return rows
 
 
+def host_measurements(now, observed, elapsed):
+    tags = {'host': HOST, 'origin': ORIGIN}
+    values = {**elapsed, 'memory_available_kib': now['mem_available_kib']}
+    keys = ('memory_available_kib', 'memory_some_stall_pct', 'memory_full_stall_pct',
+            'pswpin', 'pswpout', 'oom_kill', 'cpu_busy_pct', 'cpu_iowait_pct')
+    return [('tradebot_pp_rollover_host_' + key, float(values[key]), observed, tags)
+            for key in keys if values.get(key) is not None]
+
+
 def run(once=False, dry_run=False):
+    # Under python -I this sibling is found only in the installed root-owned directory.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from quote_window_resources import collect as read_host, interval
+    device_id = Path('/').stat().st_dev
+    device = f'{os.major(device_id)}:{os.minor(device_id)}'
+    prior_host = None
     opener = build_opener(ProxyHandler({}))
     previous = {}
     while True:
@@ -143,7 +158,11 @@ def run(once=False, dry_run=False):
             snapshot = json.loads(body) if len(body) <= 65536 else None
         except (OSError,ValueError):
             snapshot = None
-        rows = collect(snapshot,time.time(),previous,time.monotonic()-start)
+        observed = time.time()
+        rows = collect(snapshot,observed,previous,time.monotonic()-start)
+        host = read_host(Path('/proc'), device)
+        rows.extend(host_measurements(host, observed, interval(prior_host,host)))
+        prior_host = host
         try:
             if dry_run:
                 print(json.dumps(rows))

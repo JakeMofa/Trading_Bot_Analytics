@@ -53,6 +53,12 @@ class TelemetryTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(read.call_count,1)
         self.assertTrue(all(r['windows'] is None for r in results))
 
+    def test_missing_host_pressure_stays_unknown_at_startup(self):
+        first=sender.host_measurements({'mem_available_kib':100}, 7, {})
+        self.assertEqual([v[:3] for v in first],[('tradebot_pp_rollover_host_memory_available_kib',100.,7)])
+        second=sender.host_measurements({'mem_available_kib':None}, 8, {'pswpout':0,'oom_kill':None})
+        self.assertEqual([v[:3] for v in second],[('tradebot_pp_rollover_host_pswpout',0.,8)])
+
     def test_sampling_real_active_and_sealed_windows(self):
         active = dict(slot='B',generation='b',current=True,enabled=True,pending=5,acknowledged=19,oldest_age=2,observed_at=99)
         old = dict(slot='A',generation='a',current=False,enabled=True,pending=7,acknowledged=99,oldest_age=3,observed_at=99)

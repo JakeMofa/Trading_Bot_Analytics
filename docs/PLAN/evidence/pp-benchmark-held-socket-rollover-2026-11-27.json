@@ -1,0 +1,188 @@
+{
+  "environment": "4 GiB PP Benchmark",
+  "benchmark_release": "v0.2.0-pp.benchmark.1",
+  "mode": "read-only REST and direct market WebSocket observer",
+  "rollover_utc": "2026-11-27T21:45:00+00:00",
+  "last_complete_catalog_miss": {
+    "ts_utc": "2026-11-27T21:45:08.552453+00:00",
+    "reader": "discovery",
+    "stage": "complete_miss",
+    "pages": 10,
+    "seconds_after_rollover": 8.552453,
+    "first_request_at_utc": "2026-11-27T21:45:08.176313+00:00"
+  },
+  "get_requests": {
+    "discovery": 488,
+    "book": 27
+  },
+  "observed_request_start_intervals_seconds": {
+    "discovery": {
+      "minimum": 5.000232,
+      "median": 5.000794,
+      "maximum": 5.002137
+    },
+    "book": {
+      "minimum": 2.000273,
+      "median": 2.000833,
+      "maximum": 2.002222
+    }
+  },
+  "events": [
+    {
+      "ts_utc": "2026-11-27T21:41:13.134897+00:00",
+      "reader": "observer",
+      "stage": "start",
+      "catalog_target_interval_seconds": 5,
+      "book_target_interval_seconds": 2,
+      "detail_target_interval_seconds": 2,
+      "deadline_utc": "2026-11-27T21:48:00+00:00",
+      "seconds_after_rollover": -226.865103
+    },
+    {
+      "ts_utc": "2026-11-27T21:41:13.608453+00:00",
+      "reader": "discovery",
+      "stage": "current_slug",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2130z",
+      "market_id": "2972189",
+      "seconds_after_rollover": -226.391547
+    },
+    {
+      "ts_utc": "2026-11-27T21:41:13.878290+00:00",
+      "reader": "socket",
+      "stage": "connected",
+      "seconds_after_rollover": -226.12171
+    },
+    {
+      "ts_utc": "2026-11-27T21:41:13.878748+00:00",
+      "reader": "socket",
+      "stage": "current_subscribe_sent",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2130z",
+      "request_id": "benchmark-current",
+      "seconds_after_rollover": -226.121252
+    },
+    {
+      "ts_utc": "2026-11-27T21:41:13.893526+00:00",
+      "reader": "socket",
+      "stage": "current_quote",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2130z",
+      "best_bid": "0.8000",
+      "best_ask": "0.8100",
+      "sides": "two",
+      "source_time": "2026-11-27T21:41:13.777968633Z",
+      "source_time_role": "order_book_transaction_time",
+      "seconds_after_rollover": -226.106474
+    },
+    {
+      "ts_utc": "2026-11-27T21:45:13.449778+00:00",
+      "reader": "discovery",
+      "stage": "next_slug",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "page": 8,
+      "current_quote_before_discovery": true,
+      "seconds_after_rollover": 13.449778
+    },
+    {
+      "ts_utc": "2026-11-27T21:45:13.449778+00:00",
+      "reader": "discovery",
+      "stage": "price_to_beat",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "value": "59761.70",
+      "seconds_after_rollover": 13.449778
+    },
+    {
+      "ts_utc": "2026-11-27T21:45:13.458234+00:00",
+      "reader": "socket",
+      "stage": "next_subscribe_start",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "seconds_after_rollover": 13.458234
+    },
+    {
+      "ts_utc": "2026-11-27T21:45:13.458584+00:00",
+      "reader": "socket",
+      "stage": "next_subscribe_sent",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "request_id": "benchmark-next",
+      "seconds_after_rollover": 13.458584
+    },
+    {
+      "ts_utc": "2026-11-27T21:45:13.473206+00:00",
+      "reader": "socket",
+      "stage": "next_quote",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "best_bid": "0.5300",
+      "best_ask": "0.5400",
+      "sides": "two",
+      "source_time": "2026-11-27T21:45:13.367208800Z",
+      "source_time_role": "order_book_transaction_time",
+      "seconds_after_rollover": 13.473206
+    },
+    {
+      "ts_utc": "2026-11-27T21:45:13.473206+00:00",
+      "reader": "socket",
+      "stage": "next_in_window_quote",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "best_bid": "0.5300",
+      "best_ask": "0.5400",
+      "sides": "two",
+      "source_time": "2026-11-27T21:45:13.367208800Z",
+      "source_time_role": "order_book_transaction_time",
+      "seconds_after_rollover": 13.473206
+    },
+    {
+      "ts_utc": "2026-11-27T21:46:05.503350+00:00",
+      "reader": "book",
+      "stage": "next_quote",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "best_bid": "0.4200",
+      "best_ask": "0.4400",
+      "sides": "two",
+      "source_time": "2026-11-27T21:46:02.450691600Z",
+      "source_time_role": "order_book_transaction_time",
+      "seconds_after_rollover": 65.50335
+    },
+    {
+      "ts_utc": "2026-11-27T21:46:05.503350+00:00",
+      "reader": "book",
+      "stage": "next_in_window_quote",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "best_bid": "0.4200",
+      "best_ask": "0.4400",
+      "sides": "two",
+      "source_time": "2026-11-27T21:46:02.450691600Z",
+      "source_time_role": "order_book_transaction_time",
+      "seconds_after_rollover": 65.50335
+    },
+    {
+      "ts_utc": "2026-11-27T21:46:06.547160+00:00",
+      "reader": "observer",
+      "stage": "finish",
+      "market_id": "2973359",
+      "slug": "cpc-btc-updown-15m-2026-11-27-2145z",
+      "current_quote_seen": true,
+      "seconds_after_rollover": 66.54716
+    }
+  ],
+  "error_counts": {
+    "book:HttpStatus": 26
+  },
+  "rest_book_http_status_counts": {
+    "404": 26,
+    "200": 1
+  },
+  "last_rest_book_404_utc": "2026-11-27T21:46:03.510921+00:00",
+  "socket_connections_during_observer": 1,
+  "environment_changes": {
+    "application_or_database_actions": "none; isolated observer container with no application or data mounts",
+    "observer_container_present_afterward": false
+  },
+  "discovery_to_websocket_quote_seconds": 0.023428,
+  "websocket_lead_over_rest_book_seconds": 52.030144
+}

@@ -288,7 +288,9 @@ class LifecycleRepository:
         """Read the durable writer flag; no process-liveness claim is implied."""
         if self.environment != 'preprod' or not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
             raise LifecycleHold('unsupported collector status scope')
+        from .ownership_probe import phase
         with self.connection_factory() as connection:
+            phase('query')
             row = connection.execute('''SELECT collector_enabled AND
                 collector_lease_expires_at>clock_timestamp() AS collector_enabled,
                 collector_enabled AS stored_enabled,collector_lease_expires_at,
@@ -308,7 +310,9 @@ class LifecycleRepository:
                 return False
         except (ValueError, TypeError, AttributeError):
             return False
+        from .ownership_probe import phase
         with self.connection_factory() as connection:
+            phase('query')
             row = connection.execute('''SELECT collector_enabled AND
                 collector_session_id=%s::uuid AND
                 collector_lease_expires_at>clock_timestamp() AS owned

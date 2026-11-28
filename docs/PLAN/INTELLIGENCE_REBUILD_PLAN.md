@@ -52,7 +52,19 @@ The [ownership timeout repair and acceptance plan](OWNERSHIP_TIMEOUT_RECOVERY_20
 sets the next order: timing diagnostics and native reproductions, a bounded
 private-read repair selected from that evidence, qualified adoption, then a
 four-hour and 24-hour observation before current-release A/B continuity.
-These steps are planned, not implemented or passed.
+Live adoption, sustained acceptance and the current-release A/B test remain
+unperformed.
+
+Implementation follow-up: the first offline candidate now isolates the
+ownership worker and records timing phases while preserving fresh checks,
+the two-second deadline and physical connection budgets. Tests reproduce
+default-executor starvation, late native completion and delayed event-loop
+delivery; none proves the exact 09:51 cause. It is not deployed. The bounded
+read-only 10:48 UTC preservation preflight also hit SQLSTATE57014 at
+19,000.576 ms on A's 235,755-row full digest. A's OFF epoch/count/pending/last-ID
+were unchanged. No CD was dispatched; complete-origin digest pagination is
+now a separate adoption prerequisite. [Preflight evidence](evidence/benchmark-235755-preservation-preflight-2026-11-28.json).
+See the linked repair plan for scope.
 
 No deployment, re-arm, deletion, permission change or production action was
 performed for this incident check. Existing archive records remain intact;

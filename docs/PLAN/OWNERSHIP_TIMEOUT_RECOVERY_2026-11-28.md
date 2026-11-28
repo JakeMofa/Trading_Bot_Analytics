@@ -1,6 +1,7 @@
 # Ownership timeout: diagnosis, repair and sustained acceptance
 
-Status: planned; no runtime fix or new live run has been applied for this incident.
+Status: first runtime candidate implemented and focused offline qualification passed;
+no successor deployment or new live run has been applied for this incident.
 This is the immediate workstream in the [master plan](INTELLIGENCE_REBUILD_PLAN.md).
 Keep current A, retained A/B and production unchanged during offline work.
 
@@ -21,14 +22,14 @@ record missing coverage rather than implying that live display equals saved data
 
 ## 1. Identify which phase exceeds the deadline
 
-- [ ] Add bounded monotonic timings for scheduling, reader admission,
+- [x] Add bounded monotonic timings for scheduling, reader admission,
   connection/environment validation, ownership SQL and physical close.
-- [ ] Distinguish the outer async deadline from native SQLSTATE57014, reader
+- [x] Distinguish the outer async deadline from native SQLSTATE57014, reader
   admission failure, connection failure and a false ownership result.
 - [ ] Correlate failures with event-loop delay, executor queue delay and
   per-container CPU throttling/pressure. Do not attribute an interval's entire
   throttling total to a single request.
-- [ ] Record late worker completion after cancellation. A timed-out
+- [x] Record late worker completion after cancellation. A timed-out
   `asyncio.to_thread` call can continue holding a physical database connection.
   It must neither release its budget early nor grant authority on late success.
 
@@ -42,7 +43,29 @@ record naming its phase without keys, DSNs, payloads or unbounded logging.
 
 ## 2. Qualify the smallest control-path repair
 
-Preferred candidate, subject to phase evidence: replace repeated physical
+The first implemented candidate is smaller than the retained-reader proposal:
+it isolates ownership from the default ingestion executor with one lazy,
+process-wide worker and at most one outstanding native call. Cancellation does
+not return its ticket until the native future really finishes. It keeps the
+existing fresh physical database connections, private reader allowance and
+two-second check. Native fixtures reproduce default-pool starvation, but do
+not establish it as the cause of the real 09:51 failure. A reused private
+connection remains a follow-up if measured admission/connect phases justify it.
+
+The candidate also checks the monotonic deadline after receiving a result.
+A delayed event loop can otherwise deliver ready True before processing an
+overdue timer. That result is rejected, even though its SQL itself was fast.
+Structured diagnostics separate this deadline from native SQLSTATE57014 and
+callback timeouts; late native completion never reinstates authority.
+
+All ten focused scheduling/phase/deadline/import tests passed locally using
+native disposable PostgreSQL 17 where required. Independent review found and
+verified fixes for late event-loop delivery and migration-only import isolation.
+The pre-existing controller suite passed 332 cases (nine skips), and CI-control
+tests passed 58 cases. These are offline results; exact source CI and live
+acceptance are still required.
+
+Retained-reader alternative, only if phase evidence justifies it: replace repeated physical
 connection setup with one serialized private read service using the existing
 operator reader allowance. Give it a dedicated worker so feed/background work
 cannot fill its executor queue. Prioritize ownership reads ahead of queued
@@ -90,6 +113,15 @@ and an independent code review. Automatic restart after an ambiguous failure
 is not part of this repair; fresh admission must be qualified separately.
 
 ## 4. Prepare a safe Benchmark adoption
+
+An actual read-only preflight at 10:48 UTC found another admission blocker:
+the existing complete-origin outbox digest on A's 235,755 rows reached
+19,000.576 ms and was canceled with SQLSTATE57014. A stayed OFF at epoch 9,
+235,755 ACKs, zero pending, and the same last outbox ID. No CD was dispatched;
+the preflight stopped before scanning the remaining origins. A separate
+controller repair must bound each digest statement while preserving complete
+coverage, canonical full-row hashes and a consistent snapshot. The old
+98,058-row acceptance does not qualify this larger inventory.
 
 - [ ] Qualify exact source CI, controller/profile compatibility and recovery.
 - [ ] Preflight fingerprint cost against the now larger retained A. Bounded

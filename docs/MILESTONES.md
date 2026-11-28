@@ -10,7 +10,13 @@ The same containers remained installed; no recovery or A/B swap was performed.
 - [x] Link the [repair and acceptance plan](PLAN/OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md)
   into the master map: diagnostics, bounded control-path repair, native fencing
   tests, safe adoption, four-hour/24-hour observation, then current-release A/B.
-- [ ] Instrument/reproduce the individual ownership-check timing phases.
+- [x] Instrument/reproduce individual ownership-check phases offline: ten
+  focused native/scheduling/import/deadline tests passed; actual incident phase
+  remains unknown because the deployed release lacks these timings.
+- [ ] Qualify the implemented isolated-worker/monotonic-deadline candidate;
+  no live adoption yet and actual incident cause remains unproved.
+- [ ] Repair complete-origin preservation scans: the actual 235,755-row A
+  digest hit the unchanged 19-second statement limit before any CD dispatch.
 - [ ] Review a bounded fix, qualify recovery and sustained collection.
 - [ ] Prove the current three-feed A/B swap with dashboard/history reads.
 

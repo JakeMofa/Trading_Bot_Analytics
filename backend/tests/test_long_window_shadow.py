@@ -182,24 +182,38 @@ class LongWindowQualification(unittest.TestCase):
     def test_195_pages_resume_concurrent_successor_and_no_long_partition_lock(self):
         reads = []
 
+        def prove_concurrent_commit():
+            self.insert(2)
+            with self.admin() as db, db.transaction():
+                row = db.execute(
+                    """SELECT count(*) AS n FROM archive.reader_leases WHERE origin_id=%s
+                       AND generation_id=%s AND expires_at>clock_timestamp()""",
+                    (self.origin, self.target.sealed),
+                ).fetchone()
+                self.assertEqual(row["n"], 1)
+                db.execute(
+                    "SELECT FROM archive.generations WHERE origin_id=%s AND generation_id=%s FOR UPDATE NOWAIT",
+                    (self.origin, self.target.sealed),
+                )
+
         @contextmanager
         def observe():
-            if not reads:
-                # The page lease is durable, but no local row lock spans the
-                # authenticated destination read. A separate successor commits.
-                self.insert(2)
-                with self.admin() as db, db.transaction():
-                    row = db.execute(
-                        """SELECT count(*) AS n FROM archive.reader_leases WHERE origin_id=%s
-                      AND generation_id=%s AND expires_at>clock_timestamp()""",
-                        (self.origin, self.target.sealed),
-                    ).fetchone()
-                    self.assertEqual(row["n"], 1)
-                    db.execute(
-                        "SELECT FROM archive.generations WHERE origin_id=%s AND generation_id=%s FOR UPDATE NOWAIT",
-                        (self.origin, self.target.sealed),
-                    )
+            from psycopg.pq import TransactionStatus
+
             with self.archive() as db:
+                if not reads:
+                    execute = db.execute
+
+                    def observed(query, *args, **kwargs):
+                        result = execute(query, *args, **kwargs)
+                        if "SELECT kind,CASE" in query:
+                            # The hosted SELECT has executed and its snapshot is
+                            # still open. B commits before the reader fetches the page.
+                            self.assertEqual(db.info.transaction_status, TransactionStatus.INTRANS)
+                            prove_concurrent_commit()
+                        return result
+
+                    db.execute = observed
                 reads.append(db.info.backend_pid)
                 yield db
 

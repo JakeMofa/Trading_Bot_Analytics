@@ -1,0 +1,268 @@
+{
+  "scope": "Read-only AWS Lightsail account API check after reauthentication; no instance or container setting changed",
+  "instance": "tradebot-preprod-benchmark-4gb",
+  "region": "us-east-2",
+  "availability_zone": "us-east-2a",
+  "state": "running",
+  "bundle_id": "medium_3_0",
+  "hardware": {
+    "vcpus": 2,
+    "ram_gb": 4,
+    "system_disk_gb": 80
+  },
+  "incident_utc": "2026-11-28T14:30:04.056040490Z",
+  "requested_metric_window_utc": [
+    "2026-11-28T13:00:00Z",
+    "2026-11-28T14:45:00Z"
+  ],
+  "source_response_sha256": "173c2861c2f7cf1f000b6244f26d13ab5ed34f2d50520822c015702a3535f34a",
+  "metrics": {
+    "CPUUtilization": {
+      "period_seconds": 300,
+      "points": 21,
+      "minimum": 15.221641130177613,
+      "maximum": 53.36572172693579,
+      "around_incident": [
+        {
+          "average": 45.41000791716975,
+          "maximum": 46.35756056808689,
+          "minimum": 44.333333333333336,
+          "timestamp": "2026-11-28T08:20:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:20:00+00:00"
+        },
+        {
+          "average": 42.47649681407092,
+          "maximum": 44.64835878561793,
+          "minimum": 39.3960603939606,
+          "timestamp": "2026-11-28T08:25:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:25:00+00:00"
+        },
+        {
+          "average": 18.512567745738345,
+          "maximum": 23.24746656872402,
+          "minimum": 16.947173525045454,
+          "timestamp": "2026-11-28T08:30:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:30:00+00:00"
+        },
+        {
+          "average": 17.23172178653795,
+          "maximum": 17.577019150707745,
+          "minimum": 16.47930079727791,
+          "timestamp": "2026-11-28T08:35:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:35:00+00:00"
+        }
+      ]
+    },
+    "BurstCapacityPercentage": {
+      "period_seconds": 300,
+      "points": 21,
+      "minimum": 73.85475169560185,
+      "maximum": 80.57270937210647,
+      "around_incident": [
+        {
+          "average": 74.62151622106481,
+          "maximum": 74.62151622106481,
+          "minimum": 74.62151622106481,
+          "timestamp": "2026-11-28T08:20:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:20:00+00:00"
+        },
+        {
+          "average": 74.18868737268518,
+          "maximum": 74.18868737268518,
+          "minimum": 74.18868737268518,
+          "timestamp": "2026-11-28T08:25:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:25:00+00:00"
+        },
+        {
+          "average": 73.85475169560185,
+          "maximum": 73.85475169560185,
+          "minimum": 73.85475169560185,
+          "timestamp": "2026-11-28T08:30:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:30:00+00:00"
+        },
+        {
+          "average": 73.90217091724537,
+          "maximum": 73.90217091724537,
+          "minimum": 73.90217091724537,
+          "timestamp": "2026-11-28T08:35:00-06:00",
+          "unit": "Percent",
+          "timestamp_utc": "2026-11-28T14:35:00+00:00"
+        }
+      ]
+    },
+    "BurstCapacityTime": {
+      "period_seconds": 300,
+      "points": 21,
+      "minimum": 12762.101093000001,
+      "maximum": 13922.964179499999,
+      "around_incident": [
+        {
+          "average": 12894.598003000001,
+          "maximum": 12894.598003000001,
+          "minimum": 12894.598003000001,
+          "timestamp": "2026-11-28T08:20:00-06:00",
+          "unit": "Seconds",
+          "timestamp_utc": "2026-11-28T14:20:00+00:00"
+        },
+        {
+          "average": 12819.805177999999,
+          "maximum": 12819.805177999999,
+          "minimum": 12819.805177999999,
+          "timestamp": "2026-11-28T08:25:00-06:00",
+          "unit": "Seconds",
+          "timestamp_utc": "2026-11-28T14:25:00+00:00"
+        },
+        {
+          "average": 12762.101093000001,
+          "maximum": 12762.101093000001,
+          "minimum": 12762.101093000001,
+          "timestamp": "2026-11-28T08:30:00-06:00",
+          "unit": "Seconds",
+          "timestamp_utc": "2026-11-28T14:30:00+00:00"
+        },
+        {
+          "average": 12770.2951345,
+          "maximum": 12770.2951345,
+          "minimum": 12770.2951345,
+          "timestamp": "2026-11-28T08:35:00-06:00",
+          "unit": "Seconds",
+          "timestamp_utc": "2026-11-28T14:35:00+00:00"
+        }
+      ]
+    },
+    "StatusCheckFailed": {
+      "period_seconds": 60,
+      "points": 105,
+      "minimum": 0.0,
+      "maximum": 0.0,
+      "around_incident": [
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:20:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:20:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:21:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:21:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:22:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:22:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:23:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:23:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:24:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:24:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:25:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:25:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:26:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:26:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:27:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:27:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:28:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:28:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:29:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:29:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:30:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:30:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:31:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:31:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:32:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:32:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:33:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:33:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:34:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:34:00+00:00"
+        },
+        {
+          "maximum": 0.0,
+          "sum": 0.0,
+          "timestamp": "2026-11-28T08:35:00-06:00",
+          "unit": "Count",
+          "timestamp_utc": "2026-11-28T14:35:00+00:00"
+        }
+      ]
+    }
+  },
+  "interpretation": [
+    "AWS instance health checks had zero failures in the sampled window.",
+    "Burst capacity was73.85475169560185percent at14:30UTC and was not exhausted.",
+    "The14:25UTC five-minute CPU average was42.47649681407092percent, max44.64835878561793percent. CPU statistics are too coarse to attribute a two-second deadline failure.",
+    "Container cgroup evidence separately confirms an unchanged0.25core operator ceiling and throttling near the event; the AWS VM has2vCPUs.",
+    "Qualify a controlled operator CPU allowance experiment on the existing VM and reduce shared reader/connection contention; preserve fresh ownership proof and its2second deadline. No settings were changed for this check."
+  ]
+}

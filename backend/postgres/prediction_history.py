@@ -79,7 +79,10 @@ def expected_page(db, origin, window, after, limit):
 class HostedPredictions:
     def __init__(self, origin, connection_factory):
         self.origin = origin
-        self.role = cloud_binding(origin).reader_role
+        binding = cloud_binding(origin)
+        if binding.reader_role == binding.writer_role:
+            raise ValueError('prediction archive requires a dedicated per-origin reader')
+        self.role = binding.reader_role
         self.connection_factory = connection_factory
 
     def page(self, window, after, limit, deadline):

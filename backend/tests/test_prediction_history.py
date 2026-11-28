@@ -162,4 +162,6 @@ class NativeSavedForecasts(unittest.TestCase):
             self.assertEqual(result.role,DISPLAY_READER)
             self.assertTrue(factory.call_args.kwargs['reader'])
         with self.assertRaises(ValueError):
+            HostedPredictions('pp-live-pp',lambda **kwargs: self.fail('legacy role contacted'))
+        with self.assertRaises(ValueError):
             configured_archive(Settings(),{'TRADEBOT_PP_PREDICTION_HISTORY':'true'})

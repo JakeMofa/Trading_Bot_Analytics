@@ -20,7 +20,12 @@ class _Session:
         with self.lock:
             if self.closed:
                 raise RuntimeError('feed writer closed')
-            if self.connection is None or self.connection.closed:
+            if self.connection is not None and self.connection.closed:
+                # A server-side disconnect can mark libpq closed before our
+                # owner has returned its physical connection admission slot.
+                self.connection.close()
+                self.connection = None
+            if self.connection is None:
                 self.connection = self.store.connection()
             with self.connection.transaction():
                 yield self.connection

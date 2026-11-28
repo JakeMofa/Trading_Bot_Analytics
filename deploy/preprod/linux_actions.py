@@ -69,6 +69,7 @@ DISPLAY_ORIGIN='pp-live-pp-benchmark-watch'
 WATCH_LEASE_SECONDS=120
 WATCH_POLICY='benchmark-watch-v1'
 DISPLAY_DIR=Path('/var/lib/tradebot-pp/watch-display')
+WATCH_DIAGNOSTIC_LOCK='/var/run/postgresql/.tradebot-watch-diagnostic.lock'
 DISPLAY_KEYS=('market_key_id', 'market_secret', 'robinhood_key_id', 'robinhood_private_key')
 PREDICTION_READER_FILES={
     'pp_prediction_history_reader_dsn': RUNTIME_SECRETS/'benchmark_watch_prediction_reader_dsn',
@@ -135,6 +136,13 @@ def display_filesystem():
     info=DISPLAY_DIR.lstat()
     require(stat.S_ISDIR(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o700,
             'unsafe_display_directory')
+    reader = RUNTIME_SECRETS / 'watch_api_reader_dsn'
+    info = reader.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_uid == 10001 and info.st_nlink == 1
+            and stat.S_IMODE(info.st_mode) == 0o400 and info.st_size < 256,
+            'unsafe_watch_api_reader_file')
+    require(re.fullmatch(r'postgresql://tradebot_reader:[0-9a-f]{64}@postgres:5432/tradebot_pp',
+                         reader.read_text().strip()) is not None, 'watch_api_reader_binding_mismatch')
     for name in DISPLAY_KEYS:
         info=(RUNTIME_SECRETS/name).lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o400
@@ -216,6 +224,8 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
             env['TRADEBOT_PP_QUOTE_DISPLAY']='1'
             env['TRADEBOT_PP_BOUNDARY_TRACE']='1'
             if service == 'api':
+                env['WEB_CONCURRENCY']='1'
+                env['TRADEBOT_DATABASE_DSN_FILE']='/run/secrets/watch_api_reader_dsn'
                 env['TRADEBOT_PP_PREDICTION_HISTORY']='true'
             if service == 'operator':
                 env['TRADEBOT_PP_COINBASE_TIMING']='true'
@@ -462,7 +472,8 @@ def wait_generated_host_routes(actions,budget):
 
 
 class LinuxActions:
-    def __init__(self):
+    def __init__(self, *, watch_diagnostics=False):
+        self.watch_diagnostics=watch_diagnostics
         self.config=None
         self.pg_id=None
         self.pg_volume=None
@@ -580,6 +591,8 @@ class LinuxActions:
         return output
 
     def _sql(self,budget,query):
+        if self.watch_diagnostics:
+            return self._reader_sql(budget,query)
         require(self.pg_id is not None,'postgres_identity_not_verified')
         script='export PGPASSWORD="$(cat /run/secrets/application)"; exec psql -X -qAt --set ON_ERROR_STOP=1 -h 127.0.0.1 -U tradebot_app -d tradebot_pp'
         return budget.run(['docker','exec','-i',self.pg_id,'sh','-ec',script],input=("BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; "+query+"; COMMIT;").encode(),
@@ -590,7 +603,12 @@ class LinuxActions:
         # Reuse the existing authenticated reader secret, with the same bounded
         # READ ONLY statement used for the rest of the preservation inventory.
         require(self.pg_id is not None,'postgres_identity_not_verified')
-        script='export PGPASSWORD="$(cat /run/secrets/reader)"; exec psql -X -qAt --set ON_ERROR_STOP=1 -h 127.0.0.1 -U tradebot_reader -d tradebot_pp'
+        # The lock lives with psql in the PostgreSQL container. It survives
+        # a disconnected SSH/frontend and covers independent operator processes.
+        guard = (f'flock -n -E 75 -F {WATCH_DIAGNOSTIC_LOCK} '
+                 if self.watch_diagnostics else '')
+        script=('export PGPASSWORD="$(cat /run/secrets/reader)"; exec ' + guard +
+                'psql -X -qAt --set ON_ERROR_STOP=1 -h 127.0.0.1 -U tradebot_reader -d tradebot_pp')
         return budget.run(['docker','exec','-i',self.pg_id,'sh','-ec',script],input=("BEGIN READ ONLY; SET LOCAL statement_timeout='19s'; "+query+"; COMMIT;").encode(),
                           env=self._environment('unused'),timeout=20).decode().strip()
 
@@ -923,7 +941,10 @@ class LinuxActions:
                         and sockets[0].get('RW')==(service=='api'),'wrong_quote_display_mount')
                 mounts=[item for item in mounts if item is not sockets[0]]
                 if service=='operator':
-                    wanted.update(DISPLAY_KEYS)
+                    wanted.update((*DISPLAY_KEYS, 'watch_api_reader_dsn'))
+                else:
+                    wanted.remove('app_dsn')
+                    wanted.add('watch_api_reader_dsn')
             reader = bool(live and not trial_origin and service=='api' and history_reader_enabled(context))
             trial_reader=False
             if live and trial_origin and trial_origin not in BOUNDARY_ORIGINS and service=='api':

@@ -504,6 +504,21 @@ def qualify_pp_storage_policy(secret_dir):
     return proof
 
 
+def qualify_watch_diagnostic_slot(container):
+    """Two independent Linux processes contend before either can start a second psql."""
+    from controller import Budget
+    from linux_actions import LinuxActions, WATCH_DIAGNOSTIC_LOCK
+
+    f.run(['docker','exec',container,'flock','-F',WATCH_DIAGNOSTIC_LOCK,'sh','-ec',
+           'code=0; flock -n -E 75 -F "$1" true || code=$?; test "$code" = 75',
+           'check-reader-lock',WATCH_DIAGNOSTIC_LOCK])
+    actions = LinuxActions(watch_diagnostics=True)
+    actions.pg_id = container
+    for query in (actions._sql, actions._reader_sql):
+        if query(Budget(10),"SELECT session_user||':'||current_setting('transaction_read_only')") != 'tradebot_reader:on':
+            raise RuntimeError('generated watch diagnostic login or read-only mode differs')
+
+
 def main():
     global DEADLINE, PHASE
     if os.environ.get('GITHUB_ACTIONS')!='true' or os.geteuid()!=0 or f.MARKER.exists() or f.MARKER.is_symlink():
@@ -543,6 +558,7 @@ def main():
             baseline=f.verify(CI_FOUNDATION_SECRETS)
             PHASE="isolated_role_provisioning"
             cid=f.compose(['ps','-q','postgres'],CI_FOUNDATION_SECRETS)
+            qualify_watch_diagnostic_slot(cid)
             info=json.loads(f.run(['docker','inspect','--format','{{json .NetworkSettings.Networks}}',cid]))
             address=next(iter(info.values()))['IPAddress']
             passwords={name:(CI_FOUNDATION_SECRETS/name).read_text().strip() for name in f.ROLES}

@@ -70,7 +70,7 @@ def desired_feeds(store):
             connection = store.connection(True)
             break
         except OperationalError as error:
-            if delay is None or not connection_capacity(error):
+            if delay is None or not connection_capacity(error, login=getattr(store,'read_login','tradebot_app')):
                 raise
             time.sleep(delay)
     with connection as db:

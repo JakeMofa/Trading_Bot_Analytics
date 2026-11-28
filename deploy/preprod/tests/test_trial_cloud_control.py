@@ -74,6 +74,22 @@ class ProfileTests(unittest.TestCase):
         p.validate_profile(base,display,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
         self.assertTrue(a.allowed_session_seconds(a.WATCH_LEASE_SECONDS,scoped=True,origin=a.DISPLAY_ORIGIN))
         self.assertFalse(a.allowed_session_seconds(540,scoped=True,origin=a.DISPLAY_ORIGIN))
+        api = display['services']['api']
+        self.assertEqual(api['environment']['WEB_CONCURRENCY'],'1')
+        self.assertEqual(api['environment']['TRADEBOT_DATABASE_DSN_FILE'],'/run/secrets/watch_api_reader_dsn')
+        self.assertEqual({item['source'] for item in api['secrets']},
+                         {'watch_api_reader_dsn','pp_prediction_history_reader_dsn','pp_history_ca'})
+        self.assertEqual(display['secrets']['watch_api_reader_dsn']['file'],
+                         '/etc/tradebot/pp-runtime/watch_api_reader_dsn')
+        self.assertIn('watch_api_reader_dsn',{item['source'] for item in display['services']['operator']['secrets']})
+        self.assertNotIn('watch_api_reader_dsn',{item['source'] for item in display['services']['calculation']['secrets']})
+        for service in ('operator','calculation'):
+            self.assertIn('app_dsn',{item['source'] for item in display['services'][service]['secrets']})
+        for field in ('environment','secrets'):
+            bad = deepcopy(display)
+            bad['services']['api'][field] = base['services']['api'][field]
+            with self.assertRaises(DeploymentHold):
+                p.validate_profile(base,bad,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
         self.assertFalse(display['services']['api']['environment'].get('POLYMARKET_SECRET_KEY_FILE'))
         self.assertEqual(display['services']['operator']['environment']['TRADEBOT_PP_ROBINHOOD_REFERENCE'],'1')
         for service in ('api','calculation','lifecycle'):

@@ -1,3 +1,13 @@
+## November 28 — Heartbeat availability regression, offline
+
+- [x] Limit temporary heartbeat retry to HTTP 503 from authenticated collector
+  status. Retry fresh binding/status/worker/owner proof without extending the
+  old deadline, using stale status, minting a permit or restarting an expired
+  or transferred owner. Authentication, renewal and drift refusals stay fatal.
+- [x] Offline controller tests cover recovery, persistent unavailability and
+  expiry, explicit OFF, owner transfer and binding/worker/origin drift.
+- [ ] Exact CI and Benchmark live acceptance after release-owner review.
+
 ## November 27 — Sustained collection and archive capacity in progress
 
 The next authorized checkpoint enables sustained three-source Benchmark

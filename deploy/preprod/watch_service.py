@@ -127,7 +127,15 @@ def tick():
     boot = BOOT.read_text().strip()
     budget = Budget(60)
     reader = token()
-    status = _operator(reader, '/collector/status')
+    try:
+        status = _operator(reader, '/collector/status')
+    except HTTPError as error:
+        if error.code != 503:
+            raise
+        # This authenticated read could not establish current state. Keep the
+        # original lease deadline and retry a fresh complete proof next tick.
+        # No renewal, admission or cached status is authorized by this result.
+        return {'state': 'unavailable', 'reason': 'watch_status_unavailable'}
     if status.get('origin_id') == DISPLAY_ORIGIN and status.get('watch_explicit_off') is True:
         disarm()
         return {'state': 'off'}

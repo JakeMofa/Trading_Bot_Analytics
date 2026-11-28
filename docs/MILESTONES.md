@@ -6,6 +6,12 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 72-hour retirement and combined-release A/B acceptance still need proof.
 [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
 
+## November 27 — Ignore local environment file copies
+
+Git ignores space-suffixed environment copies such as `.env copy`. Filename
+checks confirmed coverage at the repository root and in nested paths, and
+confirmed that `.env.example` remains trackable in both locations.
+
 ## November 27 — Robinhood and three-feed live acceptance passed
 
 Benchmark .6 displayed Coinbase, Polymarket US and Robinhood simultaneously.
@@ -48,6 +54,14 @@ drained to verified ACKs. Sustained arrivals exceeded archive throughput,
 so the measured backlog remains a follow-up. Benchmark .6 subsequently
 verified the Robinhood display and archived observations.
 [Evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
+
+### Local history admission regression passed
+
+Overlapping requests to one reader are rejected, cancellation holds that
+reader's slot until its worker exits, and market and prediction readers can
+run concurrently. Local PostgreSQL 17 page-read evidence and the outstanding
+hosted concurrency measurement are in the
+[master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#local-history-admission-regression).
 
 ## November 27 — Three BTC feeds on Benchmark
 

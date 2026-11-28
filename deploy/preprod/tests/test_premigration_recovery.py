@@ -157,17 +157,19 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(self.budget.calls,[])
 
     def test_ack_proof_is_bounded_and_includes_ack_timestamp(self):
-        with patch.object(self.actions,'_sql',return_value='["generated-pp","pp-live-pp"]'), \
-             patch.object(self.actions,'_origin_digest',side_effect=lambda _,origin: ACK_STATE[origin]) as digests:
-            self.assertEqual(self.actions._ack_state(self.budget),ACK_STATE)
-            self.assertEqual([x.args[1] for x in digests.call_args_list],list(ACK_STATE))
-        with patch.object(self.actions,'_sql',return_value='["generated-pp"]'), \
-             patch.object(self.actions,'_origin_digest',return_value={'count':10001,'digest':'a'*32}):
-            with self.assertRaisesRegex(c.DeploymentHold,'outbox_inventory_invalid'):
-                self.actions._ack_state(self.budget)
-        with patch.object(self.actions,'_sql',return_value='["third-origin"]'):
-            with self.assertRaisesRegex(c.DeploymentHold,'unexpected_outbox_origin'):
-                self.actions._ack_state(self.budget)
+        from contextlib import nullcontext
+        from deploy.preprod.tests.test_outbox_cursor_protocol import ScriptedSnapshot
+        snap=ScriptedSnapshot([['generated-pp',1,1]],[['generated-pp',0,1,1,1]],[[1,0,'a'*64]])
+        with patch.object(self.actions,'_outbox_channel',return_value=nullcontext(snap)) as channel:
+            self.assertEqual(self.actions._ack_state(self.budget)['generated-pp']['count'],1)
+            channel.assert_called_once_with(self.budget)
+        query=next(q for q in snap.statements if q.startswith('WITH hashes '))
+        self.assertIn('to_jsonb(o)::text',query)
+        self.assertIn('acknowledged_at IS NULL',query)
+        for invalid in ([['generated-pp',1,10001]], [['third-origin',1,1]]):
+            with patch.object(self.actions,'_outbox_channel',return_value=nullcontext(ScriptedSnapshot(invalid,[],[]))):
+                with self.assertRaisesRegex(c.DeploymentHold,'outbox_inventory_invalid|unexpected_outbox_origin'):
+                    self.actions._ack_state(self.budget)
 
     def test_marker_or_attempted_oneoff_forbids_prior_restore(self):
         marker=self.context.staging/'migration-oneoff-attempted.json'

@@ -117,6 +117,18 @@ is not part of this repair; fresh admission must be qualified separately.
 
 ## 4. Prepare a safe Benchmark adoption
 
+The 12:05–12:09 UTC complete read-only inventory from #265 passed preservation
+but took 271.275 seconds. Its actual timing report projects 904.378 seconds of
+inventory work alone in normal CD and 542.549 seconds for two recovery scans.
+Both exceed the unchanged 600/180-second budgets. Do not dispatch CD from this
+result. Raw metadata comparison round trips dominate, followed by repeated
+per-origin descriptor scans and full-row outbox hashing. Qualify a single
+native ordered metadata cursor and one complete all-origin outbox descriptor
+snapshot, keep exact original full-row/page digests and consistent read-only
+snapshots, and re-measure before adoption. This is a maintenance-cost finding,
+not evidence that those scans caused the earlier ownership deadline.
+[Measured costs and unchanged writer state](evidence/benchmark-full-inventory-cost-2026-11-28.json).
+
 The complete-inventory follow-up at 11:25 UTC found that the existing
 `raw.events` identity-hash sort also exceeds the unchanged 64 MiB temporary
 file cap at the current size. PostgreSQL's bounded log confirms a temp-file

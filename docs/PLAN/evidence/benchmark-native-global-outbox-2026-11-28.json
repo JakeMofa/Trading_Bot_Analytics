@@ -1,0 +1,100 @@
+{
+  "scope": "Native PostgreSQL 17, generated envelopes with production per-origin counts; no VM timings or live data.",
+  "rows": 560492,
+  "origins": 15,
+  "pages": 562,
+  "snapshot_seconds": 2.0412842920050025,
+  "max_page_response_ms": 16.641084002912976,
+  "largest_response_bytes": 1011,
+  "metadata_descriptor_plan": [
+    [
+      "Seq Scan",
+      1
+    ]
+  ],
+  "descriptor_actual_exec_ms": 96.711,
+  "descriptor_temp_written_blocks": 0,
+  "full_ordered_primary_key_oracle_equal": true,
+  "reader": "tradebot_reader",
+  "transaction_read_only": true,
+  "work_mem_mib": 2,
+  "temp_file_limit_mib": 64,
+  "per_statement_timeout_s": 19,
+  "proof": {
+    "generated-pp": {
+      "count": 20677,
+      "pending": 206,
+      "digest": "a94cecd9586c780b7e2f1a1c544c8c27efe5f68929e83d70c1c3919c3034858c"
+    },
+    "pp-live-pp": {
+      "count": 42133,
+      "pending": 422,
+      "digest": "bb75a0ac1339d44ac442816b5be2515f28d115f1ddbce2c177d23dbc9bf888d2"
+    },
+    "pp-live-pp-benchmark-watch": {
+      "count": 235755,
+      "pending": 2357,
+      "digest": "52d2c026eb2bb617f26854f1adbb6c93bdc0a2a76d2af8e7e418fe03b98d4ddd"
+    },
+    "pp-live-pp-boundary-20261124-01": {
+      "count": 14205,
+      "pending": 142,
+      "digest": "4b8c4c34d2c12efe045f8add73e56ca5a0f0b22082c5f5874beca24bff774c16"
+    },
+    "pp-live-pp-display-20261127-01": {
+      "count": 12365,
+      "pending": 124,
+      "digest": "71ec02a52c87a07e0e75156cbdabeca0b969f0b84cbf503c227147611ba75375"
+    },
+    "pp-live-pp-display-20261127-02": {
+      "count": 18842,
+      "pending": 188,
+      "digest": "e624ed4c60b54a4c27beae695d0a722054d422ffab7af083745730b213f06a89"
+    },
+    "pp-live-pp-display-20261127-03": {
+      "count": 2915,
+      "pending": 29,
+      "digest": "d5ebdaa81aaec17b02956eb5d3d366642bfc8ea1efeb8e7f89db319b24fd93ce"
+    },
+    "pp-live-pp-smoke-20261125-01": {
+      "count": 5356,
+      "pending": 54,
+      "digest": "6724edead48eb8d4310ccc2cf5d1d13c634672c6cf5cfb9d90d9d077ecb05469"
+    },
+    "pp-live-pp-trial-20261119-01": {
+      "count": 5651,
+      "pending": 56,
+      "digest": "ff53433ea5750682bb71e0cd48b6830a70e062441ac40c131bfe945c958d5fda"
+    },
+    "pp-live-pp-trial-20261119-02": {
+      "count": 20362,
+      "pending": 204,
+      "digest": "f53579697e9931036a74bcf947e94764f765de578b7e30775906f2daef18b37d"
+    },
+    "pp-live-pp-trial-20261119-03": {
+      "count": 39690,
+      "pending": 397,
+      "digest": "839cdab09c4afeceb04165bc5d3c0693bf4798614684150e825fc5bf8998c6cb"
+    },
+    "pp-live-pp-trial-20261119-04": {
+      "count": 705,
+      "pending": 7,
+      "digest": "f0dfccbe13e1727ed208554d273e17444b54bd902e5a4042771e1ae6126c18ea"
+    },
+    "pp-live-pp-trial-20261119-05": {
+      "count": 32021,
+      "pending": 320,
+      "digest": "c4f1950f6ce0bad3348ea9b2ad4d5f5a4ca71094299f465fb429776c0c9389fd"
+    },
+    "pp-live-pp-trial-20261119-06": {
+      "count": 53925,
+      "pending": 540,
+      "digest": "070b814abe92a8566a31a292f92a4d07f33cd63be757e1db66a2736ce9dba36d"
+    },
+    "pp-live-pp-trial-20261119-07": {
+      "count": 55890,
+      "pending": 558,
+      "digest": "22234ce9653a78259e236b8846705c524b61feae00c61edd77d6a9b8ef3809f7"
+    }
+  }
+}

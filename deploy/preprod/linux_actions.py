@@ -25,7 +25,7 @@ import urllib.request
 import uuid
 
 from controller import CHECKS, DeploymentHold, HostBinding, require
-from outbox_inventory import RELAY, origin_digest, psql_channel
+from outbox_inventory import RELAY, outbox_digests, psql_channel
 from metadata_inventory import metadata_digest
 
 PROJECT='tradebot-pp-foundation'
@@ -836,21 +836,9 @@ class LinuxActions:
                         WATCH_DIAGNOSTIC_LOCK,'true'],env=env,timeout=22)
         return psql_channel(args,budget,env,verify_cleanup)
 
-    def _origin_digest(self, budget, origin):
-        with self._outbox_channel(budget) as exchange:
-            return origin_digest(exchange, origin)
-
     def _outbox_evidence(self,budget):
-        groups={}
-        for origin in self._approved_outbox_origins(budget):
-            row=self._origin_digest(budget,origin)
-            require(isinstance(row,dict) and type(row.get('count')) is int
-                    and row['count']>0 and type(row.get('pending')) is int
-                    and 0<=row['pending']<=min(row['count'],10000)
-                    and bool(re.fullmatch('[0-9a-f]{64}',row.get('digest',''))),
-                    'outbox_inventory_invalid')
-            groups[origin]=row
-        return groups
+        with self._outbox_channel(budget) as exchange:
+            return outbox_digests(exchange,OUTBOX_ORIGINS)
 
     def _capture_prior_runtime(self,context,budget):
         """Only the already-running generated/off containers may be restored."""

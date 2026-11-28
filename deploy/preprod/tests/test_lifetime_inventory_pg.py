@@ -1,4 +1,5 @@
 """Execute the release SQL against a disposable PostgreSQL temp relation."""
+from contextlib import contextmanager
 import json
 import os
 from pathlib import Path
@@ -8,10 +9,11 @@ import unittest
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from controller import DeploymentHold
 from linux_actions import LinuxActions
-from outbox_inventory import origin_digest
+from outbox_inventory import outbox_digests
 
 
-def fixture_digest(db, relation, origin, queries):
+@contextmanager
+def fixture_channel(db, relation, queries):
     def exchange(statement):
         query = statement.replace('ops.outbox', relation)
         queries.append(query)
@@ -24,7 +26,11 @@ def fixture_digest(db, relation, origin, queries):
                 query = 'CLOSE outbox_pages'
         cursor = db.execute(query)
         return [row[0] for row in cursor.fetchall()] if cursor.description else []
-    return origin_digest(exchange, origin)
+    try:
+        yield exchange
+    finally:
+        if db.autocommit:
+            db.execute("ROLLBACK")  # Close any incomplete read-only snapshot on rejection.
 
 
 
@@ -39,8 +45,8 @@ class LifetimeInventoryTests(unittest.TestCase):
                        n::text AS payload, n::text AS event_id, 'feed' AS source, 'gen' AS generation_id, 'hash' AS content_hash, CASE WHEN n<=10100 THEN now() END AS acknowledged_at
                        FROM generate_series(1,10103) n""")
             class FixtureActions(LinuxActions):
-                def _origin_digest(self, budget, origin):
-                    return fixture_digest(db,'pg_temp.inventory_fixture',origin,[])
+                def _outbox_channel(self, budget):
+                    return fixture_channel(db,'pg_temp.inventory_fixture',[])
 
                 def _metadata_digest(self,budget,table,identity,staging):
                     from controller import Budget
@@ -108,8 +114,8 @@ ORIGINAL_DIGEST = """SELECT json_build_object('count',sum(n),'pending',sum(pendi
 
 
 class OutboxFixture(LinuxActions):
-    def _origin_digest(self, budget, origin):
-        return fixture_digest(self.db,self.relation,origin,self.queries)
+    def _outbox_channel(self, budget):
+        return fixture_channel(self.db,self.relation,self.queries)
 
     def __init__(self, connection, relation='inventory_fixture'):
         super().__init__()
@@ -128,7 +134,7 @@ class BoundedOutboxTests(unittest.TestCase):
     def test_sparse_extreme_ids_and_origins_match_old_digest(self):
         import psycopg
         from linux_actions import OUTBOX_ORIGINS
-        origins = sorted(OUTBOX_ORIGINS)[:7]
+        origins = sorted(OUTBOX_ORIGINS)
         with psycopg.connect(os.environ['TRADEBOT_TEST_HISTORY_V2_DSN']) as db:
             db.execute("""CREATE TEMP TABLE inventory_fixture(
                 id bigint PRIMARY KEY, origin_id text, payload jsonb, acknowledged_at timestamptz)""")
@@ -222,7 +228,7 @@ class BoundedOutboxTests(unittest.TestCase):
                 writer.execute(f"""CREATE TABLE {schema}.entries(
                     id bigint PRIMARY KEY, origin_id text, payload text, acknowledged_at timestamptz)""")
                 writer.execute(f"""INSERT INTO {schema}.entries VALUES
-                    (1,'pp-live-pp','one',NULL),(4096,'pp-live-pp','two',NULL)""")
+                    (1,'generated-pp','one',NULL),(4096,'pp-live-pp','two',NULL)""")
                 writer.execute(f"""CREATE FUNCTION {schema}.gate(p text) RETURNS text LANGUAGE plpgsql AS
                     'BEGIN PERFORM pg_advisory_xact_lock({key}); RETURN p; END'""")
                 writer.execute(f"""CREATE VIEW {schema}.observed AS SELECT id,origin_id,
@@ -232,12 +238,7 @@ class BoundedOutboxTests(unittest.TestCase):
                 with concurrent.futures.ThreadPoolExecutor(1) as pool:
                     writer.execute("SELECT pg_advisory_lock(%s)",(key,))
                     try:
-                        class SelectedOrigin(OutboxFixture):
-                            # The production origin catalog is a separate statement.
-                            # Block in the digest statement itself.
-                            def _approved_outbox_origins(self, budget):
-                                return ['pp-live-pp']
-                        actions = SelectedOrigin(reader, schema+'.observed')
+                        actions = OutboxFixture(reader, schema+'.observed')
                         future = pool.submit(actions._ack_state,None)
                         deadline = time.monotonic()+5
                         while not writer.execute("""SELECT EXISTS(SELECT 1 FROM pg_locks
@@ -247,11 +248,13 @@ class BoundedOutboxTests(unittest.TestCase):
                                 self.fail('inventory did not reach the fixture barrier')
                             time.sleep(0.01)
                         writer.execute(f"UPDATE {schema}.entries SET acknowledged_at=now(),payload='new' WHERE id=4096")
+                        writer.execute(f"INSERT INTO {schema}.entries VALUES(8192,'unapproved','late',NULL)")
                     finally:
                         writer.execute("SELECT pg_advisory_unlock(%s)",(key,))
                     self.assertEqual(future.result(timeout=5),expected)
                     self.assertEqual(sum('WITH hashes AS MATERIALIZED' in q for q in actions.queries),2)
-                self.assertNotEqual(OutboxFixture(writer,schema+'.entries')._ack_state(None),expected)
+                with self.assertRaisesRegex(DeploymentHold,'unexpected_outbox_origin'):
+                    OutboxFixture(writer,schema+'.entries')._ack_state(None)
             finally:
                 writer.execute(f'DROP SCHEMA {schema} CASCADE')
 
@@ -319,12 +322,18 @@ class ContainerOutboxChannelTests(unittest.TestCase):
             try:
                 admin.execute(f'CREATE SCHEMA {schema}')
                 admin.execute(f'CREATE TABLE {schema}.fixture(id bigint PRIMARY KEY,origin_id text,payload jsonb,acknowledged_at timestamptz)')
-                admin.execute(f"INSERT INTO {schema}.fixture SELECT n,'pp-live-pp',jsonb_build_object('value',n),NULL FROM generate_series(1,2200) n")
+                admin.execute(f"""INSERT INTO {schema}.fixture SELECT n,
+                    CASE WHEN n%2=0 THEN 'pp-live-pp' ELSE 'generated-pp' END,
+                    jsonb_build_object('value',n),NULL FROM generate_series(1,2200) n""")
                 admin.execute(f'GRANT USAGE ON SCHEMA {schema} TO tradebot_reader')
                 admin.execute(f'GRANT SELECT ON {schema}.fixture TO tradebot_reader')
-                expected=admin.execute(ORIGINAL_DIGEST.replace('inventory_fixture',schema+'.fixture'),('pp-live-pp',)).fetchone()[0]
+                origins={'pp-live-pp','generated-pp'}
+                expected={origin:admin.execute(ORIGINAL_DIGEST.replace('inventory_fixture',schema+'.fixture'),
+                                               (origin,)).fetchone()[0] for origin in origins}
                 with actions._outbox_channel(Budget(50)) as exchange:
-                    result=origin_digest(lambda q:exchange(q.replace('ops.outbox',schema+'.fixture')),'pp-live-pp')
+                    self.assertEqual(exchange("SELECT json_build_array(session_user,current_setting('transaction_read_only'));"),
+                                     [['tradebot_reader','on']])
+                    result=outbox_digests(lambda q:exchange(q.replace('ops.outbox',schema+'.fixture')),origins)
                 self.assertEqual(result,expected)
             finally:
                 admin.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')

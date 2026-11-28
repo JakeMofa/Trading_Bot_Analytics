@@ -246,3 +246,27 @@ the real VM's data, Docker pipe timing or deployment-feasibility result.
 [Native metadata evidence](evidence/benchmark-metadata-437064-native-parity-2026-11-28.json).
 Exact Linux CI and a distinct source-pinned full-inventory probe remain
 required; the first failed probe remains preserved unchanged.
+
+## Complete-inventory cost on the actual VM
+
+Merged #265's 12:05–12:09 UTC read-only pass completed the full inventory in
+271.275 seconds with current A unchanged. Every immutable prior-origin outbox
+proof matched. The native collation checks above took 160.958 seconds across
+11,090 exchanges; 9,300 of those consumed 135.420 seconds for raw events alone.
+The 15 outbox origins took 90.554 seconds, including 35.001 seconds discovering
+their pages with separate origin scans and 45.889 seconds hashing full rows.
+These are actual Docker/SQL response and wall times, unlike the generated
+local fixture. No service or installed controller changed.
+
+Preservation success does not qualify adoption. Normal CD's repeated inventory
+work projects to 904.378 seconds against its 600-second budget; two recovery
+inventories alone project to 542.549 seconds against 180 seconds. The next
+candidate removes those repeated operations: a single native text-ordered
+metadata cursor, with JSON projected above its sort, and one complete
+all-origin outbox page-descriptor snapshot. Preserve duplicate rows, actual
+database collation, original per-1,024-row/page hash folds and complete snapshot
+counts/EOF. Full-row outbox hashing and reader lifetime remain unchanged.
+Keep existing roles and statement/temp/response/global limits; a native sort
+that exceeds them must refuse, with no expensive automatic fallback or claim
+of arbitrary 72-hour capacity. Re-measure full cost before adopting.
+[Actual complete pass and budget projections](evidence/benchmark-full-inventory-cost-2026-11-28.json).

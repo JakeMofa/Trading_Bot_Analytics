@@ -449,7 +449,8 @@ class ActionTests(unittest.TestCase):
                 'pp-live-pp':{'count':5268,'pending':5268,'digest':'b'*64}}
         with patch.object(self.actions,'_sql',side_effect=sql), \
              patch.object(self.actions,'_reader_sql',side_effect=sql), \
-             patch.object(self.actions,'_origin_digest',side_effect=lambda _,origin: proofs[origin]) as digests:
+             patch.object(self.actions,'_outbox_channel'), \
+             patch('linux_actions.outbox_digests',return_value=proofs) as digests:
             original=self.actions._inventory(self.budget)
             self.actions.before_migration=original
             self.actions.fence_started=True
@@ -461,7 +462,8 @@ class ActionTests(unittest.TestCase):
             'pp-live-pp':{'count':5268,'pending':5268,'digest':'b'*64}})
         self.assertEqual(recovery['strategy'],'stop_candidate_keep_database')
         self.assertTrue(recovery['new_acknowledgements_preserved'])
-        self.assertEqual([call.args[1] for call in digests.call_args_list], list(proofs)*3)
+        self.assertEqual(digests.call_count,3)
+        self.assertTrue(all(set(proofs).issubset(call.args[1]) for call in digests.call_args_list))
         self.assertFalse(any('FROM ops.outbox LIMIT 10001' in q for q in calls))
         for query in calls:
             self.assertTrue(query.startswith(('SELECT ', 'WITH ranges AS MATERIALIZED')))
@@ -512,8 +514,14 @@ class ActionTests(unittest.TestCase):
                     if "WHERE origin_id='generated-pp'" in query:
                         return json.dumps({'count':count,'pending':count,'digest':'a'*64})
                     raise AssertionError('unexpected inventory query')
+                from contextlib import nullcontext
+                from deploy.preprod.tests.test_outbox_cursor_protocol import ScriptedSnapshot
+                header=[[origin,10,count] for origin in origins]
+                pages=[[origin,n,n*1024,n*1024+1023,min(1024,count-n*1024)] for origin in origins for n in range(10)]
+                hashes=[[desc[-1],desc[-1],'a'*64] for desc in pages]
+                snapshot=ScriptedSnapshot(header,pages,hashes)
                 with patch.object(self.actions,'_sql',side_effect=sql), \
-                     patch.object(self.actions,'_origin_digest',return_value={'count':count,'pending':count,'digest':'a'*64}):
+                     patch.object(self.actions,'_outbox_channel',return_value=nullcontext(snapshot)):
                     with self.assertRaisesRegex(c.DeploymentHold,
                                                 'outbox_inventory_invalid|unexpected_outbox_origin'):
                         self.actions._inventory(self.budget)

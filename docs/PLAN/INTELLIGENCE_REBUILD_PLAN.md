@@ -104,6 +104,45 @@ resource checks passed. Linux CI, actual complete-inventory timing, deployment
 and sustained collection remain pending. No service was restarted to obtain
 these results.
 
+At 12:05–12:09 UTC, the complete read-only inventory from merged #265
+(`6a24faa`) completed in **271.275 seconds**. It covered all 11 table entries
+and 15 outbox origins; all 13 immutable prior-origin outbox proofs matched.
+Current A remained OFF at epoch 9, with 235,755 verified ACKs, no pending rows
+and the same high-water ID. This is preservation evidence, **not** deployment
+qualification: normal CD's three inventories plus one extra outbox pass
+project to 904.378 seconds, exceeding 600 seconds; two recovery inventories
+alone project to 542.549 seconds, exceeding 180 seconds.
+
+The measured costs select the next repair: raw-hash native-order checks took
+135.420 seconds across 9,300 exchanges; all metadata order checks took
+160.958 seconds. Fifteen separate outbox descriptor scans took 35.001 seconds,
+and full-row page hashing took 45.889 seconds. Qualify one native ordered
+metadata cursor and one complete all-origin descriptor snapshot, preserving
+the original hash folds, exact counts, read-only snapshots and physical
+reader cleanup. No query, role, temporary-file or controller limit is raised.
+Re-measure the complete inventory before publication or deployment. No
+collector restart or live recovery is claimed by the merged code.
+[Actual full-inventory cost evidence](evidence/benchmark-full-inventory-cost-2026-11-28.json).
+
+The smaller metadata candidate now streams native text order directly, with
+JSON framing above a single sort. An independent generated PostgreSQL 17
+fixture matched the original digest at 437,064 rows in 4.363 seconds; its
+sort used 30,816 KiB on disk under the unchanged 64 MiB limit. Five native
+ordering/snapshot cases include ICU numeric collation; twelve cursor and
+deadline/resource cases passed. This is offline feasibility only, not VM
+timing, a larger-volume guarantee or live acceptance.
+[Native ordered-cursor evidence](evidence/benchmark-native-metadata-stream-2026-11-28.json).
+
+The all-origin outbox candidate preserves the original full-row page digests
+in one physical read-only snapshot. Native tests matched every approved origin,
+including signed-ID extremes, ACK mutations and concurrent changes across
+origins. A generated 560,492-row/15-origin fixture used one descriptor scan
+and matched all original proofs in 2.041 seconds. Local combined controller
+checks passed 360 cases (18 environment skips), and CI controls passed 58.
+Linux container qualification and an actual source-pinned VM cost measurement
+remain required; generated payload/ID spacing differs from Benchmark.
+[Native all-origin evidence](evidence/benchmark-native-global-outbox-2026-11-28.json).
+
 No deployment, re-arm, deletion, permission change or production action was
 performed for this incident check. Existing archive records remain intact;
 this does not prove all source receipts during a failure were persisted.

@@ -50,3 +50,27 @@ headroom and the backlog throughout long runs.
 Full CD and profile transitions reject an armed watch before fencing a writer.
 Dashboard-only release and collector handoff need separately qualified update
 paths. An operator must explicitly stop the collector before today's full CD.
+
+### Dashboard-only replacement while collecting
+
+Publish the candidate through the existing release workflow. Download its
+manifest, checksums and source package, and verify the exact successful CI
+commit, source branch, package digest and release identity. Install
+`api_component_update.py` from that same reviewed source on the pinned
+Benchmark host as root-owned mode 0500 at
+`/usr/local/lib/tradebot-pp/benchmark-api-update.py`. Its imports come from
+the installed collector controller. The privileged operator runs:
+
+```sh
+sudo python3 -I /usr/local/lib/tradebot-pp/benchmark-api-update.py build --source "$source_sha" --artifact "$artifact_sha256" < "$release_tar_gz"
+sudo python3 -I /usr/local/lib/tradebot-pp/benchmark-api-update.py apply --artifact "$artifact_sha256"
+```
+
+Build verifies the archive digest, Git identity, every migration, Dockerfile and
+requirements against the running release. Apply checks the active lease and
+migration ledger, then recreates the API with the running Compose configuration.
+An interrupted replacement has a host-owned rollback watchdog. A successful
+receipt records API container identities, protected service PIDs and start times,
+writer session and epoch, and outbox progress. Individual browsers reconnect
+to the existing event stream. A source-code or database-schema change that
+requires a new collector still follows its own release qualification.

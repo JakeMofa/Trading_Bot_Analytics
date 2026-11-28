@@ -6,6 +6,15 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 72-hour retirement and combined-release A/B acceptance still need proof.
 [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
 
+### Dashboard-only delivery
+
+The qualified operator entrypoint builds a separate release image, checks
+migration, host and writer identity, and replaces only the API service.
+Disposable tests passed migration/build drift rejection and isolated API
+rollback both before and after HTTP readiness. Live replacement, collector
+continuity and browser reconnection remain to be measured on Benchmark.
+[Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md#dashboard-only-replacement-while-collecting).
+
 ## November 27 — Ignore local environment file copies
 
 Git ignores space-suffixed environment copies such as `.env copy`. Filename

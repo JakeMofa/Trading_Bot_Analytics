@@ -6,6 +6,11 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 72-hour retirement and combined-release A/B acceptance still need proof.
 [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
 
+The [delivery checklist](PLAN/INTELLIGENCE_REBUILD_PLAN.md#delivery-checklist)
+separates merged implementation from live acceptance. Exact `.7` source
+`7bff42a` passed CI; Benchmark CD 46110209884 is in progress. The sustained
+watch remains OFF pending admission. API-only deployment PR #253 is separate.
+
 ## November 27 — Ignore local environment file copies
 
 Git ignores space-suffixed environment copies such as `.env copy`. Filename

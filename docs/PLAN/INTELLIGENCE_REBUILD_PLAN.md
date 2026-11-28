@@ -19,6 +19,33 @@ PostgreSQL/Supabase verification, the archive batching fix and preparation
 for 72-hour A/B rotation. The previous .6 run is OFF, fully archived and
 preserved. Start from its measured results below.
 
+### Delivery checklist
+
+Checked implementation items mean the scoped code and tests merged. Live
+acceptance remains separate. At source `7bff42a`, exact CI passed and
+[Benchmark .7 CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46110209884)
+is running; continuous collection has not yet been admitted.
+
+- [x] Three-source display, PostgreSQL persistence and authenticated Supabase
+  readback passed in the bounded .6 run below.
+- [x] Exact-byte archive packing and durable ACK counters merged (#245).
+- [x] Feed controls, independent recovery and renewable watch supervision
+  merged (#247, #248, #251).
+- [x] Bounded telemetry queries and host-resource sender merged (#246).
+- [x] Offline resumable long-window proof tests merged (#252).
+- [ ] Complete .7 deployment, preserve retained generations and admit the
+  sustained three-feed watch.
+- [ ] Measure one uninterrupted full market: source progress, exact saved and
+  hosted identities, arrivals versus ACKs and oldest pending age.
+- [ ] Verify combined Grafana panels, scrape/sender health and alert coverage.
+- [ ] Merge and accept the separate compatible API-only update (#253), showing
+  collector identity and progress survive an actual API container replacement.
+- [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
+  including hosted version guarantees and history after local payload removal.
+
+Collector-code deployment handoff and production promotion remain later gates.
+The short A/B tests and offline proof do not grant long-window deletion authority.
+
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |
 | Benchmark runtime | Acceptance agent | Qualify a continuous profile, enable the three feeds, preserve retained generations and show actual ON state |

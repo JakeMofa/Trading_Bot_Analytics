@@ -133,6 +133,10 @@ class LiveState:
             market, price, quote, feature, saved = deepcopy((self._market, self._price, self._quote, self._snapshot, self._forecast))
             packet = self._display
             hydrated_quote_id = (quote or {}).get('event_id')
+            reference = deepcopy((packet or {}).get('reference'))
+            if reference:
+                age = (now - timestamp(reference['source_time'])).total_seconds()
+                reference['status'] = 'fresh' if 0 <= age <= 10 else 'stale'
             counters = None
             if packet:
                 live = packet['market']
@@ -200,7 +204,7 @@ class LiveState:
                             'snapshot_as_of': feature['as_of'], 'source': 'live_state_ram'}
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
-                    'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
+                    'polymarket_reference': reference, 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'feature_snapshot': feature, 'forecast': saved,

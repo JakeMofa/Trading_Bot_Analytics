@@ -10,6 +10,22 @@ archive. [Matched timing sample](PLAN/evidence/pp-quote-display-local-2026-11-27
 archive latency is established. Next gate and subsequent history work are in
 the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence).
 
+### November 27 — Polymarket reference and book quantities
+
+The official asset-prices endpoint returned BTC/USD OHLC and publication
+counts in one-second buckets. The Benchmark reader preserves each real
+publication's bucket timestamp, OHLC, tick count and observation time, and
+offers a distinct reference value on the dashboard event stream. Existing
+Coinbase feature inputs remain separate. A native PostgreSQL 17 test stored
+the reference once and verified its local hash and acknowledged structured
+archive envelope using the fixture transport. Hosted verification remains
+pending. [Implementation](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/227)
+
+For a previously archived live-origin snapshot, Benchmark PostgreSQL and
+Supabase returned identical feature values, quality, evidence and linked IDs
+and hashes. The original Gaussian baseline replayed to 0.47708578418299974 on
+each copy, matching the saved prediction. [Read-only replay evidence](PLAN/evidence/pp-benchmark-hosted-baseline-replay-2026-11-27.json).
+
 ## November 27, 2026 CST — Same-socket BTC rollover observed on 4 GB PP Benchmark
 
 At the 3:45 p.m. rollover, one direct WebSocket was already streaming the

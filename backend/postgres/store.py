@@ -198,7 +198,12 @@ class Store:
                       WHERE EXCLUDED.source_epoch > core.current_prices.source_epoch
                          OR (EXCLUDED.source_epoch = core.current_prices.source_epoch AND EXCLUDED.received_at > core.current_prices.received_at)
                       RETURNING *''', [Jsonb(value) if isinstance(value, dict) else value for value in row.values()]).fetchone()
-                    if inserted:
+                    if event['provenance'].get('feed') == 'polymarket_us_asset_prices':
+                        # Late published buckets still belong in structured history even
+                        # when a newer observation already owns the local latest-price row.
+                        evidence = self._evidence_record(record)
+                        self._outbox(db, 'core.protected_evidence', evidence, ('origin_id','evidence_id'), generation_id)
+                    elif inserted:
                         self._outbox(db, 'core.current_prices', inserted, ('origin_id','source','symbol'), generation_id)
                 elif event['kind'] == 'quote' and event['provenance'].get('feed') == 'polymarket_us_websocket':
                     evidence = self._evidence_record(record)

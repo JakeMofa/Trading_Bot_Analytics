@@ -191,6 +191,30 @@ class InitialSealNative(unittest.TestCase):
                 'SELECT * FROM ops.outbox ORDER BY id',
                 'SELECT * FROM ops.dedup ORDER BY origin_id,source,event_id')]
 
+    def test_reference_close_archives_independently_of_coinbase(self):
+        from postgres.active_structured import ActiveStructuredWorker
+        from postgres.reference_prices import BUCKET, published_buckets
+        at = datetime.now(timezone.utc)
+        second = int(at.timestamp()) - 2
+        series = {'asset': {'assetClass': 'ASSET_CLASS_CRYPTO', 'symbol': 'btc'},
+                  'currency': 'USD', 'bucket': BUCKET, 'candles': [
+                      {'timestamp': second, 'open': '60000.00', 'high': '60000.42',
+                       'low': '60000.00', 'close': '60000.42', 'tickCount': 60}]}
+        event, = published_buckets({'series': [series]}, second, second, at.isoformat())
+        self.fixture_on()
+        committed = self.store.ingest(event)
+        self.assertTrue(self.store.ingest(event)['duplicate'])
+        self.repo.disable_collector(TRIAL_ORIGIN)
+        self.assertEqual(self.store.current_price()['source'], 'coinbase')
+        result = ActiveStructuredWorker(self.repo, self.raw, origin_id=TRIAL_ORIGIN).cycle(self.anchor)
+        self.assertEqual(result['acknowledged'], 1)
+        with self.admin() as db:
+            row = db.execute("""SELECT content_hash,payload FROM ops.outbox WHERE origin_id=%s
+                AND entity_type='core.protected_evidence' AND payload->>'event_id'=%s
+                AND acknowledged_at IS NOT NULL""", (TRIAL_ORIGIN,event['event_id'])).fetchone()
+        self.assertEqual(row['content_hash'], committed['content_hash'])
+        self.assertEqual(row['payload']['payload']['data']['close'], '60000.42')
+
     def test_display_before_commit_and_verified_quote_ack(self):
         import asyncio
         import json

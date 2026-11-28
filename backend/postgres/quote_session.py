@@ -17,6 +17,7 @@ from .live_sources import MAX_RESPONSE_BYTES, discover_polymarket_15m
 from .live_ingest import _pause_or_stop, _step, POLYMARKET_DISCOVERY_UNAVAILABLE
 from .live_diagnostics import LiveDiagnostic
 from .quote_display import DisplaySender
+from .reference_prices import collect_reference
 
 
 def utc():
@@ -32,6 +33,7 @@ class QuotePipeline:
         self.quote = None
         self.received = self.saved = self.duplicates = 0
         self.started = utc()
+        self.reference = None
         self.last_commit = None
         self.first_event_id = None
 
@@ -41,8 +43,15 @@ class QuotePipeline:
             terms = market['payload']
             self.display.send({'market': {'id': market['market_id'], 'origin': self.store.settings.origin_id,
                                 **{k: terms[k] for k in ('slug', 'start', 'end', 'target_usd', 'status')}},
-                               'quote': self.quote, 'received': self.received, 'saved': self.saved,
+                               'reference': self.reference, 'quote': self.quote, 'received': self.received, 'saved': self.saved,
                                'duplicates': self.duplicates, 'started_at': self.started, 'last_commit': self.last_commit})
+
+    def publish_reference(self, event):
+        if self.reference and timestamp(event['source_time']) < timestamp(self.reference['source_time']):
+            return
+        self.reference = {'price_usd': event['price'], 'source_time': event['source_time'],
+                          'received_at': event['received_at'], 'event_id': event['event_id']}
+        self.broadcast()
 
     async def market(self, event):
         if self.current and self.current['event_id'] == event['event_id']:
@@ -150,6 +159,7 @@ async def run(store, client, stop, interval, clock):
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair))
+            tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference))
             while not stop.is_set():
                 try:
                     market, upcoming = await _step('polymarket_discovery',

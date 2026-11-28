@@ -1,0 +1,284 @@
+{
+  "release": "v0.2.0-pp.benchmark.4",
+  "source_sha": "60bb1c8968e2fe08ff9493b8f84ccf5f877aa674",
+  "benchmark_cd": 46099673144,
+  "origin": "pp-live-pp-display-20261127-02",
+  "market_id": "2980113",
+  "utc_interval": [
+    "2026-11-28T03:00:00Z",
+    "2026-11-28T03:15:00Z"
+  ],
+  "live_dashboard_predictions": {
+    "origin": "pp-live-pp-display-20261127-02",
+    "market": "2980113",
+    "observed_at": "2026-11-28T03:08:05.175874+00:00",
+    "before_on": true,
+    "after_on": true,
+    "count": 86,
+    "limit": 500,
+    "has_next": false,
+    "query": "market_id=2980113&start=2026-11-28T03%3A00%3A00.000Z&end=2026-11-28T03%3A07%3A45.000Z&limit=500&as_of=2026-11-28T03%3A08%3A02.701Z",
+    "content_sha256": "b836347b975476327f665f6f666d645ea4b49cc0809caeaeff50448fc49f2d5f",
+    "probability_present": 85,
+    "abstentions": {
+      "reference_price_not_fresh": 1
+    },
+    "local_coverage": {
+      "complete": true,
+      "reasons": [],
+      "generation_ids": [
+        "e11000be-bcb0-4b45-9c13-dd8f65a99b67"
+      ],
+      "missing_generations": [],
+      "tiers": [
+        "local_postgres"
+      ],
+      "meaning": "saved forecasts in the requested decision window, created by the pinned cutoff"
+    },
+    "local_server_ms": "411.527",
+    "browser": {
+      "submit_to_two_frames_ms": 467.30000000447035,
+      "request_to_response_end_ms": 455.30000000447035,
+      "response_to_visible_frames_ms": 10.399999998509884
+    },
+    "explicit_archive_http_ms": 1880.564,
+    "explicit_archive_server_ms": "1807.285",
+    "explicit_archive_coverage": {
+      "complete": false,
+      "reasons": [
+        "archive_sync_pending"
+      ],
+      "generation_ids": [
+        "e11000be-bcb0-4b45-9c13-dd8f65a99b67"
+      ],
+      "missing_generations": [
+        "e11000be-bcb0-4b45-9c13-dd8f65a99b67"
+      ],
+      "tiers": [
+        "local_postgres",
+        "authenticated_archive"
+      ],
+      "meaning": "saved forecasts in the requested decision window, created by the pinned cutoff"
+    }
+  },
+  "post_drain_matrix": {
+    "origin": "pp-live-pp-display-20261127-02",
+    "market": "2980113",
+    "cutoff": "2026-11-28T03:16:00+00:00",
+    "market_start": "2026-11-28T03:00:00+00:00",
+    "market_end": "2026-11-28T03:15:00+00:00",
+    "authenticated_live_page_after_drain": {
+      "count": 86,
+      "complete_after_drain": true,
+      "content_sha256": "b836347b975476327f665f6f666d645ea4b49cc0809caeaeff50448fc49f2d5f"
+    },
+    "pp_off_vs_hosted_full_projection_sha256": "9bef6c32a1ba846564c4f2af478918f98a8777776b20700e83267773554fab7e",
+    "disposable_assignment_boundary": "2026-11-28T03:07:44.232038+00:00",
+    "market_rows": 1,
+    "feature_rows": 170,
+    "non_abstentions": 165,
+    "verification": "immutable real hosted prediction envelopes and DB projections, synthesized A/B assignments only in disposable local PG17",
+    "measurements": [
+      {
+        "stage": "disposable_A_B_attached",
+        "count": 170,
+        "tiers": {
+          "local_postgres": 170
+        },
+        "ordered_ids_sha256": "ca1db553465b4b63cb53a520b5b295bbf19949dc85bd2d7878b4bf2436fc3b24",
+        "ordered_fields_sha256": "b5ee88fcbb53f065a8c7f2a6bcc0d5bac4ae49f40af0f5f8583faf06051526b3",
+        "coverage": {
+          "complete": true,
+          "reasons": [],
+          "generation_ids": [
+            "1c914f79-96bd-40a1-8c0b-78bb8184c1ad",
+            "e6f36420-eb44-4d1e-943d-0e19874e8f6e"
+          ],
+          "missing_generations": [],
+          "tiers": [
+            "local_postgres"
+          ],
+          "meaning": "saved forecasts in the requested decision window, created by the pinned cutoff"
+        },
+        "next_cursor": false,
+        "seconds": 0.008409
+      },
+      {
+        "stage": "disposable_A_B_plus_actual_hosted_archive",
+        "count": 170,
+        "tiers": {
+          "local_postgres": 170
+        },
+        "ordered_ids_sha256": "ca1db553465b4b63cb53a520b5b295bbf19949dc85bd2d7878b4bf2436fc3b24",
+        "ordered_fields_sha256": "b5ee88fcbb53f065a8c7f2a6bcc0d5bac4ae49f40af0f5f8583faf06051526b3",
+        "coverage": {
+          "complete": true,
+          "reasons": [],
+          "generation_ids": [
+            "1c914f79-96bd-40a1-8c0b-78bb8184c1ad",
+            "e6f36420-eb44-4d1e-943d-0e19874e8f6e"
+          ],
+          "missing_generations": [],
+          "tiers": [
+            "local_postgres",
+            "authenticated_archive"
+          ],
+          "meaning": "saved forecasts in the requested decision window, created by the pinned cutoff"
+        },
+        "next_cursor": false,
+        "seconds": 1.725459
+      },
+      {
+        "stage": "A_from_actual_hosted_B_disposable_local",
+        "count": 170,
+        "tiers": {
+          "local_postgres": 85,
+          "authenticated_archive": 85
+        },
+        "ordered_ids_sha256": "ca1db553465b4b63cb53a520b5b295bbf19949dc85bd2d7878b4bf2436fc3b24",
+        "ordered_fields_sha256": "b5ee88fcbb53f065a8c7f2a6bcc0d5bac4ae49f40af0f5f8583faf06051526b3",
+        "coverage": {
+          "complete": true,
+          "reasons": [],
+          "generation_ids": [
+            "1c914f79-96bd-40a1-8c0b-78bb8184c1ad",
+            "e6f36420-eb44-4d1e-943d-0e19874e8f6e"
+          ],
+          "missing_generations": [],
+          "tiers": [
+            "local_postgres",
+            "authenticated_archive"
+          ],
+          "meaning": "saved forecasts in the requested decision window, created by the pinned cutoff"
+        },
+        "next_cursor": false,
+        "seconds": 1.798854
+      },
+      {
+        "stage": "A_B_both_from_actual_hosted",
+        "count": 170,
+        "tiers": {
+          "authenticated_archive": 170
+        },
+        "ordered_ids_sha256": "ca1db553465b4b63cb53a520b5b295bbf19949dc85bd2d7878b4bf2436fc3b24",
+        "ordered_fields_sha256": "b5ee88fcbb53f065a8c7f2a6bcc0d5bac4ae49f40af0f5f8583faf06051526b3",
+        "coverage": {
+          "complete": true,
+          "reasons": [],
+          "generation_ids": [
+            "1c914f79-96bd-40a1-8c0b-78bb8184c1ad",
+            "e6f36420-eb44-4d1e-943d-0e19874e8f6e"
+          ],
+          "missing_generations": [],
+          "tiers": [
+            "local_postgres",
+            "authenticated_archive"
+          ],
+          "meaning": "saved forecasts in the requested decision window, created by the pinned cutoff"
+        },
+        "next_cursor": false,
+        "seconds": 1.775852
+      }
+    ]
+  },
+  "coinbase_to_model": {
+    "source": "Coinbase BTC-USD Exchange ticker, uniquely matched by full source timestamp on scoped origin/generation",
+    "actual_quarter": "2026-11-28T03:00Z",
+    "distinct_ready_model_tick_times": 167,
+    "uniquely_matched_receipts": 130,
+    "track_commit_timestamp": "off",
+    "live_model_statuses": {
+      "missing_feature_snapshot": 1,
+      "ready": 167,
+      "completed_candles_missing_or_stale": 7
+    },
+    "source_to_receipt_ms": {
+      "n": 130,
+      "median": 11.64,
+      "p95": 79.84,
+      "max": 401.93
+    },
+    "receipt_to_local_precommit_ms": {
+      "n": 130,
+      "median": 8.6,
+      "p95": 401.97,
+      "max": 2186.76
+    },
+    "local_precommit_to_observed_sse_ms": {
+      "n": 130,
+      "median": 458.99,
+      "p95": 1334.2,
+      "max": 2933.28
+    },
+    "source_to_observed_sse_ms": {
+      "n": 130,
+      "median": 546.26,
+      "p95": 1621.11,
+      "max": 3872.63
+    },
+    "browser_receive_to_two_frames_ms": {
+      "n": 130,
+      "median": 10.0,
+      "p95": 24,
+      "max": 35
+    },
+    "meaning": "Matched state samples when saved decision/status changed or every 15s; first-observed sampled SSE is an upper bound on first visibility. Outbox created_at is recorded before commit."
+  },
+  "polymarket_index_to_screen": {
+    "distinct_first_sse_updates": 860,
+    "two_frame_exact_event_time_value_matches": 860,
+    "source_to_collector_receipt_ms": {
+      "n": 860,
+      "median": 1620.91,
+      "p95": 2023.69,
+      "max": 3814.58
+    },
+    "receipt_to_first_observed_sse_emission_ms": {
+      "n": 860,
+      "median": 146.18,
+      "p95": 257.11,
+      "max": 415.81
+    },
+    "sse_emission_intervals_ms": {
+      "n": 859,
+      "median": 1014.29,
+      "p95": 1389.08,
+      "max": 2877.92
+    },
+    "browser_receive_to_two_frames_ms": {
+      "n": 860,
+      "median": 12.0,
+      "p95": 25,
+      "max": 34
+    },
+    "receipt_to_two_frame_render_ms_lower": {
+      "n": 860,
+      "median": 187.5,
+      "p95": 318.37,
+      "max": 481.93
+    },
+    "receipt_to_two_frame_render_ms_upper": {
+      "n": 860,
+      "median": 231.38,
+      "p95": 362.25,
+      "max": 525.8
+    }
+  },
+  "source_comparison": {
+    "international_event": "https://gamma-api.polymarket.com/events/slug/btc-updown-15m-1795834800",
+    "international_reference": "Chainlink BTC/USD TWAP",
+    "orderbook_display": "https://docs.polymarket.com/concepts/prices-orderbook",
+    "us_market": "https://gateway.polymarket.us/v1/markets?slug=cpc-btc-updown-15m-2026-11-28-0300z&limit=100",
+    "us_reference": "CF Benchmarks BRTI, simple average of 60 prices before each boundary, rounded to cents",
+    "us_price_to_beat_usd": "59903.97",
+    "baseline_inputs": "Coinbase BTC-USD latest save; 15 completed one-minute log return volatility; US price to beat and time left"
+  },
+  "methods": [
+    "The live browser used the deployed dashboard over the Benchmark tunnel. DOM timing is two requestAnimationFrame callbacks, not a hardware display timestamp.",
+    "The complete hosted forecast projection was compared to the local PP rows, after durable OFF and 0 pending entries, through the dedicated origin reader. Full rows and credentials are excluded.",
+    "Actual local forecasts, markets and feature rows were copied in memory to disposable PG17, with two evenly split generation assignments. Only that disposable cluster had its projections evicted. All hosted queries used the true single-generation Benchmark archive.",
+    "Read-only query measured a single page per case. The actual result counts were 86 or 170 of a 500-row cap.",
+    "Coinbase source time uniquely identified 130 of 167 sampled ready ticks. Receipt to outbox creation is precommit. Earliest sampled SSE is an upper bound; PostgreSQL commit timestamps were disabled.",
+    "Polymarket index source time marks a 1-second bucket start. No commercial feed provider internal publish stamp was observed."
+  ]
+}

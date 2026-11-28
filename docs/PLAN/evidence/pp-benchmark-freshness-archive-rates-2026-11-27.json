@@ -1,0 +1,47 @@
+{
+  "origin": "pp-live-pp-display-20261127-02",
+  "generation": "e11000be-bcb0-4b45-9c13-dd8f65a99b67",
+  "bound_utc": "2026-11-28T03:00:00+00:00",
+  "from_utc": "2026-11-28T03:00:10.109765+00:00",
+  "to_utc": "2026-11-28T03:14:50.616493+00:00",
+  "samples": 60,
+  "seconds": 880.507,
+  "mean_input_rows_per_s": 18.372,
+  "mean_verified_rows_per_s": 17.08,
+  "pending_first": 14,
+  "pending_last": 1152,
+  "max_pending": 1358,
+  "max_oldest_pending_s": 74.262123,
+  "ack_intervals_below_14": {
+    "total": 4,
+    "pending_grew": 3,
+    "pending_declined": 1,
+    "pending_unchanged": 0
+  },
+  "ack_intervals_at_least_14": {
+    "total": 55,
+    "pending_grew": 37,
+    "pending_declined": 18,
+    "pending_unchanged": 0
+  },
+  "remote_write_200": 60,
+  "min_available_mib": 2650.18359375,
+  "memory_full_stall_pct": {
+    "p50": 0.0033,
+    "p95": 0.0708,
+    "max": 0.1957
+  },
+  "cpu_busy_pct": {
+    "p50": 46.7765,
+    "p95": 55.526,
+    "max": 60.788
+  },
+  "cpu_iowait_pct": {
+    "p50": 0.6605000000000001,
+    "p95": 1.008,
+    "max": 1.343
+  },
+  "swap_in_delta": 0,
+  "swap_out_delta": 0,
+  "oom_delta": 0
+}

@@ -1,3 +1,14 @@
+## November 27 — Freshness and history acceptance completed
+
+Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event
+receipt to API was 6.96 ms, browser 113–157 ms, PostgreSQL commit 21.82 ms
+and verified archive ACK 887.86 ms. All 170 predictions matched hosted
+projections; disposable A/B and hosted-only reads matched. All 18,842 rows
+drained to verified ACKs. Sustained arrivals exceeded archive throughput,
+so the measured backlog remains a follow-up. Robinhood live acceptance
+remains pending.
+[Evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
+
 ## November 27 — Three BTC feeds on Benchmark
 
 Robinhood v1 BTC-USD authentication and price reads passed from the 4 GB VM.

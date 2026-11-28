@@ -53,8 +53,13 @@ not continuous operation since A was first created.
   extraction confirmed the canonical first usable quote has that exact identity.
   Browser timing uses rendering opportunities,
   not optical measurement.
-- [ ] Complete the full 15-minute market and four-hour observation, then
-  24 hours if healthy. The new observation starts at 13:12:39 UTC; its
+- [x] Observe the complete 13:15–13:30 UTC market: 3,430 dashboard SSE
+  updates, all three feeds, no observed OFF/disconnect/wrong-market book;
+  3,335/3,336 distinct WebSocket identities had visible DOM confirmation.
+  One lacked a render confirmation; display coalescing is independent of saving.
+  Successor market 3000662 arrived at +28.921 seconds, API +5.558 ms;
+  its exact saved and immutable archived quote also matched.
+- [ ] Complete four-hour observation, then 24 hours if healthy. The new observation starts at 13:12:39 UTC; its
   four-hour checkpoint is 17:12:39 UTC and 24-hour checkpoint is November 29
   at 13:12:39 UTC. These checkpoints are not collector stop commands.
 - [ ] Qualify current-release three-feed A/B dashboard/history continuity;

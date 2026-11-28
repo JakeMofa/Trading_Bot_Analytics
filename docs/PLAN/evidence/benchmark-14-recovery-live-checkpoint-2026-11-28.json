@@ -881,5 +881,114 @@
       "CPU throttled time and PSI can overlap; neither alone proves stalls or timeout causation.",
       "No conclusion about old09:51 incident,72-hour capacity or live source guarantees."
     ]
+  },
+  "full_market_browser": {
+    "utc_market": "2026-11-28 13:15\u201313:30",
+    "expected_market_id": "2997704",
+    "observation_basis": "Observed SSE and render frames attributed to server publication during [start,end). DOM matching callback ran on the second browser animation frame; deduplication by event identity.",
+    "sse_frames": 3430,
+    "dom_frames": 3381,
+    "per_minute_sse": [
+      227,
+      227,
+      229,
+      228,
+      226,
+      227,
+      229,
+      230,
+      229,
+      229,
+      228,
+      231,
+      229,
+      230,
+      231
+    ],
+    "per_minute_matching_market_dom": [
+      179,
+      227,
+      229,
+      228,
+      226,
+      227,
+      229,
+      229,
+      229,
+      229,
+      228,
+      231,
+      229,
+      230,
+      231
+    ],
+    "sse_interval_first_last_publication": [
+      "2026-11-28T13:15:00.253805+00:00",
+      "2026-11-28T13:29:59.708480+00:00"
+    ],
+    "max_sse_interarrival_ms": 551.7,
+    "market_ws_sse_frames": 3382,
+    "market_matching_dom_frames": 3381,
+    "market_distinct_ws_sse_ids": 3336,
+    "market_distinct_matching_dom_ids": 3335,
+    "initial_publication_before_expected_market": {
+      "None": 47
+    },
+    "off_unknown": 0,
+    "unexpected_origin_or_mode": 0,
+    "cross_market_in_assigned_books": 0,
+    "unexpected_provenance_of_expected_markets_book": {},
+    "errors_reopens_or_overruns_through_successor": {},
+    "provider_receipts": {
+      "cb": {
+        "distinct_ids": 1378,
+        "frames_missing_id": 0
+      },
+      "pm": {
+        "distinct_ids": 888,
+        "frames_missing_id": 0
+      },
+      "rh": {
+        "distinct_ids": 885,
+        "frames_missing_id": 0
+      }
+    },
+    "first_market_receipt": "2026-11-28T13:15:13.365181+00:00",
+    "first_market_event": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+    "next_market_id": "3000662",
+    "next_quote": {
+      "event": "ws-8035de647d1147cd0ec4562600b06428fd487d43e0e853d8c813e97cf2adf139",
+      "receipt": "2026-11-28T13:30:28.921281+00:00",
+      "publication": "2026-11-28T13:30:28.926839+00:00",
+      "slug": "cpc-btc-updown-15m-2026-11-28-1330z",
+      "bid": "0.4800",
+      "ask": "0.4900"
+    },
+    "next_quote_dom_confirmed": true
+  },
+  "successor_quote": {
+    "market": "3000662",
+    "event": "ws-8035de647d1147cd0ec4562600b06428fd487d43e0e853d8c813e97cf2adf139",
+    "receipt": "2026-11-28T13:30:28.921281+00:00",
+    "source_time": "2026-11-28T13:30:28.760788300Z",
+    "slug": "cpc-btc-updown-15m-2026-11-28-1330z",
+    "start": "2026-11-28T13:30:00Z",
+    "bid": "0.4800",
+    "ask": "0.4900",
+    "snapshot_generated_at": "2026-11-28T13:30:28.926839+00:00",
+    "receipt_to_api_snapshot_ms": 5.558,
+    "api_within_5s": true,
+    "actual_dom_matched": true,
+    "sse_to_visible_dom_ms": 13.9,
+    "receipt_to_visible_dom_ms_interval": [
+      -14.607,
+      81.893
+    ],
+    "dom_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 48\u00a2 \u00d7 986.5400 / ask 49\u00a2 \u00d7 154.2900 \u00b7 venue update 0s ago \u00b7 not used in forecast",
+    "content_hash": "3f6915d1516ba6cf42effb6e01bea6cc382fce0c4dc8aee45f7de27e94ad5c35",
+    "outbox_id": 582013,
+    "receipt_to_commit_observation_ms": 12.191,
+    "receipt_to_verified_ack_ms": 1904.63,
+    "canonical_first_confirmed": false
   }
 }

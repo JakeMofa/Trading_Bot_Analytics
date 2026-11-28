@@ -25,8 +25,12 @@ short acceptance does not establish unattended or 72-hour success.
 - [x] Verify current Grafana ingestion and Supabase scrape from actual raw
   sample timestamps. Health/feed/ACK series are fresh; first-quote timing
   panels remain empty in the five-minute view and use separate trace evidence.
-- [ ] Finish the complete 15-minute market and first four hours without a
-  collector stop, growing archive backlog or identity/lease drift.
+- [x] Finish the complete 13:15–13:30 UTC market with all three feeds,
+  3,430 dashboard SSE updates and no observed OFF/disconnect/wrong-market book.
+  Visible DOM matched 3,335/3,336 distinct WS identities; one had no render
+  confirmation. Successor quote also matched PostgreSQL and hosted history.
+- [ ] Complete the first four hours without a collector stop, growing archive
+  backlog or identity/lease drift.
 - [ ] Continue to 24 hours if healthy; prove current-release three-feed A/B
   dashboard/history continuity before considering the 72-hour rollout.
 - [ ] Separately qualify component writer confinement and continuous handoff;

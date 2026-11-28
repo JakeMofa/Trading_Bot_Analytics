@@ -1,0 +1,86 @@
+{
+  "origin": "pp-live-pp-display-20261127-02",
+  "generation": "e11000be-bcb0-4b45-9c13-dd8f65a99b67",
+  "collector_release": "60bb1c8968e2fe08ff9493b8f84ccf5f877aa674",
+  "workload": "first 1000 committed retained .4 outbox rows ordered by actual id; export under one PP read-only snapshot; replay only on disposable PG17 Unix sockets",
+  "min_id": 302976,
+  "max_id": 303976,
+  "canonical_input_sha256": "45abec643063a9e16528863dfcdc696e7fb600c1e6e0152654cf15038eea374a",
+  "row_limit": 50,
+  "decoded_byte_limit": 262144,
+  "phases": "Import and authenticated readback include driver, database and loopback transfer. No production network latency simulated. The restricted second role verified every final canonical envelope.",
+  "runs": [
+    {
+      "mode": "conservative",
+      "pages": 51,
+      "rows": 1000,
+      "rows_per_page": 19.608,
+      "median_rows_per_page": 18,
+      "max_page_bytes": 126511,
+      "total_encoded_bytes": 6113614,
+      "seconds": 2.761062,
+      "rows_per_second": 362.179,
+      "phase_seconds": {
+        "local_page_sql_fetch_and_pack": 0.20795,
+        "archive_import": 0.96891,
+        "authenticated_readback": 0.631098,
+        "local_ack": 0.464413
+      },
+      "hosted_and_local_ack_verified": 1000
+    },
+    {
+      "mode": "exact",
+      "pages": 25,
+      "rows": 1000,
+      "rows_per_page": 40.0,
+      "median_rows_per_page": 41,
+      "max_page_bytes": 261411,
+      "total_encoded_bytes": 6113588,
+      "seconds": 2.419624,
+      "rows_per_second": 413.287,
+      "phase_seconds": {
+        "local_page_sql_fetch_and_pack": 0.204351,
+        "archive_import": 0.940788,
+        "authenticated_readback": 0.590077,
+        "local_ack": 0.374542
+      },
+      "hosted_and_local_ack_verified": 1000
+    },
+    {
+      "mode": "exact",
+      "pages": 25,
+      "rows": 1000,
+      "rows_per_page": 40.0,
+      "median_rows_per_page": 41,
+      "max_page_bytes": 261411,
+      "total_encoded_bytes": 6113588,
+      "seconds": 2.411924,
+      "rows_per_second": 414.607,
+      "phase_seconds": {
+        "local_page_sql_fetch_and_pack": 0.202665,
+        "archive_import": 0.924371,
+        "authenticated_readback": 0.601825,
+        "local_ack": 0.372975
+      },
+      "hosted_and_local_ack_verified": 1000
+    },
+    {
+      "mode": "conservative",
+      "pages": 51,
+      "rows": 1000,
+      "rows_per_page": 19.608,
+      "median_rows_per_page": 18,
+      "max_page_bytes": 126511,
+      "total_encoded_bytes": 6113614,
+      "seconds": 2.650703,
+      "rows_per_second": 377.258,
+      "phase_seconds": {
+        "local_page_sql_fetch_and_pack": 0.202012,
+        "archive_import": 0.980955,
+        "authenticated_readback": 0.604402,
+        "local_ack": 0.426183
+      },
+      "hosted_and_local_ack_verified": 1000
+    }
+  ]
+}

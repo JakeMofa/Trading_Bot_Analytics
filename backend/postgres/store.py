@@ -325,7 +325,10 @@ class Store:
             (self.origin,epoch,epoch,now,now)).fetchone()
 
     def archived_quote_count(self, started_at):
+        from .quote_ack_counter import WATCH_ORIGIN, read
         with self.connection(True) as db:
+            if self.origin == WATCH_ORIGIN:
+                return read(db,self.origin,started_at)
             return db.execute("""SELECT count(*) AS n FROM ops.outbox
                 WHERE origin_id=%s AND entity_type='core.protected_evidence' AND created_at>=%s
                 AND acknowledged_at IS NOT NULL AND payload->>'kind'='quote'

@@ -1,3 +1,12 @@
+## November 27 — Three BTC feeds on Benchmark
+
+Robinhood v1 BTC-USD authentication and price reads passed from the 4 GB VM.
+The follow-up adds one-second polling, a separate dashboard reference card,
+guarded PostgreSQL persistence and scoped Supabase readback. Native PostgreSQL
+and browser tests passed in the implementation agent's fixtures. Live
+three-source collection and archive acceptance remain pending.
+[Current plan](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--add-robinhood-btcusd-to-the-benchmark-checkpoint).
+
 ## November 27 — Benchmark freshness and prediction-history implementation
 
 The new Benchmark run has an isolated archive scope and retains earlier

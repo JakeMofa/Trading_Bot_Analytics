@@ -184,3 +184,65 @@ warns that exiting siblings can hide surviving children. The
 defines the parent PID and start ticks used for identity; unreadable surviving
 processes retain exclusion. This path is covered by the Linux sibling-churn
 fixture, not inferred from the successful macOS SQL test.
+
+## Generic identity-hash sorting
+
+The exact #264 Linux head and merged-source checks passed. However, the
+11:25 UTC real full inventory did not reach its outbox cursor: the preceding
+`raw.events` identity-hash query failed after 6.318 seconds with the 64 MiB
+temporary-file guard. The table contains 437,064 rows across local origins.
+The PostgreSQL log classified one temp-file error and no statement-timeout,
+capacity or OOM error; A's OFF identity, ACK count and pending state were
+unchanged. This is a distinct maintenance-admission blocker, not a diagnosed
+cause of the 09:51 collector stop.
+
+The next candidate computes the same existing per-row identity SHA256 once
+in a read-only REPEATABLE READ cursor. It fetches only fixed hash values in
+512-row responses without PostgreSQL ORDER BY/window materialization. A
+private anonymous host-disk file sorts fixed 32-byte hashes in bounded runs
+and merges them with bounded buffers. It preserves duplicate multiplicity
+and hashes the same lowercase hexadecimal strings in original 1,024-row
+groups, including the empty-table SHA256 result. It stores no tick payloads
+and is not a permanent archive or an additional database/service.
+
+Keep existing query/response/global/recovery deadlines, the 10 GiB disk reserve
+and role ceilings. Limit scratch to 64 MiB per table (2,097,152 row hashes),
+reuse one descriptor and check budget/free space while collecting, merging
+and folding. This is an explicit current-size maintenance bound, not a claim
+that arbitrary 72-hour data volumes will fit. The
+[Python TemporaryFile contract](https://docs.python.org/3.12/library/tempfile.html#tempfile.TemporaryFile)
+provides Unix anonymous/unlinked file lifetime; verify actual ownership,
+filesystem, descriptor inheritance and cleanup on the qualified host.
+
+Do not assume locale equivalence. Actual Benchmark uses `en_US.utf8`, and
+[PostgreSQL collation](https://www.postgresql.org/docs/17/collation.html)
+controls both original ORDER BY and text comparisons. Validate every adjacent
+distinct hash of the produced sequence with the same database comparator in
+bounded batches, carrying the last across batches. Preserve duplicate rows
+in the hash fold; reject distinct values that compare equal or out of order.
+Same-snapshot row count and complete cursor exhaustion remain required.
+The generated archive-storage table still requires its SELECT-only reader
+when other normal/generated inventory tables use the application login.
+
+Native old-SQL parity, empty/duplicate/page-boundary cases, incompatible
+collation, resource exhaustion, role routing and physical-session cleanup
+must pass before another source-pinned real inventory. Keep the first failed
+full-inventory artifact; do not overwrite it or retry its unchanged SQL.
+
+The implemented generic candidate passed 356 local controller cases (18
+environment skips), 58 CI-control cases and 21 native PostgreSQL cases with
+four Linux-only cases skipped locally. Independent tests cover exact page
+boundaries, duplicate multiplicity, incompatible ICU numeric ordering,
+concurrent mutation, scratch resource limits and physical file cleanup.
+Each external run also has a SHA256 manifest kept in memory and verified on
+read exhaustion, so a same-length scratch bit flip cannot silently alter a
+preservation proof.
+
+The actual-size **generated local** PostgreSQL 17.2 fixture reproduced the
+old temp-file failure and matched the independent original-order oracle on
+437,064 identities in 2.733 seconds, including 855 fetches and 9,300 native
+ordering checks. It used 54 runs and 13,986,048 scratch bytes. This is not
+the real VM's data, Docker pipe timing or deployment-feasibility result.
+[Native metadata evidence](evidence/benchmark-metadata-437064-native-parity-2026-11-28.json).
+Exact Linux CI and a distinct source-pinned full-inventory probe remain
+required; the first failed probe remains preserved unchanged.

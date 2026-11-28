@@ -78,6 +78,32 @@ acceptance, not a new live-run result. Complete-origin preservation at the
 larger size remains the deployment prerequisite described in the
 [local database plan](LOCAL_DATABASE_CONNECTION_BUDGET.md#complete-origin-preservation-at-larger-size).
 
+PR [#264](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/264) merged
+as `641a05273c6a8cda53d7a143b6dcaab5e2c2d808` after exact head source/PR CI
+46139120541/46139124582 passed, including all three actual Linux-container
+reader and cancellation cases. Merged source CI 46139787031 also passed.
+The first real **complete** inventory at 11:25 UTC then failed earlier in
+`raw.events`: its existing identity-fingerprint sort exhausted the unchanged
+64 MiB PostgreSQL temporary-file limit after 6.318 seconds. The outbox cursor
+was not reached, so it has no actual-VM timing result yet. Before and after,
+A remained epoch 9/OFF, 235,755 ACKs, zero pending and high-water ID 561373.
+The installed runtime/controller remained `.13`; no CD or re-arm occurred.
+[Full preflight](evidence/benchmark-full-inventory-raw-sort-failure-2026-11-28.json) ·
+[Native error classification](evidence/benchmark-full-inventory-raw-sort-error-2026-11-28.json).
+
+The raw table contains 437,064 rows across all local generations and uses
+`en_US.utf8` collation. The next scoped repair streams only existing identity
+hashes to a bounded anonymous host-disk merge, reproduces the original sorted
+1,024-row fold and checks the actual hash order against PostgreSQL's native
+comparator. This avoids another global server sort without raising PostgreSQL
+limits. It is being implemented and has not been qualified or deployed.
+Its first offline qualification now reproduces the original temp spill and
+matches the independent native digest on 437,064 generated identities. Local
+controller 356 cases/18 skips, CI controls 58 cases and native ordering and
+resource checks passed. Linux CI, actual complete-inventory timing, deployment
+and sustained collection remain pending. No service was restarted to obtain
+these results.
+
 No deployment, re-arm, deletion, permission change or production action was
 performed for this incident check. Existing archive records remain intact;
 this does not prove all source receipts during a failure were persisted.

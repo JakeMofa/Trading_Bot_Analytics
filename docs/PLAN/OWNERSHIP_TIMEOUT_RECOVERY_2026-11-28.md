@@ -117,6 +117,15 @@ is not part of this repair; fresh admission must be qualified separately.
 
 ## 4. Prepare a safe Benchmark adoption
 
+The complete-inventory follow-up at 11:25 UTC found that the existing
+`raw.events` identity-hash sort also exceeds the unchanged 64 MiB temporary
+file cap at the current size. PostgreSQL's bounded log confirms a temp-file
+error, not role capacity, RAM exhaustion or the 19-second query deadline.
+This occurred before the newly qualified outbox cursor ran. #264 and its
+exact Linux CI are complete, but no new live outbox timing or deployment can
+be claimed. The generic metadata-hash repair is now part of this adoption
+gate, alongside the raw table's actual 437,064 rows and `en_US.utf8` collation.
+
 An actual read-only preflight at 10:48 UTC found another admission blocker:
 the existing complete-origin outbox digest on A's 235,755 rows reached
 19,000.576 ms and was canceled with SQLSTATE57014. A stayed OFF at epoch 9,

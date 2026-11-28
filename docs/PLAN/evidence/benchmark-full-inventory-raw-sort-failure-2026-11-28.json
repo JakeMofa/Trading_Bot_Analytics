@@ -1,0 +1,151 @@
+{
+  "after": {
+    "acks": 235755,
+    "enabled": false,
+    "epoch": 9,
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "hi": 561373,
+    "lease": null,
+    "origin": "pp-live-pp-benchmark-watch",
+    "pending": 0,
+    "session": null,
+    "utc": "2026-11-28T11:25:35.943922+00:00"
+  },
+  "all_inventory_completed": false,
+  "before": {
+    "acks": 235755,
+    "enabled": false,
+    "epoch": 9,
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "hi": 561373,
+    "lease": null,
+    "origin": "pp-live-pp-benchmark-watch",
+    "pending": 0,
+    "session": null,
+    "utc": "2026-11-28T11:25:26.270891+00:00"
+  },
+  "candidate_controller_sha256": "b184d93d8d2a4ac37f313335d4ced3800ad040c88a7d05c6a27f83599d92264d",
+  "controller_work_limit_s": 600,
+  "failure": {
+    "reason": "child_failed",
+    "type": "DeploymentHold"
+  },
+  "full_inventory_wall_s": 9.298619,
+  "host_wall_s": 10.018759,
+  "installed_controller_sha256": "4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a",
+  "one_shot": true,
+  "origins": {},
+  "postgres_container_id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+  "regular_queries": [
+    {
+      "elapsed_s_including_docker": 0.147532,
+      "label": "writer_before",
+      "sha256": "b59dde5aeb3f37e4e5442915473d964fe6b500bd3f39dc015747d93790697c58"
+    },
+    {
+      "elapsed_s_including_docker": 0.149212,
+      "label": "reader_settings",
+      "sha256": "2bae442d5f620d40fa7a7e00ce7074465086aa95f511e86fa978a3f95ae17840"
+    },
+    {
+      "elapsed_s_including_docker": 0.176037,
+      "label": "core.markets",
+      "sha256": "f5655eef2f92922b9d4f5ec839f8fcd38c7788a079533ea2b733bd8e53a030a8"
+    },
+    {
+      "elapsed_s_including_docker": 0.163056,
+      "label": "core.markets",
+      "sha256": "77ecbf57e82a43222e27ed33bef5d6684565eab3711cba7a36b240eb90613fd3"
+    },
+    {
+      "elapsed_s_including_docker": 0.143761,
+      "label": "core.candles",
+      "sha256": "c0a070d25e232dadf9a5d39c939ecb8f9f3adb9d82de473bf6e44a5e6d1add5e"
+    },
+    {
+      "elapsed_s_including_docker": 0.212406,
+      "label": "core.candles",
+      "sha256": "7b0590a578a3a1284703f8d85fbd99cb6791c64eeb39cbac24008dabff55612b"
+    },
+    {
+      "elapsed_s_including_docker": 0.143816,
+      "label": "core.current_prices",
+      "sha256": "d2311186f6eaba5fd3fbd85246963159e8d39dcdb5ab667c599aab20d46766eb"
+    },
+    {
+      "elapsed_s_including_docker": 0.15046,
+      "label": "core.current_prices",
+      "sha256": "d721282c7ccbee39594e652f70e8d755b59863de311b7031f1e005980b564665"
+    },
+    {
+      "elapsed_s_including_docker": 0.156559,
+      "label": "core.protected_evidence",
+      "sha256": "7d8b1dc1b550e310ea3f8c273bc41380afe4ef3bdb0ef58d85026d0b0cda1a2b"
+    },
+    {
+      "elapsed_s_including_docker": 0.326189,
+      "label": "core.protected_evidence",
+      "sha256": "9317389c749769447f9bfab00d7ee0f9d60d7c817b0a8acefe06f8363c577f6b"
+    },
+    {
+      "elapsed_s_including_docker": 0.167473,
+      "label": "core.feature_snapshots",
+      "sha256": "980021f0e004021f1a3b93568424a772053e74fcf560fee99fbd552be9f1adca"
+    },
+    {
+      "elapsed_s_including_docker": 0.446192,
+      "label": "core.feature_snapshots",
+      "sha256": "24d5b73287424ac32f5e0fd9f521fba260cd16ad8f969b3a7e61a06f4d94e683"
+    },
+    {
+      "elapsed_s_including_docker": 0.159772,
+      "label": "core.predictions",
+      "sha256": "01b1b2ced475d40219ae92e6d5fac4fa20684f0b8f01cc8e63909a8dbd779fef"
+    },
+    {
+      "elapsed_s_including_docker": 0.236134,
+      "label": "core.predictions",
+      "sha256": "3da95b3781e5a50ff00f1680a94475905d2807fde86b9b1d68c42d73a02a9930"
+    },
+    {
+      "elapsed_s_including_docker": 0.15053,
+      "label": "core.outcomes",
+      "sha256": "4729205c32479dfefe7a2df13a944ec2374fb8dadb9c2070d18d0b583e8edd0c"
+    },
+    {
+      "elapsed_s_including_docker": 0.200898,
+      "label": "core.outcomes",
+      "sha256": "4bc47a8420852ea711e03f342e6c8e050c514ea9df7ad0bf123350968ea8102a"
+    },
+    {
+      "elapsed_s_including_docker": 0.146533,
+      "label": "raw.events",
+      "sha256": "b4cce3fbae15de17bdc4ad32382d68d252ddf3a8888c4ac5e197acb1a2a69faf"
+    },
+    {
+      "elapsed_s_including_docker": 6.318231,
+      "label": "raw.events",
+      "sha256": "a3ee30c1e37fe5479af30fa2cbf6f8d3d00f21f394882cca4541d1c35a1898d3"
+    },
+    {
+      "elapsed_s_including_docker": 0.176269,
+      "label": "writer_after",
+      "sha256": "b59dde5aeb3f37e4e5442915473d964fe6b500bd3f39dc015747d93790697c58"
+    }
+  ],
+  "remote_specimen_sha256": "93a5454571066776b5b49963ac3cf3c9b1c7f9b6eeb7ec3e1fcd440b7ed4f45d",
+  "settings": {
+    "readonly": "on",
+    "role": "tradebot_reader",
+    "statement": "19s",
+    "temp": "64MB",
+    "work_mem": "2MB"
+  },
+  "source": "641a05273c6a8cda53d7a143b6dcaab5e2c2d808",
+  "sql_response": {},
+  "ssh_and_launcher_overhead_s": 1.220135,
+  "started_utc": "2026-11-28T11:25:24Z",
+  "success": false,
+  "transport": "shared_watch_diagnostic_flock",
+  "wall_with_ssh_s": 11.238894
+}

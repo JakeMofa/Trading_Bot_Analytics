@@ -112,6 +112,23 @@
           }
         ]
       }
-    }
+    },
+    "market_id": "2982855",
+    "market_start_utc": "2026-11-28T05:15:00Z",
+    "market_end_utc": "2026-11-28T05:30:00Z",
+    "sampling_gaps": [
+      {
+        "observed_utc": "2026-11-28T05:24:02.247283Z",
+        "missing": "feed controls",
+        "SQL_status": "enabled; pending sampled",
+        "reference_age": "present all three"
+      },
+      {
+        "observed_utc": "2026-11-28T05:30:07.211477Z",
+        "missing": "SQL windows",
+        "context": "valid 05:29:47.316610 and 05:30:18.298895 SQL observations bracketed this boundary; all three controls remained enabled."
+      }
+    ],
+    "interpretation": "sampled actual service throughput under this market workload; not maximum capacity or qualification for retirement"
   }
 ]

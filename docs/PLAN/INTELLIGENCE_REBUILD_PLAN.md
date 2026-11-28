@@ -131,10 +131,40 @@ p95 146.90 ms and maximum 493.05 ms. Browser wall-clock skew prevents direct
 receipt-to-paint subtraction. Its separately measured stream-receipt to
 matching two-frame DOM opportunity was median 11.1 ms and p95 25.0 ms.
 
-The subsequent guarded 500-row probe hit a two-second local SQL timeout
-before completing. Diagnose that specific query and distinguish benchmark
-preparation from the production history route before retrying. The prior
-50-row and seven-prediction reads do not establish the 500-row target.
+The subsequent guarded probe first hit a two-second local SQL timeout during
+benchmark preparation. The captured exception did not identify the exact
+statement; no production dashboard HTTP failure was observed. Nonexecuting
+EXPLAIN showed the candidate selection query using bitmap scans and a sort.
+An explicit inclusive generation/ID range used the existing
+`outbox_generation_id` index. The revised probe completed twice without DDL.
+[Local query plans](evidence/benchmark-history500-local-plans-2026-11-27.json).
+
+Both genuine archived readbacks authenticated the same 500 records, IDs
+325065–325564, 1,574,209 canonical bytes and SHA-256
+`4d153ba286b950cb90ebc2521a5c2ac37655a4744e6d7ec81508447e805c37f1`.
+The writer remained ON under the same session and epoch before/after each
+fresh authenticated read-only session. Cache state was unmeasured.
+
+| Timed component | First session | Repeat session |
+| --- | ---: | ---: |
+| Local preparation | 0.681 s | 0.195 s |
+| Fresh hosted connection | 0.592 s | 0.324 s |
+| Input validation | 0.692 s | 0.335 s |
+| Client revision decode and integrity | 0.440 s | 0.406 s |
+| Remaining SQL, transfer, driver and projection checks together | 1.417 s | 1.386 s |
+| Final byte equality | 0.030 s | 0.070 s |
+| End to end | **3.852 s** | **2.715 s** |
+
+Both met four seconds; the first had only 148 ms headroom. These two samples
+do not establish a latency percentile. Pure hosted SQL time was not measured
+in this live probe, so do not invent a SQL/network split or subtract timings
+from the older independent EXPLAIN. No RPC change is justified yet.
+[Same-record timing evidence](evidence/benchmark-live-history500-2026-11-27.json).
+
+The completed market contained 170 saved decisions, median spacing 5.093 s,
+p95 5.252 s and maximum 5.898 s. Decision to application-created timestamp
+had median 24.65 ms and p95 51.91 ms; transaction commit and first prediction
+paint were unmeasured. [Cadence evidence](evidence/benchmark-saved-prediction-cadence-2026-11-27.json).
 
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |

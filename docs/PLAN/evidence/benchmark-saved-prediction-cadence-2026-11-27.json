@@ -1,0 +1,15 @@
+{
+  "phenomenon": "The displayed saved forecast age is the time since decision.as_of. Each saved forecast uses a newly calculated feature snapshot.",
+  "worker": "backend/postgres/worker.py:22,49,56",
+  "compute_cadence": "One serial calculation then 5 s sleep, 0.5 s market discovery",
+  "api": "backend/postgres/api.py:30,76",
+  "hydration": "Polling after a 0.5 s sleep; query duration adds to spacing. SSE sends latest state every 0.25 s of scheduled wait or first quote wakeup.",
+  "browser": "backend/postgres/dashboard.html:620,1105",
+  "saved_timestamp": "backend/postgres/store.py:439",
+  "observed_decision": "2026-11-28T05:19:45.196364Z",
+  "observed_application_created": "2026-11-28T05:19:45.225303Z",
+  "observed_application_stamp_delay_ms": 28.939,
+  "remaining_uncertainty": "The timestamp is supplied before inserting the prediction. A matched transaction commit and first browser paint were not measured for this decision.",
+  "live_model": "backend/postgres/live_state.py:263\u2013277",
+  "live_model_source": "The current BTC reference tick and seconds remaining update the stored feature inputs in RAM; external order book quotes are separate."
+}

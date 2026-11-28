@@ -6,11 +6,49 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--live-display-and-independent-persistence)
+- [Current PP checkpoint](#november-27-2026--live-display-measured-on-benchmark)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Live display measured on Benchmark
+
+The 4 GB Benchmark captured the complete 7:30–7:45 p.m. Central BTC market
+2976913. Its first bid/ask was 0.6000/0.6100. Receipt was 30.735 s after
+rollover. From receipt, FastAPI took 84 ms, the browser showed that event in
+88–143 ms, PostgreSQL committed it in 290 ms, and verified archive ACK took
+1.645 s. A separate hosted reader confirmed the exact payload. Database-refresh
+polling missed that particular ID. [Same-event evidence](evidence/pp-live-same-quote-2026-11-27.json).
+
+While collection ran, [500 local events](evidence/pp-live-market-history-2026-11-27.json)
+reached the browser in 1.428 s and the [70-point Coinbase chart](evidence/pp-live-market-chart-2026-11-27.json)
+in 261 ms. Hosted archive-only page timing remains a separate test. The writer
+drained all 12,365 outbox rows. Source timestamp to application receipt for
+the 4,208 target quotes was 18.211 s at median and 43.918 s at p95. The
+writer queue repeatedly filled. Next, measure frame receipt independently of
+writer admission and compare persistence service time under the same load.
+Also trace the BTC reference display and legacy forecast fields to their actual
+source timestamps, calculation workers and per-market inputs before extending
+the run to 72 hours.
+
+The calculation worker stored 168 target-market decisions and all 168 were
+archived. Of these, 137 had numeric baseline probabilities, 29 abstained on
+a stale Coinbase price and two on stale or missing candles. This run only
+produced the Gaussian baseline. The legacy ensemble and AI fields need explicit
+availability labels. On Market, distinguish a live estimate, its input age and
+the last saved probability with its decision timestamp.
+
+Coinbase delivered 4,256 ticks. Median source-to-read age was 13.463 s,
+p95 46.752 s. The collector awaits each ticker write before its next read.
+Compare the current path against local connection reuse with a fresh transaction
+per tick and instrument receipt before the writer. The separate Polymarket BTC
+index returned 898 positive-tick one-second buckets in 129 REST batches. The
+median observed batch interval was 6.713 s. Test publishing the newest bucket
+on receipt while retaining every bucket independently. Label source age and
+receiver age separately. Grafana independently confirmed collector OFF and zero
+pending after 12,365 verified ACKs. Mean incoming rate was 11.62 rows/s during
+the sampled ON period. [Feed, forecast and archive measurements](evidence/pp-live-data-freshness-2026-11-27.json).
 
 ## November 27, 2026 — Live display and independent persistence
 

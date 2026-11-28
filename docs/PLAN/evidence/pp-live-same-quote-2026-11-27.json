@@ -1,0 +1,43 @@
+{
+  "release": "446d81df02cd1920042cc73e08ebe8a05a6b7802",
+  "origin": "pp-live-pp-display-20261127-01",
+  "boundary_utc": "2026-11-28T01:30:00+00:00",
+  "market": "2976913",
+  "event_id": "ws-7ce47c9953be24d2329ef12dad18b6768a8e6279922ecfd824fc138d939f7351",
+  "first_received_utc": "2026-11-28T01:30:30.735029+00:00",
+  "first_receipt_seconds_from_boundary": 30.735028982162476,
+  "receipt_to_api_ms": 84.28096771240234,
+  "receipt_to_local_commit_ms": 289.95490074157715,
+  "browser_receipt_to_double_raf_ms_range": [
+    88.44677734375,
+    142.86669921875
+  ],
+  "browser_render": {
+    "event_id": "ws-7ce47c9953be24d2329ef12dad18b6768a8e6279922ecfd824fc138d939f7351",
+    "browser_utc_ms": 1795829430787,
+    "bid": "60\u00a2",
+    "offer": "61\u00a2",
+    "quote": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 60\u00a2 \u00d7 1312.5000 / ask 61\u00a2 \u00d7 206.0400 \u00b7 not used in forecast"
+  },
+  "collector_enabled_samples": [
+    false,
+    true
+  ],
+  "receipt_to_sampled_database_refresh_ms": null,
+  "receipt_to_verified_worker_ack_ms": 1644.834041595459,
+  "independent_hosted_readback": {
+    "origin_id": "pp-live-pp-display-20261127-01",
+    "generation_id": "23bab05a-9137-46c7-9f13-a2e701a30572",
+    "event_id": "ws-7ce47c9953be24d2329ef12dad18b6768a8e6279922ecfd824fc138d939f7351",
+    "market_id": "2976913",
+    "content_hash": "be2b64443409515515d3b85f259d72acdbf28675c6b887ba7768569121c799a4",
+    "outbox_id": 292506,
+    "envelope_sha256": "fc7d8f200ff473b17f81417f3f07f7319f9d7a7a19ce375fe5de6e7886f974bb",
+    "received_at": "2026-11-28T01:30:30.735029+00:00",
+    "worker_acknowledged_at": "2026-11-28T01:30:32.379863+00:00",
+    "independent_readback_at": "2026-11-28T01:45:34.651668+00:00",
+    "best_bid": "0.6000",
+    "best_ask": "0.6100"
+  },
+  "pass": true
+}

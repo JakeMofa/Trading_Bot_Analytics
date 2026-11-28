@@ -1,0 +1,46 @@
+{
+  "origin": "pp-live-pp-display-20261127-01",
+  "market_id": "2976913",
+  "observed_at": "2026-11-28T01:38:12.532974+00:00",
+  "collector_enabled_before": true,
+  "collector_enabled_after": true,
+  "query": "market_id=2976913&start=2026-11-28T01%3A30%3A00.000Z&end=2026-11-28T01%3A38%3A08.000Z&limit=500&as_of=2026-11-28T01%3A38%3A09.515Z",
+  "pin": {
+    "count": 500,
+    "ordered_identity_sha256": "ef8d0630fc942000f4c8409f2098c4875ccf5609093baa9b07b7555ba2060469",
+    "content_sha256": "66edf8e975eb7a2b22a0bf2db6377138643820753f2e4637257a8c1e175148aa",
+    "tiers": {
+      "local_postgres": 500
+    },
+    "generations": {
+      "23bab05a-9137-46c7-9f13-a2e701a30572": 500
+    }
+  },
+  "coverage": {
+    "complete": true,
+    "reasons": [],
+    "generation_ids": [
+      "23bab05a-9137-46c7-9f13-a2e701a30572"
+    ],
+    "missing_generations": [],
+    "meaning": "captured records in generations intersecting the requested receipt-time window",
+    "includes_btc_usd_references": true,
+    "tiers": [
+      "local_postgres"
+    ]
+  },
+  "exact_500": true,
+  "submit_to_visible_frame_ms": 1427.6,
+  "browser_resource": {
+    "startToFirstByteMs": 1184.5,
+    "responseBodyMs": 207,
+    "fetchMs": 1391.5,
+    "responseEndToVisibleFrameMs": 35,
+    "encodedBytes": 550432
+  },
+  "server_ms": "1099.068",
+  "replay_server_ms": "1180.661",
+  "repeated_identical_http_ms": 1508.45,
+  "repeated_http_bytes": 550432,
+  "next_cursor_present": true
+}

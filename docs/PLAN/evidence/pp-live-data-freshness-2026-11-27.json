@@ -1,0 +1,1203 @@
+{
+  "venue-freshness": {
+    "quote_rows": 4208,
+    "venue_stamped_rows": 4208,
+    "venue_ahead_rows": 0,
+    "older_than_five_seconds": 3387,
+    "first_received_at": "2026-11-28 01:30:30.735029+00:00",
+    "last_received_at": "2026-11-28 01:44:59.632350+00:00",
+    "first_venue_stamp": "2026-11-28 01:30:30.618819+00:00",
+    "last_venue_stamp": "2026-11-28 01:44:59.600375+00:00",
+    "p50_s": "18.211377354",
+    "p95_s": "43.918367028",
+    "max_s": "52.481546513",
+    "by_received_minute": [
+      {
+        "quote_rows": 176,
+        "venue_stamped_rows": 176,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 76,
+        "first_received_at": "2026-11-28 01:30:30.735029+00:00",
+        "last_received_at": "2026-11-28 01:30:59.946509+00:00",
+        "first_venue_stamp": "2026-11-28 01:30:30.618819+00:00",
+        "last_venue_stamp": "2026-11-28 01:30:49.252668+00:00",
+        "p50_s": "3.893378377",
+        "p95_s": "10.393109729",
+        "max_s": "10.693840706"
+      },
+      {
+        "quote_rows": 299,
+        "venue_stamped_rows": 299,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 299,
+        "first_received_at": "2026-11-28 01:31:00.278369+00:00",
+        "last_received_at": "2026-11-28 01:31:59.927121+00:00",
+        "first_venue_stamp": "2026-11-28 01:30:49.364717+00:00",
+        "last_venue_stamp": "2026-11-28 01:31:20.485063+00:00",
+        "p50_s": "23.599915565",
+        "p95_s": "38.442054504",
+        "max_s": "39.442058181"
+      },
+      {
+        "quote_rows": 288,
+        "venue_stamped_rows": 288,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 222,
+        "first_received_at": "2026-11-28 01:32:00.344280+00:00",
+        "last_received_at": "2026-11-28 01:32:59.918914+00:00",
+        "first_venue_stamp": "2026-11-28 01:31:20.605172+00:00",
+        "last_venue_stamp": "2026-11-28 01:32:43.989354+00:00",
+        "p50_s": "13.586699205",
+        "p95_s": "50.882385655",
+        "max_s": "52.481546513"
+      },
+      {
+        "quote_rows": 282,
+        "venue_stamped_rows": 282,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 233,
+        "first_received_at": "2026-11-28 01:33:00.325611+00:00",
+        "last_received_at": "2026-11-28 01:33:59.919321+00:00",
+        "first_venue_stamp": "2026-11-28 01:32:44.091346+00:00",
+        "last_venue_stamp": "2026-11-28 01:33:54.786576+00:00",
+        "p50_s": "26.556830003",
+        "p95_s": "39.091168297",
+        "max_s": "39.984321605"
+      },
+      {
+        "quote_rows": 291,
+        "venue_stamped_rows": 291,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 291,
+        "first_received_at": "2026-11-28 01:34:00.119293+00:00",
+        "last_received_at": "2026-11-28 01:34:59.738123+00:00",
+        "first_venue_stamp": "2026-11-28 01:33:54.927285+00:00",
+        "last_venue_stamp": "2026-11-28 01:34:25.194137+00:00",
+        "p50_s": "20.210728169",
+        "p95_s": "33.875667419",
+        "max_s": "34.628917247"
+      },
+      {
+        "quote_rows": 277,
+        "venue_stamped_rows": 277,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 215,
+        "first_received_at": "2026-11-28 01:35:00.082047+00:00",
+        "last_received_at": "2026-11-28 01:35:59.938756+00:00",
+        "first_venue_stamp": "2026-11-28 01:34:25.257222+00:00",
+        "last_venue_stamp": "2026-11-28 01:35:37.610375+00:00",
+        "p50_s": "10.973201978",
+        "p95_s": "36.401025280",
+        "max_s": "41.073023645"
+      },
+      {
+        "quote_rows": 330,
+        "venue_stamped_rows": 330,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 247,
+        "first_received_at": "2026-11-28 01:36:00.301622+00:00",
+        "last_received_at": "2026-11-28 01:36:59.730966+00:00",
+        "first_venue_stamp": "2026-11-28 01:35:37.719117+00:00",
+        "last_venue_stamp": "2026-11-28 01:36:57.771748+00:00",
+        "p50_s": "32.575412659",
+        "p95_s": "40.904249696",
+        "max_s": "42.726544575"
+      },
+      {
+        "quote_rows": 304,
+        "venue_stamped_rows": 304,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 259,
+        "first_received_at": "2026-11-28 01:37:00.215666+00:00",
+        "last_received_at": "2026-11-28 01:37:59.915395+00:00",
+        "first_venue_stamp": "2026-11-28 01:36:57.897056+00:00",
+        "last_venue_stamp": "2026-11-28 01:37:58.147611+00:00",
+        "p50_s": "14.345536439",
+        "p95_s": "23.175168294",
+        "max_s": "24.335396770"
+      },
+      {
+        "quote_rows": 292,
+        "venue_stamped_rows": 292,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 277,
+        "first_received_at": "2026-11-28 01:38:00.152599+00:00",
+        "last_received_at": "2026-11-28 01:38:59.836511+00:00",
+        "first_venue_stamp": "2026-11-28 01:37:58.246595+00:00",
+        "last_venue_stamp": "2026-11-28 01:38:30.563208+00:00",
+        "p50_s": "17.018250852",
+        "p95_s": "28.284227735",
+        "max_s": "29.273302976"
+      },
+      {
+        "quote_rows": 289,
+        "venue_stamped_rows": 289,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 223,
+        "first_received_at": "2026-11-28 01:39:00.412864+00:00",
+        "last_received_at": "2026-11-28 01:39:59.854247+00:00",
+        "first_venue_stamp": "2026-11-28 01:38:30.654283+00:00",
+        "last_venue_stamp": "2026-11-28 01:39:51.195790+00:00",
+        "p50_s": "35.632406331",
+        "p95_s": "47.297485362",
+        "max_s": "48.577231102"
+      },
+      {
+        "quote_rows": 268,
+        "venue_stamped_rows": 268,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 268,
+        "first_received_at": "2026-11-28 01:40:00.048490+00:00",
+        "last_received_at": "2026-11-28 01:40:59.814837+00:00",
+        "first_venue_stamp": "2026-11-28 01:39:51.274615+00:00",
+        "last_venue_stamp": "2026-11-28 01:40:18.900742+00:00",
+        "p50_s": "29.121257911",
+        "p95_s": "39.831751544",
+        "max_s": "40.914094644"
+      },
+      {
+        "quote_rows": 298,
+        "venue_stamped_rows": 298,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 216,
+        "first_received_at": "2026-11-28 01:41:00.420906+00:00",
+        "last_received_at": "2026-11-28 01:41:59.930100+00:00",
+        "first_venue_stamp": "2026-11-28 01:40:18.988717+00:00",
+        "last_venue_stamp": "2026-11-28 01:41:45.040903+00:00",
+        "p50_s": "9.622774156",
+        "p95_s": "47.405171039",
+        "max_s": "48.194021874"
+      },
+      {
+        "quote_rows": 279,
+        "venue_stamped_rows": 279,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 215,
+        "first_received_at": "2026-11-28 01:42:00.641407+00:00",
+        "last_received_at": "2026-11-28 01:42:59.637902+00:00",
+        "first_venue_stamp": "2026-11-28 01:41:45.216025+00:00",
+        "last_venue_stamp": "2026-11-28 01:42:46.140018+00:00",
+        "p50_s": "10.773587243",
+        "p95_s": "21.615365881",
+        "max_s": "22.556024734"
+      },
+      {
+        "quote_rows": 293,
+        "venue_stamped_rows": 293,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 293,
+        "first_received_at": "2026-11-28 01:43:00.021547+00:00",
+        "last_received_at": "2026-11-28 01:43:59.938726+00:00",
+        "first_venue_stamp": "2026-11-28 01:42:46.285921+00:00",
+        "last_venue_stamp": "2026-11-28 01:43:24.626256+00:00",
+        "p50_s": "26.990495524",
+        "p95_s": "34.640830497",
+        "max_s": "35.312469587"
+      },
+      {
+        "quote_rows": 242,
+        "venue_stamped_rows": 242,
+        "venue_ahead_rows": 0,
+        "older_than_five_seconds": 53,
+        "first_received_at": "2026-11-28 01:44:00.615232+00:00",
+        "last_received_at": "2026-11-28 01:44:59.632350+00:00",
+        "first_venue_stamp": "2026-11-28 01:43:24.717249+00:00",
+        "last_venue_stamp": "2026-11-28 01:44:59.600375+00:00",
+        "p50_s": "0.110076085",
+        "p95_s": "39.994737054",
+        "max_s": "40.725520373"
+      }
+    ]
+  },
+  "stage-latency": {
+    "origin_id": "pp-live-pp-display-20261127-01",
+    "generation": "23bab05a-9137-46c7-9f13-a2e701a30572",
+    "market": "2976913",
+    "all": {
+      "rows": 4208,
+      "before_commit": {
+        "n": 4208,
+        "p50_s": 6.676626,
+        "p95_s": 8.802377,
+        "max_s": 13.35395
+      },
+      "local_to_verified": {
+        "n": 4208,
+        "p50_s": 1.539497,
+        "p95_s": 2.138121,
+        "max_s": 4.275861
+      },
+      "to_verified": {
+        "n": 4208,
+        "p50_s": 8.229718,
+        "p95_s": 10.456226,
+        "max_s": 15.315787
+      },
+      "venue_to_receipt": {
+        "n": 4208,
+        "p50_s": 18.211377354,
+        "p95_s": 43.918367028,
+        "max_s": 52.481546513
+      }
+    },
+    "by_minute": [
+      {
+        "rows": 176,
+        "before_commit": {
+          "n": 176,
+          "p50_s": 6.593668,
+          "p95_s": 8.091635,
+          "max_s": 8.769788
+        },
+        "local_to_verified": {
+          "n": 176,
+          "p50_s": 1.464447,
+          "p95_s": 2.056948,
+          "max_s": 3.168149
+        },
+        "to_verified": {
+          "n": 176,
+          "p50_s": 8.146475,
+          "p95_s": 9.64057,
+          "max_s": 10.709139
+        },
+        "venue_to_receipt": {
+          "n": 176,
+          "p50_s": 3.893378377,
+          "p95_s": 10.393109729,
+          "max_s": 10.693840706
+        }
+      },
+      {
+        "rows": 299,
+        "before_commit": {
+          "n": 299,
+          "p50_s": 6.767988,
+          "p95_s": 8.485604,
+          "max_s": 8.972088
+        },
+        "local_to_verified": {
+          "n": 299,
+          "p50_s": 1.457674,
+          "p95_s": 1.933256,
+          "max_s": 2.50475
+        },
+        "to_verified": {
+          "n": 299,
+          "p50_s": 8.168651,
+          "p95_s": 9.991703,
+          "max_s": 10.523177
+        },
+        "venue_to_receipt": {
+          "n": 299,
+          "p50_s": 23.599915565,
+          "p95_s": 38.442054504,
+          "max_s": 39.442058181
+        }
+      },
+      {
+        "rows": 288,
+        "before_commit": {
+          "n": 288,
+          "p50_s": 6.787082,
+          "p95_s": 8.413505,
+          "max_s": 9.089191
+        },
+        "local_to_verified": {
+          "n": 288,
+          "p50_s": 1.464411,
+          "p95_s": 2.003222,
+          "max_s": 2.543209
+        },
+        "to_verified": {
+          "n": 288,
+          "p50_s": 8.293184,
+          "p95_s": 10.053633,
+          "max_s": 10.93301
+        },
+        "venue_to_receipt": {
+          "n": 288,
+          "p50_s": 13.586699205,
+          "p95_s": 50.882385655,
+          "max_s": 52.481546513
+        }
+      },
+      {
+        "rows": 282,
+        "before_commit": {
+          "n": 282,
+          "p50_s": 6.799596,
+          "p95_s": 8.378354,
+          "max_s": 9.418712
+        },
+        "local_to_verified": {
+          "n": 282,
+          "p50_s": 1.418243,
+          "p95_s": 1.97153,
+          "max_s": 2.658533
+        },
+        "to_verified": {
+          "n": 282,
+          "p50_s": 8.336052,
+          "p95_s": 10.127852,
+          "max_s": 10.974505
+        },
+        "venue_to_receipt": {
+          "n": 282,
+          "p50_s": 26.556830003,
+          "p95_s": 39.091168297,
+          "max_s": 39.984321605
+        }
+      },
+      {
+        "rows": 291,
+        "before_commit": {
+          "n": 291,
+          "p50_s": 6.704566,
+          "p95_s": 9.699398,
+          "max_s": 11.275405
+        },
+        "local_to_verified": {
+          "n": 291,
+          "p50_s": 1.467154,
+          "p95_s": 2.077274,
+          "max_s": 3.103548
+        },
+        "to_verified": {
+          "n": 291,
+          "p50_s": 8.260182,
+          "p95_s": 11.354335,
+          "max_s": 12.474968
+        },
+        "venue_to_receipt": {
+          "n": 291,
+          "p50_s": 20.210728169,
+          "p95_s": 33.875667419,
+          "max_s": 34.628917247
+        }
+      },
+      {
+        "rows": 277,
+        "before_commit": {
+          "n": 277,
+          "p50_s": 6.5129,
+          "p95_s": 10.787962,
+          "max_s": 11.78632
+        },
+        "local_to_verified": {
+          "n": 277,
+          "p50_s": 1.461403,
+          "p95_s": 1.962549,
+          "max_s": 2.933592
+        },
+        "to_verified": {
+          "n": 277,
+          "p50_s": 8.093309,
+          "p95_s": 12.421027,
+          "max_s": 13.465098
+        },
+        "venue_to_receipt": {
+          "n": 277,
+          "p50_s": 10.973201978,
+          "p95_s": 36.40102528,
+          "max_s": 41.073023645
+        }
+      },
+      {
+        "rows": 330,
+        "before_commit": {
+          "n": 330,
+          "p50_s": 6.063848,
+          "p95_s": 9.378059,
+          "max_s": 10.207489
+        },
+        "local_to_verified": {
+          "n": 330,
+          "p50_s": 1.476372,
+          "p95_s": 1.980861,
+          "max_s": 2.239344
+        },
+        "to_verified": {
+          "n": 330,
+          "p50_s": 7.520799,
+          "p95_s": 10.812654,
+          "max_s": 12.415862
+        },
+        "venue_to_receipt": {
+          "n": 330,
+          "p50_s": 32.575412659,
+          "p95_s": 40.904249696,
+          "max_s": 42.726544575
+        }
+      },
+      {
+        "rows": 304,
+        "before_commit": {
+          "n": 304,
+          "p50_s": 6.420731,
+          "p95_s": 9.11587,
+          "max_s": 9.614587
+        },
+        "local_to_verified": {
+          "n": 304,
+          "p50_s": 1.588705,
+          "p95_s": 2.371887,
+          "max_s": 3.109768
+        },
+        "to_verified": {
+          "n": 304,
+          "p50_s": 8.034134,
+          "p95_s": 10.500367,
+          "max_s": 11.411606
+        },
+        "venue_to_receipt": {
+          "n": 304,
+          "p50_s": 14.345536439,
+          "p95_s": 23.175168294,
+          "max_s": 24.33539677
+        }
+      },
+      {
+        "rows": 292,
+        "before_commit": {
+          "n": 292,
+          "p50_s": 6.682123,
+          "p95_s": 8.695699,
+          "max_s": 9.234777
+        },
+        "local_to_verified": {
+          "n": 292,
+          "p50_s": 1.581292,
+          "p95_s": 2.179517,
+          "max_s": 2.725242
+        },
+        "to_verified": {
+          "n": 292,
+          "p50_s": 8.320218,
+          "p95_s": 10.221116,
+          "max_s": 11.086594
+        },
+        "venue_to_receipt": {
+          "n": 292,
+          "p50_s": 17.018250852,
+          "p95_s": 28.284227735,
+          "max_s": 29.273302976
+        }
+      },
+      {
+        "rows": 289,
+        "before_commit": {
+          "n": 289,
+          "p50_s": 6.707199,
+          "p95_s": 11.66255,
+          "max_s": 11.97356
+        },
+        "local_to_verified": {
+          "n": 289,
+          "p50_s": 1.641592,
+          "p95_s": 2.225774,
+          "max_s": 4.275861
+        },
+        "to_verified": {
+          "n": 289,
+          "p50_s": 8.432137,
+          "p95_s": 13.32808,
+          "max_s": 14.426647
+        },
+        "venue_to_receipt": {
+          "n": 289,
+          "p50_s": 35.632406331,
+          "p95_s": 47.297485362,
+          "max_s": 48.577231102
+        }
+      },
+      {
+        "rows": 268,
+        "before_commit": {
+          "n": 268,
+          "p50_s": 6.709159,
+          "p95_s": 9.225808,
+          "max_s": 13.35395
+        },
+        "local_to_verified": {
+          "n": 268,
+          "p50_s": 1.653275,
+          "p95_s": 2.218065,
+          "max_s": 2.682028
+        },
+        "to_verified": {
+          "n": 268,
+          "p50_s": 8.501672,
+          "p95_s": 11.023592,
+          "max_s": 15.315787
+        },
+        "venue_to_receipt": {
+          "n": 268,
+          "p50_s": 29.121257911,
+          "p95_s": 39.831751544,
+          "max_s": 40.914094644
+        }
+      },
+      {
+        "rows": 298,
+        "before_commit": {
+          "n": 298,
+          "p50_s": 6.72606,
+          "p95_s": 9.211876,
+          "max_s": 9.689064
+        },
+        "local_to_verified": {
+          "n": 298,
+          "p50_s": 1.683532,
+          "p95_s": 2.248753,
+          "max_s": 3.049219
+        },
+        "to_verified": {
+          "n": 298,
+          "p50_s": 8.386563,
+          "p95_s": 10.957741,
+          "max_s": 12.01979
+        },
+        "venue_to_receipt": {
+          "n": 298,
+          "p50_s": 9.622774156,
+          "p95_s": 47.405171039,
+          "max_s": 48.194021874
+        }
+      },
+      {
+        "rows": 279,
+        "before_commit": {
+          "n": 279,
+          "p50_s": 6.800482,
+          "p95_s": 8.67374,
+          "max_s": 9.029061
+        },
+        "local_to_verified": {
+          "n": 279,
+          "p50_s": 1.595937,
+          "p95_s": 2.184367,
+          "max_s": 2.526242
+        },
+        "to_verified": {
+          "n": 279,
+          "p50_s": 8.517914,
+          "p95_s": 10.409818,
+          "max_s": 11.526
+        },
+        "venue_to_receipt": {
+          "n": 279,
+          "p50_s": 10.773587243,
+          "p95_s": 21.615365881,
+          "max_s": 22.556024734
+        }
+      },
+      {
+        "rows": 293,
+        "before_commit": {
+          "n": 293,
+          "p50_s": 6.619619,
+          "p95_s": 8.305264,
+          "max_s": 9.097673
+        },
+        "local_to_verified": {
+          "n": 293,
+          "p50_s": 1.575887,
+          "p95_s": 2.07756,
+          "max_s": 2.779338
+        },
+        "to_verified": {
+          "n": 293,
+          "p50_s": 8.384462,
+          "p95_s": 10.017384,
+          "max_s": 11.011335
+        },
+        "venue_to_receipt": {
+          "n": 293,
+          "p50_s": 26.990495524,
+          "p95_s": 34.640830497,
+          "max_s": 35.312469587
+        }
+      },
+      {
+        "rows": 242,
+        "before_commit": {
+          "n": 242,
+          "p50_s": 4.812544,
+          "p95_s": 6.997953,
+          "max_s": 8.035486
+        },
+        "local_to_verified": {
+          "n": 242,
+          "p50_s": 1.61181,
+          "p95_s": 2.160689,
+          "max_s": 3.123645
+        },
+        "to_verified": {
+          "n": 242,
+          "p50_s": 6.214638,
+          "p95_s": 8.883176,
+          "max_s": 10.118017
+        },
+        "venue_to_receipt": {
+          "n": 242,
+          "p50_s": 0.110076085,
+          "p95_s": 39.994737054,
+          "max_s": 40.725520373
+        }
+      }
+    ],
+    "bounds": {
+      "before_commit": "receipt until creation of its local outbox row inside the uncommitted transaction",
+      "local_to_verified": "inside-local-transaction outbox timestamp until ACK following hosted readback",
+      "to_verified": "receipt until ACK following hosted readback",
+      "venue_to_receipt": "book source timestamp until the collector reads that frame"
+    }
+  },
+  "index-freshness": {
+    "window_utc": [
+      "2026-11-28T01:30:00Z",
+      "2026-11-28T01:45:00Z"
+    ],
+    "rows_with_positive_ticks": 898,
+    "observed_rest_batches": 129,
+    "unique_source_seconds": 898,
+    "rows_per_observed_batch": {
+      "p50": 7,
+      "p95": 8,
+      "max": 10
+    },
+    "batch_interval_seconds": {
+      "p50": 6.713,
+      "p95": 8.184,
+      "max": 9.485
+    },
+    "receipt_age_all_persisted_seconds": {
+      "p50": 4.518,
+      "p95": 7.66,
+      "max": 10.631
+    },
+    "receipt_age_newest_per_batch_s": {
+      "p50": 1.528,
+      "p95": 2.024,
+      "max": 2.239
+    },
+    "newest_over_10s_on_receipt": 0,
+    "newest_close_change_count": 128,
+    "receipt_based_estimate_stale_seconds_in_window": 2.764,
+    "receipt_based_estimate_fresh_seconds_in_window": 897.236,
+    "longest_batch_interval_ending_epoch": 1795830021.116055,
+    "method": "Only persisted venue BTC/USD reference observations, capped one-generation SELECT; polls with no new nonempty buckets are invisible. Receipt-based freshness uses latest source bucket at batch receipt, before storage/publication time."
+  },
+  "coinbase-freshness": {
+    "n": 4256,
+    "receipt_age_s": {
+      "min": 0.009,
+      "p50": 13.4625,
+      "p95": 46.752,
+      "max": 85.458
+    },
+    "first_source_utc": "2026-11-28T01:30:00.665650+00:00",
+    "last_source_utc": "2026-11-28T01:44:57.965423+00:00",
+    "first_received": "2026-11-28T01:30:00.679036+00:00",
+    "last_received": "2026-11-28T01:44:59.924504+00:00",
+    "lag_over_30": 715,
+    "receipt_gaps_s": {
+      "min": 0.025,
+      "p50": 0.189,
+      "p95": 0.407,
+      "max": 1.993
+    },
+    "source_gaps_s": {
+      "min": 0.0,
+      "p50": 0.051,
+      "p95": 0.68,
+      "max": 86.868
+    },
+    "largest_receipt_gaps": [
+      {
+        "from_received": "2026-11-28T01:41:11.638301+00:00",
+        "to_received": "2026-11-28T01:41:13.631751+00:00",
+        "gap_s": 1.99345,
+        "source_gap_s": 49.38,
+        "previous_source_age_seconds": 47.726,
+        "next_source_age_seconds": 0.339
+      },
+      {
+        "from_received": "2026-11-28T01:34:57.133169+00:00",
+        "to_received": "2026-11-28T01:34:59.035410+00:00",
+        "gap_s": 1.902241,
+        "source_gap_s": 86.868,
+        "previous_source_age_seconds": 85.458,
+        "next_source_age_seconds": 0.492
+      },
+      {
+        "from_received": "2026-11-28T01:32:25.636591+00:00",
+        "to_received": "2026-11-28T01:32:27.448989+00:00",
+        "gap_s": 1.812398,
+        "source_gap_s": 38.667,
+        "previous_source_age_seconds": 36.95,
+        "next_source_age_seconds": 0.095
+      }
+    ],
+    "minutes": [
+      {
+        "at": "2026-11-28T01:30:00+00:00",
+        "n": 299,
+        "receipt_age_s": {
+          "min": 0.01,
+          "p50": 2.231,
+          "p95": 6.25,
+          "max": 6.602
+        },
+        "first_source_utc": "2026-11-28T01:30:00.665650+00:00",
+        "last_source_utc": "2026-11-28T01:30:59.735078+00:00",
+        "first_received": "2026-11-28T01:30:00.679036+00:00",
+        "last_received": "2026-11-28T01:30:59.855502+00:00"
+      },
+      {
+        "at": "2026-11-28T01:31:00+00:00",
+        "n": 270,
+        "receipt_age_s": {
+          "min": 0.01,
+          "p50": 13.415,
+          "p95": 26.485,
+          "max": 27.574
+        },
+        "first_source_utc": "2026-11-28T01:30:59.817509+00:00",
+        "last_source_utc": "2026-11-28T01:31:32.250647+00:00",
+        "first_received": "2026-11-28T01:31:00.167103+00:00",
+        "last_received": "2026-11-28T01:31:59.824493+00:00"
+      },
+      {
+        "at": "2026-11-28T01:32:00+00:00",
+        "n": 282,
+        "receipt_age_s": {
+          "min": 0.095,
+          "p50": 15.572,
+          "p95": 37.11,
+          "max": 37.516
+        },
+        "first_source_utc": "2026-11-28T01:31:32.250647+00:00",
+        "last_source_utc": "2026-11-28T01:32:43.027609+00:00",
+        "first_received": "2026-11-28T01:32:00.188284+00:00",
+        "last_received": "2026-11-28T01:32:59.843585+00:00"
+      },
+      {
+        "at": "2026-11-28T01:33:00+00:00",
+        "n": 285,
+        "receipt_age_s": {
+          "min": 17.197,
+          "p50": 24.012,
+          "p95": 36.11,
+          "max": 36.635
+        },
+        "first_source_utc": "2026-11-28T01:32:43.027609+00:00",
+        "last_source_utc": "2026-11-28T01:33:24.056281+00:00",
+        "first_received": "2026-11-28T01:33:00.224575+00:00",
+        "last_received": "2026-11-28T01:33:59.830973+00:00"
+      },
+      {
+        "at": "2026-11-28T01:34:00+00:00",
+        "n": 284,
+        "receipt_age_s": {
+          "min": 0.012,
+          "p50": 58.1455,
+          "p95": 82.874,
+          "max": 85.458
+        },
+        "first_source_utc": "2026-11-28T01:33:24.107126+00:00",
+        "last_source_utc": "2026-11-28T01:34:59.700555+00:00",
+        "first_received": "2026-11-28T01:34:00.027112+00:00",
+        "last_received": "2026-11-28T01:34:59.923093+00:00"
+      },
+      {
+        "at": "2026-11-28T01:35:00+00:00",
+        "n": 276,
+        "receipt_age_s": {
+          "min": 0.013,
+          "p50": 9.466999999999999,
+          "p95": 21.534,
+          "max": 23.42
+        },
+        "first_source_utc": "2026-11-28T01:35:00.366151+00:00",
+        "last_source_utc": "2026-11-28T01:35:36.499574+00:00",
+        "first_received": "2026-11-28T01:35:00.378855+00:00",
+        "last_received": "2026-11-28T01:35:59.919792+00:00"
+      },
+      {
+        "at": "2026-11-28T01:36:00+00:00",
+        "n": 253,
+        "receipt_age_s": {
+          "min": 0.01,
+          "p50": 26.038,
+          "p95": 31.75,
+          "max": 32.52
+        },
+        "first_source_utc": "2026-11-28T01:35:36.869145+00:00",
+        "last_source_utc": "2026-11-28T01:36:59.003572+00:00",
+        "first_received": "2026-11-28T01:36:00.241034+00:00",
+        "last_received": "2026-11-28T01:36:59.412656+00:00"
+      },
+      {
+        "at": "2026-11-28T01:37:00+00:00",
+        "n": 283,
+        "receipt_age_s": {
+          "min": 0.009,
+          "p50": 2.839,
+          "p95": 13.254,
+          "max": 13.966
+        },
+        "first_source_utc": "2026-11-28T01:37:00.004749+00:00",
+        "last_source_utc": "2026-11-28T01:37:46.951116+00:00",
+        "first_received": "2026-11-28T01:37:00.024631+00:00",
+        "last_received": "2026-11-28T01:37:59.851622+00:00"
+      },
+      {
+        "at": "2026-11-28T01:38:00+00:00",
+        "n": 294,
+        "receipt_age_s": {
+          "min": 9.679,
+          "p50": 14.584,
+          "p95": 16.971,
+          "max": 17.552
+        },
+        "first_source_utc": "2026-11-28T01:37:47.536694+00:00",
+        "last_source_utc": "2026-11-28T01:38:42.513183+00:00",
+        "first_received": "2026-11-28T01:38:00.017524+00:00",
+        "last_received": "2026-11-28T01:38:59.637713+00:00"
+      },
+      {
+        "at": "2026-11-28T01:39:00+00:00",
+        "n": 289,
+        "receipt_age_s": {
+          "min": 13.302,
+          "p50": 17.464,
+          "p95": 19.773,
+          "max": 20.086
+        },
+        "first_source_utc": "2026-11-28T01:38:42.556449+00:00",
+        "last_source_utc": "2026-11-28T01:39:40.954091+00:00",
+        "first_received": "2026-11-28T01:39:00.126836+00:00",
+        "last_received": "2026-11-28T01:39:59.966429+00:00"
+      },
+      {
+        "at": "2026-11-28T01:40:00+00:00",
+        "n": 268,
+        "receipt_age_s": {
+          "min": 19.334,
+          "p50": 29.671,
+          "p95": 40.199,
+          "max": 41.364
+        },
+        "first_source_utc": "2026-11-28T01:39:41.006066+00:00",
+        "last_source_utc": "2026-11-28T01:40:18.578238+00:00",
+        "first_received": "2026-11-28T01:40:00.339837+00:00",
+        "last_received": "2026-11-28T01:40:59.942102+00:00"
+      },
+      {
+        "at": "2026-11-28T01:41:00+00:00",
+        "n": 275,
+        "receipt_age_s": {
+          "min": 0.01,
+          "p50": 7.985,
+          "p95": 46.941,
+          "max": 48.517
+        },
+        "first_source_utc": "2026-11-28T01:40:18.849204+00:00",
+        "last_source_utc": "2026-11-28T01:41:47.648651+00:00",
+        "first_received": "2026-11-28T01:41:00.654817+00:00",
+        "last_received": "2026-11-28T01:41:59.739393+00:00"
+      },
+      {
+        "at": "2026-11-28T01:42:00+00:00",
+        "n": 286,
+        "receipt_age_s": {
+          "min": 6.355,
+          "p50": 10.622,
+          "p95": 15.162,
+          "max": 15.702
+        },
+        "first_source_utc": "2026-11-28T01:41:47.887218+00:00",
+        "last_source_utc": "2026-11-28T01:42:49.723889+00:00",
+        "first_received": "2026-11-28T01:42:00.334548+00:00",
+        "last_received": "2026-11-28T01:42:59.831453+00:00"
+      },
+      {
+        "at": "2026-11-28T01:43:00+00:00",
+        "n": 295,
+        "receipt_age_s": {
+          "min": 10.228,
+          "p50": 13.536,
+          "p95": 16.06,
+          "max": 17.378
+        },
+        "first_source_utc": "2026-11-28T01:42:49.723889+00:00",
+        "last_source_utc": "2026-11-28T01:43:45.883711+00:00",
+        "first_received": "2026-11-28T01:43:00.341581+00:00",
+        "last_received": "2026-11-28T01:43:59.727522+00:00"
+      },
+      {
+        "at": "2026-11-28T01:44:00+00:00",
+        "n": 317,
+        "receipt_age_s": {
+          "min": 1.784,
+          "p50": 7.148,
+          "p95": 15.33,
+          "max": 15.97
+        },
+        "first_source_utc": "2026-11-28T01:43:45.925038+00:00",
+        "last_source_utc": "2026-11-28T01:44:57.965423+00:00",
+        "first_received": "2026-11-28T01:44:00.316091+00:00",
+        "last_received": "2026-11-28T01:44:59.924504+00:00"
+      }
+    ],
+    "seconds_covered_by_receipt_intervals": 900.0,
+    "seconds_implied_older_than_30": 152.173,
+    "last_age_at_boundary_s": 2.035,
+    "candles": {
+      "n": 15,
+      "receipt_age_s": {
+        "min": 64.134,
+        "p50": 96.528,
+        "p95": 124.134,
+        "max": 124.134
+      },
+      "first_source_utc": "2026-11-28T01:29:00+00:00",
+      "last_source_utc": "2026-11-28T01:43:00+00:00",
+      "first_received": "2026-11-28T01:30:36.527624+00:00",
+      "last_received": "2026-11-28T01:44:28.219017+00:00"
+    }
+  },
+  "coinbase-writer-lag": {
+    "n": 4256,
+    "total_precommit_seconds": "788.137",
+    "receipt_to_precommit_s": [
+      "0.176827",
+      "0.381986",
+      "1.389636"
+    ],
+    "receipt_to_ack_s": [
+      "1.715296",
+      "2.333679",
+      "4.351544"
+    ]
+  },
+  "forecasts": {
+    "predictions": [
+      {
+        "model_version": "gaussian_distance_v1",
+        "abstain_reason": "completed_candles_missing_or_stale",
+        "n": 2,
+        "with_numeric": 0,
+        "first_as_of": "2026-11-28 01:37:03.208753+00:00",
+        "last_as_of": "2026-11-28 01:38:05.128448+00:00",
+        "smallest": null,
+        "largest": null
+      },
+      {
+        "model_version": "gaussian_distance_v1",
+        "abstain_reason": "reference_price_not_fresh",
+        "n": 29,
+        "with_numeric": 0,
+        "first_as_of": "2026-11-28 01:32:04.477944+00:00",
+        "last_as_of": "2026-11-28 01:41:11.161079+00:00",
+        "smallest": null,
+        "largest": null
+      },
+      {
+        "model_version": "gaussian_distance_v1",
+        "abstain_reason": null,
+        "n": 137,
+        "with_numeric": 137,
+        "first_as_of": "2026-11-28 01:30:35.872399+00:00",
+        "last_as_of": "2026-11-28 01:44:57.904173+00:00",
+        "smallest": "0.5679711686545",
+        "largest": "0.999999"
+      }
+    ],
+    "features": {
+      "total": 168,
+      "threshold_observed": 168,
+      "volatility_observed": 166,
+      "reference_observed": 139,
+      "first_as_of": "2026-11-28 01:30:35.872399+00:00",
+      "last_as_of": "2026-11-28 01:44:57.904173+00:00"
+    },
+    "feature_qualities": [
+      {
+        "reference": "coinbase",
+        "status": "fresh",
+        "candles": "fresh",
+        "n": 61
+      },
+      {
+        "reference": "coinbase",
+        "status": "fresh",
+        "candles": "lagging",
+        "n": 76
+      },
+      {
+        "reference": "coinbase",
+        "status": "fresh",
+        "candles": "missing_or_stale",
+        "n": 2
+      },
+      {
+        "reference": "coinbase",
+        "status": "stale",
+        "candles": "fresh",
+        "n": 7
+      },
+      {
+        "reference": "coinbase",
+        "status": "stale",
+        "candles": "lagging",
+        "n": 22
+      }
+    ],
+    "examples": [
+      {
+        "as_of": "2026-11-28 01:44:57.904173+00:00",
+        "model_version": "gaussian_distance_v1",
+        "probability_up": "0.999999",
+        "abstain_reason": null,
+        "input_btc": "60125.61",
+        "threshold": "60057.74",
+        "volatility": "0.0002808323075809214550657584663",
+        "input_time": "2026-11-28T01:44:53.619451Z",
+        "source": "coinbase"
+      },
+      {
+        "as_of": "2026-11-28 01:44:52.741465+00:00",
+        "model_version": "gaussian_distance_v1",
+        "probability_up": "0.999999",
+        "abstain_reason": null,
+        "input_btc": "60125.61",
+        "threshold": "60057.74",
+        "volatility": "0.0002808323075809214550657584663",
+        "input_time": "2026-11-28T01:44:48.061764Z",
+        "source": "coinbase"
+      }
+    ],
+    "all_models_on_this_origin": [
+      {
+        "model_version": "gaussian_distance_v1",
+        "n": 198
+      }
+    ],
+    "saved_sources": [
+      {
+        "source": "coinbase",
+        "symbol": "BTC-USD",
+        "source_time": "2026-11-28T01:45:08.658737Z"
+      },
+      {
+        "source": "polymarket_us",
+        "symbol": "BTC-USD",
+        "source_time": "2026-11-28T01:45:08+00:00"
+      }
+    ],
+    "official_market": {
+      "market_id": "2976913",
+      "slug": "cpc-btc-updown-15m-2026-11-28-0130z",
+      "first_seen": "2026-11-28 01:30:29.718421+00:00",
+      "start_time": "2026-11-28T01:30:00Z",
+      "end_time": "2026-11-28T01:45:00Z",
+      "target": "60057.74"
+    },
+    "candles": {
+      "oldest": 1795828200,
+      "newest": 1795830180,
+      "n": 34
+    },
+    "acked_models": [
+      {
+        "entity_type": "core.feature_snapshots",
+        "n": 168,
+        "ack": 168
+      },
+      {
+        "entity_type": "core.predictions",
+        "n": 168,
+        "ack": 168
+      }
+    ]
+  },
+  "grafana-rehearsal-verified": {
+    "host": "pp-benchmark",
+    "generation": "23bab05a-9137-46c7-9f13-a2e701a30572",
+    "sample_scope": "Only this rehearsal; outbox rows and verified ACKs observed on the same generation. Sampled every 15 seconds. Lease state and backlog can change between samples.",
+    "all": {
+      "range_utc": [
+        "2026-11-28T01:25:18+00:00",
+        "2026-11-28T01:47:28+00:00"
+      ],
+      "samples": 85,
+      "accepted": {
+        "200": 85
+      },
+      "input_rows_delta": 12365,
+      "verified_acks_delta": 12365,
+      "mean_incoming_per_s": 9.299,
+      "mean_ack_per_s": 9.299,
+      "pending_start_end": [
+        0,
+        0
+      ],
+      "peak_pending": 36,
+      "peak_pending_at_utc": "2026-11-28T01:44:58+00:00",
+      "peak_oldest_pending_s": 2.167,
+      "max_sample_gap_s": 57.77,
+      "intervals_below_14": 83,
+      "intervals_below_14_pending_grew": 35,
+      "intervals_below_14_pending_fell_or_flat": 48,
+      "local_quotes_at_end": 5000
+    },
+    "first_enabled_to_last_enabled": {
+      "range_utc": [
+        "2026-11-28T01:27:33+00:00",
+        "2026-11-28T01:44:58+00:00"
+      ],
+      "samples": 69,
+      "accepted": {
+        "200": 69
+      },
+      "input_rows_delta": 12147,
+      "verified_acks_delta": 12127,
+      "mean_incoming_per_s": 11.619,
+      "mean_ack_per_s": 11.6,
+      "pending_start_end": [
+        16,
+        36
+      ],
+      "peak_pending": 36,
+      "peak_pending_at_utc": "2026-11-28T01:44:58+00:00",
+      "peak_oldest_pending_s": 2.167,
+      "max_sample_gap_s": 40.8,
+      "intervals_below_14": 67,
+      "intervals_below_14_pending_grew": 34,
+      "intervals_below_14_pending_fell_or_flat": 33,
+      "local_quotes_at_end": 4995
+    },
+    "latest": {
+      "enabled": false,
+      "pending": 0,
+      "acknowledged": 12365,
+      "ack_rate": 0.0,
+      "quotes": 5000
+    },
+    "latest_at_utc": "2026-11-28T01:47:28+00:00",
+    "grafana_remote_read_at_utc": "2026-11-28T01:47:27.649+00:00",
+    "grafana_remote_readback": {
+      "collector_enabled": 0,
+      "polymarket_quotes": 5000,
+      "verified_acks": 12365,
+      "pending": 0,
+      "pending_age_s": 0,
+      "ack_per_s": 0
+    },
+    "observation_gap": "One docker exec exceeded its 7 s timeout. There was a 40.8 s gap across the first boundary; the next sample resumed with the same generation. No interpolation.",
+    "dashboard_uid": "jagbfc8"
+  }
+}

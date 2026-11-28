@@ -6,11 +6,29 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--live-display-measured-on-benchmark)
+- [Current PP checkpoint](#november-27-2026--forecast-visibility-feed-freshness-and-prediction-history)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Forecast visibility, feed freshness and prediction history
+
+Compare a new 15-minute market on the 4 GB Benchmark with the preceding run.
+The three changes share an acceptance run and keep previous generations intact.
+
+| Workstream | What the observer should see | Acceptance evidence |
+| --- | --- | --- |
+| Market dashboard | A live estimate or a specific abstention reason beside the last saved decision and its timestamp | Observe fresh, stale, market change and OFF states; distinguish unsupported ensemble and paid AI fields |
+| Feed collection | Coinbase source and receive timestamps; separately published Polymarket BTC reference buckets | Compare ticker delay, persistence progress, reference update cadence, queue pressure and verified ACKs against the previous market |
+| Saved prediction history | Market and time range, stable pages and coverage across local and hosted predictions | Compare ordered IDs, decision times, values and abstentions in A/B, overlap and archive-only cases; time the browser during collection |
+
+Follow the [Benchmark dashboard](http://127.0.0.1:18433/dashboard) and
+[TokenBot observability](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability).
+Polymarket supplies the contract price and official threshold. Coinbase is an
+input to the existing baseline. Robinhood can provide a separately attributed
+BTC/USD quote if a read-only quote credential becomes available. Adding that
+input to a predictive model requires its own version and point-in-time replay.
 
 ## November 27, 2026 — Live display measured on Benchmark
 

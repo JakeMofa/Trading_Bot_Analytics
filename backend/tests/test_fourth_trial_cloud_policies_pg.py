@@ -101,11 +101,12 @@ class FourthTrialPolicyPGTests(unittest.TestCase):
     def test_display_scope_is_private_and_excludes_existing_origins(self):
         from postgres.cloud_origin_binding import DISPLAY_ORIGIN, DISPLAY_WRITER, DISPLAY_READER
         with self.admin() as db:
-            policy=(ROOT/'supabase/review/pp_display_20261127_01_structured.sql').read_text()
+            policy=(ROOT/'supabase/review/pp_display_20261127_02_structured.sql').read_text()
             # Exercise the real statements inside the disposable transaction.
             body=policy.split('BEGIN;',1)[1].rsplit('COMMIT;',1)[0]
             db.execute(body)
             self.seed(db,DISPLAY_ORIGIN)
+            self.seed(db,'pp-live-pp-display-20261127-01')
             db.execute('CREATE POLICY fixture_public ON history_v2.generation_checkpoints FOR SELECT TO PUBLIC USING(true)')
             for role in (DISPLAY_WRITER,DISPLAY_READER):
                 self.role(db,role)

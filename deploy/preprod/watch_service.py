@@ -76,6 +76,13 @@ def token():
     return value
 
 
+def failure_cleared(status):
+    return not status.get('session_failure_code') or (
+        status.get('session_failure_acknowledged') is True
+        and status.get('collector_enabled') is False and status.get('process_running') is False
+    )
+
+
 def arm(expected_source, expected_anchor):
     bound = binding()
     require(
@@ -93,7 +100,7 @@ def arm(expected_source, expected_anchor):
         seen['origin_id'] == DISPLAY_ORIGIN
         and not seen['collector_enabled']
         and not seen['process_running']
-        and not seen.get('session_failure_code')
+        and failure_cleared(seen)
         and seen.get('initialized'),
         'watch_start_state',
     )
@@ -125,7 +132,7 @@ def tick():
         disarm()
         return {'state': 'off'}
     require(
-        status.get('origin_id') == DISPLAY_ORIGIN and not status.get('session_failure_code'),
+        status.get('origin_id') == DISPLAY_ORIGIN and failure_cleared(status),
         'watch_collector_failure',
     )
     worker = recurring_control('status', budget)

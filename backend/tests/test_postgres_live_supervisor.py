@@ -5,12 +5,12 @@ from pathlib import Path
 import sys
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx
 from psycopg import OperationalError
-from psycopg.errors import QueryCanceled
+from psycopg.errors import QueryCanceled, TooManyConnections
 from postgres.live_ingest import polymarket_cycle
 from postgres.live_supervisor import CollectorHold, run_bounded
 from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
@@ -205,6 +205,88 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('candle', calls)
         self.assertFalse(store.enabled)
         self.assertEqual(store.calls, 0)
+
+    async def test_watch_ownership_retries_connection_capacity_only_before_fence_select(self):
+        from postgres.cloud_origin_binding import DISPLAY_ORIGIN
+        from postgres.operator_runtime import _owner_reader
+        from postgres.rehearsal_profile import WATCH_LEASE_SECONDS
+
+        session = '6e119518-8485-4fbd-87bb-6dfb168b00e0'
+        for mode, expected in (
+            ('recover', None), ('false', 'ownership.lease_lost'),
+            ('query', 'ownership.database_unavailable'),
+            ('unclassified_open', 'ownership.database_unavailable'),
+            ('exhausted', 'ownership.database_connection_limit'),
+            ('deadline', 'ownership.timeout'),
+        ):
+            with self.subTest(mode=mode):
+                db = MagicMock()
+                db.execute.return_value.fetchone.return_value = {'owned':mode != 'false'}
+                if mode == 'query':
+                    db.execute.side_effect = TooManyConnections('SQL already started')
+                opened = MagicMock()
+                opened.__enter__.return_value = db
+                attempts = 0
+                def connect(*args, **kwargs):
+                    nonlocal attempts
+                    attempts += 1
+                    self.assertTrue(kwargs['readonly'])
+                    if mode == 'unclassified_open':
+                        raise OperationalError('untrusted text')
+                    if mode in ('exhausted', 'deadline') or (mode == 'recover' and attempts == 1):
+                        raise TooManyConnections('generated refusal')
+                    return opened
+                reader = _owner_reader('private-generated', connect, watch_ownership=True)
+                def owned():
+                    return reader.owns_collector(DISPLAY_ORIGIN, session)
+                stop, store = asyncio.Event(), Store()
+                store.settings.origin_id = DISPLAY_ORIGIN
+                async def sources(*args):
+                    self.assertEqual(mode, 'recover')
+                    stop.set()
+                steps = (5, None) if mode == 'deadline' else (0, 0, None)
+                with patch('postgres.live_supervisor.READ_CAPACITY_BACKOFF', steps), patch(
+                    'postgres.watch_sources.run_watch_sources', side_effect=sources
+                ) as feeds:
+                    run = run_bounded(store, None, stop, owner_check=owned, disable_collector=store.disable,
+                                      max_seconds=WATCH_LEASE_SECONDS)
+                    if expected:
+                        with self.assertRaises(LiveDiagnostic) as caught:
+                            await run
+                        self.assertEqual(caught.exception.code, expected)
+                        feeds.assert_not_called()
+                    else:
+                        await run
+                        feeds.assert_called_once()
+                if mode == 'exhausted':
+                    self.assertEqual(attempts, 3)
+                elif mode != 'recover':
+                    self.assertEqual(attempts, 1)
+                if mode in ('recover', 'false', 'query'):
+                    for call in db.execute.call_args_list:
+                        self.assertEqual(call.args[1], (session, DISPLAY_ORIGIN))
+                self.assertFalse(store.enabled)
+
+    async def test_watch_feed_control_failures_preserve_the_sanitized_stage_and_durable_off(self):
+        from postgres.cloud_origin_binding import DISPLAY_ORIGIN
+        from postgres.rehearsal_profile import WATCH_LEASE_SECONDS
+
+        for failure, category in (
+            (TooManyConnections('private role'), 'database_connection_limit'),
+            (OperationalError('private connection details'), 'database_unavailable'),
+            (QueryCanceled('private SQL'), 'timeout'),
+            (ValueError('private controls'), 'invalid_or_unavailable'),
+        ):
+            with self.subTest(category=category):
+                store = Store()
+                store.settings.origin_id = DISPLAY_ORIGIN
+                with patch('postgres.watch_sources.run_watch_sources', side_effect=failure):
+                    with self.assertRaises(LiveDiagnostic) as caught:
+                        await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
+                                          disable_collector=store.disable, max_seconds=WATCH_LEASE_SECONDS)
+                self.assertEqual(str(caught.exception), 'selected_feeds.' + category)
+                self.assertFalse(store.enabled)
+                self.assertEqual(store.stops, 1)
 
     async def test_ownership_read_errors_report_fixed_codes_and_leave_writer_off(self):
         for error, code in (

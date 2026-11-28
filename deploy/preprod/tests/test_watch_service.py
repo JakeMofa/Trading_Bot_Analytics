@@ -67,6 +67,21 @@ class WatchHeartbeats(unittest.TestCase):
         self.assertEqual(watch.tick(), {'state': 'off'})
         self.assertFalse(self.intent.exists())
 
+    def test_historical_failure_requires_confirmed_off_to_rearm_same_origin(self):
+        self.status['session_failure_code'] = 'selected_feeds.database_connection_limit'
+        for acknowledged in (None, False):
+            self.status['session_failure_acknowledged'] = acknowledged
+            with self.assertRaisesRegex(watch.DeploymentHold, 'watch_start_state'):
+                watch.arm(self.bound['source_sha'], self.bound['initial_a'])
+        self.status['session_failure_acknowledged'] = True
+        self.status['process_running'] = True
+        with self.assertRaisesRegex(watch.DeploymentHold, 'watch_start_state'):
+            watch.arm(self.bound['source_sha'], self.bound['initial_a'])
+        self.status['process_running'] = False
+        self.assertEqual(watch.arm(self.bound['source_sha'], self.bound['initial_a'])['state'], 'armed')
+        with patch('install_controller.authorize_live_on'), patch.object(watch, 'session', return_value={'gate':'PP_LIVE_ON'}):
+            self.assertEqual(watch.tick()['state'], 'running')
+
     def test_no_admission_without_qualified_archive_worker(self):
         watch.arm(self.bound['source_sha'], self.bound['initial_a'])
         self.worker.return_value = {'status': 'off'}

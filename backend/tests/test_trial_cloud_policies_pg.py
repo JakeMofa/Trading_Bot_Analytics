@@ -165,8 +165,18 @@ class TrialCloudPolicyPGTests(unittest.TestCase):
             with self.assertRaises(psycopg.errors.InsufficientPrivilege):
                 db.execute("INSERT INTO storage.objects(bucket_id,name) VALUES('market-raw',%s)",(self.trial_key.replace('a'*64,'c'*64),))
 
-    def test_trial_writer_receipt_envelope_roundtrip_and_readonly_verifier(self):
+    @classmethod
+    def role_connection(cls, role):
         from psycopg.rows import dict_row
+        @contextmanager
+        def connect(*,timeout_seconds):
+            with psycopg.connect(host=str(cls.socket),user='postgres',dbname='postgres',
+                                 autocommit=True,row_factory=dict_row) as db:
+                db.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(role)))
+                yield db
+        return connect
+
+    def test_trial_writer_receipt_envelope_roundtrip_and_readonly_verifier(self):
         from postgres.archive_codec import encoded
         from postgres.history_v2_transport import HistoryV2PostgresTransport
         from postgres.history_v2_envelope import TABLE_KEYS
@@ -178,18 +188,10 @@ class TrialCloudPolicyPGTests(unittest.TestCase):
         record=dict(id=1,origin_id=TRIAL_ORIGIN,generation_id=GEN,entity_type='core.current_prices',
             entity_id=encoded([payload[k] for k in TABLE_KEYS['core.current_prices']]).decode(),
             content_hash=payload['content_hash'],payload=payload)
-        def factory(role):
-            @contextmanager
-            def connect(*,timeout_seconds):
-                with psycopg.connect(host=str(self.socket),user='postgres',dbname='postgres',
-                                     autocommit=True,row_factory=dict_row) as db:
-                    db.execute(sql.SQL('SET ROLE {}').format(sql.Identifier(role)))
-                    yield db
-            return connect
-        writer=HistoryV2PostgresTransport(factory(TRIAL_WRITER),origin_id=TRIAL_ORIGIN,
+        writer=HistoryV2PostgresTransport(self.role_connection(TRIAL_WRITER),origin_id=TRIAL_ORIGIN,
             generation_id=GEN,expected_database='postgres',expected_role=TRIAL_WRITER,retain_revisions=True)
         writer.put_structured([record],timeout_seconds=4)
-        reader=HistoryV2PostgresTransport(factory(TRIAL_READER),origin_id=TRIAL_ORIGIN,
+        reader=HistoryV2PostgresTransport(self.role_connection(TRIAL_READER),origin_id=TRIAL_ORIGIN,
             generation_id=GEN,expected_database='postgres',expected_role=TRIAL_READER,retain_revisions=True)
         actual=reader.read_structured_authenticated([record],max_bytes=256*1024,timeout_seconds=4)
         self.assertEqual(actual,[record])

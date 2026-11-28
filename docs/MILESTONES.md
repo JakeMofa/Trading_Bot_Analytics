@@ -21,6 +21,18 @@ Coinbase buffering and publication of the newest Polymarket index bucket
 before its write. Live VM source age and outbox lag remain to be measured.
 [Experiment and live measures](PLAN/PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md#november-27--bounded-feed-writers-on-disposable-postgresql-17).
 
+### Robinhood v1 midpoint persistence
+
+A signed v1 BTC-USD request on 4 GB Benchmark returned Robinhood's provider
+price, both spread-inclusive sides and a nanosecond retrieval time in 155 ms.
+A generated fixture carried three polls through a real local PostgreSQL writer
+into a second PostgreSQL 17 database using the private Supabase schema and
+restricted writer/reader roles. The independently read revisions matched the
+raw responses, price, timestamps and hashes. Chromium displayed three separate
+BTC sources, aged the Robinhood price and showed an unavailable midpoint for a
+crossed book. Live collector and hosted verification are pending on a successor.
+[Collector and storage contract](../backend/postgres/APPLICATION.md#robinhood-v1-btcusd-history).
+
 ### Auxiliary Robinhood BTC/USD quote reader
 
 Three signed Robinhood Crypto v2 BTC-USD GETs returned prices on the 4 GB

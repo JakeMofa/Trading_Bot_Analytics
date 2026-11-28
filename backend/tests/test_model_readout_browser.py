@@ -37,6 +37,12 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                      abstain_reason='required_feature_missing')
         state.publish(market['id'], price, quote, feature, forecast, saved)
 
+        received = clock[0].isoformat()
+        state.display({'market':market, 'reference':{'event_id':'index-fixture', 'price_usd':'67900.50',
+                       'source_time':received,'received_at':received}, 'quote':None,
+                       'received':0,'saved':0,'duplicates':0,'started_at':received,'last_commit':None})
+        state.publish_robinhood({'event_id':'rh-v1-fixture', 'price_usd':'68123.40', 'received_at':received,
+                                'source_time':received, 'book_status':'two_sided'})
         app = create_app(settings, FakeStore(), state, refresh=False)
         with sync_playwright() as playwright:
             options = [os.environ.get('CHROME_BIN'), shutil.which('chromium'), shutil.which('google-chrome'),
@@ -66,13 +72,26 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                     expect(page.locator('#saved-forecast-source')).to_contain_text('fixture-snapshot')
                     expect(page.locator('#ai-decision-buy')).to_have_text('Disabled')
 
+                    expect(page.locator('#live-reference')).to_contain_text('$')
+                    expect(page.locator('#venue-price')).to_have_text('$67,900.50')
+                    expect(page.locator('#robinhood-price')).to_have_text('$68,123.40')
+                    expect(page.locator('#robinhood-price')).to_have_attribute('data-event-id', 'rh-v1-fixture')
+                    expect(page.locator('#robinhood-age')).to_contain_text('Recent')
                     clock[0] += timedelta(seconds=31)
+                    expect(page.locator('#robinhood-age')).to_contain_text('Stale')
+                    state.publish_robinhood({'event_id':'rh-v1-crossed', 'price_usd':None,
+                                             'received_at':clock[0].isoformat(), 'source_time':None,'book_status':'crossed'})
+                    expect(page.locator('#robinhood-price')).to_have_text('—')
+                    expect(page.locator('#robinhood-age')).to_contain_text('crossed book')
                     expect(page.locator('#forecast-up')).to_have_text('—')
                     expect(page.locator('#forecast-state')).to_contain_text('reference price not fresh')
                     expect(page.locator('#saved-forecast-state')).to_contain_text('2m 31s ago')
                     state.collector_status(False)
                     expect(page.locator('#forecast-state')).to_contain_text('collector off')
-                    state.discover(dict(market, id='next-market'))
+                    next_market = dict(market, id='next-market')
+                    state.discover(next_market)
+                    state.display({'market':next_market, 'reference':None,'quote':None, 'received':0,
+                                   'saved':0,'duplicates':0,'started_at':received,'last_commit':None})
                     expect(page.locator('#saved-forecast-result')).to_have_text('—')
                     expect(page.locator('#saved-forecast-source')).to_be_empty()
                     queries = []

@@ -35,6 +35,8 @@ PP_INSTALLED_CONTROLLER = 'f49f875857277f3058d8f31d2eaa6281329a463783040de7dd400
 PP_IDENTITY_COMMIT = '6d0fa33d52f045345bdddead255a5f0c299e545c'
 PP_IDENTITY_RUN = 45692935316
 CONTROLLER_REASONS = frozenset({
+    'unexpected_live_quote_display_mode','wrong_quote_display_mount','unsafe_display_key_file',
+    'unsafe_display_directory','quote_display_requires_benchmark_host',
     'entrypoint_precondition_failed', 'generated_runtime_check_failed',
     'generated_api_readiness_timeout', 'generated_operator_readiness_timeout',
     'generated_api_state_check_failed', 'generated_operator_state_check_failed',

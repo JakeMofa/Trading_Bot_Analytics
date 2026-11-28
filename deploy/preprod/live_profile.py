@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import (BOUNDARY_ORIGINS, HISTORY_READER_FILES, RUNTIME_SECRETS, TRIAL_ORIGIN,
+from linux_actions import (BOUNDARY_ORIGINS, DISPLAY_ORIGIN, DISPLAY_DIR, DISPLAY_KEYS, HISTORY_READER_FILES, RUNTIME_SECRETS, TRIAL_ORIGIN,
                            cycle_environment, live_origin, validate_config)
 from controller import require
 
@@ -45,6 +45,22 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
             'unreviewed_pp_operator_secret_shape')
     operator['secrets'].append({'source': 'app_dsn',
                                 'target': '/run/secrets/app_dsn' if target.startswith('/') else 'app_dsn'})
+    if trial_origin==DISPLAY_ORIGIN:
+        for name in ('api','operator'):
+            service=expected['services'][name]
+            service['environment'].update(TRADEBOT_PP_QUOTE_DISPLAY='1',TRADEBOT_PP_BOUNDARY_TRACE='1')
+            mount={'type':'bind','source':str(DISPLAY_DIR),'target':'/run/quote-display','bind':{}}
+            actual_mounts=live['services'][name].get('volumes',[])
+            if actual_mounts and actual_mounts[0].get('bind')=={'create_host_path':False}:
+                mount['bind']={'create_host_path':False}
+            if name=='operator':
+                mount['read_only']=True
+            service['volumes']=[mount]
+        operator['environment'].update(POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
+                                       POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
+        for name in DISPLAY_KEYS:
+            expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(RUNTIME_SECRETS/name)}
+            operator['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
     if reader:
         api = expected['services']['api']
         api['environment']['TRADEBOT_PP_ARCHIVE_HISTORY'] = 'true'

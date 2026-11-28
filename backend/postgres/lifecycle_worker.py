@@ -9,7 +9,7 @@ import signal
 import threading
 
 from .lifecycle import LifecycleRepository, RotationPolicy
-from .rehearsal_profile import (BOUNDARY_POLICY, BOUNDARY_SMOKE_ORIGIN, CYCLE_ORIGINS, CYCLE_POLICY, ELAPSED_CYCLE_POLICY,
+from .rehearsal_profile import (BOUNDARY_POLICY, BOUNDARY_SMOKE_ORIGIN, DISPLAY_ORIGIN, CYCLE_ORIGINS, CYCLE_POLICY, ELAPSED_CYCLE_POLICY,
                                 cycle_anchor, elapsed_cycle_seconds)
 
 
@@ -112,7 +112,7 @@ def main(argv=None):
     stop = threading.Event()
     for name in ('SIGINT', 'SIGTERM'):
         signal.signal(getattr(signal, name), lambda *_: stop.set())
-    if config['origin_id'] == BOUNDARY_SMOKE_ORIGIN:
+    if config['origin_id'] in (BOUNDARY_SMOKE_ORIGIN, DISPLAY_ORIGIN):
         print(json.dumps({'status': 'idle', 'reason': 'single_boundary_smoke',
                           'archive': 'off', 'retirement': 'off'}), flush=True)
         if not args.once:

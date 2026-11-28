@@ -98,6 +98,24 @@ class FourthTrialPolicyPGTests(unittest.TestCase):
         self.role(db,'authenticated');db.execute("SELECT set_config('request.jwt.claim.sub',%s,true),set_config('storage.operation',%s,true)",(uid,operation))
     def key(self,origin,digest='a'):return 'raw-v1/'+sha256(origin.encode()).hexdigest()+'/'+GEN+'/'+digest*64+'.jsonl.gz'
 
+    def test_display_scope_is_private_and_excludes_existing_origins(self):
+        from postgres.cloud_origin_binding import DISPLAY_ORIGIN, DISPLAY_WRITER, DISPLAY_READER
+        with self.admin() as db:
+            policy=(ROOT/'supabase/review/pp_display_20261127_01_structured.sql').read_text()
+            # Exercise the real statements inside the disposable transaction.
+            body=policy.split('BEGIN;',1)[1].rsplit('COMMIT;',1)[0]
+            db.execute(body)
+            self.seed(db,DISPLAY_ORIGIN)
+            db.execute('CREATE POLICY fixture_public ON history_v2.generation_checkpoints FOR SELECT TO PUBLIC USING(true)')
+            for role in (DISPLAY_WRITER,DISPLAY_READER):
+                self.role(db,role)
+                self.assertEqual(db.execute('SELECT origin_id FROM history_v2.generation_checkpoints').fetchall(),
+                                 [(DISPLAY_ORIGIN,)])
+                self.assertFalse(db.execute("SELECT has_schema_privilege(current_user,'storage','USAGE')").fetchone()[0])
+                self.assertEqual(db.execute("SELECT has_table_privilege(current_user,'history_v2.structured_receipts','INSERT')").fetchone()[0], role==DISPLAY_WRITER)
+                db.execute('RESET ROLE')
+            db.rollback()
+
     def test_old_catalog_grants_roles_and_evidence_unchanged(self):
         with self.admin() as db:
             for schema,before in self.before.items():

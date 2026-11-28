@@ -22,6 +22,21 @@ event for PostgreSQL. Local PG17 and a delayed writer exercised receipt,
 database commit, exact-value deduplication and structured archive ACK with
 a test transport. Hosted readback and Benchmark browser latency are pending.
 
+The [dashboard scheduling change](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/228),
+[bounded history reader](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/229) and
+[full-market Benchmark profile](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/230)
+belong to this checkpoint. In Chromium against FastAPI and disposable PostgreSQL 17,
+the same 500 ordered events reached the screen in 77–96 ms across four storage
+states. The mixed page contained 250 verified fixture archive events and 250 local
+events. [Browser measurements](evidence/pp-market-history-browser-2026-11-27.json).
+
+For live acceptance, time the first quote and a current-generation History page
+during collection. A new structured writer can prove that a quote reached
+Supabase. Authenticating older sealed raw files uses a different reader scoped to
+their historical origin. Record coverage, response bytes and browser time for each
+tier actually read. Keep real hosted archive timing open until that reader is
+available for the selected generation.
+
 1. On a fresh Benchmark scope, measure REST discovery, subscription and first
    usable quote. Trace the same event ID through API publication, browser
    display, commit, database hydration and authenticated Supabase readback.

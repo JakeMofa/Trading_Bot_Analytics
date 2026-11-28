@@ -1,7 +1,7 @@
 """Exact recurring trial child profiles. Legacy probe validators stay unchanged."""
 from copy import deepcopy
 from controller import require
-from linux_actions import BOUNDARY_ORIGIN, PROJECT, TRIAL_ORIGIN, cycle_environment
+from linux_actions import BOUNDARY_ORIGIN, DISPLAY_ORIGIN, PROJECT, TRIAL_ORIGIN, cycle_environment
 from live_profile import validate_live_profile
 from structured_probe_profile import LOCAL_STAGED,OFF
 
@@ -9,6 +9,15 @@ WRITER_SQL={'pp_trial_history_writer_dsn':'/etc/tradebot/cloud/trial_20261119_07
             'pp_history_ca':'/etc/tradebot/cloud/pp_history_ca'}
 BOUNDARY_SQL={'pp_boundary_history_writer_dsn':'/etc/tradebot/cloud/boundary_20261124_01_history_writer_dsn',
               'pp_history_ca':WRITER_SQL['pp_history_ca']}
+DISPLAY_SQL={**BOUNDARY_SQL,
+             'pp_boundary_history_writer_dsn':'/etc/tradebot/cloud/display_20261127_01_history_writer_dsn'}
+
+
+def boundary_files(origin):
+    require(origin in (BOUNDARY_ORIGIN,DISPLAY_ORIGIN),'unreviewed_structured_origin')
+    return DISPLAY_SQL if origin==DISPLAY_ORIGIN else BOUNDARY_SQL
+
+
 WRITER_AUTH={f'trial_archive_{field}':f'/etc/tradebot/cloud/trial_20261119_07_archive_{field}'
              for field in ('api_key','email','password','uid')}
 
@@ -18,16 +27,16 @@ def profile_name(archive):return 'trial_sealed_archive' if archive else 'trial_s
 def overlay(archive):return 'runtime.trial-sealed-archive.compose.yaml' if archive else 'runtime.trial-structured.compose.yaml'
 
 
-def child_service(base,initial_a,*,archive=False,boundary=False):
-    require(not (archive and boundary),'boundary_raw_archive_disabled')
+def child_service(base,initial_a,*,archive=False,boundary_origin=None):
+    require(not (archive and boundary_origin),'boundary_raw_archive_disabled')
     service=deepcopy(base['services']['lifecycle'])
     service['environment'].pop('TRADEBOT_GENERATED_LOCAL_STORAGE',None)
     service.update(user='0:0',restart='no',profiles=[profile_name(archive)],
         command=['python','-m','postgres.pp_sealed_archive','--execute'] if archive else ['python','-m','postgres.pp_structured_service'])
-    environment=({'TRADEBOT_ORIGIN_ID':BOUNDARY_ORIGIN,'TRADEBOT_PP_BOUNDARY_STRUCTURED':'true'}
-                 if boundary else cycle_environment(initial_a,TRIAL_ORIGIN))
+    environment=({'TRADEBOT_ORIGIN_ID':boundary_origin,'TRADEBOT_PP_BOUNDARY_STRUCTURED':'true'}
+                 if boundary_origin else cycle_environment(initial_a,TRIAL_ORIGIN))
     service['environment'].update(TRADEBOT_DATA_MODE='pp_live',**OFF,**environment)
-    files=BOUNDARY_SQL if boundary else WRITER_AUTH if archive else WRITER_SQL
+    files=boundary_files(boundary_origin) if boundary_origin else WRITER_AUTH if archive else WRITER_SQL
     if archive:
         service['environment'].update(TRADEBOT_PP_SEALED_ARCHIVE='true',
             TRADEBOT_PP_STORAGE_API_KEY_FILE='/run/secrets/trial_archive_api_key',
@@ -39,7 +48,7 @@ def child_service(base,initial_a,*,archive=False,boundary=False):
             TRADEBOT_PP_SYNC_BARRIERS='true',TRADEBOT_PP_REUSE_HISTORY_SESSION='true',
             TRADEBOT_PP_RETAIN_REVISIONS='true',TRADEBOT_PP_HISTORY_DSN_FILE='/run/secrets/pp_trial_history_writer_dsn',
             TRADEBOT_PP_HISTORY_CA_FILE='/run/secrets/pp_history_ca')
-        if boundary:
+        if boundary_origin:
             service['environment']['TRADEBOT_PP_HISTORY_DSN_FILE']='/run/secrets/pp_boundary_history_writer_dsn'
     service['secrets']=[{'source':'probe_local_dsn','target':'/run/secrets/lifecycle_dsn'},
                        *({'source':name,'target':'/run/secrets/'+name} for name in files)]
@@ -48,15 +57,15 @@ def child_service(base,initial_a,*,archive=False,boundary=False):
     return service
 
 
-def validate_profile(base,live,actual,source,image,initial_a,*,archive=False,trial_reader=False,boundary=False):
+def validate_profile(base,live,actual,source,image,initial_a,*,archive=False,trial_reader=False,boundary_origin=None):
     validate_live_profile(base,live,source,image,initial_a=initial_a,
-                          trial_origin=BOUNDARY_ORIGIN if boundary else TRIAL_ORIGIN,trial_reader=trial_reader)
+                          trial_origin=boundary_origin or TRIAL_ORIGIN,trial_reader=trial_reader)
     expected=deepcopy(live)
-    files=BOUNDARY_SQL if boundary else WRITER_AUTH if archive else WRITER_SQL
+    files=boundary_files(boundary_origin) if boundary_origin else WRITER_AUTH if archive else WRITER_SQL
     for name,path in {**files,'probe_local_dsn':LOCAL_STAGED}.items():
         expected['secrets'][name]={'name':PROJECT+'_'+name,'file':path}
     egress='raw_archive_probe_egress' if archive else 'structured_probe_egress'
     expected['networks'][egress]={'name':PROJECT+'_'+egress,'driver':'bridge','ipam':{}}
-    expected['services'][service_name(archive)]=child_service(base,initial_a,archive=archive,boundary=boundary)
+    expected['services'][service_name(archive)]=child_service(base,initial_a,archive=archive,boundary_origin=boundary_origin)
     require(actual==expected,'unreviewed_trial_cloud_profile_difference')
     return actual

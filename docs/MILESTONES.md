@@ -1,3 +1,17 @@
+### November 27 — History in the browser and the next Benchmark run
+
+Four Chromium reads of the same 500 events produced identical ordered IDs,
+values and rendered columns. Submit to two rendered frames took 79.6 ms with
+A/B attached, 77.4 ms with A also archived, 96.0 ms with A served from the
+archive and B local, and 83.8 ms with both served from the archive. These
+were generated events in disposable PostgreSQL and a verified object fixture.
+[Timing and hashes](PLAN/evidence/pp-market-history-browser-2026-11-27.json).
+
+The idle Benchmark chart read 3,126 Coinbase rows and produced 58 chart points.
+Its measured database execution took 37 ms. Keep the existing chart query
+for the live comparison. See the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence)
+for the separate live quote, history-load and archive acceptance criteria.
+
 ## November 27, 2026 — Live quote display and archive candidate
 
 The collector has a default-off direct socket writer with independent

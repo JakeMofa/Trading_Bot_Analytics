@@ -295,6 +295,19 @@ class InitialSealNative(unittest.TestCase):
                 WHERE r.event_id=%s AND o.acknowledged_at IS NOT NULL""", (quote['event_id'],)).fetchone()
         self.assertEqual(row['local_hash'], row['archive_hash'])
         self.assertEqual(row['bid'], quote['best_bid'])
+        # Reuse this disposable native generation to exercise the exact local
+        # read and identity join. The independent transport here is in memory.
+        from postgres.verify_display_quote import verify
+        with patch('postgres.verify_display_quote.DISPLAY_ORIGIN', TRIAL_ORIGIN), \
+             patch('postgres.verify_display_quote.HistoryV2PostgresTransport', return_value=self.raw):
+            args = (self.store, self.anchor, market['market_id'], quote['event_id'], row['local_hash'], None)
+            proof = verify(*args)
+            self.assertEqual(proof['best_bid'], quote['best_bid'])
+            self.assertEqual(proof['best_ask'], quote['best_ask'])
+            self.assertEqual(proof['event_id'], quote['event_id'])
+            self.raw.corrupt_structured = True
+            with self.assertRaisesRegex(ValueError, 'differs'):
+                verify(*args)
 
     def test_seal_replay_and_existing_raw_worker_preserve_all_sources(self):
         from postgres.pp_sealed_archive import cycle

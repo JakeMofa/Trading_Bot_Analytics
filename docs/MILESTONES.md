@@ -53,6 +53,13 @@ the retained .4 market. Existing retained generations keep their prior state.
 [Paired timings](PLAN/evidence/benchmark-exact-outbox-1000.json) ·
 [Pending index plans](PLAN/evidence/benchmark-outbox-index-two-million.json) · [Archive capacity checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
 
+### Long-window readback qualification
+
+A disposable two-database PostgreSQL 17 test verified 195 pages across four
+invocations while a successor wrote. The terminal check left both partitions
+attached. A real Supabase inventory/version adapter and a safe final
+retirement proof are still required. [Evidence and remaining gates](PLAN/LONG_WINDOW_QUALIFICATION.md).
+
 ## November 27 — Freshness and history acceptance completed
 
 Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event
@@ -193,6 +200,19 @@ used a generated quote, local FastAPI, Chrome, PostgreSQL 17 and the fixture
 archive. [Matched timing sample](PLAN/evidence/pp-quote-display-local-2026-11-27.json). No live Benchmark or hosted
 archive latency is established. Next gate and subsequent history work are in
 the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence).
+
+### November 27 — Recover quiet Polymarket quote sessions
+
+Local tests reproduce and fix an expired subscription surviving rollover.
+An active market with 30 seconds of usable WebSocket silence can recover
+through a bounded official REST book probe and the existing PostgreSQL writer.
+Recovered quotes retain their REST feed provenance and receive a verified
+structured archive revision. A native PostgreSQL test read back the exact
+payload through the restricted hosted-schema reader and verified the
+WebSocket-only ACK total stayed unchanged.
+The tests cover REST failure and empty books, pause, late responses, exact
+quote values and bounded subscriptions across four rollovers. Live Benchmark
+acceptance remains pending.
 
 ### November 27 — Polymarket reference and book quantities
 

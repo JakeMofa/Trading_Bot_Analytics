@@ -307,6 +307,72 @@ class InitialSealNative(unittest.TestCase):
             self.assertEqual(archived['payload']['payload']['normalized']['price'], event['price'])
             self.assertEqual(archived['payload']['payload']['data'], event['payload'])
 
+    def test_quiet_rest_quote_is_verified_without_counting_as_websocket(self):
+        from datetime import timedelta
+        from types import SimpleNamespace
+        from postgres.active_structured import ActiveStructuredWorker
+        from postgres.cloud_origin_binding import TRIAL_READER, TRIAL_WRITER
+        from postgres.history_v2_transport import HistoryV2PostgresTransport
+        from postgres.live_contract import polymarket_bbo, polymarket_market
+        from test_trial_cloud_policies_pg import TrialCloudPolicyPGTests as Hosted
+
+        Hosted.setUpClass()
+        self.addCleanup(Hosted.tearDownClass)
+        now = datetime.now(timezone.utc)
+        started = now.isoformat()
+        market = polymarket_market({
+            'id': 'quiet-rest-market', 'slug': 'btc-quiet-rest', 'status': 'MARKET_STATUS_OPEN',
+            'assetPriceTerms': {'asset': {'symbol': 'btc'}, 'horizon': '15m',
+                'marketType': 'ASSET_PRICE_MARKET_TYPE_UP_DOWN',
+                'windowStart': (now-timedelta(minutes=1)).isoformat(),
+                'windowEnd': (now+timedelta(minutes=14)).isoformat()},
+        }, started)
+        quote = polymarket_bbo({'marketData': {
+            'marketSlug': market['payload']['slug'],
+            'lastPriceSample': {'ts': (now-timedelta(seconds=5)).isoformat()},
+            'bestBid': {'value': '0.4900'}, 'bestAsk': {'value': '0.5100'},
+        }}, market, started)
+        quote['provenance']['recovery'] = 'quiet_websocket'
+        self.assertEqual(quote['provenance']['feed'], 'polymarket_us_bbo')
+
+        self.fixture_on()
+        self.store.ingest(market)
+        committed = self.store.ingest(quote)
+        self.assertFalse(committed['duplicate'])
+        self.assertTrue(self.store.ingest(quote)['duplicate'])
+        self.repo.disable_collector(TRIAL_ORIGIN)
+        count_before = self.store.archived_quote_count(started)
+
+        def hosted_as(role):
+            return HistoryV2PostgresTransport(Hosted.role_connection(role), origin_id=TRIAL_ORIGIN,
+                generation_id=self.anchor, expected_database='postgres', expected_role=role, retain_revisions=True)
+
+        reader = hosted_as(TRIAL_READER)
+        transport = SimpleNamespace(put_structured=hosted_as(TRIAL_WRITER).put_structured,
+                                    read_structured_authenticated=reader.read_structured_authenticated)
+        result = ActiveStructuredWorker(self.repo, transport, origin_id=TRIAL_ORIGIN).cycle(self.anchor)
+        self.assertEqual(result['acknowledged'], 2)
+        self.assertEqual(count_before, 0)
+        self.assertEqual(self.store.archived_quote_count(started), count_before)
+        with self.admin() as db:
+            local, = db.execute("""SELECT r.source_time, r.raw_payload, r.payload AS raw_data,
+                       r.content_hash AS raw_hash, o.id, o.payload, o.content_hash
+                FROM raw.events r JOIN ops.outbox o ON o.origin_id=r.origin_id
+                    AND o.generation_id=r.generation_id AND o.payload->>'event_id'=r.event_id
+                WHERE r.origin_id=%s AND r.event_id=%s AND o.entity_type='core.protected_evidence'
+                    AND o.acknowledged_at IS NOT NULL""", (TRIAL_ORIGIN, quote['event_id'])).fetchall()
+        self.assertEqual(local['source_time'], quote['source_time'])
+        self.assertEqual(local['raw_payload'], quote['raw_payload'])
+        self.assertEqual(local['raw_data'], {'data': quote['payload'], 'provenance': quote['provenance']})
+        self.assertEqual(local['raw_hash'], committed['content_hash'])
+        self.assertEqual(local['content_hash'], committed['content_hash'])
+        self.assertEqual(local['payload']['payload']['data'], quote['payload'])
+        self.assertEqual(local['payload']['payload']['provenance'], quote['provenance'])
+        archived, = reader.read_revisions([local['id']], max_bytes=256*1024, timeout_seconds=4)
+        self.assertEqual(archived['entity_type'], 'core.protected_evidence')
+        self.assertEqual(archived['content_hash'], local['content_hash'])
+        self.assertEqual(archived['payload'], local['payload'])
+
     def test_display_before_commit_and_verified_quote_ack(self):
         import asyncio
         import json

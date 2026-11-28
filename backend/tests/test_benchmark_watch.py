@@ -53,6 +53,26 @@ class BenchmarkLease(unittest.TestCase):
         self.watch.session_id = session
         return session
 
+    def test_genuine_pg17_role_refusal_retries_only_the_desired_feed_lookup(self):
+        import psycopg
+        from postgres.config import Settings
+        from postgres.feed_controls import desired_feeds
+        from postgres.store import Store
+
+        if self.external:
+            self.skipTest('role cap experiment requires its own disposable PostgreSQL cluster')
+        app = Store(Settings(data_mode='pp_live', origin_id=DISPLAY_ORIGIN, dsn=self.app_dsn))
+        with self.admin() as admin:
+            cap = admin.execute("SELECT rolconnlimit AS n FROM pg_roles WHERE rolname='tradebot_app'").fetchone()['n']
+            try:
+                admin.execute('ALTER ROLE tradebot_app CONNECTION LIMIT 1')
+                with psycopg.connect(self.app_dsn) as occupant:
+                    with patch('postgres.feed_controls.time.sleep', side_effect=lambda _: occupant.close()) as backoff:
+                        self.assertEqual(desired_feeds(app), {'coinbase':True, 'robinhood':True, 'polymarket':True})
+                    backoff.assert_called_once_with(0.1)
+            finally:
+                admin.execute(f'ALTER ROLE tradebot_app CONNECTION LIMIT {int(cap)}')
+
     def test_inflight_owner_finishes_before_transfer_stale_owner_rejected_afterwards(self):
         from concurrent.futures import ThreadPoolExecutor
         from datetime import datetime, timezone

@@ -54,8 +54,10 @@ class OperatorSessionTests(unittest.IsolatedAsyncioTestCase):
         await control.start(max_seconds=5)
         await asyncio.wait_for(control._task, 2)
         self.assertEqual(control.state()['failure_code'], 'polymarket_discovery.http_429')
+        self.assertFalse(control.state()['failure_acknowledged'])
         await control.stop()
         self.assertEqual(control.state()['failure_code'], 'polymarket_discovery.http_429')
+        self.assertTrue(control.state()['failure_acknowledged'])
         await control.start(max_seconds=5)
         self.assertIsNone(control.state()['failure_code'])
         await control.stop()
@@ -81,6 +83,31 @@ class OperatorSessionTests(unittest.IsolatedAsyncioTestCase):
             await control.stop()
         with self.assertRaises(SessionStopUnproven):
             await control.start(max_seconds=5)
+
+    async def test_failed_explicit_off_cannot_authorize_restart(self):
+        async def fail(*_):
+            raise LiveDiagnostic('selected_feeds', 'database_connection_limit')
+
+        calls = 0
+        def off():
+            nonlocal calls
+            calls += 1
+            if calls in (2, 4):
+                raise RuntimeError('unavailable')
+            return {'collector_enabled':False}
+
+        control = OperatorSession(fail, off)
+        await control.start(max_seconds=5)
+        await control._task
+        for attempt in range(2):
+            with self.assertRaises(SessionStopUnproven):
+                await control.stop()
+            self.assertFalse(control.state()['failure_acknowledged'])
+            with self.assertRaises(SessionStopUnproven):
+                await control.start(max_seconds=5)
+            if attempt == 0:
+                await control.stop()
+                self.assertTrue(control.state()['failure_acknowledged'])
 
     async def test_invalid_deadlines_never_start(self):
         control = OperatorSession(lambda *_: None, lambda: {'collector_enabled': False})

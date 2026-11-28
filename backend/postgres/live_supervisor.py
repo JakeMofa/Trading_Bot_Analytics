@@ -19,7 +19,8 @@ from .rehearsal_profile import WATCH_LEASE_SECONDS
 from . import benchmark_telemetry as metrics
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
-from .live_diagnostics import CollectorHold, LiveDiagnostic, diagnose
+from .live_diagnostics import (CollectorHold, LiveDiagnostic, OwnershipConnectionLimit,
+                               READ_CAPACITY_BACKOFF, connection_capacity, diagnose)
 
 
 async def _pause_or_stop(stop: asyncio.Event, seconds: float):
@@ -54,13 +55,24 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
     if not 1 <= market_interval <= 10 or not 60 <= candle_interval <= 300:
         raise ValueError('source cadence outside qualified bounds')
 
+    async def read_ownership():
+        for delay in READ_CAPACITY_BACKOFF:
+            try:
+                return await asyncio.to_thread(owner_check)
+            except OwnershipConnectionLimit:
+                if delay is None:
+                    raise
+                await asyncio.sleep(delay)
+
     async def assert_fence():
         # The operator callback checks the session ID, durable enable flag,
         # and lease expiry together in one database read.
         try:
-            owned = await asyncio.wait_for(asyncio.to_thread(owner_check), timeout=2)
+            owned = await asyncio.wait_for(read_ownership(), timeout=2)
         except TimeoutError:
             raise LiveDiagnostic('ownership', 'timeout') from None
+        except OwnershipConnectionLimit:
+            raise LiveDiagnostic('ownership', 'database_connection_limit') from None
         except PostgresError as error:
             category = 'timeout' if error.sqlstate == '57014' else 'database_unavailable'
             raise LiveDiagnostic('ownership', category) from None
@@ -154,6 +166,13 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                 if error:
                     if isinstance(error, LiveDiagnostic):
                         raise error from None
+                    if names[task] == 'selected_feeds' and isinstance(error, PostgresError):
+                        # Only the typed SQLSTATE or an exact native startup
+                        # failure identifies a capacity refusal.
+                        category = ('database_connection_limit' if connection_capacity(error)
+                                    else 'timeout' if error.sqlstate == '57014'
+                                    else 'database_unavailable')
+                        raise LiveDiagnostic('selected_feeds', category) from None
                     raise diagnose(names[task], error) from None
                 if not stop.is_set():
                     raise LiveDiagnostic(names[task], 'ended')

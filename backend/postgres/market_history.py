@@ -147,17 +147,16 @@ def merge(pages, *, limit, scope):
     return items, cursor
 
 
-class MarketHistory:
-    def __init__(self, store, raw_factory=None):
-        self.store, self.raw_factory = store, raw_factory
+class BoundedHistoryReader:
+    def __init__(self):
         self.slot = BoundedSemaphore(1)
 
-    async def read_async(self, window, cursor, limit):
+    async def read_async(self, *args, **kwargs):
         # Reserve before submitting to the executor; a disconnected browser
         # cannot free the slot while its background database read is running.
         if not self.slot.acquire(blocking=False):
             raise HistoryError('history_busy', 'market history reader busy')
-        task = asyncio.create_task(asyncio.to_thread(self._read, window, cursor, limit))
+        task = asyncio.create_task(asyncio.to_thread(self._read, *args, **kwargs))
         def finished(done):
             self.slot.release()
             if not done.cancelled():
@@ -165,13 +164,19 @@ class MarketHistory:
         task.add_done_callback(finished)
         return await asyncio.shield(task)
 
-    def read(self, window, cursor, limit):
+    def read(self, *args, **kwargs):
         if not self.slot.acquire(blocking=False):
             raise HistoryError('history_busy', 'market history reader busy')
         try:
-            return self._read(window, cursor, limit)
+            return self._read(*args, **kwargs)
         finally:
             self.slot.release()
+
+
+class MarketHistory(BoundedHistoryReader):
+    def __init__(self, store, raw_factory=None):
+        super().__init__()
+        self.store, self.raw_factory = store, raw_factory
 
     def _read(self, window, cursor, limit):
         origin = self.store.settings.origin_id

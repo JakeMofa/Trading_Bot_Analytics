@@ -32,7 +32,8 @@ async def run_watch_sources(store, stop, runners, desired=None, effective=None, 
     if effective is None:
         from .feed_controls import record_effective
 
-        effective = record_effective
+        def effective(source_store, component, state):
+            return record_effective(source_store, component, state, session_id=source_store.producer_session_id)
     # A source may have multiple independent readers, e.g. Coinbase trades and
     # candles. Source pause drains each reader without cancelling other sources.
     active = {}

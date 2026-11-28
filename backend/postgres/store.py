@@ -29,9 +29,14 @@ class StorageHold(RuntimeError):
 
 
 class Store:
-    def __init__(self, settings):
+    def __init__(self, settings, *, producer_session_id=None):
+        self._producer_session_id = producer_session_id
         self.settings = settings
         self.origin = settings.origin_id
+
+    @property
+    def producer_session_id(self):
+        return self._producer_session_id
 
     def connection(self, readonly=False):
         from .connection import connect
@@ -101,7 +106,7 @@ class Store:
         # Lock the pointer before looking up its generation. A joined SELECT can
         # start on the old generation snapshot, wait for a concurrent switch,
         # then find no matching generation for the updated writer row.
-        writer = db.execute('''SELECT generation_id,collector_enabled,
+        writer = db.execute('''SELECT generation_id,collector_enabled,collector_session_id::text AS session_id,
             collector_lease_expires_at>clock_timestamp() AS lease_valid
             FROM ops.writer_state WHERE origin_id=%s FOR SHARE''',
             (self.origin,)).fetchone()
@@ -153,8 +158,15 @@ class Store:
         payload = {'data': event['payload'], 'provenance': event['provenance']}
         immutable = {key: event.get(key) for key in ('source', 'event_id', 'kind', 'market_id', 'symbol', 'source_time', 'price', 'size', 'payload', 'raw_payload', 'provenance')}
         content_hash = digest(immutable)
+        from .cloud_origin_binding import DISPLAY_ORIGIN
         with event_transaction(self) as db:
             writer = self._locked_writer(db)
+            # This shared row lock also serializes owner transfer and slot swaps.
+            # A valid session follows its writer to the new slot after rotation.
+            if self.origin == DISPLAY_ORIGIN and (
+                self.producer_session_id is None or not writer or writer['session_id'] != self.producer_session_id
+            ):
+                raise StorageHold('Benchmark source writer session no longer owns this generation')
             if not writer or writer['state'] != 'collecting':
                 raise ValueError('explicit lifecycle bootstrap required before ingestion')
             if self.settings.data_mode == 'pp_live' and not (writer['collector_enabled'] and writer['lease_valid']):

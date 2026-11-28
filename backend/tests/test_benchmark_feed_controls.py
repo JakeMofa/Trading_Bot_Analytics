@@ -45,7 +45,7 @@ class FeedControlTests(unittest.TestCase):
         def connection():
             yield db
         self.store.connection=connection
-        controls.record_effective(self.store,'robinhood','retrying')
+        controls.record_effective(self.store,'robinhood','retrying',session_id='6e119518-8485-4fbd-87bb-6dfb168b00e0')
         self.assertEqual(db.execute.call_args.args[1][:2],('feed_actual:robinhood','retrying'))
         state=controls._state([{'session':'live','enabled':True,'worker':'feed_actual:robinhood',
                                 'cursor':{'state':'retrying','session':'live'}}])

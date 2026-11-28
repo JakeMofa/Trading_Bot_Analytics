@@ -30,7 +30,8 @@ class BenchmarkLease(unittest.TestCase):
                 ).fetchone()
             )
         self.anchor = str(self.repo.bootstrap(DISPLAY_ORIGIN)['generation_id'])
-        self.addCleanup(self.cleanup_origin, DISPLAY_ORIGIN, [self.anchor])
+        self.generations = [self.anchor]
+        self.addCleanup(self.cleanup_origin, DISPLAY_ORIGIN, self.generations)
         self.watch = WatchLease(self.repo, self.anchor)
         self.sample = self.enterContext(
             patch('postgres.pp_space.sample', return_value={'space_hold': None})
@@ -47,6 +48,97 @@ class BenchmarkLease(unittest.TestCase):
         )
         self.watch.session_id = session
         return session
+
+    def test_inflight_owner_finishes_before_transfer_stale_owner_rejected_afterwards(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from datetime import datetime, timezone
+        from threading import Event
+        from postgres.config import Settings
+        from postgres.feed_controls import record_effective
+        from postgres.live_contract import coinbase_ticker
+        from postgres.store import Store, StorageHold
+
+        def cleanup_rows():
+            with self.admin() as db:
+                for table in ('ops.outbox', 'core.current_prices', 'ops.worker_checkpoints'):
+                    db.execute('DELETE FROM ' + table + ' WHERE origin_id=%s', (DISPLAY_ORIGIN,))
+
+        self.addCleanup(cleanup_rows)
+        settings = Settings(data_mode='pp_live', origin_id=DISPLAY_ORIGIN, dsn=self.app_dsn)
+
+        def tick():
+            at = datetime.now(timezone.utc).isoformat()
+            return coinbase_ticker(
+                {
+                    'type': 'ticker',
+                    'product_id': 'BTC-USD',
+                    'time': at,
+                    'price': '100000.25',
+                    'trade_id': uuid.uuid4().hex,
+                },
+                at,
+            )
+
+        first = self.enable()
+        old = Store(settings, producer_session_id=first)
+        acquired, proceed = Event(), Event()
+        real_lock = old._locked_writer
+
+        def arm_barrier(db):
+            row = real_lock(db)
+            acquired.set()
+            if not proceed.wait(3):
+                raise RuntimeError('owner transfer barrier expired')
+            return row
+
+        with (
+            ThreadPoolExecutor(max_workers=2) as pool,
+            patch.object(old, '_locked_writer', side_effect=arm_barrier),
+        ):
+            inflight = pool.submit(old.ingest, tick())
+            self.assertTrue(acquired.wait(2))
+            release_started = Event()
+
+            def release_owner():
+                release_started.set()
+                self.watch.release(first)
+
+            releasing = pool.submit(release_owner)
+            self.assertTrue(release_started.wait(2))
+            try:
+                with self.assertRaises(TimeoutError):
+                    releasing.result(timeout=0.08)
+            finally:
+                proceed.set()
+            self.assertEqual(str(inflight.result(2)['generation_id']), self.anchor)
+            releasing.result(2)
+        second = self.enable()
+        with self.assertRaisesRegex(StorageHold, 'session no longer owns'):
+            old.ingest(tick())
+        with self.assertRaisesRegex(StorageHold, 'session no longer owns'):
+            Store(settings).ingest(tick())
+        current = Store(settings, producer_session_id=second)
+        record_effective(current, 'coinbase_stream', 'running', session_id=second)
+        record_effective(old, 'coinbase_stream', 'paused', session_id=first)
+        with self.admin() as db:
+            actual = db.execute(
+                "SELECT cursor FROM ops.worker_checkpoints WHERE origin_id=%s AND worker='feed_actual:coinbase_stream'",
+                (DISPLAY_ORIGIN,),
+            ).fetchone()['cursor']
+            self.assertEqual(actual['state'], 'running')
+            db.execute(
+                "UPDATE archive.generations SET started_at=clock_timestamp()-interval '73 hours' WHERE generation_id=%s",
+                (self.anchor,),
+            )
+        self.assertEqual(
+            self.repo.switch_if_due(DISPLAY_ORIGIN, require_live_lease=True)['status'], 'switched'
+        )
+        successor = str(self.repo.collector_state(DISPLAY_ORIGIN)['generation_id'])
+        self.generations.append(successor)
+        self.assertNotEqual(successor, self.anchor)
+        self.assertTrue(self.repo.owns_collector(DISPLAY_ORIGIN, second))
+        self.assertEqual(str(current.ingest(tick())['generation_id']), successor)
+        self.watch.release(second)
 
     def test_renewal_expiry_reentry_and_operator_off(self):
         first = self.enable()

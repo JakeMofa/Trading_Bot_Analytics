@@ -82,7 +82,9 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
             return repository.disable_collector(origin)
 
         async with httpx.AsyncClient(timeout=4, follow_redirects=False) as client:
-            return await run_session(store, client, stop, owner_check=owner_check,
+            # Never change an object another source thread may retain after stop.
+            source_store = Store(store.settings, producer_session_id=session_id) if watch else store
+            return await run_session(source_store, client, stop, owner_check=owner_check,
                          enable_collector=enable,
                          disable_collector=disable,
                          max_seconds=max_seconds,

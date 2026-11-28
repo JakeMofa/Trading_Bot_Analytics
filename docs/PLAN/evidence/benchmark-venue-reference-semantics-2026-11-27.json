@@ -1,0 +1,15 @@
+{
+  "scope": "Official US docs, local source and previously collected fixture evidence. No live Benchmark probe.",
+  "official_crypto_rules": "https://docs.polymarket.us/faqs/crypto-faqs.md",
+  "official_market_schema": "https://docs.polymarket.us/api-reference/oapi-schemas/markets-schema.json",
+  "official_index_candle_schema": "https://docs.polymarket.us/api-reference/oapi-schemas/asset-prices-schema.json",
+  "prior_repository_evidence": ["docs/DATA_ACCESS_FINDINGS.md", "docs/PLAN/evidence/pp-benchmark-prediction-history-and-feed-split-2026-11-27.json", "research/samples/polymarket_resolved.json"],
+  "prior_fact": "BTC UP/DOWN opening and ending measurements use the simple mean of 60 once-per-second BRTI publications in [T-60 seconds,T), rounded to the nearest two decimals. Equality resolves UP.",
+  "new_observation": "During the final minute the matching US website visibly changed its BTC label to 60s avg, while the Benchmark dashboard continued to show the latest nonempty 1s close.",
+  "matching_page": "https://polymarket.us/event/btc-updown-15m-2026-11-28-0530z",
+  "current_display": {"path": "/v1/asset-prices/history", "asset": "crypto:btc", "currency":"USD", "field":"series[].candles[].close", "time_field":"timestamp (bucket start)", "selection":"latest source second with tickCount > 0", "rounding":"presentation only; raw decimal strings, OHLC, count, and receipt times persist"},
+  "anchor_fields": {"index":"assetPriceTerms.indexSymbol", "open":"assetPriceTerms.priceToBeat", "final":"assetPriceTerms.settlementPrice after official resolution", "price_precision":"assetPriceTerms.priceDecimals"},
+  "schema_gap": "The index history schema contains OHLC and count, with empty seconds carried forward. No rolling arithmetic mean, named benchmark identity, raw individual ticks, or publication-time field is documented in this series. The market schema publishes opening and settlement anchors but no streaming final-minute average. pendingPriceToBeat is for commodities.",
+  "validation": "Label a locally computed value as estimated. Require exact UTC second coverage [T-60,T), source and precise decimal prices compatible with the market index, and track revisions by source second and receipt cutoff. A conservative first test uses one tick per bucket. An absent second, zero-count carry or ambiguous multi-tick/revised bucket yields incomplete. Compare open and close with official anchors across multiple resolved markets, including gaps and ties, and verify the venue's intraminute display behavior separately. Do not infer official outcomes or train on later-known values.",
+  "previous_offline_coverage": {"market_utc": ["2026-11-28T03:00:00Z","2026-11-28T03:15:00Z"], "observed_unique_seconds":900, "positive_tick_rows":900, "limits":"The stored aggregate does not prove tickCount=1, method parity, or exact 05:30-window coverage."}
+}

@@ -1,0 +1,87 @@
+{
+  "origin": "pp-live-pp-benchmark-watch",
+  "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+  "records": 500,
+  "mode": "two independently authenticated fresh read-only sessions",
+  "runs": [
+    {
+      "started_at": "2026-11-28T05:32:33.612434+00:00",
+      "local_role": "tradebot_app",
+      "writer_on_before": true,
+      "writer_on_after": true,
+      "writer_observed_before": "2026-11-28T05:32:33.801969+00:00",
+      "writer_observed_after": "2026-11-28T05:32:37.481557+00:00",
+      "epoch": 2,
+      "session_sha256": "022ee20fe85a2b905bd784ee1c4b116ee238ff927462f602e207c873c291f9ce",
+      "pin": {
+        "first_local_outbox_id": 325065,
+        "last_local_outbox_id": 325564,
+        "ordered_ids_sha256": "4256879e32de3d4ff6beb8b09439188e03a9384e66d67503e0c176538d22879e",
+        "canonical_bytes": 1574209,
+        "canonical_sha256": "4d153ba286b950cb90ebc2521a5c2ac37655a4744e6d7ec81508447e805c37f1",
+        "ordered_entity_type_id_content_hash_sha256": "f7d1c8e1cf197b3fcb3c80643b634572bbbdfa1abbbaeacdb00c3c1444d0a6f2"
+      },
+      "archive_read_and_authenticate_s": 3.1409094789996743,
+      "archive_nonoverlapping_components": {
+        "fresh_hosted_connection_s": 0.5919368739705533,
+        "local_input_validation_s": 0.6923179329605773,
+        "client_revision_decode_integrity_s": 0.43956781103042886,
+        "remaining_hosted_sql_transfer_driver_projection_checks_s": 1.4170868610381149
+      },
+      "local_prepare_s": 0.6809743199846707,
+      "final_bytes_compare_s": 0.03030568198300898,
+      "total_s": 3.852189480967354,
+      "under_four_seconds": true,
+      "archive_bytes_with_newer_revisions": 1575564
+    },
+    {
+      "started_at": "2026-11-28T05:32:37.485902+00:00",
+      "local_role": "tradebot_app",
+      "writer_on_before": true,
+      "writer_on_after": true,
+      "writer_observed_before": "2026-11-28T05:32:37.499986+00:00",
+      "writer_observed_after": "2026-11-28T05:32:40.214807+00:00",
+      "epoch": 2,
+      "session_sha256": "022ee20fe85a2b905bd784ee1c4b116ee238ff927462f602e207c873c291f9ce",
+      "pin": {
+        "first_local_outbox_id": 325065,
+        "last_local_outbox_id": 325564,
+        "ordered_ids_sha256": "4256879e32de3d4ff6beb8b09439188e03a9384e66d67503e0c176538d22879e",
+        "canonical_bytes": 1574209,
+        "canonical_sha256": "4d153ba286b950cb90ebc2521a5c2ac37655a4744e6d7ec81508447e805c37f1",
+        "ordered_entity_type_id_content_hash_sha256": "f7d1c8e1cf197b3fcb3c80643b634572bbbdfa1abbbaeacdb00c3c1444d0a6f2"
+      },
+      "archive_read_and_authenticate_s": 2.4502552930498496,
+      "archive_nonoverlapping_components": {
+        "fresh_hosted_connection_s": 0.32390161900548264,
+        "local_input_validation_s": 0.3348646010272205,
+        "client_revision_decode_integrity_s": 0.40579002705635503,
+        "remaining_hosted_sql_transfer_driver_projection_checks_s": 1.3856990459607914
+      },
+      "local_prepare_s": 0.19521433499176055,
+      "final_bytes_compare_s": 0.06963739695493132,
+      "total_s": 2.7151070249965414,
+      "under_four_seconds": true,
+      "archive_bytes_with_newer_revisions": 1575564
+    }
+  ],
+  "separate_decision_cadence": {
+    "market_id": "2982855",
+    "rows": 170,
+    "row_limit_reached": false,
+    "first_as_of": "2026-11-28T05:15:28.682063+00:00",
+    "last_as_of": "2026-11-28T05:29:55.129723+00:00",
+    "as_of_spacing_s": {
+      "min": 5.059435,
+      "median": 5.092954,
+      "p95": 5.251522,
+      "max": 5.89821
+    },
+    "as_of_to_application_created_ms": {
+      "min": 16.813000000000002,
+      "median": 24.6545,
+      "p95": 51.913000000000004,
+      "max": 263.312
+    }
+  }
+}

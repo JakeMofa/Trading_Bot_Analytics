@@ -1,0 +1,110 @@
+{
+  "after": {
+    "containers": {
+      "calculation": {
+        "id": "96b1843387b729577c7947ad9e824b93caa5af9682e39fe3c0a12547950e3e50",
+        "pid": 2929162,
+        "started_at": "2026-11-28T05:07:06.369683569Z"
+      },
+      "lifecycle": {
+        "id": "a04e7ed3cd311974c1b12ad7513efffb85a4084c4c9d64b19b6cd30b2a0203bb",
+        "pid": 2929222,
+        "started_at": "2026-11-28T05:07:06.606911136Z"
+      },
+      "operator": {
+        "id": "a8bbb7053fcc3e9f5d2f2fa5bbdce70f70ac5c5b0d6b00bb4d7cdbbeceda7ef0",
+        "pid": 2974491,
+        "started_at": "2026-11-28T05:39:33.42527265Z"
+      },
+      "postgres": {
+        "id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+        "pid": 8976,
+        "started_at": "2026-11-25T21:08:32.469460858Z"
+      }
+    },
+    "schema": {
+      "count": 12,
+      "digest": "edfa9dc00173b024c1fb01af4793e90a"
+    },
+    "writer": {
+      "enabled": true,
+      "epoch": 4,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "session": "2a0867f5-2b41-4402-91fc-8576010a427d"
+    }
+  },
+  "api": {
+    "api_artifact_sha256": "ae4b2b6fe2a650b9bbac466a4d0a528326fc1fe4b8bdb4fd133dda13939710c9",
+    "api_image": "sha256:acef01bf72bf3b5b4a4541c90a9c28022a6599c1a91fe567e8128a89064cfb61",
+    "api_schema_sha256": "26f7315bcba9f7a5e67abfa19ff08a0f5dbe617076c8b3fd53fba37017a4ef6b",
+    "api_source_sha": "9a1c2dd5d5a34b00d273b67511949943a92c1ab4",
+    "collector_artifact_sha256": "aca7739d06d80caf0a958a9a874e727102ce79c8353f6c9ee0a7ef0df3a5b6a4",
+    "collector_image": "sha256:91f5c7df330eabbdd44276931035a84bcd03c09e264e946f8a7e82ff608f3919",
+    "collector_source_sha": "7bff42a3797da917eb1929e28afccb729ccafd3a",
+    "initial_a": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "instance": "tradebot-preprod-benchmark-4gb",
+    "nonce": "efb4cc0a-ec06-4ecc-ab3c-becfec538057",
+    "origin": "pp-live-pp-benchmark-watch",
+    "scope": "benchmark-api-component-v1",
+    "version": 1
+  },
+  "api_after": {
+    "id": "0ccb64bf59d8f0df2061e545de854aa61fb3fd7d381edccc49ebd160b3f8efb1",
+    "image": "sha256:acef01bf72bf3b5b4a4541c90a9c28022a6599c1a91fe567e8128a89064cfb61",
+    "pid": 2980864,
+    "started_at": "2026-11-28T05:43:15.918335281Z"
+  },
+  "api_before": {
+    "id": "1c813db1b957e1d41e1ec6be6d574fe1ba159302c94814fc75b6651fef88103b",
+    "image": "sha256:91f5c7df330eabbdd44276931035a84bcd03c09e264e946f8a7e82ff608f3919",
+    "pid": 2929077,
+    "started_at": "2026-11-28T05:07:06.03186129Z"
+  },
+  "before": {
+    "containers": {
+      "calculation": {
+        "id": "96b1843387b729577c7947ad9e824b93caa5af9682e39fe3c0a12547950e3e50",
+        "pid": 2929162,
+        "started_at": "2026-11-28T05:07:06.369683569Z"
+      },
+      "lifecycle": {
+        "id": "a04e7ed3cd311974c1b12ad7513efffb85a4084c4c9d64b19b6cd30b2a0203bb",
+        "pid": 2929222,
+        "started_at": "2026-11-28T05:07:06.606911136Z"
+      },
+      "operator": {
+        "id": "a8bbb7053fcc3e9f5d2f2fa5bbdce70f70ac5c5b0d6b00bb4d7cdbbeceda7ef0",
+        "pid": 2974491,
+        "started_at": "2026-11-28T05:39:33.42527265Z"
+      },
+      "postgres": {
+        "id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+        "pid": 8976,
+        "started_at": "2026-11-25T21:08:32.469460858Z"
+      }
+    },
+    "schema": {
+      "count": 12,
+      "digest": "edfa9dc00173b024c1fb01af4793e90a"
+    },
+    "writer": {
+      "enabled": true,
+      "epoch": 4,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "session": "2a0867f5-2b41-4402-91fc-8576010a427d"
+    }
+  },
+  "gate": "PP_BENCHMARK_API_UPDATE_PASS",
+  "progress_after": {
+    "latest_outbox_id": 362683,
+    "utc": "2026-11-28T05:43:27.038015+00:00",
+    "verified_rows": 37523
+  },
+  "progress_before": {
+    "latest_outbox_id": 362152,
+    "utc": "2026-11-28T05:43:04.977259+00:00",
+    "verified_rows": 37021
+  },
+  "accepted_utc": "2026-11-28T05:43:27.080496+00:00",
+  "api_tag": "v0.2.0-pp.benchmark.9"
+}

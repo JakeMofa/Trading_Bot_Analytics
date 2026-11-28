@@ -6,6 +6,20 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 72-hour retirement and combined-release A/B acceptance still need proof.
 [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
 
+The [delivery checklist](PLAN/INTELLIGENCE_REBUILD_PLAN.md#delivery-checklist)
+separates merged implementation from live acceptance. Exact `.7` source
+`7bff42a` passed CI and Benchmark CD 46110209884. The watch ran from
+11:08:18 p.m. Central and completed the full-market sampled throughput and
+exact readback checks. It became OFF at 11:34:54 p.m. after the local app role
+hit its eight-connection limit; diagnostics and connection admission are being
+corrected before unattended readiness. All 20 retained generations matched
+before admission. The collector recovered at 11:39:48 p.m. Central. API-only
+PR #253 and layout PR #255 passed live `.9` replacement at 11:43:27 without
+changing that collector session or process. Browser reconnection caused a
+6.37-second display gap. Capacity corrections #256 and #257 merged with
+qualification tests; live adoption remains pending and unattended readiness open.
+See the current checkpoint for evidence and limits.
+
 ### Dashboard hydration query and health checks
 
 Dashboard hydration uses one read session, skips candle rows the response
@@ -32,8 +46,9 @@ The operator shares six physical app sessions across its feed and control writes
 The qualified operator entrypoint builds a separate release image, checks
 migration, host and writer identity, and replaces only the API service.
 Disposable tests passed migration/build drift rejection and isolated API
-rollback both before and after HTTP readiness. Live replacement, collector
-continuity and browser reconnection remain to be measured on Benchmark.
+rollback both before and after HTTP readiness. Live `.9` replacement preserved
+collector identity and write/ACK progress, with a measured 6.37-second browser
+display gap. The current checkpoint links the exact acceptance receipt.
 [Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md#dashboard-only-replacement-while-collecting).
 
 ## November 27 — Ignore local environment file copies

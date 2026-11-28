@@ -45,41 +45,43 @@ class LifetimeInventoryTests(unittest.TestCase):
                        n::text AS payload, n::text AS event_id, 'feed' AS source, 'gen' AS generation_id, 'hash' AS content_hash, CASE WHEN n<=10100 THEN now() END AS acknowledged_at
                        FROM generate_series(1,10103) n""")
             class FixtureActions(LinuxActions):
-                def _outbox_channel(self, budget):
+                def _outbox_channel(self, budget, *, require_reader=False):
+                    if require_reader:
+                        # Keys are public catalogue identities. Only the two
+                        # connection-private fixture lookups need substitution.
+                        from contextlib import nullcontext
+                        def catalog(query):
+                            for name in ('ops.outbox','raw.events'):
+                                query=query.replace(f"to_regclass('{name}')","to_regclass('pg_temp.inventory_fixture')")
+                            return [db.execute(query).fetchone()[0]]
+                        return nullcontext(catalog)
                     return fixture_channel(db,'pg_temp.inventory_fixture',[])
 
-                def _metadata_digest(self,budget,table,identity,staging):
+                def _metadata_digest(self,budget,table,identity,staging,*,exchange=None):
                     from controller import Budget
                     from metadata_inventory import metadata_digest
                     scoped=table=='archive.generated_outbox_storage'
-                    connection=(psycopg.connect(os.environ['TRADEBOT_TEST_READER_DSN'],autocommit=True)
-                                if scoped else db)
-                    def exchange(statement):
-                        if not scoped:
-                            if statement.startswith('BEGIN '):return []
-                            if statement=='CLOSE metadata_hashes; COMMIT;':statement='CLOSE metadata_hashes;'
-                            statement=statement.replace('raw.events','pg_temp.inventory_fixture')
-                        cursor=connection.execute(statement)
-                        return [row[0] for row in cursor.fetchall()] if cursor.description else []
-                    try:return metadata_digest(exchange,table,identity,Budget(30),directory)
-                    finally:
-                        if scoped:connection.close()
+                    if not scoped:
+                        assert exchange is not None
+                        def local(query):
+                            if query.startswith('BEGIN '):return []
+                            if query == 'CLOSE metadata_hashes; COMMIT;':query='CLOSE metadata_hashes;'
+                            return exchange(query.replace('raw.events','pg_temp.inventory_fixture'))
+                        return metadata_digest(local,table,identity,Budget(30),directory)
+                    assert exchange is None
+                    with psycopg.connect(os.environ['TRADEBOT_TEST_READER_DSN'],autocommit=True,
+                                         options='-c default_transaction_read_only=on') as reader:
+                        assert reader.execute("SELECT session_user,current_setting('transaction_read_only')").fetchone()==('tradebot_reader','on')
+                        def restricted(query):
+                            cursor=reader.execute(query)
+                            return [row[0] for row in cursor.fetchall()] if cursor.description else []
+                        return metadata_digest(restricted,table,identity,Budget(30),directory)
 
                 def _sql(self, budget, query):
                     value = db.execute(query.replace('ops.outbox', 'pg_temp.inventory_fixture').replace('raw.events','pg_temp.inventory_fixture')).fetchone()[0]
                     if isinstance(value, bool):
                         return 't' if value else 'f'
                     return json.dumps(value)
-                def _reader_sql(self, budget, query):
-                    # The outbox fixture uses the admin session's temp table;
-                    # generated-storage preservation uses its real reader ACL.
-                    with psycopg.connect(os.environ['TRADEBOT_TEST_READER_DSN'],connect_timeout=5,
-                                         options='-c default_transaction_read_only=on') as reader:
-                        identity=reader.execute("SELECT current_user,current_setting('transaction_read_only')").fetchone()
-                        if identity!=('tradebot_reader','on'):
-                            raise AssertionError('inventory fixture reader identity/read-only mismatch')
-                        value=reader.execute(query).fetchone()[0]
-                    return ('t' if value else 'f') if isinstance(value,bool) else json.dumps(value)
             from tempfile import TemporaryDirectory
             directory=self.enterContext(TemporaryDirectory())
             actions = FixtureActions()
@@ -200,9 +202,11 @@ class BoundedOutboxTests(unittest.TestCase):
                     outer.update(inner.hexdigest().encode('ascii'))
             self.assertEqual(proof, dict(count=rows, pending=pending, digest=outer.hexdigest()))
             self.assertEqual(rows, 235755)
-            pages = [q for q in actions.queries if 'WITH hashes AS MATERIALIZED' in q]
-            self.assertEqual(len(pages),231)
-            plan = db.execute('EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON) '+pages[-1]).fetchone()[0][0]
+            pages = [q for q in actions.queries if q.startswith('DECLARE ')]
+            self.assertEqual(len(pages),1)
+            self.assertEqual(sum(q.startswith('FETCH FORWARD 4 ') for q in actions.queries),59)
+            ordered=pages[0].split('CURSOR FOR',1)[1].strip().removesuffix(';')
+            plan = db.execute('EXPLAIN (ANALYZE, TIMING OFF, FORMAT JSON) '+ordered+' LIMIT 5').fetchone()[0][0]
             nodes = []
             def collect(node):
                 nodes.append(node)
@@ -210,7 +214,7 @@ class BoundedOutboxTests(unittest.TestCase):
                     collect(child)
             collect(plan['Plan'])
             self.assertTrue(any('Index Cond' in n and 'id >=' in n['Index Cond'] and
-                                'id <=' in n['Index Cond'] and n['Actual Loops'] == 1 for n in nodes))
+                                'id <=' in n['Index Cond'] and 0<n['Actual Loops']<=4 for n in nodes))
             self.assertFalse(any(n['Node Type']=='Seq Scan' and n['Actual Loops']>1 and
                                  n.get('Relation Name')=='inventory_fixture' for n in nodes))
 
@@ -252,7 +256,7 @@ class BoundedOutboxTests(unittest.TestCase):
                     finally:
                         writer.execute("SELECT pg_advisory_unlock(%s)",(key,))
                     self.assertEqual(future.result(timeout=5),expected)
-                    self.assertEqual(sum('WITH hashes AS MATERIALIZED' in q for q in actions.queries),2)
+                    self.assertEqual(sum(q.startswith('DECLARE ') for q in actions.queries),1)
                 with self.assertRaisesRegex(DeploymentHold,'unexpected_outbox_origin'):
                     OutboxFixture(writer,schema+'.entries')._ack_state(None)
             finally:
@@ -338,6 +342,32 @@ class ContainerOutboxChannelTests(unittest.TestCase):
             finally:
                 admin.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')
 
+    def test_normal_catalog_uses_restricted_backend_and_holds_gate_until_complete(self):
+        import subprocess
+        from controller import Budget
+        from linux_actions import WATCH_DIAGNOSTIC_LOCK
+        case=self
+        class CatalogueActions(LinuxActions):
+            @contextmanager
+            def _outbox_channel(self,budget,*,require_reader=False):
+                case.assertTrue(require_reader)
+                with super()._outbox_channel(budget,require_reader=require_reader) as exchange:
+                    case.assertEqual(exchange("SELECT json_build_array(session_user,current_setting('transaction_read_only'));"),
+                                     [['tradebot_reader','on']])
+                    check=subprocess.run(['docker','exec',self.pg_id,'flock','-n','-E','75','-F',
+                                          WATCH_DIAGNOSTIC_LOCK,'true'],timeout=5,capture_output=True)
+                    case.assertEqual(check.returncode,75)
+                    yield exchange
+        actions=CatalogueActions()
+        actions.pg_id=os.environ['TRADEBOT_TEST_INVENTORY_CONTAINER']
+        tables=['pg_catalog.pg_class','pg_catalog.missing_fixture_relation']
+        self.assertEqual(actions._inventory_catalog(Budget(30),tables),
+                         {'pg_catalog.pg_class':True,'pg_catalog.missing_fixture_relation':False})
+        # Closing the catalogue releases its one slot for the next channel.
+        check=subprocess.run(['docker','exec',actions.pg_id,'flock','-n','-E','75','-F',
+                              WATCH_DIAGNOSTIC_LOCK,'true'],timeout=5,capture_output=True)
+        self.assertEqual(check.returncode,0)
+
     def test_normal_controller_hashes_with_the_original_restricted_roles(self):
         from tempfile import TemporaryDirectory
         import psycopg
@@ -360,10 +390,17 @@ class ContainerOutboxChannelTests(unittest.TestCase):
                     budget=Budget(50)
                     with actions._outbox_channel(budget,require_reader=force) as exchange:
                         self.assertEqual(exchange("SELECT json_build_array(session_user,current_setting('transaction_read_only'));"),[[role,'on']])
+                        pid=exchange('SELECT to_json(pg_backend_pid());')[0]
                         digest=metadata_digest(exchange,table,'id',budget,directory)
-                    self.assertEqual(digest['count'],1100)
-                    if not force:original=digest
-                    else:self.assertEqual(digest,original)
+                        self.assertEqual(digest['count'],1100)
+                        # A second table digest on this physical connection sees
+                        # a fresh transaction snapshot after an independent commit.
+                        admin.execute(f'INSERT INTO {table} VALUES(1101)')
+                        updated=metadata_digest(exchange,table,'id',budget,directory)
+                        self.assertEqual(exchange('SELECT to_json(pg_backend_pid());'),[pid])
+                    self.assertEqual(updated['count'],1101)
+                    if not force:original=(digest,updated)
+                    else:self.assertEqual((digest,updated),original)
             finally:
                 admin.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')
 
@@ -449,3 +486,80 @@ class ContainerOutboxChannelTests(unittest.TestCase):
                                   'sh','-ec','test ! -e "/proc/$1"; rm -f "$2" "$2.frontend"','check-registration',str(pid),relay_pid_file],
                                  timeout=7)
             self.assertEqual(probe.returncode,0)
+
+
+@unittest.skipUnless(os.getenv('TRADEBOT_TEST_HISTORY_V2_DSN'), 'isolated PostgreSQL admin required')
+class LazyOutboxHashTests(unittest.TestCase):
+    def test_native_header_hashes_nothing_and_fetch_four_has_exact_bounded_calls(self):
+        self.exercise(unknown=False)
+
+    def test_native_unknown_manifest_is_rejected_before_composite_hashing(self):
+        self.exercise(unknown=True)
+
+    def exercise(self, *, unknown):
+        import hashlib
+        import uuid
+        import psycopg
+        from outbox_inventory import outbox_digests
+        schema='lazy_inventory_'+uuid.uuid4().hex
+        dsn=os.environ['TRADEBOT_TEST_HISTORY_V2_DSN']
+        with psycopg.connect(dsn,autocommit=True) as db:
+            db.execute("SET work_mem='2MB'; SET temp_file_limit='64MB'; SET statement_timeout='19s'; SET track_functions='all'")
+            db.execute(f'CREATE SCHEMA {schema}')
+            try:
+                db.execute(f'CREATE TABLE {schema}.entries(id bigint PRIMARY KEY,origin_id text,payload text,acknowledged_at timestamptz)')
+                # PostgreSQL truncates signed division toward zero: page zero
+                # can hold2047 IDs. Preserve that original bucket exactly.
+                ids=[-1024,*range(-1023,1024),1024,2048,4096,8192]
+                with db.cursor() as cursor:
+                    cursor.executemany(f"INSERT INTO {schema}.entries VALUES(%s,'generated-pp','generated',NULL)", [(n,) for n in ids])
+                if unknown:
+                    db.execute(f"INSERT INTO {schema}.entries VALUES(99999,'zzz-unapproved','generated',NULL)")
+                expected=db.execute(ORIGINAL_DIGEST.replace('inventory_fixture',schema+'.entries'),('generated-pp',)).fetchone()[0]
+                db.execute(f"""CREATE FUNCTION {schema}.tracked_hash(o {schema}.entries) RETURNS text
+                    LANGUAGE plpgsql STABLE AS $$BEGIN
+                    RETURN encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex');END$$""")
+                observations=[]
+                statements=[]
+                old_calls=0
+                full_hash="encode(sha256(convert_to(to_jsonb(o)::text,'UTF8')),'hex')"
+                def exchange(sql):
+                    nonlocal old_calls
+                    query=sql.replace('ops.outbox',schema+'.entries')
+                    if query.startswith('DECLARE '):
+                        self.assertEqual(query.count(full_hash),1)
+                        query=query.replace(full_hash,schema+'.tracked_hash(o)')
+                    statements.append(query)
+                    result=db.execute(query)
+                    values=[row[0] for row in result] if result.description else []
+                    if query.startswith('FETCH '):
+                        calls=db.execute("SELECT coalesce(sum(calls),0)::bigint FROM pg_stat_xact_user_functions "
+                            "WHERE schemaname=%s AND funcname='tracked_hash'",(schema,)).fetchone()[0]
+                        observations.append((query,values,calls-old_calls))
+                        old_calls=calls
+                    return values
+                try:
+                    if unknown:
+                        with self.assertRaisesRegex(DeploymentHold,'unexpected_outbox_origin'):
+                            outbox_digests(exchange,{'generated-pp'})
+                    else:
+                        proof=outbox_digests(exchange,{'generated-pp'})
+                        self.assertEqual(proof,{'generated-pp':expected})
+                    self.assertTrue(observations)
+                    self.assertTrue(observations[0][0].startswith('FETCH FORWARD 1 '))
+                    self.assertEqual(observations[0][2],0,'manifest delivery may not hash a composite')
+                    if unknown:
+                        self.assertEqual(len(observations),1)
+                        self.assertFalse(any(q.startswith('CLOSE ') for q in statements))
+                    else:
+                        self.assertTrue(all(q.startswith('FETCH FORWARD 4 ') for q,_,_ in observations[1:]))
+                        for _,rows,delta in observations[1:]:
+                            self.assertLessEqual(len(rows),4)
+                            self.assertEqual(delta,sum(row[5] for row in rows))
+                            self.assertLessEqual(delta,4*2047)
+                        self.assertEqual(sum(delta for _,_,delta in observations),len(ids))
+                        self.assertEqual(observations[-1][1],[],'native EOF must be consumed')
+                finally:
+                    db.execute('ROLLBACK')
+            finally:
+                db.execute(f'DROP SCHEMA {schema} CASCADE')

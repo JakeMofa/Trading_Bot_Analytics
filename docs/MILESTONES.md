@@ -49,6 +49,11 @@ The same containers remained installed; no recovery or A/B swap was performed.
   ordering/snapshot cases and twelve cursor/resource cases passed. Generated
   437,064-row parity took 4.363 seconds with one 30,816 KiB native sort; this
   is not a Benchmark timing or 72-hour capacity result.
+- [x] Measure #266 head's actual full native-stream pass: 78.867 seconds,
+  exactly matching all 11 tables/15 origins, with current A unchanged.
+- [ ] Qualify recovery headroom before deployment: two measured passes plus
+  23 seconds of cleanup reserve total 180.734 seconds before other recovery
+  work. Keep collection OFF; reduce session/transfer cost and test again.
 - [ ] Review a bounded fix, qualify recovery and sustained collection.
 - [ ] Prove the current three-feed A/B swap with dashboard/history reads.
 

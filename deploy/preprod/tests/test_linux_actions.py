@@ -3,6 +3,7 @@ from copy import deepcopy
 from dataclasses import replace
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -381,30 +382,59 @@ class ActionTests(unittest.TestCase):
                 self.actions.migrate(self.context,self.budget)
         self.assertFalse(self.actions.migrated)
 
-    def test_generated_storage_inventory_uses_reader_before_and_after_upgrade(self):
+    def test_complete_catalog_shared_metadata_channel_and_restricted_archive(self):
+        from contextlib import contextmanager
+        expected = {'core.markets','core.candles','core.current_prices','core.protected_evidence',
+                    'core.feature_snapshots','core.predictions','core.outcomes','raw.events',
+                    'core.snapshot_evidence','ops.outbox','archive.generated_outbox_storage'}
         for installed in (False,True):
-            with self.subTest(installed=installed):
-                def application(_,query):
-                    self.assertNotIn('generated_outbox_storage',query)
-                    self.assertTrue(query.startswith('SELECT to_regclass('))
-                    return 'f'
-                def reader(_,query):
-                    self.assertIn('archive.generated_outbox_storage',query)
-                    self.assertTrue(query.startswith('SELECT to_regclass('))
-                    return 't' if installed else 'f'
-                def digest(_,table,identity,directory):
-                    self.assertEqual(directory, self.context.staging)
-                    self.assertEqual(table,'archive.generated_outbox_storage')
-                    self.assertEqual(identity,"origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at")
-                    return {'count':2,'digest':'a'*64}
-                with patch.object(self.actions,'_sql',side_effect=application), \
-                     patch.object(self.actions,'_reader_sql',side_effect=reader) as read, \
-                     patch.object(self.actions,'_metadata_digest',side_effect=digest) as hashed:
+            calls = []
+            live_channel = []
+            @contextmanager
+            def channel(_, *, require_reader=False):
+                self.assertFalse(live_channel)
+                live_channel.append(require_reader)
+                calls.append(('channel', require_reader))
+                try:yield catalogue if require_reader else ordinary
+                finally:live_channel.pop()
+            def ordinary(query):
+                raise AssertionError('only mocked ordinary digest should use this channel')
+            def catalogue(query):
+                self.assertEqual(set(re.findall(r"to_regclass\('([^']+)'\)",query)),expected)
+                return [{table:installed for table in expected}]
+            def digest(exchange,table,identity,budget,directory):
+                self.assertEqual(directory,self.context.staging)
+                archive = table == 'archive.generated_outbox_storage'
+                self.assertIs(exchange,catalogue if archive else ordinary)
+                self.assertEqual(live_channel,[archive])
+                return {'count':2,'digest':'a'*64}
+            def outbox(unused):
+                self.assertFalse(live_channel)
+                calls.append(('outbox',None))
+                return {}
+            with self.subTest(installed=installed), \
+                 patch.object(self.actions,'_reader_sql',side_effect=AssertionError('unlocked short reader')) as read, \
+                 patch.object(self.actions,'_sql',side_effect=AssertionError('unqualified catalogue reader')), \
+                 patch.object(self.actions,'_outbox_evidence',side_effect=outbox), \
+                 patch.object(self.actions,'_outbox_channel',side_effect=channel), \
+                 patch('linux_actions.metadata_digest',side_effect=digest) as hashed:
+                # Production's staging root is root:0700. Supply only that metadata locally.
+                metadata=__import__('types').SimpleNamespace(st_mode=0o40700,st_uid=0,st_dev=Path('/').stat().st_dev)
+                with patch.object(Path,'lstat',return_value=metadata):
                     inventory=self.actions._inventory(self.budget,self.context.staging)
-                self.assertEqual(inventory['archive.generated_outbox_storage'],
-                                 {'count':2,'digest':'a'*64} if installed else None)
-                self.assertEqual(read.call_count,1)
-                self.assertEqual(hashed.call_count,int(installed))
+            self.assertEqual(set(inventory),expected)
+            self.assertEqual(calls,[('channel',True)]+([('channel',False),('outbox',None),('channel',True)] if installed else []))
+            read.assert_not_called()
+            self.assertEqual(hashed.call_count,10 if installed else 0)
+
+    def test_missing_extra_or_invalid_catalog_entry_holds_before_hashing(self):
+        from contextlib import nullcontext
+        for response in ([], [{}], [{'unexpected': True}], [[]], [{'core.markets': 'f'}]):
+            with self.subTest(response=response), \
+                 patch.object(self.actions,'_outbox_channel',return_value=nullcontext(lambda _:response)) as channel:
+                with self.assertRaisesRegex(c.DeploymentHold,'invalid_inventory_evidence'):
+                    self.actions._inventory(self.budget)
+                channel.assert_called_once_with(self.budget,require_reader=True)
 
     def test_generated_migration_inventory_uses_its_controller_staging_before_and_after(self):
         seen=[]
@@ -438,17 +468,12 @@ class ActionTests(unittest.TestCase):
 
     def test_outbox_inventory_checks_12779_rows_across_two_origins_after_oneoff(self):
         calls=[]
-        def sql(_,query):
-            calls.append(query)
-            if query.startswith('SELECT to_regclass('):
-                return 't' if "'ops.outbox'" in query else 'f'
-            if 'SELECT coalesce(json_agg(origin_id' in query:
-                return '["generated-pp","pp-live-pp"]'
-            raise AssertionError('unexpected inventory query')
+        def catalog(_,tables):
+            calls.append(tuple(tables))
+            return {n:n=='ops.outbox' for n in tables}
         proofs={'generated-pp':{'count':17511,'pending':7511,'digest':'a'*64},
                 'pp-live-pp':{'count':5268,'pending':5268,'digest':'b'*64}}
-        with patch.object(self.actions,'_sql',side_effect=sql), \
-             patch.object(self.actions,'_reader_sql',side_effect=sql), \
+        with patch.object(self.actions,'_inventory_catalog',side_effect=catalog), \
              patch.object(self.actions,'_outbox_channel'), \
              patch('linux_actions.outbox_digests',return_value=proofs) as digests:
             original=self.actions._inventory(self.budget)
@@ -464,10 +489,8 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(recovery['new_acknowledgements_preserved'])
         self.assertEqual(digests.call_count,3)
         self.assertTrue(all(set(proofs).issubset(call.args[1]) for call in digests.call_args_list))
-        self.assertFalse(any('FROM ops.outbox LIMIT 10001' in q for q in calls))
-        for query in calls:
-            self.assertTrue(query.startswith(('SELECT ', 'WITH ranges AS MATERIALIZED')))
-            self.assertNotRegex(query.upper(), r'\b(INSERT|UPDATE|DELETE|ALTER|TRUNCATE|DROP|CREATE)\b')
+        self.assertEqual(len(calls),3)
+        self.assertTrue(all('ops.outbox' in catalog and len(catalog)==11 for catalog in calls))
 
     def test_overbound_outbox_holds_in_read_only_preflight_before_fence(self):
         def sql(_,query):
@@ -506,21 +529,15 @@ class ActionTests(unittest.TestCase):
                               (['generated-pp',None],7511),
                               (['unexpected'],7511)]:
             with self.subTest(origins=origins,count=count):
-                def sql(_,query):
-                    if query.startswith('SELECT to_regclass('):
-                        return 't' if "'ops.outbox'" in query else 'f'
-                    if 'SELECT coalesce(json_agg(origin_id' in query:
-                        return json.dumps(origins)
-                    if "WHERE origin_id='generated-pp'" in query:
-                        return json.dumps({'count':count,'pending':count,'digest':'a'*64})
-                    raise AssertionError('unexpected inventory query')
+                def catalog(_,tables):
+                    return {n:n=='ops.outbox' for n in tables}
                 from contextlib import nullcontext
                 from deploy.preprod.tests.test_outbox_cursor_protocol import ScriptedSnapshot
                 header=[[origin,10,count] for origin in origins]
                 pages=[[origin,n,n*1024,n*1024+1023,min(1024,count-n*1024)] for origin in origins for n in range(10)]
                 hashes=[[desc[-1],desc[-1],'a'*64] for desc in pages]
                 snapshot=ScriptedSnapshot(header,pages,hashes)
-                with patch.object(self.actions,'_sql',side_effect=sql), \
+                with patch.object(self.actions,'_inventory_catalog',side_effect=catalog), \
                      patch.object(self.actions,'_outbox_channel',return_value=nullcontext(snapshot)):
                     with self.assertRaisesRegex(c.DeploymentHold,
                                                 'outbox_inventory_invalid|unexpected_outbox_origin'):

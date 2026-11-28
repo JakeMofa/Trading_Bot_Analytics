@@ -143,6 +143,28 @@ Linux container qualification and an actual source-pinned VM cost measurement
 remain required; generated payload/ID spacing differs from Benchmark.
 [Native all-origin evidence](evidence/benchmark-native-global-outbox-2026-11-28.json).
 
+PR #266 head `01b3b79` then completed the actual same-data read-only full pass
+at 12:17–12:19 UTC in **78.867 seconds**, matching all 11 prior table results
+and all 15 outbox origins exactly. A's OFF epoch, ACK/pending counts and
+high-water ID remained unchanged. Normal repeated inventory work projects
+to 295.901 seconds, but recovery's two scans plus the existing 23-second
+cleanup reservation already total 180.734 seconds before fencing/identity
+work. Deployment therefore remains held. Full-row outbox hashing now consumes
+53.629 seconds; additional work targets bounded transfer/session overhead.
+Keep both complete recovery proofs and all existing budgets.
+[Actual native-stream inventory](evidence/benchmark-native-stream-full-pass-2026-11-28.json).
+
+The next candidate reuses one ordinary metadata connection with a new
+read-only transaction per table; the catalog, outbox and restricted archive
+reader remain separately serialized. Outbox hashing is deferred above the
+native descriptor sort and fetched four pages at a time. Native tests prove
+that the catalog and rejected unknown origins hash zero composites, while
+each batch hashes exactly its returned rows. Original digests, signed-ID
+page bounds, complete EOF and all deadlines remain unchanged. Independent
+review, 364 local controller cases (21 environment skips) and 58 CI-control
+cases passed; new Linux qualification and VM timing are still pending.
+[Lazy hashing evidence](evidence/benchmark-native-lazy-outbox-2026-11-28.json).
+
 No deployment, re-arm, deletion, permission change or production action was
 performed for this incident check. Existing archive records remain intact;
 this does not prove all source receipts during a failure were persisted.

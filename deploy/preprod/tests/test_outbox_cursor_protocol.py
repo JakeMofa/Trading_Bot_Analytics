@@ -19,11 +19,16 @@ class ScriptedSnapshot:
         self.statements.append(sql)
         if sql.startswith('FETCH FORWARD 1 '):
             return [self.manifest]
-        if sql.startswith('FETCH FORWARD 16 '):
-            batch, self.descriptors = self.descriptors[:16], self.descriptors[16:]
-            return batch
-        if sql.startswith('WITH hashes '):
-            return [next(self.hashes)]
+        if sql.startswith('FETCH FORWARD 4 '):
+            batch, self.descriptors = self.descriptors[:4], self.descriptors[4:]
+            combined=[]
+            for row in batch:
+                if not isinstance(row,list):
+                    combined.append(row)
+                    continue
+                result=next(self.hashes,None)
+                combined.append(row+result if isinstance(result,list) else row)
+            return combined
         if sql.startswith(('BEGIN ', 'DECLARE ', 'CLOSE ')):
             return []
         raise AssertionError(sql)
@@ -45,6 +50,7 @@ class CursorProtocolTests(unittest.TestCase):
             b:dict(count=1,pending=1,digest=hashlib.sha256(('c'*64).encode()).hexdigest())})
         self.assertEqual(sum(s.startswith('BEGIN ') for s in channel.statements),1)
         self.assertEqual(sum(s.startswith('DECLARE ') for s in channel.statements),1)
+        self.assertTrue(all(s.startswith(('BEGIN ','DECLARE ','FETCH ','CLOSE ')) for s in channel.statements))
         self.assertEqual(channel.statements[-1],'CLOSE outbox_pages; COMMIT;')
 
     def test_empty_or_unapproved_catalog(self):

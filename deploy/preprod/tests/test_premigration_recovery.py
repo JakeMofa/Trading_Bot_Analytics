@@ -163,9 +163,12 @@ class RecoveryTests(unittest.TestCase):
         with patch.object(self.actions,'_outbox_channel',return_value=nullcontext(snap)) as channel:
             self.assertEqual(self.actions._ack_state(self.budget)['generated-pp']['count'],1)
             channel.assert_called_once_with(self.budget)
-        query=next(q for q in snap.statements if q.startswith('WITH hashes '))
+        query=next(q for q in snap.statements if q.startswith('DECLARE '))
+        self.assertIn('WITH hashes AS MATERIALIZED',query)
         self.assertIn('to_jsonb(o)::text',query)
         self.assertIn('acknowledged_at IS NULL',query)
+        self.assertIn('o.id BETWEEN d.lo AND d.hi',query)
+        self.assertIn('OFFSET 0',query)
         for invalid in ([['generated-pp',1,10001]], [['third-origin',1,1]]):
             with patch.object(self.actions,'_outbox_channel',return_value=nullcontext(ScriptedSnapshot(invalid,[],[]))):
                 with self.assertRaisesRegex(c.DeploymentHold,'outbox_inventory_invalid|unexpected_outbox_origin'):

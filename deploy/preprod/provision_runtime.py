@@ -4,6 +4,9 @@ import json
 import os
 import secrets
 import stat
+import tempfile
+import re
+from controller import BENCHMARK_INSTANCE, HostBinding
 import urllib.parse
 import foundation as f
 
@@ -62,6 +65,43 @@ def provision(directory=RUNTIME_SECRETS):
         os.chown(token_path,10001,10001)
     return {'result':'RUNTIME_ROLES_PREPARED','environment':'preprod','credential_values_recorded':False}
 
+def provision_watch_reader():
+    """Project the existing reader login into the Benchmark API's protected mount."""
+    if HostBinding.from_marker().hostname != BENCHMARK_INSTANCE:
+        raise RuntimeError('watch reader requires the Benchmark host')
+    for directory in (RUNTIME_SECRETS, f.SECRET_DIR):
+        info = directory.lstat()
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != 0
+                or stat.S_IMODE(info.st_mode) != 0o700):
+            raise RuntimeError('unsafe watch secret directory')
+    source = f.SECRET_DIR / 'reader'
+    target = RUNTIME_SECRETS / 'watch_api_reader_dsn'
+    info = source.lstat()
+    if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != 999
+            or stat.S_IMODE(info.st_mode) != 0o400 or info.st_size > 65):
+        raise RuntimeError('unsafe foundation reader secret')
+    password = source.read_text().strip()
+    if not re.fullmatch('[0-9a-f]{64}', password):
+        raise RuntimeError('invalid foundation reader secret')
+    value = 'postgresql://tradebot_reader:' + password + '@postgres:5432/tradebot_pp\n'
+    with tempfile.NamedTemporaryFile(dir=RUNTIME_SECRETS, mode='w') as pending:
+        pending.write(value)
+        pending.flush()
+        os.fchown(pending.fileno(), 10001, 10001)
+        os.fchmod(pending.fileno(), 0o400)
+        os.fsync(pending.fileno())
+        try:
+            os.link(pending.name, target)
+        except FileExistsError:
+            pass
+    info = target.lstat()
+    if (not stat.S_ISREG(info.st_mode) or info.st_nlink != 1 or info.st_uid != 10001
+            or stat.S_IMODE(info.st_mode) != 0o400 or info.st_size != len(value)
+            or target.read_text() != value):
+        raise RuntimeError('existing watch reader binding differs')
+    return {'result':'BENCHMARK_WATCH_API_READER_PREPARED','credential_values_recorded':False}
+
+
 def activate_role():
     f.preflight(allow_existing_application=True)
     f.sql("DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='tradebot_lifecycle') THEN CREATE ROLE tradebot_lifecycle NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOREPLICATION; END IF; END $$;", f.SECRET_DIR)
@@ -73,6 +113,6 @@ def activate_role():
 
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['prepare','activate']);args=parser.parse_args()
-    try:print(json.dumps(provision() if args.operation=='prepare' else activate_role(),sort_keys=True))
+    parser=argparse.ArgumentParser();parser.add_argument('operation',choices=['prepare','activate','prepare-watch-reader']);args=parser.parse_args()
+    try:print(json.dumps({'prepare':provision,'activate':activate_role,'prepare-watch-reader':provision_watch_reader}[args.operation](),sort_keys=True))
     except (OSError,ValueError,RuntimeError):raise SystemExit('runtime role provisioning STOP; no credential output')

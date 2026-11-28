@@ -2,10 +2,12 @@
 services:
   api:
     environment:
+      WEB_CONCURRENCY: '1'
       TRADEBOT_PP_QUOTE_DISPLAY: '1'
       TRADEBOT_PP_BOUNDARY_TRACE: '1'
       TRADEBOT_PP_PREDICTION_HISTORY: 'true'
-    secrets: [pp_prediction_history_reader_dsn, pp_history_ca]
+      TRADEBOT_DATABASE_DSN_FILE: /run/secrets/watch_api_reader_dsn
+    secrets: !override [watch_api_reader_dsn, pp_prediction_history_reader_dsn, pp_history_ca]
     volumes:
       - {type: bind, source: /var/lib/tradebot-pp/watch-display, target: /run/quote-display, bind: {create_host_path: false}}
   lifecycle:
@@ -22,10 +24,12 @@ services:
       ROBINHOOD_PRIVATE_KEY_FILE: /run/secrets/robinhood_private_key
       POLYMARKET_KEY_ID_FILE: /run/secrets/market_key_id
       POLYMARKET_SECRET_KEY_FILE: /run/secrets/market_secret
-    secrets: [market_key_id, market_secret, robinhood_key_id, robinhood_private_key]
+    secrets: [market_key_id, market_secret, robinhood_key_id, robinhood_private_key, watch_api_reader_dsn]
     volumes:
       - {type: bind, source: /var/lib/tradebot-pp/watch-display, target: /run/quote-display, read_only: true, bind: {create_host_path: false}}
 secrets:
+  watch_api_reader_dsn:
+    file: /etc/tradebot/pp-runtime/watch_api_reader_dsn
   robinhood_key_id:
     file: /etc/tradebot/pp-runtime/robinhood_key_id
   robinhood_private_key:

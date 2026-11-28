@@ -105,8 +105,11 @@ class InitialSealNative(unittest.TestCase):
         cls.env={k:v for k,v in os.environ.items() if not k.startswith('PG')}
         subprocess.run([str(cls.bin/'initdb'),'-D',str(cls.root/'data'),'-U','postgres',
             '--auth-local=trust','--auth-host=reject','--no-locale','-E','UTF8'],env=cls.env,capture_output=True,check=True)
+        options=['-k',str(cls.socket),'-h','','-p','5432']
+        if getattr(cls, 'require_migration_ledger', False):
+            options += ['-c','max_connections=20']
         subprocess.run([str(cls.bin/'pg_ctl'),'-D',str(cls.root/'data'),'-l',str(cls.root/'log'),
-            '-o',shlex.join(['-k',str(cls.socket),'-h','','-p','5432']),'-w','start'],env=cls.env,capture_output=True,check=True)
+            '-o',shlex.join(options),'-w','start'],env=cls.env,capture_output=True,check=True)
         try:
             with cls.admin('postgres') as db:db.execute('CREATE DATABASE tradebot_pp')
             # Use the actual local foundation and migrations, without mounted passwords.
@@ -118,8 +121,12 @@ class InitialSealNative(unittest.TestCase):
             with cls.admin() as db:
                 db.execute(foundation)
                 db.execute('SET ROLE tradebot_owner')
-                for migration in sorted((ROOT/'backend/postgres/migrations').glob('*.sql')):
-                    db.execute(migration.read_text())
+                if getattr(cls, 'require_migration_ledger', False):
+                    from postgres.migrate import apply_migrations
+                    apply_migrations(db)
+                else:
+                    for migration in sorted((ROOT/'backend/postgres/migrations').glob('*.sql')):
+                        db.execute(migration.read_text())
             cls.lifecycle_dsn=f'host={cls.socket} user=tradebot_lifecycle dbname=tradebot_pp'
             cls.app_dsn=f'host={cls.socket} user=tradebot_app dbname=tradebot_pp'
         except BaseException:cls.tearDownClass();raise

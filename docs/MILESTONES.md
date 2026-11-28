@@ -16,17 +16,28 @@ corrected before unattended readiness. All 20 retained generations matched
 before admission. The collector recovered at 11:39:48 p.m. Central. API-only
 PR #253 and layout PR #255 passed live `.9` replacement at 11:43:27 without
 changing that collector session or process. Browser reconnection caused a
-6.37-second display gap. Local capacity correction #256 and API-reader
-separation remain under qualification; unattended readiness remains open.
+6.37-second display gap. Capacity corrections #256 and #257 merged with
+qualification tests; live adoption remains pending and unattended readiness open.
 See the current checkpoint for evidence and limits.
+
+### Public dashboard database connections
+
+The successor Benchmark profile uses the existing read-only PostgreSQL role
+and limits its single API process to two local sessions. Disposable PostgreSQL
+17 passed both history routes and chart retrieval with all eight application
+slots exhausted. A third simultaneous public page got HTTP 429, and live
+state remained available. Local credentials, role limits and deploy status on
+the running watch are tracked in the [Benchmark procedure](../deploy/preprod/BENCHMARK_WATCH.md#local-database-budget-for-the-public-dashboard).
+The operator shares six physical app sessions across its feed and control writes; calculations use two. Ownership/status reserve a separate reader. Cancellation, failed commits and reacquired slots passed against disposable PG17. Live adoption still requires a collection-preserving handoff or an authorized maintenance window.
 
 ### Dashboard-only delivery
 
 The qualified operator entrypoint builds a separate release image, checks
 migration, host and writer identity, and replaces only the API service.
 Disposable tests passed migration/build drift rejection and isolated API
-rollback both before and after HTTP readiness. Live replacement, collector
-continuity and browser reconnection remain to be measured on Benchmark.
+rollback both before and after HTTP readiness. Live `.9` replacement preserved
+collector identity and write/ACK progress, with a measured 6.37-second browser
+display gap. The current checkpoint links the exact acceptance receipt.
 [Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md#dashboard-only-replacement-while-collecting).
 
 ## November 27 — Ignore local environment file copies

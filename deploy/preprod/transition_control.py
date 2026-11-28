@@ -212,8 +212,8 @@ def _candidate(request):
                            request.controller_sha256), source, folder, request.image_id)
 
 
-def _image_binding(context, budget):
-    actions = LinuxActions()
+def _image_binding(context, budget, *, watch_diagnostics=False):
+    actions = LinuxActions(watch_diagnostics=watch_diagnostics)
     output = actions._json(budget.run(['docker', 'image', 'inspect', context.image],
         env=actions._environment(context.image), timeout=10))
     require(isinstance(output, list) and len(output) == 1 and output[0].get('Id') == context.image

@@ -20,10 +20,11 @@ def validate_environment(connection, environment='preprod'):
         raise EnvironmentMismatch('foundation environment identity mismatch')
 
 
-def _connect(dsn, environment, readonly, migration):
+def _connect(dsn, environment, readonly, migration, factory=None):
     import psycopg
     from psycopg.rows import dict_row
-    connection = psycopg.connect(dsn, row_factory=dict_row, connect_timeout=5,
+    open_connection = factory or psycopg.connect
+    connection = open_connection(dsn, row_factory=dict_row, connect_timeout=5,
                                 options='-c timezone=UTC -c statement_timeout=10000 -c lock_timeout=3000')
     try:
         if migration:
@@ -37,14 +38,14 @@ def _connect(dsn, environment, readonly, migration):
         connection.commit()
         connection.read_only = readonly
         return connection
-    except Exception:
+    except BaseException:
         connection.close()
         raise
 
 
-def connect(dsn, environment='preprod', readonly=False):
+def connect(dsn, environment='preprod', readonly=False, *, factory=None):
     """Connect as a runtime role without assuming or inheriting another role."""
-    return _connect(dsn, environment, readonly, migration=False)
+    return _connect(dsn, environment, readonly, migration=False, factory=factory)
 
 
 def connect_migrator(dsn, environment='preprod', readonly=False):

@@ -10,7 +10,9 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 
 from .config import Settings
+from .dashboard_reader import WatchDashboardStore
 from .domain import utcnow
+from .feed_controls import ORIGIN as WATCH_ORIGIN, read_controls
 from .live_state import LiveState
 from .store import Store
 
@@ -42,7 +44,9 @@ async def event_stream(state, disconnected=None, interval=0.25):
 def create_app(settings=None, store=None, state=None, *, history=None,
                structured_history=None, refresh=True):
     settings = settings or Settings.from_env()
-    store = store or Store(settings)
+    if store is None:
+        watch = settings.data_mode == 'pp_live' and settings.origin_id == WATCH_ORIGIN
+        store = WatchDashboardStore(settings) if watch else Store(settings)
     state = state or LiveState(settings)
     if structured_history is not None:
         from .cold_structured_queries import RegisteredStructuredHistory
@@ -91,7 +95,6 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                     state.storage_status('unavailable')
             await asyncio.sleep(.5)
 
-    from .feed_controls import ORIGIN as WATCH_ORIGIN, read_controls
 
     async def monitor_collector():
         while True:

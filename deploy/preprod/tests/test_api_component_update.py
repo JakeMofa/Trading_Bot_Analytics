@@ -21,11 +21,15 @@ class APIComponentDelivery(unittest.TestCase):
             (base / 'backend/requirements.txt').write_text('psycopg==3.2.1')
             (base / 'deploy/preprod').mkdir(parents=True)
             (base / 'deploy/preprod/Dockerfile').write_text('FROM pinned')
+            for name in ('runtime.compose.yaml','runtime.live.compose.yaml','runtime.live-boundary.compose.yaml',
+                         'runtime.quote-display.compose.yaml'):
+                (base/'deploy/preprod'/name).write_text('services: {}')
         self.assertEqual(len(compatible_build(*bases)), 64)
         for rel in (
             'backend/postgres/migrations/0001_base.sql',
             'backend/requirements.txt',
             'deploy/preprod/Dockerfile',
+            'deploy/preprod/runtime.quote-display.compose.yaml',
         ):
             with self.subTest(rel=rel):
                 target = bases[1] / rel

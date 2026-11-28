@@ -1,0 +1,125 @@
+{
+  "origin": "pp-live-pp-benchmark-watch",
+  "market": "2986322",
+  "grafana_readback_requested_utc": [
+    "2026-11-28T07:45:00Z",
+    "2026-11-28T08:00:00Z"
+  ],
+  "method": "60 raw samples per series from Grafana Cloud Prometheus; statistics of the hosted data; 59 consecutive ACK intervals.",
+  "sql_first_last_utc": [
+    "07:45:08.537",
+    "07:59:56.289"
+  ],
+  "verified_ack_first_last": [
+    99273,
+    115845
+  ],
+  "verified_acks_per_second": 18.667376,
+  "estimated_arrivals_per_second": 18.712433,
+  "pending_first_last": [
+    9,
+    49
+  ],
+  "pending_min_max": [
+    9,
+    106
+  ],
+  "oldest_pending_seconds_p95_max": [
+    2.498112,
+    2.790465
+  ],
+  "dips_below_14": [
+    {
+      "end_utc": "07:55:10.531",
+      "ack_per_s": 12.314,
+      "pending_change": [
+        13,
+        60
+      ],
+      "seconds_to_at_most_start_depth": 105.309
+    },
+    {
+      "end_utc": "07:59:11.166",
+      "ack_per_s": 13.71,
+      "pending_change": [
+        25,
+        22
+      ]
+    },
+    {
+      "end_utc": "07:59:56.289",
+      "ack_per_s": 12.175,
+      "pending_change": [
+        10,
+        49
+      ],
+      "seconds_to_at_most_start_depth": null,
+      "right_censored_in_quarter": true,
+      "postboundary_pending_rows": [
+        49,
+        43,
+        24,
+        28,
+        20,
+        35,
+        19
+      ],
+      "through_utc": "08:01:26.604",
+      "returned_to_at_most_10_in_followup": false,
+      "comment": "Declining from 49 to 19, with fresh arrivals; prior depth 10 not observed again before the end of the authorized follow-up."
+    }
+  ],
+  "all_collector_requested_enabled_api_sender_db_health_samples": 1,
+  "all_three_sources_enabled_every_sample": true,
+  "btc_ref_age_s_p95_max": {
+    "coinbase_pp_receipt": [
+      2.363762,
+      3.488479
+    ],
+    "polymarket_pp_receipt": [
+      2.148002,
+      2.390659
+    ],
+    "robinhood_pp_receipt": [
+      1.222422,
+      2.54299
+    ],
+    "coinbase_source": [
+      2.413335,
+      5.3552
+    ],
+    "polymarket_source": [
+      4.155715,
+      4.174381
+    ],
+    "robinhood_source": [
+      1.922754,
+      2.553178
+    ]
+  },
+  "host_cpu_busy_pct_min_max": [
+    36.159,
+    57.826
+  ],
+  "host_iowait_pct_p95_max": [
+    1.575,
+    12.559
+  ],
+  "memavailable_kib_min_max": [
+    2775772,
+    2828144
+  ],
+  "memory_psi_full_pct_p95_max": [
+    0.0967,
+    0.4543
+  ],
+  "memory_psi_some_pct_p95_max": [
+    0.0967,
+    0.5706
+  ],
+  "iomem_peak_sample_at_utc": "07:59:18.164",
+  "swapin_swapout_oom_increments": 0,
+  "interpretation": "At 15-second resolution host and database sampling alone cannot locate a per-request failure. Source-age samples refer to BTC/USD references, independently of prediction-market book freshness.",
+  "iowait_peak_interval_distinct_visible_books": 49,
+  "iowait_peak_interval_max_first_observed_receipt_to_api_s": 0.2628509998321533
+}

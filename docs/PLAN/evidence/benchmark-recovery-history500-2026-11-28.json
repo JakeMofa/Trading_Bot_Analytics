@@ -1,0 +1,159 @@
+{
+  "source": "4741ce097555648dbc903b1c8dae0c87152263bc",
+  "controller": "4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a",
+  "pg_container_sha256": "baa6c1f44d057109df8e70d52ac8253f81e78c8282745f5ceeda7038063406db",
+  "public_before": {
+    "origin_id": "pp-live-pp-benchmark-watch",
+    "collector": {
+      "enabled": true,
+      "running": null,
+      "error": null
+    },
+    "feed_controls": {
+      "polymarket": {
+        "enabled": true,
+        "revision": 0,
+        "components": {
+          "polymarket": "running"
+        }
+      },
+      "coinbase": {
+        "enabled": true,
+        "revision": 0,
+        "components": {
+          "coinbase_stream": "running",
+          "coinbase_candles": "running"
+        }
+      },
+      "robinhood": {
+        "enabled": true,
+        "revision": 2,
+        "components": {
+          "robinhood": "running"
+        }
+      }
+    },
+    "generated_at": "2026-11-28T07:44:33.864772+00:00"
+  },
+  "writer_before": {
+    "login": "tradebot_reader",
+    "readonly": "on",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "epoch": 8,
+    "enabled": true,
+    "observed_at": "2026-11-28T07:44:34.878776+00:00",
+    "session_sha256": "29088d63c4464606f3dd8fb2343661055970c1a2465855f5b8c78d0cd6307add"
+  },
+  "response": {
+    "route": "/history/market-events",
+    "http_client": "Benchmark host loopback",
+    "query": {
+      "market_id": "2982855",
+      "start": "2026-11-28T05:15:00Z",
+      "end": "2026-11-28T05:30:00Z",
+      "as_of": "2026-11-28T05:30:00Z",
+      "limit": 500
+    },
+    "status_code": 200,
+    "started_at": "2026-11-28T07:44:35.621863+00:00",
+    "response_bytes": 547007,
+    "response_sha256": "fac7de65b4236f113a81a671203d3be59bac55218848da43ca19e766ae8f1245",
+    "rows": 500,
+    "ordered_identities_sha256": "6872d0dd6633a601a1497939ffe5e525e97308000b5531b6135457b5fbdde701",
+    "first_identity": [
+      [
+        "pp-live-pp-benchmark-watch",
+        "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+        "coinbase",
+        "exchange-candle-60-1795842840"
+      ]
+    ],
+    "last_identity": [
+      [
+        "pp-live-pp-benchmark-watch",
+        "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+        "coinbase",
+        "exchange-trade-1150197670"
+      ]
+    ],
+    "market_and_reference_scope_confirmed": true,
+    "receipt_time_range_confirmed": true,
+    "ordered_identities_and_content_hashes_sha256": "80edbad99bbf0dbcc93d176d73dae34f7a6d97692168292f7775e4a6baed35a9",
+    "all_content_hashes_present": true,
+    "unique_identities": true,
+    "tier_counts": {
+      "local_postgres": 500
+    },
+    "source_counts": {
+      "coinbase": 500
+    },
+    "coverage": {
+      "complete": true,
+      "reasons": [],
+      "generation_ids": [
+        "8b7c3058-c10c-4900-89c9-2d7569fca67d"
+      ],
+      "missing_generations": [],
+      "meaning": "captured records in generations intersecting the requested receipt-time window",
+      "includes_btc_usd_references": true,
+      "tiers": [
+        "local_postgres"
+      ]
+    },
+    "error": null,
+    "more_pages": true,
+    "elapsed_to_headers_s": 0.6383865459938534,
+    "elapsed_through_body_s": 0.6457251069950871,
+    "elapsed_through_json_decode_s": 0.6716194030013867
+  },
+  "writer_after": {
+    "login": "tradebot_reader",
+    "readonly": "on",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "epoch": 8,
+    "enabled": true,
+    "observed_at": "2026-11-28T07:44:38.179721+00:00",
+    "session_sha256": "29088d63c4464606f3dd8fb2343661055970c1a2465855f5b8c78d0cd6307add"
+  },
+  "same_enabled_writer_observed": true,
+  "public_after": {
+    "origin_id": "pp-live-pp-benchmark-watch",
+    "collector": {
+      "enabled": true,
+      "running": null,
+      "error": null
+    },
+    "feed_controls": {
+      "polymarket": {
+        "enabled": true,
+        "revision": 0,
+        "components": {
+          "polymarket": "running"
+        }
+      },
+      "coinbase": {
+        "enabled": true,
+        "revision": 0,
+        "components": {
+          "coinbase_stream": "running",
+          "coinbase_candles": "running"
+        }
+      },
+      "robinhood": {
+        "enabled": true,
+        "revision": 2,
+        "components": {
+          "robinhood": "running"
+        }
+      }
+    },
+    "generated_at": "2026-11-28T07:44:39.060416+00:00"
+  },
+  "baseline_comparison": {
+    "baseline": "benchmark-budget-http-history500-2026-11-28.json",
+    "full_response_sha256_equal": true,
+    "ordered_identities_sha256_equal": true,
+    "ordered_identities_and_content_hashes_sha256_equal": true,
+    "response_bytes_equal": true
+  }
+}

@@ -1,0 +1,393 @@
+{
+  "expected_release": {
+    "release": "v0.2.0-pp.benchmark.13",
+    "git_sha": "4741ce097555648dbc903b1c8dae0c87152263bc",
+    "controller_sha256": "4c2ca0faaad058e559b043543602193a125ce71c4a6cec5cf9b2a8505f8bdc9a",
+    "origin": "pp-live-pp-benchmark-watch",
+    "prior_stop_report": "/private/tmp/pp-reader-budget-candidate/second-stop-browser-grafana.json",
+    "prior_alert_receipt": "/private/tmp/pp-reader-budget-candidate/second-stop-alert.json",
+    "independent_user_dashboard_observation": {
+      "observed_utc": "2026-11-28T07:45:51Z",
+      "by": "root in existing user IAB",
+      "collector": "ON",
+      "market_utc": "07:45",
+      "threshold_usd": "59693.60",
+      "ws_bid_cents": "58",
+      "ws_ask_cents": "59",
+      "polymarket_ref_usd": "59707.19",
+      "polymarket_ref_age_s": 2,
+      "coinbase_usd": "59730.97",
+      "coinbase_age_s": 0,
+      "robinhood_usd": "59750.36",
+      "robinhood_age_s": 0,
+      "feed_controls": "all3 running",
+      "live_baseline_up_pct": 64.7,
+      "saved_prediction_up_pct": 64.3,
+      "saved_age_s": 1,
+      "approximately_five_second_saved_cadence_label_present": true,
+      "a_b_operational_label_absent": true
+    },
+    "official_market_comparison": {
+      "source": "root sequential observations",
+      "root_app_observed_utc": "2026-11-28T07:48:03Z",
+      "market_utc": "07:45",
+      "official_price_to_beat_usd": "59693.60",
+      "app_price_to_beat_usd": "59693.60",
+      "official_ref_price_usd": "59734.00",
+      "app_pm_ref_price_usd": "59734.08",
+      "app_pm_ref_age_s": 1,
+      "official_countdown": "12:01",
+      "official_displayed_up_down": "65/36",
+      "app_best_bid_ask_cents": "66/67",
+      "app_live_saved_predictions_up_pct": "68.6/68.4",
+      "all_three_feeds_on": true,
+      "samples_apart_s_approx": 4,
+      "scope": "Exact same market threshold. Sequential snapshots cannot establish feed latency or odds parity."
+    },
+    "infrastructure_rule_recovery": {
+      "grafana_uid": "dg5mszhzlz400d",
+      "prior_.11_collector_pending_utc": "06:43:30",
+      "prior_.11_collector_firing_utc": "06:44:30",
+      "prior_.11_notification_utc": "06:44:37.111",
+      "watch_generation_series_vanished_during_maintenance_utc": "07:09:30",
+      "watch_api_down_pending_utc": "07:09:30",
+      "watch_api_down_alerting_utc": "07:10:30",
+      "watch_api_down_returned_normal_utc": "07:43:30",
+      "interpretation": "MissingSeries during maintenance was not recovery of the collector; first new data was independently observed in the recovered generation."
+    }
+  },
+  "prior_release_gap": {
+    "prior_event_id": "ws-b1f8af4911f42e5e44a2720fc18d12b7760e43897cc97c2c0dd9e9d8760e78e0",
+    "prior_quote_receipt_utc": "2026-11-28T06:43:15.200094+00:00",
+    "prior_browser_two_frame_dom_utc": "2026-11-28T06:43:15.270000+00:00",
+    "receipt_gap_s": 3627.793152,
+    "observed_display_gap_s": 3627.7,
+    "display_clock": "Two independent Chromium observations on this Mac. Cross-observer display gap uses wall clocks; within-session event-to-paint uses monotonic time. No continuous viewer during held interval.",
+    "new_event_id": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5"
+  },
+  "scope": "One ordinary public Market browser, native SSE and two-animation-frame DOM evidence. Receipt/storage/active-writer authority belong to the separate release evidence. Source clocks are distinct from the browser monotonic clock.",
+  "on_utc": "2026-11-28T07:43:39.689083Z",
+  "last_envelope_utc": "2026-11-28T08:01:34.839541+00:00",
+  "fresh_on": {
+    "nominal_start_utc": "2026-11-28T07:43:39.689+00:00",
+    "prior_market": null,
+    "market": "2986339",
+    "new_book_seen": true,
+    "first_book_id": "ws-8281e0180d2b4bdd0c9ce598ecb599425e0c394fc75be83c76939a3ee80415d5",
+    "source_utc": "2026-11-28T07:43:42.884727190Z",
+    "pp_receipt_utc": "2026-11-28T07:43:42.993246+00:00",
+    "sse_generated_utc": "2026-11-28T07:43:43.010697+00:00",
+    "seconds_start_to_receipt": 3.304,
+    "receipt_to_sse_gen_ms": 17.451,
+    "browser_sse_utc": "2026-11-28T07:43:42.965+00:00",
+    "first_quote_rendered": true,
+    "two_frame_dom_utc": "2026-11-28T07:43:42.970+00:00",
+    "sse_to_two_frame_dom_ms": 5.2,
+    "first_visible_market_sse_utc": "2026-11-28T07:43:42.938+00:00",
+    "first_displayed_official_threshold": "$59,619.39",
+    "threshold_dom_utc": "2026-11-28T07:43:42.966+00:00",
+    "bid_display": "98\u00a2",
+    "ask_display": "99\u00a2",
+    "display_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 98\u00a2 \u00d7 551.0100 / ask 99\u00a2 \u00d7 2458.0000 \u00b7 venue update 0s ago \u00b7 not used in forecast"
+  },
+  "full_market_open": {
+    "nominal_start_utc": "2026-11-28T07:45:00.000+00:00",
+    "prior_market": "2986339",
+    "market": "2986322",
+    "new_book_seen": true,
+    "first_book_id": "ws-73a6b81be77e363e7be53bec96850ae5069be5be374b5bf2c2fc04ddca3b42fe",
+    "source_utc": "2026-11-28T07:45:09.682400855Z",
+    "pp_receipt_utc": "2026-11-28T07:45:09.740798+00:00",
+    "sse_generated_utc": "2026-11-28T07:45:09.751878+00:00",
+    "seconds_start_to_receipt": 9.741,
+    "receipt_to_sse_gen_ms": 11.08,
+    "browser_sse_utc": "2026-11-28T07:45:09.779+00:00",
+    "first_quote_rendered": true,
+    "two_frame_dom_utc": "2026-11-28T07:45:09.782+00:00",
+    "sse_to_two_frame_dom_ms": 3.6,
+    "first_visible_market_sse_utc": "2026-11-28T07:45:09.521+00:00",
+    "first_displayed_official_threshold": "$59,693.60",
+    "threshold_dom_utc": "2026-11-28T07:45:09.550+00:00",
+    "bid_display": "52\u00a2",
+    "ask_display": "53\u00a2",
+    "display_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 52\u00a2 \u00d7 242.1700 / ask 53\u00a2 \u00d7 484.0000 \u00b7 venue update 0s ago \u00b7 not used in forecast"
+  },
+  "following_market_open": {
+    "nominal_start_utc": "2026-11-28T08:00:00.000+00:00",
+    "prior_market": "2986322",
+    "market": "2988028",
+    "new_book_seen": true,
+    "first_book_id": "ws-4ad104b2bcbc630533fc1a137c6757333480a546851895d83aba44419b798073",
+    "source_utc": "2026-11-28T08:00:24.207151179Z",
+    "pp_receipt_utc": "2026-11-28T08:00:24.362118+00:00",
+    "sse_generated_utc": "2026-11-28T08:00:24.372264+00:00",
+    "seconds_start_to_receipt": 24.362,
+    "receipt_to_sse_gen_ms": 10.146,
+    "browser_sse_utc": "2026-11-28T08:00:24.337+00:00",
+    "first_quote_rendered": true,
+    "two_frame_dom_utc": "2026-11-28T08:00:24.350+00:00",
+    "sse_to_two_frame_dom_ms": 13.2,
+    "first_visible_market_sse_utc": "2026-11-28T08:00:24.261+00:00",
+    "first_displayed_official_threshold": "$59,796.01",
+    "threshold_dom_utc": "2026-11-28T08:00:24.266+00:00",
+    "bid_display": "40\u00a2",
+    "ask_display": "41\u00a2",
+    "display_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 40\u00a2 \u00d7 1416.7000 / ask 41\u00a2 \u00d7 134.5500 \u00b7 venue update 0s ago \u00b7 not used in forecast"
+  },
+  "complete_15_min_collector_enabled_visible_every_minute": true,
+  "full_market_minutes": [
+    {
+      "start": "2026-11-28T07:45:00.000+00:00",
+      "frames": 228,
+      "markets": [
+        "2986322",
+        "2986339"
+      ],
+      "distinct_receipts": 192
+    },
+    {
+      "start": "2026-11-28T07:46:00.000+00:00",
+      "frames": 230,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 230
+    },
+    {
+      "start": "2026-11-28T07:47:00.000+00:00",
+      "frames": 228,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 226
+    },
+    {
+      "start": "2026-11-28T07:48:00.000+00:00",
+      "frames": 227,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 227
+    },
+    {
+      "start": "2026-11-28T07:49:00.000+00:00",
+      "frames": 229,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 227
+    },
+    {
+      "start": "2026-11-28T07:50:00.000+00:00",
+      "frames": 226,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 221
+    },
+    {
+      "start": "2026-11-28T07:51:00.000+00:00",
+      "frames": 230,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 229
+    },
+    {
+      "start": "2026-11-28T07:52:00.000+00:00",
+      "frames": 229,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 228
+    },
+    {
+      "start": "2026-11-28T07:53:00.000+00:00",
+      "frames": 228,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 228
+    },
+    {
+      "start": "2026-11-28T07:54:00.000+00:00",
+      "frames": 227,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 227
+    },
+    {
+      "start": "2026-11-28T07:55:00.000+00:00",
+      "frames": 226,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 218
+    },
+    {
+      "start": "2026-11-28T07:56:00.000+00:00",
+      "frames": 229,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 226
+    },
+    {
+      "start": "2026-11-28T07:57:00.000+00:00",
+      "frames": 228,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 227
+    },
+    {
+      "start": "2026-11-28T07:58:00.000+00:00",
+      "frames": 229,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 228
+    },
+    {
+      "start": "2026-11-28T07:59:00.000+00:00",
+      "frames": 229,
+      "markets": [
+        "2986322"
+      ],
+      "distinct_receipts": 203
+    }
+  ],
+  "full_market_distinct_real_books": 3340,
+  "full_market_books_matched_visible": 3339,
+  "observed_receipt_to_sse_generated_ms": {
+    "n": 3340,
+    "median": 66.544,
+    "p95": 169.777,
+    "maximum": 473.069
+  },
+  "observed_sse_to_matching_dom_ms": {
+    "n": 3339,
+    "median": 11.6,
+    "p95": 26.2,
+    "maximum": 36.1
+  },
+  "observed_receipt_to_sse_over_5s": 0,
+  "full_market_three_sources": {
+    "cb": {
+      "distinct_updates_visible_to_sse": 1375,
+      "first_observed_event": {
+        "id": "exchange-trade-1150286038",
+        "source": "2026-11-28T07:44:59.461658Z",
+        "receipt": "2026-11-28T07:44:59.472965+00:00",
+        "price": "59692.44"
+      },
+      "first_observed_event_painted": true,
+      "first_matching_display": {
+        "id": "exchange-trade-1150286038",
+        "price": "$59,692.44",
+        "status": "Stream tick 0s ago"
+      },
+      "pp_receipt_age_s_at_sse": {
+        "n": 3423,
+        "median": 0.678,
+        "p95": 2.07,
+        "maximum": 5.584
+      },
+      "provider_age_s_at_sse": {
+        "n": 3423,
+        "median": 0.7,
+        "p95": 2.571,
+        "maximum": 5.766
+      }
+    },
+    "pm": {
+      "distinct_updates_visible_to_sse": 884,
+      "first_observed_event": {
+        "id": "btc-index-4a7ae9b7a29734d6f267752af54213b66dfda386b32f908d3963a902343152c0",
+        "source": "2026-11-28T07:44:58+00:00",
+        "receipt": "2026-11-28T07:45:00.009233+00:00",
+        "price": "59693.78"
+      },
+      "first_observed_event_painted": true,
+      "first_matching_display": {
+        "id": "btc-index-4a7ae9b7a29734d6f267752af54213b66dfda386b32f908d3963a902343152c0",
+        "price": "$59,693.78",
+        "status": "Updated 2s ago"
+      },
+      "pp_receipt_age_s_at_sse": {
+        "n": 3423,
+        "median": 0.516,
+        "p95": 1.05,
+        "maximum": 2.923
+      },
+      "provider_age_s_at_sse": {
+        "n": 3423,
+        "median": 2.13,
+        "p95": 2.856,
+        "maximum": 4.937
+      }
+    },
+    "rh": {
+      "distinct_updates_visible_to_sse": 883,
+      "first_observed_event": {
+        "id": "rh-v1-3359790bb1f5d60a87a97380691e9c7e9d4b3be427ec0197666b9c63b914b6d3",
+        "source": "2026-11-28T07:44:59.619447641Z",
+        "receipt": "2026-11-28T07:44:59.628900+00:00",
+        "price": "59712.44086421"
+      },
+      "first_observed_event_painted": true,
+      "first_matching_display": {
+        "id": "rh-v1-3359790bb1f5d60a87a97380691e9c7e9d4b3be427ec0197666b9c63b914b6d3",
+        "price": "$59,712.44",
+        "status": "Recent \u00b7 PP receipt 0s ago \u00b7 Robinhood retrieval 0s ago"
+      },
+      "pp_receipt_age_s_at_sse": {
+        "n": 3423,
+        "median": 0.518,
+        "p95": 0.988,
+        "maximum": 3.042
+      },
+      "provider_age_s_at_sse": {
+        "n": 3423,
+        "median": 0.552,
+        "p95": 1.021,
+        "maximum": 3.052
+      }
+    }
+  },
+  "startup_off_frames_before_first_enabled": 3,
+  "off_frames_after_first_enabled": 0,
+  "full_market_max_interval_browser_sse_seconds": 0.841,
+  "off_frames": 3,
+  "first_off_utc": "2026-11-28T07:43:39.834450+00:00",
+  "unknown_status_frames": 3,
+  "after_on_native_sse_errors_utc": [],
+  "latest_dom": {
+    "collector": "preprod \u00b7 pp_live data \u00b7 collector lease ON",
+    "market": "2988028",
+    "slug": "cpc-btc-updown-15m-2026-11-28-0800z",
+    "quote": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 33\u00a2 \u00d7 228.6300 / ask 34\u00a2 \u00d7 1364.0000 \u00b7 venue update 0s ago \u00b7 not used in forecast",
+    "pending": "$59,796.01",
+    "timer": "13:26 left",
+    "cb": {
+      "id": "exchange-trade-1150292438",
+      "price": "$59,752.72",
+      "status": "Stream tick 0s ago"
+    },
+    "pm": {
+      "id": "btc-index-7502e157d2e80075930f3b52f530f28ec5cf73bca7e6e503e50fa8bd93e00539",
+      "price": "$59,774.97",
+      "status": "Updated 1s ago \u00b7 $21.04 below target"
+    },
+    "rh": {
+      "id": "rh-v1-12ed582b9fb9d0d9628d0bfbb4a990e9ae0f55ae04be86acc0634b313852755a",
+      "price": "$59,772.06",
+      "status": "Recent \u00b7 PP receipt 1s ago \u00b7 Robinhood retrieval 1s ago"
+    },
+    "model_up": "23.2% UP",
+    "model_down": "76.8% DOWN",
+    "model_status": "gaussian_distance_v1 \u00b7 Experimental, untrained \u00b7 In-memory estimate at 2026-11-28T08:01:34.839541+00:00 \u00b7 Coinbase tick 0s ago \u00b7 volatility snapshot 1s ago",
+    "saved_status": "Decision age 1s ago"
+  }
+}

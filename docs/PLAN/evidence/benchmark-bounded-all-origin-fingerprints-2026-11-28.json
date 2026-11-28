@@ -1,0 +1,288 @@
+{
+  "source_base": "53f446e67cbca2442259384f0a953af05c4f3a14",
+  "host_reader": {
+    "login": "tradebot_reader",
+    "readonly": "on",
+    "temp_limit": "64MB",
+    "work_mem": "2MB",
+    "version": "170012"
+  },
+  "before": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": false,
+    "session": null,
+    "epoch": 7,
+    "utc": "2026-11-28T07:18:41.213329+00:00",
+    "lease": null,
+    "pending": 0,
+    "hi": 423394,
+    "acks": 98058
+  },
+  "queries": [
+    {
+      "origin": null,
+      "elapsed_including_ssh_seconds": 3.1444293329986976,
+      "result": [
+        "generated-pp",
+        "pp-live-pp",
+        "pp-live-pp-benchmark-watch",
+        "pp-live-pp-boundary-20261124-01",
+        "pp-live-pp-display-20261127-01",
+        "pp-live-pp-display-20261127-02",
+        "pp-live-pp-display-20261127-03",
+        "pp-live-pp-smoke-20261125-01",
+        "pp-live-pp-trial-20261119-01",
+        "pp-live-pp-trial-20261119-02",
+        "pp-live-pp-trial-20261119-03",
+        "pp-live-pp-trial-20261119-04",
+        "pp-live-pp-trial-20261119-05",
+        "pp-live-pp-trial-20261119-06",
+        "pp-live-pp-trial-20261119-07"
+      ],
+      "statement_sha256": "4ac70c190f88f1885c194db72374b74d8ea7ea48d5a0fdac22c6f8091c765190"
+    },
+    {
+      "origin": "generated-pp",
+      "elapsed_including_ssh_seconds": 4.71878745900176,
+      "result": {
+        "count": 20573,
+        "pending": 0,
+        "digest": "58cf20290837c1e784d64ec7da19910a48e49261fbd3301381b45cbcb099a70a"
+      },
+      "statement_sha256": "226f4bbdac236881f13b7cc15ac7403f8cd8fd1aa7d3092968357a98cb94a8cc"
+    },
+    {
+      "origin": "pp-live-pp",
+      "elapsed_including_ssh_seconds": 3.9925286669968045,
+      "result": {
+        "count": 42133,
+        "pending": 0,
+        "digest": "bf4570c091ff8ce02e01cdb40094e840681bc85600e7bb55272012c182d95a66"
+      },
+      "statement_sha256": "108ba3fca5ebbd4b03c0f84af5262e56911f236184a23899c614ca1f5de8cbc8"
+    },
+    {
+      "origin": "pp-live-pp-benchmark-watch",
+      "elapsed_including_ssh_seconds": 16.05944499999896,
+      "result": {
+        "count": 98058,
+        "pending": 0,
+        "digest": "a33e209c33243ab6f717b79699e2be410d51644173ce1c9ae67b5b022d8ac4bd"
+      },
+      "statement_sha256": "fb8541459ec6350760a55be88787d8ba1480a1b9e3141313761f463c00020520"
+    },
+    {
+      "origin": "pp-live-pp-boundary-20261124-01",
+      "elapsed_including_ssh_seconds": 4.901353916997323,
+      "result": {
+        "count": 14205,
+        "pending": 0,
+        "digest": "21d7d9cbb9bdd9ade390546050324e9268a4d15d294204582b734d27d8b19f13"
+      },
+      "statement_sha256": "8f9cf3f4ef8e01e3dc3218524942e18d48810f690ab6a957e2b328a27623500c"
+    },
+    {
+      "origin": "pp-live-pp-display-20261127-01",
+      "elapsed_including_ssh_seconds": 4.804428999996162,
+      "result": {
+        "count": 12365,
+        "pending": 0,
+        "digest": "eaa61be87f00ecbbd9324a57a28b67c57bc5963ca808e1930b0311f1f67c19ed"
+      },
+      "statement_sha256": "639f435db86d4a2e56e942b227be3d4a96f940a7fa4a5b704a996077286ccb4d"
+    },
+    {
+      "origin": "pp-live-pp-display-20261127-02",
+      "elapsed_including_ssh_seconds": 5.415521207993152,
+      "result": {
+        "count": 18842,
+        "pending": 0,
+        "digest": "4dfc2a6cfad974f3117f4654ac976a1a0c9738413876fbf0c6eb7b7f2d5da302"
+      },
+      "statement_sha256": "a98016627d30698dba818e73cf5a49d0c2a99661e25fc4dbf373c1bc0c52060b"
+    },
+    {
+      "origin": "pp-live-pp-display-20261127-03",
+      "elapsed_including_ssh_seconds": 2.0432063749976805,
+      "result": {
+        "count": 2915,
+        "pending": 0,
+        "digest": "7fad9434e8571e328c291026de5b1f6f690cc2bcbac2513f6af8c919ec8745ab"
+      },
+      "statement_sha256": "fb917361aa971a98918f34c1a2388f957cf2ddecf23894fc286fb6ba95d6f667"
+    },
+    {
+      "origin": "pp-live-pp-smoke-20261125-01",
+      "elapsed_including_ssh_seconds": 2.096557250006299,
+      "result": {
+        "count": 5356,
+        "pending": 5356,
+        "digest": "e57f0cdf1738caa2afdd4405c02f10e2aaee771f13e47b5156e032263c03fe1b"
+      },
+      "statement_sha256": "c5cb72d3f2e86b1ffe0e00f28e039ea7b99e4d2c53e1226d87b49fe033d588d9"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-01",
+      "elapsed_including_ssh_seconds": 2.1797333340000478,
+      "result": {
+        "count": 5651,
+        "pending": 0,
+        "digest": "a775e4b69962c1029aad029a54ce2a0d3ff288be7517366982b2bf48048ae38b"
+      },
+      "statement_sha256": "9b5443b5f847bf72d0c766dd7398f0b4dc85105cee21477bac7f5b1d4677d2dc"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-02",
+      "elapsed_including_ssh_seconds": 3.5832444169936934,
+      "result": {
+        "count": 20362,
+        "pending": 0,
+        "digest": "e93cf9ad51a1ce866f90fc7629bf3b05d0602e065a0e0088a502b2899a3ef9e2"
+      },
+      "statement_sha256": "b7e1059cbd3cc9039fcb955e28142536b176ca7470d5765aaa3982b7b543d03d"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-03",
+      "elapsed_including_ssh_seconds": 4.85152733400173,
+      "result": {
+        "count": 39690,
+        "pending": 0,
+        "digest": "98492d93ee53e35944e5339f971267e2874a28847e47e22d95a4f66042d8d324"
+      },
+      "statement_sha256": "86160f54255eb678cba0293526746a959494a3ff749eb347e61e50efd5ce56f3"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-04",
+      "elapsed_including_ssh_seconds": 1.0221631669992348,
+      "result": {
+        "count": 705,
+        "pending": 0,
+        "digest": "9c69f96ce64cd880b8b4d01ad916646399aef503362e5c1aafe34f2345ddd15f"
+      },
+      "statement_sha256": "b7fa45316dc92e66f40b9b5448a9d0359b5298e7a53acf6c09f404403a5f53fb"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-05",
+      "elapsed_including_ssh_seconds": 4.810785666995798,
+      "result": {
+        "count": 32021,
+        "pending": 0,
+        "digest": "e9702f655d2155db62ee82ac7e00d0af290d57e9a5c9d8153b6d1e1d43f386c3"
+      },
+      "statement_sha256": "0ca50aa2a336954ea6c1746bf3935218d8ab7964a8b64049a909a3a1ee0cd078"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-06",
+      "elapsed_including_ssh_seconds": 7.427286084006482,
+      "result": {
+        "count": 53925,
+        "pending": 0,
+        "digest": "2642bd3b6581b9a6108d004568c43537c853e539a71625a97271f4be0acdf230"
+      },
+      "statement_sha256": "a7dc600b40992360fb103062c749cb3100d33d08aced83361bb52ad5f1a06ae9"
+    },
+    {
+      "origin": "pp-live-pp-trial-20261119-07",
+      "elapsed_including_ssh_seconds": 11.896304375004547,
+      "result": {
+        "count": 55890,
+        "pending": 0,
+        "digest": "57a548afba065545fb844e63d438edbb18f553fe336cdbbef997ac25f53ba09f"
+      },
+      "statement_sha256": "70e783abc14dc6f1efd9ea3c0c0d984b9122c20a581de4f12c93d641f965f318"
+    }
+  ],
+  "complete": true,
+  "total_wall_seconds": 82.9686487910003,
+  "proof": {
+    "generated-pp": {
+      "count": 20573,
+      "pending": 0,
+      "digest": "58cf20290837c1e784d64ec7da19910a48e49261fbd3301381b45cbcb099a70a"
+    },
+    "pp-live-pp": {
+      "count": 42133,
+      "pending": 0,
+      "digest": "bf4570c091ff8ce02e01cdb40094e840681bc85600e7bb55272012c182d95a66"
+    },
+    "pp-live-pp-benchmark-watch": {
+      "count": 98058,
+      "pending": 0,
+      "digest": "a33e209c33243ab6f717b79699e2be410d51644173ce1c9ae67b5b022d8ac4bd"
+    },
+    "pp-live-pp-boundary-20261124-01": {
+      "count": 14205,
+      "pending": 0,
+      "digest": "21d7d9cbb9bdd9ade390546050324e9268a4d15d294204582b734d27d8b19f13"
+    },
+    "pp-live-pp-display-20261127-01": {
+      "count": 12365,
+      "pending": 0,
+      "digest": "eaa61be87f00ecbbd9324a57a28b67c57bc5963ca808e1930b0311f1f67c19ed"
+    },
+    "pp-live-pp-display-20261127-02": {
+      "count": 18842,
+      "pending": 0,
+      "digest": "4dfc2a6cfad974f3117f4654ac976a1a0c9738413876fbf0c6eb7b7f2d5da302"
+    },
+    "pp-live-pp-display-20261127-03": {
+      "count": 2915,
+      "pending": 0,
+      "digest": "7fad9434e8571e328c291026de5b1f6f690cc2bcbac2513f6af8c919ec8745ab"
+    },
+    "pp-live-pp-smoke-20261125-01": {
+      "count": 5356,
+      "pending": 5356,
+      "digest": "e57f0cdf1738caa2afdd4405c02f10e2aaee771f13e47b5156e032263c03fe1b"
+    },
+    "pp-live-pp-trial-20261119-01": {
+      "count": 5651,
+      "pending": 0,
+      "digest": "a775e4b69962c1029aad029a54ce2a0d3ff288be7517366982b2bf48048ae38b"
+    },
+    "pp-live-pp-trial-20261119-02": {
+      "count": 20362,
+      "pending": 0,
+      "digest": "e93cf9ad51a1ce866f90fc7629bf3b05d0602e065a0e0088a502b2899a3ef9e2"
+    },
+    "pp-live-pp-trial-20261119-03": {
+      "count": 39690,
+      "pending": 0,
+      "digest": "98492d93ee53e35944e5339f971267e2874a28847e47e22d95a4f66042d8d324"
+    },
+    "pp-live-pp-trial-20261119-04": {
+      "count": 705,
+      "pending": 0,
+      "digest": "9c69f96ce64cd880b8b4d01ad916646399aef503362e5c1aafe34f2345ddd15f"
+    },
+    "pp-live-pp-trial-20261119-05": {
+      "count": 32021,
+      "pending": 0,
+      "digest": "e9702f655d2155db62ee82ac7e00d0af290d57e9a5c9d8153b6d1e1d43f386c3"
+    },
+    "pp-live-pp-trial-20261119-06": {
+      "count": 53925,
+      "pending": 0,
+      "digest": "2642bd3b6581b9a6108d004568c43537c853e539a71625a97271f4be0acdf230"
+    },
+    "pp-live-pp-trial-20261119-07": {
+      "count": 55890,
+      "pending": 0,
+      "digest": "57a548afba065545fb844e63d438edbb18f553fe336cdbbef997ac25f53ba09f"
+    }
+  },
+  "after": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": false,
+    "session": null,
+    "epoch": 7,
+    "utc": "2026-11-28T07:20:06.355643+00:00",
+    "lease": null,
+    "pending": 0,
+    "hi": 423394,
+    "acks": 98058
+  },
+  "origin_count": 15
+}

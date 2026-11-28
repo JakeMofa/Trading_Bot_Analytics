@@ -5,7 +5,8 @@ latest-quote delivery to the existing FastAPI SSE dashboard. Native PG17
 qualification blocked the writer, observed the exact quote on SSE, released
 the write, and checked the raw/content hash against the acknowledged
 structured envelope using the fixture transport. The isolated browser smoke
-used a generated quote and a local FastAPI process. No live Benchmark or hosted
+used a generated quote, local FastAPI, Chrome, PostgreSQL 17 and the fixture
+archive. [Matched timing sample](PLAN/evidence/pp-quote-display-local-2026-11-27.json). No live Benchmark or hosted
 archive latency is established. Next gate and subsequent history work are in
 the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence).
 

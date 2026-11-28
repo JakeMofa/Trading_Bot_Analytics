@@ -4,12 +4,15 @@ services:
     environment:
       TRADEBOT_PP_QUOTE_DISPLAY: '1'
       TRADEBOT_PP_BOUNDARY_TRACE: '1'
+      TRADEBOT_PP_PREDICTION_HISTORY: 'true'
+    secrets: [pp_prediction_history_reader_dsn, pp_history_ca]
     volumes:
       - {type: bind, source: /run/tradebot-pp-deploy/quote-display, target: /run/quote-display, bind: {create_host_path: false}}
   operator:
     environment:
       TRADEBOT_PP_QUOTE_DISPLAY: '1'
       TRADEBOT_PP_BOUNDARY_TRACE: '1'
+      TRADEBOT_PP_COINBASE_TIMING: 'true'
       POLYMARKET_KEY_ID_FILE: /run/secrets/market_key_id
       POLYMARKET_SECRET_KEY_FILE: /run/secrets/market_secret
     secrets: [market_key_id, market_secret]
@@ -20,3 +23,7 @@ secrets:
     file: /etc/tradebot/pp-runtime/market_key_id
   market_secret:
     file: /etc/tradebot/pp-runtime/market_secret
+  pp_prediction_history_reader_dsn:
+    file: /etc/tradebot/pp-runtime/display_20261127_02_prediction_reader_dsn
+  pp_history_ca:
+    file: /etc/tradebot/cloud/pp_history_ca

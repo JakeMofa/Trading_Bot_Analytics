@@ -81,7 +81,7 @@ class ProfileTests(unittest.TestCase):
             with self.assertRaises(DeploymentHold):
                 p.validate_profile(base,bad,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
         self.assertEqual(display_child['secrets']['pp_boundary_history_writer_dsn']['file'],
-                         '/etc/tradebot/cloud/display_20261127_01_history_writer_dsn')
+                         '/etc/tradebot/cloud/display_20261127_02_history_writer_dsn')
         self.assertNotIn('sealed_archive',display_child['services'])
         with self.assertRaises(DeploymentHold):
             p.child_service(base,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN,archive=True)

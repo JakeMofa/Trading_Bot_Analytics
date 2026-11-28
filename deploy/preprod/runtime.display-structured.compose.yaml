@@ -21,7 +21,7 @@ services:
       PYTHONPATH: /app/backend
       TRADEBOT_ENVIRONMENT: preprod
       TRADEBOT_DATA_MODE: pp_live
-      TRADEBOT_ORIGIN_ID: pp-live-pp-display-20261127-01
+      TRADEBOT_ORIGIN_ID: pp-live-pp-display-20261127-02
       TRADEBOT_DATABASE_DSN_FILE: /run/secrets/lifecycle_dsn
       TRADEBOT_COLLECTOR_ENABLED: 'false'
       TRADEBOT_CLOUD_ENABLED: 'false'
@@ -52,7 +52,7 @@ secrets:
   probe_local_dsn:
     file: /run/tradebot-pp-deploy/probe-local-dsn
   pp_boundary_history_writer_dsn:
-    file: /etc/tradebot/cloud/display_20261127_01_history_writer_dsn
+    file: /etc/tradebot/cloud/display_20261127_02_history_writer_dsn
   pp_history_ca:
     file: /etc/tradebot/cloud/pp_history_ca
 networks:

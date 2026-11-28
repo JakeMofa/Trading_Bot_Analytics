@@ -1,3 +1,9 @@
+## November 27 — Benchmark freshness and prediction-history implementation
+
+The new Benchmark run has an isolated archive scope and retains earlier
+generations. Dashboard, ingestion and history changes are developed in parallel
+and qualified together. [Acceptance plan](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--forecast-visibility-feed-freshness-and-prediction-history).
+
 ## November 27 — Full Benchmark market and hosted readback
 
 Market 2976913 completed. The first WebSocket quote reached FastAPI in 84 ms

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 
-from linux_actions import (BOUNDARY_ORIGINS, DISPLAY_ORIGIN, DISPLAY_DIR, DISPLAY_KEYS, HISTORY_READER_FILES, RUNTIME_SECRETS, TRIAL_ORIGIN,
+from linux_actions import (BOUNDARY_ORIGINS, DISPLAY_ORIGIN, DISPLAY_DIR, DISPLAY_KEYS, PREDICTION_READER_FILES, HISTORY_READER_FILES, RUNTIME_SECRETS, TRIAL_ORIGIN,
                            cycle_environment, live_origin, validate_config)
 from controller import require
 
@@ -56,7 +56,12 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
             if name=='operator':
                 mount['read_only']=True
             service['volumes']=[mount]
-        operator['environment'].update(POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
+        api=expected['services']['api']
+        api['environment']['TRADEBOT_PP_PREDICTION_HISTORY']='true'
+        for name,path in PREDICTION_READER_FILES.items():
+            expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(path)}
+            api['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
+        operator['environment'].update(TRADEBOT_PP_COINBASE_TIMING='true',POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
                                        POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
         for name in DISPLAY_KEYS:
             expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(RUNTIME_SECRETS/name)}

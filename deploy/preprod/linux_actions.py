@@ -63,9 +63,13 @@ CYCLE_POLICY='two-official-markets-cycle'
 ELAPSED_CYCLE_POLICY='elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS=1800
 TRIAL_ORIGIN='pp-live-pp-trial-20261119-07'
-DISPLAY_ORIGIN='pp-live-pp-display-20261127-01'
+DISPLAY_ORIGIN='pp-live-pp-display-20261127-02'
 DISPLAY_DIR=Path('/run/tradebot-pp-deploy/quote-display')
 DISPLAY_KEYS=('market_key_id', 'market_secret')
+PREDICTION_READER_FILES={
+    'pp_prediction_history_reader_dsn': RUNTIME_SECRETS/'display_20261127_02_prediction_reader_dsn',
+    'pp_history_ca': Path('/etc/tradebot/cloud/pp_history_ca'),
+}
 BOUNDARY_ORIGIN='pp-live-pp-boundary-20261124-01'
 BOUNDARY_POLICY='boundary-diagnostic-v1'
 BOUNDARY_LEASE_SECONDS=4100
@@ -169,7 +173,10 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
         if trial_origin == DISPLAY_ORIGIN and service in ('api','operator'):
             env['TRADEBOT_PP_QUOTE_DISPLAY']='1'
             env['TRADEBOT_PP_BOUNDARY_TRACE']='1'
+            if service == 'api':
+                env['TRADEBOT_PP_PREDICTION_HISTORY']='true'
             if service == 'operator':
+                env['TRADEBOT_PP_COINBASE_TIMING']='true'
                 env.update(POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
                            POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
         if service in ('lifecycle','operator'):
@@ -886,6 +893,9 @@ class LinuxActions:
             if trial_reader:
                 from trial_history_reader import trial_history_reader_source
                 sources.update({name:trial_history_reader_source(name) for name in TRIAL_HISTORY_READER_FILES})
+            if display and service=='api':
+                wanted.update(PREDICTION_READER_FILES)
+                sources.update(PREDICTION_READER_FILES)
             secrets={item.get('Destination'):item for item in mounts if item.get('Destination','').startswith('/run/secrets/')}
             require(set(secrets)=={'/run/secrets/'+name for name in wanted}
                     and all(secrets['/run/secrets/'+name].get('Source')==str(sources[name])

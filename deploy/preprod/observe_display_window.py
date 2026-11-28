@@ -13,7 +13,7 @@ from pathlib import Path
 import time
 
 
-ORIGIN = 'pp-live-pp-display-20261127-01'
+ORIGIN = 'pp-live-pp-display-20261127-02'
 PAINT_OBSERVER = """
 () => {
   const quote = document.querySelector('#market-quote');

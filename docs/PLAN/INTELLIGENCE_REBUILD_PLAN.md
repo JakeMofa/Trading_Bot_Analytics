@@ -6,11 +6,46 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--forecast-visibility-feed-freshness-and-prediction-history)
+- [Current PP checkpoint](#november-27-2026--add-robinhood-btcusd-to-the-benchmark-checkpoint)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Add Robinhood BTC/USD to the Benchmark checkpoint
+
+Complete the forecast, freshness and prediction-history acceptance below, then
+qualify the Robinhood addition on a fresh Benchmark generation. Keep retained
+A and B intact.
+
+1. Collect the official Robinhood v1 BTC-USD quote once per second through one
+   shared backend poller. Preserve its exact decimal price, spread fields,
+   provider retrieval timestamp, PP receipt time and response provenance.
+   Reuse the HTTP connection and sign each request. Respect rate-limit responses.
+2. Show Coinbase BTC/USD, Polymarket BTC reference and Robinhood BTC/USD
+   separately on Market, with source and age. Preserve the official Polymarket
+   price to beat separately from these reference feeds.
+3. Save Robinhood observations through the existing guarded PostgreSQL writer
+   and archive outbox. Verify the same identities, payloads and hashes through
+   the scoped Supabase reader while collection continues.
+4. Measure actual polling cadence, display age, database commit, verified ACK,
+   backlog and resource pressure. Verify prediction history across local A/B,
+   overlap and archive-only reads using the accepted run's records.
+5. Record observed results and remaining gaps here and in the milestone
+   checklist before changing deterministic model inputs or advancing to 72 hours.
+
+Live v1 authentication and BTC-USD response are verified on Benchmark.
+Continuous persistence and three-source live acceptance remain pending.
+The published Robinhood limit is 100 requests per minute per account, subject
+to endpoint variation. A one-second poll uses 60 per minute before retries
+and any other account consumers.
+[Robinhood API documentation](https://docs.robinhood.com/crypto/trading/).
+
+Robinhood's November 3, 2026 Crypto Customer Agreement section 15 restricts
+storage, derivatives and redistribution of third-party information without
+written consent. The permission applicable to long-term retention and a future
+client-facing product remains an open deployment question.
+[Crypto Customer Agreement](https://robinhood.com/us/en/crypto-customer-agreement/).
 
 ## November 27, 2026 — Forecast visibility, feed freshness and prediction history
 

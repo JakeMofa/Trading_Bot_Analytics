@@ -54,6 +54,12 @@ def create_app(settings=None, store=None, state=None, *, history=None,
         from .runtime_history import configured_history
         history = configured_history(settings, store, os.environ)
 
+    from .market_history import MarketHistory, Window
+    from .history import HistoryError
+    from .archive_codec import ArchiveIntegrityError, ArchiveLimit
+    from .runtime_history import RuntimeHistory
+    market_history = MarketHistory(store, history.raw_factory if isinstance(history, RuntimeHistory) else None)
+
     async def discover():
         while True:
             try:
@@ -171,6 +177,24 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                 'collector':snapshot['collector'],
                 'missing_data':snapshot['missing_data'],'storage_status':snapshot['storage_status'],
                 'updated_at':snapshot['updated_at'],'cloud':{'enabled':False,'status':'disabled','datasets':[]}}
+
+    @app.get('/history/market-events')
+    async def market_events(market_id: str=Query(min_length=1,max_length=128),
+                            start: str=Query(max_length=64), end: str=Query(max_length=64),
+                            as_of: str=Query(max_length=64), cursor: str|None=Query(default=None,max_length=2048),
+                            limit: int=Query(default=100,ge=1,le=500)):
+        try:
+            window = Window.parse(market_id, start, end, as_of)
+            return await market_history.read_async(window, cursor, limit)
+        except HistoryError as error:
+            status = 429 if error.code == 'history_busy' else 422
+            raise HTTPException(status, {'code':error.code}) from None
+        except ArchiveLimit:
+            raise HTTPException(503, {'code':'history_budget_exceeded'}) from None
+        except ArchiveIntegrityError:
+            raise HTTPException(503, {'code':'history_integrity_failed'}) from None
+        except Exception:
+            raise HTTPException(503, {'code':'history_unavailable'}) from None
 
     @app.get('/history/predictions')
     async def predictions(limit: int=Query(default=100,ge=1,le=500)):

@@ -26,6 +26,58 @@ Supabase returned identical feature values, quality, evidence and linked IDs
 and hashes. The original Gaussian baseline replayed to 0.47708578418299974 on
 each copy, matching the saved prediction. [Read-only replay evidence](PLAN/evidence/pp-benchmark-hosted-baseline-replay-2026-11-27.json).
 
+## November 27, 2026 CST — Same-socket BTC rollover observed on 4 GB PP Benchmark
+
+At the 3:45 p.m. rollover, one direct WebSocket was already streaming the
+current BTC 15-minute market. The observer added the next market on that
+connection once the REST catalog returned its slug.
+
+| Event | Seconds after rollover |
+| --- | ---: |
+| Last complete REST catalog pass without the next market | 8.552 |
+| First next-market slug and official price to beat of $59,761.70 | 13.450 |
+| Next-market subscription sent on the existing socket | 13.459 |
+| First usable WebSocket quote for the next market | 13.473 |
+| First usable REST book quote for the same market | 65.503 |
+
+The catalog ran every five seconds and the REST book every two seconds.
+The book returned 26 HTTP 404s before its first usable response. The socket
+quote arrived 23 ms after discovery and 52.030 s before the matched REST
+book response in this run. The polling intervals bound when we could
+observe availability. This measured one observer rollover, with no
+collector, database or application deployment changes. Canonical commit
+and dashboard delivery remain open. [Timing evidence](PLAN/evidence/pp-benchmark-held-socket-rollover-2026-11-27.json)
+
+## November 25, 2026 CST — WebSocket client comparison complete
+
+The local observer ran from 6:31 to 6:46 p.m. CST on the same BTC
+15-minute slug for all three readers. All used the full market-data
+subscription. Capture began about 89 seconds after market open and
+continued past the 6:45 p.m. close. No socket errors were reported.
+The run did not write to PostgreSQL, Supabase or either deployment.
+
+| Client | First usable quote from connect start | Usable messages | Median vs. direct | p95 vs. direct |
+| --- | ---: | ---: | ---: | ---: |
+| Direct Python WebSocket | 619 ms | 7,455 | — | — |
+| Official Python SDK 2.4.1 | 215 ms | 7,473 | −0.26 ms | +56.55 ms |
+| Official JavaScript SDK 0.1.1 | 302 ms | 7,465 | +0.84 ms | +56.62 ms |
+
+Latency deltas use the same 2,747 updates present in all three captures,
+matched by market, exchange transaction timestamp and exact top-of-book
+prices. Negative means the SDK callback arrived first. Startup numbers
+are one connection per client with staggered starts and different first
+updates. Delivery deltas include exchange fan-out, network, and local
+client and process scheduling. This test did not measure rollover,
+reconnect, persistence or dashboard latency.
+
+Keep the direct client for the default-off live quote source. REST still
+supplies official market terms, including the BTC price to beat, and
+fallback quotes. The next 4 GB Benchmark smoke measures WebSocket receipt
+through durable commit and dashboard API visibility.
+
+[Sanitized SDK timing evidence](PLAN/evidence/polymarket-ws-sdk-comparison-2026-11-25.json) ·
+[Master roadmap](PLAN/INTELLIGENCE_REBUILD_PLAN.md)
+
 ## November 25, 2026 CST — 4 GB Benchmark single rollover passed
 
 The 3:45 p.m. CST BTC 15-minute rollover passed on

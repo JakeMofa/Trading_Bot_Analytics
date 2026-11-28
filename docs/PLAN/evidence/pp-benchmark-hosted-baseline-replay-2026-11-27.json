@@ -32,5 +32,8 @@
     "saved_up"
   ],
   "matched": true,
-  "method": "Read one live-origin snapshot and saved prediction from the 4 GB Benchmark PostgreSQL reader and the same snapshot from private Supabase history_v2. Compared decoded values, quality, evidence, sorted protected input identities and hashes, decision time and saved probability. Ran postgres.calculation.baseline independently on both snapshots. This checks archived feature-input parity, without removing local data or rebuilding features from raw ticks."
+  "method": "Read one live-origin snapshot and saved prediction from the 4 GB Benchmark PostgreSQL reader and the same snapshot from private Supabase history_v2. Compared decoded values, quality, evidence, sorted protected input identities and hashes, decision time and saved probability. Ran postgres.calculation.baseline independently on both snapshots. This checks archived feature-input parity, without removing local data or rebuilding features from raw ticks.",
+  "recomputed_feature_values": 11,
+  "pinned_coinbase_candles": 16,
+  "feature_replay": "Read the linked immutable spot price on each tier. Matched its event ID and content hash, then called calculate() with that price, pinned market terms, completed candles and original decision time. Recomputed feature values, quality and evidence matched the saved feature snapshot on both tiers."
 }

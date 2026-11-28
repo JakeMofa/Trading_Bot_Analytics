@@ -14,8 +14,11 @@ Coinbase, the Polymarket quote writer and the Polymarket index writer each
 reuse a local connection. Each event has its own transaction, lease check,
 deduplication and outbox entry under the existing rules. The index poll
 publishes the newest validated one-second bucket on receipt and queues every
-new observed bucket for persistence. Polls start at most once every five
-seconds and request the preceding 12 completed seconds. Sustained overload
+new observed bucket for persistence. The fresh Benchmark origin polls at most once per second and requests the
+preceding 12 completed seconds. Each viewer shares these observations. Other
+origins keep the five-second cadence. A 429 triggers bounded exponential
+backoff and honors Retry-After. A requested wait longer than one minute
+suspends this optional reader for the remaining session. Sustained overload
 or a long provider outage can still leave a gap.
 
 Four isolated passes wrote the same 180 generated ticks in A/B/B/A order.

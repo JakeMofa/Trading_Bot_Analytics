@@ -3,8 +3,10 @@ import asyncio
 from collections import deque
 from datetime import datetime, timezone
 from decimal import Decimal
+from email.utils import parsedate_to_datetime
 import json
 import logging
+import time
 
 import httpx
 
@@ -14,6 +16,10 @@ from .live_contract import PROVENANCE
 from .live_sources import POLYMARKET_REST
 
 BUCKET = 'ASSET_PRICE_BUCKET_1S'
+ONE_SECOND_ORIGIN = 'pp-live-pp-display-20261127-02'
+MAX_COOLDOWN = 60
+LOG = logging.getLogger(__name__)
+
 
 
 def published_buckets(document, start, end, received):
@@ -63,7 +69,31 @@ async def _fetch(client, clock):
     return published_buckets(json.loads(body, parse_float=Decimal), start, end, clock().isoformat())
 
 
-async def collect_reference(store, client, stop, clock, publish):
+def _retry_after(value, now):
+    if not value:
+        return 0
+    value = value.strip()
+    if value.isascii() and value.isdecimal():
+        # Oversized hints suspend this optional feed for the remaining lease.
+        return int(value) if len(value) <= 8 else MAX_COOLDOWN + 1
+    try:
+        return max(0, (parsedate_to_datetime(value) - now).total_seconds())
+    except (ValueError, TypeError, OverflowError):
+        return 0
+
+
+async def _pause(stop, seconds):
+    try:
+        await asyncio.wait_for(stop.wait(), seconds)
+    except TimeoutError:
+        pass
+
+
+async def collect_reference(store, client, stop, clock, publish, *, cadence=5, pause=_pause,
+                            monotonic=time.monotonic):
+    if cadence not in (1, 5):
+        raise ValueError('unexpected index polling cadence')
+
     queue = asyncio.Queue(maxsize=24)  # At most two full HTTP windows awaiting the writer.
     recent = deque(maxlen=64)
 
@@ -75,16 +105,29 @@ async def collect_reference(store, client, stop, clock, publish):
                     return
                 await asyncio.to_thread(store.ingest, event)
 
-    loop = asyncio.get_running_loop()
+    backoff = 0
     async with asyncio.TaskGroup() as tasks:
         tasks.create_task(write())
         while not stop.is_set():
-            started = loop.time()
+            started = monotonic()
             try:
                 events = await _fetch(client, clock)
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code == 429:
+                    backoff = min(MAX_COOLDOWN, max(cadence, backoff * 2))
+                    wait = max(backoff, _retry_after(error.response.headers.get('Retry-After'), clock()))
+                    if wait > MAX_COOLDOWN:
+                        LOG.warning('pp_btc_reference_rate_limited scope=remaining_session')
+                        await stop.wait()
+                        break
+                    LOG.warning('pp_btc_reference_rate_limited retry_seconds=%.2f', wait)
+                    await pause(stop, wait)
+                    continue
+                LOG.warning('pp_btc_reference_unavailable status=%d', error.response.status_code)
             except (httpx.HTTPError, ValueError, ArithmeticError, TypeError, KeyError):
-                logging.getLogger(__name__).warning('pp_btc_reference_unavailable')
+                LOG.warning('pp_btc_reference_unavailable')
             else:
+                backoff = 0
                 new = [event for event in events if event['event_id'] not in recent]
                 if new:
                     # All timestamps are UTC bucket starts emitted in the same
@@ -96,10 +139,7 @@ async def collect_reference(store, client, stop, clock, publish):
                         if event['event_id'] not in recent:
                             await queue.put(event)
                             recent.append(event['event_id'])
-            remaining = 5 - (loop.time() - started)
+            remaining = cadence - (monotonic() - started)
             if remaining > 0:
-                try:
-                    await asyncio.wait_for(stop.wait(), remaining)
-                except TimeoutError:
-                    pass
+                await pause(stop, remaining)
         await queue.put(None)  # The writer drains accepted observations before returning.

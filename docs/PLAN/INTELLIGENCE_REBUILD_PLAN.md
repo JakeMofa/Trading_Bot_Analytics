@@ -36,6 +36,22 @@ a test transport. Hosted readback and Benchmark browser latency are pending.
    those same tiers. Compare its inputs, missing values and result. Keep the
    72-hour rollout deferred.
 
+The dashboard work runs alongside the Benchmark profile preparation. Keep
+Market on the RAM-backed event stream and run history, model and system
+queries only for visible views. Measure the existing chart's SQL, fetched rows
+and browser rendering before changing its indexes. History accepts a market,
+time range, availability cutoff and stable cursor, with at most 500 rows per
+page. Verify overlap removal, exact decimals and explicit gaps while the
+collector continues. Preserve the local A/B and scoped archive data.
+
+The first new source is Polymarket's published one-second BTC/USD reference
+series. Save source and receipt timestamps and exclude zero-publication buckets
+from fresh observations. Show Coinbase separately, keep its stale state visible,
+and preserve its existing deterministic calculation inputs. The book quantity
+at the best bid/offer is available from the captured order-book levels.
+[WebSocket display](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/226) ·
+[Reference inputs](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/227)
+
 The last Benchmark smoke was local-only with a 540-second lease. A full
 window needs a new controller-bound profile with independent structured drain.
 Measure outbox growth and archive throughput before extending the collection

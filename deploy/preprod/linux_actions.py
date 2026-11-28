@@ -725,7 +725,7 @@ class LinuxActions:
         self.config=validate_config(self._json(self._compose(context,budget,['config','--format','json'])),context.source,'sha256:'+'0'*64)
         self._postgres(context,budget)
         self._outbox_release_preflight(budget)
-        self._inventory(budget)  # Confirm the full scans fit before stopping services.
+        self._inventory(budget,context.staging)  # Confirm the full scans fit before stopping services.
         pending=budget.run(['docker','ps','-a','--filter','label=com.docker.compose.project='+PROJECT,
             '--filter','label=com.docker.compose.oneoff=True','--format','{{.ID}}'],
             env=self._environment('unused'),timeout=10).strip()
@@ -779,7 +779,10 @@ class LinuxActions:
             require(all(not row['State'].get('Running') and row['HostConfig']['RestartPolicy']['Name']=='no'
                         for row in self._inspect(budget,ids)),'candidate_writer_fence_failed')
 
-    def _inventory(self,budget):
+    def _inventory(self,budget,directory=None):
+        # Standalone read-only diagnostics have no staged deployment request.
+        if directory is None:
+            directory=Path('/var/lib/tradebot-pp/deployments')
         # Compare the same complete set of release identities on both sides of migration.
         result={}
         identities={'core.markets':'origin_id,market_id,content_hash','core.candles':'origin_id,source,symbol,granularity,time,content_hash',
@@ -797,12 +800,14 @@ class LinuxActions:
             if table=='ops.outbox':
                 result[table]=self._outbox_evidence(budget)
                 continue
-            result[table]=self._metadata_digest(budget,table,identity)
+            result[table]=self._metadata_digest(budget,table,identity,directory)
         return result
 
-    def _metadata_digest(self,budget,table,identity):
-        directory=Path('/var/lib/tradebot-pp/deployments')
-        info=directory.lstat()
+    def _metadata_digest(self,budget,table,identity,directory):
+        try:
+            info=directory.lstat()
+        except OSError as error:
+            raise DeploymentHold('metadata_scratch_directory') from error
         require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700
                 and info.st_dev==Path('/').stat().st_dev,'metadata_scratch_directory')
         with self._outbox_channel(budget, require_reader=table=='archive.generated_outbox_storage') as exchange:
@@ -883,11 +888,11 @@ class LinuxActions:
         self.fence_started=True
         self._fence(context,budget)
         self.fence_completed=True
-        self.before_migration=self._inventory(budget)
+        self.before_migration=self._inventory(budget,context.staging)
         evidence=self._json(self._oneoff(context,budget,'migrate',timeout=90))
         require(evidence.get('environment')=='preprod' and evidence.get('operation')=='migrate'
                 and isinstance(evidence.get('result'),list),'explicit_migration_not_proven')
-        after=self._inventory(budget)
+        after=self._inventory(budget,context.staging)
         require(all(value is None or after.get(table)==value for table,value in self.before_migration.items()),'migration_changed_existing_evidence')
         self.migrated=True
 
@@ -1166,7 +1171,7 @@ class LinuxActions:
         self._cleanup_oneoffs(context,budget)
         self._fence(context,budget)
         self._postgres(context,budget)
-        before=self._inventory(budget)
+        before=self._inventory(budget,context.staging)
         if context.failed_stage=='migrate' and self.before_migration is not None:
             require(all(value is None or before.get(table)==value for table,value in self.before_migration.items()),
                     'migration_recovery_evidence_changed')
@@ -1175,7 +1180,7 @@ class LinuxActions:
             require(bool(re.fullmatch('[0-9a-f]{64}',identity)) and bool(re.fullmatch('[0-9a-f]{64}',digest)),'invalid_recovery_anchor')
             actual=self._sql(budget,"SELECT content_hash FROM core.predictions WHERE origin_id='generated-pp' AND prediction_id='"+identity+"'")
             require(actual==digest,'acknowledged_prediction_not_preserved')
-        require(self._inventory(budget)==before,'database_changed_after_writer_fence')
+        require(self._inventory(budget,context.staging)==before,'database_changed_after_writer_fence')
         return {'strategy':'stop_candidate_keep_database','database_preserved':True,
                 'new_acknowledgements_preserved':True,'database_restored':False}
 

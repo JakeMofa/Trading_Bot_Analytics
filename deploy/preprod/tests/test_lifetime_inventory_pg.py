@@ -42,7 +42,7 @@ class LifetimeInventoryTests(unittest.TestCase):
                 def _origin_digest(self, budget, origin):
                     return fixture_digest(db,'pg_temp.inventory_fixture',origin,[])
 
-                def _metadata_digest(self,budget,table,identity):
+                def _metadata_digest(self,budget,table,identity,staging):
                     from controller import Budget
                     from metadata_inventory import metadata_digest
                     scoped=table=='archive.generated_outbox_storage'

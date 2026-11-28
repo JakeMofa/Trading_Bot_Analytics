@@ -392,18 +392,38 @@ class ActionTests(unittest.TestCase):
                     self.assertIn('archive.generated_outbox_storage',query)
                     self.assertTrue(query.startswith('SELECT to_regclass('))
                     return 't' if installed else 'f'
-                def digest(_,table,identity):
+                def digest(_,table,identity,directory):
+                    self.assertEqual(directory, self.context.staging)
                     self.assertEqual(table,'archive.generated_outbox_storage')
                     self.assertEqual(identity,"origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at")
                     return {'count':2,'digest':'a'*64}
                 with patch.object(self.actions,'_sql',side_effect=application), \
                      patch.object(self.actions,'_reader_sql',side_effect=reader) as read, \
                      patch.object(self.actions,'_metadata_digest',side_effect=digest) as hashed:
-                    inventory=self.actions._inventory(self.budget)
+                    inventory=self.actions._inventory(self.budget,self.context.staging)
                 self.assertEqual(inventory['archive.generated_outbox_storage'],
                                  {'count':2,'digest':'a'*64} if installed else None)
                 self.assertEqual(read.call_count,1)
                 self.assertEqual(hashed.call_count,int(installed))
+
+    def test_generated_migration_inventory_uses_its_controller_staging_before_and_after(self):
+        seen=[]
+        def inventory(budget,directory):
+            self.assertIs(budget,self.budget)
+            self.assertEqual(directory,self.context.staging)
+            seen.append(directory)
+            return {'raw.events':None} if len(seen)==1 else {'raw.events':{'count':0,'digest':'a'*64}}
+        with patch.object(self.actions,'_capture_prior_runtime'), patch.object(self.actions,'_fence'), \
+             patch.object(self.actions,'_inventory',side_effect=inventory), \
+             patch.object(self.actions,'_oneoff',return_value=b'{"environment":"preprod","operation":"migrate","result":[1]}'):
+            self.actions.migrate(self.context,self.budget)
+        self.assertEqual(seen,[self.context.staging]*2)
+
+    def test_missing_staging_holds_with_an_identifiable_reason(self):
+        with self.assertRaisesRegex(c.DeploymentHold,'metadata_scratch_directory'), \
+             patch.object(self.actions,'_outbox_channel') as channel:
+            self.actions._metadata_digest(self.budget,'core.markets','market_id',self.context.staging/'missing')
+        channel.assert_not_called()
 
     def test_generated_storage_inventory_authenticates_reader_read_only(self):
         self.actions.pg_id=CID
@@ -566,7 +586,8 @@ class ActionTests(unittest.TestCase):
         self.assertTrue(self.actions.oneoffs)
         self.assertTrue(budget.exists)
         checks=[]
-        def inventory(_):
+        def inventory(_,directory):
+            self.assertEqual(directory,self.context.staging)
             self.assertFalse(budget.exists)
             checks.append(True)
             return {'core.predictions':{'count':1,'digest':'a'*32}}

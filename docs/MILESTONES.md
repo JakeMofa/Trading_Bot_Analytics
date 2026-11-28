@@ -11,6 +11,10 @@
 - [x] Correlate operator CPU throttling under its 0.25-core quota with the
   failure window. RAM exhaustion and container restart were not observed;
   exact scheduling/retry causation remains to be reproduced.
+- [x] Check AWS directly: 2-vCPU/4-GB/80-GB Lightsail instance, healthy
+  status checks and 73.85% burst capacity at the stop. Pre-stop five-minute
+  CPU averaged 42.48%. Container CPU remains separately capped at 0.25 core;
+  compare scheduling headroom before attributing the failure or buying capacity.
 - [ ] Qualify an evidence-selected fix while preserving fresh authority and
   the two-second bound; no blind restart or deadline increase.
 - [ ] Repeat four-hour and 24-hour stability on a qualified successor, then

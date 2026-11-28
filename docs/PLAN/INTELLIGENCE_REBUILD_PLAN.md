@@ -45,6 +45,15 @@ the earlier short-market success below remains valid within its scope.
   adoption path and restart four-hour acceptance from its new admission.
 - [ ] Complete sustained and current-release A/B continuity before 72-hour work.
 
+[AWS capacity check](evidence/benchmark-aws-capacity-2026-11-28.json) subsequently
+confirmed 2 vCPUs, 4 GB RAM and an 80 GB disk in the existing Lightsail VM.
+AWS status checks stayed healthy; burst capacity was 73.85% at 14:30 UTC.
+The preceding five-minute CPU average was 42.48% (maximum 44.65%). These
+coarse metrics do not explain a two-second delay, but show burst capacity
+was not exhausted. The separate operator container still has a 0.25-core
+ceiling. Qualify a controlled scheduling/headroom comparison on this VM;
+no AWS upgrade, CPU quota or collection state was changed during the check.
+
 [Incident evidence](evidence/benchmark-14-ownership-timeout-2026-11-28.json)
 keeps the actual stop/status, renewal and resource records. Diagnosis made no
 live changes and did not restart collection. Old A/B remain retained. The

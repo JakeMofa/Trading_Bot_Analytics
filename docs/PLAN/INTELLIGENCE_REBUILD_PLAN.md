@@ -24,7 +24,12 @@ preserved. Start from its measured results below.
 Checked implementation items mean the scoped code and tests merged. Live
 acceptance remains separate. At source `7bff42a`, exact CI passed and
 [Benchmark .7 CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46110209884)
-passed; continuous collection has not yet been admitted.
+passed. PostgreSQL confirmed continuous collection ON at 11:08:18 p.m.
+Central (05:08:18 UTC November 28), slot A, generation
+`8b7c3058-c10c-4900-89c9-2d7569fca67d`. The archive worker is running and two
+independent hosted reader slots passed while the writer was active. All 20
+prior retained-generation fingerprints matched before admission. The clean
+full-market measurement is scheduled for 11:15–11:30 p.m. Central.
 
 - [x] Three-source display, PostgreSQL persistence and authenticated Supabase
   readback passed in the bounded .6 run below.
@@ -33,7 +38,7 @@ passed; continuous collection has not yet been admitted.
   merged (#247, #248, #251).
 - [x] Bounded telemetry queries and host-resource sender merged (#246).
 - [x] Offline resumable long-window proof tests merged (#252).
-- [ ] Complete .7 deployment, preserve retained generations and admit the
+- [x] Complete .7 deployment, preserve retained generations and admit the
   sustained three-feed watch.
 - [ ] Measure one uninterrupted full market: source progress, exact saved and
   hosted identities, arrivals versus ACKs and oldest pending age.

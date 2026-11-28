@@ -42,7 +42,9 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                        'source_time':received,'received_at':received}, 'quote':None,
                        'received':0,'saved':0,'duplicates':0,'started_at':received,'last_commit':None})
         state.publish_robinhood({'event_id':'rh-v1-fixture', 'price_usd':'68123.40', 'received_at':received,
-                                'source_time':received, 'book_status':'two_sided'})
+                                'source_time':received, 'book_status':'two_sided',
+                                'movement':{'delta_usd':'-0.000001200','previous_event_id':'rh-v1-earlier',
+                                            'previous_received_at':(clock[0]-timedelta(seconds=1)).isoformat()}})
         app = create_app(settings, FakeStore(), state, refresh=False)
         with sync_playwright() as playwright:
             options = [os.environ.get('CHROME_BIN'), shutil.which('chromium'), shutil.which('google-chrome'),
@@ -66,6 +68,11 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                     page = browser.new_page()
                     page.goto(f'http://127.0.0.1:{port}/dashboard', wait_until='domcontentloaded')
                     expect(page.locator('#forecast-up')).to_contain_text('UP')
+                    expect(page.locator('#forecast-down')).to_contain_text('DOWN')
+                    up, down = [page.locator('#forecast-'+side).evaluate(
+                        '(node) => [getComputedStyle(node).fontSize,getComputedStyle(node).fontWeight, node.getBoundingClientRect().width]'
+                    ) for side in ('up','down')]
+                    self.assertEqual(up, down)
                     expect(page.locator('#saved-forecast-result')).to_have_text('Abstained · required feature missing')
                     expect(page.locator('#saved-forecast-state')).to_contain_text('Decision ' + at)
                     expect(page.locator('#saved-forecast-state')).to_contain_text('Saved ' + created)
@@ -78,13 +85,16 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                     expect(page.locator('#robinhood-price')).to_have_text('$68,123.40')
                     expect(page.locator('#robinhood-price')).to_have_attribute('data-event-id', 'rh-v1-fixture')
                     expect(page.locator('#robinhood-age')).to_contain_text('Recent')
+                    expect(page.locator('#robinhood-movement')).to_have_text('Down $0.0000012 since previous poll')
                     clock[0] += timedelta(seconds=31)
                     expect(page.locator('#robinhood-age')).to_contain_text('Stale')
+                    expect(page.locator('#robinhood-movement')).to_have_text('Price change stale.')
                     state.publish_robinhood({'event_id':'rh-v1-crossed', 'price_usd':None,
                                              'received_at':clock[0].isoformat(), 'source_time':None,'book_status':'crossed'})
                     expect(page.locator('#robinhood-price')).to_have_text('—')
                     expect(page.locator('#robinhood-age')).to_contain_text('crossed book')
                     expect(page.locator('#forecast-up')).to_have_text('—')
+                    expect(page.locator('#forecast-down')).to_have_text('—')
                     expect(page.locator('#forecast-state')).to_contain_text('reference price not fresh')
                     expect(page.locator('#saved-forecast-state')).to_contain_text('2m 31s ago')
                     state.collector_status(False)

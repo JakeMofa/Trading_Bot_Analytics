@@ -56,6 +56,7 @@ class LiveState:
             if at > self.clock() or (self._robinhood and at <= timestamp(self._robinhood['received_at'])):
                 return
             self._robinhood = {k:reference[k] for k in ('event_id','price_usd','received_at','source_time','book_status')}
+            self._robinhood['movement'] = deepcopy(reference.get('movement'))
             self._touch()
 
     def archive_count(self, started_at, count):

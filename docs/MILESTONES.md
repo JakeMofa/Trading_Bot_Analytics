@@ -40,6 +40,14 @@ display origin. Live acceptance requires a fresh Robinhood BTC/USD bid and
 ask, the exact local observation and a matching hosted receipt and projection.
 A market-data halt keeps previous observations and their source age visible.
 
+### Reference movement and live baseline display
+
+The Market dashboard shows equal-size UP and DOWN baseline probabilities, and
+clears both when the model abstains. The Robinhood card compares consecutive
+recent valid polls, showing the USD change and distinguishing unchanged,
+stale and unavailable observations. A fresh collector starts with no prior
+comparison. These changes are covered by a real Chromium test.
+
 ### Robinhood v1 midpoint persistence
 
 A signed v1 BTC-USD request on 4 GB Benchmark returned Robinhood's provider

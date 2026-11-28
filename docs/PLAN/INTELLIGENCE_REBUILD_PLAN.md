@@ -28,7 +28,9 @@ A and B intact.
 3. Save Robinhood observations through the existing guarded PostgreSQL writer
    and archive outbox. Verify the same identities, payloads and hashes through
    the scoped Supabase reader while collection continues.
-4. Measure actual polling cadence, display age, database commit, verified ACK,
+4. Verify the Robinhood midpoint's change from its previous valid poll and
+   the equally prominent live baseline UP/DOWN probabilities. Measure actual
+   polling cadence, display age, database commit, verified ACK,
    backlog and resource pressure. Verify prediction history across local A/B,
    overlap and archive-only reads using the accepted run's records.
 5. Record observed results and remaining gaps here and in the milestone

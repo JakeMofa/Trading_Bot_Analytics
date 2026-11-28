@@ -1,6 +1,6 @@
 """One optional Robinhood v1 BTC/USD reference poller per PP collector."""
 import asyncio
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 import json
 import logging
 import os
@@ -79,6 +79,28 @@ def price_event(row):
             'source_time': row['provider_timestamp'], 'received_at': received, 'payload': fields,
             'raw_payload': row['raw_payload'], 'provenance': {'data_mode': 'pp_live', 'feed': FEED, 'api_version': 'v1',
                 'price_role': 'partner_market_maker_midpoint', 'source_time_role': 'retrieved_by_robinhood'}}
+
+
+def quote_movement(previous, current):
+    """Change from the preceding valid, recent poll on this collector session."""
+    if not previous:
+        return None
+    now = timestamp(current['received_at'])
+    for observation in (previous, current):
+        if (observation['price_usd'] is None or observation['source_time'] is None
+                or observation['book_status'] == 'crossed'):
+            return None
+        for t in ('source_time', 'received_at'):
+            if not 0 <= (now - timestamp(observation[t])).total_seconds() <= 10:
+                return None
+    if source_timestamp(current['source_time'])[1] < source_timestamp(previous['source_time'])[1]:
+        return None
+    with localcontext() as ctx:
+        # The input guard allows 60-digit coefficients and exponents up to 60.
+        ctx.prec = 200
+        difference = Decimal(current['price_usd']) - Decimal(previous['price_usd'])
+    return {'delta_usd': format(difference, 'f'), 'previous_event_id': previous['event_id'],
+            'previous_received_at': previous['received_at']}
 
 
 async def pause(stop, seconds):

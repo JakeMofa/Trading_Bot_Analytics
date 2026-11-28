@@ -1,0 +1,23 @@
+{
+  "origin": "pp-live-pp-smoke-20261125-01",
+  "market": "2915937",
+  "at": "2026-11-25T21:59:59.999999+00:00",
+  "rows_returned": 3126,
+  "planning_ms": 6.671,
+  "sql_ms": 37.031,
+  "rows_fetched_ms": 18.092,
+  "chart_method_ms": 50.126,
+  "query_buffer_hits": 87,
+  "query_buffer_reads": 779,
+  "collector": "off",
+  "case": "retained Benchmark 15-minute market at final microsecond",
+  "chart_points": 58,
+  "truncated": false,
+  "browser": {
+    "host": "local headless Chrome",
+    "viewport": "1280x800",
+    "draw_ms": 30.5,
+    "through_two_animation_frames_ms": 33.2
+  },
+  "method": "Single read-only profile. EXPLAIN ANALYZE TIMING OFF, actual cursor fetch, and Store.chart ran separately on Benchmark and have different cache conditions. Local browser used the exact returned point series. Timings overlap and must not be summed."
+}

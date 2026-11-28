@@ -327,7 +327,9 @@ class LifecycleRepository:
         connection.execute('SELECT archive.create_generation_partition(%s,%s)',
                            (origin_id, generation_id))
         generation = {'origin_id': origin_id, 'generation_id': generation_id, 'slot': slot}
-        LifecycleRepository._checkpoint(connection, generation, 'structured:verified-acks-v1', {'rows': 0})
+        from .quote_ack_counter import WATCH_ORIGIN
+        if origin_id == WATCH_ORIGIN:
+            LifecycleRepository._checkpoint(connection, generation, 'structured:verified-acks-v1', {'rows': 0})
         return generation
 
     @staticmethod
@@ -803,7 +805,7 @@ class LifecycleRepository:
                                   'content_hash': record['content_hash']})
             if quote_created:
                 add_transitions(connection,generation['origin_id'],quote_created)
-            if newly_acknowledged:
+            if newly_acknowledged and generation['origin_id'] == WATCH_ORIGIN:
                 # Old generations have no initialized counter. Its absence
                 # represents unknown coverage and must never become a partial total.
                 connection.execute('''UPDATE archive.checkpoints SET

@@ -20,10 +20,10 @@ with a median of 41 rows. The previous packer used 51 pages with a median of
 in disposable PostgreSQL 17 over a local Unix socket. PP-to-Supabase throughput
 still requires a live run. The pending-tail query used the existing partial
 index to fetch 50 pending rows behind 2,000,000 acknowledged rows.
-A new generation records its exact cumulative ACK count in the local ACK
+A new Benchmark watch generation records its exact cumulative ACK count in the local ACK
 transaction. The Benchmark watch also registers its dashboard quote counter at
 collector startup. A restart starts a new display count while previously
-created backlog and idempotent retries remain excluded. This replaces a
+created quote backlog and idempotent retries remain excluded. This replaces a
 15-second display query that took 301 ms and touched 61,903 shared buffers on
 the retained .4 market. Existing retained generations keep their prior state.
 [Read-only Benchmark query plans](PLAN/evidence/benchmark-retained-04-query-plans.json) ·

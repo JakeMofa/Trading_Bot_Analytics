@@ -42,6 +42,13 @@ class ExactOutboxPage(unittest.TestCase):
         self.assertEqual(self.repo.outbox(self.generation,50,fits),rows[30:])
 
     def test_cumulative_verified_ack_counter_ignores_retries_and_rolls_back(self):
+        from unittest.mock import patch
+        from postgres import quote_ack_counter
+        self.origin += '-tracked'
+        tracked = patch.object(quote_ack_counter, 'WATCH_ORIGIN', self.origin)
+        tracked.start()
+        self.addCleanup(tracked.stop)
+        self.generation=self.repo.bootstrap(self.origin)['generation_id']
         def count():
             with self.admin() as db:
                 return db.execute("""SELECT cursor->>'rows' AS n FROM archive.checkpoints

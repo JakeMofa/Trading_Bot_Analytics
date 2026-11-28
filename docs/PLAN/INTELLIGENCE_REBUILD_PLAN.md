@@ -515,6 +515,8 @@ change to the active checkpoint above.
 
 ### PP release, CI, CD and trial admission
 
+- [Local environment copy ignore checks](../MILESTONES.md#november-27--ignore-local-environment-file-copies)
+
 - [Independent pipeline checkpoint — November 12, 2026](INDEPENDENT_PIPELINES_2026-11-12.md)
 - [Preprod merge CI smoke failure — November 15, 2026](PP_CI_BOUNDARY_FAILURE_2026-11-15.md)
 - [PP21 fenced forward bootstrap](PP21_FENCED_FORWARD_BOOTSTRAP_2026-11-19.md)

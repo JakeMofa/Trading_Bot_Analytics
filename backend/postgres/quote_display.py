@@ -46,7 +46,10 @@ async def receive(state, path=SOCKET_PATH):
                     try:
                         packet = json.loads(data)
                         if packet['origin'] == state.settings.origin_id:
-                            state.display(packet)
+                            if packet.get('type') == 'robinhood_reference':
+                                state.publish_robinhood(packet['reference'])
+                            else:
+                                state.display(packet)
                     except (UnicodeDecodeError, ValueError, TypeError, KeyError):
                         continue
         finally:

@@ -131,3 +131,34 @@ The CLI emits JSON lines. It polls one endpoint, disables redirects, reuses one
 connection pool, honors 429 backoff and stops immediately on 401/403. The
 default cadence sends up to twelve requests per minute. The observer has no
 database, order, or calculation path.
+
+### Robinhood v1 BTC/USD history
+
+The optional Benchmark feed reads Robinhood's own `price` from
+`GET /api/v1/crypto/marketdata/best_bid_ask/?symbol=BTC-USD`. Robinhood
+defines that price as a midpoint of partner quotes that include its spread.
+Its timestamp records Robinhood’s retrieval time. Each poll records the exact
+response, quoted prices, buy/sell spreads, retrieval time, PP request time,
+receipt time and HTTP duration. A crossed quote preserves both sides and the
+reported price in the evidence while the displayed midpoint stays empty.
+[Official v1 schema](https://docs.robinhood.com/crypto/trading/#operation/api_v1_crypto_marketdata_best_bid_ask).
+
+One authorized collector signs and polls the endpoint once per second using a
+shared HTTP client. The response is published to FastAPI over the private
+display socket before its PostgreSQL commit. Event identity follows the
+individual poll and stays stable across write retries. Verified structured
+sync archives its `core.protected_evidence` revision. Market History includes
+these shared BTC/USD observations within the selected receipt and decision
+times. The dashboard labels Coinbase, the Polymarket reference and Robinhood
+separately. The existing baseline calculation continues to use Coinbase.
+
+Enable the feed on a qualified Benchmark run with
+`TRADEBOT_PP_ROBINHOOD_REFERENCE=1` and the quote display enabled. Supply
+`ROBINHOOD_API_KEY_FILE` and `ROBINHOOD_PRIVATE_KEY_FILE` as read-only
+collector secret mounts. A 429 honors Retry-After. A 401/403 or persistent
+database write failure stops the Robinhood feed independently of Polymarket.
+
+Robinhood Crypto's November 2026 customer agreement limits use of third-party
+market information and requires its written consent for storage, derived uses,
+and redistribution. Confirm the rights covering the intended historical and
+client-facing uses with Robinhood. [Customer Agreement, section 15](https://robinhood.com/us/en/crypto-customer-agreement/).

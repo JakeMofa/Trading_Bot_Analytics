@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 HOST = 'https://trading.robinhood.com'
 PATH = '/api/v2/crypto/marketdata/best_bid_ask/?symbol=BTC-USD'
+V1_PATH = '/api/v1/crypto/marketdata/best_bid_ask/?symbol=BTC-USD'
 MAX_BYTES = 16_384
 
 
@@ -33,10 +34,12 @@ def signing_material(env):
     return key_id, private_key
 
 
-def signed_headers(keypair, epoch_seconds):
+def signed_headers(keypair, epoch_seconds, path=PATH):
+    if path not in (PATH, V1_PATH):
+        raise ValueError('only BTC-USD best-bid/ask GETs are permitted')
     key_id, key = keypair
     stamp = str(epoch_seconds)
-    signature = key.sign((key_id + stamp + PATH + 'GET').encode('ascii'))
+    signature = key.sign((key_id + stamp + path + 'GET').encode('ascii'))
     return {'x-api-key': key_id, 'x-timestamp': stamp, 'x-signature': base64.b64encode(signature).decode('ascii')}
 
 
@@ -82,9 +85,11 @@ def iso(epoch):
     return datetime.fromtimestamp(epoch, timezone.utc).isoformat()
 
 
-async def sample(client, headers):
+async def sample(client, headers, *, path=PATH, decode=book):
+    if path not in (PATH, V1_PATH):
+        raise ValueError('only BTC-USD best-bid/ask GETs are permitted')
     sent, start = time.time(), time.monotonic()
-    async with client.stream('GET', HOST + PATH, headers=headers) as response:
+    async with client.stream('GET', HOST + path, headers=headers, follow_redirects=False) as response:
         status = response.status_code
         if status != 200:
             return {'requested_at': iso(sent), 'status': 'http_error', 'http_status': status}, retry_delay(
@@ -95,7 +100,7 @@ async def sample(client, headers):
                 raise ValueError('response too large')
             payload.extend(chunk)
         received, end = time.time(), time.monotonic()
-    quote = book(payload)
+    quote = decode(payload)
     return {'requested_at': iso(sent), 'received_at': iso(received),
             'http_round_trip_ms': round((end-start)*1000, 3),
             'receipt_age_ms_at_sample': round((time.monotonic()-end)*1000, 3),

@@ -128,7 +128,10 @@ class Store:
             if not str(event[key]):
                 raise ValueError(f'empty {key}')
             event[key] = str(event[key])
-        if event['kind'] not in ('market', 'price', 'candle', 'quote', 'outcome'):
+        reference_quote = (event['kind'] == 'reference_quote' and event['source'] == 'robinhood_crypto'
+                           and event.get('symbol') == 'BTC-USD' and event.get('market_id') is None
+                           and event['provenance'].get('feed') == 'robinhood_crypto_v1_best_bid_ask')
+        if not reference_quote and event['kind'] not in ('market', 'price', 'candle', 'quote', 'outcome'):
             raise ValueError('unsupported event kind')
         source_time = event.get('source_time')
         original, epoch = source_timestamp(source_time) if source_time is not None else (None, None)
@@ -206,7 +209,7 @@ class Store:
                         self._outbox(db, 'core.protected_evidence', evidence, ('origin_id','evidence_id'), generation_id)
                     elif inserted:
                         self._outbox(db, 'core.current_prices', inserted, ('origin_id','source','symbol'), generation_id)
-                elif event['kind'] == 'quote' and event['provenance'].get('feed') == 'polymarket_us_websocket':
+                elif reference_quote or (event['kind'] == 'quote' and event['provenance'].get('feed') == 'polymarket_us_websocket'):
                     evidence = self._evidence_record(record)
                     self._outbox(db, 'core.protected_evidence', evidence, ('origin_id','evidence_id'), generation_id)
                 elif event['kind'] == 'candle':

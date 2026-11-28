@@ -20,7 +20,7 @@ class _Session:
         with self.lock:
             if self.closed:
                 raise RuntimeError('feed writer closed')
-            if self.connection is None:
+            if self.connection is None or self.connection.closed:
                 self.connection = self.store.connection()
             with self.connection.transaction():
                 yield self.connection

@@ -17,6 +17,7 @@ class LiveState:
         self.first_quote_signal = asyncio.Event()
         self._display = None
         self._archived = None
+        self._robinhood = None
         self._quote = None
         self._snapshot = None
         self._forecast = None
@@ -39,6 +40,22 @@ class LiveState:
                 signal = self.first_quote_signal
                 self.first_quote_signal = asyncio.Event()
                 signal.set()
+            self._touch()
+
+    def publish_robinhood(self, reference):
+        if (not isinstance(reference, dict) or not isinstance(reference.get('event_id'), str)
+                or not reference['event_id'].startswith('rh-v1-')):
+            return
+        source = reference.get('source_time')
+        if source is not None:
+            source_timestamp(source)
+        at = timestamp(reference['received_at'])
+        if reference['price_usd'] is not None:
+            decimal_text(reference['price_usd'], positive=True)
+        with self._lock:
+            if at > self.clock() or (self._robinhood and at <= timestamp(self._robinhood['received_at'])):
+                return
+            self._robinhood = {k:reference[k] for k in ('event_id','price_usd','received_at','source_time','book_status')}
             self._touch()
 
     def archive_count(self, started_at, count):
@@ -236,6 +253,7 @@ class LiveState:
                 latest_saved = None
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
+                    'robinhood_reference': deepcopy(self._robinhood),
                     'polymarket_reference': reference, 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,

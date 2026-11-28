@@ -251,6 +251,62 @@ class InitialSealNative(unittest.TestCase):
         self.assertEqual(row['content_hash'], committed['content_hash'])
         self.assertEqual(row['payload']['payload']['data']['close'], '60000.42')
 
+    def test_robinhood_v1_local_commit_and_restricted_history_readback(self):
+        from types import SimpleNamespace
+        from postgres.active_structured import ActiveStructuredWorker
+        from postgres.cloud_origin_binding import TRIAL_READER, TRIAL_WRITER
+        from postgres.history_v2_transport import HistoryV2PostgresTransport
+        from postgres.store import IdentityConflict
+        from test_robinhood_history import fixture_event
+        from test_trial_cloud_policies_pg import TrialCloudPolicyPGTests as Hosted
+
+        Hosted.setUpClass()
+        self.addCleanup(Hosted.tearDownClass)
+        self.fixture_on()
+        events = [fixture_event(),
+                  fixture_event(requested='2026-11-27T23:02:01.201000Z', received='2026-11-27T23:02:01.230000Z'),
+                  fixture_event(requested='2026-11-27T23:02:02.201000Z', received='2026-11-27T23:02:02.230000Z',
+                                bid_inclusive_of_sell_spread='69000')]
+        for event in events:
+            self.assertFalse(self.store.ingest(event)['duplicate'])
+            self.assertTrue(self.store.ingest(event)['duplicate'])
+        with self.assertRaises(IdentityConflict):
+            self.store.ingest({**events[0], 'price': '50000'})
+        self.assertEqual(self.store.current_price()['source'], 'coinbase')
+
+        def hosted_as(role):
+            return HistoryV2PostgresTransport(Hosted.role_connection(role), origin_id=TRIAL_ORIGIN,
+                generation_id=self.anchor, expected_database='postgres', expected_role=role, retain_revisions=True)
+        reader = hosted_as(TRIAL_READER)
+        transport = SimpleNamespace(put_structured=hosted_as(TRIAL_WRITER).put_structured,
+                                    read_structured_authenticated=reader.read_structured_authenticated)
+        result = ActiveStructuredWorker(self.repo, transport, origin_id=TRIAL_ORIGIN).cycle(self.anchor)
+        self.assertEqual(result['acknowledged'], 3)
+        with self.admin() as db:
+            saved = db.execute("""SELECT o.id, r.price::text AS price, r.source_time, r.raw_payload, r.content_hash
+                FROM raw.events r JOIN ops.outbox o ON o.origin_id=r.origin_id AND o.content_hash=r.content_hash
+                WHERE r.origin_id=%s AND r.source='robinhood_crypto' AND o.acknowledged_at IS NOT NULL
+                ORDER BY r.received_at""", (TRIAL_ORIGIN,)).fetchall()
+        self.assertEqual(len(saved), len(events))
+        from postgres.market_history import Window, local_page
+        from postgres.domain import timestamp
+        cutoff = timestamp(events[1]['received_at'])
+        window = Window('current-BTC-market', timestamp(events[0]['received_at']),
+                        timestamp(events[2]['received_at']), cutoff)
+        with self.admin() as db:
+            local, cursor = local_page(db, TRIAL_ORIGIN, self.anchor, window, ['', ''], 500)
+        self.assertIsNone(cursor)
+        self.assertEqual({row['event_id'] for row in local}, {e['event_id'] for e in events[:2]})
+        self.assertTrue(all(window.includes(row) for row in local))
+        revisions = reader.read_revisions([row['id'] for row in saved], max_bytes=256*1024, timeout_seconds=4)
+        for event, local, archived in zip(events, saved, revisions, strict=True):
+            self.assertEqual((local['price'], local['source_time'], local['raw_payload']),
+                             (event['price'], event['source_time'], event['raw_payload']))
+            self.assertEqual(archived['content_hash'], local['content_hash'])
+            self.assertEqual(archived['payload']['raw_payload'], event['raw_payload'])
+            self.assertEqual(archived['payload']['payload']['normalized']['price'], event['price'])
+            self.assertEqual(archived['payload']['payload']['data'], event['payload'])
+
     def test_display_before_commit_and_verified_quote_ack(self):
         import asyncio
         import json

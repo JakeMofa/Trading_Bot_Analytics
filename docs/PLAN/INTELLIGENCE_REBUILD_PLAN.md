@@ -42,7 +42,7 @@ The raw physical partition alone projects about 10.13 GiB per slot; outbox,
 other indexes, WAL and bloat are additional. These estimates do not establish
 capacity. Long-window retirement requires separately resumable proof bound
 to exact origin, sealed inventory and hosted versions, followed by fresh
-authenticated checks before removal.
+authenticated checks before removal. The [two-database qualification](LONG_WINDOW_QUALIFICATION.md) exercised restart and coverage across 195 generated pages. Hosted inventory versioning and physical removal remain open.
 
 Keep PP and production origins and credentials isolated. Verify duplicate
 identity rules for any future combined PP/production research reader. The
@@ -549,6 +549,8 @@ change to the active checkpoint above.
 - [PP cloud binding preflight — November 17, 2026](PP_CLOUD_BINDING_PREFLIGHT_2026-11-17.md)
 
 ### Rolling windows, archive and retirement
+
+- [Long-window checkpoint and local data retention qualification](LONG_WINDOW_QUALIFICATION.md)
 
 - [PP archive and retirement flow — November 17, 2026](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md)
 - [CP6 active structured sync preparation — November 17 CST / November 18 UTC](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md)

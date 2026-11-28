@@ -172,6 +172,11 @@ def create_app(settings=None, store=None, state=None, *, history=None,
         snapshot = state.snapshot()
         return {key:snapshot[key] for key in ('market','models','updated_at','environment','data_mode','unsupported')}
 
+    from .benchmark_telemetry import BenchmarkTelemetry, ORIGIN as MONITORED_ORIGIN
+    if settings.data_mode == 'pp_live' and settings.origin_id == MONITORED_ORIGIN:
+        telemetry = BenchmarkTelemetry(store, state)
+        app.get('/system/telemetry')(telemetry.snapshot)
+
     @app.get('/health')
     async def status():
         snapshot = state.snapshot()

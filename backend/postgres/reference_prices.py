@@ -10,6 +10,7 @@ import time
 
 import httpx
 
+from . import benchmark_telemetry as metrics
 from .cloud_origin_binding import DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN
 from .contract import canonical_json, content_hash, exact_decimal
 from .feed_writer import feed_writer
@@ -108,13 +109,18 @@ async def collect_reference(store, client, stop, clock, publish, *, cadence=5, p
                 await asyncio.to_thread(store.ingest, event)
 
     backoff = 0
+    retry = False
     async with asyncio.TaskGroup() as tasks:
         tasks.create_task(write())
         while not stop.is_set():
+            if retry:
+                metrics.issue('polymarket_reference', 'retry')
             started = monotonic()
             try:
                 events = await _fetch(client, clock)
             except httpx.HTTPStatusError as error:
+                retry = True
+                metrics.issue('polymarket_reference', metrics.classify_status(error.response.status_code))
                 if error.response.status_code == 429:
                     backoff = min(MAX_COOLDOWN, max(cadence, backoff * 2))
                     wait = max(backoff, _retry_after(error.response.headers.get('Retry-After'), clock()))
@@ -126,9 +132,12 @@ async def collect_reference(store, client, stop, clock, publish, *, cadence=5, p
                     await pause(stop, wait)
                     continue
                 LOG.warning('pp_btc_reference_unavailable status=%d', error.response.status_code)
-            except (httpx.HTTPError, ValueError, ArithmeticError, TypeError, KeyError):
+            except (httpx.HTTPError, ValueError, ArithmeticError, TypeError, KeyError) as exc:
+                retry = True
+                metrics.issue('polymarket_reference', 'transport' if isinstance(exc, httpx.HTTPError) else 'invalid')
                 LOG.warning('pp_btc_reference_unavailable')
             else:
+                retry = False
                 backoff = 0
                 new = [event for event in events if event['event_id'] not in recent]
                 if new:

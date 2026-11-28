@@ -10,6 +10,7 @@ from uuid import uuid4
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
+from . import benchmark_telemetry as metrics
 from .boundary_trace import boundary_trace
 from .boundary_shadow import WS_URL, headers, signing_key
 from .contract import content_hash, source_timestamp
@@ -145,7 +146,10 @@ class QuotePipeline:
 
 async def stream_books(pipe, stop, keypair):
     delay = 1
+    reconnect = False
     while not stop.is_set():
+        if reconnect:
+            metrics.issue('polymarket_book', 'retry')
         try:
             async with connect(WS_URL, additional_headers=headers(keypair), proxy=None,
                                open_timeout=5, close_timeout=2, max_size=MAX_RESPONSE_BYTES,
@@ -165,14 +169,17 @@ async def stream_books(pipe, stop, keypair):
                         continue
                     doc = json.loads(wire, parse_float=Decimal)
                     if doc.get('error'):
+                        metrics.issue('polymarket_book', 'invalid')
                         raise ValueError('Polymarket subscription rejected')
                     await pipe.book(doc, received_at=received_at)
                     delay = 1
         except InvalidStatus as exc:
+            metrics.issue('polymarket_book', metrics.classify_status(exc.response.status_code))
             if exc.response.status_code not in (429, 500, 502, 503, 504):
                 raise
         except (OSError, TimeoutError, ConnectionClosed):
-            pass
+            metrics.issue('polymarket_book', 'transport')
+        reconnect = True
         await _pause_or_stop(stop, delay)
         delay = min(30, delay * 2)
 
@@ -180,8 +187,13 @@ async def stream_books(pipe, stop, keypair):
 async def run(store, client, stop, interval, clock):
     sender = DisplaySender(store.settings.origin_id)
     pipe = QuotePipeline(store, sender)
+    metrics.source_monitor(sender)
     try:
-        keypair = signing_key()
+        try:
+            keypair = signing_key()
+        except (OSError, ValueError):
+            metrics.issue('polymarket_book', 'auth')
+            raise
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair))
@@ -190,14 +202,20 @@ async def run(store, client, stop, interval, clock):
                 tasks.create_task(collect(store, stop, pipe.publish_robinhood))
             cadence = 1 if store.settings.origin_id in ONE_SECOND_ORIGINS else 5
             tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
+            discovery_retry = False
             while not stop.is_set():
+                metrics.heartbeat()
+                if discovery_retry:
+                    metrics.issue('polymarket_catalog', 'retry')
                 try:
                     market, upcoming = await _step('polymarket_discovery',
                         discover_polymarket_15m(client, clock(), include_next=True))
                 except LiveDiagnostic as error:
+                    discovery_retry = True
                     if error.code not in POLYMARKET_DISCOVERY_UNAVAILABLE:
                         raise
                 else:
+                    discovery_retry = False
                     pipe.upcoming = upcoming
                     if market and timestamp(market['payload']['end']) > clock():
                         await pipe.market(market)
@@ -207,4 +225,5 @@ async def run(store, client, stop, interval, clock):
             await pipe.queue.join()
             writer.cancel()
     finally:
+        metrics.source_monitor(None)
         sender.socket.close()

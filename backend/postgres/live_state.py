@@ -12,6 +12,7 @@ class LiveState:
     def __init__(self, settings, clock=utcnow):
         self.settings, self.clock = settings, clock
         self._lock = RLock()
+        self.source_health = None
         self._market = None
         self._price = None
         self.first_quote_signal = asyncio.Event()
@@ -58,6 +59,11 @@ class LiveState:
             self._robinhood = {k:reference[k] for k in ('event_id','price_usd','received_at','source_time','book_status')}
             self._robinhood['movement'] = deepcopy(reference.get('movement'))
             self._touch()
+
+    @property
+    def durable_quote_received_at(self):
+        with self._lock:
+            return (self._quote or {}).get('received_at')
 
     def archive_count(self, started_at, count):
         with self._lock:

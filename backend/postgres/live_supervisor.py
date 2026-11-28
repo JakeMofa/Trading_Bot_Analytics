@@ -14,6 +14,7 @@ from psycopg import Error as PostgresError
 from .rehearsal_profile import lease_cap, CYCLE_ORIGINS
 from datetime import datetime, timezone
 
+from . import benchmark_telemetry as metrics
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
 from .live_diagnostics import CollectorHold, LiveDiagnostic, diagnose
@@ -89,6 +90,8 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
         unavailable_cycles = 0
         while not stop.is_set():
             try:
+                if unavailable_cycles:
+                    metrics.issue('coinbase_candles', 'retry')
                 await candles(store, client, stop, now=clock())
             except LiveDiagnostic as error:
                 # _step separates fetch from durable write: only these provider

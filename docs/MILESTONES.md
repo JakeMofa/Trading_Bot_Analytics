@@ -8,7 +8,7 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 
 The [delivery checklist](PLAN/INTELLIGENCE_REBUILD_PLAN.md#delivery-checklist)
 separates merged implementation from live acceptance. Exact `.7` source
-`7bff42a` passed CI; Benchmark CD 46110209884 is in progress. The sustained
+`7bff42a` passed CI and Benchmark CD 46110209884. The sustained
 watch remains OFF pending admission. API-only deployment PR #253 is separate.
 
 ## November 27 — Ignore local environment file copies

@@ -24,7 +24,7 @@ preserved. Start from its measured results below.
 Checked implementation items mean the scoped code and tests merged. Live
 acceptance remains separate. At source `7bff42a`, exact CI passed and
 [Benchmark .7 CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46110209884)
-is running; continuous collection has not yet been admitted.
+passed; continuous collection has not yet been admitted.
 
 - [x] Three-source display, PostgreSQL persistence and authenticated Supabase
   readback passed in the bounded .6 run below.

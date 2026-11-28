@@ -20,6 +20,25 @@ from test_live_transition import Actions,Budget
 A=str(uuid.uuid4());TRIAL=actions.TRIAL_ORIGIN
 
 class TrialHostTests(unittest.TestCase):
+    def test_previous_display_terminal_journal_and_inventory(self):
+        old=actions.PREVIOUS_DISPLAY_ORIGIN
+        journal=dict(version=1,environment='preprod',instance=gate.BENCHMARK_INSTANCE,
+                     state='generated_restored',nonce=A,initial_a=A,source_sha='a'*40,
+                     artifact_sha256='b'*64,controller_sha256='c'*64,image_id=IMAGE,
+                     trial_origin=old,profile=actions.BOUNDARY_POLICY)
+        def read(**changes):
+            payload=json.dumps({**journal,**changes}).encode()
+            with patch.object(gate,'_secure_file',return_value=(payload,None)):
+                return gate._read_active()
+        self.assertEqual(read()['trial_origin'],old)
+        self.assertIn(old,actions.OUTBOX_ORIGINS)
+        for changes in ({'state':'ready_off'},{'initial_a':None},{'profile':'wrong'},
+                        {'instance':'tradebot-preprod-01'}):
+            with self.assertRaises(DeploymentHold):
+                read(**changes)
+        with self.assertRaises(DeploymentHold):
+            actions.live_origin(old)
+
     def test_exact_origin_anchor_and_full_profile_binding(self):
         source=Path('/reviewed/source');base=configuration(source);live=deepcopy(base)
         for name in ('api','calculation','lifecycle','operator'):

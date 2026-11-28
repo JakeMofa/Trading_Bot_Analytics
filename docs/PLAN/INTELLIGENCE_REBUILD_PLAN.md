@@ -66,6 +66,9 @@ rotation and raw retirement remain separate acceptance gates.
   fix the extra narrow grid column introduced by the rolling-window banner.
   Keep those operational signals in Grafana/private controls. Qualify the UI
   successor through the API-only deployment after the uninterrupted market.
+- [ ] Clarify the tick-responsive live estimate versus the periodic saved
+  model snapshot. Trace actual publication timing without changing the model
+  probabilities to mimic Polymarket prices or increasing persistence load blindly.
 - [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
   including hosted version guarantees and history after local payload removal.
 
@@ -86,6 +89,17 @@ still had the earlier layout. The matching official Polymarket US page for
 countdown, BTC reference and UP/DOWN prices changed between observations.
 These unsynchronized browser checks establish live matching-market behavior,
 not exact feed latency. The UI agent owns removal and responsive verification.
+
+The saved calculation worker runs serially and sleeps five seconds after each
+cycle (`backend/postgres/worker.py`); feature snapshots and predictions share
+that cycle. FastAPI hydrates committed state every 0.5 seconds plus SQL time
+and schedules RAM-stream publication every 0.25 seconds. A saved decision age
+of three seconds can occur normally between cycles. The separate RAM live
+estimate recomputes from the current reference price and latest valid feature
+snapshot. Its values are model estimates, distinct from venue bid/ask prices.
+The cited prediction timestamps `05:19:45.196364` and `05:19:45.225303` differ
+by 28.939 ms, but `created_at` is assigned before the transaction commits;
+that subtraction must not be reported as measured commit latency.
 
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |

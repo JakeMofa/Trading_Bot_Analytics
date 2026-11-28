@@ -27,6 +27,9 @@ def signing_material(env):
         private_key = Ed25519PrivateKey.from_private_bytes(seed)
     except (ValueError, TypeError, binascii.Error):
         raise ValueError('ROBINHOOD_PRIVATE_KEY must contain a base64 32-byte Ed25519 seed') from None
+    if key_id in (base64.b64encode(seed).decode('ascii'),
+                  base64.b64encode(private_key.public_key().public_bytes_raw()).decode('ascii')):
+        raise ValueError('ROBINHOOD_API_KEY needs the issued API identifier for the registered public key')
     return key_id, private_key
 
 

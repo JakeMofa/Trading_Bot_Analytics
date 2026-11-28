@@ -66,6 +66,9 @@ class RobinhoodQuoteTests(unittest.TestCase):
             with self.assertRaises((ValueError, KeyError)):
                 self.reader.book(json.dumps({'results':row}))
         for changes in [{'ROBINHOOD_PRIVATE_KEY':base64.b64encode(b'x'*64).decode()},
-                        {'ROBINHOOD_PRIVATE_KEY':'@@'}, {'ROBINHOOD_API_KEY':'bad\nheader'}]:
+                        {'ROBINHOOD_PRIVATE_KEY':'@@'}, {'ROBINHOOD_API_KEY':'bad\nheader'},
+                        {'ROBINHOOD_API_KEY':self.env['ROBINHOOD_PRIVATE_KEY']},
+                        {'ROBINHOOD_API_KEY':base64.b64encode(
+                            self.keys[1].public_key().public_bytes_raw()).decode()}]:
             with self.assertRaises(ValueError):
                 self.reader.signing_material(self.env | changes)

@@ -144,11 +144,13 @@ class QuotePipeline:
             self.quote = None
             self.empty_book_at = result.checked_at.isoformat()
         else:
+            quote = {**result.quote,
+                     'provenance': {**result.quote['provenance'], 'recovery': 'quiet_websocket'}}
             try:
-                self.queue.put_nowait(result.quote)
+                self.queue.put_nowait(quote)
             except asyncio.QueueFull:
                 return
-            self.set_display_quote(result.quote)
+            self.set_display_quote(quote)
         self.broadcast()
 
     def recovery_snapshot(self, stop):

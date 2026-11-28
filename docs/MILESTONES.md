@@ -176,6 +176,10 @@ the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live
 Local tests reproduce and fix an expired subscription surviving rollover.
 An active market with 30 seconds of usable WebSocket silence can recover
 through a bounded official REST book probe and the existing PostgreSQL writer.
+Recovered quotes retain their REST feed provenance and receive a verified
+structured archive revision. A native PostgreSQL test read back the exact
+payload through the restricted hosted-schema reader and verified the
+WebSocket-only ACK total stayed unchanged.
 The tests cover REST failure and empty books, pause, late responses, exact
 quote values and bounded subscriptions across four rollovers. Live Benchmark
 acceptance remains pending.

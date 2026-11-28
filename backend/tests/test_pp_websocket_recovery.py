@@ -58,7 +58,8 @@ class QuietSession(unittest.IsolatedAsyncioTestCase):
             await asyncio.wait_for(run(store, Mock(), stop, 1, lambda: now), timeout=2)
 
         fetch.assert_awaited_once()
-        self.assertEqual([call.args[0] for call in store.ingest.call_args_list], [market, quote])
+        recovered = {**quote, 'provenance': {**quote['provenance'], 'recovery': 'quiet_websocket'}}
+        self.assertEqual([call.args[0] for call in store.ingest.call_args_list], [market, recovered])
         preview = sender.send.call_args.args[0]['quote']
         self.assertEqual(preview['best_bid'], '0.4501')
         self.assertEqual(preview['provenance']['feed'], 'polymarket_us_bbo')

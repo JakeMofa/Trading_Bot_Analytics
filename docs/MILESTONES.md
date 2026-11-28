@@ -1,3 +1,25 @@
+## November 28 — Benchmark .14 stopped; sustained acceptance failed
+
+- [x] Capture actual `ownership.timeout` diagnostic at 14:30:04.056 UTC /
+  8:30:04 a.m. Central, approximately 1h17m25s after ON.
+- [x] Verify same container/process identities, no explicit OFF, no expired
+  lease, no swap/OOM, and zero remaining archive backlog. All 41,874 saved
+  WebSocket quotes are reported archived; retained A/B were not removed.
+- [x] Capture cumulative ownership phase timings: full deadline 2,003.143 ms,
+  query 85.105 ms; admission/connect/retry and future/loop delivery also cost
+  time. The recorded callback-complete label does not prove a true result.
+- [x] Correlate operator CPU throttling under its 0.25-core quota with the
+  failure window. RAM exhaustion and container restart were not observed;
+  exact scheduling/retry causation remains to be reproduced.
+- [ ] Qualify an evidence-selected fix while preserving fresh authority and
+  the two-second bound; no blind restart or deadline increase.
+- [ ] Repeat four-hour and 24-hour stability on a qualified successor, then
+  current-release A/B continuity. Neither long-run gate passed on `.14`.
+
+[Current master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--benchmark-14-sustained-check-failed) ·
+[Incident evidence](PLAN/evidence/benchmark-14-ownership-timeout-2026-11-28.json).
+The success notes below are dated short-window evidence, not current health.
+
 ## November 28 — Benchmark .14 deployed; sustained collection resumed
 
 Current checkpoint: release `v0.2.0-pp.benchmark.14`, source `9a6f61b`,

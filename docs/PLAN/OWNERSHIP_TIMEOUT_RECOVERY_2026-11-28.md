@@ -1,14 +1,16 @@
 # Ownership timeout: diagnosis, repair and sustained acceptance
 
-Current status: repairs #263–#266 are merged and Benchmark `.14` is deployed.
-All three feeds resumed on the same A at 13:12:39 UTC on November 28.
-Actual recovery, the same-quote browser/save/archive trace and the pinned
-500-row history read passed their short checks. Four-hour and 24-hour
-observation remain in progress, followed by current-release A/B continuity.
-The [latest master checkpoint](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--benchmark-14-recovery)
-and [milestone checklist](../MILESTONES.md) record current completions; the
-diagnostic and qualification checkboxes below preserve the workstream design.
-Keep retained A/B and production unchanged.
+Current status: `.14` resumed at 13:12:39 UTC and failed again at
+14:30:04.056 UTC with `ownership.timeout`. Four-hour acceptance did not pass.
+New phase diagnostics and resource evidence are in the
+[latest master checkpoint](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--benchmark-14-sustained-check-failed).
+The query phase was 85.105 ms; the cumulative check consumed 2,003.143 ms
+across admission, connection, retries and worker/future/event-loop phases.
+A completed callback does not prove its boolean result. Lease authority
+remained valid; CPU scheduling pressure under the 0.25-core operator quota
+was observed, with no swap/OOM or container restart. Do not increase the
+ownership deadline or restart blindly. Retained A/B and production remain
+unchanged; qualification resumes from this incident.
 
 ## Evidence and objective
 

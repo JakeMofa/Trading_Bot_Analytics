@@ -171,7 +171,12 @@ class RecoveryTests(unittest.TestCase):
         self.assertEqual(len(queries),3)
         self.assertTrue(all('acknowledged_at' in text and 'GROUP BY id / 1024' in text
                             for text in queries[1:]))
-        self.assertTrue(all(text.startswith('SELECT ') for text in queries))
+        self.assertTrue(queries[0].startswith('SELECT '))
+        for text in queries[1:]:
+            self.assertTrue(text.startswith('WITH ranges AS MATERIALIZED'))
+            self.assertIn('o.id BETWEEN ranges.lo AND ranges.hi', text)
+            self.assertIn('to_jsonb(o)::text', text)
+            self.assertIn('ORDER BY page', text)
         def overbound(_,query):
             if 'SELECT coalesce(json_agg(origin_id' in query:return '["generated-pp"]'
             return json.dumps({'count':10001,'digest':'a'*32})

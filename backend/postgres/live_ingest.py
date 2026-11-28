@@ -8,9 +8,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
+from contextlib import aclosing
 from datetime import datetime, timezone
 import time
 
+from .feed_writer import feed_writer
 from .boundary_trace import boundary_trace
 from .coinbase_timing import ACTIVE_TIMING, configured_timing
 from .contract import source_timestamp
@@ -75,8 +77,9 @@ async def coinbase_session(store, stop: asyncio.Event, *, source=coinbase_once,
     timing = timing if timing is not None else configured_timing()
     token = ACTIVE_TIMING.set(timing)
     try:
-        return await _coinbase_session(store, stop, source=source, pause=pause,
-                                       clock=clock, timing=timing, wall_clock=wall_clock)
+        async with feed_writer(store):
+            return await _coinbase_session(store, stop, source=source, pause=pause,
+                                           clock=clock, timing=timing, wall_clock=wall_clock)
     finally:
         try:
             if timing is not None:
@@ -100,6 +103,87 @@ def _fresh_progress(event, acknowledgement, wall_clock, previous_epoch):
     return None
 
 
+async def _buffered_ticks(source, stop, timing):
+    """Read ahead up to 32 ticks. A full queue backpressures the socket without eviction."""
+    queue = asyncio.Queue(maxsize=32)
+    stopped = asyncio.create_task(stop.wait())
+
+    async def read_ticks():
+        async with aclosing(source(stop)) as stream:
+            while not stop.is_set():
+                incoming = asyncio.ensure_future(anext(stream))
+                try:
+                    done, _ = await asyncio.wait((incoming, stopped), return_when=asyncio.FIRST_COMPLETED)
+                    if incoming not in done:
+                        return
+                    try:
+                        event = incoming.result()
+                    except StopAsyncIteration:
+                        return
+                    if stop.is_set():
+                        return
+                    queued_at = timing.clock() if timing is not None else None
+                    sample = dict(timing.last_event or {}) if timing is not None else None
+                    if sample is not None:
+                        sample['persistence_queue_depth'] = queue.qsize()
+                    await queue.put((event, queued_at, sample))
+                finally:
+                    if not incoming.done():
+                        incoming.cancel()
+                    # A stop can race successful completion, including end of stream.
+                    await asyncio.gather(incoming, return_exceptions=True)
+
+    async def read():
+        try:
+            await read_ticks()
+        except Exception as error:
+            # Surface transport failures in order, after already-received ticks.
+            await queue.put(error)
+        else:
+            await queue.put(None)
+
+    reader = asyncio.create_task(read())
+    try:
+        while True:
+            item = await queue.get()
+            if item is None:
+                break
+            if isinstance(item, Exception):
+                raise item
+            yield item
+    finally:
+        reader.cancel()
+        stopped.cancel()
+        await asyncio.gather(reader, stopped, return_exceptions=True)
+
+
+async def _persist_tick(store, event, timing, queued_at, sample):
+    if timing is None:
+        return await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
+    submitted = timing.clock()
+    worker = {}
+
+    def persist():
+        worker['started'] = timing.clock()
+        worker['started_at'] = timing.wall().isoformat()
+        try:
+            return store.ingest(event)
+        finally:
+            worker['completed'] = timing.clock()
+            worker['completed_at'] = timing.wall().isoformat()
+
+    outcome = 'raised'
+    try:
+        acknowledgement = await _step('coinbase_write', asyncio.to_thread(persist))
+        outcome = 'returned'
+        return acknowledgement
+    finally:
+        if worker.get('completed') is None:
+            outcome = 'inflight_at_cancel'
+        timing.saved(submitted=submitted, worker=worker, outcome=outcome,
+                     sample=sample, queued_at=queued_at)
+
+
 async def _coinbase_session(store, stop, *, source, pause, clock, timing, wall_clock):
     reconnect_starts = deque()
     reconnects = 0
@@ -107,34 +191,13 @@ async def _coinbase_session(store, stop, *, source, pause, clock, timing, wall_c
     previous_progress_epoch = None
     while not stop.is_set():
         try:
-            async for event in source(stop):
-                if stop.is_set():
-                    break
-                if timing is None:
-                    acknowledgement = await _step('coinbase_write', asyncio.to_thread(store.ingest, event))
-                else:
-                    submitted = timing.clock()
-                    worker = {}
-                    outcome = 'raised'
-                    def persist():
-                        worker['started'] = timing.clock()
-                        worker['started_at'] = timing.wall().isoformat()
-                        try:
-                            return store.ingest(event)
-                        finally:
-                            worker['completed'] = timing.clock()
-                            worker['completed_at'] = timing.wall().isoformat()
-                    try:
-                        acknowledgement = await _step('coinbase_write', asyncio.to_thread(persist))
-                        outcome = 'returned'
-                    finally:
-                        if worker.get('completed') is None:
-                            outcome = 'inflight_at_cancel'
-                        timing.saved(submitted=submitted, worker=worker, outcome=outcome)
-                progress = _fresh_progress(event, acknowledgement, wall_clock, previous_progress_epoch)
-                if progress is not None:
-                    previous_progress_epoch = progress
-                    failures_without_fresh_progress = 0
+            async with aclosing(_buffered_ticks(source, stop, timing)) as ticks:
+                async for event, queued_at, sample in ticks:
+                    acknowledgement = await _persist_tick(store, event, timing, queued_at, sample)
+                    progress = _fresh_progress(event, acknowledgement, wall_clock, previous_progress_epoch)
+                    if progress is not None:
+                        previous_progress_epoch = progress
+                        failures_without_fresh_progress = 0
             return
         except Exception as error:
             diagnostic = error if isinstance(error, LiveDiagnostic) else diagnose('coinbase_stream', error)

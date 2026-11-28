@@ -151,6 +151,40 @@ class LiveIngestTests(unittest.IsolatedAsyncioTestCase):
         await coinbase_session(store, stop, source=two)
         self.assertEqual([e['event_id'] for e in store.events], ['1', '2'])
 
+    async def test_bounded_read_ahead_drains_each_accepted_tick_on_orderly_stop(self):
+        from threading import Event
+        stop = asyncio.Event()
+        full = asyncio.Event()
+        beyond_capacity = asyncio.Event()
+        release = Event()
+        store = FakeStore()
+        original = store.ingest
+        def slow_writer(event):
+            if not release.wait(3):
+                raise RuntimeError('fixture writer timed out')
+            return original(event)
+        store.ingest = slow_writer
+        produced = []
+        async def source(_):
+            for i in range(100):
+                produced.append(i)
+                if i == 33:  # One saving, 32 enqueued, one waiting to enqueue.
+                    full.set()
+                if i > 33:
+                    beyond_capacity.set()
+                yield {'event_id':str(i)}
+        task = asyncio.create_task(coinbase_session(store,stop,source=source))
+        try:
+            await asyncio.wait_for(full.wait(), 2)
+            with self.assertRaises(TimeoutError):
+                await asyncio.wait_for(beyond_capacity.wait(), .025)
+            stop.set()
+        finally:
+            release.set()
+            await asyncio.wait_for(task, 2)
+        self.assertEqual([int(e['event_id']) for e in store.events], produced)
+        self.assertEqual(len(produced), 34)
+
     async def test_closed_candle_cycle_preserves_gaps_and_stop(self):
         store, stop = FakeStore(), asyncio.Event()
         async def fetch(_client, _now):

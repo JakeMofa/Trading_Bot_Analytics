@@ -1,5 +1,34 @@
 # Coinbase source-age incident and opt-in diagnostics
 
+## November 27 — Bounded feed writers on disposable PostgreSQL 17
+
+The Coinbase reader can receive 32 queued ticks while one tick writes. When
+that queue fills, the reader waits for capacity. It captures receipt time
+before JSON decoding. The opt-in telemetry measures time in the parser, time
+waiting for persistence and transaction duration for the same tick. Reconnect
+progress still requires a fresh, newly committed event. The Polymarket book
+trace can sample one committed event per five seconds with its source time,
+receipt time and queue depth.
+
+Coinbase, the Polymarket quote writer and the Polymarket index writer each
+reuse a local connection. Each event has its own transaction, lease check,
+deduplication and outbox entry under the existing rules. The index poll
+publishes the newest validated one-second bucket on receipt and queues every
+new observed bucket for persistence. Polls start at most once every five
+seconds and request the preceding 12 completed seconds. Sustained overload
+or a long provider outage can still leave a gap.
+
+Four isolated passes wrote the same 180 generated ticks in A/B/B/A order.
+Opening a connection per tick took 0.984 and 0.992 s. Reusing a connection
+took 0.127 and 0.132 s. Each reused pass opened one connection. A separate
+PostgreSQL test verified distinct committed transaction IDs, idempotent retry,
+conflicting payload rollback and durable OFF enforcement. The 4 GB VM still
+needs a full-market comparison of source age, writer queue time, verified
+ACKs and dashboard visibility under concurrent collection.
+
+## November 19 incident
+
+
 The captured pp.17 event at 07:10:14 was already late at application dequeue. It is not explained by a frozen API cache: event identities continued advancing, and the API exposed each recently received record.
 
 | Boundary | Captured UTC |

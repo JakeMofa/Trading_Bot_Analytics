@@ -426,8 +426,11 @@
       const storageFeed = latest.feeds?.find(feed => feed.source === 'storage_guard');
       const storageLimited = storageFeed?.effective_status === 'limit_reached';
       const collectionState = btcFeed?.effective_status;
-      const marketQuoteFresh = latest.collector?.enabled === true && m?.active && remaining > 0
-        && q?.received_at && ageOf(q.received_at) <= 10;
+      const quoteAge = q ? ageOf(q.received_at) : null;
+      const venueQuoteAge = q ? ageOf(q.source_time) : null;
+      const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0
+        || (q?.kind === 'live_ws' && (venueQuoteAge == null || venueQuoteAge > 10));
+      const marketQuoteFresh = latest.collector?.enabled === true && m?.active && remaining > 0 && !quoteDelayed;
       const collectionText = storageLimited ? 'Collection paused · storage cap reached'
         : collectionState === 'stopped' ? 'Collection finished · saved data only'
         : marketQuoteFresh && !tickFresh ? 'Polymarket quotes live · Coinbase reference delayed'
@@ -445,14 +448,18 @@
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
       const venue = latest.venue_reference;
       set('venue-price', money(venue?.price_usd));
+      const venueElement = byId('venue-price');
+      if (venueElement.dataset.eventId !== (venue?.event_id || '')) {
+        venueElement.dataset.eventId = venue?.event_id || '';
+        venueElement.dataset.sourceTime = venue?.source_time || '';
+        venueElement.dataset.receivedAt = venue?.received_at || '';
+      }
       const venueAge = venue ? (now - Date.parse(venue.source_time)) / 1000 : null;
       const usable = venue?.status === 'fresh' && venueAge >= 0 && venueAge <= 10;
       const distance = usable && m?.active && remaining > 0 && m.target_usd != null && venue.price_usd != null
         ? Number(venue.price_usd) - Number(m.target_usd) : null;
       set('venue-distance', !venue ? 'Reference unavailable' : (usable ? 'Updated ' : 'Stale · ') + age(venueAge)
         + (distance == null ? '' : ' · ' + money(Math.abs(distance)) + (distance < 0 ? ' below target' : distance > 0 ? ' above target' : ' from target')));
-      const quoteAge = q ? ageOf(q.received_at) : null;
-      const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0;
       set('market-up', cents(q?.best_bid));
       set('market-down', cents(q?.best_ask));
       let quoteText = 'No Polymarket quote saved for this market yet.';
@@ -461,6 +468,8 @@
         quoteText = (quoteDelayed ? 'DELAYED' : 'Recent') + ({rest_bbo:' Polymarket US REST BBO',live_ws:' Polymarket US WebSocket book',stream_book:' Polymarket US REST book'}[q.kind]) + ' · observed ' + age(quoteAge)
           + ' · bid ' + cents(q.best_bid) + (q.best_bid_qty == null ? '' : ' × ' + q.best_bid_qty)
           + ' / ask ' + cents(q.best_ask) + (q.best_ask_qty == null ? '' : ' × ' + q.best_ask_qty);
+        if (q.kind === 'live_ws') quoteText += venueQuoteAge == null ? ' · venue update time unavailable'
+          : ' · venue update ' + age(venueQuoteAge);
         if (q.kind === 'rest_bbo') quoteText += ' · last price sample ' + age(sampleAge) + ' (not book update time)';
         if (q.up_quote != null || q.down_quote != null)
           quoteText += ' · last price sample UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote)

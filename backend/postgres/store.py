@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 import json
 
+from .feed_writer import event_transaction
 from .domain import bound, canonical, decimal_text, digest, json_value, timestamp, utcnow
 
 
@@ -149,7 +150,7 @@ class Store:
         payload = {'data': event['payload'], 'provenance': event['provenance']}
         immutable = {key: event.get(key) for key in ('source', 'event_id', 'kind', 'market_id', 'symbol', 'source_time', 'price', 'size', 'payload', 'raw_payload', 'provenance')}
         content_hash = digest(immutable)
-        with self.connection() as db:
+        with event_transaction(self) as db:
             writer = self._locked_writer(db)
             if not writer or writer['state'] != 'collecting':
                 raise ValueError('explicit lifecycle bootstrap required before ingestion')

@@ -288,6 +288,16 @@ class InitialSealNative(unittest.TestCase):
                 WHERE r.origin_id=%s AND r.source='robinhood_crypto' AND o.acknowledged_at IS NOT NULL
                 ORDER BY r.received_at""", (TRIAL_ORIGIN,)).fetchall()
         self.assertEqual(len(saved), len(events))
+        from postgres.market_history import Window, local_page
+        from postgres.domain import timestamp
+        cutoff = timestamp(events[1]['received_at'])
+        window = Window('current-BTC-market', timestamp(events[0]['received_at']),
+                        timestamp(events[2]['received_at']), cutoff)
+        with self.admin() as db:
+            local, cursor = local_page(db, TRIAL_ORIGIN, self.anchor, window, ['', ''], 500)
+        self.assertIsNone(cursor)
+        self.assertEqual({row['event_id'] for row in local}, {e['event_id'] for e in events[:2]})
+        self.assertTrue(all(window.includes(row) for row in local))
         revisions = reader.read_revisions([row['id'] for row in saved], max_bytes=256*1024, timeout_seconds=4)
         for event, local, archived in zip(events, saved, revisions, strict=True):
             self.assertEqual((local['price'], local['source_time'], local['raw_payload']),

@@ -32,7 +32,8 @@ def credentials():
 
 def v1_book(payload):
     rows = json.loads(payload, parse_float=Decimal)['results']
-    if not isinstance(rows, list) or len(rows) != 1 or rows[0]['symbol'] != 'BTC-USD':
+    if (not isinstance(rows, list) or len(rows) != 1
+            or not isinstance(rows[0], dict) or rows[0].get('symbol') != 'BTC-USD'):
         raise ValueError('missing BTC-USD quote')
     row = rows[0]
 
@@ -43,7 +44,7 @@ def v1_book(payload):
         value = exact_decimal(raw)
         if abs(value.as_tuple().exponent) > 60 or len(value.as_tuple().digits) > 60:
             raise ValueError('Robinhood decimal exceeds bounds')
-        if (value < 0 if spread else value <= 0):
+        if value < 0 or (not spread and value == 0):
             raise ValueError('invalid Robinhood quote')
         return str(value)
 
@@ -55,7 +56,9 @@ def v1_book(payload):
     ask = number('ask_inclusive_of_buy_spread')
     if price is None and bid is None and ask is None:
         raise ValueError('no usable price or side')
-    status = 'partial' if bid is None or ask is None else 'crossed' if Decimal(bid) > Decimal(ask) else 'two_sided'
+    status = 'partial'
+    if bid is not None and ask is not None:
+        status = 'crossed' if Decimal(bid) > Decimal(ask) else 'two_sided'
     return {'provider_price': price, 'bid': bid, 'ask': ask, 'book_status': status,
             'sell_spread': number('sell_spread', spread=True), 'buy_spread': number('buy_spread', spread=True),
             'provider_timestamp': provider_stamp, 'raw_payload': bytes(payload).decode('utf-8')}
@@ -65,16 +68,17 @@ def price_event(row):
     requested, received = row['requested_at'], row['received_at']
     if timestamp(received) < timestamp(requested):
         raise ValueError('Robinhood response before request')
-    fields = {name:row[name] for name in ('provider_price','bid','ask','book_status','sell_spread','buy_spread',
-                                          'provider_timestamp','requested_at','http_round_trip_ms')}
+    fields = {name: row[name] for name in (
+        'provider_price', 'bid', 'ask', 'book_status', 'sell_spread', 'buy_spread',
+        'provider_timestamp', 'requested_at', 'http_round_trip_ms')}
     # Two independent requests are distinct observations even when every venue
     # value repeats. Retrying the write for the same poll recovers the same ID.
     identity = 'rh-v1-' + content_hash([SOURCE, 'BTC-USD', requested])
     return {'source': SOURCE, 'kind': 'reference_quote', 'symbol': 'BTC-USD', 'event_id': identity,
             'price': row['provider_price'] if row['book_status'] != 'crossed' else None,
             'source_time': row['provider_timestamp'], 'received_at': received, 'payload': fields,
-            'raw_payload': row['raw_payload'], 'provenance': {'data_mode':'pp_live', 'feed':FEED, 'api_version':'v1',
-                'price_role':'partner_market_maker_midpoint', 'source_time_role':'retrieved_by_robinhood'}}
+            'raw_payload': row['raw_payload'], 'provenance': {'data_mode': 'pp_live', 'feed': FEED, 'api_version': 'v1',
+                'price_role': 'partner_market_maker_midpoint', 'source_time_role': 'retrieved_by_robinhood'}}
 
 
 async def pause(stop, seconds):
@@ -93,7 +97,7 @@ async def persist(store, event):
         except OperationalError:
             if attempt == 2:
                 raise
-            await asyncio.sleep(.2 * (2 ** attempt))
+            await asyncio.sleep(0.2 * 2 ** attempt)
 
 
 async def collect(store, stop, publish, *, transport=None, cadence=1):
@@ -126,14 +130,14 @@ async def collect(store, stop, publish, *, transport=None, cadence=1):
                                     event['event_id'], type(exc).__name__)
                         return
                     backoff = 0
-                elif row['http_status'] in (401,403):
-                    LOG.warning('pp_robinhood_reference_disabled http_status=%s',row['http_status'])
+                elif row['http_status'] in (401, 403):
+                    LOG.warning('pp_robinhood_reference_disabled http_status=%s', row['http_status'])
                     return
                 else:
-                    LOG.warning('pp_robinhood_reference_http_error status=%s',row['http_status'])
+                    LOG.warning('pp_robinhood_reference_http_error status=%s', row['http_status'])
                     backoff = min(60, max(cadence, backoff * 2))
             except (httpx.HTTPError, OSError, ValueError, InvalidOperation, TypeError, KeyError, TimeoutError) as exc:
                 LOG.warning('pp_robinhood_reference_unavailable reason=%s', type(exc).__name__)
                 backoff = min(60, max(cadence, backoff * 2))
             # Retry-After is authoritative even when longer than the backoff.
-            await pause(stop, max(0, delay, backoff, cadence - (time.monotonic()-started)))
+            await pause(stop, max(0, delay, backoff, cadence - (time.monotonic() - started)))

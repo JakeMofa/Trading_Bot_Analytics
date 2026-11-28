@@ -158,6 +158,20 @@ exact displayed event against PostgreSQL and Supabase. The US
 market uses CF Benchmarks BRTI while the user's international comparison
 uses Chainlink BTC/USD TWAP. Preserve those source distinctions.
 
+### Local history admission regression
+
+Three deterministic tests use real background threads with gated fixture
+reads. An overlapping request to the same reader returns `history_busy`
+for either entry point. Canceling the asynchronous caller holds the slot
+until the underlying worker exits. Market and prediction readers can hold
+their independent slots concurrently.
+
+The related suite passed 73 tests with 16 external-fixture skips. In the
+existing single-reader 500-row test, the local PostgreSQL 17 page took
+25.3 ms and verified readback using in-memory archive objects took 24.2 ms.
+These timings measure local fixture page reads. Hosted reader concurrency
+under collection load remains unmeasured, and admission limits stay in place.
+
 ## November 27, 2026 — Add Robinhood BTC/USD to the Benchmark checkpoint
 
 Complete the forecast, freshness and prediction-history acceptance below, then

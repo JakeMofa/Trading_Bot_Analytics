@@ -49,6 +49,14 @@ so the measured backlog remains a follow-up. Benchmark .6 subsequently
 verified the Robinhood display and archived observations.
 [Evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
 
+### Local history admission regression passed
+
+Overlapping requests to one reader are rejected, cancellation holds that
+reader's slot until its worker exits, and market and prediction readers can
+run concurrently. Local PostgreSQL 17 page-read evidence and the outstanding
+hosted concurrency measurement are in the
+[master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#local-history-admission-regression).
+
 ## November 27 — Three BTC feeds on Benchmark
 
 Robinhood v1 BTC-USD authentication and price reads passed from the 4 GB VM.

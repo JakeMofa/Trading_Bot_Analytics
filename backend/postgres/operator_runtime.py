@@ -28,27 +28,31 @@ from .rehearsal_profile import (BOUNDARY_ORIGINS, boundary_anchor, boundary_leas
                                 elapsed_cycle_seconds, lease_cap)
 
 
-def _owner_reader(app_dsn, connector=connect, *, watch_ownership=False):
+def _owner_reader(app_dsn, connector=connect, *, watch_ownership=False, reader=None):
     from psycopg import OperationalError
     from .live_diagnostics import OwnershipConnectionLimit, connection_capacity
 
     def open_readonly():
         try:
+            if reader is not None:
+                return reader.open(readonly=True, wait=0.20)
             return connector(app_dsn, environment='preprod', readonly=True)
         except OperationalError as error:
-            if watch_ownership and connection_capacity(error):
+            if watch_ownership and connection_capacity(error, login=reader.login if reader else 'tradebot_app'):
                 raise OwnershipConnectionLimit() from None
             raise
     return LifecycleRepository(open_readonly)
 
 
 def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, rehearsal_window_seconds=None,
-                       diagnostic_anchor=None):
+                       diagnostic_anchor=None, watch_store=None, owner_reader=None):
     """Prepare a PP-only, explicitly started source task with a finite lease."""
-    store = Store(Settings(environment='preprod', data_mode='pp_live',
+    if origin == DISPLAY_ORIGIN and (watch_store is None or owner_reader is None):
+        raise ValueError('Benchmark watch requires bounded source and ownership connections')
+    store = watch_store or Store(Settings(environment='preprod', data_mode='pp_live',
                            origin_id=origin, dsn=app_dsn))
     store.verify()
-    owner_reader = _owner_reader(app_dsn, watch_ownership=origin == DISPLAY_ORIGIN)
+    owner_reader = owner_reader or _owner_reader(app_dsn, watch_ownership=origin == DISPLAY_ORIGIN)
 
     watch = WatchLease(repository, diagnostic_anchor) if origin == DISPLAY_ORIGIN else None
 
@@ -93,7 +97,7 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
 
         async with httpx.AsyncClient(timeout=4, follow_redirects=False) as client:
             # Never change an object another source thread may retain after stop.
-            source_store = Store(store.settings, producer_session_id=session_id) if watch else store
+            source_store = watch_store.for_producer(session_id) if watch_store else store
             return await run_session(source_store, client, stop, owner_check=owner_check,
                          enable_collector=enable,
                          disable_collector=disable,
@@ -186,6 +190,7 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
         raise ValueError('invalid PP live control flag')
     session = None
     status_repository = repository
+    feed_store = None
     if live_control == 'true':
         if environ.get('TRADEBOT_APP_DSN_FILE') != '/run/secrets/app_dsn':
             raise ValueError('PP live app credential path required')
@@ -194,16 +199,25 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
             if connection.execute('SELECT session_user AS login').fetchone()['login'] != 'tradebot_app':
                 raise ValueError('PP live writer requires the app role')
             validate_schema(connection, 'preprod')
+        if origin == DISPLAY_ORIGIN:
+            from .watch_connections import SessionBudget, WatchOperatorStore
+            reader_dsn = _secret(root, 'watch_api_reader_dsn', expected_uid=expected_uid)
+            reads = SessionBudget(reader_dsn, 'tradebot_reader', 1)
+            writes = SessionBudget(app_dsn, 'tradebot_app', 6)
+            settings = Settings(environment='preprod', data_mode='pp_live', origin_id=origin, dsn=app_dsn)
+            feed_store = WatchOperatorStore(settings, writes, reads)
+            with reads.open(readonly=True) as connection:
+                validate_schema(connection, 'preprod')
+            status_repository = _owner_reader(None, watch_ownership=True, reader=reads)
+        else:
+            status_repository = _owner_reader(app_dsn, connector)
         fence_live_startup(repository, origin)
-        status_repository = _owner_reader(app_dsn, connector)
         session = session_builder(repository, origin, app_dsn,
                     **({'rehearsal_anchor': anchor} if anchor else {}),
                     **({'diagnostic_anchor': diagnostic_anchor} if diagnostic_anchor else {}),
+                    **({'watch_store':feed_store, 'owner_reader':status_repository} if feed_store else {}),
                     **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
     required_seconds = boundary_lease_seconds(origin) if diagnostic_anchor else lease_cap(anchor) if anchor else None
-    from .feed_controls import ORIGIN as WATCH_ORIGIN
-    feed_store = Store(Settings(environment='preprod', data_mode='pp_live', origin_id=origin, dsn=app_dsn)
-                       ) if session and origin == WATCH_ORIGIN else None
     return create_operator_app(repository, origin_id=origin, token=token, feed_store=feed_store,
                                session=session, status_repository=status_repository,
                                max_session_seconds=required_seconds or lease_cap(anchor),

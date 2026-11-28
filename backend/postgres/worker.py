@@ -64,7 +64,11 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--once',action='store_true')
     args = parser.parse_args()
-    store = Store(Settings.from_env())
+    from .feed_controls import ORIGIN
+    from .watch_connections import WatchCalculationStore
+    settings = Settings.from_env()
+    watch = settings.data_mode == 'pp_live' and settings.origin_id == ORIGIN
+    store = WatchCalculationStore(settings) if watch else Store(settings)
     store.verify()
     worker = CalculationWorker(store)
     if args.once:

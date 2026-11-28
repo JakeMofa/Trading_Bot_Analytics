@@ -1,6 +1,9 @@
 """Exercise authenticated local roles and the real public API on disposable PostgreSQL."""
 
+import asyncio
 from contextlib import ExitStack
+from threading import Event
+from unittest.mock import patch
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 import os
@@ -54,7 +57,7 @@ class WatchDashboardReader(unittest.TestCase):
                 self.fail('writable connection admitted')
         wrong_login = WatchDashboardStore(replace(self.settings, dsn=self.app_dsn))
         for _ in range(3):
-            with self.assertRaisesRegex(EnvironmentMismatch, 'reader login'):
+            with self.assertRaisesRegex(EnvironmentMismatch, 'database login'):
                 with wrong_login.connection(True):
                     self.fail('writer login admitted')
 
@@ -75,6 +78,85 @@ class WatchDashboardReader(unittest.TestCase):
                     self.assertEqual(app.execute('SELECT session_user AS login').fetchone()['login'],
                                      'tradebot_app')
             self.assertEqual(client.get('/history/market-events',params=window).status_code,200)
+
+    def test_process_budgets_hold_until_physical_close_and_leave_ownership_capacity(self):
+        from postgres.feed_writer import _Session
+        from postgres.operator_runtime import _owner_reader
+        from postgres.watch_connections import LocalAdmissionBusy, SessionBudget, WatchCalculationStore, WatchOperatorStore
+
+        settings = replace(self.settings,dsn=self.app_dsn)
+        writes = SessionBudget(self.app_dsn, 'tradebot_app', 6)
+        private = SessionBudget(self.settings.dsn, 'tradebot_reader', 1)
+        operator = WatchOperatorStore(settings,writes,private)
+        source = operator.for_producer('fenced-test-owner')
+        calculation = WatchCalculationStore(settings)
+        api = WatchDashboardStore(self.settings)
+        with ExitStack() as stack:
+            pids = set()
+            for _ in range(4):
+                feed = _Session(source)
+                stack.callback(feed.close)
+                with feed.transaction() as db:
+                    pids.add(db.info.backend_pid)
+            for store in (operator,source,calculation,calculation):
+                pids.add(stack.enter_context(store.connection()).info.backend_pid)
+            self.assertEqual(len(pids),8)
+            with self.assertRaises(LocalAdmissionBusy):
+                writes.open(readonly=False,wait=0)
+            with self.assertRaises(LocalAdmissionBusy):
+                calculation._slots.open(readonly=True,wait=0)
+            for _ in range(2):
+                stack.enter_context(api.connection(True))
+            with connect(self.settings.dsn, readonly=True) as diagnostic:
+                self.assertEqual(diagnostic.info.user,'tradebot_reader')
+                self.assertEqual(diagnostic.execute('SHOW max_connections').fetchone()['max_connections'],'20')
+                self.assertEqual(diagnostic.execute('SHOW superuser_reserved_connections').fetchone()['superuser_reserved_connections'],'3')
+                self.assertFalse(_owner_reader(None, reader=private).collector_state(ORIGIN)['collector_enabled'])
+                with operator.connection(True) as check:
+                    self.assertEqual(check.info.user,'tradebot_reader')
+                    with self.assertRaises(LocalAdmissionBusy):
+                        private.open(readonly=True,wait=0)
+        with source.connection() as db:
+            self.assertEqual(db.info.user,'tradebot_app')
+
+    def test_reader_timeout_cancel_and_failed_commit_release_only_after_close(self):
+        from postgres.watch_connections import LocalAdmissionBusy, SessionBudget
+        import psycopg
+
+        budget = SessionBudget(self.settings.dsn,'tradebot_reader',1)
+        entered, finish, exited = Event(), Event(), Event()
+        def blocking():
+            try:
+                with budget.open(readonly=True) as db:
+                    db.execute('SELECT 1')
+                    entered.set()
+                    if not finish.wait(5):
+                        raise TimeoutError('fixture stalled')
+            finally:
+                exited.set()
+        async def cancel():
+            task = asyncio.create_task(asyncio.to_thread(blocking))
+            try:
+                self.assertTrue(await asyncio.to_thread(entered.wait,3))
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await task
+                with self.assertRaises(LocalAdmissionBusy):
+                    budget.open(readonly=True,wait=0)
+            finally:
+                finish.set()
+                await asyncio.to_thread(exited.wait,3)
+        asyncio.run(cancel())
+        db = budget.open(readonly=True)
+        with patch.object(type(db),'commit',side_effect=psycopg.OperationalError('fixture commit failure')):
+            with self.assertRaises(psycopg.OperationalError):
+                with db:
+                    db.execute('SELECT 1')
+        self.assertTrue(db.closed)
+        db.close()
+        with budget.open(readonly=True,wait=0):
+            with self.assertRaises(LocalAdmissionBusy):
+                budget.open(readonly=True,wait=0)
 
     def test_public_history_and_chart_while_application_login_is_at_capacity(self):
         import psycopg

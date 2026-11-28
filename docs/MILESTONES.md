@@ -14,8 +14,7 @@ and limits its single API process to two local sessions. Disposable PostgreSQL
 slots exhausted. A third simultaneous public page got HTTP 429, and live
 state remained available. Local credentials, role limits and deploy status on
 the running watch are tracked in the [Benchmark procedure](../deploy/preprod/BENCHMARK_WATCH.md#local-database-budget-for-the-public-dashboard).
-Live adoption still requires a collection-preserving handoff or an authorized
-maintenance window.
+The operator shares six physical app sessions across its feed and control writes; calculations use two. Ownership/status reserve a separate reader. Cancellation, failed commits and reacquired slots passed against disposable PG17. Live adoption still requires a collection-preserving handoff or an authorized maintenance window.
 
 ### Dashboard-only delivery
 

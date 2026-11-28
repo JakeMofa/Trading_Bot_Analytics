@@ -24,7 +24,7 @@ services:
       ROBINHOOD_PRIVATE_KEY_FILE: /run/secrets/robinhood_private_key
       POLYMARKET_KEY_ID_FILE: /run/secrets/market_key_id
       POLYMARKET_SECRET_KEY_FILE: /run/secrets/market_secret
-    secrets: [market_key_id, market_secret, robinhood_key_id, robinhood_private_key]
+    secrets: [market_key_id, market_secret, robinhood_key_id, robinhood_private_key, watch_api_reader_dsn]
     volumes:
       - {type: bind, source: /var/lib/tradebot-pp/watch-display, target: /run/quote-display, read_only: true, bind: {create_host_path: false}}
 secrets:

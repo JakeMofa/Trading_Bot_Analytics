@@ -77,22 +77,79 @@ requires a new collector still follows its own release qualification.
 
 ## Local database budget for the public dashboard
 
-The successor watch profile pins Uvicorn to one worker and uses the existing PostgreSQL `tradebot_reader`
-login for the single Uvicorn API process. All local reads share two admission
-slots. Excess market and prediction page requests receive HTTP 429. Live state
-and SSE can still publish from memory. Two of the reader role's four sessions
-remain available for other read-only consumers. Collection, calculation and
-the private source controls keep their original application role.
+| Local PostgreSQL login | Maximum simultaneous sessions in the successor |
+| --- | --- |
+| `tradebot_app`, limit 8 | Operator process shares six slots across all producer sessions and private control writes. Four long-lived feed writers can occupy four of these. The calculation process shares two slots between discovery and calculation. |
+| `tradebot_reader`, limit 4 | One Uvicorn API worker uses two for all public history, chart and background reads. The private operator serializes ownership, status and preferences reads in one. Read-only host diagnostics share the fourth. |
+| `tradebot_lifecycle`, limit 3 | The existing lifecycle, lease and archive workers retain their existing role and admission rules. |
+| `tradebot_migrator`, limit 2 | Migrations run with the watch disarmed. |
 
-On the pinned Benchmark host, qualify the exact candidate release and run
-`python3 deploy/preprod/provision_runtime.py prepare-watch-reader` from its
-verified source as root. This prepares the read-only mount from the existing
-foundation secret. The public API process verifies both its authenticated login
-and read-only transaction mode. No database role, grant or password changes
-are needed.
+The server allows 20 connections, including three reserved PostgreSQL slots.
+When the watch is armed the documented service role maxima total 15. Tickets
+span actual connection establishment and use through physical close, including
+the time a background thread continues after its HTTP caller disconnects.
+Excess market and prediction pages receive HTTP 429. In-memory quote state and
+SSE remain available. Under prolonged load the dashboard can report unknown
+collector/DB status between successful refreshes.
 
-The installed .7 controller pins the old API mount. A normal API image-only
-update cannot introduce this new profile. Keep the live collector active until
-a reviewed controller/profile handoff proves continuity or the operator
-authorizes a maintenance window. After adoption, run history under concurrent
-hydration and verify login, writer session, ACK progress and response latency.
+The Benchmark API-only release helper executes every PostgreSQL diagnostic as
+the reader. In-container `flock -n -E 75 -F /var/run/postgresql/.tradebot-watch-diagnostic.lock`
+serializes diagnostic processes **before** they connect and remains held by
+the actual psql process. Use the normal API-backed Grafana sender for ongoing
+samples. Operator probes requiring fresh PostgreSQL SQL must use the same lock
+and reader on the pinned container; retire historic ad-hoc direct-DSN probes
+before profile adoption. A busy diagnostic retries later. Lease renewal uses
+its independent private connection path.
+
+### Adoption on the existing generation
+
+The published .7 controller pins the previous mount and runtime. Its healthy
+collector and .9 UI cannot adopt this change with an image-only update. A
+qualified collector-preserving handoff is pending. The following full-profile
+procedure requires an explicit maintenance window while that work is pending.
+
+1. Pass PR and exact merged push CI; publish the complete release, verify
+   manifest and package digest and stage the verified controller and release
+   before the maintenance interval. Record the old release/controller and
+   dashboard component receipt for rollback. Prepare the reader projection on
+   the pinned 4 GB Benchmark host from the exact source as root:
+   `python3 deploy/preprod/provision_runtime.py prepare-watch-reader`. The
+   existing reader password and grants remain valid.
+2. Snapshot the 20 retained fingerprints, current generation, writer epoch,
+   most recent ACK and active outbox watermark. Record the last source receipts
+   and the current dashboard image. Under the accepted existing controller
+   run the `off` action and prove durable OFF. Stop the recurring archive
+   worker only after independent readback/ACK reaches the recorded final
+   watermark. Preserve every raw partition and outbox row.
+3. Leave the old live profile using its bound transition. Install the exact
+   successor controller and run generated Benchmark CD on the same PostgreSQL
+   volume. This can recreate API, operator, calculation and lifecycle
+   containers. Collection, new calculations and archive processing pause
+   during this cutover. The release cannot guarantee a fixed outage; record
+   UTC from the old writer's last receipt to the new writer's first receipt.
+4. Enter the successor live profile with the **same** initial A
+   `8b7c3058-c10c-4900-89c9-2d7569fca67d` and stable watch origin. Confirm
+   READY_OFF, all retained fingerprints, old market ranges, the current
+   generation and its checkpoint. Rebind the existing approved scoped
+   archive writer and independent reader, verify the recurring worker and
+   independent production-OFF receipt, then use the arm commands above. A
+   fresh fenced writer UUID is expected after this explicit stop.
+5. Confirm effective states and fresh quote identities for all three feeds,
+   compare them to verified hosted bytes and receipts, and measure a 500-row
+   History HTTP request during actual collection. Record writer UUID, epoch
+   and ACK counts before/after. Repeat API-only exchange on a future compatible
+   API release. Preserve the retention hold on raw generations.
+6. If qualification or admission fails, keep the database and all partitions,
+   disarm the candidate, and use the same reviewed full release procedure for
+   the last accepted controller and .7 rollback release. Restore its verified
+   .9 API-only component separately. Confirm OFF, the existing generation,
+   retained fingerprints and archive worker before re-arming. Publish the
+   actual gap and component identities. An unverified runtime stays OFF.
+
+Offline reproduction from the repository root:
+
+```sh
+PYTHONPATH=backend:backend/tests python -m unittest discover -s backend/tests -p test_postgres_watch_dashboard_reader.py
+PYTHONPATH=deploy/preprod python -m unittest discover -s deploy/preprod/tests -p test_trial_cloud_control.py
+PYTHONPATH=deploy/preprod python -m unittest discover -s deploy/preprod/tests -p test_api_component_update.py
+```

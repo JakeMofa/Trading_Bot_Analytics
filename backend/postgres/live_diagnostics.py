@@ -47,13 +47,18 @@ class OwnershipConnectionLimit(RuntimeError):
     """Opening a read-only watch ownership connection failed before its SELECT."""
 
 
-def connection_capacity(error):
+def connection_capacity(error, *, login='tradebot_app'):
+    from .watch_connections import LocalAdmissionBusy
+    if isinstance(error, LocalAdmissionBusy):
+        return True
+    if login not in ('tradebot_app','tradebot_reader'):
+        return False
     if error.sqlstate is not None:
         return error.sqlstate == '53300'
     # libpq may return an untyped startup refusal. Accept only its native
     # single diagnostic for this login, never a match in arbitrary exception text.
     pgconn = error.pgconn if isinstance(error, OperationalError) else None
-    raw = pgconn.error_message if pgconn is not None and pgconn.user == b'tradebot_app' else b''
+    raw = pgconn.error_message if pgconn is not None and pgconn.user == login.encode('ascii') else b''
     if not (0 < len(raw) <= 2048):
         return False
     lines = raw.strip().splitlines()
@@ -62,7 +67,7 @@ def connection_capacity(error):
     prefix, marker, reason = lines[0].partition(b'FATAL:')
     return (bool(marker) and (not prefix.strip() or
             (prefix.startswith(b'connection to server ') and prefix.rstrip().endswith(b'failed:')))
-            and reason.strip() == b'too many connections for role "tradebot_app"')
+            and reason.strip() == ('too many connections for role "'+login+'"').encode('ascii'))
 
 
 class CollectorHold(RuntimeError):

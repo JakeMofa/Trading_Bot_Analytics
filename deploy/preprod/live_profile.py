@@ -70,7 +70,7 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
                                        ROBINHOOD_PRIVATE_KEY_FILE='/run/secrets/robinhood_private_key',
                                        TRADEBOT_PP_COINBASE_TIMING='true',POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
                                        POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
-        for name in DISPLAY_KEYS:
+        for name in (*DISPLAY_KEYS, 'watch_api_reader_dsn'):
             expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(RUNTIME_SECRETS/name)}
             operator['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
     if reader:

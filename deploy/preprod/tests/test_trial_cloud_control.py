@@ -81,6 +81,8 @@ class ProfileTests(unittest.TestCase):
                          {'watch_api_reader_dsn','pp_prediction_history_reader_dsn','pp_history_ca'})
         self.assertEqual(display['secrets']['watch_api_reader_dsn']['file'],
                          '/etc/tradebot/pp-runtime/watch_api_reader_dsn')
+        self.assertIn('watch_api_reader_dsn',{item['source'] for item in display['services']['operator']['secrets']})
+        self.assertNotIn('watch_api_reader_dsn',{item['source'] for item in display['services']['calculation']['secrets']})
         for service in ('operator','calculation'):
             self.assertIn('app_dsn',{item['source'] for item in display['services'][service]['secrets']})
         for field in ('environment','secrets'):

@@ -63,7 +63,10 @@ def schema(source):
 def compatible_build(current, candidate):
     old = schema(current)
     require(schema(candidate) == old, 'api_schema_change_requires_full_release')
-    for filename in ('backend/requirements.txt', 'deploy/preprod/Dockerfile'):
+    for filename in ('backend/requirements.txt', 'deploy/preprod/Dockerfile',
+                     'deploy/preprod/runtime.compose.yaml', 'deploy/preprod/runtime.live.compose.yaml',
+                     'deploy/preprod/runtime.live-boundary.compose.yaml',
+                     'deploy/preprod/runtime.quote-display.compose.yaml'):
         require(
             (current / filename).read_bytes() == (candidate / filename).read_bytes(),
             'api_build_contract_changed',
@@ -197,7 +200,7 @@ def build(source_sha, artifact, archive):
     request = Request(source_sha, artifact, active['controller_sha256'], instance=BENCHMARK_INSTANCE)
     request.validate()
     budget = Budget(300)
-    actions = _image_binding(ctx, budget)
+    actions = _image_binding(ctx, budget, watch_diagnostics=True)
     actions._host_headroom()
     folder = ROOT / ('api-' + artifact)
     folder.mkdir(mode=0o700, exist_ok=True)
@@ -389,7 +392,7 @@ def recover(artifact):
                 'recovery_candidate_binding_mismatch',
             )
             previous = entry['previous']
-            actions = _image_binding(ctx, Budget(10))
+            actions = _image_binding(ctx, Budget(10), watch_diagnostics=True)
             marker = ctx.staging / 'benchmark-api-component.json'
             if previous:
                 require(
@@ -412,7 +415,7 @@ def apply(artifact):
         active, ctx = watch()
         with continued_renewal(lambda: renew_existing(active), needed=True):
             budget = Budget(55)
-            actions = _image_binding(ctx, budget)
+            actions = _image_binding(ctx, budget, watch_diagnostics=True)
             _owned_runtime(actions, ctx, budget)
             actions._runtime(
                 ctx, budget, live=True, initial_a=active['initial_a'], trial_origin=DISPLAY_ORIGIN

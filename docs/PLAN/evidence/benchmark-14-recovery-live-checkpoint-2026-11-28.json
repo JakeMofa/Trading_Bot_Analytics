@@ -989,6 +989,7 @@
     "outbox_id": 582013,
     "receipt_to_commit_observation_ms": 12.191,
     "receipt_to_verified_ack_ms": 1904.63,
-    "canonical_first_confirmed": false
+    "canonical_first_confirmed": false,
+    "clock_limitation": "Uses the original browser/server clock bracket about 15 minutes later; the raw interval crosses zero. Do not report it as measured absolute receipt-to-visible latency. Same-browser SSE-to-DOM is 13.9 ms; the first-market calibrated interval is separate."
   }
 }

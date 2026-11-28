@@ -798,6 +798,7 @@ change to the active checkpoint above.
 ### Rolling windows, archive and retirement
 
 - [Long-window checkpoint and local data retention qualification](LONG_WINDOW_QUALIFICATION.md)
+- [Local connection admission, reader isolation and safe adoption](LOCAL_DATABASE_CONNECTION_BUDGET.md)
 
 - [PP archive and retirement flow — November 17, 2026](CP6_PP_ARCHIVE_FLOW_REVIEW_2026-11-17.md)
 - [CP6 active structured sync preparation — November 17 CST / November 18 UTC](CP6_ACTIVE_STRUCTURED_SYNC_PREPARATION_2026-11-17.md)

@@ -53,12 +53,19 @@ def book(payload):
     if not isinstance(rows, list) or len(rows) != 1 or rows[0]['symbol'] != 'BTC-USD':
         raise ValueError('missing BTC-USD quote')
     bid, ask = positive(rows[0]['bid']), positive(rows[0]['ask'])
-    if bid > ask:
-        raise ValueError('crossed bid and ask')
+    provider_timestamp = rows[0].get('timestamp')
+    if provider_timestamp is not None:
+        try:
+            parsed = datetime.fromisoformat(provider_timestamp)
+            if parsed.tzinfo is None:
+                provider_timestamp = None
+        except (ValueError, TypeError):
+            provider_timestamp = None
     with localcontext() as ctx:
         ctx.prec = 200
-        return {'symbol': 'BTC-USD', 'bid': str(bid), 'ask': str(ask), 'midpoint': str((bid + ask) / 2),
-                'source_time': None}
+        return {'symbol': 'BTC-USD', 'bid': str(bid), 'ask': str(ask), 'midpoint': str((bid + ask) / 2) if bid <= ask else None,
+                'book_status': 'two_sided' if bid <= ask else 'crossed',
+                'provider_timestamp': provider_timestamp, 'source_time': None}
 
 
 def retry_delay(header, now):

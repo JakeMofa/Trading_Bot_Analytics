@@ -111,10 +111,12 @@ request. Local reads work with the reader disabled.
 
 An isolated comparison process uses the official Robinhood Crypto v2 best
 bid/ask GET for BTC-USD. The sample contains Robinhood's bid and ask, their
-arithmetic midpoint, local request and receipt times in UTC, and HTTP duration.
-The v2 result supplies no exchange timestamp. Age since PP receipt measures
-the observer's handling of that response. Venue-to-PP delay cannot be derived
-from it. The midpoint is an auxiliary reference for comparison with the
+arithmetic midpoint for an uncrossed book, local request and receipt times in
+UTC, and HTTP duration. Crossed books retain both prices with an explicit
+status and an empty midpoint. The documented v2 schema lists symbol, bid and
+ask. An authenticated response also supplied a nanosecond timestamp. Preserve
+it as `provider_timestamp`; its meaning is undocumented. Age since PP receipt measures
+the observer's handling of that response. Exchange-to-PP delay remains unknown. The midpoint is an auxiliary reference for comparison with the
 Polymarket BTC index and Coinbase. [Official v2 market-data schema](https://docs.robinhood.com/crypto/trading/#operation/api_v2_crypto_marketdata_best_bid_ask).
 
 With an authorized quote-reading key supplied to the observer process as

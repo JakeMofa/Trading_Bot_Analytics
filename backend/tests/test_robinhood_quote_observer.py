@@ -61,10 +61,16 @@ class RobinhoodQuoteTests(unittest.TestCase):
                 self.assertNotIn('private-error-message', json.dumps(rows))
 
     def test_missing_malformed_or_crossed_books_and_invalid_keys(self):
-        for row in ([], [{'symbol':'BTC-USD','bid':'1'}], [{'symbol':'BTC-USD','bid':'2','ask':'1'}],
+        for row in ([], [{'symbol':'BTC-USD','bid':'1'}],
                     [{'symbol':'ETH-USD','bid':1,'ask':2}], [{'symbol':'BTC-USD','bid':'NaN','ask':2}]):
             with self.assertRaises((ValueError, KeyError)):
                 self.reader.book(json.dumps({'results':row}))
+        crossed = {'symbol':'BTC-USD','bid':'59961.76','ask':'59961.51','timestamp':'2026-11-28T02:35:17.494338019Z'}
+        sample = self.reader.book(json.dumps({'results':[crossed]}))
+        self.assertEqual(sample['provider_timestamp'], crossed['timestamp'])
+        self.assertEqual((sample['bid'],sample['ask'],sample['book_status']), ('59961.76','59961.51','crossed'))
+        self.assertIsNone(sample['midpoint'])
+        self.assertIsNone(sample['source_time'])
         for changes in [{'ROBINHOOD_PRIVATE_KEY':base64.b64encode(b'x'*64).decode()},
                         {'ROBINHOOD_PRIVATE_KEY':'@@'}, {'ROBINHOOD_API_KEY':'bad\nheader'},
                         {'ROBINHOOD_API_KEY':self.env['ROBINHOOD_PRIVATE_KEY']},

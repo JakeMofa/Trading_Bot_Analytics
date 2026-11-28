@@ -84,3 +84,25 @@ hydrated local quote. An ID missed between refreshes is an unobserved
 comparison. Check the structured record's event ID, source, exact prices and
 content hash with the scoped hosted reader. Do not use receipt of a display
 packet or an aggregate counter as evidence of a particular hosted row.
+
+
+### Saved prediction history
+
+`GET /history/market-predictions` takes `market_id`, `start`, `end`, and a fixed
+`as_of` decision cutoff in RFC 3339 form. The forecast window includes the start
+and excludes the end, spans at most one hour, and includes only forecasts saved
+by the cutoff. Pages default to 100 rows and allow up to 500. Pass the returned
+`next_cursor` with the same scope for the next page in descending decision order.
+
+FastAPI reads the origin's durable local predictions across A and B. A retired
+interval also queries private structured history and verifies each hosted
+projection against its receipt and revision. Set `include_archive=true` to check
+both tiers while the generations are still attached. The response identifies
+the tier for each saved prediction and any incomplete coverage. Missing
+predictions and persisted abstentions remain distinct.
+
+The optional PP API profile enables `TRADEBOT_PP_PREDICTION_HISTORY=true` and
+supplies its origin's SELECT-only session DSN at
+`/run/secrets/pp_prediction_history_reader_dsn` and pinned certificate at
+`/run/secrets/pp_history_ca`. The existing hosted role and TLS checks run per
+request. Local reads work with the reader disabled.

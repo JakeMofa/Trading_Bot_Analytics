@@ -58,7 +58,9 @@ def create_app(settings=None, store=None, state=None, *, history=None,
     from .history import HistoryError
     from .archive_codec import ArchiveIntegrityError, ArchiveLimit
     from .runtime_history import RuntimeHistory
+    from .prediction_history import PredictionHistory, configured_archive
     market_history = MarketHistory(store, history.raw_factory if isinstance(history, RuntimeHistory) else None)
+    prediction_history = PredictionHistory(store, configured_archive(settings, os.environ))
 
     async def discover():
         while True:
@@ -178,14 +180,10 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                 'missing_data':snapshot['missing_data'],'storage_status':snapshot['storage_status'],
                 'updated_at':snapshot['updated_at'],'cloud':{'enabled':False,'status':'disabled','datasets':[]}}
 
-    @app.get('/history/market-events')
-    async def market_events(market_id: str=Query(min_length=1,max_length=128),
-                            start: str=Query(max_length=64), end: str=Query(max_length=64),
-                            as_of: str=Query(max_length=64), cursor: str|None=Query(default=None,max_length=2048),
-                            limit: int=Query(default=100,ge=1,le=500)):
+    async def history_window(reader, market_id, start, end, as_of, cursor, limit, *options):
         try:
             window = Window.parse(market_id, start, end, as_of)
-            return await market_history.read_async(window, cursor, limit)
+            return await reader.read_async(window, cursor, limit, *options)
         except HistoryError as error:
             status = 429 if error.code == 'history_busy' else 422
             raise HTTPException(status, {'code':error.code}) from None
@@ -195,6 +193,20 @@ def create_app(settings=None, store=None, state=None, *, history=None,
             raise HTTPException(503, {'code':'history_integrity_failed'}) from None
         except Exception:
             raise HTTPException(503, {'code':'history_unavailable'}) from None
+
+    @app.get('/history/market-events')
+    async def market_events(market_id: str=Query(min_length=1,max_length=128),
+                            start: str=Query(max_length=64), end: str=Query(max_length=64),
+                            as_of: str=Query(max_length=64), cursor: str|None=Query(default=None,max_length=2048),
+                            limit: int=Query(default=100,ge=1,le=500)):
+        return await history_window(market_history,market_id,start,end,as_of,cursor,limit)
+
+    @app.get('/history/market-predictions')
+    async def market_predictions(market_id: str=Query(min_length=1,max_length=128),
+                            start: str=Query(max_length=64), end: str=Query(max_length=64),
+                            as_of: str=Query(max_length=64), cursor: str|None=Query(default=None,max_length=2048),
+                            limit: int=Query(default=100,ge=1,le=500), include_archive: bool=False):
+        return await history_window(prediction_history,market_id,start,end,as_of,cursor,limit,include_archive)
 
     @app.get('/history/predictions')
     async def predictions(limit: int=Query(default=100,ge=1,le=500)):

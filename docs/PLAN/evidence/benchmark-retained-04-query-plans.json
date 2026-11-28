@@ -1,0 +1,527 @@
+{
+  "scope": "One 2-second SQL statement timeout per read-only EXPLAIN ANALYZE on retained .4, collector flags OFF, production untouched; subtracting or forecasting network from these timings is unsupported",
+  "origin": "pp-live-pp-display-20261127-02",
+  "generation": "e11000be-bcb0-4b45-9c13-dd8f65a99b67",
+  "market": "2980113",
+  "start": "2026-11-28T03:00:00Z",
+  "end": "2026-11-28T03:15:00Z",
+  "decision_cutoff": "2026-11-28T03:14:59.990000Z",
+  "plans": {
+    "hot_market_history": {
+      "planning_ms": 1.396,
+      "execution_ms": 36.453,
+      "nodes": [
+        {
+          "node": "Subquery Scan",
+          "index": null,
+          "relation": null,
+          "actual_rows": 501,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2670,
+          "shared_read": 0
+        },
+        {
+          "node": "Limit",
+          "index": null,
+          "relation": null,
+          "actual_rows": 501,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2670,
+          "shared_read": 0
+        },
+        {
+          "node": "Sort",
+          "index": null,
+          "relation": null,
+          "actual_rows": 501,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2670,
+          "shared_read": 0
+        },
+        {
+          "node": "Seq Scan",
+          "index": null,
+          "relation": "events_g_e11000bebcb04b459c13dd8f65a99b67",
+          "actual_rows": 15333,
+          "loops": 1,
+          "removed": 2334,
+          "shared_hit": 2667,
+          "shared_read": 0
+        },
+        {
+          "node": "WindowAgg",
+          "index": null,
+          "relation": null,
+          "actual_rows": 501,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2670,
+          "shared_read": 0
+        },
+        {
+          "node": "CTE Scan",
+          "index": null,
+          "relation": null,
+          "actual_rows": 501,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2670,
+          "shared_read": 0
+        }
+      ]
+    },
+    "expected_prediction_ledger": {
+      "planning_ms": 0.569,
+      "execution_ms": 2.247,
+      "nodes": [
+        {
+          "node": "Limit",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 224,
+          "shared_read": 3
+        },
+        {
+          "node": "Sort",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 224,
+          "shared_read": 3
+        },
+        {
+          "node": "Index Scan",
+          "index": "outbox_origin_id_entity_type_entity_id_content_hash_key",
+          "relation": "outbox",
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 31,
+          "shared_hit": 221,
+          "shared_read": 3
+        }
+      ]
+    },
+    "saved_projection": {
+      "planning_ms": 0.532,
+      "execution_ms": 11.031,
+      "nodes": [
+        {
+          "node": "Nested Loop",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 6,
+          "shared_read": 16
+        },
+        {
+          "node": "Limit",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 6,
+          "shared_read": 16
+        },
+        {
+          "node": "Incremental Sort",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 6,
+          "shared_read": 16
+        },
+        {
+          "node": "Index Scan",
+          "index": "predictions_market_time",
+          "relation": "predictions",
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 16
+        },
+        {
+          "node": "CTE Scan",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 4,
+          "shared_read": 5
+        },
+        {
+          "node": "Materialize",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 170,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 11
+        },
+        {
+          "node": "Aggregate",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 11
+        },
+        {
+          "node": "CTE Scan",
+          "index": null,
+          "relation": null,
+          "actual_rows": 170,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 11
+        }
+      ]
+    },
+    "latest_saved_feature_pair": {
+      "planning_ms": 0.52,
+      "execution_ms": 2.065,
+      "nodes": [
+        {
+          "node": "Nested Loop",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 4,
+          "shared_read": 3
+        },
+        {
+          "node": "Limit",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 1,
+          "shared_read": 2
+        },
+        {
+          "node": "Incremental Sort",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 1,
+          "shared_read": 2
+        },
+        {
+          "node": "Index Scan",
+          "index": "feature_snapshots_origin_id_market_id_as_of_version_key",
+          "relation": "feature_snapshots",
+          "actual_rows": 2,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 1,
+          "shared_read": 2
+        },
+        {
+          "node": "Limit",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 1
+        },
+        {
+          "node": "Sort",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 1
+        },
+        {
+          "node": "Index Scan",
+          "index": "predictions_origin_id_snapshot_id_model_version_key",
+          "relation": "predictions",
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 1
+        }
+      ]
+    },
+    "latest_market_book": {
+      "planning_ms": 7.649,
+      "execution_ms": 9.936,
+      "nodes": [
+        {
+          "node": "Limit",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2711,
+          "shared_read": 0
+        },
+        {
+          "node": "Sort",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2711,
+          "shared_read": 0
+        },
+        {
+          "node": "Append",
+          "index": null,
+          "relation": null,
+          "actual_rows": 8248,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2711,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_0c94ceacc6454684b10d_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_0c94ceacc6454684b10d7af0a0c3c533",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_15a239c92f9b4bdcbd89_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_15a239c92f9b4bdcbd897cd1e2812f45",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_23bab05a913746c79f13_origin_id_market_id_available_idx",
+          "relation": "events_g_23bab05a913746c79f13a2e701a30572",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_23f4ccb8c2434eaebbd2_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_23f4ccb8c2434eaebbd28c75aae9816a",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_2ba8b503f94a4fbbbfe5_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_2ba8b503f94a4fbbbfe504569de18435",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_2f5ab43414c04a618b8e_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_2f5ab43414c04a618b8e145c9a05f0e6",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_381070ac362448268dc6_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_381070ac362448268dc67ea5a272f97e",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_41c820440fb84900bea0_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_41c820440fb84900bea07c43ba079ff0",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_53505b6cf9b24b4bbe55_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_53505b6cf9b24b4bbe55e45f94a6841c",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_62b2331cf44e4396b1af_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_62b2331cf44e4396b1af0607a8957fcb",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_65dae5e2857445b68395_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_65dae5e2857445b683953794c1afe1b3",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_77ee5f307c3d42858807_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_77ee5f307c3d428588077d5543cf4bde",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_7eb27e2ff53b4b5098db_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_7eb27e2ff53b4b5098db00a318853b0b",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_94107d29626f480ab61a_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_94107d29626f480ab61ace6a10f44301",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_94d20c1f2bd74270bb59_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_94d20c1f2bd74270bb59e216070e5202",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 2,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_c7fbfa88f3b840a383fa_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_c7fbfa88f3b840a383fac01912220570",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Index Scan",
+          "index": "events_g_e07e981a261743aca050_origin_id_source_symbol_sourc_idx",
+          "relation": "events_g_e07e981a261743aca050fcf4455a12f1",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 3,
+          "shared_read": 0
+        },
+        {
+          "node": "Seq Scan",
+          "index": null,
+          "relation": "events_g_e11000bebcb04b459c13dd8f65a99b67",
+          "actual_rows": 8248,
+          "loops": 1,
+          "removed": 9419,
+          "shared_hit": 2667,
+          "shared_read": 0
+        },
+        {
+          "node": "Seq Scan",
+          "index": null,
+          "relation": "events_g_fe26274c6b8a40ff91e0b5573f834061",
+          "actual_rows": 0,
+          "loops": 1,
+          "removed": 42,
+          "shared_hit": 3,
+          "shared_read": 0
+        }
+      ]
+    },
+    "since_start_archived_quotes": {
+      "planning_ms": 0.129,
+      "execution_ms": 301.244,
+      "nodes": [
+        {
+          "node": "Aggregate",
+          "index": null,
+          "relation": null,
+          "actual_rows": 1,
+          "loops": 1,
+          "removed": 0,
+          "shared_hit": 61876,
+          "shared_read": 27
+        },
+        {
+          "node": "Index Scan",
+          "index": "outbox_origin_id_entity_type_entity_id_content_hash_key",
+          "relation": "outbox",
+          "actual_rows": 8270,
+          "loops": 1,
+          "removed": 2636,
+          "shared_hit": 61876,
+          "shared_read": 27
+        }
+      ]
+    }
+  }
+}

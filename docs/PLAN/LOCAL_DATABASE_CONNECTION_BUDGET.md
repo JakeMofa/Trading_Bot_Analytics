@@ -175,3 +175,12 @@ Independent macOS PostgreSQL cancellation tests also exposed and verified
 repairs to inherited lock-FD lifetime and interrupted pre-PID registration.
 Exact pinned Linux/Docker tests and the real read-only full inventory remain
 release gates; no current-size VM pass or deployment is claimed here.
+
+Final review also replaced the interrupted-login fallback's child-list lookup
+with numeric procfs PID inspection and exact parent/start identity. Linux's
+[child-list documentation](https://man7.org/linux/man-pages/man5/proc_tid_children.5.html)
+warns that exiting siblings can hide surviving children. The
+[process-stat format](https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html)
+defines the parent PID and start ticks used for identity; unreadable surviving
+processes retain exclusion. This path is covered by the Linux sibling-churn
+fixture, not inferred from the successful macOS SQL test.

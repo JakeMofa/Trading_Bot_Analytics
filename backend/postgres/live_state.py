@@ -20,6 +20,7 @@ class LiveState:
         self._quote = None
         self._snapshot = None
         self._forecast = None
+        self._saved_prediction = None
         self._revision = 0
         self._updated_at = None
         self._storage_status = 'starting'
@@ -60,7 +61,7 @@ class LiveState:
             old = self._market
             self._market = deepcopy(market)
             if (old or {}).get('id') != (market or {}).get('id'):
-                self._quote = self._snapshot = self._forecast = None
+                self._quote = self._snapshot = self._forecast = self._saved_prediction = None
             self._touch()
 
     def _touch(self):
@@ -103,12 +104,19 @@ class LiveState:
             self._touch()
             return True
 
-    def publish(self, market_id, price, quote, snapshot, prediction):
+    def publish(self, market_id, price, quote, snapshot, prediction, latest_saved=None):
         now = self.clock()
         with self._lock:
             market = self._market
             if not market or market['id'] != market_id or not timestamp(market['start']) <= now < timestamp(market['end']):
                 return False
+            if (latest_saved and latest_saved['market_id'] == market_id
+                    and latest_saved['origin_id'] == self.settings.origin_id
+                    and timestamp(latest_saved['as_of']) <= timestamp(latest_saved['created_at']) <= now):
+                old = self._saved_prediction
+                key = (timestamp(latest_saved['as_of']), latest_saved['prediction_id'])
+                if old is None or key >= (timestamp(old['as_of']), old['prediction_id']):
+                    self._saved_prediction = deepcopy(latest_saved)
             if price and timestamp(price['source_time']) <= now and timestamp(price['received_at']) <= now:
                 # Reordered reads cannot rewind the latest accepted event.
                 if self._price is None or timestamp(price['source_time']) >= timestamp(self._price['source_time']):
@@ -120,7 +128,7 @@ class LiveState:
                         and (not quote.get('source_time') or timestamp(quote['source_time']) <= now)
                         and (self._quote is None or timestamp(quote[order_key]) >= timestamp(self._quote[order_key]))):
                     self._quote = deepcopy(quote)
-            if snapshot and snapshot['market_id'] == market_id and 0 <= (now-timestamp(snapshot['as_of'])).total_seconds() <= 30:
+            if snapshot and snapshot['market_id'] == market_id and timestamp(snapshot['as_of']) <= now:
                 if self._snapshot is None or timestamp(snapshot['as_of']) >= timestamp(self._snapshot['as_of']):
                     self._snapshot = deepcopy(snapshot)
                     self._forecast = deepcopy(prediction) if prediction and prediction['market_id'] == market_id else None
@@ -182,6 +190,20 @@ class LiveState:
                 if status != 'fresh':
                     missing.append(name+'_price' if name == 'coinbase' else 'polymarket_quote')
             feature_fresh = feature and active and feature['market_id'] == market['id'] and 0 <= (now-timestamp(feature['as_of'])).total_seconds() <= 30
+            if not active:
+                live_status = 'no_active_market'
+            elif self.settings.data_mode == 'pp_live' and self._collector['enabled'] is not True:
+                live_status = 'collector_off' if self._collector['enabled'] is False else 'collector_state_unknown'
+            elif not price:
+                live_status = 'missing_coinbase_tick'
+            elif not 0 <= (now-timestamp(price['source_time'])).total_seconds() <= 10:
+                live_status = 'reference_price_not_fresh'
+            elif market.get('target_usd') is None:
+                live_status = 'price_to_beat_pending'
+            elif not feature_fresh:
+                live_status = 'feature_snapshot_stale' if feature else 'missing_feature_snapshot'
+            else:
+                live_status = 'ready'
             if not feature_fresh:
                 feature = saved = None
                 missing.append('feature_snapshot')
@@ -202,12 +224,21 @@ class LiveState:
                             'probability_up': probability, 'probability_down': None if probability is None else 1-probability,
                             'abstain_reason': reason, 'as_of': price['source_time'],
                             'snapshot_as_of': feature['as_of'], 'source': 'live_state_ram'}
+            if estimate:
+                if live_status == 'ready' and estimate['abstain_reason']:
+                    live_status = estimate['abstain_reason']
+                elif live_status != 'ready' and estimate['probability_up'] is not None:
+                    estimate.update(probability_up=None, probability_down=None, abstain_reason=live_status)
+            latest_saved = self._saved_prediction
+            if latest_saved and latest_saved['market_id'] != (market or {}).get('id'):
+                latest_saved = None
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
                     'polymarket_reference': reference, 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'feature_snapshot': feature, 'forecast': saved,
+                    'saved_prediction': deepcopy(latest_saved), 'live_estimate_status': live_status,
                     'models': {saved['model_version']: saved} if saved else {}, 'live_estimate': estimate,
                     'trade_flow': None, 'order_book': None, 'derivatives': None,
                     'feeds': feeds, 'missing_data': missing + ['trade_flow', 'btc_order_book']}

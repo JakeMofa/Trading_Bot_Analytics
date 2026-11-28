@@ -841,9 +841,18 @@
         byId('event-rows').replaceChildren(fragment);
         eventCursor = page.next_cursor;
         const coverage = page.coverage;
-        const gap = coverage?.complete === true ? '' :
-          ' · Incomplete coverage' + (coverage?.missing_generations?.length ? ' · missing ' + coverage.missing_generations.join(', ') : '');
-        set('events-status', page.items.length + ' events on this page' + gap);
+        const status = [page.items.length + ' events on this page'];
+        if (coverage?.complete !== true) {
+          status.push('Incomplete coverage');
+          const labels = {
+            generation_time_gap:'Part of this time range has no known generation',
+            later_generations_not_checked_for_late_arrivals:'Later generations may contain delayed events',
+            missing_generations:'One or more required generations are unavailable'
+          };
+          for (const reason of coverage?.reasons || []) status.push(labels[reason] ?? reason.replaceAll('_', ' '));
+          if (coverage?.missing_generations?.length) status.push('missing ' + coverage.missing_generations.join(', '));
+        }
+        set('events-status', status.join(' · '));
       } catch (error) {
         if (!request.signal.aborted) set('events-status', 'History unavailable · ' + error.message);
       } finally {

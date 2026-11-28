@@ -765,5 +765,115 @@
         }
       }
     }
+  },
+  "post_hold_preservation": {
+    "verified_at": "2026-11-28T06:46:38.789992+00:00",
+    "retained_generations_verified": 20,
+    "all_retained_match": true,
+    "active_A": {
+      "raw": {
+        "n": 92738,
+        "digest": "11ab50709eabe6b75ccc52b689c12697577f24bd8e7ad1485afd4dec0215da9f"
+      },
+      "outbox": {
+        "n": 98058,
+        "acks": 98058,
+        "hi": 423394,
+        "digest": "4d29917931f9400259dc0d0861b484fc477e4bc27dcd118b00489d9733ff86d7"
+      }
+    },
+    "writer": {
+      "origin": "pp-live-pp-benchmark-watch",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "enabled": false,
+      "session": null,
+      "epoch": 7,
+      "utc": "2026-11-28T06:45:43.589319+00:00",
+      "lease": null,
+      "pending": 0,
+      "hi": 423394,
+      "acks": 98058
+    }
+  },
+  "status503_window": {
+    "unit": [
+      [
+        "2026-11-28T06:41:14.547527+00:00",
+        "Starting"
+      ],
+      [
+        "2026-11-28T06:41:15.197477+00:00",
+        "Deactivated successfully"
+      ],
+      [
+        "2026-11-28T06:41:15.197817+00:00",
+        "Finished"
+      ],
+      [
+        "2026-11-28T06:41:30.551581+00:00",
+        "Starting"
+      ],
+      [
+        "2026-11-28T06:41:31.371984+00:00",
+        "HTTP Error 503"
+      ],
+      [
+        "2026-11-28T06:41:31.413839+00:00",
+        "Failed with result"
+      ]
+    ],
+    "log_categories": {
+      "operator": {
+        "lines": 3,
+        "counts": {
+          "too many connections": 0,
+          "statement timeout": 0,
+          "lock timeout": 0,
+          "localadmissionbusy": 0,
+          "out of memory": 0,
+          "could not connect": 0,
+          "connection refused": 0,
+          "server closed": 0,
+          "operationalerror": 0,
+          "canceling statement": 0,
+          "traceback": 0,
+          "ownership": 0
+        }
+      },
+      "postgres": {
+        "lines": 0,
+        "counts": {
+          "too many connections": 0,
+          "statement timeout": 0,
+          "lock timeout": 0,
+          "localadmissionbusy": 0,
+          "out of memory": 0,
+          "could not connect": 0,
+          "connection refused": 0,
+          "server closed": 0,
+          "operationalerror": 0,
+          "canceling statement": 0,
+          "traceback": 0,
+          "ownership": 0
+        }
+      },
+      "api": {
+        "lines": 2,
+        "counts": {
+          "too many connections": 0,
+          "statement timeout": 0,
+          "lock timeout": 0,
+          "localadmissionbusy": 0,
+          "out of memory": 0,
+          "could not connect": 0,
+          "connection refused": 0,
+          "server closed": 0,
+          "operationalerror": 0,
+          "canceling statement": 0,
+          "traceback": 0,
+          "ownership": 0
+        }
+      }
+    }
   }
 }

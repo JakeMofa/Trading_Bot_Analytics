@@ -177,7 +177,16 @@ async def stream_books(pipe, stop, keypair):
         delay = min(30, delay * 2)
 
 
-async def run(store, client, stop, interval, clock):
+async def run_robinhood(store, stop):
+    from .robinhood_history import collect
+    sender = DisplaySender(store.settings.origin_id)
+    try:
+        await collect(store, stop, QuotePipeline(store, sender).publish_robinhood)
+    finally:
+        sender.socket.close()
+
+
+async def run(store, client, stop, interval, clock, *, include_robinhood=True):
     sender = DisplaySender(store.settings.origin_id)
     pipe = QuotePipeline(store, sender)
     try:
@@ -185,7 +194,7 @@ async def run(store, client, stop, interval, clock):
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair))
-            if os.getenv('TRADEBOT_PP_ROBINHOOD_REFERENCE') == '1':
+            if include_robinhood and os.getenv('TRADEBOT_PP_ROBINHOOD_REFERENCE') == '1':
                 from .robinhood_history import collect
                 tasks.create_task(collect(store, stop, pipe.publish_robinhood))
             cadence = 1 if store.settings.origin_id in ONE_SECOND_ORIGINS else 5

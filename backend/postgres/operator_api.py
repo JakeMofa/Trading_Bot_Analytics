@@ -54,7 +54,24 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
                 'lease_expired': bool(durable.get('stored_enabled') and not durable['collector_enabled']),
                 'process_running': session.state()['process_running'] if session else None,
                 'session_failure_code': session.state().get('failure_code') if session else None,
-                'live_fence_qualified': False}
+                'live_fence_qualified': False,
+                **({'watch_explicit_off': await asyncio.to_thread(session.watch_explicit_off)}
+                   if callable(getattr(session, 'watch_explicit_off', None)) else {})}
+
+    if session is not None and callable(getattr(session, 'renew_watch', None)):
+        @app.post('/collector/watch/arm')
+        async def arm_watch(authorization: str | None = Header(default=None)):
+            require_operator(authorization)
+            await asyncio.to_thread(session.set_watch_off, False)
+            return {'origin_id':origin_id, 'watch_explicit_off':False}
+
+        @app.post('/collector/watch/renew')
+        async def renew(authorization: str | None = Header(default=None)):
+            require_operator(authorization)
+            try:
+                return await asyncio.to_thread(session.renew_watch)
+            except Exception:
+                raise HTTPException(409, 'Benchmark collector lease could not renew') from None
 
     if session is not None:
         @app.post('/collector/on', status_code=202)
@@ -79,12 +96,16 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
         require_operator(authorization)
         try:
             if session is not None:
+                if callable(getattr(session, 'set_watch_off', None)):
+                    await asyncio.to_thread(session.set_watch_off, True)
                 await session.stop()
             durable = await asyncio.to_thread(repository.disable_collector, origin_id)
         except Exception:
             raise HTTPException(503, 'collector stop unavailable') from None
         return {'environment': 'preprod', 'origin_id': origin_id,
                 **durable, 'process_running': session.state()['process_running'] if session else None,
-                'live_fence_qualified': False}
+                'live_fence_qualified': False,
+                **({'watch_explicit_off': await asyncio.to_thread(session.watch_explicit_off)}
+                   if callable(getattr(session, 'watch_explicit_off', None)) else {})}
 
     return app

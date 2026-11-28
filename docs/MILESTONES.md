@@ -1384,3 +1384,12 @@ From the project root, run `.venv/bin/python -m unittest discover -s backend/tes
 - Run `python -m unittest discover -s backend/tests -p 'test_generated_size_cycle.py' -v`. The native cases launch a disposable socket-only PostgreSQL 17 cluster. The fixtures use small measured triggers. The 32 MiB generated-profile ceiling is a candidate test bound; neither that size nor a 72-hour production window has been qualified.
 - The trial07 candidate binds the fresh origin and exact 32 MiB trigger to initial-A preparation, the one-use controller authorizations, the finite writer lease and its admission record, the active profile and the retirement permit. Existing origin policies remain independent. Terminal cleanup requires both verified physical removals and archives the final fresh A without deleting it.
 - Before live qualification, require exact CI, reviewed trial07 cloud writer/reader and Storage policies, installed source/image/controller bindings, both privileged-change freeze windows, and retained trial05/trial06 fingerprints. No hosted role, VM deployment, collector activation, or retirement was performed by the offline work.
+
+### Sustained 4 GB Benchmark admission
+
+The Benchmark watch now has a stable origin, durable run intent, independently
+supervised feeds and renewable PostgreSQL lease. Disposable PostgreSQL covered
+expiry, ownership, explicit OFF and safe restart. A controller fixture covered
+renewal and refusing to admit without the exact archive worker. The live
+renewal, concurrent source controls and sustained archive rate require
+Benchmark acceptance. [Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md)

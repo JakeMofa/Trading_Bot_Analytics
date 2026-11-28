@@ -14,6 +14,8 @@ CYCLE_POLICY = 'two-official-markets-cycle'
 ELAPSED_CYCLE_POLICY = 'elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS = 1800
 BOUNDARY_POLICY = 'boundary-diagnostic-v1'
+WATCH_LEASE_SECONDS = 120
+WATCH_POLICY = 'benchmark-watch-v1'
 BOUNDARY_LEASE_SECONDS = 4100
 BOUNDARY_SMOKE_ORIGIN = 'pp-live-pp-smoke-20261125-01'
 BOUNDARY_SMOKE_LEASE_SECONDS = 540
@@ -22,7 +24,7 @@ BOUNDARY_ORIGINS = frozenset({BOUNDARY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, DISPLAY_OR
 
 def boundary_lease_seconds(origin):
     if origin == DISPLAY_ORIGIN:
-        return 1320
+        return WATCH_LEASE_SECONDS
     return BOUNDARY_SMOKE_LEASE_SECONDS if origin == BOUNDARY_SMOKE_ORIGIN else BOUNDARY_LEASE_SECONDS
 
 TRIAL_PREPARATION_CHECKPOINT = 'trial:initial-a-prepare-v1'
@@ -92,7 +94,7 @@ def boundary_anchor(environ):
     if (environ.get('TRADEBOT_ENVIRONMENT') != 'preprod'
             or environ.get('TRADEBOT_DATA_MODE') != 'pp_live'
             or environ.get('TRADEBOT_ORIGIN_ID') not in BOUNDARY_ORIGINS
-            or environ.get('TRADEBOT_PP_WINDOW_POLICY') != BOUNDARY_POLICY
+            or environ.get('TRADEBOT_PP_WINDOW_POLICY') != (WATCH_POLICY if environ.get('TRADEBOT_ORIGIN_ID') == DISPLAY_ORIGIN else BOUNDARY_POLICY)
             or environ.get('TRADEBOT_PP_CYCLE_INITIAL_A') is not None
             or environ.get('TRADEBOT_PP_ELAPSED_CYCLE_SECONDS') is not None
             or environ.get('TRADEBOT_PP_SIZE_CYCLE_BYTES') is not None):

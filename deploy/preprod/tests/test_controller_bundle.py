@@ -20,7 +20,7 @@ class BundleTests(unittest.TestCase):
                     'live_profile.py','live_transition.py','transition_control.py',
                     'structured_probe_profile.py','structured_probe_control.py',
                     'raw_archive_probe_profile.py','raw_archive_probe_control.py',
-                    'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py'})
+                    'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py','watch_service.py','install_controller.py'})
             result=subprocess.run([sys.executable,'-IS',str(a)],cwd=folder,env={},capture_output=True,text=True,timeout=3)
             self.assertEqual(result.returncode,1)
             self.assertIn('entrypoint_precondition_failed',result.stdout)

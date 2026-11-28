@@ -266,6 +266,17 @@ def retained_sixth_fingerprint(db, writers):
                                     raw=raw, outbox=outbox))))
 
 
+def _existing_watch(db, anchor, checkpoint, writer, generations):
+    if (not checkpoint or checkpoint['cursor'].get('initial_a') != anchor or not writer
+            or writer['collector_enabled'] or writer['collector_session_id'] or writer['collector_lease_expires_at']
+            or not any(str(g['generation_id']) == anchor and g['slot']=='A' for g in generations)):
+        raise LifecycleHold('existing Benchmark origin or OFF anchor differs')
+    current = next((g for g in generations if g['generation_id']==writer['generation_id']),None)
+    if (not current or current['state']!='collecting' or current['hold_reason'] is not None
+            or db.execute('SELECT to_regclass(%s) AS child',('raw.'+current['partition_name'],)).fetchone()['child'] is None):
+        raise LifecycleHold('existing Benchmark generation unavailable')
+
+
 def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL_ORIGIN,
             rehearsal_window_seconds=None):
     canonical_anchor(initial_a)
@@ -276,9 +287,10 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
         profile = elapsed_cycle_binding(origin_id, rehearsal_window_seconds)
     except ValueError as error:
         raise LifecycleHold(str(error)) from None
+    from .rehearsal_profile import DISPLAY_ORIGIN, WATCH_POLICY
     boundary = origin_id in BOUNDARY_ORIGINS
     if boundary:
-        profile = {'profile': BOUNDARY_POLICY}
+        profile = {'profile': WATCH_POLICY if origin_id==DISPLAY_ORIGIN else BOUNDARY_POLICY}
         if uuid.UUID(initial_a).int == 0:
             raise LifecycleHold('new diagnostic requires a distinct nonzero initial A')
     preserved = (RETAINED_THIRD_A,RETAINED_THIRD_B)
@@ -350,6 +362,10 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
         if existing or writer:
             checkpoint=db.execute('SELECT cursor FROM archive.checkpoints WHERE origin_id=%s '
                 'AND generation_id=%s AND consumer=%s',(origin_id,initial_a,CONSUMER)).fetchone()
+            if origin_id==DISPLAY_ORIGIN and writer and writer['epoch']!=1:
+                _existing_watch(db,initial_a,checkpoint,writer,existing)
+                return dict(status='trial_ready_off',origin_id=origin_id,generation_id=initial_a,
+                            collector_enabled=False,source_sha=source_sha,retirement_authorized=False,**profile)
             if (len(existing)!=1 or writer is None or writer['generation_id']!=initial_a or writer['epoch']!=1
                     or existing[0]['generation_id']!=initial_a or existing[0]['state']!='collecting'
                     or existing[0]['slot']!='A' or existing[0]['hold_reason'] is not None

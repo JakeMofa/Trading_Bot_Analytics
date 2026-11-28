@@ -1,0 +1,10 @@
+[Unit]
+Description=Renew the qualified Tradebot Benchmark collector lease
+After=docker.service network-online.target
+Requires=docker.service
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/bin/python3 -I -c "import runpy,sys;sys.path.insert(0,'/usr/local/lib/tradebot-pp/controller.pyz');sys.argv=['watch_service','tick'];runpy.run_module('watch_service',run_name='__main__')"
+TimeoutStartSec=90
+UMask=0077

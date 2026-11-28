@@ -1,0 +1,20 @@
+# Add to the Benchmark live profile only. Both services run as UID 10001.
+services:
+  api:
+    environment:
+      TRADEBOT_PP_QUOTE_DISPLAY: '1'
+    volumes:
+      - ${TRADEBOT_QUOTE_DISPLAY_DIR:?private Benchmark directory owned by 10001 required}:/run/quote-display
+  operator:
+    environment:
+      TRADEBOT_PP_QUOTE_DISPLAY: '1'
+      POLYMARKET_KEY_ID_FILE: /run/secrets/market_key_id
+      POLYMARKET_SECRET_KEY_FILE: /run/secrets/market_secret
+    secrets: [market_key_id, market_secret]
+    volumes:
+      - ${TRADEBOT_QUOTE_DISPLAY_DIR:?private Benchmark directory owned by 10001 required}:/run/quote-display:ro
+secrets:
+  market_key_id:
+    file: ${TRADEBOT_MARKET_KEY_ID_FILE:?private mounted key ID required}
+  market_secret:
+    file: ${TRADEBOT_MARKET_SECRET_FILE:?private mounted signing key required}

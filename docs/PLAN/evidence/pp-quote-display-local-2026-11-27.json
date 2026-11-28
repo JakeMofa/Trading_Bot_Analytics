@@ -1,0 +1,14 @@
+{
+  "mode": "synthetic localhost + PostgreSQL 17 + Chrome + archive fixture",
+  "api_publication_ms": 0.7,
+  "commit_ms": 26.3,
+  "browser_ms": 17.7,
+  "hydrated_observed_ms": 41.1,
+  "archive_verified_observed_ms": 57.1,
+  "browser_bid": "61\u00a2",
+  "event_id": "ws-ea26e80da84680d2620c4e8030fc0799dd26fc8cd684f107b66b3d18880a490d",
+  "environment": "local isolated fixture",
+  "hosted_cloud": false,
+  "live_exchange": false,
+  "measurement": "One generated one-sided quote. FastAPI RAM publication after Unix socket receive; Chrome visible element sampled after two animation frames; writer timestamp after PostgreSQL commit; hydration and fixture archive verification are upper-bound observations. API startup schema verification was stubbed in the disposable directly-migrated test database."
+}

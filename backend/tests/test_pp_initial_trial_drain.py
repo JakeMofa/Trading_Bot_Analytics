@@ -172,13 +172,14 @@ class InitialSealNative(unittest.TestCase):
     def cleanup(self):
         from psycopg import sql
         with self.admin() as db:
-            for table in ('ops.dedup','ops.outbox','core.current_prices','archive.reader_leases',
+            for table in ('ops.dedup','ops.outbox','core.protected_evidence','core.current_prices','archive.reader_leases',
                           'archive.manifests','archive.checkpoints','ops.writer_state'):
                 db.execute(sql.SQL('DELETE FROM {} WHERE origin_id=ANY(%s)').format(
                     sql.Identifier(*table.split('.'))),(self.origins,))
             for generation in self.children:
                 db.execute(sql.SQL('DROP TABLE IF EXISTS raw.{}').format(
                     sql.Identifier('events_g_'+generation.replace('-',''))))
+            db.execute('DELETE FROM core.markets WHERE origin_id=ANY(%s)', (self.origins,))
             db.execute('DELETE FROM archive.generations WHERE origin_id=ANY(%s)',(self.origins,))
 
     def evidence(self):
@@ -189,6 +190,87 @@ class InitialSealNative(unittest.TestCase):
                 'SELECT * FROM core.current_prices ORDER BY origin_id,source,symbol',
                 'SELECT * FROM ops.outbox ORDER BY id',
                 'SELECT * FROM ops.dedup ORDER BY origin_id,source,event_id')]
+
+    def test_display_before_commit_and_verified_quote_ack(self):
+        import asyncio
+        import json
+        from datetime import timedelta
+        from postgres.active_structured import ActiveStructuredWorker
+        from postgres.api import event_stream
+        from postgres.live_contract import polymarket_market
+        from postgres.live_state import LiveState
+        from postgres.quote_display import DisplaySender, receive
+        from postgres.quote_session import QuotePipeline
+
+        self.fixture_on()
+        state = LiveState(self.store.settings)
+        at = datetime.now(timezone.utc)
+        start = at - timedelta(minutes=1)
+        raw = {'id': 'display-market', 'slug': 'quote-market', 'status': 'open',
+               'assetPriceTerms': {'asset': {'symbol': 'btc'}, 'horizon': '15m',
+                   'marketType': 'ASSET_PRICE_MARKET_TYPE_UP_DOWN',
+                   'windowStart': start.isoformat(), 'windowEnd': (start+timedelta(minutes=15)).isoformat()}}
+        market = polymarket_market(raw, at.isoformat())
+        data = {'marketData': {'marketSlug': raw['slug'], 'transactTime': at.isoformat(),
+                'bids': [{'px': {'value': '0.6100'}}], 'offers': [{'px': {'value': '0.6300'}}]}}
+        release = threading.Event()
+        blocked = threading.Event()
+        ingest = self.store.ingest
+
+        def slow_write(event):
+            if event['kind'] == 'quote':
+                blocked.set()
+                if not release.wait(5):
+                    raise AssertionError('fixture writer release timed out')
+            return ingest(event)
+
+        async def exercise():
+            path = str(self.root/'display.sock')
+            listener = asyncio.create_task(receive(state, path))
+            await asyncio.sleep(0)
+            sender = DisplaySender(self.store.origin, path)
+            pipe = QuotePipeline(self.store, sender)
+            writer = asyncio.create_task(pipe.write())
+            try:
+                with patch.object(self.store, 'ingest', slow_write):
+                    await pipe.market(market)
+                    await pipe.book(data)
+                    self.assertTrue(await asyncio.to_thread(blocked.wait, 3))
+                    stream = event_stream(state)
+                    frame = await anext(stream)
+                    await stream.aclose()
+                    displayed = json.loads(frame.split('data: ', 1)[1])
+                    quote = displayed['polymarket']
+                    self.assertEqual(quote['best_bid'], '0.6100')
+                    self.assertIsNone(displayed['market']['target_usd'])
+                    self.assertEqual(displayed['quote_counts']['saved'], 0)
+                    await pipe.book(data)
+                    self.assertEqual((pipe.received, pipe.duplicates), (2, 1))
+                    release.set()
+                    await asyncio.wait_for(pipe.queue.join(), 4)
+                    self.assertEqual(pipe.saved, 1)
+                    self.assertEqual(pipe.last_commit['event_id'], quote['event_id'])
+                return quote, pipe.started
+            finally:
+                release.set()
+                listener.cancel()
+                writer.cancel()
+                await asyncio.gather(listener, writer, return_exceptions=True)
+                sender.socket.close()
+        quote, started = asyncio.run(exercise())
+        self.assertEqual(self.store.archived_quote_count(started), 0)
+        self.repo.disable_collector(TRIAL_ORIGIN)
+        result = ActiveStructuredWorker(self.repo, self.raw, origin_id=TRIAL_ORIGIN).cycle(self.anchor)
+        self.assertGreater(result['acknowledged'], 0)
+        self.assertEqual(self.store.archived_quote_count(started), 1)
+        with self.admin() as db:
+            row = db.execute("""SELECT r.content_hash AS local_hash, o.content_hash AS archive_hash,
+                       o.payload->'payload'->'data'->>'best_bid' AS bid
+                FROM raw.events r JOIN ops.outbox o ON o.origin_id=r.origin_id
+                AND o.payload->>'event_id'=r.event_id
+                WHERE r.event_id=%s AND o.acknowledged_at IS NOT NULL""", (quote['event_id'],)).fetchone()
+        self.assertEqual(row['local_hash'], row['archive_hash'])
+        self.assertEqual(row['bid'], quote['best_bid'])
 
     def test_seal_replay_and_existing_raw_worker_preserve_all_sources(self):
         from postgres.pp_sealed_archive import cycle

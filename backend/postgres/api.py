@@ -30,9 +30,13 @@ def history_context():
 async def event_stream(state, disconnected=None, interval=0.25):
     """Initial full snapshot on every reconnect; timed updates propagate staleness."""
     while disconnected is None or not await disconnected():
+        first = state.first_quote_signal
         snapshot = state.snapshot()
         yield f"id: {snapshot['revision']}\ndata: {json.dumps(snapshot,separators=(',',':'),allow_nan=False)}\n\n"
-        await asyncio.sleep(interval)
+        try:
+            await asyncio.wait_for(first.wait(), interval)
+        except TimeoutError:
+            pass
 
 
 def create_app(settings=None, store=None, state=None, *, history=None,
@@ -88,6 +92,18 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                 state.collector_status(None)
             await asyncio.sleep(1)
 
+    async def monitor_archived_quotes():
+        while True:
+            counters = state.snapshot()['quote_counts']
+            if counters:
+                started = counters['started_at']
+                try:
+                    count = await asyncio.to_thread(store.archived_quote_count, started)
+                except Exception:
+                    count = None
+                state.archive_count(started, count)
+            await asyncio.sleep(15)
+
     @asynccontextmanager
     async def lifespan(app):
         # Verification is mandatory, including in tests; only explicit migrate CLI mutates schema.
@@ -97,6 +113,10 @@ def create_app(settings=None, store=None, state=None, *, history=None,
             tasks = [asyncio.create_task(discover()),asyncio.create_task(hydrate())]
             if settings.data_mode == 'pp_live':
                 tasks.append(asyncio.create_task(monitor_collector()))
+                from . import quote_display
+                if quote_display.enabled(settings):
+                    tasks.append(asyncio.create_task(quote_display.receive(state)))
+                    tasks.append(asyncio.create_task(monitor_archived_quotes()))
         try:
             yield
         finally:

@@ -163,6 +163,42 @@ class InitialSealNative(unittest.TestCase):
         self.target=SealTarget(self.anchor,self.anchor,self.repo.collector_state(TRIAL_ORIGIN)['epoch'],
                                1,1,str(uuid.uuid4()),'a'*40)
 
+    def test_feed_connection_reuse_commits_each_tick_and_rechecks_durable_off(self):
+        import asyncio
+        from postgres.feed_writer import feed_writer
+        from postgres.store import IdentityConflict, StorageHold
+        self.fixture_on()
+        first, second = self.event(1501), self.event(1502)
+        physical = []
+        open_connection = self.store.connection
+        def connect():
+            db = open_connection()
+            physical.append(db)
+            return db
+        async def exercise():
+            async with feed_writer(self.store):
+                for event in (first, second):
+                    result = await asyncio.to_thread(self.store.ingest, event)
+                    self.assertFalse(result['duplicate'])
+                    with self.admin() as independent:
+                        visible = independent.execute(
+                            'SELECT xmin::text AS tx FROM raw.events WHERE origin_id=%s AND event_id=%s',
+                            (TRIAL_ORIGIN, event['event_id'])).fetchone()
+                    self.assertIsNotNone(visible)
+                    txids.add(visible['tx'])
+                with self.assertRaises(IdentityConflict):
+                    await asyncio.to_thread(self.store.ingest, {**first, 'price':'123'})
+                self.assertTrue((await asyncio.to_thread(self.store.ingest, first))['duplicate'])
+                self.repo.disable_collector(TRIAL_ORIGIN)
+                with self.assertRaises(StorageHold):
+                    await asyncio.to_thread(self.store.ingest, self.event(1503))
+        txids = set()
+        with patch.object(self.store, 'connection', side_effect=connect):
+            asyncio.run(exercise())
+        self.assertEqual(len(txids), 2)
+        self.assertEqual(len(physical), 1)
+        self.assertTrue(physical[0].closed)
+
     def fixture_on(self):
         with self.admin() as db:
             db.execute("UPDATE ops.writer_state SET collector_enabled=true,collector_session_id=%s,"

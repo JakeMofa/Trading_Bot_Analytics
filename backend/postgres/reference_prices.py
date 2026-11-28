@@ -3,16 +3,23 @@ import asyncio
 from collections import deque
 from datetime import datetime, timezone
 from decimal import Decimal
+from email.utils import parsedate_to_datetime
 import json
 import logging
+import time
 
 import httpx
 
 from .contract import canonical_json, content_hash, exact_decimal
+from .feed_writer import feed_writer
 from .live_contract import PROVENANCE
 from .live_sources import POLYMARKET_REST
 
 BUCKET = 'ASSET_PRICE_BUCKET_1S'
+ONE_SECOND_ORIGIN = 'pp-live-pp-display-20261127-02'
+MAX_COOLDOWN = 60
+LOG = logging.getLogger(__name__)
+
 
 
 def published_buckets(document, start, end, received):
@@ -47,33 +54,92 @@ def published_buckets(document, start, end, received):
     return events
 
 
-async def collect_reference(store, client, stop, clock, publish):
+async def _fetch(client, clock):
+    end = int(clock().timestamp()) - 1
+    start = end - 11
+    params = {'assets': 'crypto:btc', 'bucket': BUCKET, 'from': start, 'to': end}
+    async with client.stream('GET', POLYMARKET_REST + '/v1/asset-prices/history',
+                             params=params, timeout=4, follow_redirects=False) as response:
+        response.raise_for_status()
+        body = bytearray()
+        async for chunk in response.aiter_bytes():
+            body.extend(chunk)
+            if len(body) > 32768:
+                raise ValueError('BTC reference response exceeds bound')
+    return published_buckets(json.loads(body, parse_float=Decimal), start, end, clock().isoformat())
+
+
+def _retry_after(value, now):
+    if not value:
+        return 0
+    value = value.strip()
+    if value.isascii() and value.isdecimal():
+        # Oversized hints suspend this optional feed for the remaining lease.
+        return int(value) if len(value) <= 8 else MAX_COOLDOWN + 1
+    try:
+        return max(0, (parsedate_to_datetime(value) - now).total_seconds())
+    except (ValueError, TypeError, OverflowError):
+        return 0
+
+
+async def _pause(stop, seconds):
+    try:
+        await asyncio.wait_for(stop.wait(), seconds)
+    except TimeoutError:
+        pass
+
+
+async def collect_reference(store, client, stop, clock, publish, *, cadence=5, pause=_pause,
+                            monotonic=time.monotonic):
+    if cadence not in (1, 5):
+        raise ValueError('unexpected index polling cadence')
+
+    queue = asyncio.Queue(maxsize=24)  # At most two full HTTP windows awaiting the writer.
     recent = deque(maxlen=64)
-    while not stop.is_set():
-        end = int(clock().timestamp()) - 1
-        start = end - 11
-        try:
-            params = {'assets': 'crypto:btc', 'bucket': BUCKET, 'from': start, 'to': end}
-            async with client.stream('GET', POLYMARKET_REST + '/v1/asset-prices/history',
-                                     params=params, timeout=4, follow_redirects=False) as response:
-                response.raise_for_status()
-                body = bytearray()
-                async for chunk in response.aiter_bytes():
-                    body.extend(chunk)
-                    if len(body) > 32768:
-                        raise ValueError('BTC reference response exceeds bound')
-            events = published_buckets(json.loads(body, parse_float=Decimal), start, end, clock().isoformat())
-        except (httpx.HTTPError, ValueError, ArithmeticError, TypeError, KeyError):
-            logging.getLogger(__name__).warning('pp_btc_reference_unavailable')
-        else:
-            for event in events:
-                if stop.is_set():
-                    break
-                if event['event_id'] not in recent:
-                    await asyncio.to_thread(store.ingest, event)
-                    recent.append(event['event_id'])
-                    publish(event)
-        try:
-            await asyncio.wait_for(stop.wait(), 5)
-        except TimeoutError:
-            pass
+
+    async def write():
+        async with feed_writer(store):
+            while True:
+                event = await queue.get()
+                if event is None:
+                    return
+                await asyncio.to_thread(store.ingest, event)
+
+    backoff = 0
+    async with asyncio.TaskGroup() as tasks:
+        tasks.create_task(write())
+        while not stop.is_set():
+            started = monotonic()
+            try:
+                events = await _fetch(client, clock)
+            except httpx.HTTPStatusError as error:
+                if error.response.status_code == 429:
+                    backoff = min(MAX_COOLDOWN, max(cadence, backoff * 2))
+                    wait = max(backoff, _retry_after(error.response.headers.get('Retry-After'), clock()))
+                    if wait > MAX_COOLDOWN:
+                        LOG.warning('pp_btc_reference_rate_limited scope=remaining_session')
+                        await stop.wait()
+                        break
+                    LOG.warning('pp_btc_reference_rate_limited retry_seconds=%.2f', wait)
+                    await pause(stop, wait)
+                    continue
+                LOG.warning('pp_btc_reference_unavailable status=%d', error.response.status_code)
+            except (httpx.HTTPError, ValueError, ArithmeticError, TypeError, KeyError):
+                LOG.warning('pp_btc_reference_unavailable')
+            else:
+                backoff = 0
+                new = [event for event in events if event['event_id'] not in recent]
+                if new:
+                    # All timestamps are UTC bucket starts emitted in the same
+                    # fixed format. Revisions for the newest second prefer the
+                    # last venue entry; validated historical buckets are all saved.
+                    latest = max(reversed(new), key=lambda event: event['source_time'])
+                    publish(latest)
+                    for event in new:
+                        if event['event_id'] not in recent:
+                            await queue.put(event)
+                            recent.append(event['event_id'])
+            remaining = cadence - (monotonic() - started)
+            if remaining > 0:
+                await pause(stop, remaining)
+        await queue.put(None)  # The writer drains accepted observations before returning.

@@ -125,8 +125,9 @@ class CoinbaseTiming:
         sample['source_to_parser_ms'] = self._age_ms(sample.get('parser_ingress_at'), sample['source_time'])
         self.last_event = sample
 
-    def saved(self, *, submitted, worker, outcome):
-        sample = dict(self.last_event or {})
+    def saved(self, *, submitted, worker, outcome, sample=None, queued_at=None):
+        sample = dict((self.last_event or {}) if sample is None else sample)
+        sample['persistence_queue_ms'] = (submitted-queued_at)*1000 if queued_at is not None else None
         sample['outcome'] = outcome
         sample.update(save_started_at=worker.get('started_at'), save_completed_at=worker.get('completed_at'))
         started, completed = worker.get('started'), worker.get('completed')
@@ -135,7 +136,7 @@ class CoinbaseTiming:
         sample['resume_ms'] = (self.clock()-completed)*1000 if completed is not None else None
         self._count('save_attempts')
         self._count('save_' + outcome)
-        for name in ('save_ms','worker_queue_ms','resume_ms','recv_wait_ms',
+        for name in ('save_ms','worker_queue_ms','persistence_queue_ms','persistence_queue_depth','resume_ms','recv_wait_ms',
                      'parser_queue_ms','source_to_parser_ms','source_to_dequeue_ms'):
             self._metric(name, sample.get(name))
         if self.max_save_sample is None or (sample['save_ms'] or 0) > (self.max_save_sample.get('save_ms') or 0):

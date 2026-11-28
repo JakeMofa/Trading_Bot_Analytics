@@ -160,7 +160,7 @@
         <button type="submit">Load events</button>
       </form>
       <p id="events-status" role="status">Choose a market and time range.</p>
-      <table><thead><tr><th>Source time</th><th>Received</th><th>Source</th><th>Event</th><th>Bid</th><th>Ask</th></tr></thead><tbody id="event-rows"></tbody></table>
+      <table><thead><tr><th>Source time</th><th>Received</th><th>Source</th><th>Event</th><th>Bid</th><th>Ask</th><th>Price or close</th><th>Storage</th></tr></thead><tbody id="event-rows"></tbody></table>
       <button type="button" id="history-next" disabled>Next page</button>
     </div><div class="card" style="overflow:auto;margin-bottom:16px"><h2>Prediction history</h2><p id="history-status">Loading…</p><table><thead><tr><th>Forecast time</th><th>Market</th><th>Model</th><th>UP</th><th>Abstention</th></tr></thead><tbody id="prediction-rows"></tbody></table></div><div class="grid">    <section class="card evaluation" aria-labelledby="evaluation-heading">
       <h2 id="evaluation-heading">Confirmed-market evaluation</h2>
@@ -447,7 +447,7 @@
       set('venue-price', money(venue?.price_usd));
       const venueAge = venue ? (now - Date.parse(venue.source_time)) / 1000 : null;
       const usable = venue?.status === 'fresh' && venueAge >= 0 && venueAge <= 10;
-      const distance = usable && m?.active && m.target_usd != null && venue.price_usd != null
+      const distance = usable && m?.active && remaining > 0 && m.target_usd != null && venue.price_usd != null
         ? Number(venue.price_usd) - Number(m.target_usd) : null;
       set('venue-distance', !venue ? 'Reference unavailable' : (usable ? 'Updated ' : 'Stale · ') + age(venueAge)
         + (distance == null ? '' : ' · ' + money(Math.abs(distance)) + (distance < 0 ? ' below target' : distance > 0 ? ' above target' : ' from target')));
@@ -832,7 +832,8 @@
           tr.dataset.eventId = row.event_id;
           const data = row.payload?.data || {};
           for (const field of [localTime(row.source_time),localTime(row.received_at),row.source,row.kind,
-                               data.best_bid ?? '—',data.best_ask ?? '—']) {
+                               data.best_bid ?? '—',data.best_ask ?? '—',row.price ?? data.close ?? '—',
+                               {local_postgres:'Local PostgreSQL',authenticated_archive:'Verified archive'}[row.tier] ?? 'Unknown']) {
             const td = document.createElement('td'); td.textContent = field; tr.append(td);
           }
           fragment.append(tr);

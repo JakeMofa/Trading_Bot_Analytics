@@ -265,7 +265,7 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(result['coinbase']['price_usd'],'100025.1234567890123456789')
             self.assertIn('distinct_confirmed_markets_by_checkpoint',client.get('/history/context').json()['evaluation'])
             dashboard = client.get('/dashboard').text
-            for contract in ("new EventSource('/events')","getJSON('/state/current')","fetch('/history/coinbase-chart'",'environment-label'):
+            for contract in ("new EventSource('/events')","getJSON('/state/current')","getJSON('/history/coinbase-chart'",'environment-label'):
                 self.assertIn(contract,dashboard)
             self.assertEqual(client.get('/history/predictions?limit=501').status_code,422)
             self.assertEqual(client.get('/history/archive/nope').status_code,503)

@@ -1,3 +1,11 @@
+## November 27 — Sustained collection and archive capacity in progress
+
+The next authorized checkpoint enables sustained three-source Benchmark
+collection, tests exact-byte archive packing and audits active-window,
+freshness and backlog alerts. Short live storage tests passed. Long-volume
+72-hour retirement and combined-release A/B acceptance still need proof.
+[Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
+
 ## November 27 — Robinhood and three-feed live acceptance passed
 
 Benchmark .6 displayed Coinbase, Polymarket US and Robinhood simultaneously.

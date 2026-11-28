@@ -18,7 +18,8 @@ short acceptance does not establish unattended or 72-hour success.
 - [x] Trace the browser's first observed quote for market 2997704: API snapshot
   5.560 ms after receipt, commit completion 13.684 ms, visible DOM interval
   29.793–126.293 ms, verified ACK 963.258 ms. Same event, bid and ask matched.
-  Canonical-first ordinal remains unproved; browser timing is software based.
+  A separate retained-log check confirmed the exact canonical first usable
+  event. Browser timing is software based.
 - [x] Repeat the pinned 500 local Coinbase history records while collecting:
   1.801 seconds end to end, 547,007 bytes, identical ordered IDs and values.
 - [ ] Finish the complete 15-minute market and first four hours without a

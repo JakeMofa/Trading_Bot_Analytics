@@ -228,7 +228,7 @@
     "outbox_id": 564327,
     "receipt_to_commit_observation_ms": 13.684,
     "receipt_to_verified_ack_ms": 963.258,
-    "canonical_first_confirmed": false
+    "canonical_first_confirmed": true
   },
   "fresh_sources": {
     "coinbase": {
@@ -372,5 +372,514 @@
     "start_utc": "2026-11-28T13:19:34.858333+00:00",
     "tier": "local_postgres",
     "under_4s": true
+  },
+  "canonical_first_trace": {
+    "after": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:25:04.668864+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "utc": "2026-11-28T13:23:20.570174+00:00",
+      "valid": true
+    },
+    "before": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:25:04.668864+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "utc": "2026-11-28T13:23:19.683526+00:00",
+      "valid": true
+    },
+    "canonical_first_confirmed": true,
+    "commit_trace_utc": "2026-11-28T13:15:13.379019+00:00",
+    "config_sha256": "1e617e6973c3f5da0e9a69c6643901c307dca455de1676a36391584fcd3dc79e",
+    "earliest": {
+      "best_ask": "0.4900",
+      "best_bid": "0.4800",
+      "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+      "mono_ns": 323845089683815,
+      "received_at": "2026-11-28T13:15:13.365181+00:00",
+      "source_time": "2026-11-28T13:15:13.273694118Z",
+      "ts_utc": "2026-11-28T13:15:13.367819+00:00"
+    },
+    "image": "sha256:ab88f92b9c2b8a1377cd709d07425bf06b311476ce4f6bf2e4b94222d3b8c7ff",
+    "marker_matches_browser_and_saved": true,
+    "market": "2997704",
+    "market_first_markers": 1,
+    "matching_commit_markers": 1,
+    "oldest_coverage_witness_utc": "2026-11-28T13:05:43.558898012Z",
+    "operator_id": "edd07c882719ef315054ce06bd3973af9d2eaf385a309ff79f3b23e0175766ec",
+    "operator_started_at": "2026-11-28T13:05:33.359743802Z",
+    "retained_starts_after": [
+      {
+        "first_utc": "2026-11-28T13:05:43.558898012Z",
+        "generation": 0
+      }
+    ],
+    "retained_starts_before": [
+      {
+        "first_utc": "2026-11-28T13:05:43.558898012Z",
+        "generation": 0
+      }
+    ],
+    "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+    "source_quote_usable": true,
+    "window_utc": [
+      "2026-11-28T13:14:59Z",
+      "2026-11-28T13:15:15Z"
+    ]
+  },
+  "live_prefix_resources": {
+    "analysis_at_utc": "2026-11-28T13:22:24.188251+00:00",
+    "scope": "observed .14 live prefix only; four hours and24hours not yet complete",
+    "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+    "admission_observed_on_utc": "2026-11-28T13:12:39.428186+00:00",
+    "input_prefix": {
+      "resource_gzip_footer_complete": false,
+      "resource_samples_since_on": 582,
+      "pre_on_samples_excluded": 138,
+      "status_rows": 34,
+      "status_partial_final_line": false,
+      "errors": []
+    },
+    "resource_window": {
+      "first": "2026-11-28T13:12:40.074158+00:00",
+      "last": "2026-11-28T13:22:21.076619+00:00",
+      "seconds": 581.00246054,
+      "max_sample_gap_seconds": 1.041210118,
+      "same_boot_device_container_process_cgroup": true,
+      "host_mem_available_min_mib": 2677.6953125,
+      "host_counter_deltas": {
+        "pswpin": 0,
+        "pswpout": 0,
+        "oom_kill": 0,
+        "pgmajfault": 2,
+        "cpu_total": 115513,
+        "cpu_busy": 50837,
+        "cpu_iowait": 1883,
+        "memory_some_us": 183131,
+        "memory_full_us": 133064,
+        "cpu_some_us": 225036405,
+        "cpu_full_us": 0,
+        "io_some_us": 13847349,
+        "io_full_us": 7795536,
+        "disk_read_bytes": 428986368,
+        "disk_write_bytes": 673841152,
+        "disk_busy_ms": 28905
+      },
+      "services": {
+        "operator": {
+          "memory_min_mib": 54.984375,
+          "memory_max_mib": 59.39453125,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 99756918,
+            "user_usec": 90474256,
+            "system_usec": 9282661,
+            "nr_periods": 5802,
+            "nr_throttled": 2419,
+            "throttled_usec": 187116599
+          },
+          "cpu_pressure_delta": {
+            "some_us": 127631076,
+            "full_us": 119830449
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.1716979269025524,
+          "cpu_quota": {
+            "quota_us": 25000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 21.96739,
+              "full_us": 20.624775
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 187.116599,
+          "last_memory_mib": {
+            "anon": 56.01953125,
+            "file": 0.0,
+            "kernel": 2.37890625,
+            "sock": 0.00390625,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 1.888031005859375
+          }
+        },
+        "postgres": {
+          "memory_min_mib": 496.99609375,
+          "memory_max_mib": 511.9765625,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 3506,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 156045349,
+            "user_usec": 90856784,
+            "system_usec": 65188565,
+            "nr_periods": 5808,
+            "nr_throttled": 50,
+            "throttled_usec": 793808
+          },
+          "cpu_pressure_delta": {
+            "some_us": 39404408,
+            "full_us": 29786675
+          },
+          "memory_pressure_delta": {
+            "some_us": 189422,
+            "full_us": 146450
+          },
+          "io_pressure_delta": {
+            "some_us": 13771349,
+            "full_us": 11969426
+          },
+          "cpu_average_cores": 0.268579497675392,
+          "cpu_quota": {
+            "quota_us": 100000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 6.782141,
+              "full_us": 5.126773
+            },
+            "memory_pressure": {
+              "some_us": 0.032603,
+              "full_us": 0.025206
+            },
+            "io_pressure": {
+              "some_us": 2.370274,
+              "full_us": 2.060133
+            }
+          },
+          "throttled_seconds": 0.793808,
+          "last_memory_mib": {
+            "anon": 16.5078125,
+            "file": 474.59375,
+            "kernel": 15.24609375,
+            "sock": 0.01171875,
+            "shmem": 138.40234375,
+            "file_dirty": 2.74609375,
+            "file_writeback": 0.0,
+            "slab": 11.421646118164062
+          }
+        },
+        "api": {
+          "memory_min_mib": 52.765625,
+          "memory_max_mib": 85.41796875,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 114007664,
+            "user_usec": 106638192,
+            "system_usec": 7369472,
+            "nr_periods": 5795,
+            "nr_throttled": 1317,
+            "throttled_usec": 95630201
+          },
+          "cpu_pressure_delta": {
+            "some_us": 73908053,
+            "full_us": 68468216
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.1962257851611129,
+          "cpu_quota": {
+            "quota_us": 50000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 12.720781,
+              "full_us": 11.784497
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 95.630201,
+          "last_memory_mib": {
+            "anon": 52.23828125,
+            "file": 0.00390625,
+            "kernel": 2.23828125,
+            "sock": 0.00390625,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 1.7683868408203125
+          }
+        },
+        "calculation": {
+          "memory_min_mib": 32.26953125,
+          "memory_max_mib": 33.4609375,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 17938410,
+            "user_usec": 16702629,
+            "system_usec": 1235782,
+            "nr_periods": 2672,
+            "nr_throttled": 3,
+            "throttled_usec": 84413
+          },
+          "cpu_pressure_delta": {
+            "some_us": 5024331,
+            "full_us": 4881781
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.03087492948537178,
+          "cpu_quota": {
+            "quota_us": 50000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 0.864769,
+              "full_us": 0.840234
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 0.084413,
+          "last_memory_mib": {
+            "anon": 31.6640625,
+            "file": 0.0,
+            "kernel": 1.296875,
+            "sock": 0.0,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 0.9850616455078125
+          }
+        },
+        "lifecycle": {
+          "memory_min_mib": 27.0546875,
+          "memory_max_mib": 27.3046875,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 251098,
+            "user_usec": 230089,
+            "system_usec": 21008,
+            "nr_periods": 56,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "cpu_pressure_delta": {
+            "some_us": 88930,
+            "full_us": 88929
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.0004321806137733435,
+          "cpu_quota": {
+            "quota_us": 25000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 0.015306,
+              "full_us": 0.015306
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 0.0,
+          "last_memory_mib": {
+            "anon": 26.01171875,
+            "file": 0.0,
+            "kernel": 1.04296875,
+            "sock": 0.0,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 0.8089447021484375
+          }
+        }
+      }
+    },
+    "writer_observations": {
+      "first": "2026-11-28T13:13:43.445914+00:00",
+      "last": "2026-11-28T13:22:03.524339+00:00",
+      "samples": 9,
+      "same_identity": true,
+      "all_enabled": true,
+      "observed_since_admission_seconds": 564.096153,
+      "counter_span_seconds": 500.078425,
+      "acks_delta": 9812,
+      "inferred_arrivals_delta": 9831,
+      "acks_per_second": 19.620922458312414,
+      "inferred_arrivals_per_second": 19.65891649894714,
+      "pending_first": 15,
+      "pending_last": 34,
+      "sampled_pending_max": 55,
+      "sampled_oldest_age_max_seconds": 3.038642,
+      "latest_oldest_age_seconds": 3.038642,
+      "minimum_interval": {
+        "start": "2026-11-28T13:14:45.626577+00:00",
+        "end": "2026-11-28T13:15:47.943573+00:00",
+        "seconds": 62.316996,
+        "acks_per_s": 16.75305401434947,
+        "inferred_arrivals_per_s": 16.52839620189651,
+        "pending_start": 34,
+        "pending_end": 20
+      },
+      "intervals_below14_ack_per_second": 0,
+      "sampled_longest_interval_seconds": 63.41183
+    },
+    "api_window_observations": {
+      "sampled_pending_max": 65,
+      "sampled_oldest_age_max_seconds": 2.709216,
+      "latest_pending": 13,
+      "latest_oldest_age_seconds": 1.380853
+    },
+    "feed_ages": {
+      "coinbase": {
+        "provider_latest_s": 1.494527,
+        "provider_sampled_max_s": 7.295574,
+        "pp_receipt_latest_s": 1.475906,
+        "pp_receipt_sampled_max_s": 3.622667
+      },
+      "polymarket": {
+        "provider_latest_s": 2.64956,
+        "provider_sampled_max_s": 3.224984,
+        "pp_receipt_latest_s": 0.629204,
+        "pp_receipt_sampled_max_s": 1.124378
+      },
+      "robinhood": {
+        "provider_latest_s": 0.253718,
+        "provider_sampled_max_s": 1.81912,
+        "pp_receipt_latest_s": 0.242186,
+        "pp_receipt_sampled_max_s": 1.750624
+      }
+    },
+    "websocket_quote_counters": {
+      "first": "2026-11-28T13:13:41.677998+00:00",
+      "last": "2026-11-28T13:22:18.529191+00:00",
+      "latest": {
+        "received": 5275,
+        "saved": 5272,
+        "duplicates": 2,
+        "started_at": "2026-11-28T13:12:37.660287+00:00",
+        "last_commit": {
+          "event_id": "ws-8374c79a65729b6c32c0d9b74461c7abe50096205afe95c0b67a6c18871e069d",
+          "at": "2026-11-28T13:22:18.538683+00:00"
+        },
+        "archived": 5177
+      },
+      "approximate_rates_per_second": {
+        "received": 9.043221846640877,
+        "saved": 9.039352260912747,
+        "archived": 8.942612617709486
+      }
+    },
+    "monitor_counts": {
+      "api_samples": 34,
+      "sql_samples": 9,
+      "api_errors": 0,
+      "sql_errors": 0,
+      "off_or_identity_mismatch": 0,
+      "feed_disabled": 0
+    },
+    "limitations": [
+      "Active files analyzed through currently readable flushed complete lines; unfinished gzip is expected while capture runs.",
+      "Enabled status is sampled; no restart/identity change was observed, but sparse status polls cannot prove every instant of uptime.",
+      "Resource counters begin at first sample after admission; exclude earlier ON/OFF transition and end at their own last sample.",
+      "Structured arrivals inferred from verified ACK counter plus pending, distinct from WebSocket-only quote counters.",
+      "Backlog/feed maxima are sampled and can miss between-poll peaks; API telemetry and fresh SQL have distinct observation times.",
+      "CPU throttled time and PSI can overlap; neither alone proves stalls or timeout causation.",
+      "No conclusion about old09:51 incident,72-hour capacity or live source guarantees."
+    ]
   }
 }

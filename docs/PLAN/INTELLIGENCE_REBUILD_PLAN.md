@@ -49,8 +49,9 @@ not continuous operation since A was first created.
   PostgreSQL commit completion and verified hosted ACK. Receipt-to-API was
   **5.560 ms**, commit completion **13.684 ms**, clock-bounded visible DOM
   **29.793–126.293 ms**, and ACK **963.258 ms**. This is the first quote
-  observed by the browser for market 2997704; its canonical first ordinal
-  is not independently established. Browser timing uses rendering opportunities,
+  observed by the browser for market 2997704. A separate bounded retained-log
+  extraction confirmed the canonical first usable quote has that exact identity.
+  Browser timing uses rendering opportunities,
   not optical measurement.
 - [ ] Complete the full 15-minute market and four-hour observation, then
   24 hours if healthy. The new observation starts at 13:12:39 UTC; its
@@ -80,6 +81,17 @@ read about 2.57 GB and experienced cache refaults/reclaim and I/O pressure,
 with no OOM or swap. This does not establish the cause of the old collector
 timeout. Any PostgreSQL memory comparison is a separate measured experiment;
 this release keeps the existing quotas.
+
+The first 581 seconds of post-admission resource samples had at least
+2,677.7 MiB available, zero swap/OOM and no process/container identity drift.
+The nine fresh SQL observations span 500 seconds: ACKs averaged **19.62 rows/s**
+against 19.66 arrivals/s, pending 15 to 34, with a sampled peak of 55 and
+oldest age at most 3.039 seconds. No sampled ACK interval was below 14 rows/s.
+These short samples show a small backlog, not proof of long-run balance.
+Operator and API CPU-quota throttling is visible despite host RAM headroom;
+PostgreSQL also experiences cache reclaim under its own cap. Counters alone
+do not establish a collector stall. Compare quotas only in a later controlled
+experiment after the current stability observation; no limits changed here.
 
 ## November 28, 2026 — Later ownership deadline failure; Benchmark OFF
 

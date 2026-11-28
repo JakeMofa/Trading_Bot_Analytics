@@ -1,9 +1,14 @@
 # Ownership timeout: diagnosis, repair and sustained acceptance
 
-Status: first runtime candidate implemented and focused offline qualification passed;
-no successor deployment or new live run has been applied for this incident.
-This is the immediate workstream in the [master plan](INTELLIGENCE_REBUILD_PLAN.md).
-Keep current A, retained A/B and production unchanged during offline work.
+Current status: repairs #263–#266 are merged and Benchmark `.14` is deployed.
+All three feeds resumed on the same A at 13:12:39 UTC on November 28.
+Actual recovery, the same-quote browser/save/archive trace and the pinned
+500-row history read passed their short checks. Four-hour and 24-hour
+observation remain in progress, followed by current-release A/B continuity.
+The [latest master checkpoint](INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--benchmark-14-recovery)
+and [milestone checklist](../MILESTONES.md) record current completions; the
+diagnostic and qualification checkboxes below preserve the workstream design.
+Keep retained A/B and production unchanged.
 
 ## Evidence and objective
 

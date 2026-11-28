@@ -1,3 +1,53 @@
+## November 28 — Benchmark .14 deployed; sustained collection resumed
+
+Current checkpoint: release `v0.2.0-pp.benchmark.14`, source `9a6f61b`,
+CD Benchmark 46146966462 PASS. All three feeds resumed on the same A at
+13:12:39 UTC / 7:12 a.m. CST, epoch 10. The earlier outage remains a gap;
+short acceptance does not establish unattended or 72-hour success.
+
+- [x] Merge ownership repair #263 and complete-origin preservation repairs
+  #264–#266; exact merged Linux/native CI and publication passed.
+- [x] Qualify the actual quiesced recovery sequence in 151.904/180 seconds;
+  two independent full inventories matched under the unchanged limits.
+- [x] Match all 20 retained generations and the frozen current A before/after
+  deployment; keep PostgreSQL container and volume unchanged.
+- [x] Verify both new-image hosted logins, then admit collection with a fresh
+  read-only production-OFF proof. No production setting changed.
+- [x] Authenticate immutable Supabase readback for fresh Coinbase, Robinhood
+  and Polymarket records and compare their canonical bytes with local records.
+- [x] Trace the browser's first observed quote for market 2997704: API snapshot
+  5.560 ms after receipt, commit completion 13.684 ms, visible DOM interval
+  29.793–126.293 ms, verified ACK 963.258 ms. Same event, bid and ask matched.
+  A separate retained-log check confirmed the exact canonical first usable
+  event. Browser timing is software based.
+- [x] Repeat the pinned 500 local Coinbase history records while collecting:
+  1.801 seconds end to end, 547,007 bytes, identical ordered IDs and values.
+- [x] Verify current Grafana ingestion and Supabase scrape from actual raw
+  sample timestamps. Health/feed/ACK series are fresh; first-quote timing
+  panels remain empty in the five-minute view and use separate trace evidence.
+- [x] Finish the complete 13:15–13:30 UTC market with all three feeds,
+  3,430 dashboard SSE updates and no observed OFF/disconnect/wrong-market book.
+  Visible DOM matched 3,335/3,336 distinct WS identities; one had no render
+  confirmation. Successor quote also matched PostgreSQL and hosted history.
+- [ ] Complete the first four hours without a collector stop, growing archive
+  backlog or identity/lease drift.
+- [ ] Continue to 24 hours if healthy; prove current-release three-feed A/B
+  dashboard/history continuity before considering the 72-hour rollout.
+- [ ] Separately qualify component writer confinement and continuous handoff;
+  full collector replacements still require their existing maintenance route.
+
+At 13:18:38 UTC, all feeds were enabled and fresh; A had 242,466 ACKs,
+15 pending records, oldest age 1.226 seconds, and no observer API/SQL errors
+or OFF/identity mismatch. This is a dated sample, not a future guarantee.
+The VM had approximately 2.66 GiB available at 13:19 UTC. The heavy recovery
+reads did hit PostgreSQL's separate 512 MiB cache limit and I/O/reclaim pressure,
+with no OOM or swap. A larger PostgreSQL cap needs a separate controlled test;
+it does not prove the cause of the earlier ownership timeout.
+
+[Current master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--benchmark-14-recovery).
+[Actual checkpoint evidence](PLAN/evidence/benchmark-14-recovery-live-checkpoint-2026-11-28.json).
+Earlier entries preserve their dated results and open gates at that time.
+
 ## November 28 — Later ownership timeout; current Benchmark OFF
 
 The `.13` short-market test passed, but the collector stopped at 09:51:04 UTC

@@ -1,0 +1,995 @@
+{
+  "scope": "Actual Benchmark .14 recovery and short live checkpoint; sustained and A/B gates remain open",
+  "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+  "cd_run": 46146966462,
+  "recovery": {
+    "elapsed_s": 151.903817,
+    "budget_s": 180,
+    "remaining_s": 28.096186,
+    "actual_counter_analysis": {
+      "scope": "Offline analysis of actual quiesced current-scale maintenance diagnostic; not live collector or72-hour proof",
+      "rehearsal_seconds": 151.903817,
+      "budget_seconds": 180,
+      "remaining_seconds": 28.096186,
+      "passes": [
+        {
+          "pass": "first",
+          "counter_span_seconds": 67.23557600000001,
+          "pg_memory_current_mib": [
+            495.390625,
+            505.4453125
+          ],
+          "pg_memory_limit_mib": 512.0,
+          "host_mem_available_mib": [
+            2941.1953125,
+            2948.8046875
+          ],
+          "cpu_stat_deltas": {
+            "burst_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nice_usec": 0,
+            "nr_bursts": 0,
+            "nr_periods": 672,
+            "nr_throttled": 25,
+            "system_usec": 4383335,
+            "throttled_usec": 1156258,
+            "usage_usec": 42199337,
+            "user_usec": 37816002
+          },
+          "memory_stat_deltas": {
+            "active_file": 20787200,
+            "anon": 0,
+            "file": 11939840,
+            "inactive_file": -8847360,
+            "pgmajfault": 4,
+            "pgscan_direct": 639693,
+            "pgsteal_direct": 630415,
+            "shmem": 0,
+            "workingset_refault_file": 628982
+          },
+          "memory_events_deltas": {
+            "high": 0,
+            "low": 0,
+            "max": 9547,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0,
+            "sock_throttled": 0
+          },
+          "host_vmstat_deltas": {
+            "oom_kill": 0,
+            "pgmajfault": 4,
+            "pswpin": 0,
+            "pswpout": 0
+          },
+          "cpu_seconds": 42.199337,
+          "average_cpu_cores": 0.6276340519489265,
+          "pressure_delta_us": {
+            "cpu": {
+              "full": 1007192,
+              "some": 1218676
+            },
+            "io": {
+              "full": 12486549,
+              "some": 12576320
+            },
+            "memory": {
+              "full": 1280431,
+              "some": 1282120
+            }
+          },
+          "pressure_wall_pct": {
+            "cpu": {
+              "full": 1.498,
+              "some": 1.8125
+            },
+            "io": {
+              "full": 18.5713,
+              "some": 18.7049
+            },
+            "memory": {
+              "full": 1.9044,
+              "some": 1.9069
+            }
+          },
+          "io_by_device_deltas": {
+            "259:0": {
+              "dbytes": 0,
+              "dios": 0,
+              "rbytes": 2572304384,
+              "rios": 66983,
+              "wbytes": 62603264,
+              "wios": 294
+            }
+          },
+          "approx_disk_filecache_mib": [
+            339.12109375,
+            350.5078125
+          ]
+        },
+        {
+          "pass": "second",
+          "counter_span_seconds": 62.526596,
+          "pg_memory_current_mib": [
+            505.890625,
+            505.515625
+          ],
+          "pg_memory_limit_mib": 512.0,
+          "host_mem_available_mib": [
+            2949.0546875,
+            2944.54296875
+          ],
+          "cpu_stat_deltas": {
+            "burst_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nice_usec": 0,
+            "nr_bursts": 0,
+            "nr_periods": 625,
+            "nr_throttled": 22,
+            "system_usec": 3274892,
+            "throttled_usec": 857313,
+            "usage_usec": 39134473,
+            "user_usec": 35859581
+          },
+          "memory_stat_deltas": {
+            "active_file": -13312000,
+            "anon": 0,
+            "file": 118784,
+            "inactive_file": 13430784,
+            "pgmajfault": 4,
+            "pgscan_direct": 638365,
+            "pgsteal_direct": 628669,
+            "shmem": 0,
+            "workingset_refault_file": 627765
+          },
+          "memory_events_deltas": {
+            "high": 0,
+            "low": 0,
+            "max": 9089,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0,
+            "sock_throttled": 0
+          },
+          "host_vmstat_deltas": {
+            "oom_kill": 0,
+            "pgmajfault": 5,
+            "pswpin": 0,
+            "pswpout": 0
+          },
+          "cpu_seconds": 39.134473,
+          "average_cpu_cores": 0.6258852313022126,
+          "pressure_delta_us": {
+            "cpu": {
+              "full": 776840,
+              "some": 931477
+            },
+            "io": {
+              "full": 11079786,
+              "some": 11168321
+            },
+            "memory": {
+              "full": 1094111,
+              "some": 1098764
+            }
+          },
+          "pressure_wall_pct": {
+            "cpu": {
+              "full": 1.2424,
+              "some": 1.4897
+            },
+            "io": {
+              "full": 17.7201,
+              "some": 17.8617
+            },
+            "memory": {
+              "full": 1.7498,
+              "some": 1.7573
+            }
+          },
+          "io_by_device_deltas": {
+            "259:0": {
+              "dbytes": 0,
+              "dios": 0,
+              "rbytes": 2567278592,
+              "rios": 58414,
+              "wbytes": 62189568,
+              "wios": 269
+            }
+          },
+          "approx_disk_filecache_mib": [
+            350.99609375,
+            351.109375
+          ]
+        }
+      ]
+    }
+  },
+  "same_quote": {
+    "market": "2997704",
+    "event": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+    "receipt": "2026-11-28T13:15:13.365181+00:00",
+    "source_time": "2026-11-28T13:15:13.273694118Z",
+    "slug": "cpc-btc-updown-15m-2026-11-28-1315z",
+    "start": "2026-11-28T13:15:00Z",
+    "bid": "0.4800",
+    "ask": "0.4900",
+    "snapshot_generated_at": "2026-11-28T13:15:13.370741+00:00",
+    "receipt_to_api_snapshot_ms": 5.56,
+    "api_within_5s": true,
+    "actual_dom_matched": true,
+    "sse_to_visible_dom_ms": 18.4,
+    "receipt_to_visible_dom_ms_interval": [
+      29.793,
+      126.293
+    ],
+    "dom_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 48\u00a2 \u00d7 180.0000 / ask 49\u00a2 \u00d7 1440.7900 \u00b7 venue update 0s ago \u00b7 not used in forecast",
+    "content_hash": "3a6ee15c5cd040d63bbec97bea71ac934742d68ad87cf735cf26dc20ded4851f",
+    "outbox_id": 564327,
+    "receipt_to_commit_observation_ms": 13.684,
+    "receipt_to_verified_ack_ms": 963.258,
+    "canonical_first_confirmed": true
+  },
+  "fresh_sources": {
+    "coinbase": {
+      "ack": "2026-11-28T13:12:42.402222+00:00",
+      "bytes": 1355,
+      "entity_type": "core.current_prices",
+      "event": "exchange-trade-1150417127",
+      "hash": "846bf37e4d392778b4ad38d5f937b13bbce506e7d3dee00499654c28d3753404",
+      "id": 561634,
+      "local_outbox_created_at": "2026-11-28T13:12:39.482777+00:00",
+      "received": "2026-11-28T13:12:39.052523+00:00",
+      "sha256": "aa2f66369284a5e3d519bea92b767670171c438539165b4f9413aa81021d6aa9",
+      "source": "coinbase",
+      "source_time": "2026-11-28T13:12:38.763164Z"
+    },
+    "polymarket_us": {
+      "ack": "2026-11-28T13:15:14.328439+00:00",
+      "authenticated_immutable_revision_and_projection": true,
+      "bytes": 9954,
+      "canonical_first_confirmed": false,
+      "collector_trace": [
+        {
+          "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+          "received_at": "2026-11-28T13:15:13.365181+00:00",
+          "stage": "usable_receipt",
+          "ts_utc": "2026-11-28T13:15:13.367819+00:00"
+        },
+        {
+          "committed_at": "2026-11-28T13:15:13.378865+00:00",
+          "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+          "received_at": "2026-11-28T13:15:13.365181+00:00",
+          "stage": "writer_sample",
+          "ts_utc": "2026-11-28T13:15:13.378887+00:00"
+        },
+        {
+          "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+          "received_at": "2026-11-28T13:15:13.365181+00:00",
+          "stage": "write_complete",
+          "ts_utc": "2026-11-28T13:15:13.379019+00:00"
+        }
+      ],
+      "entity_type": "core.protected_evidence",
+      "event": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "hash": "3a6ee15c5cd040d63bbec97bea71ac934742d68ad87cf735cf26dc20ded4851f",
+      "id": 564327,
+      "local_outbox_created_at": "2026-11-28T13:15:13.376495+00:00",
+      "market": "2997704",
+      "observed_commit_utc": "2026-11-28T13:15:13.378865+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "outbox_id": 564327,
+      "received": "2026-11-28T13:15:13.365181+00:00",
+      "release_source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+      "saved_and_archived_ask": "0.4900",
+      "saved_and_archived_bid": "0.4800",
+      "sha256": "f629a7aa00ce55f3e003d5364de7d3e3fd6f572bf00673eb77286cd0253fd0c6",
+      "source": "polymarket_us",
+      "source_time": "2026-11-28T13:15:13.273694118Z"
+    },
+    "robinhood_crypto": {
+      "ack": "2026-11-28T13:12:42.420844+00:00",
+      "bytes": 1827,
+      "entity_type": "core.protected_evidence",
+      "event": "rh-v1-824bc43788f010e05b657251fd8a1c25ef9a360b482b22ab328e18077a2b03e2",
+      "hash": "47b88ccf6b576566fd2f774e9fe546eed4d756d0f4c3a69417e8fb6e15620d8a",
+      "id": 561637,
+      "local_outbox_created_at": "2026-11-28T13:12:39.753926+00:00",
+      "received": "2026-11-28T13:12:39.258963+00:00",
+      "sha256": "ea251fd2245bb4e264ad1c2b9b70ec78a19692eabcb48644a7232536088f16da",
+      "source": "robinhood_crypto",
+      "source_time": "2026-11-28T13:12:39.121353845Z"
+    }
+  },
+  "hosted_envelope_pins": [
+    {
+      "bytes": 1355,
+      "id": 561634,
+      "sha256": "aa2f66369284a5e3d519bea92b767670171c438539165b4f9413aa81021d6aa9"
+    },
+    {
+      "bytes": 1827,
+      "id": 561637,
+      "sha256": "ea251fd2245bb4e264ad1c2b9b70ec78a19692eabcb48644a7232536088f16da"
+    },
+    {
+      "bytes": 9954,
+      "id": 564327,
+      "sha256": "f629a7aa00ce55f3e003d5364de7d3e3fd6f572bf00673eb77286cd0253fd0c6"
+    }
+  ],
+  "live_reader_bracket": {
+    "before": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:21:12.285223+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
+      "utc": "2026-11-28T13:19:18.700856+00:00",
+      "valid": true
+    },
+    "after": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:21:12.285223+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
+      "utc": "2026-11-28T13:19:23.537077+00:00",
+      "valid": true
+    }
+  },
+  "pinned_history_http": {
+    "binding": {
+      "cd_run": 46146966462,
+      "config_sha256": "1e617e6973c3f5da0e9a69c6643901c307dca455de1676a36391584fcd3dc79e",
+      "controller": "a8045102caaa2243e581ba1d3121bcf6d849ff27391caa2dc47a88e39c033f67",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "host": "tradebot-preprod-benchmark-4gb",
+      "image": "sha256:ab88f92b9c2b8a1377cd709d07425bf06b311476ce4f6bf2e4b94222d3b8c7ff",
+      "origin": "pp-live-pp-benchmark-watch",
+      "ready_utc": "2026-11-28T13:05:45.397108+00:00",
+      "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d"
+    },
+    "body_s": 1.792264,
+    "bytes": 547007,
+    "fetch_decode_s": 1.801189,
+    "headers_s": 1.680905,
+    "ordered_ids_and_values_sha256": "80edbad99bbf0dbcc93d176d73dae34f7a6d97692168292f7775e4a6baed35a9",
+    "ordered_ids_sha256": "6872d0dd6633a601a1497939ffe5e525e97308000b5531b6135457b5fbdde701",
+    "query": {
+      "as_of": "2026-11-28T05:30:00Z",
+      "end": "2026-11-28T05:30:00Z",
+      "limit": 500,
+      "market_id": "2982855",
+      "start": "2026-11-28T05:15:00Z"
+    },
+    "response_sha256": "fac7de65b4236f113a81a671203d3be59bac55218848da43ca19e766ae8f1245",
+    "route": "/history/market-events",
+    "rows": 500,
+    "start_utc": "2026-11-28T13:19:34.858333+00:00",
+    "tier": "local_postgres",
+    "under_4s": true
+  },
+  "canonical_first_trace": {
+    "after": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:25:04.668864+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
+      "utc": "2026-11-28T13:23:20.570174+00:00",
+      "valid": true
+    },
+    "before": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:25:04.668864+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
+      "utc": "2026-11-28T13:23:19.683526+00:00",
+      "valid": true
+    },
+    "canonical_first_confirmed": true,
+    "commit_trace_utc": "2026-11-28T13:15:13.379019+00:00",
+    "config_sha256": "1e617e6973c3f5da0e9a69c6643901c307dca455de1676a36391584fcd3dc79e",
+    "earliest": {
+      "best_ask": "0.4900",
+      "best_bid": "0.4800",
+      "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+      "mono_ns": 323845089683815,
+      "received_at": "2026-11-28T13:15:13.365181+00:00",
+      "source_time": "2026-11-28T13:15:13.273694118Z",
+      "ts_utc": "2026-11-28T13:15:13.367819+00:00"
+    },
+    "image": "sha256:ab88f92b9c2b8a1377cd709d07425bf06b311476ce4f6bf2e4b94222d3b8c7ff",
+    "marker_matches_browser_and_saved": true,
+    "market": "2997704",
+    "market_first_markers": 1,
+    "matching_commit_markers": 1,
+    "oldest_coverage_witness_utc": "2026-11-28T13:05:43.558898012Z",
+    "operator_id": "edd07c882719ef315054ce06bd3973af9d2eaf385a309ff79f3b23e0175766ec",
+    "operator_started_at": "2026-11-28T13:05:33.359743802Z",
+    "retained_starts_after": [
+      {
+        "first_utc": "2026-11-28T13:05:43.558898012Z",
+        "generation": 0
+      }
+    ],
+    "retained_starts_before": [
+      {
+        "first_utc": "2026-11-28T13:05:43.558898012Z",
+        "generation": 0
+      }
+    ],
+    "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+    "source_quote_usable": true,
+    "window_utc": [
+      "2026-11-28T13:14:59Z",
+      "2026-11-28T13:15:15Z"
+    ]
+  },
+  "live_prefix_resources": {
+    "analysis_at_utc": "2026-11-28T13:22:24.188251+00:00",
+    "scope": "observed .14 live prefix only; four hours and24hours not yet complete",
+    "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+    "admission_observed_on_utc": "2026-11-28T13:12:39.428186+00:00",
+    "input_prefix": {
+      "resource_gzip_footer_complete": false,
+      "resource_samples_since_on": 582,
+      "pre_on_samples_excluded": 138,
+      "status_rows": 34,
+      "status_partial_final_line": false,
+      "errors": []
+    },
+    "resource_window": {
+      "first": "2026-11-28T13:12:40.074158+00:00",
+      "last": "2026-11-28T13:22:21.076619+00:00",
+      "seconds": 581.00246054,
+      "max_sample_gap_seconds": 1.041210118,
+      "same_boot_device_container_process_cgroup": true,
+      "host_mem_available_min_mib": 2677.6953125,
+      "host_counter_deltas": {
+        "pswpin": 0,
+        "pswpout": 0,
+        "oom_kill": 0,
+        "pgmajfault": 2,
+        "cpu_total": 115513,
+        "cpu_busy": 50837,
+        "cpu_iowait": 1883,
+        "memory_some_us": 183131,
+        "memory_full_us": 133064,
+        "cpu_some_us": 225036405,
+        "cpu_full_us": 0,
+        "io_some_us": 13847349,
+        "io_full_us": 7795536,
+        "disk_read_bytes": 428986368,
+        "disk_write_bytes": 673841152,
+        "disk_busy_ms": 28905
+      },
+      "services": {
+        "operator": {
+          "memory_min_mib": 54.984375,
+          "memory_max_mib": 59.39453125,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 99756918,
+            "user_usec": 90474256,
+            "system_usec": 9282661,
+            "nr_periods": 5802,
+            "nr_throttled": 2419,
+            "throttled_usec": 187116599
+          },
+          "cpu_pressure_delta": {
+            "some_us": 127631076,
+            "full_us": 119830449
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.1716979269025524,
+          "cpu_quota": {
+            "quota_us": 25000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 21.96739,
+              "full_us": 20.624775
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 187.116599,
+          "last_memory_mib": {
+            "anon": 56.01953125,
+            "file": 0.0,
+            "kernel": 2.37890625,
+            "sock": 0.00390625,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 1.888031005859375
+          }
+        },
+        "postgres": {
+          "memory_min_mib": 496.99609375,
+          "memory_max_mib": 511.9765625,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 3506,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 156045349,
+            "user_usec": 90856784,
+            "system_usec": 65188565,
+            "nr_periods": 5808,
+            "nr_throttled": 50,
+            "throttled_usec": 793808
+          },
+          "cpu_pressure_delta": {
+            "some_us": 39404408,
+            "full_us": 29786675
+          },
+          "memory_pressure_delta": {
+            "some_us": 189422,
+            "full_us": 146450
+          },
+          "io_pressure_delta": {
+            "some_us": 13771349,
+            "full_us": 11969426
+          },
+          "cpu_average_cores": 0.268579497675392,
+          "cpu_quota": {
+            "quota_us": 100000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 6.782141,
+              "full_us": 5.126773
+            },
+            "memory_pressure": {
+              "some_us": 0.032603,
+              "full_us": 0.025206
+            },
+            "io_pressure": {
+              "some_us": 2.370274,
+              "full_us": 2.060133
+            }
+          },
+          "throttled_seconds": 0.793808,
+          "last_memory_mib": {
+            "anon": 16.5078125,
+            "file": 474.59375,
+            "kernel": 15.24609375,
+            "sock": 0.01171875,
+            "shmem": 138.40234375,
+            "file_dirty": 2.74609375,
+            "file_writeback": 0.0,
+            "slab": 11.421646118164062
+          }
+        },
+        "api": {
+          "memory_min_mib": 52.765625,
+          "memory_max_mib": 85.41796875,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 114007664,
+            "user_usec": 106638192,
+            "system_usec": 7369472,
+            "nr_periods": 5795,
+            "nr_throttled": 1317,
+            "throttled_usec": 95630201
+          },
+          "cpu_pressure_delta": {
+            "some_us": 73908053,
+            "full_us": 68468216
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.1962257851611129,
+          "cpu_quota": {
+            "quota_us": 50000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 12.720781,
+              "full_us": 11.784497
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 95.630201,
+          "last_memory_mib": {
+            "anon": 52.23828125,
+            "file": 0.00390625,
+            "kernel": 2.23828125,
+            "sock": 0.00390625,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 1.7683868408203125
+          }
+        },
+        "calculation": {
+          "memory_min_mib": 32.26953125,
+          "memory_max_mib": 33.4609375,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 17938410,
+            "user_usec": 16702629,
+            "system_usec": 1235782,
+            "nr_periods": 2672,
+            "nr_throttled": 3,
+            "throttled_usec": 84413
+          },
+          "cpu_pressure_delta": {
+            "some_us": 5024331,
+            "full_us": 4881781
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.03087492948537178,
+          "cpu_quota": {
+            "quota_us": 50000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 0.864769,
+              "full_us": 0.840234
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 0.084413,
+          "last_memory_mib": {
+            "anon": 31.6640625,
+            "file": 0.0,
+            "kernel": 1.296875,
+            "sock": 0.0,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 0.9850616455078125
+          }
+        },
+        "lifecycle": {
+          "memory_min_mib": 27.0546875,
+          "memory_max_mib": 27.3046875,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 251098,
+            "user_usec": 230089,
+            "system_usec": 21008,
+            "nr_periods": 56,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "cpu_pressure_delta": {
+            "some_us": 88930,
+            "full_us": 88929
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "cpu_average_cores": 0.0004321806137733435,
+          "cpu_quota": {
+            "quota_us": 25000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "pressure_percent_of_counter_span": {
+            "cpu_pressure": {
+              "some_us": 0.015306,
+              "full_us": 0.015306
+            },
+            "memory_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            },
+            "io_pressure": {
+              "some_us": 0.0,
+              "full_us": 0.0
+            }
+          },
+          "throttled_seconds": 0.0,
+          "last_memory_mib": {
+            "anon": 26.01171875,
+            "file": 0.0,
+            "kernel": 1.04296875,
+            "sock": 0.0,
+            "shmem": 0.0,
+            "file_dirty": 0.0,
+            "file_writeback": 0.0,
+            "slab": 0.8089447021484375
+          }
+        }
+      }
+    },
+    "writer_observations": {
+      "first": "2026-11-28T13:13:43.445914+00:00",
+      "last": "2026-11-28T13:22:03.524339+00:00",
+      "samples": 9,
+      "same_identity": true,
+      "all_enabled": true,
+      "observed_since_admission_seconds": 564.096153,
+      "counter_span_seconds": 500.078425,
+      "acks_delta": 9812,
+      "inferred_arrivals_delta": 9831,
+      "acks_per_second": 19.620922458312414,
+      "inferred_arrivals_per_second": 19.65891649894714,
+      "pending_first": 15,
+      "pending_last": 34,
+      "sampled_pending_max": 55,
+      "sampled_oldest_age_max_seconds": 3.038642,
+      "latest_oldest_age_seconds": 3.038642,
+      "minimum_interval": {
+        "start": "2026-11-28T13:14:45.626577+00:00",
+        "end": "2026-11-28T13:15:47.943573+00:00",
+        "seconds": 62.316996,
+        "acks_per_s": 16.75305401434947,
+        "inferred_arrivals_per_s": 16.52839620189651,
+        "pending_start": 34,
+        "pending_end": 20
+      },
+      "intervals_below14_ack_per_second": 0,
+      "sampled_longest_interval_seconds": 63.41183
+    },
+    "api_window_observations": {
+      "sampled_pending_max": 65,
+      "sampled_oldest_age_max_seconds": 2.709216,
+      "latest_pending": 13,
+      "latest_oldest_age_seconds": 1.380853
+    },
+    "feed_ages": {
+      "coinbase": {
+        "provider_latest_s": 1.494527,
+        "provider_sampled_max_s": 7.295574,
+        "pp_receipt_latest_s": 1.475906,
+        "pp_receipt_sampled_max_s": 3.622667
+      },
+      "polymarket": {
+        "provider_latest_s": 2.64956,
+        "provider_sampled_max_s": 3.224984,
+        "pp_receipt_latest_s": 0.629204,
+        "pp_receipt_sampled_max_s": 1.124378
+      },
+      "robinhood": {
+        "provider_latest_s": 0.253718,
+        "provider_sampled_max_s": 1.81912,
+        "pp_receipt_latest_s": 0.242186,
+        "pp_receipt_sampled_max_s": 1.750624
+      }
+    },
+    "websocket_quote_counters": {
+      "first": "2026-11-28T13:13:41.677998+00:00",
+      "last": "2026-11-28T13:22:18.529191+00:00",
+      "latest": {
+        "received": 5275,
+        "saved": 5272,
+        "duplicates": 2,
+        "started_at": "2026-11-28T13:12:37.660287+00:00",
+        "last_commit": {
+          "event_id": "ws-8374c79a65729b6c32c0d9b74461c7abe50096205afe95c0b67a6c18871e069d",
+          "at": "2026-11-28T13:22:18.538683+00:00"
+        },
+        "archived": 5177
+      },
+      "approximate_rates_per_second": {
+        "received": 9.043221846640877,
+        "saved": 9.039352260912747,
+        "archived": 8.942612617709486
+      }
+    },
+    "monitor_counts": {
+      "api_samples": 34,
+      "sql_samples": 9,
+      "api_errors": 0,
+      "sql_errors": 0,
+      "off_or_identity_mismatch": 0,
+      "feed_disabled": 0
+    },
+    "limitations": [
+      "Active files analyzed through currently readable flushed complete lines; unfinished gzip is expected while capture runs.",
+      "Enabled status is sampled; no restart/identity change was observed, but sparse status polls cannot prove every instant of uptime.",
+      "Resource counters begin at first sample after admission; exclude earlier ON/OFF transition and end at their own last sample.",
+      "Structured arrivals inferred from verified ACK counter plus pending, distinct from WebSocket-only quote counters.",
+      "Backlog/feed maxima are sampled and can miss between-poll peaks; API telemetry and fresh SQL have distinct observation times.",
+      "CPU throttled time and PSI can overlap; neither alone proves stalls or timeout causation.",
+      "No conclusion about old09:51 incident,72-hour capacity or live source guarantees."
+    ]
+  },
+  "full_market_browser": {
+    "utc_market": "2026-11-28 13:15\u201313:30",
+    "expected_market_id": "2997704",
+    "observation_basis": "Observed SSE and render frames attributed to server publication during [start,end). DOM matching callback ran on the second browser animation frame; deduplication by event identity.",
+    "sse_frames": 3430,
+    "dom_frames": 3381,
+    "per_minute_sse": [
+      227,
+      227,
+      229,
+      228,
+      226,
+      227,
+      229,
+      230,
+      229,
+      229,
+      228,
+      231,
+      229,
+      230,
+      231
+    ],
+    "per_minute_matching_market_dom": [
+      179,
+      227,
+      229,
+      228,
+      226,
+      227,
+      229,
+      229,
+      229,
+      229,
+      228,
+      231,
+      229,
+      230,
+      231
+    ],
+    "sse_interval_first_last_publication": [
+      "2026-11-28T13:15:00.253805+00:00",
+      "2026-11-28T13:29:59.708480+00:00"
+    ],
+    "max_sse_interarrival_ms": 551.7,
+    "market_ws_sse_frames": 3382,
+    "market_matching_dom_frames": 3381,
+    "market_distinct_ws_sse_ids": 3336,
+    "market_distinct_matching_dom_ids": 3335,
+    "initial_publication_before_expected_market": {
+      "None": 47
+    },
+    "off_unknown": 0,
+    "unexpected_origin_or_mode": 0,
+    "cross_market_in_assigned_books": 0,
+    "unexpected_provenance_of_expected_markets_book": {},
+    "errors_reopens_or_overruns_through_successor": {},
+    "provider_receipts": {
+      "cb": {
+        "distinct_ids": 1378,
+        "frames_missing_id": 0
+      },
+      "pm": {
+        "distinct_ids": 888,
+        "frames_missing_id": 0
+      },
+      "rh": {
+        "distinct_ids": 885,
+        "frames_missing_id": 0
+      }
+    },
+    "first_market_receipt": "2026-11-28T13:15:13.365181+00:00",
+    "first_market_event": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+    "next_market_id": "3000662",
+    "next_quote": {
+      "event": "ws-8035de647d1147cd0ec4562600b06428fd487d43e0e853d8c813e97cf2adf139",
+      "receipt": "2026-11-28T13:30:28.921281+00:00",
+      "publication": "2026-11-28T13:30:28.926839+00:00",
+      "slug": "cpc-btc-updown-15m-2026-11-28-1330z",
+      "bid": "0.4800",
+      "ask": "0.4900"
+    },
+    "next_quote_dom_confirmed": true
+  },
+  "successor_quote": {
+    "market": "3000662",
+    "event": "ws-8035de647d1147cd0ec4562600b06428fd487d43e0e853d8c813e97cf2adf139",
+    "receipt": "2026-11-28T13:30:28.921281+00:00",
+    "source_time": "2026-11-28T13:30:28.760788300Z",
+    "slug": "cpc-btc-updown-15m-2026-11-28-1330z",
+    "start": "2026-11-28T13:30:00Z",
+    "bid": "0.4800",
+    "ask": "0.4900",
+    "snapshot_generated_at": "2026-11-28T13:30:28.926839+00:00",
+    "receipt_to_api_snapshot_ms": 5.558,
+    "api_within_5s": true,
+    "actual_dom_matched": true,
+    "sse_to_visible_dom_ms": 13.9,
+    "receipt_to_visible_dom_ms_interval": [
+      -14.607,
+      81.893
+    ],
+    "dom_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 48\u00a2 \u00d7 986.5400 / ask 49\u00a2 \u00d7 154.2900 \u00b7 venue update 0s ago \u00b7 not used in forecast",
+    "content_hash": "3f6915d1516ba6cf42effb6e01bea6cc382fce0c4dc8aee45f7de27e94ad5c35",
+    "outbox_id": 582013,
+    "receipt_to_commit_observation_ms": 12.191,
+    "receipt_to_verified_ack_ms": 1904.63,
+    "canonical_first_confirmed": false,
+    "clock_limitation": "Uses the original browser/server clock bracket about 15 minutes later; the raw interval crosses zero. Do not report it as measured absolute receipt-to-visible latency. Same-browser SSE-to-DOM is 13.9 ms; the first-market calibrated interval is separate."
+  }
+}

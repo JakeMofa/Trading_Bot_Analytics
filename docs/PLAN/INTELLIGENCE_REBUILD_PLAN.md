@@ -6,11 +6,103 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-28-2026--later-ownership-deadline-failure-benchmark-off)
+- [Current PP checkpoint](#november-28-2026--benchmark-14-recovery)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 28, 2026 — Benchmark .14 recovery
+
+Release `.14` is packaged from `9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d`.
+Exact merged CI 46145506694 and publication 46146029634 passed. Source
+artifact SHA256 is `e6d1086beddb9ac411f8262274a964f7a83c7ecd3a481b88c91c73c76754cfa3`;
+the installed controller is
+`a8045102caaa2243e581ba1d3121bcf6d849ff27391caa2dc47a88e39c033f67`.
+CD Benchmark 46146966462 passed preflight and generated acceptance. All three
+feeds resumed on the same A at **13:12:39 UTC (7:12 a.m. CST)**, epoch 10.
+The prior collection gap remains recorded; this is a new sustained observation,
+not continuous operation since A was first created.
+
+- [x] Merge ownership diagnostics/isolation #263 and preservation repairs
+  #264, #265 and #266, with actual native/Linux CI.
+- [x] Verify all 20 retained generations and current A's exact saved data.
+  Before maintenance, A was `8b7c3058-c10c-4900-89c9-2d7569fca67d`, epoch 9/OFF,
+  with 235,755 verified ACKs, zero pending and high-water ID 561373.
+  All 20 retained fingerprints and the frozen A matched after deployment.
+- [x] Complete the current-size quiesced recovery rehearsal in **151.904/180
+  seconds**, leaving 28.096 seconds. This includes fencing the four genuine
+  old application containers, PostgreSQL identity checks, two independent
+  full 11-table/15-origin inventories and a real generated prediction anchor.
+  Both inventories match. The installed old controller and PostgreSQL
+  container/volume remained unchanged during that diagnostic.
+- [x] Restore the old generated OFF profile, install/verify the new controller
+  through its normal installer and restricted identity, and queue exact CD.
+- [x] Complete generated CD, re-enter the same A and recheck retained data.
+- [x] Verify new-image Supabase authentication/readback and admit all three
+  feeds with fresh production-OFF proof. Match one fresh record from each
+  feed to authenticated immutable Supabase history.
+- [x] Repeat the pinned 500-row HTTP page while collecting: **1.801 seconds**,
+  547,007 bytes, identical ordered IDs, values and response hash. These are
+  500 local Coinbase history records, not a hosted write batch.
+- [x] Match a new-market WebSocket quote through API snapshot, visible DOM,
+  PostgreSQL commit completion and verified hosted ACK. Receipt-to-API was
+  **5.560 ms**, commit completion **13.684 ms**, clock-bounded visible DOM
+  **29.793–126.293 ms**, and ACK **963.258 ms**. This is the first quote
+  observed by the browser for market 2997704. A separate bounded retained-log
+  extraction confirmed the canonical first usable quote has that exact identity.
+  Browser timing uses rendering opportunities,
+  not optical measurement.
+- [x] Observe the complete 13:15–13:30 UTC market: 3,430 dashboard SSE
+  updates, all three feeds, no observed OFF/disconnect/wrong-market book;
+  3,335/3,336 distinct WebSocket identities had visible DOM confirmation.
+  One lacked a render confirmation; display coalescing is independent of saving.
+  Successor market 3000662 arrived at +28.921 seconds, API +5.558 ms;
+  its exact saved and immutable archived quote also matched.
+- [ ] Complete four-hour observation, then 24 hours if healthy. The new observation starts at 13:12:39 UTC; its
+  four-hour checkpoint is 17:12:39 UTC and 24-hour checkpoint is November 29
+  at 13:12:39 UTC. These checkpoints are not collector stop commands.
+- [ ] Qualify current-release three-feed A/B dashboard/history continuity;
+  the 72-hour rollout remains deferred.
+
+The earlier full inventory improved from 271.275 to 77.567 seconds, but those
+single-pass measurements kept dashboard/calculation workload running. The
+rehearsal above measured the actual fenced recovery sequence under its one
+unchanged 180-second clock. Its two scans took approximately 67.24 and 62.56
+seconds; stopping applications took approximately 21.54 seconds. This is
+current-scale maintenance evidence, not a live-collection or 72-hour result.
+Maintenance did not remove archive objects or historical partitions, change
+role grants, or change production settings. Normal new-record archiving resumed
+after admission. The [ownership repair plan](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md)
+continues with live adoption and sustained observation.
+
+[Actual recovery and short live evidence](evidence/benchmark-14-recovery-live-checkpoint-2026-11-28.json)
+records the same-event joins and pinned page; the raw private logs and secret
+mounts are excluded.
+
+Resource counters show a separate capacity question: PostgreSQL still has a
+512 MiB container cap on the 4 GiB VM. During each heavy verification scan it
+read about 2.57 GB and experienced cache refaults/reclaim and I/O pressure,
+with no OOM or swap. This does not establish the cause of the old collector
+timeout. Any PostgreSQL memory comparison is a separate measured experiment;
+this release keeps the existing quotas.
+
+The first 581 seconds of post-admission resource samples had at least
+2,677.7 MiB available, zero swap/OOM and no process/container identity drift.
+The nine fresh SQL observations span 500 seconds: ACKs averaged **19.62 rows/s**
+against 19.66 arrivals/s, pending 15 to 34, with a sampled peak of 55 and
+oldest age at most 3.039 seconds. No sampled ACK interval was below 14 rows/s.
+These short samples show a small backlog, not proof of long-run balance.
+[Grafana ingestion was independently verified](evidence/benchmark-14-grafana-ingestion-2026-11-28.json)
+through the signed-in browser: fresh sender/API/database/collector health,
+three-feed ages, progressing ACKs and two successful Supabase scrapes. The
+first-quote timing panels had no data in that five-minute view; use the
+separate exact-event evidence above for those measurements.
+
+Operator and API CPU-quota throttling is visible despite host RAM headroom;
+PostgreSQL also experiences cache reclaim under its own cap. Counters alone
+do not establish a collector stall. Compare quotas only in a later controlled
+experiment after the current stability observation; no limits changed here.
 
 ## November 28, 2026 — Later ownership deadline failure; Benchmark OFF
 
@@ -1153,6 +1245,8 @@ change to the active checkpoint above.
 - [Data access findings](../DATA_ACCESS_FINDINGS.md) · [Progress summary](../PROGRESS_SUMMARY.md) · [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 
 ### Live feeds, rollover and observability
+
+- [Capability-confined runtime updates — proposed qualification](CAPABILITY_CONFINED_RUNTIME_UPDATES.md)
 
 - [Ownership timeout repair and sustained acceptance](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md)
 

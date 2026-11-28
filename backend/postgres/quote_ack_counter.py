@@ -22,7 +22,8 @@ def register(store):
         _lock(db,store.origin)
         row = db.execute("""SELECT generation_id,clock_timestamp() AS started
             FROM ops.writer_state WHERE origin_id=%s AND collector_enabled
-              AND collector_lease_expires_at>clock_timestamp()""",(store.origin,)).fetchone()
+              AND collector_lease_expires_at>clock_timestamp() AND collector_session_id=%s::uuid
+              FOR SHARE""",(store.origin,store.producer_session_id)).fetchone()
         if row is None:
             raise RuntimeError('no active quote session to register')
         cursor = {'started_at': row['started'].isoformat(), 'generation_id': str(row['generation_id'])}

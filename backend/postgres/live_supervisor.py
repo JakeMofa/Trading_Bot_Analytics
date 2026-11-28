@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 from .cloud_origin_binding import DISPLAY_ORIGIN
 from .rehearsal_profile import WATCH_LEASE_SECONDS
+from . import benchmark_telemetry as metrics
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
 from .live_diagnostics import CollectorHold, LiveDiagnostic, diagnose
@@ -69,9 +70,11 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             raise LiveDiagnostic('ownership', 'lease_lost')
 
     async def watch_fence():
-        while not stop.is_set():
-            await assert_fence()
-            await _pause_or_stop(stop, 1)
+        with metrics.monitor_session(store.settings.origin_id, getattr(store, 'producer_session_id', None)) as pulse:
+            while not stop.is_set():
+                await assert_fence()
+                pulse()
+                await _pause_or_stop(stop, 1)
 
     async def coinbase_stream(stop=stop):
         await coinbase(store, stop)
@@ -91,6 +94,8 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
         unavailable_cycles = 0
         while not stop.is_set():
             try:
+                if unavailable_cycles:
+                    metrics.issue('coinbase_candles', 'retry')
                 await candles(store, client, stop, now=clock())
             except LiveDiagnostic as error:
                 # _step separates fetch from durable write: only these provider

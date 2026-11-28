@@ -1423,6 +1423,23 @@ expiry, ownership, explicit OFF and safe restart. A controller fixture covered
 renewal and refusing to admit without the exact archive worker. The live
 renewal, concurrent source controls and sustained archive rate require
 Benchmark acceptance. [Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md)
+### Benchmark source and archive monitoring
+
+The November 27 audit found that the original backlog alert was limited to
+trial05/06. The saved Benchmark alert evaluates the active collector, three
+source ages, Polymarket book receipts and archive lag. Its dedicated email
+contact accepted one test notification. The source and archive sender now has
+a host-local implementation for the continuous profile. Its loopback route
+samples only that origin, reports A and B separately, and treats an unavailable
+sample as unknown. Sustained sender operation and alert recovery require
+the qualified continuous release. [Benchmark observability and installation](../deploy/preprod/BENCHMARK_MONITORING.md).
+
+The actual PG17 application-role query took 1.015 ms execution and 3.125 ms
+planning on a disposable table with 2,000,000 acknowledged rows and nine
+pending rows. It visited nine outbox index entries and looked up one generation
+ACK checkpoint and explicit operator intent by their primary keys. The missing historical counter returned
+unknown. [Query plan](PLAN/evidence/pp-benchmark-telemetry-pending-index-2026-11-27.json).
+
 ### Independent Benchmark feed controls
 
 The continuous Benchmark profile has private per-source pause/resume commands.

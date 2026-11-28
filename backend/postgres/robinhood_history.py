@@ -9,6 +9,7 @@ import time
 
 import httpx
 
+from . import benchmark_telemetry as metrics
 from .contract import content_hash, exact_decimal, source_timestamp
 from .domain import timestamp
 from .feed_writer import feed_writer
@@ -129,11 +130,14 @@ async def collect(store, stop, publish, *, transport=None, cadence=1, surface_wr
     try:
         key = credentials()
     except (ValueError, OSError):
+        metrics.issue('robinhood_reference', 'auth')
         LOG.warning('pp_robinhood_reference_disabled reason=invalid_credentials')
         return
     async with httpx.AsyncClient(timeout=5, trust_env=False, follow_redirects=False, transport=transport) as client, feed_writer(store):
         backoff = 0
         while not stop.is_set():
+            if backoff:
+                metrics.issue('robinhood_reference', 'retry')
             started = time.monotonic()
             delay = 0
             try:
@@ -148,6 +152,7 @@ async def collect(store, stop, publish, *, transport=None, cadence=1, surface_wr
                     except Exception as exc:
                         # Stop only the auxiliary feed and identify the last
                         # displayed event if its commit could not be confirmed.
+                        metrics.issue('robinhood_reference', 'write')
                         LOG.warning('pp_robinhood_reference_writer_stopped event=%s reason=%s',
                                     event['event_id'], type(exc).__name__)
                         if surface_write_failure:
@@ -155,12 +160,15 @@ async def collect(store, stop, publish, *, transport=None, cadence=1, surface_wr
                         return
                     backoff = 0
                 elif row['http_status'] in (401, 403):
+                    metrics.issue('robinhood_reference', 'auth')
                     LOG.warning('pp_robinhood_reference_disabled http_status=%s', row['http_status'])
                     return
                 else:
+                    metrics.issue('robinhood_reference', metrics.classify_status(row['http_status']))
                     LOG.warning('pp_robinhood_reference_http_error status=%s', row['http_status'])
                     backoff = min(60, max(cadence, backoff * 2))
             except (httpx.HTTPError, OSError, ValueError, InvalidOperation, TypeError, KeyError, TimeoutError) as exc:
+                metrics.issue('robinhood_reference', 'transport' if isinstance(exc, (httpx.HTTPError,OSError,TimeoutError)) else 'invalid')
                 LOG.warning('pp_robinhood_reference_unavailable reason=%s', type(exc).__name__)
                 backoff = min(60, max(cadence, backoff * 2))
             # Retry-After is authoritative even when longer than the backoff.

@@ -11,6 +11,7 @@ from uuid import uuid4
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
+from . import benchmark_telemetry as metrics
 from .boundary_trace import boundary_trace
 from .boundary_shadow import WS_URL, headers, signing_key
 from .contract import content_hash, source_timestamp
@@ -147,12 +148,16 @@ class QuotePipeline:
 async def stream_books(pipe, stop, keypair, *, refresh_key=None):
     delay = 1
     next_reject_log = 0
+    reconnect = False
     while not stop.is_set():
+        if reconnect:
+            metrics.issue('polymarket_book', 'retry')
         try:
             if refresh_key:
                 try:
                     keypair = refresh_key()
                 except (ValueError, OSError):
+                    metrics.issue('polymarket_book','auth')
                     logging.getLogger(__name__).warning('pp_websocket_signer_unavailable')
                     await _pause_or_stop(stop, delay)
                     delay = min(60, delay * 2)
@@ -178,22 +183,26 @@ async def stream_books(pipe, stop, keypair, *, refresh_key=None):
                         if not isinstance(doc,dict):
                             raise ValueError('unexpected WebSocket frame')
                         if doc.get('error'):
+                            metrics.issue('polymarket_book','invalid')
                             # Resubscribe with backoff; the writer retains already accepted quotes.
                             break
                         await pipe.book(doc, received_at=received_at)
                     except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError):
+                        metrics.issue('polymarket_book','invalid')
                         if time.monotonic() >= next_reject_log:
                             logging.getLogger(__name__).warning('pp_websocket_frame_rejected')
                             next_reject_log = time.monotonic() + 30
                         continue
                     delay = 1
         except InvalidStatus as exc:
+            metrics.issue('polymarket_book',metrics.classify_status(exc.response.status_code))
             if exc.response.status_code not in (429, 500, 502, 503, 504) and not (
                 refresh_key and exc.response.status_code in (401,403)
             ):
                 raise
         except (OSError, TimeoutError, ConnectionClosed):
-            pass
+            metrics.issue('polymarket_book', 'transport')
+        reconnect = True
         await _pause_or_stop(stop, delay)
         delay = min(30, delay * 2)
 
@@ -218,7 +227,11 @@ async def run(store, client, stop, interval, clock, *, include_robinhood=True):
             except Exception:
                 # A missing display counter remains unknown; keep market ingestion available.
                 pass
-        keypair = signing_key() if include_robinhood else None
+        try:
+            keypair = signing_key() if include_robinhood else None
+        except (OSError, ValueError):
+            metrics.issue('polymarket_book', 'auth')
+            raise
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair, refresh_key=None if include_robinhood else signing_key))
@@ -227,14 +240,19 @@ async def run(store, client, stop, interval, clock, *, include_robinhood=True):
                 tasks.create_task(collect(store, stop, pipe.publish_robinhood))
             cadence = 1 if store.settings.origin_id in ONE_SECOND_ORIGINS else 5
             tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
+            discovery_retry = False
             while not stop.is_set():
+                if discovery_retry:
+                    metrics.issue('polymarket_catalog', 'retry')
                 try:
                     market, upcoming = await _step('polymarket_discovery',
                         discover_polymarket_15m(client, clock(), include_next=True))
                 except LiveDiagnostic as error:
+                    discovery_retry = True
                     if error.code not in POLYMARKET_DISCOVERY_UNAVAILABLE:
                         raise
                 else:
+                    discovery_retry = False
                     pipe.upcoming = upcoming
                     if market and timestamp(market['payload']['end']) > clock():
                         await pipe.market(market)

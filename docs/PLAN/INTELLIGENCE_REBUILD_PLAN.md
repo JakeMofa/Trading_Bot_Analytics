@@ -62,6 +62,10 @@ rotation and raw retirement remain separate acceptance gates.
   source/backlog alert behavior remains under observation.
 - [ ] Accept the merged compatible API-only update (#253), showing
   collector identity and progress survive an actual API container replacement.
+- [ ] Remove A/B slot and generation details from the product dashboard and
+  fix the extra narrow grid column introduced by the rolling-window banner.
+  Keep those operational signals in Grafana/private controls. Qualify the UI
+  successor through the API-only deployment after the uninterrupted market.
 - [ ] Qualify combined-release A/B rotation and 72-hour storage reclamation,
   including hosted version guarantees and history after local payload removal.
 
@@ -73,6 +77,15 @@ returned actual .7 host-sender data at 05:09 UTC, including heartbeat,
 collector diagnostics, source preferences and BTC source ages. The separate
 hosted Supabase scrape returned healthy. The new persisted infrastructure
 alert was Normal; email-provider acceptance does not establish inbox delivery.
+
+At approximately 11:20 p.m. Central the main agent independently reproduced
+the crowded layout on fresh deployed HTML: the rolling-window banner occupied
+a narrow extra grid column beside the market card. An older already-open page
+still had the earlier layout. The matching official Polymarket US page for
+`btc-updown-15m-2026-11-28-0515z` showed the same $59,730.66 target; its
+countdown, BTC reference and UP/DOWN prices changed between observations.
+These unsynchronized browser checks establish live matching-market behavior,
+not exact feed latency. The UI agent owns removal and responsive verification.
 
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |

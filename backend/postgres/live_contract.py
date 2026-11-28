@@ -126,17 +126,23 @@ def _quote_price(item):
     return str(amount)
 
 
-def _book_price(data, side):
+def _book_level(data, side):
     levels = data.get(side, [])
     if not isinstance(levels, list):
         raise QuoteContractError('invalid_quote', 'invalid order book side')
-    prices = []
+    levels_by_price = []
     for level in levels:
         if not isinstance(level, dict) or level.get('px') is None:
             raise QuoteContractError('invalid_quote', 'order book level lacks price')
-        prices.append(_quote_price(level['px']))
+        price = _quote_price(level['px'])
+        qty = level.get('qty')
+        if qty is not None:
+            qty = str(exact_decimal(qty))
+            if exact_decimal(qty) < 0:
+                raise QuoteContractError('invalid_quote', 'negative book quantity')
+        levels_by_price.append((price, qty))
     best = max if side == 'bids' else min
-    return best(prices, key=exact_decimal) if prices else None
+    return best(levels_by_price, key=lambda level: exact_decimal(level[0])) if levels_by_price else (None, None)
 
 
 def polymarket_bbo(raw, market_event, received_at, *, route='bbo'):
@@ -147,8 +153,8 @@ def polymarket_bbo(raw, market_event, received_at, *, route='bbo'):
         raise QuoteContractError('identity_mismatch', 'BBO market identity mismatch')
     book = route == 'book' and not any(k in data for k in ('bestBid', 'bestAsk'))
     if book:
-        bid = _book_price(data, 'bids')
-        ask = _book_price(data, 'offers')
+        bid, bid_qty = _book_level(data, 'bids')
+        ask, ask_qty = _book_level(data, 'offers')
         original = data.get('transactTime')
         time_role = 'order_book_transaction_time'
     else:
@@ -168,6 +174,8 @@ def polymarket_bbo(raw, market_event, received_at, *, route='bbo'):
                'long_quote': _quote_price(data.get('longQuote')),
                'short_quote': _quote_price(data.get('shortQuote')), 'up_probability': None,
                'down_probability': None}
+    if book:
+        payload.update(best_bid_qty=bid_qty, best_ask_qty=ask_qty)
     if bid is None and ask is None:
         # Protobuf JSON can omit unpopulated fields. Require an actual venue
         # state or explicit price/level fields before interpreting empty sides.

@@ -375,7 +375,7 @@ class EnvironmentTests(unittest.TestCase):
         # Newly introduced controller/adapter codes need an explicit evidence
         # decision rather than silently disappearing from the failed run.
         codes=set()
-        for name in ('controller.py','linux_actions.py'):
+        for name in ('controller.py','linux_actions.py','metadata_inventory.py'):
             tree=ast.parse((Path('deploy/preprod')/name).read_text())
             for node in ast.walk(tree):
                 if not isinstance(node,ast.Call) or not isinstance(node.func,ast.Name):

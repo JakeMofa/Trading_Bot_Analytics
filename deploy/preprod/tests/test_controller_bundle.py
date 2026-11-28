@@ -16,7 +16,7 @@ class BundleTests(unittest.TestCase):
             a,b=Path(folder)/'a.pyz',Path(folder)/'b.pyz'
             self.assertEqual(builder.build(a),builder.build(b))
             with zipfile.ZipFile(a) as archive:
-                self.assertEqual(set(archive.namelist()),{'__main__.py','controller.py','linux_actions.py','outbox_inventory.py',
+                self.assertEqual(set(archive.namelist()),{'__main__.py','controller.py','linux_actions.py','outbox_inventory.py','metadata_inventory.py',
                     'live_profile.py','live_transition.py','transition_control.py',
                     'structured_probe_profile.py','structured_probe_control.py',
                     'raw_archive_probe_profile.py','raw_archive_probe_control.py',

@@ -26,6 +26,7 @@ import uuid
 
 from controller import CHECKS, DeploymentHold, HostBinding, require
 from outbox_inventory import RELAY, origin_digest, psql_channel
+from metadata_inventory import metadata_digest
 
 PROJECT='tradebot-pp-foundation'
 PG_VOLUME='tradebot_pp_pgdata'
@@ -796,23 +797,16 @@ class LinuxActions:
             if table=='ops.outbox':
                 result[table]=self._outbox_evidence(budget)
                 continue
-            # Deterministic pages bound each inner aggregate. Only row hashes
-            # and one digest per page are sorted or accumulated.
-            row=self._json(read(budget,"""SELECT json_build_object('count',coalesce(sum(n),0),
-                'digest',encode(sha256(convert_to(coalesce(string_agg(page_hash,''
-                    ORDER BY page),''),'UTF8')),'hex'))
-                FROM (SELECT page, count(*) AS n,
-                    encode(sha256(convert_to(string_agg(fingerprint,'' ORDER BY fingerprint),
-                        'UTF8')),'hex') AS page_hash
-                    FROM (SELECT fingerprint, (row_number() OVER (ORDER BY fingerprint)-1)/1024 AS page
-                        FROM (SELECT encode(sha256(convert_to(jsonb_build_array("""+identity+
-                        """)::text,'UTF8')),'hex') AS fingerprint FROM """+table+""") rows) numbered
-                    GROUP BY page) pages"""))
-            require(isinstance(row,dict) and type(row.get('count')) is int
-                    and row['count']>=0 and bool(re.fullmatch('[0-9a-f]{64}',row.get('digest',''))),
-                    'invalid_inventory_evidence')
-            result[table]=row
+            result[table]=self._metadata_digest(budget,table,identity)
         return result
+
+    def _metadata_digest(self,budget,table,identity):
+        directory=Path('/var/lib/tradebot-pp/deployments')
+        info=directory.lstat()
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid==0 and stat.S_IMODE(info.st_mode)==0o700
+                and info.st_dev==Path('/').stat().st_dev,'metadata_scratch_directory')
+        with self._outbox_channel(budget, require_reader=table=='archive.generated_outbox_storage') as exchange:
+            return metadata_digest(exchange,table,identity,budget,directory)
 
     def _schema_ledger(self,budget):
         """Bounded identity check; the prior runtime needs the same schema."""
@@ -824,9 +818,9 @@ class LinuxActions:
     def _ack_state(self,budget):
         return self._outbox_evidence(budget)
 
-    def _outbox_channel(self, budget):
+    def _outbox_channel(self, budget, *, require_reader=False):
         require(self.pg_id is not None, 'postgres_identity_not_verified')
-        role, secret = ('tradebot_reader','reader') if self.watch_diagnostics else ('tradebot_app','application')
+        role, secret = ('tradebot_reader','reader') if self.watch_diagnostics or require_reader else ('tradebot_app','application')
         gate = ['flock','-n','-E','75','-F',WATCH_DIAGNOSTIC_LOCK]
         shell = f'export PGPASSWORD="$(cat /run/secrets/{secret})"; ' + RELAY
         args = ['docker','exec','-i',self.pg_id,*gate,'/bin/bash','-c',shell,'outbox-inventory',

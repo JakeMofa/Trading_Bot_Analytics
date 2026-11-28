@@ -390,17 +390,20 @@ class ActionTests(unittest.TestCase):
                     return 'f'
                 def reader(_,query):
                     self.assertIn('archive.generated_outbox_storage',query)
-                    if query.startswith('SELECT to_regclass('):return 't' if installed else 'f'
-                    self.assertIn("encode(sha256(envelope),'hex')",query)
-                    self.assertIn('stored_at',query)
-                    self.assertIn('GROUP BY page',query)
-                    return json.dumps({'count':2,'digest':'a'*64})
+                    self.assertTrue(query.startswith('SELECT to_regclass('))
+                    return 't' if installed else 'f'
+                def digest(_,table,identity):
+                    self.assertEqual(table,'archive.generated_outbox_storage')
+                    self.assertEqual(identity,"origin_id,outbox_id,generation_id,envelope_hash,encode(sha256(envelope),'hex'),stored_at")
+                    return {'count':2,'digest':'a'*64}
                 with patch.object(self.actions,'_sql',side_effect=application), \
-                     patch.object(self.actions,'_reader_sql',side_effect=reader) as read:
+                     patch.object(self.actions,'_reader_sql',side_effect=reader) as read, \
+                     patch.object(self.actions,'_metadata_digest',side_effect=digest) as hashed:
                     inventory=self.actions._inventory(self.budget)
                 self.assertEqual(inventory['archive.generated_outbox_storage'],
                                  {'count':2,'digest':'a'*64} if installed else None)
-                self.assertEqual(read.call_count,2 if installed else 1)
+                self.assertEqual(read.call_count,1)
+                self.assertEqual(hashed.call_count,int(installed))
 
     def test_generated_storage_inventory_authenticates_reader_read_only(self):
         self.actions.pg_id=CID

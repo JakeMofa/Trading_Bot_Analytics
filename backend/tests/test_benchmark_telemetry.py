@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from postgres.benchmark_telemetry import BenchmarkTelemetry, ORIGIN, heartbeat, issue, source_monitor, valid_counts
+from postgres.benchmark_telemetry import BenchmarkTelemetry, ORIGIN, heartbeat, issue, monitor_session, source_monitor, valid_counts
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[2] / 'deploy/preprod'))
 import benchmark_metrics as sender
@@ -26,6 +26,22 @@ class TelemetryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(packet['counts'],{'robinhood_reference/auth':2})
         self.assertFalse(valid_counts({'arbitrary/marketid':1}))
         self.assertFalse(valid_counts({'coinbase_stream/retry':-3}))
+
+    def test_fence_heartbeat_remains_active_when_polymarket_is_paused(self):
+        display = MagicMock(origin=ORIGIN)
+        with patch('postgres.quote_display.DisplaySender', return_value=display), patch(
+            'postgres.benchmark_telemetry.time.monotonic', side_effect=[10, 12, 21]
+        ):
+            with monitor_session(ORIGIN) as pulse:
+                issue('robinhood_reference', 'auth')
+                pulse()
+                self.assertEqual(display.send.call_count, 2)
+                pulse()
+                self.assertEqual(display.send.call_args.args[0]['counts'], {'robinhood_reference/auth': 1})
+                self.assertEqual(display.send.call_count, 3)
+        display.socket.close.assert_called_once()
+        issue('robinhood_reference', 'retry')
+        self.assertEqual(display.send.call_count, 3)
 
     async def test_requests_share_a_single_read_and_failure_is_unknown(self):
         store = MagicMock(origin=ORIGIN)

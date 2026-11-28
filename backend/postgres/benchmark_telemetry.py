@@ -1,6 +1,7 @@
 """Read-only, bounded telemetry for the continuous PP Benchmark origin."""
 import asyncio
 import time
+from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from .domain import timestamp
@@ -32,6 +33,35 @@ def source_monitor(sender):
 def heartbeat():
     if _sender is not None:
         _sender.send({'type': 'source_health', 'counts': dict(_counts)})
+
+
+@contextmanager
+def monitor_session(origin):
+    """One fenced collector session owns source metrics even if a feed is paused."""
+    from .quote_display import DisplaySender
+
+    if origin != ORIGIN:
+        yield lambda: None
+        return
+    try:
+        sender = DisplaySender(origin)
+    except OSError:
+        # A telemetry socket failure must not take down collection.
+        yield lambda: None
+        return
+    source_monitor(sender)
+    next_heartbeat = time.monotonic() + 10
+    def pulse():
+        nonlocal next_heartbeat
+        now = time.monotonic()
+        if now >= next_heartbeat:
+            heartbeat()
+            next_heartbeat = now + 10
+    try:
+        yield pulse
+    finally:
+        source_monitor(None)
+        sender.socket.close()
 
 
 def issue(feed, reason):

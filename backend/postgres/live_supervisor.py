@@ -68,9 +68,11 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             raise LiveDiagnostic('ownership', 'lease_lost')
 
     async def watch_fence():
-        while not stop.is_set():
-            await assert_fence()
-            await _pause_or_stop(stop, 1)
+        with metrics.monitor_session(store.settings.origin_id) as pulse:
+            while not stop.is_set():
+                await assert_fence()
+                pulse()
+                await _pause_or_stop(stop, 1)
 
     async def coinbase_stream():
         await coinbase(store, stop)

@@ -187,7 +187,6 @@ async def stream_books(pipe, stop, keypair):
 async def run(store, client, stop, interval, clock):
     sender = DisplaySender(store.settings.origin_id)
     pipe = QuotePipeline(store, sender)
-    metrics.source_monitor(sender)
     try:
         try:
             keypair = signing_key()
@@ -204,7 +203,6 @@ async def run(store, client, stop, interval, clock):
             tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
             discovery_retry = False
             while not stop.is_set():
-                metrics.heartbeat()
                 if discovery_retry:
                     metrics.issue('polymarket_catalog', 'retry')
                 try:
@@ -225,5 +223,4 @@ async def run(store, client, stop, interval, clock):
             await pipe.queue.join()
             writer.cancel()
     finally:
-        metrics.source_monitor(None)
         sender.socket.close()

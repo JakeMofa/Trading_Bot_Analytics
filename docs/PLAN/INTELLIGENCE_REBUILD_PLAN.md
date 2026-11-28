@@ -38,6 +38,13 @@ and [same event](evidence/pp-robinhood-same-event-report-2026-11-27.json).
 
 The consolidated Grafana dashboard accepted and returned all six source-age
 and PP-receipt-age series. [Readback](evidence/pp-robinhood-grafana-hosted-three-feeds-2026-11-27.json).
+All 19 retained generations matched after the run. Collector and worker are
+OFF, pending work is zero and temporary signing mounts/readers were erased.
+[Preservation and cleanup](evidence/pp-robinhood-preservation-2026-11-27.json).
+Robinhood median receipt interval was 1.000 s; provider retrieval to PP
+receipt was 13.6 ms median and 122 ms p95. Those measurements describe
+Robinhood system retrieval time, rather than an exchange-origin timestamp.
+[Saved source timing](evidence/pp-robinhood-three-source-freshness-2026-11-27.json).
 The application keeps one shared Robinhood REST poller with a one-second
 cadence and rate-limit backoff. Reference history uses the existing guarded
 writer and archive, with credentials mounted only on the collector backend.

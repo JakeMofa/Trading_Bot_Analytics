@@ -1,0 +1,14 @@
+{
+  "release": "v0.2.0-pp.benchmark.6",
+  "retained_count": 19,
+  "fingerprints_match": true,
+  "writers": 0,
+  "cleanup": {
+    "collector_enabled": false,
+    "hosted_role_dsns_removed": 2,
+    "api_reader_dsn_erased": true,
+    "api_reader_mount_bytes": 0,
+    "signer_bind_mounts_removed": 4,
+    "operator_signer_bytes": 0
+  }
+}

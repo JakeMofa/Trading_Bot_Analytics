@@ -7,9 +7,13 @@ services:
       TRADEBOT_PP_PREDICTION_HISTORY: 'true'
     secrets: [pp_prediction_history_reader_dsn, pp_history_ca]
     volumes:
-      - {type: bind, source: /run/tradebot-pp-deploy/quote-display, target: /run/quote-display, bind: {create_host_path: false}}
+      - {type: bind, source: /var/lib/tradebot-pp/watch-display, target: /run/quote-display, bind: {create_host_path: false}}
+  lifecycle:
+    environment:
+      TRADEBOT_PP_WINDOW_POLICY: benchmark-watch-v1
   operator:
     environment:
+      TRADEBOT_PP_WINDOW_POLICY: benchmark-watch-v1
       TRADEBOT_PP_QUOTE_DISPLAY: '1'
       TRADEBOT_PP_BOUNDARY_TRACE: '1'
       TRADEBOT_PP_COINBASE_TIMING: 'true'
@@ -20,7 +24,7 @@ services:
       POLYMARKET_SECRET_KEY_FILE: /run/secrets/market_secret
     secrets: [market_key_id, market_secret, robinhood_key_id, robinhood_private_key]
     volumes:
-      - {type: bind, source: /run/tradebot-pp-deploy/quote-display, target: /run/quote-display, read_only: true, bind: {create_host_path: false}}
+      - {type: bind, source: /var/lib/tradebot-pp/watch-display, target: /run/quote-display, read_only: true, bind: {create_host_path: false}}
 secrets:
   robinhood_key_id:
     file: /etc/tradebot/pp-runtime/robinhood_key_id
@@ -31,6 +35,6 @@ secrets:
   market_secret:
     file: /etc/tradebot/pp-runtime/market_secret
   pp_prediction_history_reader_dsn:
-    file: /etc/tradebot/pp-runtime/display_20261127_03_prediction_reader_dsn
+    file: /etc/tradebot/pp-runtime/benchmark_watch_prediction_reader_dsn
   pp_history_ca:
     file: /etc/tradebot/cloud/pp_history_ca

@@ -85,18 +85,18 @@ def set_desired(store, feed, enabled, expected_revision):
         return {**requested,'components':current['components']}
 
 
-def record_effective(store, component, state, session_id=None):
+def record_effective(store, component, state, *, session_id):
     check_store(store)
-    if component not in {part for values in COMPONENTS.values() for part in values} or state not in ('running','paused','held'):
+    if component not in {part for values in COMPONENTS.values() for part in values} or state not in ('running','retrying','paused','held'):
         raise ValueError('invalid feed status')
     with store.connection() as db:
         db.execute("SET LOCAL statement_timeout='1500ms'")
         db.execute("""INSERT INTO ops.worker_checkpoints(origin_id,worker,cursor,updated_at)
             SELECT origin_id,%s,jsonb_build_object('state',%s::text,'session',collector_session_id::text),clock_timestamp()
             FROM ops.writer_state WHERE origin_id=%s AND collector_enabled AND collector_lease_expires_at>clock_timestamp()
-                AND (%s::uuid IS NULL OR collector_session_id=%s::uuid)
+                AND collector_session_id=%s::uuid FOR SHARE
             ON CONFLICT(origin_id,worker) DO UPDATE SET cursor=EXCLUDED.cursor,updated_at=EXCLUDED.updated_at""",
-            (ACTUAL+component,state,ORIGIN,session_id,session_id))
+            (ACTUAL+component,state,ORIGIN,session_id))
 
 
 def _signature(secret, payload):

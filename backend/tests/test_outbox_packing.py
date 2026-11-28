@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import unittest
+import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT/'backend'),str(Path(__file__).parent)]
@@ -72,10 +73,11 @@ class ExactOutboxPage(unittest.TestCase):
         from postgres.store import Store
         self.origin=WATCH_ORIGIN
         self.generation=self.repo.bootstrap(self.origin)['generation_id']
-        store=Store(SimpleNamespace(environment='preprod',origin_id=self.origin,dsn=self.app_dsn))
+        session=str(uuid.uuid4())
+        store=Store(SimpleNamespace(environment='preprod',origin_id=self.origin,dsn=self.app_dsn),producer_session_id=session)
         with self.admin() as db:
-            db.execute("""UPDATE ops.writer_state SET collector_enabled=true,collector_session_id=gen_random_uuid(),
-                   collector_lease_expires_at=now()+interval '10 minutes' WHERE origin_id=%s""",(self.origin,))
+            db.execute("""UPDATE ops.writer_state SET collector_enabled=true,collector_session_id=%s,
+                   collector_lease_expires_at=now()+interval '10 minutes' WHERE origin_id=%s""",(session,self.origin))
         def quote(key):
             row=self.put(key,{'kind':'quote','payload':{'provenance':{'feed':'polymarket_us_websocket'}}})
             with self.admin() as db:

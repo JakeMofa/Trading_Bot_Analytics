@@ -72,8 +72,8 @@ def writer_proof(context,initial_a):
 def boundary_writer_proof(context, initial_a, origin=BOUNDARY_ORIGIN):
     files=boundary_files(origin)
     display=origin==DISPLAY_ORIGIN
-    prefix='display_20261127_03' if display else 'boundary_20261124_01'
-    proof_path=RUNTIME_SECRETS/'display_20261127_03_structured_proof.json' if display else BOUNDARY_PROOF
+    prefix='benchmark_watch' if display else 'boundary_20261124_01'
+    proof_path=RUNTIME_SECRETS/'benchmark_watch_structured_proof.json' if display else BOUNDARY_PROOF
     _metadata(proof_path,uid=0,mode=0o400,limit=8192)
     raw=_secure_file(proof_path)[0]
     proof=json.loads(raw)

@@ -64,12 +64,14 @@ ELAPSED_CYCLE_POLICY='elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS=1800
 TRIAL_ORIGIN='pp-live-pp-trial-20261119-07'
 PREVIOUS_DISPLAY_ORIGIN='pp-live-pp-display-20261127-02'
-RETAINED_DISPLAY_ORIGINS=('pp-live-pp-display-20261127-01',PREVIOUS_DISPLAY_ORIGIN)
-DISPLAY_ORIGIN='pp-live-pp-display-20261127-03'
-DISPLAY_DIR=Path('/run/tradebot-pp-deploy/quote-display')
+RETAINED_DISPLAY_ORIGINS=('pp-live-pp-display-20261127-01',PREVIOUS_DISPLAY_ORIGIN,'pp-live-pp-display-20261127-03')
+DISPLAY_ORIGIN='pp-live-pp-benchmark-watch'
+WATCH_LEASE_SECONDS=120
+WATCH_POLICY='benchmark-watch-v1'
+DISPLAY_DIR=Path('/var/lib/tradebot-pp/watch-display')
 DISPLAY_KEYS=('market_key_id', 'market_secret', 'robinhood_key_id', 'robinhood_private_key')
 PREDICTION_READER_FILES={
-    'pp_prediction_history_reader_dsn': RUNTIME_SECRETS/'display_20261127_03_prediction_reader_dsn',
+    'pp_prediction_history_reader_dsn': RUNTIME_SECRETS/'benchmark_watch_prediction_reader_dsn',
     'pp_history_ca': Path('/etc/tradebot/cloud/pp_history_ca'),
 }
 BOUNDARY_ORIGIN='pp-live-pp-boundary-20261124-01'
@@ -87,6 +89,44 @@ RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compos
                          'pp-live-pp-trial-20261119-04':'runtime.retained-trial-04.compose.yaml',
                          'pp-live-pp-trial-20261119-05':'runtime.retained-trial-05.compose.yaml',
                          'pp-live-pp-trial-20261119-06':'runtime.retained-trial-06.compose.yaml'}
+
+
+def compatible_api_image(context, row):
+    """Accept an independently qualified API image only for its exact Benchmark watch generation."""
+    if row.get('Image') == context.image:
+        return True
+    config = row.get('Config', {})
+    labels = config.get('Labels', {})
+    if (labels.get('com.docker.compose.service') != 'api'
+            or labels.get('com.docker.compose.project') != PROJECT or config.get('User') != '10001:10001'):
+        return False
+    from controller import BENCHMARK_INSTANCE, _secure_file
+    from transition_control import _read_active
+    if HostBinding.from_marker().hostname != BENCHMARK_INSTANCE:
+        return False
+    receipt = context.staging/'benchmark-api-component.json'
+    if not receipt.exists():
+        return False
+    active = _read_active()
+    if (active['instance'] != BENCHMARK_INSTANCE or active.get('trial_origin') != DISPLAY_ORIGIN
+            or active['state'] not in ('ready_off','leaving') or active['source_sha'] != context.request.source_sha
+            or active['artifact_sha256'] != context.request.artifact_sha256 or active['image_id'] != context.image):
+        return False
+    record = json.loads(_secure_file(receipt)[0])
+    sha = labels.get('tradebot.source_sha','')
+    artifact = labels.get('tradebot.api_artifact_sha256','')
+    schema = labels.get('tradebot.api_schema_sha256','')
+    image = row.get('Image','')
+    if not (re.fullmatch(r'[a-f0-9]{40}',sha) and re.fullmatch(r'[a-f0-9]{64}',artifact)
+            and re.fullmatch(r'[a-f0-9]{64}',schema) and re.fullmatch(r'sha256:[a-f0-9]{64}',image)):
+        return False
+    return record == {
+        'version':1,'scope':'benchmark-api-component-v1','nonce':active['nonce'],
+        'instance':BENCHMARK_INSTANCE,'origin':DISPLAY_ORIGIN,'initial_a':active['initial_a'],
+        'collector_source_sha':context.request.source_sha,'collector_artifact_sha256':context.request.artifact_sha256,
+        'collector_image':context.image,'api_source_sha':sha,'api_artifact_sha256':artifact,
+        'api_image':image,'api_schema_sha256':schema,
+    }
 
 
 def display_filesystem():
@@ -108,7 +148,7 @@ def live_origin(trial_origin=None):
 
 def cycle_profile_binding(trial_origin):
     if trial_origin in BOUNDARY_ORIGINS:
-        return {'profile': BOUNDARY_POLICY}
+        return {'profile': WATCH_POLICY if trial_origin==DISPLAY_ORIGIN else BOUNDARY_POLICY}
     if trial_origin == TRIAL_ORIGIN:
         return {'profile': ELAPSED_CYCLE_POLICY, 'window_seconds': ELAPSED_CYCLE_SECONDS}
     return {}
@@ -125,7 +165,7 @@ def cycle_environment(initial_a, trial_origin=None):
         valid = False
     require(valid, 'invalid_pp_cycle_anchor')
     if trial_origin in BOUNDARY_ORIGINS:
-        return {'TRADEBOT_ORIGIN_ID': origin, 'TRADEBOT_PP_WINDOW_POLICY': BOUNDARY_POLICY,
+        return {'TRADEBOT_ORIGIN_ID': origin, 'TRADEBOT_PP_WINDOW_POLICY': cycle_profile_binding(trial_origin)['profile'],
                 'TRADEBOT_PP_BOUNDARY_INITIAL_A': initial_a}
     profile=cycle_profile_binding(trial_origin)
     return {'TRADEBOT_PP_WINDOW_POLICY': profile.get('profile', CYCLE_POLICY),
@@ -138,7 +178,7 @@ def allowed_session_seconds(seconds, *, scoped, origin):
     if type(seconds) is not int:
         return False
     if origin == DISPLAY_ORIGIN:
-        return seconds == 1320
+        return seconds == WATCH_LEASE_SECONDS
     if origin == BOUNDARY_SMOKE_ORIGIN:
         return seconds == BOUNDARY_SMOKE_LEASE_SECONDS
     if origin == BOUNDARY_ORIGIN:
@@ -850,7 +890,9 @@ class LinuxActions:
             require(len(ids)==1,'missing_runtime_service')
             row=self._inspect(budget,ids)[0]
             host=row['HostConfig']; config=row['Config']
-            require(row['State'].get('Running') is True and row['State'].get('OOMKilled') is False and row.get('Image')==context.image,
+            require(row['State'].get('Running') is True and row['State'].get('OOMKilled') is False and (
+                    row.get('Image')==context.image or (live and trial_origin==DISPLAY_ORIGIN and service=='api'
+                                                        and compatible_api_image(context,row))),
                     'runtime_image_or_process_mismatch')
             require(config.get('Cmd')==COMMANDS[service] and config.get('User')=='10001:10001'
                     and config.get('Labels',{}).get('com.docker.compose.project')==PROJECT,'runtime_command_or_project_mismatch')

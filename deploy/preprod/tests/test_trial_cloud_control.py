@@ -72,7 +72,7 @@ class ProfileTests(unittest.TestCase):
         display=render(display_files)
         display_child=render([*display_files, 'runtime.display-structured.compose.yaml'])
         p.validate_profile(base,display,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
-        self.assertTrue(a.allowed_session_seconds(1320,scoped=True,origin=a.DISPLAY_ORIGIN))
+        self.assertTrue(a.allowed_session_seconds(a.WATCH_LEASE_SECONDS,scoped=True,origin=a.DISPLAY_ORIGIN))
         self.assertFalse(a.allowed_session_seconds(540,scoped=True,origin=a.DISPLAY_ORIGIN))
         self.assertFalse(display['services']['api']['environment'].get('POLYMARKET_SECRET_KEY_FILE'))
         self.assertEqual(display['services']['operator']['environment']['TRADEBOT_PP_ROBINHOOD_REFERENCE'],'1')
@@ -87,7 +87,7 @@ class ProfileTests(unittest.TestCase):
             with self.assertRaises(DeploymentHold):
                 p.validate_profile(base,bad,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
         self.assertEqual(display_child['secrets']['pp_boundary_history_writer_dsn']['file'],
-                         '/etc/tradebot/cloud/display_20261127_03_history_writer_dsn')
+                         '/etc/tradebot/cloud/benchmark_watch_history_writer_dsn')
         self.assertNotIn('sealed_archive',display_child['services'])
         with self.assertRaises(DeploymentHold):
             p.child_service(base,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN,archive=True)

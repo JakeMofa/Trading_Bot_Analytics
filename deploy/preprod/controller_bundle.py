@@ -39,6 +39,9 @@ def main():
     for name in ("SIGTERM","SIGINT","SIGHUP"):
         signal.signal(getattr(signal,name),interrupted)
     installed=Path(sys.argv[0]).resolve()
+    from watch_service import INTENT
+    if command.startswith(('transition-v1 ', 'deploy-v1 ')):
+        require(not INTENT.exists() and not INTENT.is_symlink(),'benchmark_watch_armed')
     if command.startswith('transition-v1 '):
         fence_recurring_sync()
         result=transition(TransitionRequest.parse(command),installed)
@@ -73,6 +76,7 @@ except (DeploymentHold,OSError,ValueError) as error:
     # adapter/child diagnostics retain the existing generic public result.
     reason=str(error)
     if reason not in PUBLIC_FAILURE_CODES and reason not in (
+                      'benchmark_watch_armed',
                       'pp_filesystem_database_identity',
                       'pp_filesystem_volume_binding',
                       'pp_filesystem_source_binding',
@@ -104,7 +108,8 @@ def build(destination):
     for name in ('controller.py','linux_actions.py','live_profile.py','live_transition.py',
                  'transition_control.py','structured_probe_profile.py','structured_probe_control.py',
                  'raw_archive_probe_profile.py','raw_archive_probe_control.py',
-                 'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py'):
+                 'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py',
+                 'watch_service.py','install_controller.py'):
         files[name]=(HERE/name).read_bytes()
     with target.open('xb') as output:
         with zipfile.ZipFile(output,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=9) as bundle:

@@ -1,0 +1,8 @@
+[Unit]
+Description=Supervise the authorized Tradebot Benchmark watch
+[Timer]
+OnBootSec=30s
+OnUnitInactiveSec=15s
+AccuracySec=1s
+[Install]
+WantedBy=timers.target

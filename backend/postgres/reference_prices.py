@@ -10,8 +10,8 @@ import time
 
 import httpx
 
+from .cloud_origin_binding import DISPLAY_ORIGIN, LAST_DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN
 from . import benchmark_telemetry as metrics
-from .cloud_origin_binding import DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN
 from .contract import canonical_json, content_hash, exact_decimal
 from .feed_writer import feed_writer
 from .live_contract import PROVENANCE
@@ -19,7 +19,7 @@ from .live_sources import POLYMARKET_REST
 
 BUCKET = 'ASSET_PRICE_BUCKET_1S'
 
-ONE_SECOND_ORIGINS = {DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN}
+ONE_SECOND_ORIGINS = {DISPLAY_ORIGIN, LAST_DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN}
 MAX_COOLDOWN = 60
 LOG = logging.getLogger(__name__)
 

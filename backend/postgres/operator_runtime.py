@@ -21,6 +21,8 @@ from .operator_api import create_operator_app
 from .operator_session import OperatorSession
 from .collector_session import run_session
 from .config import Settings
+from .cloud_origin_binding import DISPLAY_ORIGIN
+from .watch_lease import WatchLease
 from .store import Store
 from .rehearsal_profile import (BOUNDARY_ORIGINS, boundary_anchor, boundary_lease_seconds, cycle_anchor,
                                 elapsed_cycle_seconds, lease_cap)
@@ -38,13 +40,18 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
     store.verify()
     owner_reader = _owner_reader(app_dsn)
 
+    watch = WatchLease(repository, diagnostic_anchor) if origin == DISPLAY_ORIGIN else None
+
     async def run(stop, max_seconds):
         if origin in BOUNDARY_ORIGINS:
             state = await asyncio.to_thread(repository.collector_state, origin)
-            if (not diagnostic_anchor or state['generation_id'] != diagnostic_anchor
+            if watch is not None:
+                generation_id = await asyncio.to_thread(watch.admit, max_seconds)
+            elif (not diagnostic_anchor or state['generation_id'] != diagnostic_anchor
                     or state['epoch'] != 1 or state['stored_enabled'] or max_seconds != boundary_lease_seconds(origin)):
                 raise ValueError('exact unused diagnostic generation required')
-            generation_id = diagnostic_anchor
+            else:
+                generation_id = diagnostic_anchor
         else:
             generation = await asyncio.to_thread(repository.bootstrap, origin)
             generation_id = str(generation['generation_id'])
@@ -59,6 +66,8 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
 
         def enable():
             nonlocal enabled
+            if watch is not None:
+                watch.session_id = session_id
             result = repository.enable_collector(origin, session_id=session_id,
                          expected_generation_id=generation_id, max_seconds=max_seconds,
                          **({'rehearsal_anchor': rehearsal_anchor} if rehearsal_anchor else {}),
@@ -67,14 +76,27 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
             enabled = True
             return result
 
+        def disable():
+            if watch is not None:
+                return watch.release(session_id)
+            return repository.disable_collector(origin)
+
         async with httpx.AsyncClient(timeout=4, follow_redirects=False) as client:
-            return await run_session(store, client, stop, owner_check=owner_check,
+            # Never change an object another source thread may retain after stop.
+            source_store = Store(store.settings, producer_session_id=session_id) if watch else store
+            return await run_session(source_store, client, stop, owner_check=owner_check,
                          enable_collector=enable,
-                         disable_collector=lambda: repository.disable_collector(origin),
+                         disable_collector=disable,
                          max_seconds=max_seconds,
                          **({'rehearsal_anchor': rehearsal_anchor} if rehearsal_anchor else {}))
 
-    return OperatorSession(run, lambda: repository.disable_collector(origin), rehearsal_anchor=rehearsal_anchor)
+    result = OperatorSession(run, lambda: watch.release(watch.session_id) if watch else repository.disable_collector(origin),
+                             rehearsal_anchor=rehearsal_anchor)
+    if watch:
+        result.renew_watch = watch.renew
+        result.watch_explicit_off = watch.explicit_off
+        result.set_watch_off = watch.set_explicit_off
+    return result
 
 
 def fence_live_startup(repository, origin):

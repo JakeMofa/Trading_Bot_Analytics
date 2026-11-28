@@ -20,6 +20,17 @@ changing that collector session or process. Browser reconnection caused a
 qualification tests; live adoption remains pending and unattended readiness open.
 See the current checkpoint for evidence and limits.
 
+### Dashboard hydration query and health checks
+
+Dashboard hydration uses one read session, skips candle rows the response
+does not use, and selects only the needed quote columns. On disposable
+PostgreSQL 17, 160 alternating calls per version returned identical price,
+quote, feature and prediction data. Median hydration fell from 7.092 ms to
+4.067 ms and p95 fell from 11.773 ms to 5.651 ms. This is a local fixture
+measurement. Discovery and hydration report separate health so one
+successful read cannot clear the other loop's failure. Recheck on Benchmark
+under live collection and concurrent history reads.
+
 ### Public dashboard database connections
 
 The successor Benchmark profile uses the existing read-only PostgreSQL role

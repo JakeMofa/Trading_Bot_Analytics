@@ -23,11 +23,13 @@ before its write. Live VM source age and outbox lag remain to be measured.
 
 ### Auxiliary Robinhood BTC/USD quote reader
 
-The bounded read-only observer passed offline Ed25519 signature, exact
-BTC-USD v2 route, decimal midpoint, missing/crossed quotes, 401/403 stop and
-429 backoff checks. Its output identifies PP receipt time and leaves exchange
-source time unavailable. A live account response and synchronized comparison
-are separate acceptance checks. [Observer contract](../backend/postgres/APPLICATION.md#robinhood-btcusd-quote-observer).
+Three signed Robinhood Crypto v2 BTC-USD GETs returned prices on the 4 GB
+Benchmark while its collector was off, November 28 02:36 UTC. HTTP round trips
+were 163.211 ms, 27.181 ms and 31.252 ms. All three responses had a higher bid
+than ask, including 59,950.81 / 59,950.75. Those samples retain both prices and
+a crossed-book flag with an empty midpoint. The responses also supplied a
+provider timestamp outside the published schema. Its exchange-time meaning is
+unknown. No prediction consumed these quotes. [Observer contract](../backend/postgres/APPLICATION.md#robinhood-btcusd-quote-observer).
 
 ### Dashboard model readouts
 

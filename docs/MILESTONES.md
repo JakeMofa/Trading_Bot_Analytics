@@ -8,6 +8,14 @@ The dashboard gives baseline UP and DOWN equal prominence and shows
 Robinhood's per-poll price movement separately.
 [Master checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--three-btc-feeds-saved-and-displayed-on-benchmark).
 
+### Exact archive page packing
+
+Pending structured writes now fill pages using the canonical envelope bytes,
+including array brackets and separators. Disposable PostgreSQL 17 verifies
+the 50-row limit, the 256 KiB ceiling, retry identity, and exact-fit and
+oversized first rows. Paired performance and live throughput measurements
+are pending. [Archive capacity checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
+
 ## November 27 — Freshness and history acceptance completed
 
 Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event

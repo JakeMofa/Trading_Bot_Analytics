@@ -14,6 +14,7 @@ import json
 import uuid
 
 from . import pp_space
+from .outbox_packing import envelope, pending_page
 from .rehearsal_profile import (canonical_anchor, lease_cap, require_cycle_alignment,
                                 CYCLE_ORIGINS, TRIAL_ORIGINS, TRIAL_PREPARATION_CHECKPOINT,
                                 elapsed_cycle_binding)
@@ -673,7 +674,7 @@ class LifecycleRepository:
 
     def outbox(self, generation_id, limit, max_bytes=4 * 1024 * 1024):
         with self.transaction() as connection:
-            return self._pending(connection, generation_id, limit, max_bytes=max_bytes)
+            return pending_page(connection, generation_id, limit, max_bytes)
 
     def structured_pending_generations(self, origin_id):
         """Choose sealed evidence before active evidence without changing either.
@@ -878,8 +879,7 @@ class ArchiveWorker:
 
     @staticmethod
     def structured_records(rows):
-        keys = ('id', 'origin_id', 'generation_id', 'entity_type', 'entity_id', 'content_hash', 'payload')
-        return [wire({key: row[key] for key in keys}) for row in rows]
+        return [envelope(row) for row in rows]
 
     def sync_outbox(self, generation_id, budget):
         rows = self.repository.outbox(generation_id, self.limits.max_rows, self.limits.max_decoded_bytes)

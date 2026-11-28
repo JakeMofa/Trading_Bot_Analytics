@@ -29,7 +29,8 @@ Central (05:08:18 UTC November 28), slot A, generation
 `8b7c3058-c10c-4900-89c9-2d7569fca67d`. The archive worker is running and two
 independent hosted reader slots passed while the writer was active. All 20
 prior retained-generation fingerprints matched before admission. The clean
-full-market measurement is scheduled for 11:15–11:30 p.m. Central.
+full-market measurement covered 11:15–11:30 p.m. Central; results and sampling
+limits are recorded below.
 [Admission and independent live readback](evidence/benchmark-continuous-watch-admission-2026-11-27.json).
 
 The live probe authenticated immutable revisions, envelope hashes and receipts
@@ -55,8 +56,10 @@ rotation and raw retirement remain separate acceptance gates.
 - [x] Offline resumable long-window proof tests merged (#252).
 - [x] Complete .7 deployment, preserve retained generations and admit the
   sustained three-feed watch.
-- [ ] Measure one uninterrupted full market: source progress, exact saved and
+- [x] Observe one full market: source progress, exact saved and
   hosted identities, arrivals versus ACKs and oldest pending age.
+  Two telemetry gaps limit continuous-status claims; independent writer and
+  browser evidence accompany the valid sampled interval below.
 - [x] Verify .7 metrics arrive in the combined Grafana dashboard and confirm
   the independent Supabase scrape. Sender-health alert is Normal; full-market
   source/backlog alert behavior remains under observation.
@@ -100,6 +103,38 @@ snapshot. Its values are model estimates, distinct from venue bid/ask prices.
 The cited prediction timestamps `05:19:45.196364` and `05:19:45.225303` differ
 by 28.939 ms, but `created_at` is assigned before the transaction commits;
 that subtraction must not be reported as measured commit latency.
+
+### Sustained market measurement
+
+During market 2982855, 11:15–11:30 p.m. Central, 58 valid interior SQL samples
+spanned 873.712 seconds. They measured 18,639 verified records and 18,627
+arrivals: 21.333 versus 21.319 rows/s. Pending fell from 27 to 15, peaked
+at 120 and reached a maximum oldest age of 3.132 seconds. One of two short
+sub-14/s intervals grew backlog and recovered within 15.192 seconds. All 54
+overlapping roughly minute-long samples exceeded 14/s; the lowest was
+17.655/s. These are observed service rates, not maximum capacity.
+
+There was one empty feed-preference snapshot at 05:24:02 UTC and one missing
+SQL-window snapshot at 05:30:07. No OFF was observed, but the gaps preclude a
+claim of complete status coverage. Valid boundary brackets put exact-900s
+verified throughput between 20.710 and 21.423/s. The post-quarter independent
+SQL check confirmed the original writer session, epoch 2 and renewed lease.
+[Full sampled throughput and limits](evidence/benchmark-continuous-market-throughput-2026-11-27.json).
+
+The first quote `ws-fab929…` matched the local raw hash, immutable hosted
+revision, authenticated receipt and protected projection. Receipt to server
+SSE snapshot was 8.324 ms; receipt to the post-commit observation was 12.312 ms;
+the verified local archive ACK timestamp was 1,980.896 ms after receipt.
+[Identical saved event](evidence/benchmark-continuous-first-quote-2026-11-27.json).
+Across the browser capture, receipt to generated SSE had median 62.10 ms,
+p95 146.90 ms and maximum 493.05 ms. Browser wall-clock skew prevents direct
+receipt-to-paint subtraction. Its separately measured stream-receipt to
+matching two-frame DOM opportunity was median 11.1 ms and p95 25.0 ms.
+
+The subsequent guarded 500-row probe hit a two-second local SQL timeout
+before completing. Diagnose that specific query and distinguish benchmark
+preparation from the production history route before retrying. The prior
+50-row and seven-prediction reads do not establish the 500-row target.
 
 | Workstream | Owner | Required outcome |
 | --- | --- | --- |

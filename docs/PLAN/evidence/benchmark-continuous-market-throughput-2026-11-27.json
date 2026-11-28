@@ -1,0 +1,117 @@
+[
+  {
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "telemetry_quote_session_start_times": [
+      "2026-11-28T05:08:18.582957+00:00"
+    ],
+    "reference_age_samples": {
+      "coinbase": {
+        "provider": {
+          "samples": 58,
+          "p95_seconds": 2.014496,
+          "max_seconds": 4.29359
+        },
+        "pp_receipt": {
+          "samples": 58,
+          "p95_seconds": 1.846704,
+          "max_seconds": 4.11115
+        }
+      },
+      "polymarket": {
+        "provider": {
+          "samples": 58,
+          "p95_seconds": 2.863506,
+          "max_seconds": 3.494126
+        },
+        "pp_receipt": {
+          "samples": 58,
+          "p95_seconds": 1.081745,
+          "max_seconds": 1.62152
+        }
+      },
+      "robinhood": {
+        "provider": {
+          "samples": 58,
+          "p95_seconds": 1.071016,
+          "max_seconds": 1.379079
+        },
+        "pp_receipt": {
+          "samples": 58,
+          "p95_seconds": 1.036607,
+          "max_seconds": 1.226834
+        }
+      }
+    },
+    "distinct_observed_session_ids": 0,
+    "session_id_visible": false,
+    "samples_including_boundary_brackets": 60,
+    "start_bracket_seconds": [
+      -1.415700912475586,
+      13.604300022125244
+    ],
+    "end_bracket_seconds": [
+      -12.683389902114868,
+      18.29889488220215
+    ],
+    "max_sample_gap_seconds": 30.982284784317017,
+    "samples_collector_off": 0,
+    "feeds": [
+      "coinbase",
+      "polymarket",
+      "robinhood"
+    ],
+    "samples_feed_disabled_or_unknown": 1,
+    "continuous_at_sample_resolution": false,
+    "counter_bounds_for_exact_900s": {
+      "verified_acks": {
+        "minimum": 18639,
+        "maximum": 19281,
+        "rate_bounds_per_s": [
+          20.71,
+          21.423333333333332
+        ]
+      },
+      "arrivals": {
+        "minimum": 18627,
+        "maximum": 19285,
+        "rate_bounds_per_s": [
+          20.696666666666665,
+          21.427777777777777
+        ]
+      }
+    },
+    "fully_observed_interior": {
+      "missing_snapshots": 0,
+      "per_generation_contiguous": {
+        "8b7c3058-c10c-4900-89c9-2d7569fca67d": [
+          {
+            "overlapping_60s_sample_windows": 54,
+            "windows_60s_ack_ge_14": 54,
+            "min_rolling_60s_ack_s": 17.65535754229711,
+            "max_rolling_60s_ack_s": 27.18335304642491,
+            "seconds_with_backlog_at_both_observations": 873.7123100757599,
+            "from_utc": "2026-11-28T05:15:13.604300+00:00",
+            "to_utc": "2026-11-28T05:29:47.316610+00:00",
+            "samples": 58,
+            "seconds": 873.7123100757599,
+            "verified_acks": 18639,
+            "arrivals": 18627,
+            "verified_per_s": 21.333109062391266,
+            "arrivals_per_s": 21.319374564363006,
+            "min_pending": 14,
+            "max_pending": 120,
+            "start_pending": 27,
+            "end_pending": 15,
+            "max_oldest_age": 3.132343,
+            "intervals_below_14": 2,
+            "below_14_growing": 1,
+            "recovered_to_before_dip": 1,
+            "unresolved_at_end": 0,
+            "median_recovery_s": 15.191598176956177,
+            "max_observed_catch_up": 15.191598176956177
+          }
+        ]
+      }
+    }
+  }
+]

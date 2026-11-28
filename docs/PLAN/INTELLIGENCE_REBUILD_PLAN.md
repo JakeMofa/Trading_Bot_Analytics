@@ -6,11 +6,40 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-25-2026-cst--4-gb-pp-rollover-passed-and-websocket-is-next)
+- [Current PP checkpoint](#november-27-2026--live-display-and-independent-persistence)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Live display and independent persistence
+
+Next Benchmark acceptance is one complete BTC 15-minute market on the direct
+WebSocket writer. The [same-socket observer](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/225)
+already measured discovery and first receipt. The default-off application
+candidate sends validated quotes to the FastAPI RAM view and queues the same
+event for PostgreSQL. Local PG17 and a delayed writer exercised receipt,
+database commit, exact-value deduplication and structured archive ACK with
+a test transport. Hosted readback and Benchmark browser latency are pending.
+
+1. On a fresh Benchmark scope, measure REST discovery, subscription and first
+   usable quote. Trace the same event ID through API publication, browser
+   display, commit, database hydration and authenticated Supabase readback.
+   Use the five-second receipt-to-API target. Preserve retained A and B.
+2. Inventory legacy deterministic/dashboard inputs against captured, saved,
+   archived and exposed fields. Document official values, computed values,
+   delayed labels and unsupported inputs separately.
+3. Verify a bounded dashboard history query across local A/B, overlapping
+   archive copies and archive-only reads. Compare ordered IDs, exact values,
+   count and latency while ingesting.
+4. Replay one deterministic calculation at a pinned decision time across
+   those same tiers. Compare its inputs, missing values and result. Keep the
+   72-hour rollout deferred.
+
+The last Benchmark smoke was local-only with a 540-second lease. A full
+window needs a new controller-bound profile with independent structured drain.
+Measure outbox growth and archive throughput before extending the collection
+window. Raw local quotes stay generation-scoped. [Application and transport](../../backend/postgres/APPLICATION.md)
 
 ## November 25, 2026 CST — 4 GB PP rollover passed and WebSocket is next
 

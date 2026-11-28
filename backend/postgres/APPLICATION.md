@@ -55,3 +55,32 @@ legacy import, candle corrections, ensemble/news/evaluation/context history,
 dashboard outcome listing, detailed host monitoring, capacity/recovery and paid
 AI. Existing legacy code/tests remain untouched. Delayed outcome writes are
 represented immutably with protected evidence; displaying them is still a gap.
+
+## Benchmark live quotes
+
+The opt-in quote-display overlay replaces the supervisor's REST quote loop
+with a direct markets socket. Discovery still reads the official catalog.
+The operator and API share a private Unix datagram path. The API alone binds
+the socket. Provision the directory owned by UID 10001 with mode 0700 on
+Benchmark; only the operator receives the two signing secret files. The
+operator sends compact market/quote snapshots without waiting for subscribers.
+The durable writer uses a bounded FIFO (32 events), backpressures ingestion
+when full, and rechecks the database writer lease at commit. A crash can
+interrupt queued, uncommitted observations. The display is observational.
+
+The existing structured worker authenticates archive readback before ACK.
+Each WebSocket quote enqueues the structured evidence envelope inside its raw
+write transaction. This does not create a second permanent local core row. Received and newly saved quote counters are per collector
+session. The API samples acknowledged WebSocket quote envelopes every 15s.
+A missing sample displays as unknown. Realtime and browser credentials are
+unnecessary for this path.
+
+For a live measurement enable boundary tracing. Match the first WS receipt,
+API publication and writer commit traces by event ID. The rendered quote
+element exposes its event ID in `data-event-id`. Observe the visible element
+through a browser paint and record the browser/host clock offset or timing
+bounds. The state field `database_quote_id` identifies the independently
+hydrated local quote. An ID missed between refreshes is an unobserved
+comparison. Check the structured record's event ID, source, exact prices and
+content hash with the scoped hosted reader. Do not use receipt of a display
+packet or an aggregate counter as evidence of a particular hosted row.

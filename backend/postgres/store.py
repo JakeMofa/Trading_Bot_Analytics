@@ -200,6 +200,9 @@ class Store:
                       RETURNING *''', [Jsonb(value) if isinstance(value, dict) else value for value in row.values()]).fetchone()
                     if inserted:
                         self._outbox(db, 'core.current_prices', inserted, ('origin_id','source','symbol'), generation_id)
+                elif event['kind'] == 'quote' and event['provenance'].get('feed') == 'polymarket_us_websocket':
+                    evidence = self._evidence_record(record)
+                    self._outbox(db, 'core.protected_evidence', evidence, ('origin_id','evidence_id'), generation_id)
                 elif event['kind'] == 'candle':
                     self._candle(db, event, payload, received, generation_id)
                 elif event['kind'] == 'outcome':
@@ -264,6 +267,15 @@ class Store:
         row = self._insert(db, 'core.candles', row, ('origin_id','source','symbol','granularity','time'))
         self._outbox(db, 'core.candles', row, ('origin_id','source','symbol','granularity','time'), generation_id)
 
+    def _evidence_record(self, raw):
+        evidence = {key: raw.get(key) for key in ('origin_id','generation_id','source','event_id','kind','market_id',
+                                                 'source_time','source_epoch','received_at','available_at','payload','raw_payload','content_hash')}
+        if 'price' in raw:
+            # Protected schema has no price/size columns: keep their exact values in its envelope.
+            evidence['payload'] = {**raw['payload'],'normalized':json_value({key:raw.get(key) for key in ('price','size','symbol')})}
+        evidence['evidence_id'] = digest([self.origin,raw['source'],raw['event_id'],raw['content_hash']])
+        return evidence
+
     def _protect(self, db, raw):
         generation = raw.get('generation_id')
         if generation:
@@ -271,12 +283,7 @@ class Store:
                              (self.origin,generation)).fetchone()
             if not row or row['state'] == 'retired':
                 raise PublicationRejected('input generation retired; retry using protected evidence')
-        evidence = {key: raw.get(key) for key in ('origin_id','generation_id','source','event_id','kind','market_id',
-                                                 'source_time','source_epoch','received_at','available_at','payload','raw_payload','content_hash')}
-        if 'price' in raw:
-            # Protected schema has no price/size columns: keep their exact values in its envelope.
-            evidence['payload'] = {**raw['payload'],'normalized':json_value({key:raw.get(key) for key in ('price','size','symbol')})}
-        evidence['evidence_id'] = digest([self.origin,raw['source'],raw['event_id'],raw['content_hash']])
+        evidence = self._evidence_record(raw)
         evidence = self._insert(db, 'core.protected_evidence', evidence, ('origin_id','evidence_id'))
         self._outbox(db, 'core.protected_evidence', evidence, ('origin_id','evidence_id'), generation)
         return evidence
@@ -295,6 +302,14 @@ class Store:
             AND start_epoch<=%s AND end_epoch>%s AND first_seen<=%s AND last_seen<=%s
             AND status IN ('MARKET_STATUS_OPEN','open') ORDER BY start_epoch DESC,market_id LIMIT 1''',
             (self.origin,epoch,epoch,now,now)).fetchone()
+
+    def archived_quote_count(self, started_at):
+        with self.connection(True) as db:
+            return db.execute("""SELECT count(*) AS n FROM ops.outbox
+                WHERE origin_id=%s AND entity_type='core.protected_evidence' AND created_at>=%s
+                AND acknowledged_at IS NOT NULL AND payload->>'kind'='quote'
+                AND payload->'payload'->'provenance'->>'feed'='polymarket_us_websocket'""",
+                (self.origin, started_at)).fetchone()['n']
 
     def active_market(self, now=None):
         with self.connection(True) as db:
@@ -430,7 +445,7 @@ class Store:
                 (self.origin,market_id,now,now)).fetchone()
         feature = json_value({'snapshot_id':pair['feature_snapshot_id'],'market_id':market_id,'as_of':pair['feature_as_of'],
                               'values':pair['values_json'],'quality':pair['quality_json']}) if pair else None
-        quote = json_value({**quote['payload']['data'],'market_id':market_id,'source_time':quote['source_time'],
+        quote = json_value({**quote['payload']['data'],'event_id':quote['event_id'],'market_id':market_id,'source_time':quote['source_time'],
                             'received_at':quote['received_at'],'provenance':quote['payload'].get('provenance',{})}) if quote else None
         prediction = None
         if pair and pair['prediction_id'] is not None:

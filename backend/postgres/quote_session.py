@@ -1,0 +1,170 @@
+"""A bounded writer pipeline and a disposable latest-price view for PP."""
+import asyncio
+from datetime import datetime, timezone
+from decimal import Decimal
+import json
+from uuid import uuid4
+
+from websockets.asyncio.client import connect
+from websockets.exceptions import ConnectionClosed, InvalidStatus
+
+from .boundary_trace import boundary_trace
+from .boundary_shadow import WS_URL, headers, signing_key
+from .contract import content_hash, source_timestamp
+from .domain import timestamp
+from .live_contract import polymarket_bbo
+from .live_sources import MAX_RESPONSE_BYTES, discover_polymarket_15m
+from .live_ingest import _pause_or_stop, _step, POLYMARKET_DISCOVERY_UNAVAILABLE
+from .live_diagnostics import LiveDiagnostic
+from .quote_display import DisplaySender
+
+
+def utc():
+    return datetime.now(timezone.utc).isoformat()
+
+
+class QuotePipeline:
+    def __init__(self, store, display):
+        self.store = store
+        self.display = display
+        self.queue = asyncio.Queue(maxsize=32)
+        self.current = self.upcoming = None
+        self.quote = None
+        self.received = self.saved = self.duplicates = 0
+        self.started = utc()
+        self.last_commit = None
+        self.first_event_id = None
+
+    def broadcast(self):
+        market = self.current
+        if market:
+            terms = market['payload']
+            self.display.send({'market': {'id': market['market_id'], 'origin': self.store.settings.origin_id,
+                                **{k: terms[k] for k in ('slug', 'start', 'end', 'target_usd', 'status')}},
+                               'quote': self.quote, 'received': self.received, 'saved': self.saved,
+                               'duplicates': self.duplicates, 'started_at': self.started, 'last_commit': self.last_commit})
+
+    async def market(self, event):
+        if self.current and self.current['event_id'] == event['event_id']:
+            return
+        if not self.current or self.current['market_id'] != event['market_id']:
+            self.quote = None
+            self.first_event_id = None
+        # Enqueue the market before its socket subscription becomes visible.
+        await self.queue.put(event)
+        self.current = event
+        self.broadcast()
+
+    async def book(self, doc):
+        event = self.current
+        data = doc.get('marketData')
+        if not data:
+            return
+        now = utc()
+        upcoming = self.upcoming
+        if (upcoming and data.get('marketSlug') == upcoming['payload']['slug']
+                and timestamp(upcoming['payload']['start']) <= timestamp(now) < timestamp(upcoming['payload']['end'])):
+            await self.market(upcoming)
+            event = upcoming
+        if not event or data.get('marketSlug') != event['payload']['slug']:
+            return
+        if not timestamp(event['payload']['start']) <= timestamp(now) < timestamp(event['payload']['end']):
+            return
+        # Transport request IDs change on reconnect. Use the venue book itself.
+        quote = polymarket_bbo({'marketData': data}, event, now, route='book')
+        if not quote:
+            return
+        quote['provenance']['feed'] = 'polymarket_us_websocket'
+        if quote['source_time']:
+            quote['event_id'] = 'ws-' + content_hash([event['market_id'], data])
+            if self.quote and self.quote['source_time'] and source_timestamp(quote['source_time'])[1] < source_timestamp(self.quote['source_time'])[1]:
+                return
+        self.received += 1
+        if self.quote and quote['event_id'] == self.quote['event_id']:
+            self.duplicates += 1
+            self.broadcast()
+            return
+        self.quote = {**quote['payload'], **{k: quote[k] for k in
+                      ('market_id', 'event_id', 'source_time', 'received_at', 'provenance')}}
+        if self.first_event_id is None:
+            self.first_event_id = quote['event_id']
+            boundary_trace('usable_receipt', event, quote=quote, reader='canonical_ws')
+        self.broadcast()
+        await self.queue.put(quote)
+
+    async def write(self):
+        while True:
+            event = await self.queue.get()
+            ack = await asyncio.to_thread(self.store.ingest, event)
+            if event['kind'] == 'quote':
+                if not ack['duplicate']:
+                    self.saved += 1
+                else:
+                    self.duplicates += 1
+                self.last_commit = {'event_id': event['event_id'], 'at': utc()}
+                if event['event_id'] == self.first_event_id:
+                    boundary_trace('write_complete', quote=event, reader='canonical_ws',
+                                   generation_id=ack['generation_id'], content_hash=ack['content_hash'])
+                self.broadcast()
+            self.queue.task_done()
+
+
+async def stream_books(pipe, stop, keypair):
+    delay = 1
+    while not stop.is_set():
+        try:
+            async with connect(WS_URL, additional_headers=headers(keypair), proxy=None,
+                               open_timeout=5, close_timeout=2, max_size=MAX_RESPONSE_BYTES,
+                               max_queue=16) as sock:
+                subscribed = set()
+                while not stop.is_set():
+                    wanted = {market['payload']['slug'] for market in (pipe.current, pipe.upcoming) if market}
+                    missing = wanted - subscribed
+                    if missing:
+                        await sock.send(json.dumps({'subscribe': {'requestId': str(uuid4()),
+                            'subscriptionType': 'SUBSCRIPTION_TYPE_MARKET_DATA', 'marketSlugs': sorted(missing)}}))
+                        subscribed.update(missing)
+                    try:
+                        wire = await asyncio.wait_for(sock.recv(), .25)
+                    except TimeoutError:
+                        continue
+                    doc = json.loads(wire, parse_float=Decimal)
+                    if doc.get('error'):
+                        raise ValueError('Polymarket subscription rejected')
+                    await pipe.book(doc)
+                    delay = 1
+        except InvalidStatus as exc:
+            if exc.response.status_code not in (429, 500, 502, 503, 504):
+                raise
+        except (OSError, TimeoutError, ConnectionClosed):
+            pass
+        await _pause_or_stop(stop, delay)
+        delay = min(30, delay * 2)
+
+
+async def run(store, client, stop, interval, clock):
+    sender = DisplaySender(store.settings.origin_id)
+    pipe = QuotePipeline(store, sender)
+    try:
+        keypair = signing_key()
+        async with asyncio.TaskGroup() as tasks:
+            writer = tasks.create_task(pipe.write())
+            reader = tasks.create_task(stream_books(pipe, stop, keypair))
+            while not stop.is_set():
+                try:
+                    market, upcoming = await _step('polymarket_discovery',
+                        discover_polymarket_15m(client, clock(), include_next=True))
+                except LiveDiagnostic as error:
+                    if error.code not in POLYMARKET_DISCOVERY_UNAVAILABLE:
+                        raise
+                else:
+                    pipe.upcoming = upcoming
+                    if market and timestamp(market['payload']['end']) > clock():
+                        await pipe.market(market)
+                        pipe.broadcast()
+                await _pause_or_stop(stop, interval)
+            await reader
+            await pipe.queue.join()
+            writer.cancel()
+    finally:
+        sender.socket.close()

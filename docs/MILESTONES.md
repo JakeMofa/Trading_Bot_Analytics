@@ -6,6 +6,12 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 72-hour retirement and combined-release A/B acceptance still need proof.
 [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
 
+## November 27 — Ignore local environment file copies
+
+Git ignores space-suffixed environment copies such as `.env copy`. Filename
+checks confirmed coverage at the repository root and in nested paths, and
+confirmed that `.env.example` remains trackable in both locations.
+
 ## November 27 — Robinhood and three-feed live acceptance passed
 
 Benchmark .6 displayed Coinbase, Polymarket US and Robinhood simultaneously.

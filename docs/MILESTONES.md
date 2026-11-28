@@ -15,6 +15,17 @@ Coinbase buffering and publication of the newest Polymarket index bucket
 before its write. Live VM source age and outbox lag remain to be measured.
 [Experiment and live measures](PLAN/PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md#november-27--bounded-feed-writers-on-disposable-postgresql-17).
 
+### Dashboard model readouts
+
+The Market view now keeps the latest local decision for the same market alongside
+the live Gaussian estimate. An expired input suppresses the live probability;
+the saved decision retains its original time, model and snapshot. Native
+PostgreSQL 17 passed the indexed lookup through API hydration. Chrome verified
+a saved abstention remained visible when the live estimate expired and cleared
+on market change. The History form also offers saved predictions for a selected
+market and time range. Its browser test uses an archive response fixture.
+Benchmark acceptance remains in the [current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-measured-on-benchmark).
+
 ## November 27 — Combined dashboard release on the 4 GB Benchmark
 
 The [Benchmark deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46091017341)

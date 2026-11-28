@@ -77,7 +77,7 @@ def create_app(settings=None, store=None, state=None, *, history=None,
             market = snapshot.get('market')
             if market and market['active']:
                 try:
-                    data = await asyncio.to_thread(store.hydrate,market['id'])
+                    data = await asyncio.to_thread(store.hydrate,market['id'],with_latest_saved=True)
                     state.publish(market['id'],*data)
                 except Exception:
                     state.storage_status('unavailable')
@@ -163,7 +163,7 @@ def create_app(settings=None, store=None, state=None, *, history=None,
     @app.get('/forecast/current')
     async def forecast():
         snapshot = state.snapshot()
-        return {key:snapshot[key] for key in ('market','forecast','missing_data','updated_at','environment','data_mode')}
+        return {key:snapshot[key] for key in ('market','forecast','saved_prediction','live_estimate','live_estimate_status','missing_data','updated_at','environment','data_mode')}
 
     @app.get('/models/current')
     async def models():

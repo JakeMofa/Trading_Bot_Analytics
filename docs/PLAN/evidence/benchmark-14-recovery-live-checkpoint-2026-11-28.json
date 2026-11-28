@@ -326,7 +326,7 @@
       "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
       "lease": "2026-11-28T13:21:12.285223+00:00",
       "origin": "pp-live-pp-benchmark-watch",
-      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
       "utc": "2026-11-28T13:19:18.700856+00:00",
       "valid": true
     },
@@ -336,7 +336,7 @@
       "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
       "lease": "2026-11-28T13:21:12.285223+00:00",
       "origin": "pp-live-pp-benchmark-watch",
-      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
       "utc": "2026-11-28T13:19:23.537077+00:00",
       "valid": true
     }
@@ -380,7 +380,7 @@
       "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
       "lease": "2026-11-28T13:25:04.668864+00:00",
       "origin": "pp-live-pp-benchmark-watch",
-      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
       "utc": "2026-11-28T13:23:20.570174+00:00",
       "valid": true
     },
@@ -390,7 +390,7 @@
       "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
       "lease": "2026-11-28T13:25:04.668864+00:00",
       "origin": "pp-live-pp-benchmark-watch",
-      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
       "utc": "2026-11-28T13:23:19.683526+00:00",
       "valid": true
     },

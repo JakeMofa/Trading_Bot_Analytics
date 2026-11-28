@@ -188,6 +188,13 @@ async def run(store, client, stop, interval, clock):
     sender = DisplaySender(store.settings.origin_id)
     pipe = QuotePipeline(store, sender)
     try:
+        from .quote_ack_counter import WATCH_ORIGIN, register
+        if store.settings.origin_id == WATCH_ORIGIN:
+            try:
+                pipe.started = await asyncio.to_thread(register,store)
+            except Exception:
+                # A missing display counter remains unknown; keep market ingestion available.
+                pass
         try:
             keypair = signing_key()
         except (OSError, ValueError):

@@ -16,6 +16,28 @@ The dashboard gives baseline UP and DOWN equal prominence and shows
 Robinhood's per-poll price movement separately.
 [Master checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--three-btc-feeds-saved-and-displayed-on-benchmark).
 
+### Exact archive page packing
+
+Pending structured writes now fill pages using the canonical envelope bytes,
+including array brackets and separators. Disposable PostgreSQL 17 verifies
+the 50-row limit, the 256 KiB ceiling, retry identity, and exact-fit and
+oversized first rows. In a full write, verified readback and local ACK replay
+of the first 1,000 retained Benchmark .4 rows, the exact packer used 25 pages
+with a median of 41 rows. The previous packer used 51 pages with a median of
+18. End-to-end elapsed was 2.412–2.420 seconds versus 2.651–2.761 seconds
+in disposable PostgreSQL 17 over a local Unix socket. PP-to-Supabase throughput
+still requires a live run. The pending-tail query used the existing partial
+index to fetch 50 pending rows behind 2,000,000 acknowledged rows.
+A new Benchmark watch generation records its exact cumulative ACK count in the local ACK
+transaction. The Benchmark watch also registers its dashboard quote counter at
+collector startup. A restart starts a new display count while previously
+created quote backlog and idempotent retries remain excluded. This replaces a
+15-second display query that took 301 ms and touched 61,903 shared buffers on
+the retained .4 market. Existing retained generations keep their prior state.
+[Read-only Benchmark query plans](PLAN/evidence/benchmark-retained-04-query-plans.json) ·
+[Paired timings](PLAN/evidence/benchmark-exact-outbox-1000.json) ·
+[Pending index plans](PLAN/evidence/benchmark-outbox-index-two-million.json) · [Archive capacity checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
+
 ## November 27 — Freshness and history acceptance completed
 
 Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event
@@ -26,6 +48,14 @@ drained to verified ACKs. Sustained arrivals exceeded archive throughput,
 so the measured backlog remains a follow-up. Benchmark .6 subsequently
 verified the Robinhood display and archived observations.
 [Evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
+
+### Local history admission regression passed
+
+Overlapping requests to one reader are rejected, cancellation holds that
+reader's slot until its worker exits, and market and prediction readers can
+run concurrently. Local PostgreSQL 17 page-read evidence and the outstanding
+hosted concurrency measurement are in the
+[master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#local-history-admission-regression).
 
 ## November 27 — Three BTC feeds on Benchmark
 

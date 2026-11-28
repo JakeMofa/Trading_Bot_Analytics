@@ -6,11 +6,50 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-28-2026--benchmark-14-recovery)
+- [Current PP checkpoint](#november-28-2026--benchmark-14-sustained-check-failed)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 28, 2026 — Benchmark .14 sustained check failed
+
+The collector stopped again. At **14:30:04.056 UTC / 8:30:04 a.m. CST**,
+`.14` logged `ownership.timeout`, approximately **1 hour 17 minutes 25 seconds**
+after admission. The four-hour and 24-hour checks have failed for this run;
+the earlier short-market success below remains valid within its scope.
+
+- [x] Verify actual operator status: failure unacknowledged, no explicit OFF,
+  no expired lease, same running container with zero restarts. A is epoch 11/OFF,
+  with no writer session or lease and zero pending structured records.
+- [x] Capture the new timing diagnostic: 2,003.143 ms to the async deadline.
+  Cumulative phases included admission 203.287 ms, connect 595.981 ms,
+  environment validation 16.896 ms, query 85.105 ms, retry wait 334.640 ms,
+  executor wait 7.585 ms, close 0.119 ms and worker-complete phase 759.531 ms.
+  These accumulate across attempts; a completed callback is not evidence of a
+  successful ownership result or the final callback's exact completion time.
+- [x] Confirm the watch renewed authority through 14:31:53.290 UTC, beyond the
+  timeout. It then held with `watch_collector_failure` rather than silently
+  restarting the failed writer.
+- [x] Align resource evidence: all container/process identities unchanged,
+  at least 2,704 MiB available around the event, zero swap/OOM. Operator CPU
+  pressure/throttling occurred under its unchanged **0.25-core quota**.
+  This correlation supports a controlled scheduling experiment; it does not
+  establish the exact cause of the deadline failure.
+- [x] Confirm backlog drained to zero and all 41,874 saved WebSocket quotes
+  are reported archived. Eight duplicate deliveries were counted separately.
+- [ ] Reproduce mixed admission/retry and delayed event-loop delivery; compare
+  reserved connection cost and operator CPU scheduling without relaxing fresh
+  authority, the two-second deadline, or physical connection accounting.
+- [ ] Select and qualify the smallest fix, then use the normal reviewed
+  adoption path and restart four-hour acceptance from its new admission.
+- [ ] Complete sustained and current-release A/B continuity before 72-hour work.
+
+[Incident evidence](evidence/benchmark-14-ownership-timeout-2026-11-28.json)
+keeps the actual stop/status, renewal and resource records. Diagnosis made no
+live changes and did not restart collection. Old A/B remain retained. The
+[ownership repair workstream](OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md) resumes
+from this failure; `.14` is not a sustained-reliability acceptance.
 
 ## November 28, 2026 — Benchmark .14 recovery
 

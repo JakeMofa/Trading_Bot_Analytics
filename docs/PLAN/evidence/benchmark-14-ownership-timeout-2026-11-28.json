@@ -1,0 +1,1309 @@
+{
+  "scope": "Actual Benchmark .14 sustained acceptance failure; no restart or live mutation performed during diagnosis",
+  "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+  "admitted_utc": "2026-11-28T13:12:39.428186+00:00",
+  "diagnostic_logged_utc": "2026-11-28T14:30:04.056040490Z",
+  "admission_to_diagnostic_s": 4644.627854,
+  "runtime": {
+    "status": {
+      "origin_id": "pp-live-pp-benchmark-watch",
+      "collector_enabled": false,
+      "process_running": false,
+      "session_failure_code": "ownership.timeout",
+      "session_failure_acknowledged": false,
+      "watch_explicit_off": false,
+      "lease_expired": false,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "epoch": 11
+    },
+    "ownership": [
+      {
+        "elapsed_ms": 2003.143,
+        "late_completion": false,
+        "outcome": "async_deadline",
+        "phase": "worker_complete",
+        "phase_ms": {
+          "admission": 203.287,
+          "close": 0.119,
+          "connect": 595.981,
+          "environment": 16.896,
+          "executor_wait": 7.585,
+          "query": 85.105,
+          "retry_wait": 334.64,
+          "worker_complete": 759.531
+        },
+        "worker_finished": true
+      }
+    ],
+    "watch_journal": [
+      {
+        "state": "running",
+        "epoch": 10,
+        "lease_expires_at": "2026-11-28T14:31:03.677450+00:00"
+      },
+      {
+        "state": "running",
+        "epoch": 10,
+        "lease_expires_at": "2026-11-28T14:31:20.673116+00:00"
+      },
+      {
+        "state": "running",
+        "epoch": 10,
+        "lease_expires_at": "2026-11-28T14:31:36.984712+00:00"
+      },
+      {
+        "state": "running",
+        "epoch": 10,
+        "lease_expires_at": "2026-11-28T14:31:53.290492+00:00"
+      },
+      {
+        "state": "held",
+        "reason": "watch_collector_failure"
+      },
+      {
+        "state": "held",
+        "reason": "watch_collector_failure"
+      },
+      {
+        "state": "held",
+        "reason": "watch_collector_failure"
+      }
+    ],
+    "operator_identity": "edd07c882719ef315054ce06bd3973af9d2eaf385a309ff79f3b23e0175766ec sha256:ab88f92b9c2b8a1377cd709d07425bf06b311476ce4f6bf2e4b94222d3b8c7ff true 0",
+    "log_bytes": 16204
+  },
+  "timestamped_ownership": [
+    {
+      "docker_timestamp": "2026-11-28T14:30:04.056040490Z",
+      "diagnostic": {
+        "elapsed_ms": 2003.143,
+        "late_completion": false,
+        "outcome": "async_deadline",
+        "phase": "worker_complete",
+        "phase_ms": {
+          "admission": 203.287,
+          "close": 0.119,
+          "connect": 595.981,
+          "environment": 16.896,
+          "executor_wait": 7.585,
+          "query": 85.105,
+          "retry_wait": 334.64,
+          "worker_complete": 759.531
+        },
+        "worker_finished": true
+      }
+    }
+  ],
+  "resource": {
+    "analysis_at_utc": "2026-11-28T14:46:45.433550+00:00",
+    "scope": "Existing local resources/status around14:29\u201314:31; no exact collector failure log in this evidence",
+    "gzip_footer_complete": false,
+    "timeline": {
+      "last_saved_quote_at": "2026-11-28T14:29:59.636820+00:00",
+      "last_window_on": {
+        "polled_at": "2026-11-28T14:30:02.779290+00:00",
+        "observed_at": "2026-11-28T14:29:55.753847+00:00",
+        "enabled": true,
+        "pending": 10,
+        "acks": 334491
+      },
+      "first_window_off": {
+        "polled_at": "2026-11-28T14:30:18.071657+00:00",
+        "observed_at": "2026-11-28T14:30:10.783892+00:00",
+        "enabled": false,
+        "pending": 0,
+        "acks": 334597
+      },
+      "fresh_writer_observations": [
+        {
+          "observed_at": "2026-11-28T14:28:30.385422+00:00",
+          "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "epoch": 10,
+          "stored_enabled": true,
+          "enabled": true,
+          "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
+          "lease": "2026-11-28T14:30:14.083004+00:00",
+          "pending": 14,
+          "oldest_age": 1.527635,
+          "acks": 333212
+        },
+        {
+          "observed_at": "2026-11-28T14:29:32.525272+00:00",
+          "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "epoch": 10,
+          "stored_enabled": true,
+          "enabled": true,
+          "session_sha256": "a746d9dc6768ae32ac4a6bc5699a0ef83d589e9343937201168bc436a7578840",
+          "lease": "2026-11-28T14:31:20.673116+00:00",
+          "pending": 10,
+          "oldest_age": 1.685811,
+          "acks": 334144
+        },
+        {
+          "observed_at": "2026-11-28T14:30:34.756301+00:00",
+          "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "epoch": 11,
+          "stored_enabled": false,
+          "enabled": false,
+          "session_sha256": null,
+          "lease": null,
+          "pending": 0,
+          "oldest_age": 0,
+          "acks": 334597
+        },
+        {
+          "observed_at": "2026-11-28T14:31:36.554236+00:00",
+          "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+          "epoch": 11,
+          "stored_enabled": false,
+          "enabled": false,
+          "session_sha256": null,
+          "lease": null,
+          "pending": 0,
+          "oldest_age": 0,
+          "acks": 334597
+        }
+      ]
+    },
+    "resource_window": {
+      "first": "2026-11-28T14:29:00.075526+00:00",
+      "last": "2026-11-28T14:31:59.073869+00:00",
+      "seconds": 178.99818931,
+      "samples": 180,
+      "same_boot_device_source_image": true,
+      "host_mem_available_min_mib": 2704.00390625,
+      "host_delta": {
+        "pswpin": 0,
+        "pswpout": 0,
+        "oom_kill": 0,
+        "pgmajfault": 0,
+        "cpu_total": 35740,
+        "cpu_busy": 9586,
+        "cpu_iowait": 173,
+        "memory_some_us": 13086,
+        "memory_full_us": 9948,
+        "cpu_some_us": 33558422,
+        "cpu_full_us": 0,
+        "io_some_us": 1219904,
+        "io_full_us": 748329,
+        "disk_read_bytes": 11268096,
+        "disk_write_bytes": 133894144,
+        "disk_busy_ms": 2883
+      },
+      "services": {
+        "operator": {
+          "same_identity": true,
+          "id": "edd07c882719ef315054ce06bd3973af9d2eaf385a309ff79f3b23e0175766ec",
+          "pid": 3474587,
+          "start_ticks": 32326511,
+          "cgroup_inode": 285440,
+          "cpu_quota": {
+            "quota_us": 25000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "memory_min_mib": 59.515625,
+          "memory_max_mib": 62.05859375,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 9399269,
+            "user_usec": 8619624,
+            "system_usec": 779645,
+            "nr_periods": 1003,
+            "nr_throttled": 209,
+            "throttled_usec": 14359169
+          },
+          "cpu_pressure_delta": {
+            "some_us": 10540004,
+            "full_us": 10043228
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "average_cpu_cores": 0.05251041385520259,
+          "throttled_seconds": 14.359169
+        },
+        "postgres": {
+          "same_identity": true,
+          "id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+          "pid": 8976,
+          "start_ticks": 9304422,
+          "cgroup_inode": 17275,
+          "cpu_quota": {
+            "quota_us": 100000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "memory_min_mib": 490.953125,
+          "memory_max_mib": 511.0703125,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 243,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 30765767,
+            "user_usec": 16592342,
+            "system_usec": 14173425,
+            "nr_periods": 1687,
+            "nr_throttled": 10,
+            "throttled_usec": 97045
+          },
+          "cpu_pressure_delta": {
+            "some_us": 5434293,
+            "full_us": 4039738
+          },
+          "memory_pressure_delta": {
+            "some_us": 13323,
+            "full_us": 10979
+          },
+          "io_pressure_delta": {
+            "some_us": 1175171,
+            "full_us": 1031404
+          },
+          "average_cpu_cores": 0.17187753193814698,
+          "throttled_seconds": 0.097045
+        },
+        "api": {
+          "same_identity": true,
+          "id": "c3f29b43720ab2e3a5da289071a8c855551ff081774756e7b5d60feab7b2c54b",
+          "pid": 3474677,
+          "start_ticks": 32326538,
+          "cgroup_inode": 285527,
+          "cpu_quota": {
+            "quota_us": 50000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "memory_min_mib": 54.484375,
+          "memory_max_mib": 68.36328125,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 31279530,
+            "user_usec": 29195321,
+            "system_usec": 2084209,
+            "nr_periods": 1756,
+            "nr_throttled": 378,
+            "throttled_usec": 28596737
+          },
+          "cpu_pressure_delta": {
+            "some_us": 18842709,
+            "full_us": 17940493
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "average_cpu_cores": 0.17474774532958096,
+          "throttled_seconds": 28.596737
+        },
+        "calculation": {
+          "same_identity": true,
+          "id": "8358ca0f81b1c9963489278a28640141f16a156233c4a223c79554410c5397fa",
+          "pid": 3474760,
+          "start_ticks": 32326565,
+          "cgroup_inode": 285614,
+          "cpu_quota": {
+            "quota_us": 50000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "memory_min_mib": 33.40625,
+          "memory_max_mib": 33.9140625,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 4541635,
+            "user_usec": 4190911,
+            "system_usec": 350725,
+            "nr_periods": 775,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "cpu_pressure_delta": {
+            "some_us": 879229,
+            "full_us": 839376
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "average_cpu_cores": 0.025372519227747716,
+          "throttled_seconds": 0.0
+        },
+        "lifecycle": {
+          "same_identity": true,
+          "id": "f70687dee441827f1555d7ea8c00c406e6152f171f575fd1805c98ec210b8ef2",
+          "pid": 3474824,
+          "start_ticks": 32326590,
+          "cgroup_inode": 285701,
+          "cpu_quota": {
+            "quota_us": 25000,
+            "period_us": 100000
+          },
+          "quota_unchanged": true,
+          "memory_min_mib": 27.0546875,
+          "memory_max_mib": 27.3046875,
+          "events_delta": {
+            "low": 0,
+            "high": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_kill": 0,
+            "oom_group_kill": 0
+          },
+          "cpu_delta": {
+            "usage_usec": 67633,
+            "user_usec": 64910,
+            "system_usec": 2722,
+            "nr_periods": 12,
+            "nr_throttled": 0,
+            "throttled_usec": 0
+          },
+          "cpu_pressure_delta": {
+            "some_us": 14078,
+            "full_us": 14078
+          },
+          "memory_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "io_pressure_delta": {
+            "some_us": 0,
+            "full_us": 0
+          },
+          "average_cpu_cores": 0.0003778418109183722,
+          "throttled_seconds": 0.0
+        }
+      }
+    },
+    "subwindows": {
+      "last_quote_neighborhood": {
+        "first": "2026-11-28T14:29:55.074172+00:00",
+        "last": "2026-11-28T14:30:10.074554+00:00",
+        "seconds": 15.000381994,
+        "samples": 16,
+        "same_boot_device_source_image": true,
+        "host_mem_available_min_mib": 2708.48828125,
+        "host_delta": {
+          "pswpin": 0,
+          "pswpout": 0,
+          "oom_kill": 0,
+          "pgmajfault": 0,
+          "cpu_total": 3084,
+          "cpu_busy": 1490,
+          "cpu_iowait": 21,
+          "memory_some_us": 878,
+          "memory_full_us": 878,
+          "cpu_some_us": 6047725,
+          "cpu_full_us": 0,
+          "io_some_us": 185073,
+          "io_full_us": 80128,
+          "disk_read_bytes": 1323008,
+          "disk_write_bytes": 15437824,
+          "disk_busy_ms": 439
+        },
+        "services": {
+          "operator": {
+            "same_identity": true,
+            "id": "edd07c882719ef315054ce06bd3973af9d2eaf385a309ff79f3b23e0175766ec",
+            "pid": 3474587,
+            "start_ticks": 32326511,
+            "cgroup_inode": 285440,
+            "cpu_quota": {
+              "quota_us": 25000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 59.546875,
+            "memory_max_mib": 62.0390625,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 1890866,
+              "user_usec": 1717627,
+              "system_usec": 173240,
+              "nr_periods": 128,
+              "nr_throttled": 55,
+              "throttled_usec": 4046026
+            },
+            "cpu_pressure_delta": {
+              "some_us": 2887565,
+              "full_us": 2773120
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.1260545231952311,
+            "throttled_seconds": 4.046026
+          },
+          "postgres": {
+            "same_identity": true,
+            "id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+            "pid": 8976,
+            "start_ticks": 9304422,
+            "cgroup_inode": 17275,
+            "cpu_quota": {
+              "quota_us": 100000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 490.953125,
+            "memory_max_mib": 509.40625,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 25,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 4642811,
+              "user_usec": 2520357,
+              "system_usec": 2122455,
+              "nr_periods": 143,
+              "nr_throttled": 2,
+              "throttled_usec": 32374
+            },
+            "cpu_pressure_delta": {
+              "some_us": 1481501,
+              "full_us": 1067253
+            },
+            "memory_pressure_delta": {
+              "some_us": 833,
+              "full_us": 833
+            },
+            "io_pressure_delta": {
+              "some_us": 163492,
+              "full_us": 128584
+            },
+            "average_cpu_cores": 0.309512851196528,
+            "throttled_seconds": 0.032374
+          },
+          "api": {
+            "same_identity": true,
+            "id": "c3f29b43720ab2e3a5da289071a8c855551ff081774756e7b5d60feab7b2c54b",
+            "pid": 3474677,
+            "start_ticks": 32326538,
+            "cgroup_inode": 285527,
+            "cpu_quota": {
+              "quota_us": 50000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 54.48828125,
+            "memory_max_mib": 66.703125,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 3764803,
+              "user_usec": 3497196,
+              "system_usec": 267608,
+              "nr_periods": 147,
+              "nr_throttled": 45,
+              "throttled_usec": 3246865
+            },
+            "cpu_pressure_delta": {
+              "some_us": 2491571,
+              "full_us": 2380493
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.25098047513095884,
+            "throttled_seconds": 3.246865
+          },
+          "calculation": {
+            "same_identity": true,
+            "id": "8358ca0f81b1c9963489278a28640141f16a156233c4a223c79554410c5397fa",
+            "pid": 3474760,
+            "start_ticks": 32326565,
+            "cgroup_inode": 285614,
+            "cpu_quota": {
+              "quota_us": 50000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 33.41015625,
+            "memory_max_mib": 33.91015625,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 626648,
+              "user_usec": 581701,
+              "system_usec": 44947,
+              "nr_periods": 69,
+              "nr_throttled": 0,
+              "throttled_usec": 0
+            },
+            "cpu_pressure_delta": {
+              "some_us": 200685,
+              "full_us": 195331
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.04177546946808774,
+            "throttled_seconds": 0.0
+          },
+          "lifecycle": {
+            "same_identity": true,
+            "id": "f70687dee441827f1555d7ea8c00c406e6152f171f575fd1805c98ec210b8ef2",
+            "pid": 3474824,
+            "start_ticks": 32326590,
+            "cgroup_inode": 285701,
+            "cpu_quota": {
+              "quota_us": 25000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 27.0546875,
+            "memory_max_mib": 27.296875,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 14366,
+              "user_usec": 14053,
+              "system_usec": 313,
+              "nr_periods": 2,
+              "nr_throttled": 0,
+              "throttled_usec": 0
+            },
+            "cpu_pressure_delta": {
+              "some_us": 5023,
+              "full_us": 5023
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.0009577089440619749,
+            "throttled_seconds": 0.0
+          }
+        }
+      },
+      "after_first_off_observation": {
+        "first": "2026-11-28T14:30:11.075048+00:00",
+        "last": "2026-11-28T14:30:34.074284+00:00",
+        "seconds": 22.999237515,
+        "samples": 24,
+        "same_boot_device_source_image": true,
+        "host_mem_available_min_mib": 2719.1640625,
+        "host_delta": {
+          "pswpin": 0,
+          "pswpout": 0,
+          "oom_kill": 0,
+          "pgmajfault": 0,
+          "cpu_total": 4579,
+          "cpu_busy": 733,
+          "cpu_iowait": 5,
+          "memory_some_us": 0,
+          "memory_full_us": 0,
+          "cpu_some_us": 2563522,
+          "cpu_full_us": 0,
+          "io_some_us": 32027,
+          "io_full_us": 24854,
+          "disk_read_bytes": 0,
+          "disk_write_bytes": 6983680,
+          "disk_busy_ms": 99
+        },
+        "services": {
+          "operator": {
+            "same_identity": true,
+            "id": "edd07c882719ef315054ce06bd3973af9d2eaf385a309ff79f3b23e0175766ec",
+            "pid": 3474587,
+            "start_ticks": 32326511,
+            "cgroup_inode": 285440,
+            "cpu_quota": {
+              "quota_us": 25000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 59.5390625,
+            "memory_max_mib": 59.546875,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 39163,
+              "user_usec": 31229,
+              "system_usec": 7934,
+              "nr_periods": 72,
+              "nr_throttled": 0,
+              "throttled_usec": 0
+            },
+            "cpu_pressure_delta": {
+              "some_us": 9281,
+              "full_us": 9281
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.0017027955806994935,
+            "throttled_seconds": 0.0
+          },
+          "postgres": {
+            "same_identity": true,
+            "id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+            "pid": 8976,
+            "start_ticks": 9304422,
+            "cgroup_inode": 17275,
+            "cpu_quota": {
+              "quota_us": 100000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 492.015625,
+            "memory_max_mib": 496.453125,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 2168209,
+              "user_usec": 1005232,
+              "system_usec": 1162976,
+              "nr_periods": 198,
+              "nr_throttled": 0,
+              "throttled_usec": 0
+            },
+            "cpu_pressure_delta": {
+              "some_us": 218920,
+              "full_us": 154759
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 32433,
+              "full_us": 30726
+            },
+            "average_cpu_cores": 0.09427308181786043,
+            "throttled_seconds": 0.0
+          },
+          "api": {
+            "same_identity": true,
+            "id": "c3f29b43720ab2e3a5da289071a8c855551ff081774756e7b5d60feab7b2c54b",
+            "pid": 3474677,
+            "start_ticks": 32326538,
+            "cgroup_inode": 285527,
+            "cpu_quota": {
+              "quota_us": 50000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 54.66015625,
+            "memory_max_mib": 68.26953125,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 3650808,
+              "user_usec": 3398601,
+              "system_usec": 252207,
+              "nr_periods": 219,
+              "nr_throttled": 45,
+              "throttled_usec": 3369822
+            },
+            "cpu_pressure_delta": {
+              "some_us": 2135427,
+              "full_us": 2011555
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.15873604495014057,
+            "throttled_seconds": 3.369822
+          },
+          "calculation": {
+            "same_identity": true,
+            "id": "8358ca0f81b1c9963489278a28640141f16a156233c4a223c79554410c5397fa",
+            "pid": 3474760,
+            "start_ticks": 32326565,
+            "cgroup_inode": 285614,
+            "cpu_quota": {
+              "quota_us": 50000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 33.41015625,
+            "memory_max_mib": 33.91015625,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 464146,
+              "user_usec": 427495,
+              "system_usec": 36651,
+              "nr_periods": 93,
+              "nr_throttled": 0,
+              "throttled_usec": 0
+            },
+            "cpu_pressure_delta": {
+              "some_us": 50678,
+              "full_us": 47336
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.02018092989810145,
+            "throttled_seconds": 0.0
+          },
+          "lifecycle": {
+            "same_identity": true,
+            "id": "f70687dee441827f1555d7ea8c00c406e6152f171f575fd1805c98ec210b8ef2",
+            "pid": 3474824,
+            "start_ticks": 32326590,
+            "cgroup_inode": 285701,
+            "cpu_quota": {
+              "quota_us": 25000,
+              "period_us": 100000
+            },
+            "quota_unchanged": true,
+            "memory_min_mib": 27.0546875,
+            "memory_max_mib": 27.0546875,
+            "events_delta": {
+              "low": 0,
+              "high": 0,
+              "max": 0,
+              "oom": 0,
+              "oom_kill": 0,
+              "oom_group_kill": 0
+            },
+            "cpu_delta": {
+              "usage_usec": 0,
+              "user_usec": 0,
+              "system_usec": 0,
+              "nr_periods": 0,
+              "nr_throttled": 0,
+              "throttled_usec": 0
+            },
+            "cpu_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "memory_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "io_pressure_delta": {
+              "some_us": 0,
+              "full_us": 0
+            },
+            "average_cpu_cores": 0.0,
+            "throttled_seconds": 0.0
+          }
+        }
+      }
+    },
+    "one_second_intervals": [
+      {
+        "start": "2026-11-28T14:29:59.073835+00:00",
+        "end": "2026-11-28T14:30:00.101855+00:00",
+        "seconds": 1.028026955,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.10691645726351601,
+            "throttle_us": 53438,
+            "cpu_full_psi_us": 88727,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.318472194145921,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 99547,
+            "memory_full_psi_us": 437,
+            "io_full_psi_us": 9799,
+            "memory_max_event_delta": 13
+          },
+          "api": {
+            "cpu_cores": 0.33083860140612753,
+            "throttle_us": 260449,
+            "cpu_full_psi_us": 173244,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.01846060544200419,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 1281,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:00.101855+00:00",
+        "end": "2026-11-28T14:30:01.077817+00:00",
+        "seconds": 0.976530317,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.14830363940457159,
+            "throttle_us": 187827,
+            "cpu_full_psi_us": 129752,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.28981895909740607,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 30873,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 10195,
+            "memory_max_event_delta": 0
+          },
+          "api": {
+            "cpu_cores": 0.14710961605506404,
+            "throttle_us": 197010,
+            "cpu_full_psi_us": 128839,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.02785781406518278,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 2595,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:01.077817+00:00",
+        "end": "2026-11-28T14:30:02.083979+00:00",
+        "seconds": 1.00559371,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.20752218110035708,
+            "throttle_us": 503090,
+            "cpu_full_psi_us": 284506,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.36221885278101035,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 91432,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 22512,
+            "memory_max_event_delta": 0
+          },
+          "api": {
+            "cpu_cores": 0.19514740202581418,
+            "throttle_us": 32033,
+            "cpu_full_psi_us": 74864,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.10815501222655817,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 28301,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:02.083979+00:00",
+        "end": "2026-11-28T14:30:03.081129+00:00",
+        "seconds": 0.997168249,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.2134374015753484,
+            "throttle_us": 666484,
+            "cpu_full_psi_us": 555506,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.8447711816383756,
+            "throttle_us": 32374,
+            "cpu_full_psi_us": 274458,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 226,
+            "memory_max_event_delta": 0
+          },
+          "api": {
+            "cpu_cores": 0.42055791529720077,
+            "throttle_us": 88331,
+            "cpu_full_psi_us": 208953,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.100959893278752,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 85590,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:03.081129+00:00",
+        "end": "2026-11-28T14:30:04.077184+00:00",
+        "seconds": 0.996036844,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.24212457747195545,
+            "throttle_us": 829253,
+            "cpu_full_psi_us": 571567,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.46368365064214434,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 158514,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 3517,
+            "memory_max_event_delta": 0
+          },
+          "api": {
+            "cpu_cores": 0.22243253483502662,
+            "throttle_us": 4214,
+            "cpu_full_psi_us": 80828,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.06587908910727,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 21046,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:04.077184+00:00",
+        "end": "2026-11-28T14:30:05.074857+00:00",
+        "seconds": 0.997791809,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.26127093612972324,
+            "throttle_us": 870877,
+            "cpu_full_psi_us": 519522,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.42209005546165995,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 158019,
+            "memory_full_psi_us": 208,
+            "io_full_psi_us": 7464,
+            "memory_max_event_delta": 6
+          },
+          "api": {
+            "cpu_cores": 0.4189651550847718,
+            "throttle_us": 349311,
+            "cpu_full_psi_us": 311529,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.013455712783867922,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 3810,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:05.074857+00:00",
+        "end": "2026-11-28T14:30:06.076181+00:00",
+        "seconds": 1.0012021,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.076409148562513,
+            "throttle_us": 245631,
+            "cpu_full_psi_us": 136555,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.26992652132871076,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 56853,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 4551,
+            "memory_max_event_delta": 0
+          },
+          "api": {
+            "cpu_cores": 0.4989152539731988,
+            "throttle_us": 924312,
+            "cpu_full_psi_us": 524731,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.03666092989617182,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 19401,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.014348751365982952,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 5023,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      },
+      {
+        "start": "2026-11-28T14:30:06.076181+00:00",
+        "end": "2026-11-28T14:30:07.074562+00:00",
+        "seconds": 0.998382559,
+        "services": {
+          "operator": {
+            "cpu_cores": 0.0036499035035727225,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 535,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "postgres": {
+            "cpu_cores": 0.1625859732191095,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 21436,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 1516,
+            "memory_max_event_delta": 0
+          },
+          "api": {
+            "cpu_cores": 0.40170974180649727,
+            "throttle_us": 704951,
+            "cpu_full_psi_us": 384331,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "calculation": {
+            "cpu_cores": 0.038344019188740655,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 8135,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          },
+          "lifecycle": {
+            "cpu_cores": 0.0,
+            "throttle_us": 0,
+            "cpu_full_psi_us": 0,
+            "memory_full_psi_us": 0,
+            "io_full_psi_us": 0,
+            "memory_max_event_delta": 0
+          }
+        }
+      }
+    ],
+    "limitations": [
+      "Lastquote is not exact globalstop; API polling time differs from cached window observed_at.",
+      "One-second cumulative counters cannot establish ordering within each interval or a causal failure category.",
+      "Same container/PID does not imply internalcollector task stayed alive.",
+      "CPU throttle/PSI times can overlap; do not sum them into one stall duration.",
+      "No container restart, quota change, OOM or swap should be inferred without the actual counter evidence."
+    ],
+    "one_second_intervals_scope": "Selected observed boundary neighborhood; full three-minute cumulative window retained separately above, full raw sample analysis stays private.",
+    "full_private_analysis_sha256": "146c804efefa7ed40263376ecb2d541ce55b1201f13c5a882e6a6c27659194ce"
+  },
+  "interpretation": [
+    "The diagnostic logged async_deadline at 2003.143 ms; the durable writer became epoch11/OFF with failure unacknowledged.",
+    "Phase timings accumulate across attempts. worker_complete is a phase label set in finally, not proof that the final callback returned true or completed 759.531 ms before failure.",
+    "The lease renewal remained valid through14:31:53.290492UTC, beyond the diagnostic.",
+    "CPU throttling and scheduling pressure are correlated, not a proven single root cause; no OOM/swap/restart was observed.",
+    "41,874 saved WebSocket quotes are reported archived and structured backlog is zero. Aggregate ACK counters do not replace a separate per-record custody proof."
+  ]
+}

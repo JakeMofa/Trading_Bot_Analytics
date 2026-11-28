@@ -23,7 +23,12 @@ passed. The generated-mode deployment kept collection and retention off. Chromiu
 observed Market for a complete refresh interval and then opened History, Models
 and System. Each tab issued its own requests and the console reported no page
 errors. [Deployed browser evidence](evidence/pp-benchmark-deployed-dashboard-2026-11-27.json).
-The new live quote and hosted receipt still need a measured market window.
+After deployment the new origin `pp-live-pp-display-20261127-01` reached
+READY_OFF. All 17 existing generation fingerprints matched, including the
+24,044 raw records in retained trial05 A and 24,896 in trial06 B. The dashboard
+reported healthy storage and a disabled collector. The next live window needs
+the new origin's scoped Supabase writer and independent reader. Its first quote,
+hosted receipt and 500-event History latency have yet to be measured.
 
 Next Benchmark acceptance is one complete BTC 15-minute market on the direct
 WebSocket writer. The [same-socket observer](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/225)

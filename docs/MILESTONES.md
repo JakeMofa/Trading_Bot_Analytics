@@ -38,6 +38,13 @@ the retained .4 market. Existing retained generations keep their prior state.
 [Paired timings](PLAN/evidence/benchmark-exact-outbox-1000.json) ·
 [Pending index plans](PLAN/evidence/benchmark-outbox-index-two-million.json) · [Archive capacity checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
 
+### Long-window readback qualification
+
+A disposable two-database PostgreSQL 17 test verified 195 pages across four
+invocations while a successor wrote. The terminal check left both partitions
+attached. A real Supabase inventory/version adapter and a safe final
+retirement proof are still required. [Evidence and remaining gates](PLAN/LONG_WINDOW_QUALIFICATION.md).
+
 ## November 27 — Freshness and history acceptance completed
 
 Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event

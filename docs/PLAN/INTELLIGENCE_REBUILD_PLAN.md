@@ -14,6 +14,22 @@ environment named in each note before applying its operational steps.
 
 ## November 27, 2026 — Live display and independent persistence
 
+The combined application is deployed on the 4 GB Benchmark as
+[v0.2.0-pp.benchmark.2](https://github.com/JakeMofa/Trading_Bot_Analytics/releases/tag/v0.2.0-pp.benchmark.2)
+at commit `446d81d`. [Exact source CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46090369078),
+[Benchmark CI](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46090897927) and
+[Benchmark CD](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46091017341)
+passed. The generated-mode deployment kept collection and retention off. Chromium
+observed Market for a complete refresh interval and then opened History, Models
+and System. Each tab issued its own requests and the console reported no page
+errors. [Deployed browser evidence](evidence/pp-benchmark-deployed-dashboard-2026-11-27.json).
+After deployment the new origin `pp-live-pp-display-20261127-01` reached
+READY_OFF. All 17 existing generation fingerprints matched, including the
+24,044 raw records in retained trial05 A and 24,896 in trial06 B. The dashboard
+reported healthy storage and a disabled collector. The next live window needs
+the new origin's scoped Supabase writer and independent reader. Its first quote,
+hosted receipt and 500-event History latency have yet to be measured.
+
 Next Benchmark acceptance is one complete BTC 15-minute market on the direct
 WebSocket writer. The [same-socket observer](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/225)
 already measured discovery and first receipt. The default-off application

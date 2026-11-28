@@ -326,7 +326,9 @@ class LifecycleRepository:
                            (origin_id, generation_id, slot, partition_name, now))
         connection.execute('SELECT archive.create_generation_partition(%s,%s)',
                            (origin_id, generation_id))
-        return {'origin_id': origin_id, 'generation_id': generation_id, 'slot': slot}
+        generation = {'origin_id': origin_id, 'generation_id': generation_id, 'slot': slot}
+        LifecycleRepository._checkpoint(connection, generation, 'structured:verified-acks-v1', {'rows': 0})
+        return generation
 
     @staticmethod
     def _rehearsal_phase(connection, origin, anchor, current):
@@ -772,16 +774,42 @@ class LifecycleRepository:
         with self.transaction() as connection:
             generation = connection.execute('SELECT * FROM archive.generations WHERE generation_id=%s FOR SHARE',
                                             (generation_id,)).fetchone()
+            from .quote_ack_counter import WATCH_ORIGIN, add_transitions
+            newly_acknowledged = 0
+            quote_created = []
             for record in records:
-                result = connection.execute('''UPDATE ops.outbox SET acknowledged_at=%s
-                    WHERE id=%s AND generation_id=%s AND content_hash=%s AND payload=%s::jsonb''',
-                                            (utcnow(), record['id'], generation_id, record['content_hash'],
-                                             encoded(record['payload']).decode()))
-                if result.rowcount != 1:
-                    raise ArchiveIntegrityError('outbox content changed during acknowledgement')
+                match = (record['id'], generation['origin_id'], generation_id, record['content_hash'],
+                         encoded(record['payload']).decode())
+                predicate = 'id=%s AND origin_id=%s AND generation_id=%s AND content_hash=%s AND payload=%s::jsonb'
+                # An idempotent retry validates the original receipt without
+                # moving its timestamp or incrementing a cumulative counter.
+                result = connection.execute('UPDATE ops.outbox SET acknowledged_at=%s WHERE ' +
+                    predicate + """ AND acknowledged_at IS NULL RETURNING created_at,
+                       CASE WHEN origin_id=%s AND entity_type='core.protected_evidence'
+                         THEN payload->>'kind'='quote' AND
+                           payload->'payload'->'provenance'->>'feed'='polymarket_us_websocket'
+                         ELSE false END AS display_quote""", (utcnow(), *match, WATCH_ORIGIN)).fetchone()
+                if result is None:
+                    prior = connection.execute('SELECT id FROM ops.outbox WHERE ' +
+                        predicate + ' AND acknowledged_at IS NOT NULL', match).fetchone()
+                    if prior is None:
+                        raise ArchiveIntegrityError('outbox content changed during acknowledgement')
+                    continue
+                newly_acknowledged += 1
+                if result['display_quote']:
+                    quote_created.append(result['created_at'])
                 self._checkpoint(connection, generation, 'structured:' + record['entity_type'],
                                  {'outbox_id': record['id'], 'entity_id': record['entity_id'],
                                   'content_hash': record['content_hash']})
+            if quote_created:
+                add_transitions(connection,generation['origin_id'],quote_created)
+            if newly_acknowledged:
+                # Old generations have no initialized counter. Its absence
+                # represents unknown coverage and must never become a partial total.
+                connection.execute('''UPDATE archive.checkpoints SET
+                    cursor=jsonb_build_object('rows',(cursor->>'rows')::bigint + %s::bigint),acknowledged_at=%s
+                    WHERE origin_id=%s AND generation_id=%s AND consumer='structured:verified-acks-v1' ''',
+                    (newly_acknowledged,utcnow(),generation['origin_id'],generation_id))
 
     @contextmanager
     def retirement(self, generation_id):

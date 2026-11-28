@@ -1,11 +1,12 @@
 """Exact page admission on PostgreSQL 17, including legacy JSONB and retry boundaries."""
+from datetime import datetime, timezone
 from pathlib import Path
 import sys
 import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path[:0] = [str(ROOT/'backend'),str(Path(__file__).parent)]
-from postgres.archive_codec import ArchiveLimit, encoded
+from postgres.archive_codec import ArchiveIntegrityError, ArchiveLimit, encoded
 from postgres.connection import connect
 from postgres.lifecycle import LifecycleRepository
 from postgres.outbox_packing import envelope
@@ -39,6 +40,59 @@ class ExactOutboxPage(unittest.TestCase):
         self.assertEqual(self.repo.outbox(self.generation,50,fits),rows[:30])
         self.repo.acknowledge(self.generation,[envelope(r) for r in rows[:30]])
         self.assertEqual(self.repo.outbox(self.generation,50,fits),rows[30:])
+
+    def test_cumulative_verified_ack_counter_ignores_retries_and_rolls_back(self):
+        def count():
+            with self.admin() as db:
+                return db.execute("""SELECT cursor->>'rows' AS n FROM archive.checkpoints
+                    WHERE origin_id=%s AND generation_id=%s AND consumer='structured:verified-acks-v1'""",
+                    (self.origin,self.generation)).fetchone()['n']
+        rows=[envelope(self.put(key,{'value':key})) for key in ('one','two','three')]
+        self.assertEqual(count(),'0')
+        self.repo.acknowledge(self.generation,rows[:1])
+        self.repo.acknowledge(self.generation,rows[:2])
+        self.assertEqual(count(),'2')
+        with self.assertRaises(ArchiveIntegrityError):
+            self.repo.acknowledge(self.generation,[rows[2],dict(rows[0],content_hash='f'*64)])
+        self.assertEqual(count(),'2')
+        self.assertEqual(self.repo.outbox(self.generation,50,262144)[0]['id'],rows[2]['id'])
+        self.repo.acknowledge(self.generation,rows)
+        self.assertEqual(count(),'3')
+
+    def test_watch_quote_counter_scope_restart_retry_and_other_generation(self):
+        from types import SimpleNamespace
+        from postgres.quote_ack_counter import WATCH_ORIGIN, register
+        from postgres.store import Store
+        self.origin=WATCH_ORIGIN
+        self.generation=self.repo.bootstrap(self.origin)['generation_id']
+        store=Store(SimpleNamespace(environment='preprod',origin_id=self.origin,dsn=self.app_dsn))
+        with self.admin() as db:
+            db.execute("""UPDATE ops.writer_state SET collector_enabled=true,collector_session_id=gen_random_uuid(),
+                   collector_lease_expires_at=now()+interval '10 minutes' WHERE origin_id=%s""",(self.origin,))
+        def quote(key):
+            row=self.put(key,{'kind':'quote','payload':{'provenance':{'feed':'polymarket_us_websocket'}}})
+            with self.admin() as db:
+                return envelope(db.execute("""UPDATE ops.outbox SET entity_type='core.protected_evidence'
+                    WHERE id=%s RETURNING *""",(row['id'],)).fetchone())
+        old=quote('old')
+        first=register(store)
+        received=quote('current')
+        unrelated=envelope(self.put('wrong-kind',{'kind':'quote'}))
+        self.assertEqual(store.archived_quote_count(first),0)
+        self.repo.acknowledge(self.generation,[old,received,unrelated])
+        self.repo.acknowledge(self.generation,[received])
+        self.assertEqual(store.archived_quote_count(first),1)
+        pending_before_restart=quote('previous-pending')
+        restarted=register(store)
+        self.assertIsNone(store.archived_quote_count(first))
+        self.assertEqual(store.archived_quote_count(restarted),0)
+        self.repo.acknowledge(self.generation,[pending_before_restart])
+        self.assertEqual(store.archived_quote_count(restarted),0)
+        with self.repo.transaction() as db:
+            self.generation=self.repo._create(db,self.origin,'B',datetime.now(timezone.utc))['generation_id']
+        another=quote('B-after-restart')
+        self.repo.acknowledge(self.generation,[another])
+        self.assertEqual(store.archived_quote_count(restarted),1)
 
     def test_exact_single_boundary_and_oversized_head_preservation(self):
         row=self.put('large',{'pad':'x'*160_000,'escapes':'"\\\t\n [] , :é','tiny':1e-307})

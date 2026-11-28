@@ -1,0 +1,192 @@
+{
+  "captured_at": "2026-11-28T10:17:52.023748+00:00",
+  "containers": [
+    {
+      "service": "postgres",
+      "id": "1ace5088ce163a581640c214b9b5e03726a54c3f21602f1e8cbaeabd2f0bf2d3",
+      "image": "sha256:40865bc877a289da75963d97d72b59633f639fc5af7a4e856bfa3714cae5b536",
+      "revision": null,
+      "started": "2026-11-25T21:08:32.469460858Z",
+      "restarts": 0,
+      "running": true,
+      "oomkilled": false,
+      "matches_admitted_identity": true
+    },
+    {
+      "service": "operator",
+      "id": "3b83421f67c9b747b7471edfc2bfff725b3c7ab13d966ce88579b8f14591615b",
+      "image": "sha256:a1103ec3ec091e834ea2345504bbd49617c7b3f3af17b87fff596cbe8347da8f",
+      "revision": null,
+      "started": "2026-11-28T07:42:17.619871422Z",
+      "restarts": 0,
+      "running": true,
+      "oomkilled": false,
+      "matches_admitted_identity": true
+    },
+    {
+      "service": "api",
+      "id": "43a03d9d6b5b284d2980b18aed69687c5bde4e5baa9b2312b38b884dbf4ac94d",
+      "image": "sha256:a1103ec3ec091e834ea2345504bbd49617c7b3f3af17b87fff596cbe8347da8f",
+      "revision": null,
+      "started": "2026-11-28T07:42:17.952518532Z",
+      "restarts": 0,
+      "running": true,
+      "oomkilled": false,
+      "matches_admitted_identity": true
+    },
+    {
+      "service": "calculation",
+      "id": "20d973182afbfb72b48fe4720111627ee37c200ce5d3192a6c6d5f20be0c2221",
+      "image": "sha256:a1103ec3ec091e834ea2345504bbd49617c7b3f3af17b87fff596cbe8347da8f",
+      "revision": null,
+      "started": "2026-11-28T07:42:18.620821791Z",
+      "restarts": 0,
+      "running": true,
+      "oomkilled": false,
+      "matches_admitted_identity": true
+    }
+  ],
+  "runtime": {
+    "source_sha": "4741ce097555648dbc903b1c8dae0c87152263bc",
+    "image_id": "sha256:a1103ec3ec091e834ea2345504bbd49617c7b3f3af17b87fff596cbe8347da8f",
+    "state": "ready_off",
+    "initial_a": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "trial_origin": "pp-live-pp-benchmark-watch"
+  },
+  "logs": {
+    "postgres": {
+      "log_lines": 2,
+      "counts": {
+        "checkpoint_end": 1,
+        "checkpoint_start": 1
+      },
+      "events": [
+        {
+          "at": "2026-11-28T09:50:36.117218577Z",
+          "category": "checkpoint_end"
+        },
+        {
+          "at": "2026-11-28T09:51:06.143590856Z",
+          "category": "checkpoint_start"
+        }
+      ],
+      "associated_statements": [],
+      "trace_stages": {},
+      "last_provider_observation": {}
+    },
+    "operator": {
+      "log_lines": 51,
+      "counts": {
+        "ownership_timeout": 1
+      },
+      "events": [
+        {
+          "at": "2026-11-28T09:51:04.539627647Z",
+          "category": "ownership_timeout"
+        }
+      ],
+      "associated_statements": [],
+      "trace_stages": {
+        "writer_sample": 24
+      },
+      "last_provider_observation": {
+        "writer_sample": {
+          "at": "2026-11-28T09:51:01.264949409Z",
+          "received": "2026-11-28T09:51:00.589982+00:00",
+          "commit": "2026-11-28T09:51:01.264127+00:00"
+        }
+      }
+    }
+  },
+  "journal": [
+    {
+      "at": "2026-11-28T09:49:08.786703+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:51:08.779883+00:00"
+    },
+    {
+      "at": "2026-11-28T09:49:25.140696+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:51:25.136482+00:00"
+    },
+    {
+      "at": "2026-11-28T09:49:41.281163+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:51:41.268182+00:00"
+    },
+    {
+      "at": "2026-11-28T09:49:57.003176+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:51:56.998532+00:00"
+    },
+    {
+      "at": "2026-11-28T09:50:13.222170+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:52:13.209905+00:00"
+    },
+    {
+      "at": "2026-11-28T09:50:29.105872+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:52:29.100636+00:00"
+    },
+    {
+      "at": "2026-11-28T09:50:45.013324+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:52:45.001648+00:00"
+    },
+    {
+      "at": "2026-11-28T09:51:03.612437+00:00",
+      "state": "running",
+      "epoch": 8,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease_expires_at": "2026-11-28T09:53:03.485334+00:00"
+    },
+    {
+      "at": "2026-11-28T09:51:35.751975+00:00",
+      "state": "held",
+      "reason": "watch_collector_failure"
+    },
+    {
+      "at": "2026-11-28T09:51:51.733913+00:00",
+      "state": "held",
+      "reason": "watch_collector_failure"
+    }
+  ],
+  "writer": {
+    "origin": "pp-live-pp-benchmark-watch",
+    "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "enabled": false,
+    "session": null,
+    "epoch": 9,
+    "utc": "2026-11-28T10:17:52.824099+00:00",
+    "lease": null,
+    "pending": 0,
+    "hi": 561373,
+    "acks": 235755
+  },
+  "log_interval_utc": [
+    "2026-11-28T09:49:00Z",
+    "2026-11-28T09:52:01Z"
+  ],
+  "specific_failure": {
+    "earliest_logged_ownership_timeout_utc": "2026-11-28T09:51:04.539627647Z",
+    "last_successful_renewal_utc": "2026-11-28T09:51:03.612437+00:00",
+    "lease_valid_until": "2026-11-28T09:53:03.485334+00:00",
+    "available_diagnostics": "No logged PostgreSQL statement cancellation, lock, or role limit. Source maps both the aggregate asyncio two-second ownership deadline and SQLSTATE 57014 to ownership.timeout. The substage cannot be recovered from these logs.",
+    "operator_log_review": "No typed or literal capacity refusal. Unbounded digit match inside a WebSocket session number was excluded."
+  }
+}

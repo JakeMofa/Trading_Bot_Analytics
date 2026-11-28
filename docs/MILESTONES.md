@@ -1,3 +1,22 @@
+## November 28 — Later ownership timeout; current Benchmark OFF
+
+The `.13` short-market test passed, but the collector stopped at 09:51:04 UTC
+with `ownership.timeout` while its lease remained valid until 09:53:03.
+At 10:17:52 UTC, A was epoch 9/OFF with 235,755 verified ACKs and zero pending.
+The same containers remained installed; no recovery or A/B swap was performed.
+
+- [x] Capture fresh dashboard/operator status and bounded native logs.
+- [x] Distinguish this ownership deadline from the fixed status503 expiry bug.
+- [x] Link the [repair and acceptance plan](PLAN/OWNERSHIP_TIMEOUT_RECOVERY_2026-11-28.md)
+  into the master map: diagnostics, bounded control-path repair, native fencing
+  tests, safe adoption, four-hour/24-hour observation, then current-release A/B.
+- [ ] Instrument/reproduce the individual ownership-check timing phases.
+- [ ] Review a bounded fix, qualify recovery and sustained collection.
+- [ ] Prove the current three-feed A/B swap with dashboard/history reads.
+
+[Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--later-ownership-deadline-failure-benchmark-off).
+Earlier success entries below describe their dated acceptance windows.
+
 ## November 28 — Benchmark .13 full-market recovery passed
 
 Current checkpoint: three-source collection remains ON after acceptance.

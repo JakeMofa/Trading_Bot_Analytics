@@ -158,6 +158,11 @@
       <h2 id="feeds-heading">Feed health</h2>
       <div id="feeds-list" class="small muted">Waiting for data.</div>
     </section>
+    <section class="card" id="feed-controls" hidden>
+      <h2>Source controls</h2>
+      <p id="feed-controls-message" role="status"></p>
+      <div id="feed-controls-list"></div>
+    </section>
   </main>
   <section data-page="models" hidden class="card"><h2>Models &amp; decisions</h2><p class="small muted">Baseline from RAM; ensemble migration is unavailable in this milestone. Experimental outputs are unvalidated. No orders are placed.</p><div id="models-list">Waiting for models…</div></section>
   <section data-page="history" hidden>
@@ -431,7 +436,7 @@
       const candleAge = s?.candle_age_seconds == null ? '' : ' (' + Math.round(s.candle_age_seconds) + 's after latest completed minute' + (s.candle_status === 'lagging' ? ', still usable' : '') + ')';
       set('snapshot-age', s ? 'Snapshot ' + age(ageOf(s.as_of)) + ' · price ' + s.price_status + ' from ' + (s.reference_source || 'unknown source').replaceAll('_',' ') + ' · candles ' + s.candle_status + candleAge + (ageOf(s.as_of) <= 90 && remaining > 0 ? '' : ' · STALE') : 'No snapshot for this market yet.');
       const tickAge = t ? ageOf(t.received_at) : null;
-      const tickFresh = tickAge != null && tickAge <= 10 && ageOf(t.source_time) <= 10 &&
+      const tickFresh = latest.feed_controls?.coinbase?.enabled !== false && tickAge != null && tickAge <= 10 && ageOf(t.source_time) <= 10 &&
         (latest.data_mode !== 'pp_live' || latest.collector?.enabled === true);
       const btcFeed = latest.feeds?.find(feed => feed.source === 'coinbase_stream');
       const storageFeed = latest.feeds?.find(feed => feed.source === 'storage_guard');
@@ -441,7 +446,7 @@
       const venueQuoteAge = q ? ageOf(q.source_time) : null;
       const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0
         || (q?.kind === 'live_ws' && (venueQuoteAge == null || venueQuoteAge > 10));
-      const marketQuoteFresh = latest.collector?.enabled === true && m?.active && remaining > 0 && !quoteDelayed;
+      const marketQuoteFresh = latest.feed_controls?.polymarket?.enabled !== false && latest.collector?.enabled === true && m?.active && remaining > 0 && !quoteDelayed;
       const collectionText = storageLimited ? 'Collection paused · storage cap reached'
         : collectionState === 'stopped' ? 'Collection finished · saved data only'
         : marketQuoteFresh && !tickFresh ? 'Polymarket quotes live · Coinbase reference delayed'
@@ -459,7 +464,7 @@
       coinbaseElement.dataset.eventId = t?.event_id || '';
       coinbaseElement.dataset.sourceTime = t?.source_time || '';
       coinbaseElement.dataset.receivedAt = t?.received_at || '';
-      set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
+      set('live-reference-age', t ? (latest.feed_controls?.coinbase?.enabled === false ? 'Paused · last stream tick ' : tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
       const rh = latest.robinhood_reference;
       set('robinhood-price', money(rh?.price_usd));
@@ -469,10 +474,10 @@
       robinhoodElement.dataset.receivedAt = rh?.received_at || '';
       const rhAge = rh ? (now - Date.parse(rh.received_at)) / 1000 : null;
       const rhSourceAge = rh?.source_time ? (now - Date.parse(rh.source_time)) / 1000 : null;
-      const rhFresh = latest.collector?.enabled === true && rhAge >= 0 && rhAge <= 10
+      const rhFresh = latest.feed_controls?.robinhood?.enabled !== false && latest.collector?.enabled === true && rhAge >= 0 && rhAge <= 10
         && rhSourceAge != null && rhSourceAge >= 0 && rhSourceAge <= 10;
       set('robinhood-age', !rh ? 'No Robinhood quote received.' :
-        (rhFresh ? 'Recent' : 'Stale') + ' · PP receipt ' + age(rhAge)
+        (latest.feed_controls?.robinhood?.enabled === false ? 'Paused' : rhFresh ? 'Recent' : 'Stale') + ' · PP receipt ' + age(rhAge)
         + (rhSourceAge == null ? ' · provider time unavailable' : ' · Robinhood retrieval ' + age(rhSourceAge))
         + (rh.book_status === 'crossed' ? ' · crossed book' : rh.price_usd == null ? ' · midpoint unavailable' : ''));
       const delta = rhFresh && rh?.price_usd != null ? rh.movement?.delta_usd : null;
@@ -494,10 +499,10 @@
         venueElement.dataset.receivedAt = venue?.received_at || '';
       }
       const venueAge = venue ? (now - Date.parse(venue.source_time)) / 1000 : null;
-      const usable = venue?.status === 'fresh' && venueAge >= 0 && venueAge <= 10;
+      const usable = latest.feed_controls?.polymarket?.enabled !== false && venue?.status === 'fresh' && venueAge >= 0 && venueAge <= 10;
       const distance = usable && m?.active && remaining > 0 && m.target_usd != null && venue.price_usd != null
         ? Number(venue.price_usd) - Number(m.target_usd) : null;
-      set('venue-distance', !venue ? 'Reference unavailable' : (usable ? 'Updated ' : 'Stale · ') + age(venueAge)
+      set('venue-distance', !venue ? 'Reference unavailable' : (latest.feed_controls?.polymarket?.enabled === false ? 'Paused · last update ' : usable ? 'Updated ' : 'Stale · ') + age(venueAge)
         + (distance == null ? '' : ' · ' + money(Math.abs(distance)) + (distance < 0 ? ' below target' : distance > 0 ? ' above target' : ' from target')));
       set('market-up', cents(q?.best_bid));
       set('market-down', cents(q?.best_ask));
@@ -627,7 +632,65 @@
         : 'LiveState checked ' + age(checkedAge));
       updateChartSummary();
     }
+    const controlOrigin = 'pp-live-pp-benchmark-watch';
+    const privateOperator = 'http://127.0.0.1:18434';
+    const localControls = location.origin === 'http://127.0.0.1:18433';
+    const secretFragment = new URLSearchParams(location.hash.slice(1));
+    let feedGrant = localControls ? secretFragment.get('feed_session') : null;
+    if (secretFragment.has('feed_session')) history.replaceState(null,'',location.pathname+location.search);
+    const controlNames = {polymarket:'Polymarket',coinbase:'Coinbase',robinhood:'Robinhood'};
+    const controlsPending = new Set();
+    let controlsMessage = '';
+    function renderFeedControls(data) {
+      const card=byId('feed-controls');
+      card.hidden=data.origin_id!==controlOrigin;
+      if (card.hidden) return;
+      if (feedGrant && !(Number(feedGrant.split('.')[0])*1000>Date.now())) {
+        feedGrant=null; controlsMessage='Private control session expired. Open a new operator session to make changes.';
+      }
+      set('feed-controls-message',controlsMessage || (feedGrant ? 'Private source controls unlocked.' :
+        'Monitoring only. Open a private Benchmark control session to pause or resume a source.'));
+      const target=byId('feed-controls-list');
+      for (const [feed,name] of Object.entries(controlNames)) {
+        let row=byId('feed-control-'+feed);
+        if (!row) {
+          row=document.createElement('p'); row.id='feed-control-'+feed;
+          const status=document.createElement('span'), button=document.createElement('button');
+          button.type='button'; button.onclick=()=>changeFeed(feed);
+          row.append(status,' ',button); target.append(row);
+        }
+        const [status,button]=row.children, current=data.feed_controls?.[feed];
+        const actual=current?Object.entries(current.components).map(([k,v])=>k.replaceAll('_',' ')+' '+v).join(', '):'unknown';
+        status.textContent=name+' · '+(current ? (current.enabled?'enabled':'pause requested') : 'state unavailable')+' · '+actual;
+        button.textContent=(current?.enabled===false?'Resume ':'Pause ')+name;
+        button.disabled=!localControls || !feedGrant || !current || controlsPending.has(feed);
+      }
+    }
+    async function changeFeed(feed) {
+      const current=latest?.feed_controls?.[feed];
+      if (!current || !feedGrant || !localControls || controlsPending.has(feed)) return;
+      controlsPending.add(feed); renderFeedControls(latest);
+      try {
+        const response=await fetch(privateOperator+'/collector/feeds/'+feed,{method:'PUT',mode:'cors',
+          credentials:'omit',redirect:'error',cache:'no-store',
+          headers:{'Content-Type':'application/json',Authorization:'Bearer '+feedGrant},
+          body:JSON.stringify({enabled:!current.enabled,revision:current.revision}),
+          signal:AbortSignal.timeout(5000)});
+        if (response.status===401) {feedGrant=null; throw Error('Private control session expired.');}
+        if (response.status===409) throw Error('The source changed in another session. Check its current state.');
+        if (!response.ok) throw Error('The source change was not confirmed.');
+        const state=await response.json();
+        if (state.origin!==controlOrigin || state.feed!==feed || state.enabled===current.enabled)
+          throw Error('The source change was not confirmed.');
+        controlsMessage=controlNames[feed]+(state.enabled?' resume':' pause')+' request saved.';
+        if(latest?.origin_id===state.origin)latest.feed_controls[feed]=state;
+      } catch(error) {
+        controlsMessage=(error instanceof TypeError ? 'Private operator connection unavailable.' : error.message);
+      } finally {controlsPending.delete(feed); if(latest)renderFeedControls(latest);}
+    }
+
     function render(data) {
+      renderFeedControls(data);
       const m = data.market, s = data.snapshot, f = data.forecast;
       set('market-state', m ? (m.status || 'unknown').replaceAll('_', ' ') : 'No active market observed');
       set('target', m && m.target_usd == null ? 'Pending' : money(m?.target_usd));
@@ -771,7 +834,7 @@
           : 'Rolling window unknown · waiting for a current database sample';
       }
       latest = {...savedContext, market:state.market, generated_at:state.generated_at,
-        data_mode:state.data_mode, collector:state.collector, origin_id:state.origin_id,
+        data_mode:state.data_mode, collector:state.collector, origin_id:state.origin_id, feed_controls:state.feed_controls,
         live_estimate_status:state.live_estimate_status, saved_prediction:state.saved_prediction,
         snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status, candle_age_seconds:feature.quality?.candle_age_seconds, reference_source:feature.quality?.price?.source} : null,
         forecast:ensemble || state.forecast, baseline_forecast:state.forecast, live_estimate:state.live_estimate,

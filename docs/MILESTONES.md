@@ -1,3 +1,11 @@
+## November 27 — Sustained collection and archive capacity in progress
+
+The next authorized checkpoint enables sustained three-source Benchmark
+collection, tests exact-byte archive packing and audits active-window,
+freshness and backlog alerts. Short live storage tests passed. Long-volume
+72-hour retirement and combined-release A/B acceptance still need proof.
+[Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
+
 ## November 27 — Robinhood and three-feed live acceptance passed
 
 Benchmark .6 displayed Coinbase, Polymarket US and Robinhood simultaneously.
@@ -1401,3 +1409,13 @@ planning on a disposable table with 2,000,000 acknowledged rows and nine
 pending rows. It visited nine outbox index entries and looked up one generation
 ACK checkpoint by its primary key. The missing historical counter returned
 unknown. [Query plan](PLAN/evidence/pp-benchmark-telemetry-pending-index-2026-11-27.json).
+
+### Independent Benchmark feed controls
+
+The continuous Benchmark profile has private per-source pause/resume commands.
+Read-only viewers see durable preference and worker state. The operator's browser
+holds a 30-minute source-only grant. Preferences survive session restart and
+A/B changes. A paused model input suppresses the live estimate. Implementation
+tests cover command scope, compare-and-set, and stale worker status. Integrated
+live checks must show both other sources still advancing through PostgreSQL and
+Supabase during each pause. [Private controls](../deploy/preprod/BENCHMARK_FEED_CONTROLS.md).

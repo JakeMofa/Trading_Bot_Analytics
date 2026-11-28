@@ -19,6 +19,7 @@ class LiveState:
         self.first_quote_signal = asyncio.Event()
         self._display = None
         self._archived = None
+        self.feed_controls = None
         self._robinhood = None
         self._quote = None
         self._snapshot = None
@@ -221,6 +222,12 @@ class LiveState:
                 live_status = 'no_active_market'
             elif self.settings.data_mode == 'pp_live' and self._collector['enabled'] is not True:
                 live_status = 'collector_off' if self._collector['enabled'] is False else 'collector_state_unknown'
+            elif self.settings.origin_id=='pp-live-pp-benchmark-watch' and self.feed_controls is None:
+                live_status = 'feed_state_unknown'
+            elif self.feed_controls and not self.feed_controls['coinbase']['enabled']:
+                live_status = 'coinbase_paused'
+            elif self.feed_controls and not self.feed_controls['polymarket']['enabled']:
+                live_status = 'polymarket_paused'
             elif not price:
                 live_status = 'missing_coinbase_tick'
             elif not 0 <= (now-timestamp(price['source_time'])).total_seconds() <= 10:
@@ -261,6 +268,7 @@ class LiveState:
                 latest_saved = None
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
+                    'feed_controls': deepcopy(self.feed_controls),
                     'robinhood_reference': deepcopy(self._robinhood),
                     'polymarket_reference': reference, 'rolling_window': deepcopy(self.benchmark_window), 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,

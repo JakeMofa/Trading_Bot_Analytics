@@ -91,13 +91,18 @@ def create_app(settings=None, store=None, state=None, *, history=None,
                     state.storage_status('unavailable')
             await asyncio.sleep(.5)
 
+    from .feed_controls import ORIGIN as WATCH_ORIGIN, read_controls
+
     async def monitor_collector():
         while True:
             try:
                 enabled = await asyncio.to_thread(store.collector_enabled)
                 state.collector_status(enabled if type(enabled) is bool else None)
+                if settings.origin_id == WATCH_ORIGIN:
+                    state.feed_controls = await asyncio.to_thread(read_controls,store)
             except Exception:
                 state.collector_status(None)
+                state.feed_controls = None
             await asyncio.sleep(1)
 
     async def monitor_archived_quotes():

@@ -6,11 +6,66 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--three-btc-feeds-saved-and-displayed-on-benchmark)
+- [Current PP checkpoint](#november-27-2026--sustained-benchmark-collection-and-archive-capacity)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Sustained Benchmark collection and archive capacity
+
+The user authorized continuous three-source Benchmark collection, continued
+PostgreSQL/Supabase verification, the archive batching fix and preparation
+for 72-hour A/B rotation. The previous .6 run is OFF, fully archived and
+preserved. Start from its measured results below.
+
+| Workstream | Owner | Required outcome |
+| --- | --- | --- |
+| Benchmark runtime | Acceptance agent | Qualify a continuous profile, enable the three feeds, preserve retained generations and show actual ON state |
+| Archive capacity | History agent | Pack actual encoded pages within the existing byte ceiling, preserve full verification and measure throughput against identical records |
+| Monitoring | Dashboard agent | Verify source freshness, collection progress, active A/B slot, ACK/backlog and resource metrics; identify and implement meaningful alert coverage |
+| Readiness and roadmap | Main agent | Keep the measured results and unresolved 72-hour/production requirements in this checkpoint |
+
+Confirm sustained archive throughput exceeds actual arrivals with margin.
+The full-market baseline was 18.37 arriving rows/s and 17.08 verified/s.
+Compare batching SQL/transfer/verification and exact stored identities under
+collection. Retained A/B remain intact.
+
+A prior PP32 trial proved two 30-minute windows with physical retirement and
+successor collection. The new 4 GB three-feed release still needs its combined
+rotation acceptance. A 72-hour window also needs a volume-aware verification
+strategy: the old short-window readbacks took about 225 seconds against the
+240-second budget. The current retirement proof also permits 192 requests
+and 128 MiB total. At the .4 observed rate, a 72-hour slot projects about
+4.57 million structured records, roughly 9,142 500-row pages, plus raw readback.
+The raw physical partition alone projects about 10.13 GiB per slot; outbox,
+other indexes, WAL and bloat are additional. These estimates do not establish
+capacity. Long-window retirement requires separately resumable proof bound
+to exact origin, sealed inventory and hosted versions, followed by fresh
+authenticated checks before removal.
+
+Keep PP and production origins and credentials isolated. Verify duplicate
+identity rules for any future combined PP/production research reader. The
+Robinhood addition uses existing raw/protected-evidence tables and the existing
+history archive. It does not activate new model inputs.
+
+The user also authorized individual source pause/resume controls and deployments
+that preserve collection. Source desired state must survive process restarts;
+a source pause must affect only that source. Source failures need bounded
+retry/recovery and stale-input reporting, with shared database/storage safety
+handled explicitly. Alert freshness must distinguish a user-paused feed.
+
+The current full CD implementation calls a writer fence and migrations.
+Implement and test an independent compatible API/dashboard deployment path
+that leaves collector ownership and processes intact. Collector-code changes
+need a separately qualified staged handoff with duplicate protection and
+continuity evidence. Report external feed outages or disk/database failures
+honestly; these prevent an absolute availability guarantee.
+
+Run the live observer and capture PostgreSQL commit and independent hosted
+readback throughout collection. Report any source stalls, queue growth,
+rotation failures and alert delivery gaps. Preserve each source's timestamp
+meaning. Production promotion remains a later checkpoint after PP acceptance.
 
 ## November 27, 2026 — Three BTC feeds saved and displayed on Benchmark
 

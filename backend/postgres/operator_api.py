@@ -14,7 +14,7 @@ from fastapi import FastAPI, Header, HTTPException, Query
 from .operator_session import SessionBusy, SessionStopUnproven
 
 
-def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None, max_session_seconds=4560, required_session_seconds=None):
+def create_operator_app(repository, *, origin_id: str, token: str, session=None, status_repository=None, feed_store=None, max_session_seconds=4560, required_session_seconds=None):
     if not origin_id.startswith('pp-live-') or len(origin_id) <= len('pp-live-'):
         raise ValueError('operator origin must be a distinct PP live origin')
     if not isinstance(token, str) or len(token) < 32 or len(token) > 256 or not token.isascii():
@@ -37,6 +37,12 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
         if len(candidate) != len(secret) or not hmac.compare_digest(candidate, secret):
             raise HTTPException(401, 'operator authentication required',
                                 headers={'WWW-Authenticate': 'Bearer'})
+
+    if feed_store is not None:
+        from .feed_control_routes import install
+        if feed_store.origin != origin_id:
+            raise ValueError('feed control origin mismatch')
+        install(app, feed_store, token, require_operator)
 
     @app.get('/collector/status')
     async def status(authorization: str | None = Header(default=None)):

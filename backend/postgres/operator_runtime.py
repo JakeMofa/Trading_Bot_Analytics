@@ -169,7 +169,10 @@ def create_runtime(environ=None, *, secret_dir=Path('/run/secrets'), expected_ui
                     **({'diagnostic_anchor': diagnostic_anchor} if diagnostic_anchor else {}),
                     **({'rehearsal_window_seconds': elapsed_cycle} if elapsed_cycle is not None else {}))
     required_seconds = boundary_lease_seconds(origin) if diagnostic_anchor else lease_cap(anchor) if anchor else None
-    return create_operator_app(repository, origin_id=origin, token=token,
+    from .feed_controls import ORIGIN as WATCH_ORIGIN
+    feed_store = Store(Settings(environment='preprod', data_mode='pp_live', origin_id=origin, dsn=app_dsn)
+                       ) if session and origin == WATCH_ORIGIN else None
+    return create_operator_app(repository, origin_id=origin, token=token, feed_store=feed_store,
                                session=session, status_repository=status_repository,
                                max_session_seconds=required_seconds or lease_cap(anchor),
                                required_session_seconds=required_seconds)

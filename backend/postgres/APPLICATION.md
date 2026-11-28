@@ -106,3 +106,28 @@ supplies its origin's SELECT-only session DSN at
 `/run/secrets/pp_prediction_history_reader_dsn` and pinned certificate at
 `/run/secrets/pp_history_ca`. The existing hosted role and TLS checks run per
 request. Local reads work with the reader disabled.
+
+### Robinhood BTC/USD quote observer
+
+An isolated comparison process uses the official Robinhood Crypto v2 best
+bid/ask GET for BTC-USD. The sample contains Robinhood's bid and ask, their
+arithmetic midpoint for an uncrossed book, local request and receipt times in
+UTC, and HTTP duration. Crossed books retain both prices with an explicit
+status and an empty midpoint. The documented v2 schema lists symbol, bid and
+ask. An authenticated response also supplied a nanosecond timestamp. Preserve
+it as `provider_timestamp`; its meaning is undocumented. Age since PP receipt measures
+the observer's handling of that response. Exchange-to-PP delay remains unknown. The midpoint is an auxiliary reference for comparison with the
+Polymarket BTC index and Coinbase. [Official v2 market-data schema](https://docs.robinhood.com/crypto/trading/#operation/api_v2_crypto_marketdata_best_bid_ask).
+
+With an authorized quote-reading key supplied to the observer process as
+`ROBINHOOD_API_KEY` and `ROBINHOOD_PRIVATE_KEY` (a base64 32-byte Ed25519
+seed), run from the backend directory:
+
+```sh
+python -m postgres.robinhood_quote_observer --duration-seconds 60 --interval-seconds 5
+```
+
+The CLI emits JSON lines. It polls one endpoint, disables redirects, reuses one
+connection pool, honors 429 backoff and stops immediately on 401/403. The
+default cadence sends up to twelve requests per minute. The observer has no
+database, order, or calculation path.

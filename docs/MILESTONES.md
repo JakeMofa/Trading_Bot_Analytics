@@ -21,6 +21,16 @@ Coinbase buffering and publication of the newest Polymarket index bucket
 before its write. Live VM source age and outbox lag remain to be measured.
 [Experiment and live measures](PLAN/PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md#november-27--bounded-feed-writers-on-disposable-postgresql-17).
 
+### Auxiliary Robinhood BTC/USD quote reader
+
+Three signed Robinhood Crypto v2 BTC-USD GETs returned prices on the 4 GB
+Benchmark while its collector was off, November 28 02:36 UTC. HTTP round trips
+were 163.211 ms, 27.181 ms and 31.252 ms. All three responses had a higher bid
+than ask, including 59,950.81 / 59,950.75. Those samples retain both prices and
+a crossed-book flag with an empty midpoint. The responses also supplied a
+provider timestamp outside the published schema. Its exchange-time meaning is
+unknown. No prediction consumed these quotes. [Observer contract](../backend/postgres/APPLICATION.md#robinhood-btcusd-quote-observer).
+
 ### Dashboard model readouts
 
 The Market view now keeps the latest local decision for the same market alongside

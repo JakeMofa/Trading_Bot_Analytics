@@ -21,6 +21,11 @@ the reference once and verified its local hash and acknowledged structured
 archive envelope using the fixture transport. Hosted verification remains
 pending. [Implementation](https://github.com/JakeMofa/Trading_Bot_Analytics/pull/227)
 
+For a previously archived live-origin snapshot, Benchmark PostgreSQL and
+Supabase returned identical feature values, quality, evidence and linked IDs
+and hashes. The original Gaussian baseline replayed to 0.47708578418299974 on
+each copy, matching the saved prediction. [Read-only replay evidence](PLAN/evidence/pp-benchmark-hosted-baseline-replay-2026-11-27.json).
+
 ## November 25, 2026 CST — 4 GB Benchmark single rollover passed
 
 The 3:45 p.m. CST BTC 15-minute rollover passed on

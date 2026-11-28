@@ -1,0 +1,36 @@
+{
+  "market_id": "2878190",
+  "snapshot_id": "437941aa5f483b683930f02c9cbf89ad7ef8ba25d16b730bd6e63f12f5a02dd5",
+  "decision_epoch": "1795551339.605680",
+  "content_hash": "3ee28770e7a93c982522b1e81765a64c631928779254dc41bdf0c068836c5d6f",
+  "input_links": [
+    [
+      "68467cdf28747aef2946e4734a6c95e2921886ee48328fa4a31b4ad4b2ef9927",
+      "c346707626f57d3508e083ab64597882564ac73fe5854070c36a2b370e109963"
+    ],
+    [
+      "75eadb4a9ff0d04e4cebee40135d8806919283e2ddc3be80fbe3d7d772ff6b34",
+      "219f10d9ba952c567ad9f87ffba6c9a7edf6aa8e3769ed64afb32b221078b5d8"
+    ]
+  ],
+  "saved_up": "0.47708578418299974",
+  "model": "gaussian_distance_v1",
+  "origin": "pp-live-pp-boundary-20261124-01",
+  "source_generation": "0c94ceac-c645-4684-b10d-7af0a0c3c533",
+  "source_outbox_id": 282426,
+  "local_replay_up": 0.47708578418299974,
+  "hosted_replay_up": 0.47708578418299974,
+  "compared_fields": [
+    "snapshot_id",
+    "market_id",
+    "decision_epoch",
+    "content_hash",
+    "values_json",
+    "quality_json",
+    "evidence_json",
+    "input_links",
+    "saved_up"
+  ],
+  "matched": true,
+  "method": "Read one live-origin snapshot and saved prediction from the 4 GB Benchmark PostgreSQL reader and the same snapshot from private Supabase history_v2. Compared decoded values, quality, evidence, sorted protected input identities and hashes, decision time and saved probability. Ran postgres.calculation.baseline independently on both snapshots. This checks archived feature-input parity, without removing local data or rebuilding features from raw ticks."
+}

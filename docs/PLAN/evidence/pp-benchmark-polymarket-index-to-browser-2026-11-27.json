@@ -1,0 +1,23 @@
+{
+  "origin_id": "pp-live-pp-display-20261127-02",
+  "market_id": "2980113",
+  "boundary_utc": "2026-11-28T03:00:00+00:00",
+  "clock_offset_ms": {
+    "min_offset_ms": 73.02099609375,
+    "max_offset_ms": 116.900146484375
+  },
+  "source_to_matching_browser_ms_lower": {
+    "n": 860,
+    "median": 1813.52099609375,
+    "p95": 2265.02099609375,
+    "maximum": 4042.02099609375,
+    "under_or_equal_2s": 657
+  },
+  "source_to_matching_browser_ms_upper": {
+    "n": 860,
+    "median": 1857.400146484375,
+    "p95": 2308.900146484375,
+    "maximum": 4085.900146484375,
+    "under_or_equal_2s": 617
+  }
+}

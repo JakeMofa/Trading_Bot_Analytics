@@ -1,0 +1,61 @@
+{
+  "dashboard": "https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability",
+  "panel": "BTC reference age by source",
+  "origin": "pp-live-pp-display-20261127-03",
+  "generation": "62b2331c-f44e-4396-b1af-0607a8957fcb",
+  "observed_utc": "2026-11-28T03:36:38.467444+00:00",
+  "inspector_dataframe_legends": [
+    "coinbase \u00b7 pp_receipt",
+    "polymarket \u00b7 pp_receipt",
+    "robinhood \u00b7 pp_receipt",
+    "coinbase \u00b7 provider",
+    "polymarket \u00b7 provider",
+    "robinhood \u00b7 provider"
+  ],
+  "joined_inspector_visible_row_utc": "2026-11-28T03:36:00Z",
+  "four_columns_in_viewport_seconds": {
+    "coinbase_pp_receipt": 1.02,
+    "polymarket_pp_receipt": 0.365,
+    "robinhood_pp_receipt": 0.851,
+    "coinbase_provider": 1.03
+  },
+  "fresh_remote_write_sample": [
+    {
+      "source": "robinhood",
+      "basis": "provider",
+      "age_s": 0.536,
+      "sample_at": 1795836992.626886
+    },
+    {
+      "source": "robinhood",
+      "basis": "pp_receipt",
+      "age_s": 0.522,
+      "sample_at": 1795836992.626886
+    },
+    {
+      "source": "coinbase",
+      "basis": "provider",
+      "age_s": 0.846,
+      "sample_at": 1795836992.626886
+    },
+    {
+      "source": "coinbase",
+      "basis": "pp_receipt",
+      "age_s": 0.836,
+      "sample_at": 1795836992.626886
+    },
+    {
+      "source": "polymarket",
+      "basis": "provider",
+      "age_s": 1.626,
+      "sample_at": 1795836992.626886
+    },
+    {
+      "source": "polymarket",
+      "basis": "pp_receipt",
+      "age_s": 0.222,
+      "sample_at": 1795836992.626886
+    }
+  ],
+  "remote_write_http_status": 200
+}

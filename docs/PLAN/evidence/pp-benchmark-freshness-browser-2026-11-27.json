@@ -1,0 +1,75 @@
+{
+  "origin": "pp-live-pp-display-20261127-02",
+  "boundary": "2026-11-28T03:00:00+00:00",
+  "markets": [
+    "2980113"
+  ],
+  "normal_sse_messages": 4377,
+  "unexpected_origin_messages": 0,
+  "clock_survey_best": {
+    "min_offset_ms": 73.02099609375,
+    "max_offset_ms": 116.900146484375
+  },
+  "index": {
+    "distinct_first_sse_updates": 860,
+    "two_frame_exact_event_time_value_matches": 860,
+    "source_to_collector_receipt_ms": {
+      "n": 860,
+      "median": 1620.91,
+      "p95": 2023.69,
+      "max": 3814.58
+    },
+    "receipt_to_first_observed_sse_emission_ms": {
+      "n": 860,
+      "median": 146.18,
+      "p95": 257.11,
+      "max": 415.81
+    },
+    "sse_emission_intervals_ms": {
+      "n": 859,
+      "median": 1014.29,
+      "p95": 1389.08,
+      "max": 2877.92
+    },
+    "browser_receive_to_two_frames_ms": {
+      "n": 860,
+      "median": 12.0,
+      "p95": 25,
+      "max": 34
+    },
+    "receipt_to_two_frame_render_ms_lower": {
+      "n": 860,
+      "median": 187.5,
+      "p95": 318.37,
+      "max": 481.93
+    },
+    "receipt_to_two_frame_render_ms_upper": {
+      "n": 860,
+      "median": 231.38,
+      "p95": 362.25,
+      "max": 525.8
+    }
+  },
+  "predictions": {
+    "samples": 175,
+    "samples_with_saved_identity": 174,
+    "exact_rendered_saved_time_and_provenance_samples": 174,
+    "distinct_rendered_saved_ids": 170,
+    "distinct_saved_abstentions": {
+      "reference_price_not_fresh": 2,
+      "completed_candles_missing_or_stale": 3
+    },
+    "distinct_saved_numeric": 165,
+    "sampled_live_states": {
+      "missing_feature_snapshot": 1,
+      "ready": 167,
+      "completed_candles_missing_or_stale": 7
+    },
+    "live_numeric_shown_when_ready": 167,
+    "ready_numeric_samples": 167,
+    "no_live_number_when_stale": 8,
+    "suppressed_samples": 8,
+    "explicit_paid_ai_disabled": 175
+  },
+  "method": "Same normal stream and browser. A match requires event ID, source and receive times, visible quote value, and two frames in Market. First observed SSE emission bounds API availability. Cross-clock estimates use best observed NTP-independent request interval. Decision counts are sampled screen states and unique observed IDs, not all database records."
+}

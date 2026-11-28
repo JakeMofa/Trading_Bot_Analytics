@@ -1,0 +1,19 @@
+{
+  "origin": "pp-live-pp-display-20261127-03",
+  "generation": "62b2331c-f44e-4396-b1af-0607a8957fcb",
+  "event_id": "rh-v1-955abb6e7d5cb739e8938480eaef68180f05cff29365b707a6c095e8dc539607",
+  "release": "d3088b2fa1389b59682d5907c154b3c03184783c",
+  "local_content_hash": "9d269e078e2e46490dc9a70d17aec6be6629b648434e965a29698ddf91e7ff79",
+  "envelope_sha256": "1c255deacb35a61d475a35ff0218165dcdb8d26ff75d1d1d6f948a2a4091b887",
+  "outbox_id": 321994,
+  "bid": "59335.83287263",
+  "ask": "60450.1597591",
+  "provider_price": "59892.996315865",
+  "book_status": "two_sided",
+  "price_usd": "59892.996315865",
+  "source_time": "2026-11-28T03:35:31.4748979Z",
+  "received_at": "2026-11-28T03:35:31.515892+00:00",
+  "hosted_verified_ack": "2026-11-28T03:35:37.325064+00:00",
+  "independent_readback_at": "2026-11-28T03:38:39.547075+00:00",
+  "all_three_fresh": true
+}

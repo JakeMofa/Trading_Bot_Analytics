@@ -1,0 +1,53 @@
+{
+  "first_sample": 1795836936.262945,
+  "last_sample": 1795837069.750398,
+  "active_sample_count": 10,
+  "arrivals": 2569,
+  "acked": 2529,
+  "seconds": 133.4874529838562,
+  "arrival_s": 19.24525446081207,
+  "ack_s": 18.945600829658904,
+  "pending_delta": 40,
+  "max_pending": 260,
+  "max_age_s": 11.133926,
+  "final_outbox": {
+    "total": 2915,
+    "pending": 0,
+    "acked": 2915,
+    "lease_count": 0,
+    "raw_by_source_kind": [
+      {
+        "source": "polymarket_us",
+        "kind": "price",
+        "n": 166
+      },
+      {
+        "source": "polymarket_us",
+        "kind": "market",
+        "n": 6
+      },
+      {
+        "source": "coinbase",
+        "kind": "price",
+        "n": 960
+      },
+      {
+        "source": "robinhood_crypto",
+        "kind": "reference_quote",
+        "n": 152
+      },
+      {
+        "source": "polymarket_us",
+        "kind": "quote",
+        "n": 1439
+      },
+      {
+        "source": "coinbase",
+        "kind": "candle",
+        "n": 19
+      }
+    ]
+  },
+  "durable_off_timestamp": 1795837096.71936,
+  "first_sampled_drained_after_off_s": 7.5176379680633545
+}

@@ -1,0 +1,16 @@
+{
+  "method": "Manually read Grafana Inspector Data from the saved TokenBot observability dashboard, five-minute range. Numeric query series are minute evaluations; compare with the 15-second source sampler separately.",
+  "url": "https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability",
+  "market_window_start_utc": "2026-11-28T03:00:00Z",
+  "matched_evaluation_utc": "2026-11-28T03:01:00Z",
+  "supabase_scrape_up": 1,
+  "supabase_sql_statements_per_second": 38.0,
+  "supabase_sql_execution_ms_per_second": 12.2,
+  "supabase_pgbouncer_database_connections": 1,
+  "supabase_disk_read_plus_write_operations_per_second": 37.7,
+  "pp_verified_ack_rows_per_second": 15.4,
+  "pp_oldest_pending_seconds": 3.83,
+  "pp_pending_rows": 56,
+  "pp_collector_status_utc": "2026-11-28T03:02:03Z",
+  "pp_collector_status": "ON"
+}

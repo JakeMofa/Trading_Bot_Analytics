@@ -49,7 +49,31 @@ postmaster=$(head -n1 "$PGDATA/postmaster.pid")
 case "$postmaster" in ''|*[!0-9]*) exit 75;; esac
 master_birth=$(process_birth "$postmaster")
 case "$master_birth" in ''|*[!0-9]*) exit 75;; esac
-children() { cat "/proc/$postmaster/task/$postmaster/children"; }
+children() {
+    # The kernel's task/children listing can omit a surviving child when a
+    # sibling exits during traversal. Enumerate PID directories instead. The
+    # frontend has exited before the cleanup scan, so a surviving authenticated
+    # backend is already present. Refuse an incomplete procfs observation.
+    local file pid stat tail parent ticks
+    [ -r /proc/self/stat ] && [ -r /proc/1/stat ] || return 1
+    for file in /proc/[0-9]*/stat; do
+        pid=${file#/proc/}
+        pid=${pid%/stat}
+        if ! { IFS= read -r stat <"$file"; } 2>/dev/null; then
+            [ ! -d "/proc/$pid" ] && continue
+            return 1
+        fi
+        tail=${stat##*) }
+        set -- $tail
+        parent=${2:-}
+        ticks=${20:-}
+        case "$parent" in ''|*[!0-9]*) return 1;; esac
+        case "$ticks" in ''|*[!0-9]*) return 1;; esac
+        if [ "$parent" = "$postmaster" ] && [ "$1" != Z ]; then
+            printf '%s\n' "$pid"
+        fi
+    done
+}
 # If startup is interrupted before pg_backend_pid() returns, an authenticated
 # client can still exist. Keep possible new postmaster children excluded; no
 # query other than the PID handshake has been supplied at that point.

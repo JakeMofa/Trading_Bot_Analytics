@@ -345,7 +345,7 @@ class ContainerOutboxChannelTests(unittest.TestCase):
 
         with psycopg.connect(os.environ['TRADEBOT_TEST_HISTORY_V2_DSN'],autocommit=True) as admin:
             admin.execute('SELECT pg_advisory_lock(%s)',(key,))
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                 pending=pool.submit(blocked)
                 try:
                     deadline=time.monotonic()+6
@@ -356,6 +356,17 @@ class ContainerOutboxChannelTests(unittest.TestCase):
                         self.assertLess(time.monotonic(),deadline)
                         time.sleep(.025)
                     pid=row[0]
+                    # Churn unrelated sibling backends while the unregistered
+                    # login stays alive. The Linux task/children traversal is
+                    # specifically unreliable during concurrent child exits.
+                    def churn_siblings():
+                        n=0
+                        until=time.monotonic()+2
+                        while time.monotonic()<until:
+                            with psycopg.connect(os.environ['TRADEBOT_TEST_HISTORY_V2_DSN']):
+                                n+=1
+                        return n
+                    churn=pool.submit(churn_siblings)
                     # Deliberately suspend the disposable login's server process
                     # and remove psql before checking exclusion. A lock merely
                     # inherited by the frontend would reopen here.
@@ -368,6 +379,7 @@ class ContainerOutboxChannelTests(unittest.TestCase):
                     conflict=subprocess.run(['docker','exec',container,'flock','-n','-E','75','-F',
                                               WATCH_DIAGNOSTIC_LOCK,'true'],timeout=3)
                     self.assertEqual(conflict.returncode,75)
+                    self.assertGreater(churn.result(timeout=4),1)
                 finally:
                     if 'pid' in locals():
                         subprocess.run(['docker','exec',container,'sh','-ec',

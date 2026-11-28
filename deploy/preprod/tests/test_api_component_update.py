@@ -72,3 +72,71 @@ class APIComponentDelivery(unittest.TestCase):
             switch(ctx, active, Mock(), Mock(), {'api_image': 'broken-api'}, None, probe=api)
         self.assertFalse((directory / 'benchmark-api-component.json').exists())
         self.assertEqual(calls, ['broken-api', 'base'])
+
+    def test_independent_renewals_span_failed_switch_and_full_rollback(self):
+        from threading import Condition
+        from api_component_update import continued_renewal
+
+        changed = Condition()
+        current, expires, pulses = 0, 85, 0
+
+        def renew():
+            nonlocal expires, pulses
+            with changed:
+                self.assertLess(current, expires)
+                expires = current + 120
+                pulses += 1
+                changed.notify_all()
+            return True
+
+        with continued_renewal(renew, needed=True, interval=0.001):
+            # Advance a controlled database clock through an exchange that takes
+            # all 55 seconds, a 40-second rollback, and its final checks.
+            for second in (12, 24, 36, 48, 55, 67, 79, 91, 95, 107, 119, 120):
+                with changed:
+                    current = second
+                    prior = pulses
+                    self.assertTrue(changed.wait_for(lambda: pulses > prior, 1))
+                    self.assertLess(current, expires)
+        self.assertGreaterEqual(pulses, 13)
+
+    def test_explicit_off_before_or_during_recovery_does_not_start_writer(self):
+        from unittest.mock import patch
+        from api_component_update import continued_renewal, renew_existing
+
+        document = json.dumps({'state': 'armed', 'binding': {'nonce': 'same'}}).encode()
+        with (
+            patch('api_component_update.INTENT') as intent,
+            patch('api_component_update._secure_file', return_value=(document, None)),
+            patch('api_component_update.binding', return_value={'nonce': 'same'}),
+            patch('api_component_update.token', return_value='test'),
+            patch('api_component_update._operator') as operator,
+            patch('api_component_update.recurring_control') as worker,
+        ):
+            intent.exists.return_value = True
+            operator.return_value = {
+                'origin_id': 'pp-live-pp-benchmark-watch',
+                'watch_explicit_off': True,
+                'collector_enabled': False,
+                'process_running': False,
+            }
+            with continued_renewal(lambda: renew_existing({'source_sha': 'shared'}), needed=False):
+                pass
+            operator.assert_called_once_with('test', '/collector/status')
+            worker.assert_not_called()
+
+        from threading import Event
+
+        stopped = Event()
+        seen = []
+
+        def receive():
+            seen.append('existing')
+            if len(seen) > 1:
+                stopped.set()
+                return False
+            return True
+
+        with continued_renewal(receive, needed=True, interval=0.001):
+            self.assertTrue(stopped.wait(1))
+        self.assertEqual(seen, ['existing', 'existing'])

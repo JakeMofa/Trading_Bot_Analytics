@@ -14,6 +14,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from threading import Event, Thread
 import time
 from urllib.request import ProxyHandler, build_opener
 
@@ -38,9 +39,11 @@ from transition_control import (
     _candidate,
     _image_binding,
     _owned_runtime,
+    _operator,
     _read_active,
 )
-from watch_service import INTENT, LOCK, binding
+from structured_probe_control import recurring_control
+from watch_service import INTENT, LOCK, binding, token
 
 
 def schema(source):
@@ -68,11 +71,12 @@ def compatible_build(current, candidate):
     return hashlib.sha256(json.dumps(old, separators=(',', ':')).encode()).hexdigest()
 
 
-def watch():
-    binding()
+def watch(*, require_armed=True):
+    bound = binding()
     active = _read_active()
-    intent = json.loads(_secure_file(INTENT)[0])
-    require(intent['state'] == 'armed' and intent['binding'] == binding(), 'api_watch_not_armed')
+    if require_armed:
+        intent = json.loads(_secure_file(INTENT)[0])
+        require(intent['state'] == 'armed' and intent['binding'] == bound, 'api_watch_not_armed')
     ctx = _candidate(
         TransitionRequest(
             'leave',
@@ -96,6 +100,64 @@ def locked():
         )
         fcntl.flock(f, fcntl.LOCK_EX)
         yield
+
+
+def renew_existing(active):
+    """Refresh a running owner's lease. No start/arm operation is reachable here."""
+    if not INTENT.exists():
+        return False
+    intent = json.loads(_secure_file(INTENT)[0])
+    require(intent['binding'] == binding(), 'api_watch_binding_changed')
+    if intent['state'] != 'armed':
+        return False
+    credential = token()
+    state = _operator(credential, '/collector/status')
+    require(state.get('origin_id') == DISPLAY_ORIGIN, 'watch_wrong_origin')
+    if state.get('watch_explicit_off') or not state['collector_enabled'] or not state['process_running']:
+        return False
+    worker = recurring_control('status', Budget(8))
+    require(
+        worker.get('status') == 'running' and worker.get('source_sha') == active['source_sha'],
+        'watch_archive_worker_unavailable',
+    )
+    # The SQL operation rechecks the explicit OFF marker, capacity and current
+    # process UUID under the writer lock. OFF racing this call wins.
+    renewed = _operator(credential, '/collector/watch/renew')
+    require(
+        renewed['origin_id'] == DISPLAY_ORIGIN
+        and renewed['epoch'] == state['epoch']
+        and renewed['generation_id'] == state['generation_id'],
+        'api_watch_owner_changed',
+    )
+    return True
+
+
+@contextmanager
+def continued_renewal(renew, *, needed, interval=12):
+    running = renew()
+    require(running or not needed, 'api_watch_not_running')
+    stop = Event()
+    failures = []
+
+    def run():
+        while not stop.wait(interval):
+            try:
+                if not renew():
+                    return
+            except Exception as error:
+                failures.append(error)
+                return
+
+    heartbeat = Thread(target=run, daemon=True)
+    if running:
+        heartbeat.start()
+    try:
+        yield
+        require(not failures, 'api_watch_renewal_failed')
+    finally:
+        stop.set()
+        if running:
+            heartbeat.join()
 
 
 def write_json(path, value):
@@ -283,7 +345,7 @@ def api_up(ctx, active, actions, budget, image):
     while True:
         with opener.open('http://127.0.0.1:8000/state/current', timeout=2) as response:
             state = json.loads(response.read(65537))
-        if state.get('origin_id') == DISPLAY_ORIGIN and state['collector']['enabled'] is True:
+        if state.get('origin_id') == DISPLAY_ORIGIN and type(state['collector']['enabled']) is bool:
             break
         require(time.monotonic() < deadline, 'api_state_unhealthy')
         time.sleep(0.2)
@@ -315,114 +377,121 @@ def switch(ctx, active, actions, budget, target, previous, *, probe=api_up):
 def recover(artifact):
     """Recover an interrupted exchange to its recorded predecessor without touching any writer."""
     with locked():
-        active, ctx = watch()
+        active, ctx = watch(require_armed=False)
         pending = ctx.staging / 'benchmark-api-update-pending.json'
         if not pending.exists():
             return {'state': 'complete'}
-        entry = json.loads(_secure_file(pending)[0])
-        require(
-            entry['candidate']['api_artifact_sha256'] == artifact
-            and entry['candidate']['nonce'] == active['nonce'],
-            'recovery_candidate_binding_mismatch',
-        )
-        previous = entry['previous']
-        actions = _image_binding(ctx, Budget(10))
-        marker = ctx.staging / 'benchmark-api-component.json'
-        if previous:
+        with continued_renewal(lambda: renew_existing(active), needed=False):
+            entry = json.loads(_secure_file(pending)[0])
             require(
-                previous['nonce'] == active['nonce'] and previous['collector_image'] == ctx.image,
-                'invalid_rollback_receipt',
+                entry['candidate']['api_artifact_sha256'] == artifact
+                and entry['candidate']['nonce'] == active['nonce'],
+                'recovery_candidate_binding_mismatch',
             )
-            write_json(marker, previous)
-        else:
-            marker.unlink(missing_ok=True)
-        api_up(ctx, active, actions, Budget(40), previous['api_image'] if previous else ctx.image)
-        actions._runtime(
-            ctx, Budget(25), live=True, initial_a=active['initial_a'], trial_origin=DISPLAY_ORIGIN
-        )
-        pending.unlink()
-        return {'state': 'rolled_back', 'collector_source_sha': active['source_sha']}
+            previous = entry['previous']
+            actions = _image_binding(ctx, Budget(10))
+            marker = ctx.staging / 'benchmark-api-component.json'
+            if previous:
+                require(
+                    previous['nonce'] == active['nonce'] and previous['collector_image'] == ctx.image,
+                    'invalid_rollback_receipt',
+                )
+                write_json(marker, previous)
+            else:
+                marker.unlink(missing_ok=True)
+            api_up(ctx, active, actions, Budget(40), previous['api_image'] if previous else ctx.image)
+            actions._runtime(
+                ctx, Budget(25), live=True, initial_a=active['initial_a'], trial_origin=DISPLAY_ORIGIN
+            )
+            pending.unlink()
+            return {'state': 'rolled_back', 'collector_source_sha': active['source_sha']}
 
 
 def apply(artifact):
     with locked():
         active, ctx = watch()
-        budget = Budget(55)
-        actions = _image_binding(ctx, budget)
-        _owned_runtime(actions, ctx, budget)
-        actions._runtime(ctx, budget, live=True, initial_a=active['initial_a'], trial_origin=DISPLAY_ORIGIN)
-        candidate = json.loads(_secure_file(ROOT / ('api-' + artifact) / 'prepared.json')[0])
-        require(
-            candidate
-            == component_record(
-                active,
-                candidate['api_source_sha'],
-                artifact,
-                candidate['api_image'],
-                candidate['api_schema_sha256'],
-            ),
-            'api_candidate_binding_drift',
-        )
-        marker = ctx.staging / 'benchmark-api-component.json'
-        previous = json.loads(_secure_file(marker)[0]) if marker.exists() else None
-        before, ttl = protected_state(ctx, actions, budget)
-        previous_api = api_identity(ctx, actions, budget)
-        require(previous_api['image'] != candidate['api_image'], 'api_candidate_already_installed')
-        before_progress = progress(actions, budget)
-        require(ttl >= 85, 'wait_for_fresh_watch_renewal')
-        pending = ctx.staging / 'benchmark-api-update-pending.json'
-        require(not pending.exists(), 'unfinished_api_update')
-        # Arm a host-owned rollback before the first mutation. It becomes a cheap no-op
-        # when the final gate removed the pending record, even if SSH has disconnected.
-        installed = Path('/usr/local/lib/tradebot-pp/benchmark-api-update.py')
-        require(
-            Path(__file__).resolve() == installed and installed.stat().st_uid == 0, 'unqualified_api_helper'
-        )
-        subprocess.run(
-            [
-                '/usr/bin/systemd-run',
-                '--quiet',
-                '--collect',
-                '--on-active=75s',
-                '/usr/bin/python3',
-                '-I',
-                str(installed),
-                'recover',
-                '--artifact',
-                artifact,
-            ],
-            check=True,
-            timeout=8,
-        )
-        write_json(pending, {'previous': previous, 'candidate': candidate})
-        try:
-            switch(ctx, active, actions, budget, candidate, previous)
-        except Exception:
-            restored, _ = protected_state(ctx, actions, Budget(25))
-            require(restored == before, 'protected_state_changed_on_recovery')
-            actual = actions._inspect(Budget(10), actions._ids(ctx, Budget(10), ['api']))[0]['Image']
-            require(actual == (previous['api_image'] if previous else ctx.image), 'api_rollback_unproven')
+        with continued_renewal(lambda: renew_existing(active), needed=True):
+            budget = Budget(55)
+            actions = _image_binding(ctx, budget)
+            _owned_runtime(actions, ctx, budget)
+            actions._runtime(
+                ctx, budget, live=True, initial_a=active['initial_a'], trial_origin=DISPLAY_ORIGIN
+            )
+            candidate = json.loads(_secure_file(ROOT / ('api-' + artifact) / 'prepared.json')[0])
+            require(
+                candidate
+                == component_record(
+                    active,
+                    candidate['api_source_sha'],
+                    artifact,
+                    candidate['api_image'],
+                    candidate['api_schema_sha256'],
+                ),
+                'api_candidate_binding_drift',
+            )
+            marker = ctx.staging / 'benchmark-api-component.json'
+            previous = json.loads(_secure_file(marker)[0]) if marker.exists() else None
+            before, ttl = protected_state(ctx, actions, budget)
+            previous_api = api_identity(ctx, actions, budget)
+            require(previous_api['image'] != candidate['api_image'], 'api_candidate_already_installed')
+            before_progress = progress(actions, budget)
+            require(ttl >= 85, 'wait_for_fresh_watch_renewal')
+            pending = ctx.staging / 'benchmark-api-update-pending.json'
+            require(not pending.exists(), 'unfinished_api_update')
+            # Arm a host-owned rollback before the first mutation. It becomes a cheap no-op
+            # when the final gate removed the pending record, even if SSH has disconnected.
+            installed = Path('/usr/local/lib/tradebot-pp/benchmark-api-update.py')
+            require(
+                Path(__file__).resolve() == installed and installed.stat().st_uid == 0,
+                'unqualified_api_helper',
+            )
+            subprocess.run(
+                [
+                    '/usr/bin/systemd-run',
+                    '--quiet',
+                    '--collect',
+                    '--on-active=75s',
+                    '/usr/bin/python3',
+                    '-I',
+                    str(installed),
+                    'recover',
+                    '--artifact',
+                    artifact,
+                ],
+                check=True,
+                timeout=8,
+            )
+            write_json(pending, {'previous': previous, 'candidate': candidate})
+            try:
+                switch(ctx, active, actions, budget, candidate, previous)
+            except Exception:
+                restored, _ = protected_state(ctx, actions, Budget(25))
+                require(restored == before, 'protected_state_changed_on_recovery')
+                actual = actions._inspect(Budget(10), actions._ids(ctx, Budget(10), ['api']))[0]['Image']
+                require(
+                    actual == (previous['api_image'] if previous else ctx.image), 'api_rollback_unproven'
+                )
+                pending.unlink()
+                raise
+            after, _ = protected_state(ctx, actions, budget)
+            require(before == after, 'protected_services_or_writer_changed')
+            current_api = api_identity(ctx, actions, budget)
+            require(
+                current_api['id'] != previous_api['id'] and current_api['image'] == candidate['api_image'],
+                'api_change_unproven',
+            )
+            after_progress = progress(actions, budget)
             pending.unlink()
-            raise
-        after, _ = protected_state(ctx, actions, budget)
-        require(before == after, 'protected_services_or_writer_changed')
-        current_api = api_identity(ctx, actions, budget)
-        require(
-            current_api['id'] != previous_api['id'] and current_api['image'] == candidate['api_image'],
-            'api_change_unproven',
-        )
-        after_progress = progress(actions, budget)
-        pending.unlink()
-        return dict(
-            gate='PP_BENCHMARK_API_UPDATE_PASS',
-            before=before,
-            after=after,
-            api=candidate,
-            api_before=previous_api,
-            api_after=current_api,
-            progress_before=before_progress,
-            progress_after=after_progress,
-        )
+            return dict(
+                gate='PP_BENCHMARK_API_UPDATE_PASS',
+                before=before,
+                after=after,
+                api=candidate,
+                api_before=previous_api,
+                api_after=current_api,
+                progress_before=before_progress,
+                progress_after=after_progress,
+            )
 
 
 def main():

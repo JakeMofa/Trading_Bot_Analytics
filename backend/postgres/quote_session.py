@@ -17,11 +17,12 @@ from .boundary_shadow import WS_URL, headers, signing_key
 from .contract import content_hash, source_timestamp
 from .domain import timestamp
 from .live_contract import polymarket_bbo
-from .live_sources import MAX_RESPONSE_BYTES, discover_polymarket_15m
+from .live_sources import MAX_RESPONSE_BYTES, discover_polymarket_15m, fetch_polymarket_bbo
 from .live_ingest import _pause_or_stop, _step, POLYMARKET_DISCOVERY_UNAVAILABLE
 from .live_diagnostics import LiveDiagnostic
 from .feed_writer import feed_writer
 from .quote_display import DisplaySender
+from .quote_recovery import QuietQuoteRecovery, QuoteFeedSnapshot, usable_websocket_quote
 from .reference_prices import ONE_SECOND_ORIGINS, collect_reference
 
 
@@ -36,6 +37,10 @@ class QuotePipeline:
         self.queue = asyncio.Queue(maxsize=32)
         self.current = self.upcoming = None
         self.quote = None
+        self.ws_quote = None
+        self.last_usable_ws_at = None
+        self.ws_revision = 0
+        self.empty_book_at = None
         self.received = self.saved = self.duplicates = 0
         self.started = utc()
         self.reference = None
@@ -50,7 +55,8 @@ class QuotePipeline:
             self.display.send({'market': {'id': market['market_id'], 'origin': self.store.settings.origin_id,
                                 **{k: terms[k] for k in ('slug', 'start', 'end', 'target_usd', 'status')}},
                                'reference': self.reference, 'quote': self.quote, 'received': self.received, 'saved': self.saved,
-                               'duplicates': self.duplicates, 'started_at': self.started, 'last_commit': self.last_commit})
+                               'duplicates': self.duplicates, 'started_at': self.started, 'last_commit': self.last_commit,
+                               'empty_book_at': self.empty_book_at})
 
     def publish_reference(self, event):
         if self.reference and timestamp(event['source_time']) < timestamp(self.reference['source_time']):
@@ -75,6 +81,9 @@ class QuotePipeline:
             return
         if not self.current or self.current['market_id'] != event['market_id']:
             self.quote = None
+            self.ws_quote = None
+            self.last_usable_ws_at = None
+            self.empty_book_at = None
             self.first_event_id = None
         # Enqueue the market before its socket subscription becomes visible.
         await self.queue.put(event)
@@ -103,20 +112,49 @@ class QuotePipeline:
         quote['provenance']['feed'] = 'polymarket_us_websocket'
         if quote['source_time']:
             quote['event_id'] = 'ws-' + content_hash([event['market_id'], data])
-            if self.quote and self.quote['source_time'] and source_timestamp(quote['source_time'])[1] < source_timestamp(self.quote['source_time'])[1]:
+            if self.ws_quote and self.ws_quote['source_time'] and source_timestamp(quote['source_time'])[1] < source_timestamp(self.ws_quote['source_time'])[1]:
                 return
         self.received += 1
-        if self.quote and quote['event_id'] == self.quote['event_id']:
+        duplicate = self.ws_quote and quote['event_id'] == self.ws_quote['event_id']
+        self.ws_quote = quote
+        if usable_websocket_quote(quote):
+            self.last_usable_ws_at = timestamp(now)
+            self.ws_revision += 1
+            self.set_display_quote(quote)
+        elif not self.empty_book_at and (not self.quote
+                or self.quote['provenance']['feed'] == 'polymarket_us_websocket'):
+            self.set_display_quote(quote)
+        if duplicate:
             self.duplicates += 1
             self.broadcast()
             return
-        self.quote = {**quote['payload'], **{k: quote[k] for k in
-                      ('market_id', 'event_id', 'source_time', 'received_at', 'provenance')}}
         if self.first_event_id is None:
             self.first_event_id = quote['event_id']
             boundary_trace('usable_receipt', event, quote=quote, reader='canonical_ws')
         self.broadcast()
         await self.queue.put(quote)
+
+    def set_display_quote(self, quote):
+        self.empty_book_at = None
+        self.quote = {**quote['payload'], **{key: quote[key] for key in
+                      ('market_id', 'event_id', 'source_time', 'received_at', 'provenance')}}
+
+    def publish_recovery(self, result):
+        if result.quote is None:
+            self.quote = None
+            self.empty_book_at = result.checked_at.isoformat()
+        else:
+            quote = {**result.quote,
+                     'provenance': {**result.quote['provenance'], 'recovery': 'quiet_websocket'}}
+            try:
+                self.queue.put_nowait(quote)
+            except asyncio.QueueFull:
+                return
+            self.set_display_quote(quote)
+        self.broadcast()
+
+    def recovery_snapshot(self, stop):
+        return QuoteFeedSnapshot(self.current, self.last_usable_ws_at, self.ws_revision, stop.is_set())
 
     async def write(self):
         async with feed_writer(self.store):
@@ -127,7 +165,7 @@ class QuotePipeline:
         while True:
             event = await self.queue.get()
             ack = await asyncio.to_thread(self.store.ingest, event)
-            if event['kind'] == 'quote':
+            if event['kind'] == 'quote' and event['provenance']['feed'] == 'polymarket_us_websocket':
                 if not ack['duplicate']:
                     self.saved += 1
                 else:
@@ -165,14 +203,17 @@ async def stream_books(pipe, stop, keypair, *, refresh_key=None):
             async with connect(WS_URL, additional_headers=headers(keypair), proxy=None,
                                open_timeout=5, close_timeout=2, max_size=MAX_RESPONSE_BYTES,
                                max_queue=16) as sock:
-                subscribed = set()
+                subscribed = {}
                 while not stop.is_set():
                     wanted = {market['payload']['slug'] for market in (pipe.current, pipe.upcoming) if market}
-                    missing = wanted - subscribed
-                    if missing:
-                        await sock.send(json.dumps({'subscribe': {'requestId': str(uuid4()),
-                            'subscriptionType': 'SUBSCRIPTION_TYPE_MARKET_DATA', 'marketSlugs': sorted(missing)}}))
-                        subscribed.update(missing)
+                    for slug in sorted(subscribed.keys() - wanted):
+                        await sock.send(json.dumps({'unsubscribe': {'requestId': subscribed[slug]}}))
+                        del subscribed[slug]
+                    for slug in sorted(wanted - subscribed.keys()):
+                        request_id = str(uuid4())
+                        await sock.send(json.dumps({'subscribe': {'requestId': request_id,
+                            'subscriptionType': 'SUBSCRIPTION_TYPE_MARKET_DATA', 'marketSlugs': [slug]}}))
+                        subscribed[slug] = request_id
                     try:
                         wire = await asyncio.wait_for(sock.recv(), .25)
                         received_at = utc()
@@ -216,6 +257,25 @@ async def run_robinhood(store, stop):
         sender.socket.close()
 
 
+async def recover_books(pipe, client, stop, clock):
+    logger = logging.getLogger(__name__)
+    recovery = QuietQuoteRecovery(
+        lambda: pipe.recovery_snapshot(stop),
+        lambda market: fetch_polymarket_bbo(client, market),
+        pipe.publish_recovery, clock=clock,
+        on_failure=lambda category: logger.warning('pp_quote_recovery_failed reason=%s', category),
+    )
+    while not stop.is_set():
+        now = clock()
+        upcoming = pipe.upcoming
+        if (upcoming and not pipe.queue.full()
+                and (not pipe.current or timestamp(pipe.current['payload']['end']) <= now)
+                and timestamp(upcoming['payload']['start']) <= now < timestamp(upcoming['payload']['end'])):
+            await pipe.market(upcoming)
+        await recovery.check()
+        await _pause_or_stop(stop, 1)
+
+
 async def run(store, client, stop, interval, clock, *, include_robinhood=True):
     sender = DisplaySender(store.settings.origin_id)
     pipe = QuotePipeline(store, sender)
@@ -235,6 +295,7 @@ async def run(store, client, stop, interval, clock, *, include_robinhood=True):
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair, refresh_key=None if include_robinhood else signing_key))
+            recovery_task = tasks.create_task(recover_books(pipe, client, stop, clock))
             if include_robinhood and os.getenv('TRADEBOT_PP_ROBINHOOD_REFERENCE') == '1':
                 from .robinhood_history import collect
                 tasks.create_task(collect(store, stop, pipe.publish_robinhood))
@@ -259,6 +320,8 @@ async def run(store, client, stop, interval, clock, *, include_robinhood=True):
                         pipe.broadcast()
                 await _pause_or_stop(stop, interval)
             await reader
+            recovery_task.cancel()
+            await asyncio.gather(recovery_task, return_exceptions=True)
             await pipe.queue.join()
             writer.cancel()
     finally:

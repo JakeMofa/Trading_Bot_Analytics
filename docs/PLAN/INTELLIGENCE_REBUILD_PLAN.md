@@ -516,6 +516,8 @@ change to the active checkpoint above.
 
 ### Live feeds, rollover and observability
 
+- [Quiet Polymarket quote recovery](../MILESTONES.md#november-27--recover-quiet-polymarket-quote-sessions)
+
 - [PP WebSocket collector and archive handoff](PP_WEBSOCKET_COLLECTOR_HANDOFF_2026-11-25.md)
 - [CP7 generated market-boundary smoke — November 17 CST](CP7_BOUNDARY_SMOKE_2026-11-17.md)
 - [CP7 Coinbase reconnect candidate — November 17, 2026](CP7_COINBASE_RECONNECT_CANDIDATE_2026-11-17.md)

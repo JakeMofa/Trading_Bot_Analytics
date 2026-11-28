@@ -84,3 +84,26 @@ hydrated local quote. An ID missed between refreshes is an unobserved
 comparison. Check the structured record's event ID, source, exact prices and
 content hash with the scoped hosted reader. Do not use receipt of a display
 packet or an aggregate counter as evidence of a particular hosted row.
+
+### Robinhood BTC/USD quote observer
+
+An isolated comparison process uses the official Robinhood Crypto v2 best
+bid/ask GET for BTC-USD. The sample contains Robinhood's bid and ask, their
+arithmetic midpoint, local request and receipt times in UTC, and HTTP duration.
+The v2 result supplies no exchange timestamp. Age since PP receipt measures
+the observer's handling of that response. Venue-to-PP delay cannot be derived
+from it. The midpoint is an auxiliary reference for comparison with the
+Polymarket BTC index and Coinbase. [Official v2 market-data schema](https://docs.robinhood.com/crypto/trading/#operation/api_v2_crypto_marketdata_best_bid_ask).
+
+With an authorized quote-reading key supplied to the observer process as
+`ROBINHOOD_API_KEY` and `ROBINHOOD_PRIVATE_KEY` (a base64 32-byte Ed25519
+seed), run from the backend directory:
+
+```sh
+python -m postgres.robinhood_quote_observer --duration-seconds 60 --interval-seconds 5
+```
+
+The CLI emits JSON lines. It polls one endpoint, disables redirects, reuses one
+connection pool, honors 429 backoff and stops immediately on 401/403. The
+default cadence sends up to twelve requests per minute. The observer has no
+database, order, or calculation path.

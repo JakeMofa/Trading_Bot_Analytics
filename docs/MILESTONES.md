@@ -12,6 +12,14 @@ four-second page target during collection. The final outbox drained. Quote
 age under sustained load, calculated-field availability and live cross-tier
 History remain follow-up work. [Timing evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-measured-on-benchmark).
 
+### Auxiliary Robinhood BTC/USD quote reader
+
+The bounded read-only observer passed offline Ed25519 signature, exact
+BTC-USD v2 route, decimal midpoint, missing/crossed quotes, 401/403 stop and
+429 backoff checks. Its output identifies PP receipt time and leaves exchange
+source time unavailable. A live account response and synchronized comparison
+are separate acceptance checks. [Observer contract](../backend/postgres/APPLICATION.md#robinhood-btcusd-quote-observer).
+
 ## November 27 — Combined dashboard release on the 4 GB Benchmark
 
 The [Benchmark deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46091017341)

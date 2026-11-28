@@ -163,7 +163,7 @@ class GapPriceHTTPTests(unittest.TestCase):
         script='''let latest,serverEpochMs,syncAt,lastError,chartData={};
 const savedModels={},savedContext={},out={};
 const set=(key,value)=>out[key]=value;
-const byId=()=>({className:''});
+const byId=()=>({className:'',dataset:{}});
 const serverNowMs=()=>serverEpochMs;
 const ageOf=value=>value ? Math.max(0,(serverEpochMs-Date.parse(value))/1000) : null;
 const render=()=>{},refreshChart=()=>{},mergeLatestTick=()=>{},scheduleChartDraw=()=>{},updateChartSummary=()=>{};

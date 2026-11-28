@@ -77,6 +77,10 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             raise LiveDiagnostic('coinbase_stream', 'ended')
 
     async def market_loop():
+        from . import quote_display, quote_session
+        if quote_display.enabled(store.settings):
+            await quote_session.run(store, client, stop, market_interval, clock)
+            return
         while not stop.is_set():
             await market(store, client, stop, now=clock())
             await _pause_or_stop(stop, market_interval)
@@ -134,6 +138,12 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                     raise diagnose(names[task], error) from None
                 if not stop.is_set():
                     raise LiveDiagnostic(names[task], 'ended')
+        # An orderly stop lets already-received quotes finish under the same
+        # lease. A failed fence or writer still takes the immediate OFF path.
+        from . import quote_display
+        if stop.is_set() and quote_display.enabled(store.settings):
+            quote_task = next(task for task in tasks if names[task] == 'polymarket_loop')
+            await asyncio.wait_for(quote_task, timeout=10)
         return 'stopped'
     finally:
         pending = [*tasks, *([stop_task] if stop_task else [])]

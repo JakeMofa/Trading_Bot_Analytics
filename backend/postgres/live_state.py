@@ -1,4 +1,5 @@
 """Reconstructible RAM view with publication-time market and source-age guards."""
+import asyncio
 from copy import deepcopy
 from threading import RLock
 
@@ -13,6 +14,9 @@ class LiveState:
         self._lock = RLock()
         self._market = None
         self._price = None
+        self.first_quote_signal = asyncio.Event()
+        self._display = None
+        self._archived = None
         self._quote = None
         self._snapshot = None
         self._forecast = None
@@ -20,6 +24,25 @@ class LiveState:
         self._updated_at = None
         self._storage_status = 'starting'
         self._collector = deepcopy(settings.public()['collector'])
+
+    def display(self, packet):
+        with self._lock:
+            old = self._display
+            first = packet['quote'] and (not old or not old['quote']
+                                         or old['market']['id'] != packet['market']['id'])
+            self._display = deepcopy(packet)
+            if first:
+                from .boundary_trace import boundary_trace
+                boundary_trace('api_publication', reader='dashboard_live',
+                               event_id=packet['quote']['event_id'], market_id=packet['market']['id'])
+                signal = self.first_quote_signal
+                self.first_quote_signal = asyncio.Event()
+                signal.set()
+            self._touch()
+
+    def archive_count(self, started_at, count):
+        with self._lock:
+            self._archived = (started_at, count)
 
     def collector_status(self, enabled: bool | None):
         """A database lease is observable; process liveness is not visible here."""
@@ -108,6 +131,21 @@ class LiveState:
         now = self.clock()
         with self._lock:
             market, price, quote, feature, saved = deepcopy((self._market, self._price, self._quote, self._snapshot, self._forecast))
+            packet = self._display
+            hydrated_quote_id = (quote or {}).get('event_id')
+            counters = None
+            if packet:
+                live = packet['market']
+                archive = self._archived
+                counters = {key: packet[key] for key in ('received', 'saved', 'started_at', 'last_commit')}
+                counters['archived'] = archive[1] if archive and archive[0] == packet['started_at'] else None
+                if timestamp(live['start']) <= now < timestamp(live['end']):
+                    if (market or {}).get('id') != live['id']:
+                        quote = feature = saved = None
+                    market = {**(market if market and market['id'] == live['id'] else {}), **live}
+                    preview = packet['quote']
+                    if preview and (not quote or timestamp(preview['received_at']) >= timestamp(quote['received_at'])):
+                        quote = deepcopy(preview)
             active = bool(market and timestamp(market['start']) <= now < timestamp(market['end']))
             if market:
                 market['seconds_remaining'] = max(0, (timestamp(market['end'])-now).total_seconds())
@@ -126,6 +164,8 @@ class LiveState:
                 match = name == 'coinbase' or bool(observation and observation.get('market_id') == (market or {}).get('id'))
                 status = 'fresh' if age is not None and 0 <= age <= 30 and match and (name == 'coinbase' or active) else 'stale' if observation else 'missing'
                 feed_name = 'coinbase_stream' if name == 'coinbase' else 'polymarket_rest' if rest_book else 'polymarket_stream'
+                if (observation or {}).get('provenance', {}).get('feed') == 'polymarket_us_websocket':
+                    feed_name = 'polymarket_stream'
                 feeds[feed_name] = {'source': feed_name, 'status': status,
                                         'freshness_basis': 'received_at' if rest_book else 'source_time',
                                         'last_data_at': freshness_at,
@@ -160,7 +200,7 @@ class LiveState:
                             'snapshot_as_of': feature['as_of'], 'source': 'live_state_ram'}
             # Keep the diagnostic last price visible with its age; never expose it as a fresh estimate.
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
-                    'generated_at': now.isoformat(), 'updated_at': self._updated_at,
+                    'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'feature_snapshot': feature, 'forecast': saved,

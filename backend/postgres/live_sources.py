@@ -108,14 +108,14 @@ async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):
 
 
 async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
-                                  *, max_pages: int = 20):
+                                  *, max_pages: int = 20, include_next=False):
     """Find one current official-US BTC 15-minute market; fail on ambiguity.
 
     A full last page is incomplete discovery and must not look like no market.
     """
     if now.tzinfo is None or not 1 <= max_pages <= 20:
         raise ValueError('invalid bounded market discovery request')
-    current = None
+    current = upcoming = None
     now = now.astimezone(timezone.utc)
     instant = source_timestamp(now.isoformat())[1]
     deadline = time.monotonic() + 10
@@ -124,10 +124,11 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
         if remaining <= 0:
             raise ValueError('Polymarket discovery deadline reached')
         try:
+            params = {'limit': 100, 'offset': page * 100, 'closed': 'false', 'categories': 'crypto'}
+            if not include_next:
+                params['active'] = 'true'
             async with client.stream('GET', POLYMARKET_REST + '/v1/markets',
-                                     params={'limit': 100, 'offset': page * 100,
-                                             'active': 'true', 'closed': 'false',
-                                             'categories': 'crypto'},
+                                     params=params,
                                      headers={'Accept': 'application/json'},
                                      timeout=min(4, remaining), follow_redirects=False) as response:
                 if response.status_code != 200:
@@ -163,8 +164,12 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                 if current is not None and current['market_id'] != event['market_id']:
                     raise ValueError('ambiguous active Polymarket market')
                 current = event
+            elif include_next and instant < start <= instant + 900:
+                if upcoming and upcoming['market_id'] != event['market_id']:
+                    raise ValueError('ambiguous upcoming Polymarket market')
+                upcoming = event
         if len(markets) < 100:
-            return current
+            return (current, upcoming) if include_next else current
     raise ValueError('Polymarket discovery pagination limit reached')
 
 

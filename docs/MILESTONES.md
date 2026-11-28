@@ -1,3 +1,14 @@
+## November 27, 2026 — Live quote display and archive candidate
+
+The collector has a default-off direct socket writer with independent
+latest-quote delivery to the existing FastAPI SSE dashboard. Native PG17
+qualification blocked the writer, observed the exact quote on SSE, released
+the write, and checked the raw/content hash against the acknowledged
+structured envelope using the fixture transport. The isolated browser smoke
+used a generated quote and a local FastAPI process. No live Benchmark or hosted
+archive latency is established. Next gate and subsequent history work are in
+the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence).
+
 ## November 25, 2026 CST — 4 GB Benchmark single rollover passed
 
 The 3:45 p.m. CST BTC 15-minute rollover passed on

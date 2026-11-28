@@ -106,6 +106,7 @@
         <div class="metric"><span class="label">Polymarket best bid</span><strong id="market-up">—</strong></div>
         <div class="metric"><span class="label">Polymarket best ask</span><strong id="market-down">—</strong></div>
       </div>
+      <div id="quote-progress" class="small muted"></div>
       <div id="market-quote" class="small muted" style="margin-top:8px"></div>
       <div class="small muted" style="margin-top:5px">Bid and ask are observed market prices, not our forecast or guaranteed execution prices.</div>
       <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Market terms and the observed bid/ask come from Polymarket US public REST. This page does not scrape your browser or account.</p>
@@ -312,6 +313,7 @@
         return;
       }
       const m = chartData.market, points = chartData.points;
+      if (m.target_usd == null) return;
       const start = Date.parse(m.start), end = Date.parse(m.end), target = Number(m.target_usd);
       const left = 20, right = 82, top = 20, bottom = 34;
       const plotW = width-left-right, plotH = height-top-bottom;
@@ -441,6 +443,10 @@
           + ' · UP ' + cents(q.up_quote) + ' / DOWN ' + cents(q.down_quote) + ' · not used in forecast';
       }
       set('market-quote', quoteText);
+      const quoteElement = byId('market-quote');
+      if (quoteElement.dataset.eventId !== (q?.event_id || '')) {
+        quoteElement.dataset.eventId = q?.event_id || '';
+      }
       byId('market-quote').className = 'small ' + (quoteDelayed ? 'warn' : 'up');
       const estimateFresh = !!(e && m && e.market_id === m.id && ageOf(e.as_of) <= 10 && remaining > 0);
       const liveProbability = estimateFresh ? e.probability_up : null;
@@ -530,7 +536,7 @@
     function render(data) {
       const m = data.market, s = data.snapshot, f = data.forecast;
       set('market-state', m ? (m.status || 'unknown').replaceAll('_', ' ') : 'No active market observed');
-      set('target', money(m?.target_usd));
+      set('target', m && m.target_usd == null ? 'Pending' : money(m?.target_usd));
       set('reference', money(s?.reference_price_usd));
       set('distance', money(s?.distance_usd));
       set('market-slug', m ? m.slug : 'No active market captured.');
@@ -616,6 +622,11 @@
     }
     for (const button of document.querySelectorAll('nav button')) button.onclick = () => showPage(button.dataset.target);
     function acceptState(state) {
+      if (latest?.generated_at && Date.parse(state.generated_at) < Date.parse(latest.generated_at)) return;
+      const counts = state.quote_counts;
+      set('quote-progress', counts ? 'This collector session · Quotes received ' + counts.received
+        + ' · Saved ' + counts.saved + ' · Archived ' + (counts.archived ?? 'unknown')
+        + (counts.received > counts.saved ? ' · awaiting persistence or deduplication' : '') : '');
       const collector = state.collector || {};
       const collectorLabel = collector.enabled === true ? 'collector lease ON' :
         collector.enabled === false ? 'collector OFF' : 'collector state unavailable';
@@ -631,7 +642,7 @@
         snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status, candle_age_seconds:feature.quality?.candle_age_seconds, reference_source:feature.quality?.price?.source} : null,
         forecast:ensemble || state.forecast, baseline_forecast:state.forecast, live_estimate:state.live_estimate,
         latest_coinbase_tick:state.coinbase,
-        market_quote:quote ? {...quote, kind:'rest_bbo', sample_time:quote.source_time,
+        market_quote:quote ? {...quote, kind:quote.provenance?.feed === 'polymarket_us_websocket' ? 'live_ws' : 'rest_bbo', sample_time:quote.source_time,
           up_quote:quote.up_probability, down_quote:quote.down_probability} : null,
         feeds:Object.entries(state.feeds || {}).map(([source, feed]) => {
           const seconds = ageOf(feed.last_data_at || feed.updated_at);

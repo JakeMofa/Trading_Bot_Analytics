@@ -10,9 +10,18 @@ from .live_diagnostics import SourceHTTPFailure, SourceTransportFailure, diagnos
 
 
 QUIET_AFTER = timedelta(seconds=30)
-PROBE_INTERVAL = 30
+PROBE_INTERVAL = 24
+RETRY_INTERVAL = 30
 MAX_BACKOFF = 60
 REQUEST_DEADLINE = 5
+
+
+def usable_websocket_quote(quote):
+    source = quote.get('source_time')
+    if not source:
+        return False
+    age = timestamp(quote['received_at']) - timestamp(source)
+    return timedelta(0) <= age <= QUIET_AFTER
 
 
 @dataclass(frozen=True)
@@ -48,7 +57,7 @@ class QuietQuoteRecovery:
         self.request_deadline = request_deadline
         self._in_flight = False
         self._next_probe = float('-inf')
-        self._delay = PROBE_INTERVAL
+        self._delay = RETRY_INTERVAL
 
     async def check(self):
         if self._in_flight or self.monotonic() < self._next_probe:
@@ -76,8 +85,8 @@ class QuietQuoteRecovery:
         finally:
             self._in_flight = False
 
-        self._delay = PROBE_INTERVAL
-        self._next_probe = self.monotonic() + self._delay
+        self._delay = RETRY_INTERVAL
+        self._next_probe = self.monotonic() + PROBE_INTERVAL
         after = self.snapshot()
         checked_at = self.clock()
         if (after.paused or after.market is None

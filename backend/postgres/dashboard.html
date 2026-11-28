@@ -443,7 +443,8 @@
       const collectionState = btcFeed?.effective_status;
       const quoteAge = q ? ageOf(q.received_at) : null;
       const venueQuoteAge = q ? ageOf(q.source_time) : null;
-      const quoteDelayed = quoteAge == null || quoteAge > 10 || remaining === 0
+      const quoteMaxAge = q?.kind === 'rest_bbo' || q?.kind === 'stream_book' ? 30 : 10;
+      const quoteDelayed = quoteAge == null || quoteAge > quoteMaxAge || remaining === 0
         || (q?.kind === 'live_ws' && (venueQuoteAge == null || venueQuoteAge > 10));
       const marketQuoteFresh = latest.feed_controls?.polymarket?.enabled !== false && latest.collector?.enabled === true && m?.active && remaining > 0 && !quoteDelayed;
       const collectionText = storageLimited ? 'Collection paused · storage cap reached'

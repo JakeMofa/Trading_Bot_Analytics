@@ -86,6 +86,10 @@ class ModelReadoutBrowserTests(unittest.TestCase):
                     expect(page.locator('#robinhood-price')).to_have_attribute('data-event-id', 'rh-v1-fixture')
                     expect(page.locator('#robinhood-age')).to_contain_text('Recent')
                     expect(page.locator('#robinhood-movement')).to_have_text('Down $0.0000012 since previous poll')
+                    state.display({'market':market, 'reference':None, 'quote':None, 'received':0,
+                                   'saved':0,'duplicates':0,'started_at':received,'last_commit':None,
+                                   'empty_book_at':received})
+                    expect(page.locator('#market-quote')).to_contain_text('Polymarket US REST book was empty')
                     clock[0] += timedelta(seconds=31)
                     expect(page.locator('#robinhood-age')).to_contain_text('Stale')
                     expect(page.locator('#robinhood-movement')).to_have_text('Price change stale.')

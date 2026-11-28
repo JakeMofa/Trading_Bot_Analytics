@@ -21,7 +21,7 @@ from .live_ingest import _pause_or_stop, _step, POLYMARKET_DISCOVERY_UNAVAILABLE
 from .live_diagnostics import LiveDiagnostic
 from .feed_writer import feed_writer
 from .quote_display import DisplaySender
-from .quote_recovery import QuietQuoteRecovery, QuoteFeedSnapshot
+from .quote_recovery import QuietQuoteRecovery, QuoteFeedSnapshot, usable_websocket_quote
 from .reference_prices import ONE_SECOND_ORIGINS, collect_reference
 
 
@@ -37,6 +37,7 @@ class QuotePipeline:
         self.current = self.upcoming = None
         self.quote = None
         self.ws_quote = None
+        self.last_usable_ws_at = None
         self.ws_revision = 0
         self.empty_book_at = None
         self.received = self.saved = self.duplicates = 0
@@ -80,6 +81,7 @@ class QuotePipeline:
         if not self.current or self.current['market_id'] != event['market_id']:
             self.quote = None
             self.ws_quote = None
+            self.last_usable_ws_at = None
             self.empty_book_at = None
             self.first_event_id = None
         # Enqueue the market before its socket subscription becomes visible.
@@ -113,9 +115,14 @@ class QuotePipeline:
                 return
         self.received += 1
         duplicate = self.ws_quote and quote['event_id'] == self.ws_quote['event_id']
-        self.ws_revision += 1
-        self.set_display_quote(quote)
-        self.ws_quote = self.quote
+        self.ws_quote = quote
+        if usable_websocket_quote(quote):
+            self.last_usable_ws_at = timestamp(now)
+            self.ws_revision += 1
+            self.set_display_quote(quote)
+        elif not self.empty_book_at and (not self.quote
+                or self.quote['provenance']['feed'] == 'polymarket_us_websocket'):
+            self.set_display_quote(quote)
         if duplicate:
             self.duplicates += 1
             self.broadcast()
@@ -144,8 +151,7 @@ class QuotePipeline:
         self.broadcast()
 
     def recovery_snapshot(self, stop):
-        last_ws_at = timestamp(self.ws_quote['received_at']) if self.ws_quote else None
-        return QuoteFeedSnapshot(self.current, last_ws_at, self.ws_revision, stop.is_set())
+        return QuoteFeedSnapshot(self.current, self.last_usable_ws_at, self.ws_revision, stop.is_set())
 
     async def write(self):
         async with feed_writer(self.store):
@@ -223,6 +229,12 @@ async def run(store, client, stop, interval, clock):
                 pipe.publish_recovery, clock=clock,
                 on_failure=lambda category: logging.getLogger(__name__).warning('pp_quote_recovery_failed reason=%s', category))
             while not stop.is_set():
+                now = clock()
+                upcoming = pipe.upcoming
+                if (upcoming and not pipe.queue.full()
+                        and (not pipe.current or timestamp(pipe.current['payload']['end']) <= now)
+                        and timestamp(upcoming['payload']['start']) <= now < timestamp(upcoming['payload']['end'])):
+                    await pipe.market(upcoming)
                 await recovery.check()
                 await _pause_or_stop(stop, 1)
 
@@ -249,7 +261,8 @@ async def run(store, client, stop, interval, clock):
                         pipe.broadcast()
                 await _pause_or_stop(stop, interval)
             await reader
-            await recovery_task
+            recovery_task.cancel()
+            await asyncio.gather(recovery_task, return_exceptions=True)
             await pipe.queue.join()
             writer.cancel()
     finally:

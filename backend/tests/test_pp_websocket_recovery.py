@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from postgres.config import Settings
 from postgres.live_contract import polymarket_bbo, polymarket_market
 from postgres.live_state import LiveState
+from postgres.quote_recovery import RecoveredQuote
 from postgres.quote_session import QuotePipeline, run, stream_books
 
 
@@ -61,6 +62,27 @@ class QuietSession(unittest.IsolatedAsyncioTestCase):
         preview = sender.send.call_args.args[0]['quote']
         self.assertEqual(preview['best_bid'], '0.4501')
         self.assertEqual(preview['provenance']['feed'], 'polymarket_us_bbo')
+
+    async def test_stale_websocket_replay_preserves_recovered_book(self):
+        start = datetime(2026, 11, 27, 20, tzinfo=timezone.utc)
+        now = start + timedelta(seconds=31)
+        market = {'event_id': 'market-event', 'market_id': 'quiet-market',
+                  'payload': {'slug': 'quiet-market', 'start': start.isoformat(),
+                              'end': (start + timedelta(minutes=15)).isoformat(),
+                              'target_usd': '60000.0123', 'status': 'open'}}
+        pipe = QuotePipeline(Mock(), Mock())
+        await pipe.market(market)
+        wire = {'marketData': {'marketSlug': 'quiet-market', 'transactTime': start.isoformat(),
+                               'bids': [{'px': {'value': '0.44'}}]}}
+        await pipe.book(wire, received_at=start.isoformat())
+        recovered = polymarket_bbo({'marketData': {
+            'marketSlug': 'quiet-market', 'bestBid': {'value': '0.4501'},
+        }}, market, now.isoformat())
+        pipe.publish_recovery(RecoveredQuote('quiet-market', now, recovered))
+        await pipe.book(wire, received_at=now.isoformat())
+        self.assertEqual(pipe.quote['event_id'], recovered['event_id'])
+        self.assertEqual(pipe.last_usable_ws_at, start)
+        self.assertEqual(pipe.queue.qsize(), 3)
 
 
 class EmptyRecoveryDisplay(unittest.TestCase):

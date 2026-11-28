@@ -43,10 +43,10 @@ class QuietQuoteRecoveryTests(unittest.IsolatedAsyncioTestCase):
         await self.recovery.check()
         self.fetch.assert_awaited_once_with(self.market)
         self.assertEqual(self.published, [RecoveredQuote('first', self.clock(), self.quote)])
-        self.elapsed = 59
+        self.elapsed = 53
         await self.recovery.check()
         self.fetch.assert_awaited_once()
-        self.elapsed = 60
+        self.elapsed = 54
         await self.recovery.check()
         self.assertEqual(self.fetch.await_count, 2)
 

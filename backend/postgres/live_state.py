@@ -6,6 +6,7 @@ from threading import RLock
 from .calculation import baseline
 from .domain import timestamp, utcnow, decimal_text
 from .contract import source_timestamp
+from .quote_recovery import usable_websocket_quote
 
 
 class LiveState:
@@ -177,6 +178,12 @@ class LiveState:
                     market = {**(market if market and market['id'] == live['id'] else {}), **live}
                     preview = packet['quote']
                     empty_at = packet.get('empty_book_at')
+                    recovering = empty_at or (preview and preview.get('provenance', {}).get('feed')
+                                               in ('polymarket_us_bbo', 'polymarket_us_book'))
+                    if (recovering and quote
+                            and quote.get('provenance', {}).get('feed') == 'polymarket_us_websocket'
+                            and not usable_websocket_quote(quote)):
+                        quote = None
                     if (empty_at and timestamp(empty_at) <= now
                             and (not quote or timestamp(empty_at) >= timestamp(quote['received_at']))):
                         quote = None

@@ -22,6 +22,9 @@ short acceptance does not establish unattended or 72-hour success.
   event. Browser timing is software based.
 - [x] Repeat the pinned 500 local Coinbase history records while collecting:
   1.801 seconds end to end, 547,007 bytes, identical ordered IDs and values.
+- [x] Verify current Grafana ingestion and Supabase scrape from actual raw
+  sample timestamps. Health/feed/ACK series are fresh; first-quote timing
+  panels remain empty in the five-minute view and use separate trace evidence.
 - [ ] Finish the complete 15-minute market and first four hours without a
   collector stop, growing archive backlog or identity/lease drift.
 - [ ] Continue to 24 hours if healthy; prove current-release three-feed A/B

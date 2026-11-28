@@ -88,6 +88,12 @@ The nine fresh SQL observations span 500 seconds: ACKs averaged **19.62 rows/s**
 against 19.66 arrivals/s, pending 15 to 34, with a sampled peak of 55 and
 oldest age at most 3.039 seconds. No sampled ACK interval was below 14 rows/s.
 These short samples show a small backlog, not proof of long-run balance.
+[Grafana ingestion was independently verified](evidence/benchmark-14-grafana-ingestion-2026-11-28.json)
+through the signed-in browser: fresh sender/API/database/collector health,
+three-feed ages, progressing ACKs and two successful Supabase scrapes. The
+first-quote timing panels had no data in that five-minute view; use the
+separate exact-event evidence above for those measurements.
+
 Operator and API CPU-quota throttling is visible despite host RAM headroom;
 PostgreSQL also experiences cache reclaim under its own cap. Counters alone
 do not establish a collector stall. Compare quotas only in a later controlled

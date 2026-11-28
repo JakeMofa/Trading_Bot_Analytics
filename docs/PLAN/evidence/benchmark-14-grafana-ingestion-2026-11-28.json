@@ -1,0 +1,156 @@
+{
+  "scope": "Read-only signed-in Grafana browser verification of current .14 period; no sender token or settings changed",
+  "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+  "dashboard": "https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability",
+  "query_window_seconds": 90,
+  "result_status": "success",
+  "origin": "pp-live-pp-benchmark-watch",
+  "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+  "ack_samples": [
+    [
+      1795872191.473,
+      248071
+    ],
+    [
+      1795872206.538,
+      248349
+    ],
+    [
+      1795872221.581,
+      248654
+    ],
+    [
+      1795872236.623,
+      248914
+    ],
+    [
+      1795872251.647,
+      249286
+    ]
+  ],
+  "pending_samples": [
+    [
+      1795872191.473,
+      20
+    ],
+    [
+      1795872206.538,
+      37
+    ],
+    [
+      1795872221.581,
+      24
+    ],
+    [
+      1795872236.623,
+      49
+    ],
+    [
+      1795872251.647,
+      68
+    ]
+  ],
+  "oldest_pending_samples_s": [
+    [
+      1795872191.473,
+      1.301124
+    ],
+    [
+      1795872206.538,
+      1.466069
+    ],
+    [
+      1795872221.581,
+      1.216893
+    ],
+    [
+      1795872236.623,
+      1.154704
+    ],
+    [
+      1795872251.647,
+      3.337254
+    ]
+  ],
+  "health_series": {
+    "pp_benchmark_metrics_heartbeat": {
+      "first": [
+        1795872183.583,
+        1
+      ],
+      "last": [
+        1795872258.576,
+        1
+      ],
+      "samples": 6
+    },
+    "pp_benchmark_monitor_api_up": {
+      "first": [
+        1795872183.583,
+        1
+      ],
+      "last": [
+        1795872258.576,
+        1
+      ],
+      "samples": 6
+    },
+    "pp_benchmark_monitor_database_sample_ok": {
+      "first": [
+        1795872183.583,
+        1
+      ],
+      "last": [
+        1795872258.576,
+        1
+      ],
+      "samples": 6
+    },
+    "pp_collector_enabled": {
+      "first": [
+        1795872191.473,
+        1
+      ],
+      "last": [
+        1795872251.647,
+        1
+      ],
+      "samples": 5
+    }
+  },
+  "supabase_scrape": {
+    "job": "integrations/supabase/3786574-metrics-endpoint-partner-xttdqeimdujweijxcuro",
+    "samples": [
+      [
+        1795872209.318,
+        1
+      ],
+      [
+        1795872269.318,
+        1
+      ]
+    ]
+  },
+  "feed_latest": {
+    "sample_timestamp": 1795872258.575,
+    "coinbase": {
+      "pp_receipt_s": 0.72025,
+      "provider_s": 0.797969
+    },
+    "polymarket": {
+      "pp_receipt_s": 0.121737,
+      "provider_s": 1.574565
+    },
+    "robinhood": {
+      "pp_receipt_s": 0.02048,
+      "provider_s": 0.088655
+    }
+  },
+  "limitations": [
+    "Prometheus sample times differ from underlying SQL observation times; this verifies delivery and scrape health, not per-event latency.",
+    "First-quote rollover/commit timing panels displayed No data in the five-minute dashboard view; current exact-event latency comes from separately captured canonical traces and Chrome evidence.",
+    "Sampled backlog and rates do not establish sustained balance or 72-hour capacity."
+  ],
+  "ack_counter_span_s": 60.17400002479553,
+  "acks_per_s": 20.191444801730686
+}

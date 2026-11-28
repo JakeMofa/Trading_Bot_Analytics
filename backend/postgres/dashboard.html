@@ -505,7 +505,9 @@
         + (distance == null ? '' : ' · ' + money(Math.abs(distance)) + (distance < 0 ? ' below target' : distance > 0 ? ' above target' : ' from target')));
       set('market-up', cents(q?.best_bid));
       set('market-down', cents(q?.best_ask));
-      let quoteText = 'No Polymarket quote saved for this market yet.';
+      let quoteText = latest.polymarket_empty_book_at
+        ? 'Polymarket US REST book was empty · checked ' + age(ageOf(latest.polymarket_empty_book_at))
+        : 'No Polymarket quote saved for this market yet.';
       if (q?.kind === 'stream_book' || q?.kind === 'live_ws' || q?.kind === 'rest_bbo') {
         const sampleAge = ageOf(q.sample_time);
         quoteText = (quoteDelayed ? 'DELAYED' : 'Recent') + ({rest_bbo:' Polymarket US REST BBO',live_ws:' Polymarket US WebSocket book',stream_book:' Polymarket US REST book'}[q.kind]) + ' · observed ' + age(quoteAge)
@@ -825,6 +827,7 @@
       const candidate = state.models?.ensemble_v1 || savedModels.ensemble_v1;
       const ensemble = candidate && candidate.market_id === state.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : null;
       latest = {...savedContext, market:state.market, generated_at:state.generated_at,
+        polymarket_empty_book_at:state.polymarket_empty_book_at,
         data_mode:state.data_mode, collector:state.collector, origin_id:state.origin_id, feed_controls:state.feed_controls,
         live_estimate_status:state.live_estimate_status, saved_prediction:state.saved_prediction,
         snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status, candle_age_seconds:feature.quality?.candle_age_seconds, reference_source:feature.quality?.price?.source} : null,

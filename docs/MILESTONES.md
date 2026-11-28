@@ -149,6 +149,15 @@ archive. [Matched timing sample](PLAN/evidence/pp-quote-display-local-2026-11-27
 archive latency is established. Next gate and subsequent history work are in
 the [master checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-and-independent-persistence).
 
+### November 27 — Recover quiet Polymarket quote sessions
+
+Local tests reproduce and fix an expired subscription surviving rollover.
+An active market with 30 seconds of usable WebSocket silence can recover
+through a bounded official REST book probe and the existing PostgreSQL writer.
+The tests cover REST failure and empty books, pause, late responses, exact
+quote values and bounded subscriptions across four rollovers. Live Benchmark
+acceptance remains pending.
+
 ### November 27 — Polymarket reference and book quantities
 
 The official asset-prices endpoint returned BTC/USD OHLC and publication

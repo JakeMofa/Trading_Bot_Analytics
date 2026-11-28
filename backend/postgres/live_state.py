@@ -160,6 +160,7 @@ class LiveState:
             market, price, quote, feature, saved = deepcopy((self._market, self._price, self._quote, self._snapshot, self._forecast))
             packet = self._display
             hydrated_quote_id = (quote or {}).get('event_id')
+            confirmed_empty_at = None
             reference = deepcopy((packet or {}).get('reference'))
             if reference:
                 age = (now - timestamp(reference['source_time'])).total_seconds()
@@ -175,7 +176,12 @@ class LiveState:
                         quote = feature = saved = None
                     market = {**(market if market and market['id'] == live['id'] else {}), **live}
                     preview = packet['quote']
-                    if preview and (not quote or timestamp(preview['received_at']) >= timestamp(quote['received_at'])):
+                    empty_at = packet.get('empty_book_at')
+                    if (empty_at and timestamp(empty_at) <= now
+                            and (not quote or timestamp(empty_at) >= timestamp(quote['received_at']))):
+                        quote = None
+                        confirmed_empty_at = empty_at
+                    elif preview and (not quote or timestamp(preview['received_at']) >= timestamp(quote['received_at'])):
                         quote = deepcopy(preview)
             active = bool(market and timestamp(market['start']) <= now < timestamp(market['end']))
             if market:
@@ -266,6 +272,7 @@ class LiveState:
                     'polymarket_reference': reference, 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
+                    'polymarket_empty_book_at': confirmed_empty_at,
                     'feature_snapshot': feature, 'forecast': saved,
                     'saved_prediction': deepcopy(latest_saved), 'live_estimate_status': live_status,
                     'models': {saved['model_version']: saved} if saved else {}, 'live_estimate': estimate,

@@ -148,7 +148,19 @@ procedure requires an explicit maintenance window while that work is pending.
 
 Offline reproduction from the repository root:
 
+The heartbeat treats only an HTTP 503 from its authenticated
+`GET /collector/status` as a temporarily unavailable observation. It leaves
+the original database lease deadline unchanged and retries the entire proof
+on the next timer tick. No status snapshot is cached. A successful recovery
+still requires the exact release binding, fresh status, qualified archive
+worker and server-side renewal of the currently owned writer UUID. Expired
+or transferred leases cannot be re-enabled by this retry. Status 401/403/409,
+renewal errors (including 409/503), release/worker drift and explicit OFF keep
+their existing terminal or disarm behavior. Persistent unavailability can
+still expire the lease; this is not an indefinite-uptime guarantee.
+
 ```sh
+PYTHONPATH=deploy/preprod python -m unittest discover -s deploy/preprod/tests -p test_watch_service.py
 PYTHONPATH=backend:backend/tests python -m unittest discover -s backend/tests -p test_postgres_watch_dashboard_reader.py
 PYTHONPATH=deploy/preprod python -m unittest discover -s deploy/preprod/tests -p test_trial_cloud_control.py
 PYTHONPATH=deploy/preprod python -m unittest discover -s deploy/preprod/tests -p test_api_component_update.py

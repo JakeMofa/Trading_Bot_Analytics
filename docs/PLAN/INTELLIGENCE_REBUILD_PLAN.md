@@ -62,8 +62,8 @@ pinned archive verifier remains a separate 3.852/2.715-second measurement.
   Durable inspection at 06:43:47.949 found epoch 7, no session/lease, zero
   pending and 98,058 verified ACKs. The `.11` failure is
   `ownership.lease_lost`, with explicit OFF false. This is distinct from the
-  old `ownership.timeout` and native role-cap refusal. Read-only renewal
-  diagnosis is in progress; no re-arm, second deployment or deletion occurred.
+  old `ownership.timeout` and native role-cap refusal. The renewal
+  failure is diagnosed; no re-arm, second deployment or deletion occurred.
 
 Final `.11` sampled throughput averaged 20.12 verified ACKs/s. Pending work
 peaked at 109 records and 7.48 seconds age. All 9,479 newly produced envelopes
@@ -95,11 +95,12 @@ ages then grew after OFF; no next-market canonical capture was observed.
 [Browser cutover](evidence/benchmark-budget-browser-cutover-2026-11-28.json) ·
 [Stop and observability limits](evidence/benchmark-budget-stop-observability-2026-11-28.json).
 
-The next scoped fix allows only the pre-renew authenticated status HTTP 503
+Merged PR #260 allows only the pre-renew authenticated status HTTP 503
 to be checked again on a fresh timer tick, while the original UUID/lease and
 all ownership gates remain authoritative. It must not retry renew HTTP 409,
 ignore auth/profile/worker drift, renew an expired lease or silently re-arm.
-Offline regressions, review and successor acceptance are still required.
+Offline controller regressions, independent review and exact-head CI passed.
+Successor publication and live acceptance are still required.
 
 The [complete connection budget](LOCAL_DATABASE_CONNECTION_BUDGET.md) and
 [future collection-preserving handoff](CONTINUOUS_COLLECTOR_HANDOFF.md) are

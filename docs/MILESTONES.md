@@ -10,7 +10,7 @@
 - [x] Verify reader separation, budget/mounts, renewals and uncluttered live UI.
 - [ ] Finish the next market-boundary/backlog observation. `.11` stopped
   before that boundary with `ownership.lease_lost`; epoch 7 is OFF, 98,058
-  verified ACKs and zero pending. Read-only renewal diagnosis is in progress.
+  verified ACKs and zero pending. The renewal failure is diagnosed; successor acceptance is pending.
 - [ ] Qualify collection-preserving collector upgrades and long-window retirement.
 
 The canonical WebSocket old-to-new receipt gap was 627.356 seconds, including
@@ -19,10 +19,21 @@ failure had a proven app-role connection-cap refusal; the second timeout's
 cause remains unresolved. Final `.11` sampled throughput was about 20.12 verified ACKs/s, with all
 9,479 new envelopes ACKed. The stop was traced to a private status HTTP503
 permanently latching the host watch held, skipping renewals until lease expiry.
-A narrow transient-status fix is being qualified offline.
+The narrow transient-status fix merged in #260 after independent review and exact CI.
 CPU throttling is present inside the operator cgroup despite host RAM headroom;
 no blanket availability claim follows. The future handoff design adds no live
 authority. [Current checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-28-2026--local-connection-budget-adoption).
+
+## November 28 — Heartbeat availability regression, offline
+
+- [x] Limit temporary heartbeat retry to HTTP 503 from authenticated collector
+  status. Retry fresh binding/status/worker/owner proof without extending the
+  old deadline, using stale status, minting a permit or restarting an expired
+  or transferred owner. Authentication, renewal and drift refusals stay fatal.
+- [x] Offline controller tests cover recovery, persistent unavailability and
+  expiry, explicit OFF, owner transfer and binding/worker/origin drift.
+- [x] Independent review and exact-head CI passed; #260 merged.
+- [ ] Successor publication, Benchmark recovery and full-market live acceptance.
 
 ## November 27 — Sustained collection and archive capacity in progress
 

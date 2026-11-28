@@ -4,7 +4,10 @@ import hmac
 import secrets
 import time
 
+from psycopg import OperationalError
 from psycopg.types.json import Jsonb
+
+from .live_diagnostics import connection_capacity
 
 ORIGIN = 'pp-live-pp-benchmark-watch'
 FEEDS = ('polymarket','coinbase','robinhood')
@@ -59,7 +62,19 @@ def read_controls(store):
 
 
 def desired_feeds(store):
-    return {k:v['enabled'] for k,v in read_controls(store).items()}
+    check_store(store)
+    # Other readers and state-changing controls retain their own failure
+    # semantics. Only retry opening this side-effect-free preferences read.
+    for delay in (0.1, 0.3, None):
+        try:
+            connection = store.connection(True)
+            break
+        except OperationalError as error:
+            if delay is None or not connection_capacity(error):
+                raise
+            time.sleep(delay)
+    with connection as db:
+        return {k:v['enabled'] for k,v in _state(_rows(db)).items()}
 
 
 def set_desired(store, feed, enabled, expected_revision):

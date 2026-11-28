@@ -51,6 +51,7 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
             durable = await asyncio.to_thread(status_repository.collector_state, origin_id)
         except Exception:
             raise HTTPException(503, 'collector state unavailable') from None
+        process = session.state() if session else {}
         return {'environment': 'preprod', 'origin_id': origin_id,
                 'collector_enabled': bool(durable['collector_enabled']),
                 'epoch': durable['epoch'], 'generation_id': durable['generation_id'],
@@ -58,8 +59,9 @@ def create_operator_app(repository, *, origin_id: str, token: str, session=None,
                 'initialized': durable['initialized'],
                 'lease_expires_at': durable.get('collector_lease_expires_at'),
                 'lease_expired': bool(durable.get('stored_enabled') and not durable['collector_enabled']),
-                'process_running': session.state()['process_running'] if session else None,
-                'session_failure_code': session.state().get('failure_code') if session else None,
+                'process_running': process.get('process_running'),
+                'session_failure_code': process.get('failure_code'),
+                'session_failure_acknowledged': process.get('failure_acknowledged', False),
                 'live_fence_qualified': False,
                 **({'watch_explicit_off': await asyncio.to_thread(session.watch_explicit_off)}
                    if callable(getattr(session, 'watch_explicit_off', None)) else {})}

@@ -38,6 +38,28 @@ class FeedControlTests(unittest.TestCase):
             write.side_effect=controls.RevisionConflict()
             self.assertEqual(self.client.put('/collector/feeds/robinhood',**args).status_code,409)
 
+    def test_desired_retries_only_capacity_while_acquiring_read_connection(self):
+        from psycopg import OperationalError
+        from psycopg.errors import InvalidPassword, TooManyConnections
+
+        with patch.object(controls.time, 'sleep') as sleep:
+            self.store.connection = MagicMock(side_effect=TooManyConnections('private metadata'))
+            with self.assertRaises(TooManyConnections):
+                controls.desired_feeds(self.store)
+            self.assertEqual(self.store.connection.call_count, 3)
+            self.assertEqual([c.args[0] for c in sleep.call_args_list], [0.1, 0.3])
+        for error in (OperationalError('FATAL: too many connections for role "tradebot_app"'),
+                      InvalidPassword('private'), ValueError('invalid identity')):
+            self.store.connection = MagicMock(side_effect=error)
+            with self.assertRaises(type(error)):
+                controls.desired_feeds(self.store)
+            self.store.connection.assert_called_once_with(True)
+        self.store.connection = MagicMock()
+        with patch.object(controls, '_rows', side_effect=TooManyConnections('statement error')):
+            with self.assertRaises(TooManyConnections):
+                controls.desired_feeds(self.store)
+        self.store.connection.assert_called_once_with(True)
+
     def test_retrying_preserves_the_desired_state_and_other_feed(self):
         from contextlib import contextmanager
         db=MagicMock()

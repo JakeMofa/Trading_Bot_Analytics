@@ -19,7 +19,7 @@ from .rehearsal_profile import WATCH_LEASE_SECONDS
 from . import benchmark_telemetry as metrics
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
-from .live_diagnostics import CollectorHold, LiveDiagnostic, diagnose
+from .live_diagnostics import CollectorHold, LiveDiagnostic, connection_capacity, diagnose
 
 
 async def _pause_or_stop(stop: asyncio.Event, seconds: float):
@@ -154,6 +154,13 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
                 if error:
                     if isinstance(error, LiveDiagnostic):
                         raise error from None
+                    if names[task] == 'selected_feeds' and isinstance(error, PostgresError):
+                        # Only the typed SQLSTATE or an exact native startup
+                        # failure identifies a capacity refusal.
+                        category = ('database_connection_limit' if connection_capacity(error)
+                                    else 'timeout' if error.sqlstate == '57014'
+                                    else 'database_unavailable')
+                        raise LiveDiagnostic('selected_feeds', category) from None
                     raise diagnose(names[task], error) from None
                 if not stop.is_set():
                     raise LiveDiagnostic(names[task], 'ended')

@@ -10,7 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import httpx
 from psycopg import OperationalError
-from psycopg.errors import QueryCanceled
+from psycopg.errors import QueryCanceled, TooManyConnections
 from postgres.live_ingest import polymarket_cycle
 from postgres.live_supervisor import CollectorHold, run_bounded
 from postgres.live_diagnostics import LiveDiagnostic, SourceHTTPFailure
@@ -205,6 +205,27 @@ class SupervisorTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('candle', calls)
         self.assertFalse(store.enabled)
         self.assertEqual(store.calls, 0)
+
+    async def test_watch_feed_control_failures_preserve_the_sanitized_stage_and_durable_off(self):
+        from postgres.cloud_origin_binding import DISPLAY_ORIGIN
+        from postgres.rehearsal_profile import WATCH_LEASE_SECONDS
+
+        for failure, category in (
+            (TooManyConnections('private role'), 'database_connection_limit'),
+            (OperationalError('private connection details'), 'database_unavailable'),
+            (QueryCanceled('private SQL'), 'timeout'),
+            (ValueError('private controls'), 'invalid_or_unavailable'),
+        ):
+            with self.subTest(category=category):
+                store = Store()
+                store.settings.origin_id = DISPLAY_ORIGIN
+                with patch('postgres.watch_sources.run_watch_sources', side_effect=failure):
+                    with self.assertRaises(LiveDiagnostic) as caught:
+                        await run_bounded(store, None, asyncio.Event(), owner_check=lambda: True,
+                                          disable_collector=store.disable, max_seconds=WATCH_LEASE_SECONDS)
+                self.assertEqual(str(caught.exception), 'selected_feeds.' + category)
+                self.assertFalse(store.enabled)
+                self.assertEqual(store.stops, 1)
 
     async def test_ownership_read_errors_report_fixed_codes_and_leave_writer_off(self):
         for error, code in (

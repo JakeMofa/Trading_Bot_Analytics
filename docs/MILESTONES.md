@@ -31,6 +31,28 @@ display origin. Live acceptance requires a fresh Robinhood BTC/USD bid and
 ask, the exact local observation and a matching hosted receipt and projection.
 A market-data halt keeps previous observations and their source age visible.
 
+### Robinhood v1 midpoint persistence
+
+A signed v1 BTC-USD request on 4 GB Benchmark returned Robinhood's provider
+price, both spread-inclusive sides and a nanosecond retrieval time in 155 ms.
+A generated fixture carried three polls through a real local PostgreSQL writer
+into a second PostgreSQL 17 database using the private Supabase schema and
+restricted writer/reader roles. The independently read revisions matched the
+raw responses, price, timestamps and hashes. Chromium displayed three separate
+BTC sources, aged the Robinhood price and showed an unavailable midpoint for a
+crossed book. Live collector and hosted verification are pending on a successor.
+[Collector and storage contract](../backend/postgres/APPLICATION.md#robinhood-v1-btcusd-history).
+
+### Auxiliary Robinhood BTC/USD quote reader
+
+Three signed Robinhood Crypto v2 BTC-USD GETs returned prices on the 4 GB
+Benchmark while its collector was off, November 28 02:36 UTC. HTTP round trips
+were 163.211 ms, 27.181 ms and 31.252 ms. All three responses had a higher bid
+than ask, including 59,950.81 / 59,950.75. Those samples retain both prices and
+a crossed-book flag with an empty midpoint. The responses also supplied a
+provider timestamp outside the published schema. Its exchange-time meaning is
+unknown. No prediction consumed these quotes. [Observer contract](../backend/postgres/APPLICATION.md#robinhood-btcusd-quote-observer).
+
 ### Dashboard model readouts
 
 The Market view now keeps the latest local decision for the same market alongside

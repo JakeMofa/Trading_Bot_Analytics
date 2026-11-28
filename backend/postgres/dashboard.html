@@ -102,6 +102,7 @@
         <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
         <div class="metric"><span class="label">Polymarket BTC/USD reference</span><strong id="venue-price">—</strong><div id="venue-distance" class="small muted"></div></div>
         <div class="metric"><span class="label">Latest Coinbase tick</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
+        <div class="metric"><span class="label">Robinhood BTC/USD · v1 midpoint</span><strong id="robinhood-price">—</strong><div id="robinhood-age" class="small muted">Awaiting Robinhood.</div></div>
         <div class="metric"><span class="label">Saved forecast input</span><strong id="reference">—</strong></div>
         <div class="metric"><span class="label">Forecast input distance</span><strong id="distance">—</strong></div>
       </div>
@@ -454,6 +455,20 @@
       set('live-reference', t ? money(t.price_usd) : '—');
       set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
+      const rh = latest.robinhood_reference;
+      set('robinhood-price', money(rh?.price_usd));
+      const robinhoodElement = byId('robinhood-price');
+      robinhoodElement.dataset.eventId = rh?.event_id || '';
+      robinhoodElement.dataset.sourceTime = rh?.source_time || '';
+      robinhoodElement.dataset.receivedAt = rh?.received_at || '';
+      const rhAge = rh ? (now - Date.parse(rh.received_at)) / 1000 : null;
+      const rhSourceAge = rh?.source_time ? (now - Date.parse(rh.source_time)) / 1000 : null;
+      const rhFresh = latest.collector?.enabled === true && rhAge >= 0 && rhAge <= 10
+        && rhSourceAge != null && rhSourceAge >= 0 && rhSourceAge <= 10;
+      set('robinhood-age', !rh ? 'No Robinhood quote received.' :
+        (rhFresh ? 'Recent' : 'Stale') + ' · PP receipt ' + age(rhAge)
+        + (rhSourceAge == null ? ' · provider time unavailable' : ' · Robinhood retrieval ' + age(rhSourceAge))
+        + (rh.book_status === 'crossed' ? ' · crossed book' : rh.price_usd == null ? ' · midpoint unavailable' : ''));
       const venue = latest.venue_reference;
       set('venue-price', money(venue?.price_usd));
       const venueElement = byId('venue-price');
@@ -737,7 +752,7 @@
         live_estimate_status:state.live_estimate_status, saved_prediction:state.saved_prediction,
         snapshot:feature ? {...feature.values, as_of:feature.as_of, price_status:feature.quality?.price?.status, candle_status:feature.quality?.candle_status, candle_age_seconds:feature.quality?.candle_age_seconds, reference_source:feature.quality?.price?.source} : null,
         forecast:ensemble || state.forecast, baseline_forecast:state.forecast, live_estimate:state.live_estimate,
-        latest_coinbase_tick:state.coinbase, venue_reference:state.polymarket_reference,
+        latest_coinbase_tick:state.coinbase, venue_reference:state.polymarket_reference, robinhood_reference:state.robinhood_reference,
         market_quote:quote ? {...quote, kind:({polymarket_us_websocket:'live_ws',polymarket_us_book:'stream_book'}[quote.provenance?.feed] || 'rest_bbo'), sample_time:quote.source_time,
           up_quote:quote.up_probability, down_quote:quote.down_probability} : null,
         feeds:Object.entries(state.feeds || {}).map(([source, feed]) => {
@@ -881,7 +896,7 @@
             ? [localTime(row.as_of),localTime(row.created_at),row.market_id,row.model_version,
                pct(row.probability_up),pct(row.probability_down),row.abstain_reason || '—',storage]
             : [localTime(row.source_time),localTime(row.received_at),row.source,row.kind,
-               data.best_bid ?? '—',data.best_ask ?? '—',row.price ?? data.close ?? '—',storage];
+               data.best_bid ?? data.bid ?? '—',data.best_ask ?? data.ask ?? '—',row.price ?? data.close ?? '—',storage];
           if (records === 'predictions') tr.dataset.predictionId = row.id;
           else tr.dataset.eventId = row.event_id;
           for (const field of values) {

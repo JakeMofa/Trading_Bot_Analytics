@@ -48,6 +48,8 @@ class Window:
         match = ((row['source'] == 'polymarket_us' and row.get('market_id') == self.market_id)
                  or (row['source'] == 'polymarket_us' and row['kind'] == 'price'
                      and row.get('market_id') is None and row.get('symbol') == 'BTC-USD')
+                 or (row['source'] == 'robinhood_crypto' and row.get('market_id') is None
+                     and row.get('symbol') == 'BTC-USD' and row['kind'] == 'reference_quote')
                  or (row['source'] == 'coinbase' and row.get('symbol') == 'BTC-USD'
                      and row['kind'] in ('price','candle')))
         receipt = timestamp(row['received_at'])
@@ -88,7 +90,8 @@ def local_page(db, origin, generation, window, after, limit):
         AND received_at<=%s AND available_at<=%s AND (source_epoch IS NULL OR source_epoch<=%s)
         AND ((market_id=%s AND source='polymarket_us') OR
              (source='polymarket_us' AND market_id IS NULL AND symbol='BTC-USD' AND kind='price') OR
-             (source='coinbase' AND symbol='BTC-USD' AND kind IN ('price','candle')))
+             (source='coinbase' AND symbol='BTC-USD' AND kind IN ('price','candle')) OR
+             (source='robinhood_crypto' AND market_id IS NULL AND symbol='BTC-USD' AND kind='reference_quote'))
         AND (source COLLATE "C",event_id COLLATE "C")>(%s,%s)
         ORDER BY source COLLATE "C",event_id COLLATE "C" LIMIT %s),
         sized AS (SELECT *,sum(octet_length(payload::text)+512) OVER

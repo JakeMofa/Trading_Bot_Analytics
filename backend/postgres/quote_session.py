@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 import json
+import os
 import time
 from uuid import uuid4
 
@@ -54,6 +55,11 @@ class QuotePipeline:
         self.reference = {'price_usd': event['price'], 'source_time': event['source_time'],
                           'received_at': event['received_at'], 'event_id': event['event_id']}
         self.broadcast()
+
+    def publish_robinhood(self, event):
+        self.display.send({'type': 'robinhood_reference', 'reference': {
+            'event_id': event['event_id'], 'price_usd': event['price'], 'received_at': event['received_at'],
+            'source_time': event['source_time'], 'book_status': event['payload']['book_status']}})
 
     async def market(self, event):
         if self.current and self.current['event_id'] == event['event_id']:
@@ -172,6 +178,9 @@ async def run(store, client, stop, interval, clock):
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair))
+            if os.getenv('TRADEBOT_PP_ROBINHOOD_REFERENCE') == '1':
+                from .robinhood_history import collect
+                tasks.create_task(collect(store, stop, pipe.publish_robinhood))
             cadence = 1 if store.settings.origin_id in ONE_SECOND_ORIGINS else 5
             tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
             while not stop.is_set():

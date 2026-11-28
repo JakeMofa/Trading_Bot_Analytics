@@ -27,8 +27,12 @@ Follow the [Benchmark dashboard](http://127.0.0.1:18433/dashboard) and
 [TokenBot observability](https://heftychameleon632.grafana.net/d/jagbfc8/tokenbot-observability).
 Polymarket supplies the contract price and official threshold. Coinbase is an
 input to the existing baseline. Robinhood can provide a separately attributed
-BTC/USD quote if a read-only quote credential becomes available. Adding that
-input to a predictive model requires its own version and point-in-time replay.
+BTC/USD quote. The authenticated v1 GET on Benchmark returned a provider midpoint
+and retrieval timestamp. The [one-second history and display path](../../backend/postgres/APPLICATION.md#robinhood-v1-btcusd-history)
+passed a disposable PostgreSQL and Chromium test. The next qualified Benchmark
+run must match a Robinhood browser event to its committed record and independently
+read its hosted revision while all three BTC feeds collect. Adding this input
+to a predictive model requires its own version and point-in-time replay.
 
 ## November 27, 2026 — Live display measured on Benchmark
 

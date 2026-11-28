@@ -26,15 +26,16 @@ SEVENTH_TRIAL_WRITER = 'tradebot_pp_trial_20261119_07_writer'
 SEVENTH_TRIAL_READER = 'tradebot_pp_trial_20261119_07_reader'
 FIRST_DISPLAY_ORIGIN = 'pp-live-pp-display-20261127-01'
 PREVIOUS_DISPLAY_ORIGIN = 'pp-live-pp-display-20261127-02'
-DISPLAY_ORIGIN = 'pp-live-pp-display-20261127-03'
-DISPLAY_WRITER = 'tradebot_pp_display_20261127_03_writer'
-DISPLAY_READER = 'tradebot_pp_display_20261127_03_reader'
+LAST_DISPLAY_ORIGIN = 'pp-live-pp-display-20261127-03'
+DISPLAY_ORIGIN = 'pp-live-pp-benchmark-watch'
+DISPLAY_WRITER = 'tradebot_pp_benchmark_watch_writer'
+DISPLAY_READER = 'tradebot_pp_benchmark_watch_reader'
 BOUNDARY_ORIGIN = 'pp-live-pp-boundary-20261124-01'
 BOUNDARY_WRITER = 'tradebot_pp_boundary_20261124_01_writer'
 BOUNDARY_READER = 'tradebot_pp_boundary_20261124_01_reader'
 TRIAL_ORIGINS = frozenset({TRIAL_ORIGIN, NEXT_TRIAL_ORIGIN, THIRD_TRIAL_ORIGIN, FOURTH_TRIAL_ORIGIN,
                            FIFTH_TRIAL_ORIGIN, SIXTH_TRIAL_ORIGIN, SEVENTH_TRIAL_ORIGIN})
-STRUCTURED_ORIGINS = TRIAL_ORIGINS | {BOUNDARY_ORIGIN, FIRST_DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN, DISPLAY_ORIGIN}
+STRUCTURED_ORIGINS = TRIAL_ORIGINS | {BOUNDARY_ORIGIN, FIRST_DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN, LAST_DISPLAY_ORIGIN, DISPLAY_ORIGIN}
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,9 @@ def cloud_binding(origin_id):
     if origin_id == FIRST_DISPLAY_ORIGIN:
         return CloudBinding(origin_id, 'tradebot_pp_display_20261127_01_writer',
                             'tradebot_pp_display_20261127_01_reader')
+    if origin_id == LAST_DISPLAY_ORIGIN:
+        return CloudBinding(origin_id, 'tradebot_pp_display_20261127_03_writer',
+                            'tradebot_pp_display_20261127_03_reader')
     if origin_id == DISPLAY_ORIGIN:
         return CloudBinding(origin_id, DISPLAY_WRITER, DISPLAY_READER)
     if origin_id == BOUNDARY_ORIGIN:

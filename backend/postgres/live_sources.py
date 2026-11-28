@@ -17,6 +17,7 @@ from websockets.asyncio.client import connect as websocket_connect
 
 from .boundary_trace import boundary_trace
 from .coinbase_timing import ACTIVE_TIMING, observed_connection
+from . import benchmark_telemetry as metrics
 from .contract import source_timestamp
 from .live_contract import QuoteContractError, coinbase_ticker, coinbase_closed_candle, polymarket_bbo, polymarket_market
 from .live_diagnostics import SourceHTTPFailure, SourceTransportFailure
@@ -46,6 +47,7 @@ async def fetch_coinbase_closed_candles(client: httpx.AsyncClient, now: datetime
                                  headers={'Accept': 'application/json'},
                                  timeout=4, follow_redirects=False) as response:
             if response.status_code != 200:
+                metrics.issue('coinbase_candles', metrics.classify_status(response.status_code))
                 raise SourceHTTPFailure(response.status_code, 'Coinbase candles unavailable')
             body = bytearray()
             async for chunk in response.aiter_bytes():
@@ -53,6 +55,7 @@ async def fetch_coinbase_closed_candles(client: httpx.AsyncClient, now: datetime
                 if len(body) > MAX_RESPONSE_BYTES:
                     raise ValueError('Coinbase candle response exceeds bound')
     except httpx.HTTPError as error:
+        metrics.issue('coinbase_candles', 'transport')
         raise SourceTransportFailure(timeout=isinstance(error, httpx.TimeoutException),
                                      message='Coinbase candles unavailable') from None
     rows = json.loads(body, parse_float=Decimal)
@@ -132,6 +135,7 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                                      headers={'Accept': 'application/json'},
                                      timeout=min(4, remaining), follow_redirects=False) as response:
                 if response.status_code != 200:
+                    metrics.issue('polymarket_catalog', metrics.classify_status(response.status_code))
                     raise SourceHTTPFailure(response.status_code,
                                             'Polymarket discovery HTTP failure')
                 body = bytearray()
@@ -146,6 +150,7 @@ async def discover_polymarket_15m(client: httpx.AsyncClient, now: datetime,
                     if len(body) > MAX_RESPONSE_BYTES:
                         raise ValueError('Polymarket discovery response exceeds bound')
         except httpx.HTTPError as error:
+            metrics.issue('polymarket_catalog', 'transport')
             raise SourceTransportFailure(timeout=isinstance(error, httpx.TimeoutException),
                                          message='Polymarket discovery unavailable') from None
         payload = json.loads(body, parse_float=Decimal)

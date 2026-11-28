@@ -14,6 +14,9 @@ from psycopg import Error as PostgresError
 from .rehearsal_profile import lease_cap, CYCLE_ORIGINS
 from datetime import datetime, timezone
 
+from .cloud_origin_binding import DISPLAY_ORIGIN
+from .rehearsal_profile import WATCH_LEASE_SECONDS
+from . import benchmark_telemetry as metrics
 from .live_ingest import (_live_store, coinbase_candle_cycle, coinbase_session,
                           polymarket_cycle)
 from .live_diagnostics import CollectorHold, LiveDiagnostic, diagnose
@@ -67,11 +70,13 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             raise LiveDiagnostic('ownership', 'lease_lost')
 
     async def watch_fence():
-        while not stop.is_set():
-            await assert_fence()
-            await _pause_or_stop(stop, 1)
+        with metrics.monitor_session(store.settings.origin_id, getattr(store, 'producer_session_id', None)) as pulse:
+            while not stop.is_set():
+                await assert_fence()
+                pulse()
+                await _pause_or_stop(stop, 1)
 
-    async def coinbase_stream():
+    async def coinbase_stream(stop=stop):
         await coinbase(store, stop)
         if not stop.is_set():
             raise LiveDiagnostic('coinbase_stream', 'ended')
@@ -85,10 +90,12 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
             await market(store, client, stop, now=clock())
             await _pause_or_stop(stop, market_interval)
 
-    async def candle_loop():
+    async def candle_loop(stop=stop):
         unavailable_cycles = 0
         while not stop.is_set():
             try:
+                if unavailable_cycles:
+                    metrics.issue('coinbase_candles', 'retry')
                 await candles(store, client, stop, now=clock())
             except LiveDiagnostic as error:
                 # _step separates fetch from durable write: only these provider
@@ -118,10 +125,22 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
         await assert_fence()  # No source opens first.
         named = {'ownership': watch_fence, 'coinbase_stream': coinbase_stream,
                  'polymarket_loop': market_loop, 'coinbase_candle_loop': candle_loop}
+        renewable = store.settings.origin_id == DISPLAY_ORIGIN and max_seconds == WATCH_LEASE_SECONDS
+        if renewable:
+            from . import quote_session
+            from .watch_sources import run_watch_sources
+            readers = {'polymarket': ('polymarket', lambda event: quote_session.run(
+                           store, client, event, market_interval, clock, include_robinhood=False)),
+                       'coinbase_stream': ('coinbase', coinbase_stream),
+                       'coinbase_candles': ('coinbase', candle_loop),
+                       'robinhood': ('robinhood', lambda event: quote_session.run_robinhood(store,event))}
+            named = {'ownership': watch_fence, 'selected_feeds': lambda: run_watch_sources(store,stop,readers)}
         tasks = [asyncio.create_task(task()) for task in named.values()]
         names = dict(zip(tasks, named))
         stop_task = asyncio.create_task(stop.wait())
-        done, _ = await asyncio.wait([*tasks, stop_task], timeout=max_seconds,
+        # The dedicated host supervisor renews a short fenced lease. A missing
+        # heartbeat makes assert_fence stop all feeds even across market changes.
+        done, _ = await asyncio.wait([*tasks, stop_task], timeout=None if renewable else max_seconds,
                                      return_when=asyncio.FIRST_COMPLETED)
         if not done:
             raise LiveDiagnostic('session', 'deadline_reached')
@@ -144,7 +163,7 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
         if stop.is_set():
             # The native reader owns a bounded persistence queue. Alternate
             # source adapters retain the original cancel-on-stop contract.
-            draining = {'coinbase_stream'} if coinbase is coinbase_session else set()
+            draining = {'selected_feeds'} if renewable else {'coinbase_stream'} if coinbase is coinbase_session else set()
             if quote_display.enabled(store.settings):
                 draining.add('polymarket_loop')
             await asyncio.wait_for(asyncio.gather(*(task for task in tasks if names[task] in draining)),

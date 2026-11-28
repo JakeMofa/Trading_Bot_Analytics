@@ -16,6 +16,28 @@ The dashboard gives baseline UP and DOWN equal prominence and shows
 Robinhood's per-poll price movement separately.
 [Master checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--three-btc-feeds-saved-and-displayed-on-benchmark).
 
+### Exact archive page packing
+
+Pending structured writes now fill pages using the canonical envelope bytes,
+including array brackets and separators. Disposable PostgreSQL 17 verifies
+the 50-row limit, the 256 KiB ceiling, retry identity, and exact-fit and
+oversized first rows. In a full write, verified readback and local ACK replay
+of the first 1,000 retained Benchmark .4 rows, the exact packer used 25 pages
+with a median of 41 rows. The previous packer used 51 pages with a median of
+18. End-to-end elapsed was 2.412–2.420 seconds versus 2.651–2.761 seconds
+in disposable PostgreSQL 17 over a local Unix socket. PP-to-Supabase throughput
+still requires a live run. The pending-tail query used the existing partial
+index to fetch 50 pending rows behind 2,000,000 acknowledged rows.
+A new Benchmark watch generation records its exact cumulative ACK count in the local ACK
+transaction. The Benchmark watch also registers its dashboard quote counter at
+collector startup. A restart starts a new display count while previously
+created quote backlog and idempotent retries remain excluded. This replaces a
+15-second display query that took 301 ms and touched 61,903 shared buffers on
+the retained .4 market. Existing retained generations keep their prior state.
+[Read-only Benchmark query plans](PLAN/evidence/benchmark-retained-04-query-plans.json) ·
+[Paired timings](PLAN/evidence/benchmark-exact-outbox-1000.json) ·
+[Pending index plans](PLAN/evidence/benchmark-outbox-index-two-million.json) · [Archive capacity checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--freshness-and-prediction-history-acceptance-measured).
+
 ## November 27 — Freshness and history acceptance completed
 
 Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event
@@ -1401,6 +1423,31 @@ From the project root, run `.venv/bin/python -m unittest discover -s backend/tes
 - Run `python -m unittest discover -s backend/tests -p 'test_generated_size_cycle.py' -v`. The native cases launch a disposable socket-only PostgreSQL 17 cluster. The fixtures use small measured triggers. The 32 MiB generated-profile ceiling is a candidate test bound; neither that size nor a 72-hour production window has been qualified.
 - The trial07 candidate binds the fresh origin and exact 32 MiB trigger to initial-A preparation, the one-use controller authorizations, the finite writer lease and its admission record, the active profile and the retirement permit. Existing origin policies remain independent. Terminal cleanup requires both verified physical removals and archives the final fresh A without deleting it.
 - Before live qualification, require exact CI, reviewed trial07 cloud writer/reader and Storage policies, installed source/image/controller bindings, both privileged-change freeze windows, and retained trial05/trial06 fingerprints. No hosted role, VM deployment, collector activation, or retirement was performed by the offline work.
+
+### Sustained 4 GB Benchmark admission
+
+The Benchmark watch now has a stable origin, durable run intent, independently
+supervised feeds and renewable PostgreSQL lease. Disposable PostgreSQL covered
+expiry, ownership, explicit OFF and safe restart. A controller fixture covered
+renewal and refusing to admit without the exact archive worker. The live
+renewal, concurrent source controls and sustained archive rate require
+Benchmark acceptance. [Operator procedure](../deploy/preprod/BENCHMARK_WATCH.md)
+### Benchmark source and archive monitoring
+
+The November 27 audit found that the original backlog alert was limited to
+trial05/06. The saved Benchmark alert evaluates the active collector, three
+source ages, Polymarket book receipts and archive lag. Its dedicated email
+contact accepted one test notification. The source and archive sender now has
+a host-local implementation for the continuous profile. Its loopback route
+samples only that origin, reports A and B separately, and treats an unavailable
+sample as unknown. Sustained sender operation and alert recovery require
+the qualified continuous release. [Benchmark observability and installation](../deploy/preprod/BENCHMARK_MONITORING.md).
+
+The actual PG17 application-role query took 1.015 ms execution and 3.125 ms
+planning on a disposable table with 2,000,000 acknowledged rows and nine
+pending rows. It visited nine outbox index entries and looked up one generation
+ACK checkpoint and explicit operator intent by their primary keys. The missing historical counter returned
+unknown. [Query plan](PLAN/evidence/pp-benchmark-telemetry-pending-index-2026-11-27.json).
 
 ### Independent Benchmark feed controls
 

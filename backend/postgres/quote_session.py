@@ -11,6 +11,7 @@ from uuid import uuid4
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
+from . import benchmark_telemetry as metrics
 from .boundary_trace import boundary_trace
 from .boundary_shadow import WS_URL, headers, signing_key
 from .contract import content_hash, source_timestamp
@@ -180,10 +181,23 @@ class QuotePipeline:
             self.queue.task_done()
 
 
-async def stream_books(pipe, stop, keypair):
+async def stream_books(pipe, stop, keypair, *, refresh_key=None):
     delay = 1
+    next_reject_log = 0
+    reconnect = False
     while not stop.is_set():
+        if reconnect:
+            metrics.issue('polymarket_book', 'retry')
         try:
+            if refresh_key:
+                try:
+                    keypair = refresh_key()
+                except (ValueError, OSError):
+                    metrics.issue('polymarket_book','auth')
+                    logging.getLogger(__name__).warning('pp_websocket_signer_unavailable')
+                    await _pause_or_stop(stop, delay)
+                    delay = min(60, delay * 2)
+                    continue
             async with connect(WS_URL, additional_headers=headers(keypair), proxy=None,
                                open_timeout=5, close_timeout=2, max_size=MAX_RESPONSE_BYTES,
                                max_queue=16) as sock:
@@ -203,58 +217,101 @@ async def stream_books(pipe, stop, keypair):
                         received_at = utc()
                     except TimeoutError:
                         continue
-                    doc = json.loads(wire, parse_float=Decimal)
-                    if doc.get('error'):
-                        raise ValueError('Polymarket subscription rejected')
-                    await pipe.book(doc, received_at=received_at)
+                    try:
+                        doc = json.loads(wire, parse_float=Decimal)
+                        if not isinstance(doc,dict):
+                            raise ValueError('unexpected WebSocket frame')
+                        if doc.get('error'):
+                            metrics.issue('polymarket_book','invalid')
+                            # Resubscribe with backoff; the writer retains already accepted quotes.
+                            break
+                        await pipe.book(doc, received_at=received_at)
+                    except (ValueError, TypeError, KeyError, AttributeError, ArithmeticError):
+                        metrics.issue('polymarket_book','invalid')
+                        if time.monotonic() >= next_reject_log:
+                            logging.getLogger(__name__).warning('pp_websocket_frame_rejected')
+                            next_reject_log = time.monotonic() + 30
+                        continue
                     delay = 1
         except InvalidStatus as exc:
-            if exc.response.status_code not in (429, 500, 502, 503, 504):
+            metrics.issue('polymarket_book',metrics.classify_status(exc.response.status_code))
+            if exc.response.status_code not in (429, 500, 502, 503, 504) and not (
+                refresh_key and exc.response.status_code in (401,403)
+            ):
                 raise
         except (OSError, TimeoutError, ConnectionClosed):
-            pass
+            metrics.issue('polymarket_book', 'transport')
+        reconnect = True
         await _pause_or_stop(stop, delay)
         delay = min(30, delay * 2)
 
 
-async def run(store, client, stop, interval, clock):
+async def run_robinhood(store, stop):
+    from .robinhood_history import collect
+    sender = DisplaySender(store.settings.origin_id)
+    try:
+        await collect(store, stop, QuotePipeline(store, sender).publish_robinhood, surface_write_failure=True)
+    finally:
+        sender.socket.close()
+
+
+async def recover_books(pipe, client, stop, clock):
+    logger = logging.getLogger(__name__)
+    recovery = QuietQuoteRecovery(
+        lambda: pipe.recovery_snapshot(stop),
+        lambda market: fetch_polymarket_bbo(client, market),
+        pipe.publish_recovery, clock=clock,
+        on_failure=lambda category: logger.warning('pp_quote_recovery_failed reason=%s', category),
+    )
+    while not stop.is_set():
+        now = clock()
+        upcoming = pipe.upcoming
+        if (upcoming and not pipe.queue.full()
+                and (not pipe.current or timestamp(pipe.current['payload']['end']) <= now)
+                and timestamp(upcoming['payload']['start']) <= now < timestamp(upcoming['payload']['end'])):
+            await pipe.market(upcoming)
+        await recovery.check()
+        await _pause_or_stop(stop, 1)
+
+
+async def run(store, client, stop, interval, clock, *, include_robinhood=True):
     sender = DisplaySender(store.settings.origin_id)
     pipe = QuotePipeline(store, sender)
     try:
-        keypair = signing_key()
-        async def recover_books():
-            recovery = QuietQuoteRecovery(
-                lambda: pipe.recovery_snapshot(stop),
-                lambda market: fetch_polymarket_bbo(client, market),
-                pipe.publish_recovery, clock=clock,
-                on_failure=lambda category: logging.getLogger(__name__).warning('pp_quote_recovery_failed reason=%s', category))
-            while not stop.is_set():
-                now = clock()
-                upcoming = pipe.upcoming
-                if (upcoming and not pipe.queue.full()
-                        and (not pipe.current or timestamp(pipe.current['payload']['end']) <= now)
-                        and timestamp(upcoming['payload']['start']) <= now < timestamp(upcoming['payload']['end'])):
-                    await pipe.market(upcoming)
-                await recovery.check()
-                await _pause_or_stop(stop, 1)
-
+        from .quote_ack_counter import WATCH_ORIGIN, register
+        if store.settings.origin_id == WATCH_ORIGIN:
+            try:
+                pipe.started = await asyncio.to_thread(register,store)
+            except Exception:
+                # A missing display counter remains unknown; keep market ingestion available.
+                pass
+        try:
+            keypair = signing_key() if include_robinhood else None
+        except (OSError, ValueError):
+            metrics.issue('polymarket_book', 'auth')
+            raise
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
-            reader = tasks.create_task(stream_books(pipe, stop, keypair))
-            recovery_task = tasks.create_task(recover_books())
-            if os.getenv('TRADEBOT_PP_ROBINHOOD_REFERENCE') == '1':
+            reader = tasks.create_task(stream_books(pipe, stop, keypair, refresh_key=None if include_robinhood else signing_key))
+            recovery_task = tasks.create_task(recover_books(pipe, client, stop, clock))
+            if include_robinhood and os.getenv('TRADEBOT_PP_ROBINHOOD_REFERENCE') == '1':
                 from .robinhood_history import collect
                 tasks.create_task(collect(store, stop, pipe.publish_robinhood))
             cadence = 1 if store.settings.origin_id in ONE_SECOND_ORIGINS else 5
             tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
+            discovery_retry = False
             while not stop.is_set():
+                if discovery_retry:
+                    metrics.issue('polymarket_catalog', 'retry')
                 try:
                     market, upcoming = await _step('polymarket_discovery',
                         discover_polymarket_15m(client, clock(), include_next=True))
                 except LiveDiagnostic as error:
+                    discovery_retry = True
                     if error.code not in POLYMARKET_DISCOVERY_UNAVAILABLE:
                         raise
                 else:
+                    discovery_retry = False
                     pipe.upcoming = upcoming
                     if market and timestamp(market['payload']['end']) > clock():
                         await pipe.market(market)

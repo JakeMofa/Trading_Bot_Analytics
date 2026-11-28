@@ -13,6 +13,9 @@ class LiveState:
     def __init__(self, settings, clock=utcnow):
         self.settings, self.clock = settings, clock
         self._lock = RLock()
+        self.health_session = None
+        self.source_health = None
+        self.benchmark_window = None
         self._market = None
         self._price = None
         self.first_quote_signal = asyncio.Event()
@@ -32,6 +35,9 @@ class LiveState:
     def display(self, packet):
         with self._lock:
             old = self._display
+            if old and packet.get('started_at') and old.get('started_at'):
+                if timestamp(packet['started_at']) < timestamp(old['started_at']):
+                    return
             first = packet['quote'] and (not old or not old['quote']
                                          or old['market']['id'] != packet['market']['id'])
             self._display = deepcopy(packet)
@@ -60,6 +66,11 @@ class LiveState:
             self._robinhood = {k:reference[k] for k in ('event_id','price_usd','received_at','source_time','book_status')}
             self._robinhood['movement'] = deepcopy(reference.get('movement'))
             self._touch()
+
+    @property
+    def durable_quote_received_at(self):
+        with self._lock:
+            return (self._quote or {}).get('received_at')
 
     def archive_count(self, started_at, count):
         with self._lock:
@@ -276,7 +287,7 @@ class LiveState:
             return {**self.settings.public(), 'collector': deepcopy(self._collector),
                     'feed_controls': deepcopy(self.feed_controls),
                     'robinhood_reference': deepcopy(self._robinhood),
-                    'polymarket_reference': reference, 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
+                    'polymarket_reference': reference, 'rolling_window': deepcopy(self.benchmark_window), 'quote_counts': counters, 'database_quote_id': hydrated_quote_id, 'generated_at': now.isoformat(), 'updated_at': self._updated_at,
                     'revision': self._revision, 'storage_status': self._storage_status,
                     'market': market, 'coinbase': price, 'polymarket': quote if active else None,
                     'polymarket_empty_book_at': confirmed_empty_at,

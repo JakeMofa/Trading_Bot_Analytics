@@ -66,7 +66,7 @@ def checked_bundle(path,expected):
             'live_profile.py','live_transition.py','transition_control.py',
             'structured_probe_profile.py','structured_probe_control.py',
             'raw_archive_probe_profile.py','raw_archive_probe_control.py',
-            'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py'} and len(archive.namelist())==13,
+            'trial_cloud_profile.py','trial_cloud_control.py','trial_history_reader.py','watch_service.py','install_controller.py'} and len(archive.namelist())==15,
             'unexpected_bundle_members')
         require(sum(i.file_size for i in archive.infolist())<=256*1024,'bundle_expanded_bound')
     return raw

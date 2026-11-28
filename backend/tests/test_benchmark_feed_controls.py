@@ -38,6 +38,21 @@ class FeedControlTests(unittest.TestCase):
             write.side_effect=controls.RevisionConflict()
             self.assertEqual(self.client.put('/collector/feeds/robinhood',**args).status_code,409)
 
+    def test_retrying_preserves_the_desired_state_and_other_feed(self):
+        from contextlib import contextmanager
+        db=MagicMock()
+        @contextmanager
+        def connection():
+            yield db
+        self.store.connection=connection
+        controls.record_effective(self.store,'robinhood','retrying',session_id='6e119518-8485-4fbd-87bb-6dfb168b00e0')
+        self.assertEqual(db.execute.call_args.args[1][:2],('feed_actual:robinhood','retrying'))
+        state=controls._state([{'session':'live','enabled':True,'worker':'feed_actual:robinhood',
+                                'cursor':{'state':'retrying','session':'live'}}])
+        self.assertTrue(state['robinhood']['enabled'])
+        self.assertEqual(state['robinhood']['components'],{'robinhood':'retrying'})
+        self.assertTrue(state['coinbase']['enabled'])
+
     def test_stale_process_cannot_mark_resumed_feed_running(self):
         base={'session':'new','enabled':True}
         rows=[dict(base,worker='feed_desired:coinbase',cursor={'enabled':False,'revision':2}),

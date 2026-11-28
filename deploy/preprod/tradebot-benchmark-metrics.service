@@ -1,0 +1,24 @@
+[Unit]
+Description=4 GB Benchmark collector and archive metrics
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+EnvironmentFile=/etc/tradebot-benchmark-metrics/account
+LoadCredential=metrics-write:/etc/tradebot-benchmark-metrics/metrics-write
+ExecStart=/usr/bin/python3 -I /usr/local/lib/tradebot-benchmark/benchmark_metrics.py
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+MemoryMax=72M
+
+[Install]
+WantedBy=multi-user.target

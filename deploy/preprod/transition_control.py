@@ -179,7 +179,8 @@ def _read_active():
                 and data.get('initial_a') is not None,'invalid_active_transition_binding')
         profile_origin=DISPLAY_ORIGIN
     cycle_environment(data.get('initial_a'),profile_origin)
-    expected_profile=cycle_profile_binding(profile_origin)
+    expected_profile=({'profile':'boundary-diagnostic-v1'} if data.get('trial_origin') in RETAINED_DISPLAY_ORIGINS
+                      else cycle_profile_binding(profile_origin))
     require(all(data.get(key)==expected_profile.get(key) for key in ('profile','window_seconds')),
             'invalid_active_cycle_profile')
     return data
@@ -223,11 +224,11 @@ def _image_binding(context, budget):
 
 def _owned_runtime(actions, context, budget):
     """Refuse to recover over a foreign image or unexpected service container."""
-    from linux_actions import PROJECT, SERVICES
+    from linux_actions import PROJECT, SERVICES, compatible_api_image
     ids = actions._ids(context, budget, SERVICES, all=True)
     if ids:
         rows = actions._inspect(budget, ids)
-        require(all(row.get('Image') == context.image
+        require(all(compatible_api_image(context,row)
                 and row.get('Config', {}).get('Labels', {}).get('com.docker.compose.project') == PROJECT
                 and row['Config']['Labels'].get('com.docker.compose.service') in SERVICES
                 and row['Config']['Labels'].get('com.docker.compose.oneoff', 'False') == 'False'
@@ -405,6 +406,9 @@ def session(command, controller_path):
     actions = _image_binding(context, budget)
     _owned_runtime(actions, context, budget)
     if parts[1] == 'off':
+        if active.get('trial_origin') == DISPLAY_ORIGIN:
+            from watch_service import disarm
+            disarm()
         # The HTTP route drains the process when available. The lifecycle role
         # then proves durable OFF even if the operator process is unavailable.
         try:
@@ -438,7 +442,7 @@ def session(command, controller_path):
     require(HEX64.fullmatch(token) is not None, 'unsafe_operator_token')
     if cycle:
         state = _operator(token, '/collector/status')
-        require(state.get('generation_id') == cycle['initial_a']
+        require((active.get('trial_origin') == DISPLAY_ORIGIN or state.get('generation_id') == cycle['initial_a'])
                 and state.get('collector_enabled') is False,
                 'pp_cycle_initial_generation_not_ready')
     _consume(ON_AUTHORITY, {k: active[k] for k in ('environment', 'instance', 'source_sha',

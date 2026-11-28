@@ -5,9 +5,10 @@ archive path. Nothing in this module is wired to a deployed service.
 """
 from __future__ import annotations
 
-from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, encoded, wire
+from .archive_codec import ArchiveIntegrityError, ArchiveLimits, CycleBudget, encoded
 from .history_v2_envelope import validate_outbox_stream
 from .lifecycle import LifecycleHold
+from .outbox_packing import envelope
 
 from .cloud_origin_binding import STRUCTURED_ORIGINS
 
@@ -41,9 +42,7 @@ class ActiveStructuredWorker:
                 if not rows:
                     return {'status': 'idle', 'acknowledged': 0,
                             'raw_archive': 'not_started', 'retirement': 'off'}
-                keys = ('id', 'origin_id', 'generation_id', 'entity_type',
-                        'entity_id', 'content_hash', 'payload')
-                records = [wire({key: row[key] for key in keys}) for row in rows]
+                records = [envelope(row) for row in rows]
                 validate_outbox_stream(records, origin_id=self.origin_id,
                                        generation_id=generation_id)
                 identities = (records[0]['id'], records[-1]['id'], len(records))

@@ -29,11 +29,12 @@ class OperatorSession:
         self._stop: asyncio.Event | None = None
         self._last_error: str | None = None
         self._last_failure_code: str | None = None
+        self._failure_acknowledged = False
 
     def state(self):
         return {'process_running': self._task is not None and not self._task.done(),
                 'last_error': self._last_error,
-                'failure_code': self._last_failure_code}
+                'failure_code': self._last_failure_code, 'failure_acknowledged': self._failure_acknowledged}
 
     async def start(self, *, max_seconds: int):
         if not isinstance(max_seconds, int) or isinstance(max_seconds, bool) or not 1 <= max_seconds <= self.max_session_seconds:
@@ -48,6 +49,7 @@ class OperatorSession:
             if self._last_error is not None:
                 raise SessionStopUnproven('previous session requires explicit OFF')
             self._last_failure_code = None
+            self._failure_acknowledged = False
             self._stop = asyncio.Event()
             self._task = asyncio.create_task(self._execute(self._stop, max_seconds))
             return self.state()
@@ -77,6 +79,7 @@ class OperatorSession:
         if not 0 < timeout_seconds <= 5:
             raise ValueError('bounded stop required')
         async with self._lock:
+            self._failure_acknowledged = False
             if self._stop is not None:
                 self._stop.set()
             task = self._task
@@ -89,13 +92,17 @@ class OperatorSession:
                     # DB lease remains the final write guard until expiry.
                     self._last_error = 'session_stop_timed_out'
                     self._last_failure_code = 'session.stop_timed_out'
-            result = await asyncio.to_thread(self._durable_off)
+            try:
+                result = await asyncio.to_thread(self._durable_off)
+            except Exception:
+                result = None
             if not isinstance(result, dict) or result.get('collector_enabled') is not False:
                 self._last_error = 'durable_off_unproven'
                 self._last_failure_code = 'session.durable_off_unproven'
                 raise SessionStopUnproven('durable OFF acknowledgement missing')
             if task is None or task.done():
                 self._last_error = None
+                self._failure_acknowledged = self._last_failure_code is not None
             elif self._last_error is not None:
                 raise SessionStopUnproven('collector task still running')
             return self.state()

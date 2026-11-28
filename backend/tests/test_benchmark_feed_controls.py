@@ -38,6 +38,49 @@ class FeedControlTests(unittest.TestCase):
             write.side_effect=controls.RevisionConflict()
             self.assertEqual(self.client.put('/collector/feeds/robinhood',**args).status_code,409)
 
+    def test_desired_retries_only_capacity_while_acquiring_read_connection(self):
+        from psycopg import OperationalError
+        from psycopg.errors import InvalidPassword, TooManyConnections
+
+        with patch.object(controls.time, 'sleep') as sleep:
+            self.store.connection = MagicMock(side_effect=TooManyConnections('private metadata'))
+            with self.assertRaises(TooManyConnections):
+                controls.desired_feeds(self.store)
+            self.assertEqual(self.store.connection.call_count, 3)
+            self.assertEqual([c.args[0] for c in sleep.call_args_list], [0.1, 0.3])
+        for error in (OperationalError('FATAL: too many connections for role "tradebot_app"'),
+                      InvalidPassword('private'), ValueError('invalid identity')):
+            self.store.connection = MagicMock(side_effect=error)
+            with self.assertRaises(type(error)):
+                controls.desired_feeds(self.store)
+            self.store.connection.assert_called_once_with(True)
+        self.store.connection = MagicMock()
+        with patch.object(controls, '_rows', side_effect=TooManyConnections('statement error')):
+            with self.assertRaises(TooManyConnections):
+                controls.desired_feeds(self.store)
+        self.store.connection.assert_called_once_with(True)
+
+    def test_only_a_confirmed_connection_admission_error_is_retryable(self):
+        from psycopg import OperationalError
+        from psycopg.errors import ConfigurationLimitExceeded, DiskFull, OutOfMemory, TooManyConnections
+
+        role = b'tradebot_app'
+        prefix = b'connection to server at "pg" (127.0.0.1), port 5432 failed: FATAL:  '
+        reason = b'too many connections for role "tradebot_app"'
+        for user, message, accepts in (
+            (role, prefix + reason, True),
+            (role, prefix + b'password authentication failed for user "tradebot_app"', False),
+            (role, prefix + reason + b'\nDETAIL: other failure', False),
+            (role, b'DETAIL:  FATAL: ' + reason, False),
+            (role, prefix + b'too many connections for role "other"', False),
+            (b'other', prefix + reason, False),
+        ):
+            error = OperationalError('private', pgconn=SimpleNamespace(user=user, error_message=message))
+            self.assertEqual(controls.connection_capacity(error), accepts)
+        for failure in (ConfigurationLimitExceeded, DiskFull, OutOfMemory):
+            self.assertFalse(controls.connection_capacity(failure('private')))
+        self.assertTrue(controls.connection_capacity(TooManyConnections('private')))
+
     def test_retrying_preserves_the_desired_state_and_other_feed(self):
         from contextlib import contextmanager
         db=MagicMock()

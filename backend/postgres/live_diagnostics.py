@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 
 import httpx
+from psycopg import OperationalError
 from websockets.exceptions import (ConnectionClosed, ConnectionClosedOK,
                                    InvalidHandshake, InvalidStatus,
                                    WebSocketException)
@@ -13,7 +14,7 @@ from .store import CandleRevisionConflict, StorageHold
 
 
 OPERATIONS = frozenset({
-    'ownership', 'session', 'coinbase_stream', 'coinbase_write',
+    'ownership', 'session', 'selected_feeds', 'coinbase_stream', 'coinbase_write',
     'coinbase_candles', 'coinbase_candle_write', 'coinbase_candle_loop',
     'polymarket_discovery', 'polymarket_market_write', 'polymarket_bbo',
     'polymarket_bbo_write', 'polymarket_loop',
@@ -23,7 +24,7 @@ CATEGORIES = frozenset({
     'http_unexpected',
     'invalid_or_unavailable', 'identity_mismatch', 'invalid_quote', 'invalid_source_time',
     'response_limit', 'invalid_json', 'write_rejected', 'candle_revision_conflict', 'unexpected', 'ended',
-    'lease_lost', 'database_unavailable', 'deadline_reached', 'durable_off_unproven',
+    'lease_lost', 'database_unavailable', 'database_connection_limit', 'deadline_reached', 'durable_off_unproven',
     'ws_closed_ok', 'ws_closed_error', 'ws_handshake_invalid', 'ws_protocol',
 })
 
@@ -37,6 +38,31 @@ def _http_category(status):
             'http_404' if status == 404 else
             'http_5xx' if 500 <= status <= 599 else
             'http_4xx' if 400 <= status <= 499 else 'http_unexpected')
+
+
+READ_CAPACITY_BACKOFF = (0.1, 0.3, None)
+
+
+class OwnershipConnectionLimit(RuntimeError):
+    """Opening a read-only watch ownership connection failed before its SELECT."""
+
+
+def connection_capacity(error):
+    if error.sqlstate is not None:
+        return error.sqlstate == '53300'
+    # libpq may return an untyped startup refusal. Accept only its native
+    # single diagnostic for this login, never a match in arbitrary exception text.
+    pgconn = error.pgconn if isinstance(error, OperationalError) else None
+    raw = pgconn.error_message if pgconn is not None and pgconn.user == b'tradebot_app' else b''
+    if not (0 < len(raw) <= 2048):
+        return False
+    lines = raw.strip().splitlines()
+    if len(lines) != 1:
+        return False
+    prefix, marker, reason = lines[0].partition(b'FATAL:')
+    return (bool(marker) and (not prefix.strip() or
+            (prefix.startswith(b'connection to server ') and prefix.rstrip().endswith(b'failed:')))
+            and reason.strip() == b'too many connections for role "tradebot_app"')
 
 
 class CollectorHold(RuntimeError):

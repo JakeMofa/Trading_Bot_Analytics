@@ -28,8 +28,18 @@ from .rehearsal_profile import (BOUNDARY_ORIGINS, boundary_anchor, boundary_leas
                                 elapsed_cycle_seconds, lease_cap)
 
 
-def _owner_reader(app_dsn, connector=connect):
-    return LifecycleRepository(lambda: connector(app_dsn, environment='preprod', readonly=True))
+def _owner_reader(app_dsn, connector=connect, *, watch_ownership=False):
+    from psycopg import OperationalError
+    from .live_diagnostics import OwnershipConnectionLimit, connection_capacity
+
+    def open_readonly():
+        try:
+            return connector(app_dsn, environment='preprod', readonly=True)
+        except OperationalError as error:
+            if watch_ownership and connection_capacity(error):
+                raise OwnershipConnectionLimit() from None
+            raise
+    return LifecycleRepository(open_readonly)
 
 
 def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, rehearsal_window_seconds=None,
@@ -38,7 +48,7 @@ def build_live_session(repository, origin, app_dsn, *, rehearsal_anchor=None, re
     store = Store(Settings(environment='preprod', data_mode='pp_live',
                            origin_id=origin, dsn=app_dsn))
     store.verify()
-    owner_reader = _owner_reader(app_dsn)
+    owner_reader = _owner_reader(app_dsn, watch_ownership=origin == DISPLAY_ORIGIN)
 
     watch = WatchLease(repository, diagnostic_anchor) if origin == DISPLAY_ORIGIN else None
 

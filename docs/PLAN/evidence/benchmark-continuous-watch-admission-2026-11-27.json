@@ -1,0 +1,135 @@
+{
+  "release": {
+    "tag": "v0.2.0-pp.benchmark.7",
+    "sha": "7bff42a3797da917eb1929e28afccb729ccafd3a",
+    "artifact": "aca7739d06d80caf0a958a9a874e727102ce79c8353f6c9ee0a7ef0df3a5b6a4",
+    "run": 46110209884
+  },
+  "origin": "pp-live-pp-benchmark-watch",
+  "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+  "durable_start": {
+    "collector_enabled": true,
+    "live": true,
+    "collector_session_id": "c1f56c86-6a1f-4db5-a4d8-61ef1d990923",
+    "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+    "epoch": 2,
+    "updated_at": "2026-11-28 05:08:18.082412+00:00",
+    "collector_lease_expires_at": "2026-11-28 05:10:35.174817+00:00",
+    "observed": "2026-11-28 05:08:41.706542+00:00"
+  },
+  "same_session": [
+    {
+      "enabled": true,
+      "epoch": 2,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "c1f56c86-6a1f-4db5-a4d8-61ef1d990923",
+      "collector_lease_expires_at": "2026-11-28 05:10:35.174817+00:00",
+      "sampled_at": "2026-11-28 05:08:41.706542+00:00"
+    },
+    {
+      "enabled": true,
+      "epoch": 2,
+      "generation_id": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "collector_session_id": "c1f56c86-6a1f-4db5-a4d8-61ef1d990923",
+      "collector_lease_expires_at": "2026-11-28 05:14:59.171307+00:00",
+      "sampled_at": "2026-11-28 05:13:06.015590+00:00"
+    }
+  ],
+  "archive": [
+    {
+      "entity_id": "[\"pp-live-pp-benchmark-watch\",\"cb03767cbdfda642b81c6a6ede21b45b480eab2f0ca776c961ac3568e43a79db\"]",
+      "source": "robinhood_crypto",
+      "entity_type": "core.protected_evidence",
+      "content_hash": "17c90e2f699fee8b73cf75943a327bb4d640d23d884dcaf3c324689ec34c3e03",
+      "acknowledged_at": "2026-11-28 05:13:05.855468+00:00",
+      "outbox_id": 331142,
+      "readback": "immutable revision, envelope hash, receipt and projection"
+    },
+    {
+      "entity_id": "[\"pp-live-pp-benchmark-watch\",\"coinbase\",\"BTC-USD\"]",
+      "source": "coinbase",
+      "entity_type": "core.current_prices",
+      "content_hash": "09f3c709f487aae4ca2f6fbd49247852ae5b57e8efd67f40b51127f7fee663aa",
+      "acknowledged_at": "2026-11-28 05:13:05.856634+00:00",
+      "outbox_id": 331143,
+      "readback": "immutable revision, envelope hash, receipt"
+    },
+    {
+      "entity_id": "[\"pp-live-pp-benchmark-watch\",\"bdf68c2d2c4f6a08c848cd278bef9b72124ec91aecf64e26ca71181989fcd14b\"]",
+      "source": "polymarket_us",
+      "entity_type": "core.protected_evidence",
+      "content_hash": "92fae5963e07348ba34c4aae65d8f9db29870ea478a91d5819c61b5d9ddcbcbb",
+      "acknowledged_at": "2026-11-28 05:13:05.857666+00:00",
+      "outbox_id": 331144,
+      "readback": "immutable revision, envelope hash, receipt and projection"
+    }
+  ],
+  "retained_gen_count_before_after_cd_and_ready": 20,
+  "retained_local_during_watch": {
+    "origins": [
+      "pp-live-pp-trial-20261119-06",
+      "pp-live-pp-trial-20261119-05"
+    ],
+    "matching_generations": 2,
+    "writers": 1,
+    "match": true
+  },
+  "scoped_role_catalog": [
+    {
+      "rolname": "tradebot_pp_benchmark_watch_writer",
+      "valid_until": "infinity",
+      "rolconnlimit": 2,
+      "rolinherit": false,
+      "rolsuper": false,
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "tradebot_pp_benchmark_watch_reader",
+      "valid_until": "infinity",
+      "rolconnlimit": 2,
+      "rolinherit": false,
+      "rolsuper": false,
+      "rolbypassrls": false
+    }
+  ],
+  "simultaneous_reader_slots": {
+    "utc": "2026-11-28T05:08:20.521239+00:00",
+    "mode": "live",
+    "connections": [
+      {
+        "login": "tradebot_pp_benchmark_watch_reader",
+        "rows": 1
+      },
+      {
+        "login": "tradebot_pp_benchmark_watch_reader",
+        "rows": 1
+      }
+    ]
+  },
+  "concurrent_dashboard_history": [
+    {
+      "route": "/history/market-events",
+      "rows": 50,
+      "ms": 171.177,
+      "tiers": [
+        "local_postgres"
+      ],
+      "coverage_reasons": []
+    },
+    {
+      "route": "/history/market-predictions",
+      "rows": 7,
+      "ms": 1165.93,
+      "tiers": [
+        "local_postgres",
+        "authenticated_archive"
+      ],
+      "coverage_reasons": [
+        "archive_sync_pending"
+      ]
+    }
+  ],
+  "scope_variance": "Verified hosted payloads are immutable outbox revisions. Mutable Coinbase current_price projections advance as new prices arrive.",
+  "probe_note": "One earlier operator SSH sample failed with SSH 255. The successfully paired observations are recorded individually.",
+  "structured_rotation": "pp_structured_drain.drain_bounded selects pending generations by stable origin for every page, sealed/verified first, active next. The host's launch proof is bound to initial A. Live 4 GB multi-generation retirement has not been observed."
+}

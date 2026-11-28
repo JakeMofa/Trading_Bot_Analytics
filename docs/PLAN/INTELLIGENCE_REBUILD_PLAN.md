@@ -30,6 +30,21 @@ Central (05:08:18 UTC November 28), slot A, generation
 independent hosted reader slots passed while the writer was active. All 20
 prior retained-generation fingerprints matched before admission. The clean
 full-market measurement is scheduled for 11:15–11:30 p.m. Central.
+[Admission and independent live readback](evidence/benchmark-continuous-watch-admission-2026-11-27.json).
+
+The live probe authenticated immutable revisions, envelope hashes and receipts
+for all three sources. Mutable Coinbase `current_price` projections continue
+advancing, so a historical revision must not be compared to the newest value.
+Concurrent dashboard reads returned 50 local events in 171 ms and seven
+predictions across local plus authenticated archive in 1,166 ms. Recent
+unacknowledged predictions correctly reported archive-sync pending.
+
+The watch uses two origin-scoped, non-superuser, non-bypass-RLS logins with
+two connections each and no login expiry, supporting the authorized sustained
+run. Credential rotation remains an operator procedure. Per-page structured
+drain reselects pending generations by origin and prioritizes sealed A before
+active B; admission alone binds the initial A. Actual multi-generation watch
+rotation and raw retirement remain separate acceptance gates.
 
 - [x] Three-source display, PostgreSQL persistence and authenticated Supabase
   readback passed in the bounded .6 run below.

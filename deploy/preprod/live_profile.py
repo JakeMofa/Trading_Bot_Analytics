@@ -58,7 +58,11 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
             service['volumes']=[mount]
         api=expected['services']['api']
         api['environment']['TRADEBOT_PP_PREDICTION_HISTORY']='true'
-        for name,path in PREDICTION_READER_FILES.items():
+        api['environment']['WEB_CONCURRENCY']='1'
+        api['environment']['TRADEBOT_DATABASE_DSN_FILE']='/run/secrets/watch_api_reader_dsn'
+        api['secrets']=[]
+        for name,path in {'watch_api_reader_dsn':RUNTIME_SECRETS/'watch_api_reader_dsn',
+                          **PREDICTION_READER_FILES}.items():
             expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(path)}
             api['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
         operator['environment'].update(TRADEBOT_PP_ROBINHOOD_REFERENCE='1',

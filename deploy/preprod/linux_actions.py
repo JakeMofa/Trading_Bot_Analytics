@@ -135,6 +135,13 @@ def display_filesystem():
     info=DISPLAY_DIR.lstat()
     require(stat.S_ISDIR(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o700,
             'unsafe_display_directory')
+    reader = RUNTIME_SECRETS / 'watch_api_reader_dsn'
+    info = reader.lstat()
+    require(stat.S_ISREG(info.st_mode) and info.st_uid == 10001 and info.st_nlink == 1
+            and stat.S_IMODE(info.st_mode) == 0o400 and info.st_size < 256,
+            'unsafe_watch_api_reader_file')
+    require(re.fullmatch(r'postgresql://tradebot_reader:[0-9a-f]{64}@postgres:5432/tradebot_pp',
+                         reader.read_text().strip()) is not None, 'watch_api_reader_binding_mismatch')
     for name in DISPLAY_KEYS:
         info=(RUNTIME_SECRETS/name).lstat()
         require(stat.S_ISREG(info.st_mode) and info.st_uid==10001 and stat.S_IMODE(info.st_mode)==0o400
@@ -216,6 +223,8 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
             env['TRADEBOT_PP_QUOTE_DISPLAY']='1'
             env['TRADEBOT_PP_BOUNDARY_TRACE']='1'
             if service == 'api':
+                env['WEB_CONCURRENCY']='1'
+                env['TRADEBOT_DATABASE_DSN_FILE']='/run/secrets/watch_api_reader_dsn'
                 env['TRADEBOT_PP_PREDICTION_HISTORY']='true'
             if service == 'operator':
                 env['TRADEBOT_PP_COINBASE_TIMING']='true'
@@ -924,6 +933,9 @@ class LinuxActions:
                 mounts=[item for item in mounts if item is not sockets[0]]
                 if service=='operator':
                     wanted.update(DISPLAY_KEYS)
+                else:
+                    wanted.remove('app_dsn')
+                    wanted.add('watch_api_reader_dsn')
             reader = bool(live and not trial_origin and service=='api' and history_reader_enabled(context))
             trial_reader=False
             if live and trial_origin and trial_origin not in BOUNDARY_ORIGINS and service=='api':

@@ -74,3 +74,25 @@ receipt records API container identities, protected service PIDs and start times
 writer session and epoch, and outbox progress. Individual browsers reconnect
 to the existing event stream. A source-code or database-schema change that
 requires a new collector still follows its own release qualification.
+
+## Local database budget for the public dashboard
+
+The successor watch profile pins Uvicorn to one worker and uses the existing PostgreSQL `tradebot_reader`
+login for the single Uvicorn API process. All local reads share two admission
+slots. Excess market and prediction page requests receive HTTP 429. Live state
+and SSE can still publish from memory. Two of the reader role's four sessions
+remain available for other read-only consumers. Collection, calculation and
+the private source controls keep their original application role.
+
+On the pinned Benchmark host, qualify the exact candidate release and run
+`python3 deploy/preprod/provision_runtime.py prepare-watch-reader` from its
+verified source as root. This prepares the read-only mount from the existing
+foundation secret. The public API process verifies both its authenticated login
+and read-only transaction mode. No database role, grant or password changes
+are needed.
+
+The installed .7 controller pins the old API mount. A normal API image-only
+update cannot introduce this new profile. Keep the live collector active until
+a reviewed controller/profile handoff proves continuity or the operator
+authorizes a maintenance window. After adoption, run history under concurrent
+hydration and verify login, writer session, ACK progress and response latency.

@@ -6,6 +6,17 @@ freshness and backlog alerts. Short live storage tests passed. Long-volume
 72-hour retirement and combined-release A/B acceptance still need proof.
 [Current checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--sustained-benchmark-collection-and-archive-capacity).
 
+### Public dashboard database connections
+
+The successor Benchmark profile uses the existing read-only PostgreSQL role
+and limits its single API process to two local sessions. Disposable PostgreSQL
+17 passed both history routes and chart retrieval with all eight application
+slots exhausted. A third simultaneous public page got HTTP 429, and live
+state remained available. Local credentials, role limits and deploy status on
+the running watch are tracked in the [Benchmark procedure](../deploy/preprod/BENCHMARK_WATCH.md#local-database-budget-for-the-public-dashboard).
+Live adoption still requires a collection-preserving handoff or an authorized
+maintenance window.
+
 ### Dashboard-only delivery
 
 The qualified operator entrypoint builds a separate release image, checks

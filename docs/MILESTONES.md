@@ -12,6 +12,15 @@ four-second page target during collection. The final outbox drained. Quote
 age under sustained load, calculated-field availability and live cross-tier
 History remain follow-up work. [Timing evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-measured-on-benchmark).
 
+### Feed persistence follow-up
+
+On disposable PostgreSQL 17, the same 180 ticks committed in 0.127–0.132 s
+using a single connection and a fresh transaction per tick. The separate
+connection-per-tick runs took 0.984–0.992 s. Delayed-writer fixtures exercise
+Coinbase buffering and publication of the newest Polymarket index bucket
+before its write. Live VM source age and outbox lag remain to be measured.
+[Experiment and live measures](PLAN/PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md#november-27--bounded-feed-writers-on-disposable-postgresql-17).
+
 ### Dashboard model readouts
 
 The Market view now keeps the latest local decision for the same market alongside

@@ -169,20 +169,22 @@ class LiveState:
             elif market.get('target_usd') is None:
                 missing.append('price_to_beat')
             for name, observation in [('coinbase', price), ('polymarket', quote)]:
-                rest_book = name == 'polymarket' and self.settings.data_mode == 'pp_live'
-                observed_at = observation.get('received_at') if rest_book and observation else None
-                freshness_at = observed_at or (observation.get('source_time') if observation else None)
+                data = observation or {}
+                websocket_book = data.get('provenance', {}).get('feed') == 'polymarket_us_websocket'
+                rest_book = name == 'polymarket' and self.settings.data_mode == 'pp_live' and not websocket_book
+                observed_at = data.get('received_at')
+                source_at = data.get('source_time')
+                freshness_at = observed_at if rest_book else source_at
                 age = (now-timestamp(freshness_at)).total_seconds() if freshness_at else None
                 match = name == 'coinbase' or bool(observation and observation.get('market_id') == (market or {}).get('id'))
                 status = 'fresh' if age is not None and 0 <= age <= 30 and match and (name == 'coinbase' or active) else 'stale' if observation else 'missing'
                 feed_name = 'coinbase_stream' if name == 'coinbase' else 'polymarket_rest' if rest_book else 'polymarket_stream'
-                if (observation or {}).get('provenance', {}).get('feed') == 'polymarket_us_websocket':
-                    feed_name = 'polymarket_stream'
                 feeds[feed_name] = {'source': feed_name, 'status': status,
                                         'freshness_basis': 'received_at' if rest_book else 'source_time',
                                         'last_data_at': freshness_at,
-                                        'received_at': (observation or {}).get('received_at'),
-                                        'source_sample_at': (observation or {}).get('source_time') if rest_book else None,
+                                        'received_at': observed_at, 'source_sample_at': source_at,
+                                        'receipt_age_seconds': (now-timestamp(observed_at)).total_seconds() if observed_at else None,
+                                        'source_age_seconds': (now-timestamp(source_at)).total_seconds() if source_at else None,
                                         'age_seconds': age, 'market_match': match, 'reconnects': None}
                 if observation:
                     observation['age_seconds'] = age

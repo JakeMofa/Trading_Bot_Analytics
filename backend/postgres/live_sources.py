@@ -92,6 +92,7 @@ async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):
             if timing is not None:
                 timing.read_started()
             raw = await asyncio.wait_for(websocket.recv(), timeout=10)
+            received = datetime.now(timezone.utc).isoformat()
             if timing is not None:
                 timing.read_completed()
             if not isinstance(raw, str) or len(raw.encode('utf-8')) > MAX_RESPONSE_BYTES:
@@ -99,7 +100,6 @@ async def coinbase_once(stop: asyncio.Event, *, connector=websocket_connect):
             message = json.loads(raw, parse_float=Decimal)
             if not isinstance(message, dict) or message.get('type') == 'error':
                 raise ValueError('invalid Coinbase feed response')
-            received = datetime.now(timezone.utc).isoformat()
             event = coinbase_ticker(message, received, raw_wire=raw)
             if timing is not None:
                 timing.parsed(event)

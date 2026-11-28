@@ -164,6 +164,20 @@ class NumericAndStateTests(unittest.TestCase):
             state.publish(market['id'],None,candidate,None,None)
             self.assertEqual(state.snapshot()['polymarket']['up_probability'],'0.52')
 
+    def test_newly_received_old_socket_book_retains_venue_age(self):
+        market, price, _, snapshot, prediction = state_fixture()[2]
+        state = LiveState(Settings(data_mode='pp_live', origin_id='pp-live-fixture'), clock=lambda:NOW)
+        state.discover(market)
+        for source_time, expected_age in (((NOW-timedelta(seconds=42)).isoformat(), 42.0), (None, None)):
+            quote = dict(market_id=market['id'], source_time=source_time, received_at=NOW.isoformat(),
+                         best_bid='0.51', provenance={'feed':'polymarket_us_websocket'})
+            state.publish(market['id'],price,quote,snapshot,prediction)
+            feed = state.snapshot()['feeds']['polymarket_stream']
+            self.assertEqual(feed['freshness_basis'], 'source_time')
+            self.assertEqual(feed['source_age_seconds'], expected_age)
+            self.assertEqual(feed['receipt_age_seconds'], 0.0)
+            self.assertEqual(feed['status'], 'stale')
+
     def test_rest_book_freshness_uses_observation_time_and_preserves_sample_time(self):
         market,price,_,snapshot,prediction=state_fixture()[2]
         state=LiveState(Settings(data_mode='pp_live',origin_id='pp-live-fixture'),clock=lambda:NOW)

@@ -212,7 +212,8 @@ class LoopbackTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['counts']['save_attempts'],3)
         self.assertEqual(result['counts']['save_returned'],3)
         self.assertGreaterEqual(result['metrics']['save_ms']['max'],20)
-        self.assertGreaterEqual(result['metrics']['parser_queue_ms']['max'],30)
+        self.assertGreaterEqual(result['metrics']['persistence_queue_ms']['max'],30)
+        self.assertEqual(result['metrics']['parser_queue_ms']['n'],3)
         self.assertFalse(result['queue_metadata_lost'])
 
 

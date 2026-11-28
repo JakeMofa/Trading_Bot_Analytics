@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime, timezone
 from decimal import Decimal
 import json
+import time
 from uuid import uuid4
 
 from websockets.asyncio.client import connect
@@ -16,8 +17,9 @@ from .live_contract import polymarket_bbo
 from .live_sources import MAX_RESPONSE_BYTES, discover_polymarket_15m
 from .live_ingest import _pause_or_stop, _step, POLYMARKET_DISCOVERY_UNAVAILABLE
 from .live_diagnostics import LiveDiagnostic
+from .feed_writer import feed_writer
 from .quote_display import DisplaySender
-from .reference_prices import collect_reference
+from .reference_prices import ONE_SECOND_ORIGIN, collect_reference
 
 
 def utc():
@@ -64,12 +66,12 @@ class QuotePipeline:
         self.current = event
         self.broadcast()
 
-    async def book(self, doc):
+    async def book(self, doc, *, received_at=None):
         event = self.current
         data = doc.get('marketData')
         if not data:
             return
-        now = utc()
+        now = received_at or utc()
         upcoming = self.upcoming
         if (upcoming and data.get('marketSlug') == upcoming['payload']['slug']
                 and timestamp(upcoming['payload']['start']) <= timestamp(now) < timestamp(upcoming['payload']['end'])):
@@ -102,6 +104,11 @@ class QuotePipeline:
         await self.queue.put(quote)
 
     async def write(self):
+        async with feed_writer(self.store):
+            await self._write_queue()
+
+    async def _write_queue(self):
+        next_trace = 0.0
         while True:
             event = await self.queue.get()
             ack = await asyncio.to_thread(self.store.ingest, event)
@@ -111,6 +118,11 @@ class QuotePipeline:
                 else:
                     self.duplicates += 1
                 self.last_commit = {'event_id': event['event_id'], 'at': utc()}
+                if time.monotonic() >= next_trace:
+                    boundary_trace('writer_sample', quote=event, reader='canonical_ws',
+                                   queue_depth=self.queue.qsize(), queue_limit=self.queue.maxsize,
+                                   committed_at=self.last_commit['at'], duplicate=ack['duplicate'])
+                    next_trace = time.monotonic() + 5
                 if event['event_id'] == self.first_event_id:
                     boundary_trace('write_complete', quote=event, reader='canonical_ws',
                                    generation_id=ack['generation_id'], content_hash=ack['content_hash'])
@@ -135,12 +147,13 @@ async def stream_books(pipe, stop, keypair):
                         subscribed.update(missing)
                     try:
                         wire = await asyncio.wait_for(sock.recv(), .25)
+                        received_at = utc()
                     except TimeoutError:
                         continue
                     doc = json.loads(wire, parse_float=Decimal)
                     if doc.get('error'):
                         raise ValueError('Polymarket subscription rejected')
-                    await pipe.book(doc)
+                    await pipe.book(doc, received_at=received_at)
                     delay = 1
         except InvalidStatus as exc:
             if exc.response.status_code not in (429, 500, 502, 503, 504):
@@ -159,7 +172,8 @@ async def run(store, client, stop, interval, clock):
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair))
-            tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference))
+            cadence = 1 if store.settings.origin_id == ONE_SECOND_ORIGIN else 5
+            tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
             while not stop.is_set():
                 try:
                     market, upcoming = await _step('polymarket_discovery',

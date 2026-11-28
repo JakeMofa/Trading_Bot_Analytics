@@ -141,9 +141,14 @@ async def run_bounded(store, client, stop: asyncio.Event, *, owner_check, disabl
         # An orderly stop lets already-received quotes finish under the same
         # lease. A failed fence or writer still takes the immediate OFF path.
         from . import quote_display
-        if stop.is_set() and quote_display.enabled(store.settings):
-            quote_task = next(task for task in tasks if names[task] == 'polymarket_loop')
-            await asyncio.wait_for(quote_task, timeout=10)
+        if stop.is_set():
+            # The native reader owns a bounded persistence queue. Alternate
+            # source adapters retain the original cancel-on-stop contract.
+            draining = {'coinbase_stream'} if coinbase is coinbase_session else set()
+            if quote_display.enabled(store.settings):
+                draining.add('polymarket_loop')
+            await asyncio.wait_for(asyncio.gather(*(task for task in tasks if names[task] in draining)),
+                                   timeout=10)
         return 'stopped'
     finally:
         pending = [*tasks, *([stop_task] if stop_task else [])]

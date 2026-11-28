@@ -71,28 +71,26 @@ def create_app(settings=None, store=None, state=None, *, history=None,
             try:
                 market = await asyncio.to_thread(store.active_market)
                 state.discover(market)
-                state.storage_status('ok')
+                state.storage_status('ok', component='discovery')
             except Exception:
                 # Keep last identity for diagnosis; snapshot clock independently expires it.
-                state.storage_status('unavailable')
+                state.storage_status('unavailable', component='discovery')
             await asyncio.sleep(.5)
 
     async def hydrate():
         while True:
             snapshot = state.snapshot()
             market = snapshot.get('market')
-            if market and market['active']:
-                try:
+            try:
+                if market and market['active']:
                     data = await asyncio.to_thread(store.hydrate,market['id'],with_latest_saved=True)
                     state.publish(market['id'],*data)
-                except Exception:
-                    state.storage_status('unavailable')
-            else:
-                try:
+                else:
                     price = await asyncio.to_thread(store.current_price)
                     state.publish_price(price)
-                except Exception:
-                    state.storage_status('unavailable')
+                state.storage_status('ok', component='hydration')
+            except Exception:
+                state.storage_status('unavailable', component='hydration')
             await asyncio.sleep(.5)
 
 
@@ -197,6 +195,7 @@ def create_app(settings=None, store=None, state=None, *, history=None,
         return {**settings.public(),'status':health(snapshot),'feeds':snapshot['feeds'],
                 'collector':snapshot['collector'],
                 'missing_data':snapshot['missing_data'],'storage_status':snapshot['storage_status'],
+                'storage_checks':snapshot['storage_checks'],
                 'updated_at':snapshot['updated_at'],'cloud':{'enabled':False,'status':'disabled','datasets':[]}}
 
     async def history_window(reader, market_id, start, end, as_of, cursor, limit, *options):

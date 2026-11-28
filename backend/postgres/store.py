@@ -353,17 +353,19 @@ class Store:
                           'available_at':row['available_at'],'price_usd':row['price'],'size_btc':row['size'],
                           'content_hash':row['content_hash'],'provenance':row['payload'].get('provenance',{})}) if row else None
 
-    def current_price(self, now=None):
-        """One indexed Coinbase reference read, independent of market discovery."""
+    def _current_price_row(self, db, now):
         from .contract import source_timestamp
-        now = timestamp(now or utcnow())
         cutoff = source_timestamp(now.isoformat())[1]
-        with self.connection(True) as db:
-            row = db.execute('''SELECT * FROM core.current_prices
+        return db.execute('''SELECT * FROM core.current_prices
               WHERE origin_id=%s AND source='coinbase' AND symbol='BTC-USD'
               AND source_epoch<=%s AND received_at<=%s AND available_at<=%s''',
               (self.origin,cutoff,now,now)).fetchone()
-        return self._price_view(row)
+
+    def current_price(self, now=None):
+        """One indexed Coinbase reference read, independent of market discovery."""
+        now = timestamp(now or utcnow())
+        with self.connection(True) as db:
+            return self._price_view(self._current_price_row(db, now))
 
     def inputs(self, market_id, now=None):
         now = timestamp(now or utcnow())
@@ -456,8 +458,8 @@ class Store:
 
     def hydrate(self, market_id, now=None, *, with_latest_saved=False):
         now = timestamp(now or utcnow())
-        price,_ = self.inputs(market_id,now)
         with self.connection(True) as db:
+            price = self._price_view(self._current_price_row(db, now))
             # One statement snapshot binds the saved forecast to exactly the
             # selected feature, even if a calculation commits during hydration.
             # LEFT JOIN preserves a newer feature with no forecast; never borrow
@@ -471,7 +473,8 @@ class Store:
                     WHERE origin_id=f.origin_id AND snapshot_id=f.snapshot_id
                     ORDER BY prediction_id DESC LIMIT 1) p ON true''',
                 (self.origin,market_id,now)).fetchone()
-            quote = db.execute('''SELECT * FROM raw.events WHERE origin_id=%s AND market_id=%s AND source='polymarket_us'
+            quote = db.execute('''SELECT payload,event_id,market_id,source_time,received_at
+                FROM raw.events WHERE origin_id=%s AND market_id=%s AND source='polymarket_us'
                 AND kind='quote' AND available_at<=%s AND received_at<=%s ORDER BY received_at DESC,event_id DESC LIMIT 1''',
                 (self.origin,market_id,now,now)).fetchone()
             if with_latest_saved:

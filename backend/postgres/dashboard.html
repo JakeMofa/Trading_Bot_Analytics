@@ -73,6 +73,26 @@
     #market-history-form { display:flex;gap:12px;align-items:end;flex-wrap:wrap; }
     #market-history-form label { display:grid;gap:4px; }
     #market-history-form input,#market-history-form select,#market-history-form button,#history-next { padding:7px;background:#172535;color:#e7f1fc;border:1px solid #40546b;border-radius:6px; }
+    .book-prices,.contract-terms,.reference-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+    .book-prices { margin:18px 0 8px; }
+    .book-prices .hero { display:block; font-size:clamp(2.1rem,3vw,3rem); }
+    .contract-terms,.saved-prediction { border-top:1px solid #2b3a4a; padding-top:16px; margin-top:18px; }
+    .saved-prediction h3 { margin:0 0 7px; font-size:.9rem; color:#c6d2e1; }
+    .small { line-height:1.45; overflow-wrap:anywhere; }
+    main details { margin-top:12px; font-size:.8rem; color:#b6c6d6; }
+    main summary { cursor:pointer; width:fit-content; }
+    main details[open] > :not(summary) { margin-top:8px; }
+    .reference-prices { grid-column:1 / -1; }
+    .reference-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; }
+    .reference-grid .metric,.contract-terms .metric { min-width:0; }
+    .reference-grid strong { margin-bottom:4px; }
+    .feeds,#feed-controls { grid-column:span 6; }
+    #feed-controls-list p { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    #feed-controls-list button { flex:none; border:1px solid #40546b; border-radius:6px; padding:7px 10px; background:#172535; color:#e7f1fc; }
+    #feed-controls-list button:disabled { opacity:.55; cursor:default; }
+    #environment-label { display:inline-block; margin-bottom:10px; font-size:.76rem; color:#adc0d4; }
+    @media(max-width:900px) { .feeds,#feed-controls { grid-column:1 / -1; } }
+    @media(max-width:600px) { .reference-grid { grid-template-columns:1fr; gap:14px; } .reference-grid .metric + .metric { border-top:1px solid #2b3a4a; padding-top:12px; } }
     #saved-forecast-source { overflow-wrap:anywhere; }
     #history-next:disabled { opacity:.5; }
     #system-charts { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px; margin-top:20px; }
@@ -82,7 +102,7 @@
   </style>
 </head>
 <body>
-<div id="environment-label" style="padding:12px;background:#422f13;color:#fff;text-align:center">Loading environment and collector state…</div>
+<div id="environment-label">Loading environment and collector state…</div>
   <header>
     <div><div class="eyebrow">Polymarket US · BTC 15-minute intelligence</div><h1>BTC Intelligence</h1><div id="collection-state" class="muted small">Connecting to live market state…</div></div>
     <div class="header-actions"><button id="open-plan" class="menu-button" type="button">Plan &amp; progress</button><div><div id="server-clock" class="small muted" style="text-align:right;margin-bottom:6px">UTC —</div><div id="refresh" class="badge" role="status">Loading…</div></div></div>
@@ -96,44 +116,67 @@
     <button data-target="market" aria-pressed="true">Market</button><button data-target="models" aria-pressed="false">Models</button><button data-target="history" aria-pressed="false">History</button><button data-target="system" aria-pressed="false">System</button>
   </nav>
   <main class="grid" data-page="market">
-    <div class="card" id="rolling-window" hidden></div>
     <section class="card market" aria-labelledby="market-heading">
-      <h2 id="market-heading">Current market</h2>
-      <div id="market-state" class="eyebrow">Waiting for data</div>
-      <div id="market-timer" class="hero">—</div>
-      <div class="row">
-        <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
-        <div class="metric"><span class="label">Polymarket BTC/USD reference</span><strong id="venue-price">—</strong><div id="venue-distance" class="small muted"></div></div>
-        <div class="metric"><span class="label">Latest Coinbase tick</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
-        <div class="metric"><span class="label">Robinhood BTC/USD · v1 midpoint</span><strong id="robinhood-price">—</strong><div id="robinhood-movement" class="small muted">Awaiting consecutive polls.</div><div id="robinhood-age" class="small muted">Awaiting Robinhood.</div></div>
-        <div class="metric"><span class="label">Saved forecast input</span><strong id="reference">—</strong></div>
-        <div class="metric"><span class="label">Forecast input distance</span><strong id="distance">—</strong></div>
-      </div>
-      <div class="line"></div>
+      <h2 id="market-heading">Polymarket order book</h2>
       <div id="market-slug" class="small muted">No active market captured.</div>
-      <div id="snapshot-age" class="small muted" style="margin-top:8px"></div>
-      <div class="row" style="margin-top:14px">
-        <div class="metric"><span class="label">Polymarket best bid</span><strong id="market-up">—</strong></div>
-        <div class="metric"><span class="label">Polymarket best ask</span><strong id="market-down">—</strong></div>
+      <div class="book-prices">
+        <div><span class="label">Best bid</span><strong id="market-up" class="hero">—</strong></div>
+        <div><span class="label">Best ask</span><strong id="market-down" class="hero">—</strong></div>
       </div>
-      <div id="quote-progress" class="small muted"></div>
-      <div id="market-quote" class="small muted" style="margin-top:8px"></div>
-      <div class="small muted" style="margin-top:5px">Bid and ask are observed market prices, not our forecast or guaranteed execution prices.</div>
-      <p class="small muted">The Polymarket chart uses BRTI. Coinbase is a separate BTC/USD reference, so its price can differ even at the same instant. Polymarket US REST supplies the market terms. Each bid and ask is labeled with its quote feed. This page does not scrape your browser or account.</p>
+      <div id="market-quote" class="small muted"></div>
+      <div class="contract-terms">
+        <div class="metric"><span class="label">Price to beat</span><strong id="target">—</strong></div>
+        <div class="metric"><span class="label">Time remaining</span><strong id="market-timer">—</strong><div id="market-state" class="small muted">Waiting for data</div></div>
+      </div>
+      <details><summary>Quote persistence</summary><div id="quote-progress" class="small muted"></div></details>
     </section>
     <section class="card forecast" aria-labelledby="forecast-heading">
-      <h2 id="forecast-heading">Live baseline estimate · follows BTC ticks</h2>
+      <h2 id="forecast-heading">Live baseline estimate</h2>
       <div class="baseline-values">
         <div><span class="label">UP probability</span><div id="forecast-up" class="hero">—</div></div>
         <div><span class="label">DOWN probability</span><div id="forecast-down" class="hero">—</div></div>
       </div>
       <div id="forecast-state" class="small muted">Waiting for baseline inputs.</div>
-      <div class="line"></div>
-      <h3>Latest saved prediction for this market</h3>
-      <strong id="saved-forecast-result">—</strong>
-      <div id="saved-forecast-state" class="small muted">Waiting for saved data.</div>
-      <div id="saved-forecast-source" class="small muted"></div>
-      <div class="line"></div>
+      <div class="saved-prediction">
+        <h3>Last saved prediction</h3>
+        <div class="small muted">Recorded about every 5 seconds, plus calculation time.</div>
+        <strong id="saved-forecast-result">—</strong>
+        <div id="saved-forecast-state" class="small muted">Waiting for saved data.</div>
+        <details><summary>Decision inputs and provenance</summary>
+          <div id="saved-forecast-source" class="small muted"></div>
+          <div id="snapshot-age" class="small muted"></div>
+          <div class="row">
+            <div class="metric"><span class="label">Feature snapshot price</span><strong id="reference">—</strong></div>
+            <div class="metric"><span class="label">Distance to threshold</span><strong id="distance">—</strong></div>
+          </div>
+        </details>
+      </div>
+    </section>
+    <section class="card reference-prices" aria-labelledby="reference-heading">
+      <h2 id="reference-heading">BTC/USD reference prices</h2>
+      <div class="reference-grid">
+        <div class="metric"><span class="label">Polymarket reference</span><strong id="venue-price">—</strong><div id="venue-distance" class="small muted"></div></div>
+        <div class="metric"><span class="label">Coinbase trade</span><strong id="live-reference">—</strong><div id="live-reference-age" class="small muted">Waiting for stream.</div></div>
+        <div class="metric"><span class="label">Robinhood v1 midpoint</span><strong id="robinhood-price">—</strong><div id="robinhood-movement" class="small muted">Awaiting consecutive polls.</div><div id="robinhood-age" class="small muted">Awaiting Robinhood.</div></div>
+      </div>
+    </section>
+    <section class="card chart" aria-labelledby="chart-heading">
+      <div class="chart-meta"><h2 id="chart-heading">BTC price · current 15-minute market</h2><div id="chart-summary" class="small muted">Waiting for saved stream ticks.</div></div>
+      <div id="chart-stream-state" class="small muted">Connecting to saved live ticks.</div>
+      <canvas id="price-chart" role="img" aria-label="Coinbase BTC price during the active 15-minute market and Polymarket price to beat"></canvas>
+      <div class="small muted">Orange shows Coinbase trades in five-second intervals. The dotted line marks the official price to beat. Gaps over 15 seconds are blank.</div>
+    </section>
+    <section class="card feeds" aria-labelledby="feeds-heading">
+      <h2 id="feeds-heading">Feed health</h2>
+      <div id="feeds-list" class="small muted">Waiting for data.</div>
+    </section>
+    <section class="card" id="feed-controls" hidden>
+      <h2>Source controls</h2>
+      <p id="feed-controls-message" role="status"></p>
+      <div id="feed-controls-list"></div>
+    </section>
+  </main>
+  <section data-page="models" hidden class="card"><h2>Models &amp; decisions</h2><p class="small muted">Baseline from RAM; ensemble migration is unavailable in this milestone. Experimental outputs are unvalidated. No orders are placed.</p><div id="models-list">Waiting for models…</div>
       <h3>Ensemble and AI</h3>
       <div class="row">
         <div class="metric"><span class="label">Decision</span><strong id="decision-summary">—</strong><div id="decision-label" class="small muted">—</div></div>
@@ -147,24 +190,7 @@
         <div class="metric"><span class="label">AI decision to buy</span><strong id="ai-decision-buy">—</strong><div id="ai-explanation" class="small muted"></div><div id="ai-hold-duration" class="small muted"></div><div id="ai-hold-countdown" class="small muted" aria-live="polite"></div></div>
       </div>
       <div id="decision-reasons" class="small muted" style="margin-top:8px">—</div>
-    </section>
-    <section class="card chart" aria-labelledby="chart-heading">
-      <div class="chart-meta"><h2 id="chart-heading">BTC price · current 15-minute market</h2><div id="chart-summary" class="small muted">Waiting for saved stream ticks.</div></div>
-      <div id="chart-stream-state" class="small muted">Connecting to saved live ticks.</div>
-      <canvas id="price-chart" role="img" aria-label="Coinbase BTC price during the active 15-minute market and Polymarket price to beat"></canvas>
-      <div class="small muted">Orange: saved Coinbase BTC/USD stream ticks, updated as new ticks arrive; earlier points are grouped into 5-second intervals. Blue dotted line: Polymarket price to beat. The website's orange chart uses BRTI, so the lines can differ. Gaps over 15 seconds are left blank.</div>
-    </section>
-    <section class="card feeds" aria-labelledby="feeds-heading">
-      <h2 id="feeds-heading">Feed health</h2>
-      <div id="feeds-list" class="small muted">Waiting for data.</div>
-    </section>
-    <section class="card" id="feed-controls" hidden>
-      <h2>Source controls</h2>
-      <p id="feed-controls-message" role="status"></p>
-      <div id="feed-controls-list"></div>
-    </section>
-  </main>
-  <section data-page="models" hidden class="card"><h2>Models &amp; decisions</h2><p class="small muted">Baseline from RAM; ensemble migration is unavailable in this milestone. Experimental outputs are unvalidated. No orders are placed.</p><div id="models-list">Waiting for models…</div></section>
+  </section>
   <section data-page="history" hidden>
     <div class="card" style="overflow:auto;margin-bottom:16px">
       <h2>Market history</h2>
@@ -623,9 +649,9 @@
         ? 'Abstained · ' + saved.abstain_reason.replaceAll('_', ' ')
         : pct(saved.probability_up) + ' UP · ' + pct(saved.probability_down) + ' DOWN');
       set('saved-forecast-state', sameMarket
-        ? 'Decision ' + saved.as_of + ' (' + age(ageOf(saved.as_of)) + ') · Saved ' + saved.created_at
+        ? 'Decision age ' + age(ageOf(saved.as_of))
         : m ? 'No saved prediction observed for this market.' : 'Waiting for a market.');
-      set('saved-forecast-source', sameMarket ? 'PostgreSQL · ' + saved.model_version + ' · origin '
+      set('saved-forecast-source', sameMarket ? 'Decision ' + saved.as_of + ' · Recorded ' + saved.created_at + ' · PostgreSQL · ' + saved.model_version + ' · origin '
         + saved.origin_id + ' · snapshot ' + saved.snapshot_id : '');
       const checkedAge = ageOf(latest.generated_at);
       set('refresh', lastError ? 'Connection error · last checked ' + age(checkedAge)
@@ -821,21 +847,13 @@
       const collector = state.collector || {};
       const collectorLabel = collector.enabled === true ? 'collector lease ON' :
         collector.enabled === false ? 'collector OFF' : 'collector state unavailable';
-      set('environment-label', (state.environment || 'unknown') + ' · ' + (state.data_mode || 'unknown') + ' data · ' + collectorLabel + ' · unsupported fields remain unavailable');
+      set('environment-label', (state.environment || 'unknown') + ' · ' + (state.data_mode || 'unknown') + ' data · ' + collectorLabel);
       serverEpochMs = Date.parse(state.generated_at) || Date.now(); syncAt = performance.now();
       const marketChanged = latest?.market?.id !== state.market?.id;
       const feature = state.feature_snapshot;
       const quote = state.polymarket;
       const candidate = state.models?.ensemble_v1 || savedModels.ensemble_v1;
       const ensemble = candidate && candidate.market_id === state.market?.id && ageOf(candidate.as_of) <= 90 ? candidate : null;
-      const windowBadge=byId('rolling-window');
-      windowBadge.hidden=state.origin_id!=='pp-live-pp-benchmark-watch';
-      if (!windowBadge.hidden) {
-        const w=state.rolling_window;
-        const recent=w && Date.parse(state.generated_at)/1000-w.observed_at<45;
-        windowBadge.textContent=recent ? 'Rolling window '+w.slot+' · '+w.state+' · '+w.generation
-          : 'Rolling window unknown · waiting for a current database sample';
-      }
       latest = {...savedContext, market:state.market, generated_at:state.generated_at,
         polymarket_empty_book_at:state.polymarket_empty_book_at,
         data_mode:state.data_mode, collector:state.collector, origin_id:state.origin_id, feed_controls:state.feed_controls,
@@ -1001,16 +1019,16 @@
         if (coverage?.complete !== true) {
           status.push('Incomplete coverage');
           const labels = {
-            generation_time_gap:'Part of this time range has no known generation',
-            later_generations_not_checked_for_late_arrivals:'Later generations may contain delayed events',
-            missing_generations:'One or more required generations are unavailable',
+            generation_time_gap:'Some of the requested time range is unavailable',
+            later_generations_not_checked_for_late_arrivals:'Later records may contain delayed events',
+            missing_generations:'Some required history is unavailable',
             archive_unavailable:'Verified archive history is unavailable',
             saved_prediction_missing:'A saved prediction is missing',
             archive_revision_missing:'An expected archive revision is missing',
             archive_sync_pending:'Archive verification is still pending'
           };
           for (const reason of coverage?.reasons || []) status.push(labels[reason] ?? reason.replaceAll('_', ' '));
-          if (coverage?.missing_generations?.length) status.push('missing ' + coverage.missing_generations.join(', '));
+          if (coverage?.missing_generations?.length && !coverage.reasons?.includes('missing_generations')) status.push('Some required history is unavailable');
         }
         set('events-status', status.join(' · '));
       } catch (error) {

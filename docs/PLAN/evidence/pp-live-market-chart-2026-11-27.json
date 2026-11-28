@@ -1,0 +1,13 @@
+{
+  "request_to_response_end_ms": 245.09999999776483,
+  "decoded_body_bytes": 4673,
+  "draw_ms": 1,
+  "collector_lease_enabled": true,
+  "market_id": "2976913",
+  "response_end_to_two_frames_ms": 15.900000002235174,
+  "server_ms": 163.002,
+  "saved_points": 70,
+  "sql_input_limit": 5000,
+  "sql_input_truncated": false,
+  "method": "One Market view with an existing operator tunnel, local 1280x800 Chrome, request and two animation frames. SQL rows fetched are not present in the deployed chart response."
+}

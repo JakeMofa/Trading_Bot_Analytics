@@ -1,3 +1,11 @@
+## November 27 — Full Benchmark market and hosted readback
+
+Market 2976913 completed. The first WebSocket quote reached FastAPI in 84 ms
+and verified Supabase ACK in 1.645 s. The same 500 local events passed the
+four-second page target during collection. The final outbox drained. Quote
+age under sustained load, calculated-field availability and live cross-tier
+History remain follow-up work. [Timing evidence and next checkpoint](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--live-display-measured-on-benchmark).
+
 ## November 27 — Combined dashboard release on the 4 GB Benchmark
 
 The [Benchmark deployment](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46091017341)

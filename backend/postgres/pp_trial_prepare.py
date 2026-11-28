@@ -386,7 +386,10 @@ def prepare(repository, initial_a, source_sha, *, execute=False, origin_id=TRIAL
             db.execute("UPDATE archive.generations SET state='collecting',started_at=%s WHERE generation_id=%s",(now,initial_a))
             db.execute('INSERT INTO ops.writer_state(origin_id,generation_id,epoch,collector_enabled,updated_at) '
                        'VALUES(%s,%s,1,false,%s)',(origin_id,initial_a,now))
-            repository._checkpoint(db,dict(origin_id=origin_id,generation_id=initial_a),CONSUMER,expected)
+            generation=dict(origin_id=origin_id,generation_id=initial_a)
+            repository._checkpoint(db,generation,CONSUMER,expected)
+            if origin_id == DISPLAY_ORIGIN:
+                repository._checkpoint(db,generation,'structured:verified-acks-v1',{'rows':0})
     return dict(status='trial_ready_off',origin_id=origin_id,generation_id=initial_a,
                 collector_enabled=False,source_sha=source_sha,retirement_authorized=False,**profile)
 

@@ -3,12 +3,28 @@
 import asyncio
 import logging
 
+from websockets.exceptions import InvalidHandshake
+
 from .live_diagnostics import LiveDiagnostic
 
 LOG = logging.getLogger(__name__)
 
 
-async def run_watch_sources(store, stop, runners, desired=None, effective=None, *, interval=2):
+def retryable_source(error):
+    if isinstance(error, ExceptionGroup):
+        return all(retryable_source(item) for item in error.exceptions)
+    if isinstance(error, LiveDiagnostic):
+        stage, category = error.code.split('.')
+        return stage in {
+            'polymarket_discovery',
+            'polymarket_bbo',
+            'coinbase_candles',
+            'coinbase_stream',
+        } and category not in {'write_rejected', 'identity_mismatch', 'unexpected'}
+    return isinstance(error, InvalidHandshake)
+
+
+async def run_watch_sources(store, stop, runners, desired=None, effective=None, *, interval=2, retry_min=2):
     if desired is None:
         from .feed_controls import desired_feeds
 
@@ -22,6 +38,9 @@ async def run_watch_sources(store, stop, runners, desired=None, effective=None, 
     active = {}
     held = set()
     while_paused = set()
+    retry_at = {}
+    failures = {}
+    clock = asyncio.get_running_loop().time
     try:
         while not stop.is_set():
             enabled = await asyncio.to_thread(desired, store)
@@ -38,16 +57,31 @@ async def run_watch_sources(store, stop, runners, desired=None, effective=None, 
                     if not task.done():
                         continue
                     del active[name]
-                    try:
-                        task.result()
-                    except Exception as error:
-                        code = error.code if isinstance(error, LiveDiagnostic) else type(error).__name__
-                        LOG.warning('pp_watch_feed_held source=%s reader=%s reason=%s', source, name, code)
-                        held.add(name)
-                        await asyncio.to_thread(effective, store, name, 'held')
-                    else:
-                        if not signal.is_set():
-                            LOG.warning('pp_watch_feed_held source=%s reader=%s reason=ended', source, name)
+                    error = task.exception()
+                    if not signal.is_set():
+                        reason = (
+                            error.code
+                            if isinstance(error, LiveDiagnostic)
+                            else type(error).__name__
+                            if error
+                            else 'ended'
+                        )
+                        if error is None or retryable_source(error):
+                            delay = min(60, retry_min * 2 ** min(failures.get(name, 0), 6))
+                            failures[name] = failures.get(name, 0) + 1
+                            retry_at[name] = clock() + delay
+                            LOG.warning(
+                                'pp_watch_feed_retry source=%s reader=%s reason=%s delay=%s',
+                                source,
+                                name,
+                                reason,
+                                delay,
+                            )
+                            await asyncio.to_thread(effective, store, name, 'retrying')
+                        else:
+                            LOG.warning(
+                                'pp_watch_feed_held source=%s reader=%s reason=%s', source, name, reason
+                            )
                             held.add(name)
                             await asyncio.to_thread(effective, store, name, 'held')
                 if not enabled[source]:
@@ -57,8 +91,10 @@ async def run_watch_sources(store, stop, runners, desired=None, effective=None, 
                     continue
                 if name in while_paused:
                     held.discard(name)
+                    retry_at.pop(name, None)
+                    failures.pop(name, None)
                     while_paused.discard(name)
-                if name not in held:
+                if name not in held and clock() >= retry_at.get(name, 0):
                     signal = asyncio.Event()
                     active[name] = (signal, asyncio.create_task(runner(signal), name='benchmark-' + name))
                     await asyncio.to_thread(effective, store, name, 'running')

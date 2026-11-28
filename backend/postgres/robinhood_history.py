@@ -122,7 +122,7 @@ async def persist(store, event):
             await asyncio.sleep(0.2 * 2 ** attempt)
 
 
-async def collect(store, stop, publish, *, transport=None, cadence=1):
+async def collect(store, stop, publish, *, transport=None, cadence=1, surface_write_failure=False):
     """Sequential HTTP reads, independent of Polymarket and dashboard viewer count."""
     if not 1 <= cadence <= 60:
         raise ValueError('invalid Robinhood polling cadence')
@@ -150,6 +150,8 @@ async def collect(store, stop, publish, *, transport=None, cadence=1):
                         # displayed event if its commit could not be confirmed.
                         LOG.warning('pp_robinhood_reference_writer_stopped event=%s reason=%s',
                                     event['event_id'], type(exc).__name__)
+                        if surface_write_failure:
+                            raise RuntimeError('Robinhood write could not be confirmed') from exc
                         return
                     backoff = 0
                 elif row['http_status'] in (401, 403):

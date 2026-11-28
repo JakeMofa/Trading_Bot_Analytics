@@ -80,6 +80,39 @@ class BenchmarkLease(unittest.TestCase):
 
 
 class FeedIsolation(unittest.IsolatedAsyncioTestCase):
+    async def test_provider_error_and_early_return_retry_only_one_source(self):
+        from postgres.live_diagnostics import LiveDiagnostic
+
+        stop = asyncio.Event()
+        attempts = {'coinbase': 0, 'polymarket': 0, 'robinhood': 0}
+
+        async def run(name, signal):
+            attempts[name] += 1
+            if name == 'coinbase':
+                if attempts[name] == 1:
+                    raise LiveDiagnostic('coinbase_stream', 'transport')
+                if attempts[name] == 2:
+                    return
+                stop.set()
+            await signal.wait()
+
+        feeds = {name: (name, lambda signal, n=name: run(n, signal)) for name in attempts}
+        actual = []
+        await asyncio.wait_for(
+            run_watch_sources(
+                None,
+                stop,
+                feeds,
+                lambda _: {n: True for n in attempts},
+                lambda _, n, s: actual.append((n, s)),
+                interval=0.01,
+                retry_min=0.01,
+            ),
+            2,
+        )
+        self.assertEqual(attempts, {'coinbase': 3, 'polymarket': 1, 'robinhood': 1})
+        self.assertEqual(actual.count(('coinbase', 'retrying')), 2)
+
     async def test_optional_fault_pause_resume_and_other_sources(self):
         desired = dict(polymarket=True, robinhood=True, coinbase=True)
         reports = []
@@ -88,7 +121,7 @@ class FeedIsolation(unittest.IsolatedAsyncioTestCase):
         async def run(name, stop):
             counts[name] += 1
             if name == 'coinbase' and counts[name] == 1:
-                raise ValueError('bad candle')
+                raise RuntimeError('candle write failed')
             await stop.wait()
 
         readers = {name: (name, lambda signal, n=name: run(n, signal)) for name in counts}

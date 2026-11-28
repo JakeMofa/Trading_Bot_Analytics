@@ -61,7 +61,10 @@ def validate_live_profile(base: dict, live: dict, source, image, *, reader=False
         for name,path in PREDICTION_READER_FILES.items():
             expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(path)}
             api['secrets'].append({'source':name,'target':('/run/secrets/' if target.startswith('/') else '')+name})
-        operator['environment'].update(TRADEBOT_PP_COINBASE_TIMING='true',POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
+        operator['environment'].update(TRADEBOT_PP_ROBINHOOD_REFERENCE='1',
+                                       ROBINHOOD_API_KEY_FILE='/run/secrets/robinhood_key_id',
+                                       ROBINHOOD_PRIVATE_KEY_FILE='/run/secrets/robinhood_private_key',
+                                       TRADEBOT_PP_COINBASE_TIMING='true',POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
                                        POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
         for name in DISPLAY_KEYS:
             expected['secrets'][name]={'name':expected['name']+'_'+name,'file':str(RUNTIME_SECRETS/name)}

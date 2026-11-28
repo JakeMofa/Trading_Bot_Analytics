@@ -13,17 +13,24 @@ services:
       TRADEBOT_PP_QUOTE_DISPLAY: '1'
       TRADEBOT_PP_BOUNDARY_TRACE: '1'
       TRADEBOT_PP_COINBASE_TIMING: 'true'
+      TRADEBOT_PP_ROBINHOOD_REFERENCE: '1'
+      ROBINHOOD_API_KEY_FILE: /run/secrets/robinhood_key_id
+      ROBINHOOD_PRIVATE_KEY_FILE: /run/secrets/robinhood_private_key
       POLYMARKET_KEY_ID_FILE: /run/secrets/market_key_id
       POLYMARKET_SECRET_KEY_FILE: /run/secrets/market_secret
-    secrets: [market_key_id, market_secret]
+    secrets: [market_key_id, market_secret, robinhood_key_id, robinhood_private_key]
     volumes:
       - {type: bind, source: /run/tradebot-pp-deploy/quote-display, target: /run/quote-display, read_only: true, bind: {create_host_path: false}}
 secrets:
+  robinhood_key_id:
+    file: /etc/tradebot/pp-runtime/robinhood_key_id
+  robinhood_private_key:
+    file: /etc/tradebot/pp-runtime/robinhood_private_key
   market_key_id:
     file: /etc/tradebot/pp-runtime/market_key_id
   market_secret:
     file: /etc/tradebot/pp-runtime/market_secret
   pp_prediction_history_reader_dsn:
-    file: /etc/tradebot/pp-runtime/display_20261127_02_prediction_reader_dsn
+    file: /etc/tradebot/pp-runtime/display_20261127_03_prediction_reader_dsn
   pp_history_ca:
     file: /etc/tradebot/cloud/pp_history_ca

@@ -10,7 +10,7 @@ WRITER_SQL={'pp_trial_history_writer_dsn':'/etc/tradebot/cloud/trial_20261119_07
 BOUNDARY_SQL={'pp_boundary_history_writer_dsn':'/etc/tradebot/cloud/boundary_20261124_01_history_writer_dsn',
               'pp_history_ca':WRITER_SQL['pp_history_ca']}
 DISPLAY_SQL={**BOUNDARY_SQL,
-             'pp_boundary_history_writer_dsn':'/etc/tradebot/cloud/display_20261127_02_history_writer_dsn'}
+             'pp_boundary_history_writer_dsn':'/etc/tradebot/cloud/display_20261127_03_history_writer_dsn'}
 
 
 def boundary_files(origin):

@@ -1,0 +1,376 @@
+{
+  "scope": "Actual Benchmark .14 recovery and short live checkpoint; sustained and A/B gates remain open",
+  "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+  "cd_run": 46146966462,
+  "recovery": {
+    "elapsed_s": 151.903817,
+    "budget_s": 180,
+    "remaining_s": 28.096186,
+    "actual_counter_analysis": {
+      "scope": "Offline analysis of actual quiesced current-scale maintenance diagnostic; not live collector or72-hour proof",
+      "rehearsal_seconds": 151.903817,
+      "budget_seconds": 180,
+      "remaining_seconds": 28.096186,
+      "passes": [
+        {
+          "pass": "first",
+          "counter_span_seconds": 67.23557600000001,
+          "pg_memory_current_mib": [
+            495.390625,
+            505.4453125
+          ],
+          "pg_memory_limit_mib": 512.0,
+          "host_mem_available_mib": [
+            2941.1953125,
+            2948.8046875
+          ],
+          "cpu_stat_deltas": {
+            "burst_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nice_usec": 0,
+            "nr_bursts": 0,
+            "nr_periods": 672,
+            "nr_throttled": 25,
+            "system_usec": 4383335,
+            "throttled_usec": 1156258,
+            "usage_usec": 42199337,
+            "user_usec": 37816002
+          },
+          "memory_stat_deltas": {
+            "active_file": 20787200,
+            "anon": 0,
+            "file": 11939840,
+            "inactive_file": -8847360,
+            "pgmajfault": 4,
+            "pgscan_direct": 639693,
+            "pgsteal_direct": 630415,
+            "shmem": 0,
+            "workingset_refault_file": 628982
+          },
+          "memory_events_deltas": {
+            "high": 0,
+            "low": 0,
+            "max": 9547,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0,
+            "sock_throttled": 0
+          },
+          "host_vmstat_deltas": {
+            "oom_kill": 0,
+            "pgmajfault": 4,
+            "pswpin": 0,
+            "pswpout": 0
+          },
+          "cpu_seconds": 42.199337,
+          "average_cpu_cores": 0.6276340519489265,
+          "pressure_delta_us": {
+            "cpu": {
+              "full": 1007192,
+              "some": 1218676
+            },
+            "io": {
+              "full": 12486549,
+              "some": 12576320
+            },
+            "memory": {
+              "full": 1280431,
+              "some": 1282120
+            }
+          },
+          "pressure_wall_pct": {
+            "cpu": {
+              "full": 1.498,
+              "some": 1.8125
+            },
+            "io": {
+              "full": 18.5713,
+              "some": 18.7049
+            },
+            "memory": {
+              "full": 1.9044,
+              "some": 1.9069
+            }
+          },
+          "io_by_device_deltas": {
+            "259:0": {
+              "dbytes": 0,
+              "dios": 0,
+              "rbytes": 2572304384,
+              "rios": 66983,
+              "wbytes": 62603264,
+              "wios": 294
+            }
+          },
+          "approx_disk_filecache_mib": [
+            339.12109375,
+            350.5078125
+          ]
+        },
+        {
+          "pass": "second",
+          "counter_span_seconds": 62.526596,
+          "pg_memory_current_mib": [
+            505.890625,
+            505.515625
+          ],
+          "pg_memory_limit_mib": 512.0,
+          "host_mem_available_mib": [
+            2949.0546875,
+            2944.54296875
+          ],
+          "cpu_stat_deltas": {
+            "burst_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nice_usec": 0,
+            "nr_bursts": 0,
+            "nr_periods": 625,
+            "nr_throttled": 22,
+            "system_usec": 3274892,
+            "throttled_usec": 857313,
+            "usage_usec": 39134473,
+            "user_usec": 35859581
+          },
+          "memory_stat_deltas": {
+            "active_file": -13312000,
+            "anon": 0,
+            "file": 118784,
+            "inactive_file": 13430784,
+            "pgmajfault": 4,
+            "pgscan_direct": 638365,
+            "pgsteal_direct": 628669,
+            "shmem": 0,
+            "workingset_refault_file": 627765
+          },
+          "memory_events_deltas": {
+            "high": 0,
+            "low": 0,
+            "max": 9089,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0,
+            "sock_throttled": 0
+          },
+          "host_vmstat_deltas": {
+            "oom_kill": 0,
+            "pgmajfault": 5,
+            "pswpin": 0,
+            "pswpout": 0
+          },
+          "cpu_seconds": 39.134473,
+          "average_cpu_cores": 0.6258852313022126,
+          "pressure_delta_us": {
+            "cpu": {
+              "full": 776840,
+              "some": 931477
+            },
+            "io": {
+              "full": 11079786,
+              "some": 11168321
+            },
+            "memory": {
+              "full": 1094111,
+              "some": 1098764
+            }
+          },
+          "pressure_wall_pct": {
+            "cpu": {
+              "full": 1.2424,
+              "some": 1.4897
+            },
+            "io": {
+              "full": 17.7201,
+              "some": 17.8617
+            },
+            "memory": {
+              "full": 1.7498,
+              "some": 1.7573
+            }
+          },
+          "io_by_device_deltas": {
+            "259:0": {
+              "dbytes": 0,
+              "dios": 0,
+              "rbytes": 2567278592,
+              "rios": 58414,
+              "wbytes": 62189568,
+              "wios": 269
+            }
+          },
+          "approx_disk_filecache_mib": [
+            350.99609375,
+            351.109375
+          ]
+        }
+      ]
+    }
+  },
+  "same_quote": {
+    "market": "2997704",
+    "event": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+    "receipt": "2026-11-28T13:15:13.365181+00:00",
+    "source_time": "2026-11-28T13:15:13.273694118Z",
+    "slug": "cpc-btc-updown-15m-2026-11-28-1315z",
+    "start": "2026-11-28T13:15:00Z",
+    "bid": "0.4800",
+    "ask": "0.4900",
+    "snapshot_generated_at": "2026-11-28T13:15:13.370741+00:00",
+    "receipt_to_api_snapshot_ms": 5.56,
+    "api_within_5s": true,
+    "actual_dom_matched": true,
+    "sse_to_visible_dom_ms": 18.4,
+    "receipt_to_visible_dom_ms_interval": [
+      29.793,
+      126.293
+    ],
+    "dom_text": "Recent Polymarket US WebSocket book \u00b7 observed 0s ago \u00b7 bid 48\u00a2 \u00d7 180.0000 / ask 49\u00a2 \u00d7 1440.7900 \u00b7 venue update 0s ago \u00b7 not used in forecast",
+    "content_hash": "3a6ee15c5cd040d63bbec97bea71ac934742d68ad87cf735cf26dc20ded4851f",
+    "outbox_id": 564327,
+    "receipt_to_commit_observation_ms": 13.684,
+    "receipt_to_verified_ack_ms": 963.258,
+    "canonical_first_confirmed": false
+  },
+  "fresh_sources": {
+    "coinbase": {
+      "ack": "2026-11-28T13:12:42.402222+00:00",
+      "bytes": 1355,
+      "entity_type": "core.current_prices",
+      "event": "exchange-trade-1150417127",
+      "hash": "846bf37e4d392778b4ad38d5f937b13bbce506e7d3dee00499654c28d3753404",
+      "id": 561634,
+      "local_outbox_created_at": "2026-11-28T13:12:39.482777+00:00",
+      "received": "2026-11-28T13:12:39.052523+00:00",
+      "sha256": "aa2f66369284a5e3d519bea92b767670171c438539165b4f9413aa81021d6aa9",
+      "source": "coinbase",
+      "source_time": "2026-11-28T13:12:38.763164Z"
+    },
+    "polymarket_us": {
+      "ack": "2026-11-28T13:15:14.328439+00:00",
+      "authenticated_immutable_revision_and_projection": true,
+      "bytes": 9954,
+      "canonical_first_confirmed": false,
+      "collector_trace": [
+        {
+          "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+          "received_at": "2026-11-28T13:15:13.365181+00:00",
+          "stage": "usable_receipt",
+          "ts_utc": "2026-11-28T13:15:13.367819+00:00"
+        },
+        {
+          "committed_at": "2026-11-28T13:15:13.378865+00:00",
+          "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+          "received_at": "2026-11-28T13:15:13.365181+00:00",
+          "stage": "writer_sample",
+          "ts_utc": "2026-11-28T13:15:13.378887+00:00"
+        },
+        {
+          "event_id": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+          "received_at": "2026-11-28T13:15:13.365181+00:00",
+          "stage": "write_complete",
+          "ts_utc": "2026-11-28T13:15:13.379019+00:00"
+        }
+      ],
+      "entity_type": "core.protected_evidence",
+      "event": "ws-40a1a2d293a41429da9340404a063c902a75495fd1a546e4249d2cf03c2a1fb9",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "hash": "3a6ee15c5cd040d63bbec97bea71ac934742d68ad87cf735cf26dc20ded4851f",
+      "id": 564327,
+      "local_outbox_created_at": "2026-11-28T13:15:13.376495+00:00",
+      "market": "2997704",
+      "observed_commit_utc": "2026-11-28T13:15:13.378865+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "outbox_id": 564327,
+      "received": "2026-11-28T13:15:13.365181+00:00",
+      "release_source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d",
+      "saved_and_archived_ask": "0.4900",
+      "saved_and_archived_bid": "0.4800",
+      "sha256": "f629a7aa00ce55f3e003d5364de7d3e3fd6f572bf00673eb77286cd0253fd0c6",
+      "source": "polymarket_us",
+      "source_time": "2026-11-28T13:15:13.273694118Z"
+    },
+    "robinhood_crypto": {
+      "ack": "2026-11-28T13:12:42.420844+00:00",
+      "bytes": 1827,
+      "entity_type": "core.protected_evidence",
+      "event": "rh-v1-824bc43788f010e05b657251fd8a1c25ef9a360b482b22ab328e18077a2b03e2",
+      "hash": "47b88ccf6b576566fd2f774e9fe546eed4d756d0f4c3a69417e8fb6e15620d8a",
+      "id": 561637,
+      "local_outbox_created_at": "2026-11-28T13:12:39.753926+00:00",
+      "received": "2026-11-28T13:12:39.258963+00:00",
+      "sha256": "ea251fd2245bb4e264ad1c2b9b70ec78a19692eabcb48644a7232536088f16da",
+      "source": "robinhood_crypto",
+      "source_time": "2026-11-28T13:12:39.121353845Z"
+    }
+  },
+  "hosted_envelope_pins": [
+    {
+      "bytes": 1355,
+      "id": 561634,
+      "sha256": "aa2f66369284a5e3d519bea92b767670171c438539165b4f9413aa81021d6aa9"
+    },
+    {
+      "bytes": 1827,
+      "id": 561637,
+      "sha256": "ea251fd2245bb4e264ad1c2b9b70ec78a19692eabcb48644a7232536088f16da"
+    },
+    {
+      "bytes": 9954,
+      "id": 564327,
+      "sha256": "f629a7aa00ce55f3e003d5364de7d3e3fd6f572bf00673eb77286cd0253fd0c6"
+    }
+  ],
+  "live_reader_bracket": {
+    "before": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:21:12.285223+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "utc": "2026-11-28T13:19:18.700856+00:00",
+      "valid": true
+    },
+    "after": {
+      "enabled": true,
+      "epoch": 10,
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "lease": "2026-11-28T13:21:12.285223+00:00",
+      "origin": "pp-live-pp-benchmark-watch",
+      "session": "47b170ed-dda9-4e8a-8f2f-06b53e227c46",
+      "utc": "2026-11-28T13:19:23.537077+00:00",
+      "valid": true
+    }
+  },
+  "pinned_history_http": {
+    "binding": {
+      "cd_run": 46146966462,
+      "config_sha256": "1e617e6973c3f5da0e9a69c6643901c307dca455de1676a36391584fcd3dc79e",
+      "controller": "a8045102caaa2243e581ba1d3121bcf6d849ff27391caa2dc47a88e39c033f67",
+      "generation": "8b7c3058-c10c-4900-89c9-2d7569fca67d",
+      "host": "tradebot-preprod-benchmark-4gb",
+      "image": "sha256:ab88f92b9c2b8a1377cd709d07425bf06b311476ce4f6bf2e4b94222d3b8c7ff",
+      "origin": "pp-live-pp-benchmark-watch",
+      "ready_utc": "2026-11-28T13:05:45.397108+00:00",
+      "source": "9a6f61bdfcab294c9b8e833d926af6ed8f1ba27d"
+    },
+    "body_s": 1.792264,
+    "bytes": 547007,
+    "fetch_decode_s": 1.801189,
+    "headers_s": 1.680905,
+    "ordered_ids_and_values_sha256": "80edbad99bbf0dbcc93d176d73dae34f7a6d97692168292f7775e4a6baed35a9",
+    "ordered_ids_sha256": "6872d0dd6633a601a1497939ffe5e525e97308000b5531b6135457b5fbdde701",
+    "query": {
+      "as_of": "2026-11-28T05:30:00Z",
+      "end": "2026-11-28T05:30:00Z",
+      "limit": 500,
+      "market_id": "2982855",
+      "start": "2026-11-28T05:15:00Z"
+    },
+    "response_sha256": "fac7de65b4236f113a81a671203d3be59bac55218848da43ca19e766ae8f1245",
+    "route": "/history/market-events",
+    "rows": 500,
+    "start_utc": "2026-11-28T13:19:34.858333+00:00",
+    "tier": "local_postgres",
+    "under_4s": true
+  }
+}

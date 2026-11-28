@@ -453,6 +453,10 @@
         : tickFresh ? 'Coinbase stream live · latest tick ' + age(tickAge)
         : 'Waiting for a fresh Coinbase stream tick');
       set('live-reference', t ? money(t.price_usd) : '—');
+      const coinbaseElement = byId('live-reference');
+      coinbaseElement.dataset.eventId = t?.event_id || '';
+      coinbaseElement.dataset.sourceTime = t?.source_time || '';
+      coinbaseElement.dataset.receivedAt = t?.received_at || '';
       set('live-reference-age', t ? (tickFresh ? 'Stream tick ' : 'STALE stream tick ') + age(tickAge) : 'No Coinbase stream tick saved.');
       byId('live-reference-age').className = 'small ' + (tickFresh ? 'up' : 'warn');
       const rh = latest.robinhood_reference;

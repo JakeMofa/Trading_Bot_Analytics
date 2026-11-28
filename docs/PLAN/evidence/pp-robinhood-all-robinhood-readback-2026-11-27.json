@@ -1,0 +1,21 @@
+{
+  "generation": "62b2331c-f44e-4396-b1af-0607a8957fcb",
+  "origin": "pp-live-pp-display-20261127-03",
+  "source": "robinhood_crypto",
+  "kind": "reference_quote",
+  "local_raw": 152,
+  "unique_ids": 152,
+  "archived_envelopes": 152,
+  "independently_read_back": 152,
+  "hosted_pages": 5,
+  "canonical_identity_value_hash": "f4ad390336410425fa3621c20d6e53f1ad439aa6bdeb1cbec69d13cf88151c30",
+  "first_id": "rh-v1-26e67b8c76730ccafef362ab744b6f14b8c1bf9dfce88c75ecf0383b52588204",
+  "last_id": "rh-v1-4b66d7f2354d5f865d7cb18e0537088a637ef94431bc548966a1b63a6a605b10",
+  "statuses": {
+    "two_sided": 152
+  },
+  "minimum_ack": "2026-11-28T03:35:37.317376+00:00",
+  "maximum_ack": "2026-11-28T03:38:12.646177+00:00",
+  "same_vendor_raw_text": true,
+  "matching_full_envelopes": true
+}

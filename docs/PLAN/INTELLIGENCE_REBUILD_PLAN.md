@@ -6,11 +6,48 @@ The newest dated checkpoint sets the current order of work. Earlier notes
 preserve their original scope, results, and decisions. Check the release and
 environment named in each note before applying its operational steps.
 
-- [Current PP checkpoint](#november-27-2026--freshness-and-prediction-history-acceptance-measured)
+- [Current PP checkpoint](#november-27-2026--three-btc-feeds-saved-and-displayed-on-benchmark)
 - [Supabase and PP performance baseline](#supabase-and-pp-performance-baseline)
 - [Plan map by workstream](#plan-map-by-workstream)
 - [Session handoff](SESSION_HANDOFF.md) · [Milestone checklist](../MILESTONES.md)
 - [Long-term product phases](#master-roadmap)
+
+## November 27, 2026 — Three BTC feeds saved and displayed on Benchmark
+
+Release .6, source d3088b2, passed exact CI and
+[Benchmark CD 46103018334](https://github.com/JakeMofa/Trading_Bot_Analytics/actions/runs/46103018334).
+The bounded 150-second collection ran from approximately 9:35:30 p.m.
+Central with Coinbase, Polymarket US and Robinhood enabled.
+
+All 152 Robinhood v1 observations matched local PostgreSQL and an independent
+authenticated Supabase reader, including original provider response text,
+exact decimal price and sides, provider retrieval timestamp, event ID and
+envelope hashes. The complete run drained 2,915 of 2,915 structured ACKs,
+with zero pending and leases. First sampled drain was 7.52 s after durable
+OFF confirmation. [All Robinhood readbacks](evidence/pp-robinhood-all-robinhood-readback-2026-11-27.json)
+and [archive operations](evidence/pp-robinhood-scope-operations-2026-11-27.json).
+
+All 151 sampled Robinhood screen updates matched values, identity and
+timestamps. All three source cards were correct and fresh in those samples.
+Robinhood provider-retrieval age had median 182 ms and p95 359 ms at the
+sampled updates. This is distinct from the first event's 5.809 s verified
+archive ACK. Equal baseline UP/DOWN values rendered for all 148 sampled
+valid estimates; the initial three unavailable estimates showed their reason.
+[Browser summary](evidence/pp-robinhood-three-btc-summary-2026-11-27.json)
+and [same event](evidence/pp-robinhood-same-event-report-2026-11-27.json).
+
+The consolidated Grafana dashboard accepted and returned all six source-age
+and PP-receipt-age series. [Readback](evidence/pp-robinhood-grafana-hosted-three-feeds-2026-11-27.json).
+The application keeps one shared Robinhood REST poller with a one-second
+cadence and rate-limit backoff. Reference history uses the existing guarded
+writer and archive, with credentials mounted only on the collector backend.
+
+Next work is the measured archive byte-packing experiment below. Coinbase
+prewrite delivery is an optional measured latency follow-up. Changes to
+deterministic input selection, permission for Robinhood retention/client
+redistribution and the 72-hour rollout remain open. This short smoke proves
+the new reference path and its saved values; it does not establish sustained
+archive capacity for a longer workload.
 
 ## November 27, 2026 — Freshness and prediction-history acceptance measured
 
@@ -49,7 +86,7 @@ packing under the existing decoded ceiling is the next offline experiment.
 [Actual encoded bytes](evidence/pp-benchmark-actual-page-bytes-2026-11-27.json).
 [Live archive rates](evidence/pp-benchmark-freshness-archive-rates-2026-11-27.json).
 
-The follow-up Robinhood release remains pending live acceptance. It includes
+The follow-up Robinhood release completed the acceptance above. It includes
 one-second v1 price polling, a separate BTC/USD card, equal baseline UP/DOWN
 prominence and per-poll price movement. Verify its exact displayed event in
 PostgreSQL and Supabase before marking that checkpoint complete. The US

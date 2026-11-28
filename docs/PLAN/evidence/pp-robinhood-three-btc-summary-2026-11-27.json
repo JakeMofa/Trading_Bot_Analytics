@@ -1,0 +1,289 @@
+{
+  "model": {
+    "samples": 151,
+    "ready_with_both_probabilities": 148,
+    "both_percentages_visible": 148,
+    "equal_sized_labels": 151,
+    "first_ready": {
+      "status": "ready",
+      "up": 0.6374899683175543,
+      "down": 0.36251003168244567,
+      "screen_up": "63.7% UP",
+      "screen_down": "36.3% DOWN",
+      "screen_state": "gaussian_distance_v1 \u00b7 Experimental, untrained \u00b7 In-memory estimate at 2026-11-28T03:35:34.730847+00:00 \u00b7 Coinbase tick 0s ago \u00b7 volatility snapshot 0s ago",
+      "equal_font": true
+    },
+    "first_abstention": {
+      "status": "missing_feature_snapshot",
+      "up": null,
+      "down": null,
+      "screen_up": "\u2014",
+      "screen_down": "\u2014",
+      "screen_state": "Live estimate unavailable \u00b7 missing feature snapshot",
+      "equal_font": true
+    }
+  },
+  "robinhood_movement": {
+    "direction_counts": {
+      "down": 64,
+      "up": 87
+    },
+    "visible_counts": {
+      "down": 64,
+      "up": 87
+    },
+    "screen_examples": [
+      [
+        "Down $0.00367181 since previous poll",
+        {
+          "delta_usd": "-0.003671810",
+          "previous_event_id": "rh-v1-26e67b8c76730ccafef362ab744b6f14b8c1bf9dfce88c75ecf0383b52588204",
+          "previous_received_at": "2026-11-28T03:35:30.809422+00:00"
+        }
+      ],
+      [
+        "Down $0.000045255 since previous poll",
+        {
+          "delta_usd": "-0.000045255",
+          "previous_event_id": "rh-v1-955abb6e7d5cb739e8938480eaef68180f05cff29365b707a6c095e8dc539607",
+          "previous_received_at": "2026-11-28T03:35:31.515892+00:00"
+        }
+      ],
+      [
+        "Up $0.004898615 since previous poll",
+        {
+          "delta_usd": "0.004898615",
+          "previous_event_id": "rh-v1-508428386197636ad45923f086ba4ec1da9bf0559bfc659bad16b473926e340c",
+          "previous_received_at": "2026-11-28T03:35:32.511011+00:00"
+        }
+      ],
+      [
+        "Down $0.001433955 since previous poll",
+        {
+          "delta_usd": "-0.001433955",
+          "previous_event_id": "rh-v1-0716485ec92fbe34eb11227f1b4ed930b44e4522c66aae91fb005b56c74aad67",
+          "previous_received_at": "2026-11-28T03:35:33.512045+00:00"
+        }
+      ],
+      [
+        "Down $0.000056405 since previous poll",
+        {
+          "delta_usd": "-0.000056405",
+          "previous_event_id": "rh-v1-ed744f0d82bbf128001a361d74568ffaba24b0f8e7469bf9b8a5ab493fecff55",
+          "previous_received_at": "2026-11-28T03:35:43.609629+00:00"
+        }
+      ],
+      [
+        "Up $0.004898605 since previous poll",
+        {
+          "delta_usd": "0.004898605",
+          "previous_event_id": "rh-v1-a14f1a57ea9460732add241bf93c379bd5581141e02739d0c76c9504460d5496",
+          "previous_received_at": "2026-11-28T03:36:17.962996+00:00"
+        }
+      ],
+      [
+        "Up $0.000898435 since previous poll",
+        {
+          "delta_usd": "0.000898435",
+          "previous_event_id": "rh-v1-46406cca7fe6998e13dfdf63637c662e0e792a3588287c05b6d3edc2a02852b8",
+          "previous_received_at": "2026-11-28T03:35:36.469346+00:00"
+        }
+      ],
+      [
+        "Down $0.000056395 since previous poll",
+        {
+          "delta_usd": "-0.000056395",
+          "previous_event_id": "rh-v1-a678e644c6073b8c1b1c7999e90e0f608f2bc44f0c3ac86f8381e196c2734f4a",
+          "previous_received_at": "2026-11-28T03:35:37.609278+00:00"
+        }
+      ]
+    ]
+  },
+  "origin": "pp-live-pp-display-20261127-03",
+  "generation": "62b2331c-f44e-4396-b1af-0607a8957fcb",
+  "sse_messages": 566,
+  "wrong_origin_messages": 0,
+  "sources": {
+    "robinhood": {
+      "first_exact": {
+        "source": "robinhood",
+        "event_id": "rh-v1-955abb6e7d5cb739e8938480eaef68180f05cff29365b707a6c095e8dc539607",
+        "price_usd": "59892.996315865",
+        "book_status": "two_sided",
+        "source_time": "2026-11-28T03:35:31.4748979Z",
+        "received_at": "2026-11-28T03:35:31.515892+00:00",
+        "displayed": "$59,893.00",
+        "matched": true,
+        "source_age_s": 0.768,
+        "receipt_age_s": 0.727,
+        "fresh": true,
+        "market": "2981224",
+        "screen_browser_ms": 1795836932266
+      },
+      "exact_on_sampled_frames": 151,
+      "fresh_on_sampled_frames": 151,
+      "sampled_frames": 151,
+      "source_age_seconds": {
+        "count": 151,
+        "p50": 0.182,
+        "p95": 0.359,
+        "max": 0.768
+      },
+      "pp_receipt_age_seconds": {
+        "count": 151,
+        "p50": 0.144,
+        "p95": 0.254,
+        "max": 0.727
+      },
+      "first_exact_seconds_after_pp_on_receipt": 1.967,
+      "book_status": {
+        "two_sided": 151
+      },
+      "browser_sse_to_two_frames_ms": {
+        "count": 151,
+        "p50": 14,
+        "p95": 25,
+        "max": 185
+      }
+    },
+    "polymarket": {
+      "first_exact": {
+        "source": "polymarket",
+        "event_id": "btc-index-c0402a865f27c8d9904449e44c2e686c46507ead72bbafd3fa9f6c247c74be2a",
+        "price_usd": "59881.88",
+        "book_status": null,
+        "source_time": "2026-11-28T03:35:31+00:00",
+        "received_at": "2026-11-28T03:35:32.107126+00:00",
+        "displayed": "$59,881.88",
+        "matched": true,
+        "source_age_s": 1.242,
+        "receipt_age_s": 0.135,
+        "fresh": true,
+        "market": "2981224",
+        "screen_browser_ms": 1795836932266
+      },
+      "exact_on_sampled_frames": 151,
+      "fresh_on_sampled_frames": 151,
+      "sampled_frames": 151,
+      "source_age_seconds": {
+        "count": 151,
+        "p50": 1.994,
+        "p95": 2.735,
+        "max": 3.018
+      },
+      "pp_receipt_age_seconds": {
+        "count": 151,
+        "p50": 0.668,
+        "p95": 1.054,
+        "max": 1.497
+      },
+      "first_exact_seconds_after_pp_on_receipt": 1.967
+    },
+    "coinbase": {
+      "first_exact": {
+        "source": "coinbase",
+        "event_id": "exchange-trade-1150160975",
+        "price_usd": "59875.55",
+        "book_status": null,
+        "source_time": "2026-11-28T03:35:31.624383Z",
+        "received_at": "2026-11-28T03:35:31.716422+00:00",
+        "displayed": "$59,875.55",
+        "matched": true,
+        "source_age_s": 0.618,
+        "receipt_age_s": 0.526,
+        "fresh": true,
+        "market": "2981224",
+        "screen_browser_ms": 1795836932266
+      },
+      "exact_on_sampled_frames": 151,
+      "fresh_on_sampled_frames": 151,
+      "sampled_frames": 151,
+      "source_age_seconds": {
+        "count": 151,
+        "p50": 0.756,
+        "p95": 2.253,
+        "max": 3.484
+      },
+      "pp_receipt_age_seconds": {
+        "count": 151,
+        "p50": 0.728,
+        "p95": 2.023,
+        "max": 2.93
+      },
+      "first_exact_seconds_after_pp_on_receipt": 1.967
+    }
+  },
+  "joint_fresh_screen_sample": {
+    "origin": "pp-live-pp-display-20261127-03",
+    "market": "2981224",
+    "sse_generated": "2026-11-28T03:35:32.242990+00:00",
+    "displayed_move": "Down $0.00367181 since previous poll",
+    "movement": {
+      "delta_usd": "-0.003671810",
+      "previous_event_id": "rh-v1-26e67b8c76730ccafef362ab744b6f14b8c1bf9dfce88c75ecf0383b52588204",
+      "previous_received_at": "2026-11-28T03:35:30.809422+00:00"
+    },
+    "model": {
+      "status": "missing_feature_snapshot",
+      "up": null,
+      "down": null,
+      "screen_up": "\u2014",
+      "screen_down": "\u2014",
+      "screen_state": "Live estimate unavailable \u00b7 missing feature snapshot",
+      "equal_font": true
+    },
+    "sse_browser_ms": 1795836932256,
+    "screen_browser_ms": 1795836932266,
+    "sources": {
+      "robinhood": {
+        "source": "robinhood",
+        "event_id": "rh-v1-955abb6e7d5cb739e8938480eaef68180f05cff29365b707a6c095e8dc539607",
+        "price_usd": "59892.996315865",
+        "book_status": "two_sided",
+        "source_time": "2026-11-28T03:35:31.4748979Z",
+        "received_at": "2026-11-28T03:35:31.515892+00:00",
+        "displayed": "$59,893.00",
+        "matched": true,
+        "source_age_s": 0.768,
+        "receipt_age_s": 0.727,
+        "fresh": true
+      },
+      "coinbase": {
+        "source": "coinbase",
+        "event_id": "exchange-trade-1150160975",
+        "price_usd": "59875.55",
+        "book_status": null,
+        "source_time": "2026-11-28T03:35:31.624383Z",
+        "received_at": "2026-11-28T03:35:31.716422+00:00",
+        "displayed": "$59,875.55",
+        "matched": true,
+        "source_age_s": 0.618,
+        "receipt_age_s": 0.526,
+        "fresh": true
+      },
+      "polymarket": {
+        "source": "polymarket",
+        "event_id": "btc-index-c0402a865f27c8d9904449e44c2e686c46507ead72bbafd3fa9f6c247c74be2a",
+        "price_usd": "59881.88",
+        "book_status": null,
+        "source_time": "2026-11-28T03:35:31+00:00",
+        "received_at": "2026-11-28T03:35:32.107126+00:00",
+        "displayed": "$59,881.88",
+        "matched": true,
+        "source_age_s": 1.242,
+        "receipt_age_s": 0.135,
+        "fresh": true
+      }
+    },
+    "generation_id": "62b2331c-f44e-4396-b1af-0607a8957fcb"
+  },
+  "grafana_accepted_samples_by_basis": {
+    "robinhood/provider": 11,
+    "robinhood/pp_receipt": 11,
+    "coinbase/provider": 11,
+    "coinbase/pp_receipt": 11,
+    "polymarket/provider": 11,
+    "polymarket/pp_receipt": 11
+  },
+  "method": "Fresh within 10 seconds of source and receipt. Per-source first exact compares event identity, timestamps and displayed rounded value. Distribution samples are on Robinhood updates and use the PP generated timestamp. Screen timings use two browser frames on the operator workstation."
+}

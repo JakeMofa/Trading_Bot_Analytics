@@ -1,3 +1,13 @@
+## November 27 — Robinhood and three-feed live acceptance passed
+
+Benchmark .6 displayed Coinbase, Polymarket US and Robinhood simultaneously.
+All 152 Robinhood observations matched local PostgreSQL and authenticated
+Supabase readback. All 151 sampled Robinhood display updates matched their
+event identities and values. The run drained 2,915 of 2,915 verified ACKs.
+The dashboard gives baseline UP and DOWN equal prominence and shows
+Robinhood's per-poll price movement separately.
+[Master checkpoint and evidence](PLAN/INTELLIGENCE_REBUILD_PLAN.md#november-27-2026--three-btc-feeds-saved-and-displayed-on-benchmark).
+
 ## November 27 — Freshness and history acceptance completed
 
 Benchmark .4 completed the full 9:00–9:15 p.m. Central market. Same-event

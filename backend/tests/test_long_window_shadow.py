@@ -54,6 +54,38 @@ JOURNAL = """CREATE TABLE qualification.progress(scope text PRIMARY KEY,ordinal 
        chain text NOT NULL,proof text NOT NULL)"""
 
 
+def connect_fixture(socket, user, database):
+    import psycopg
+    from psycopg.rows import dict_row
+
+    return psycopg.connect(
+        host=str(socket), user=user, dbname=database, row_factory=dict_row, autocommit=True
+    )
+
+
+def resume_in_new_process(socket, target, key, pipe):
+    # The child receives only the scope, journal verification key and private
+    # fixture socket; no in-process cursor or page cache is transferred.
+    reads = []
+
+    @contextmanager
+    def archive():
+        with connect_fixture(socket, "shadow_page_reader", "tradebot_shadow_archive") as db:
+            reads.append(db.info.backend_pid)
+            yield db
+
+    result = verify(
+        lambda: connect_fixture(socket, "tradebot_reader", "tradebot_pp"),
+        archive,
+        lambda: connect_fixture(socket, "tradebot_lifecycle", "tradebot_pp"),
+        target,
+        key=key,
+        max_pages=64,
+    )
+    pipe.send((result, reads))
+    pipe.close()
+
+
 class LongWindowQualification(unittest.TestCase):
     admin = native.InitialSealNative.__dict__["admin"]
     tearDownClass = native.InitialSealNative.__dict__["tearDownClass"]
@@ -161,12 +193,7 @@ class LongWindowQualification(unittest.TestCase):
         self.journal = lambda: self.db("tradebot_lifecycle", "tradebot_pp")
 
     def db(self, user, database):
-        import psycopg
-        from psycopg.rows import dict_row
-
-        return psycopg.connect(
-            host=str(self.socket), user=user, dbname=database, row_factory=dict_row, autocommit=True
-        )
+        return connect_fixture(self.socket, user, database)
 
     def read(self, budget, **options):
         return verify(
@@ -217,9 +244,29 @@ class LongWindowQualification(unittest.TestCase):
                 reads.append(db.info.backend_pid)
                 yield db
 
-        snapshots = []
-        for batch in (54, 64, 64, 13):
-            snapshots.append(self.read(batch, archive=observe))
+        import multiprocessing
+
+        snapshots = [self.read(54, archive=observe)]
+        ctx = multiprocessing.get_context("spawn")
+        receiver, sender = ctx.Pipe(duplex=False)
+        process = ctx.Process(
+            target=resume_in_new_process, args=(str(self.socket), self.target, self.key, sender)
+        )
+        process.start()
+        sender.close()
+        try:
+            self.assertTrue(receiver.poll(35), "fresh verifier process did not return a page checkpoint")
+            child_result, child_reads = receiver.recv()
+            process.join(5)
+            self.assertEqual(process.exitcode, 0)
+        finally:
+            receiver.close()
+            if process.is_alive():
+                process.terminate()
+                process.join(5)
+        snapshots.append(child_result)
+        reads.extend(child_reads)
+        snapshots.extend(self.read(batch, archive=observe) for batch in (64, 13))
         self.assertEqual([r["cursor"] for r in snapshots], [54, 118, 182, 195])
         self.assertEqual([r["pages_checked"] for r in snapshots], [54, 64, 64, 13])
         self.assertEqual([r["status"] for r in snapshots], ["shadow_paused"] * 3 + ["shadow_complete"])

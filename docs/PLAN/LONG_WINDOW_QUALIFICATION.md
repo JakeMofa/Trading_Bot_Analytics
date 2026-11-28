@@ -10,7 +10,8 @@ objects. At 4.57 million structured records a 500-row readback needs at least
 The generated PostgreSQL 17 test uses two databases and an independently
 authenticated archive reader. It compiled a raw object plus 194 structured
 pages from a sealed A. Verification advanced to pages 54, 118, 182 and 195
-in four invocations. The destination received 195 page reads plus one fresh
+in four invocations. A fresh Python process resumed after page 54 using the
+durable journal and the same fixture signing key. The destination received 195 page reads plus one fresh
 terminal read during that sequence. A subsequent invocation checked the
 terminal page again.
 

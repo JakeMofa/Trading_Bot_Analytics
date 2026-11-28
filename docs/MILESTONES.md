@@ -21,6 +21,16 @@ Coinbase buffering and publication of the newest Polymarket index bucket
 before its write. Live VM source age and outbox lag remain to be measured.
 [Experiment and live measures](PLAN/PP_COINBASE_TIMING_DIAGNOSIS_2026-11-19.md#november-27--bounded-feed-writers-on-disposable-postgresql-17).
 
+### Robinhood reference acceptance profile
+
+The next optional reference smoke has an isolated Benchmark origin ending in
+`-03`. Both preceding display origins stay in retained inventory. The
+operator alone mounts the Robinhood signing files. An independent PostgreSQL
+17 fixture checked that the new history roles cannot read either earlier
+display origin. Live acceptance requires a fresh Robinhood BTC/USD bid and
+ask, the exact local observation and a matching hosted receipt and projection.
+A market-data halt keeps previous observations and their source age visible.
+
 ### Dashboard model readouts
 
 The Market view now keeps the latest local decision for the same market alongside

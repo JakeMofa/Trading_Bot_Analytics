@@ -21,7 +21,7 @@ import urllib.request
 import uuid
 
 from controller import BENCHMARK_INSTANCE, Budget, Context, DeploymentHold, HostBinding, PP_INSTANCES, Request, _secure_file, require
-from linux_actions import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, PREVIOUS_DISPLAY_ORIGIN, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
+from linux_actions import (BOUNDARY_ORIGIN, DISPLAY_ORIGIN, RETAINED_DISPLAY_ORIGINS, BOUNDARY_SMOKE_ORIGIN, LinuxActions, RUNTIME_SECRETS, allowed_session_seconds,
                            cycle_environment, cycle_profile_binding, live_origin, TRIAL_ORIGIN,
                            RETAINED_TRIAL_ORIGIN, RETAINED_TRIAL_ORIGINS)
 
@@ -172,7 +172,7 @@ def _read_active():
             and IMAGE.fullmatch(data.get('image_id', '')),
             'invalid_active_transition_binding')
     profile_origin=data.get('trial_origin')
-    if profile_origin == PREVIOUS_DISPLAY_ORIGIN:
+    if profile_origin in RETAINED_DISPLAY_ORIGINS:
         # The previous release left a terminal journal with the same display
         # profile shape. Preserve its real identity in the returned record.
         require(data['state']=='generated_restored' and data['instance']==BENCHMARK_INSTANCE

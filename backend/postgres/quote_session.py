@@ -19,7 +19,7 @@ from .live_ingest import _pause_or_stop, _step, POLYMARKET_DISCOVERY_UNAVAILABLE
 from .live_diagnostics import LiveDiagnostic
 from .feed_writer import feed_writer
 from .quote_display import DisplaySender
-from .reference_prices import ONE_SECOND_ORIGIN, collect_reference
+from .reference_prices import ONE_SECOND_ORIGINS, collect_reference
 
 
 def utc():
@@ -172,7 +172,7 @@ async def run(store, client, stop, interval, clock):
         async with asyncio.TaskGroup() as tasks:
             writer = tasks.create_task(pipe.write())
             reader = tasks.create_task(stream_books(pipe, stop, keypair))
-            cadence = 1 if store.settings.origin_id == ONE_SECOND_ORIGIN else 5
+            cadence = 1 if store.settings.origin_id in ONE_SECOND_ORIGINS else 5
             tasks.create_task(collect_reference(store, client, stop, clock, pipe.publish_reference, cadence=cadence))
             while not stop.is_set():
                 try:

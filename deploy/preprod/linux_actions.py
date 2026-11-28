@@ -63,12 +63,13 @@ CYCLE_POLICY='two-official-markets-cycle'
 ELAPSED_CYCLE_POLICY='elapsed-30m-cycle'
 ELAPSED_CYCLE_SECONDS=1800
 TRIAL_ORIGIN='pp-live-pp-trial-20261119-07'
-PREVIOUS_DISPLAY_ORIGIN='pp-live-pp-display-20261127-01'
-DISPLAY_ORIGIN='pp-live-pp-display-20261127-02'
+PREVIOUS_DISPLAY_ORIGIN='pp-live-pp-display-20261127-02'
+RETAINED_DISPLAY_ORIGINS=('pp-live-pp-display-20261127-01',PREVIOUS_DISPLAY_ORIGIN)
+DISPLAY_ORIGIN='pp-live-pp-display-20261127-03'
 DISPLAY_DIR=Path('/run/tradebot-pp-deploy/quote-display')
-DISPLAY_KEYS=('market_key_id', 'market_secret')
+DISPLAY_KEYS=('market_key_id', 'market_secret', 'robinhood_key_id', 'robinhood_private_key')
 PREDICTION_READER_FILES={
-    'pp_prediction_history_reader_dsn': RUNTIME_SECRETS/'display_20261127_02_prediction_reader_dsn',
+    'pp_prediction_history_reader_dsn': RUNTIME_SECRETS/'display_20261127_03_prediction_reader_dsn',
     'pp_history_ca': Path('/etc/tradebot/cloud/pp_history_ca'),
 }
 BOUNDARY_ORIGIN='pp-live-pp-boundary-20261124-01'
@@ -77,7 +78,7 @@ BOUNDARY_LEASE_SECONDS=4100
 BOUNDARY_SMOKE_ORIGIN='pp-live-pp-smoke-20261125-01'
 BOUNDARY_SMOKE_LEASE_SECONDS=540
 BOUNDARY_ORIGINS=frozenset((BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN,DISPLAY_ORIGIN))
-OUTBOX_ORIGINS += (BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN,PREVIOUS_DISPLAY_ORIGIN,DISPLAY_ORIGIN)
+OUTBOX_ORIGINS += (BOUNDARY_ORIGIN,BOUNDARY_SMOKE_ORIGIN,*RETAINED_DISPLAY_ORIGINS,DISPLAY_ORIGIN)
 RETAINED_TRIAL_ORIGIN='pp-live-pp-trial-20261119-01'
 RETAINED_TRIAL_ORIGINS=frozenset({RETAINED_TRIAL_ORIGIN,'pp-live-pp-trial-20261119-02','pp-live-pp-trial-20261119-03','pp-live-pp-trial-20261119-04','pp-live-pp-trial-20261119-05','pp-live-pp-trial-20261119-06'})
 RETAINED_TRIAL_OVERLAYS={RETAINED_TRIAL_ORIGIN:'runtime.retained-trial-01.compose.yaml',
@@ -178,7 +179,10 @@ def expected_environment(service, *, live=False, initial_a=None, trial_origin=No
                 env['TRADEBOT_PP_PREDICTION_HISTORY']='true'
             if service == 'operator':
                 env['TRADEBOT_PP_COINBASE_TIMING']='true'
-                env.update(POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
+                env.update(TRADEBOT_PP_ROBINHOOD_REFERENCE='1',
+                           ROBINHOOD_API_KEY_FILE='/run/secrets/robinhood_key_id',
+                           ROBINHOOD_PRIVATE_KEY_FILE='/run/secrets/robinhood_private_key',
+                           POLYMARKET_KEY_ID_FILE='/run/secrets/market_key_id',
                            POLYMARKET_SECRET_KEY_FILE='/run/secrets/market_secret')
         if service in ('lifecycle','operator'):
             env.update(cycle_environment(initial_a,trial_origin))

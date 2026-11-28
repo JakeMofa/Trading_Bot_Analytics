@@ -75,13 +75,19 @@ class ProfileTests(unittest.TestCase):
         self.assertTrue(a.allowed_session_seconds(1320,scoped=True,origin=a.DISPLAY_ORIGIN))
         self.assertFalse(a.allowed_session_seconds(540,scoped=True,origin=a.DISPLAY_ORIGIN))
         self.assertFalse(display['services']['api']['environment'].get('POLYMARKET_SECRET_KEY_FILE'))
+        self.assertEqual(display['services']['operator']['environment']['TRADEBOT_PP_ROBINHOOD_REFERENCE'],'1')
+        for service in ('api','calculation','lifecycle'):
+            self.assertNotIn('ROBINHOOD_PRIVATE_KEY_FILE', display['services'][service]['environment'])
+            self.assertNotIn('robinhood_private_key',
+                             [x['source'] for x in display['services'][service].get('secrets',[])])
+
         for service in ('operator','api'):
             bad=deepcopy(display)
             bad['services'][service]['volumes'][0]['source']='/etc'
             with self.assertRaises(DeploymentHold):
                 p.validate_profile(base,bad,display_child,folder.parent.parent,IMAGE,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN)
         self.assertEqual(display_child['secrets']['pp_boundary_history_writer_dsn']['file'],
-                         '/etc/tradebot/cloud/display_20261127_02_history_writer_dsn')
+                         '/etc/tradebot/cloud/display_20261127_03_history_writer_dsn')
         self.assertNotIn('sealed_archive',display_child['services'])
         with self.assertRaises(DeploymentHold):
             p.child_service(base,ANCHOR,boundary_origin=a.DISPLAY_ORIGIN,archive=True)
